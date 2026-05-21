@@ -17,7 +17,15 @@ Private football pick'em app for a small group. Each person picks 5 games from t
 
 ## Odds refresh schedule
 
-`vercel.json` schedules Odds API pulls Monday-Friday at:
+Vercel Hobby only allows daily cron schedules, so this app does **not** rely on Vercel Cron for the every-4-hour odds refresh.
+
+Use an external scheduler such as cron-job.org or EasyCron to call this endpoint:
+
+```txt
+https://YOUR-VERCEL-APP.vercel.app/api/cron/tick?secret=YOUR_CRON_SECRET
+```
+
+Schedule it Monday-Friday at:
 
 - 2 AM CT
 - 6 AM CT
@@ -26,7 +34,12 @@ Private football pick'em app for a small group. Each person picks 5 games from t
 - 6 PM CT
 - 10 PM CT
 
-Each pull requests only `markets=spreads` and `regions=us` for NFL and CFB.
+The `/api/cron/tick` endpoint runs both jobs:
+
+1. `/api/cron/odds` pulls updated NFL/CFB spreads from The Odds API.
+2. `/api/cron/lock` closes games whose lock time has passed and freezes any remaining draft picks.
+
+Each odds pull requests only `markets=spreads` and `regions=us` for NFL and CFB.
 
 Estimated usage:
 
@@ -87,6 +100,7 @@ Then import the GitHub repo into Vercel and add the environment variables.
 ## Important files
 
 - `lib/lockRules.ts` contains all lock deadline logic.
+- `app/api/cron/tick/route.ts` is the external-scheduler endpoint that runs odds refresh + lock checks together.
 - `app/api/cron/odds/route.ts` pulls spreads from The Odds API.
 - `app/api/cron/lock/route.ts` auto-locks closed games and draft picks.
 - `app/api/picks/route.ts` handles draft picks and early lock picks.
