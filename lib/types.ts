@@ -64,3 +64,20 @@ export type WeekRule = {
   nflRequired: number;
   underdogTotal: number;
 };
+
+export type BankSettings = {
+  id: number;
+  winner_amount: number;
+  loser_amount: number;
+  updated_at?: string;
+};
+
+export type BankEntry = {
+  id: string;
+  week: number;
+  user_id: string;
+  amount: number;
+  note: string | null;
+  created_at?: string;
+  profile?: { display_name: string } | null;
+};

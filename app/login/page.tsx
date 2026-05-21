@@ -48,11 +48,11 @@ export default function LoginPage() {
 
   return <main className="app-shell login-screen">
     <section className="login-card">
-      <div className="login-mark">FP</div>
+      <img src="/icon.png" alt="Go Chargers Go" className="login-logo" />
       <h1>{mode === "claim" ? "Claim your account" : "Sign in"}</h1>
       <p>{mode === "claim" ? "Pick your username and create your own password. You only do this once." : "Use your private family username and password."}</p>
 
-      <div className="mode-toggle"><button className={mode === "signin" ? "active" : ""} onClick={() => setMode("signin")}>Sign in</button><button className={mode === "claim" ? "active" : ""} onClick={() => setMode("claim")}>First time</button></div>
+      <div className="mode-toggle"><button type="button" className={mode === "signin" ? "active" : ""} onClick={() => setMode("signin")}>Sign in</button><button type="button" className={mode === "claim" ? "active" : ""} onClick={() => setMode("claim")}>First time</button></div>
 
       <form onSubmit={mode === "claim" ? claim : signIn}>
         <label>Username</label>

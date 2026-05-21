@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { CalendarClock, ChevronDown, EyeOff, Lock, LogOut, Shield, Trophy, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CalendarClock, ChevronDown, DollarSign, EyeOff, Landmark, Lock, LogOut, Shield, Trophy, Zap } from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
-import type { Game, Pick, Profile, Standing, WeekRule, PickType } from "@/lib/types";
+import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, Standing, WeekRule } from "@/lib/types";
 import { formatSpread, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 
-type Tab = "board" | "card" | "group" | "standings" | "rules";
+type Tab = "board" | "card" | "group" | "standings" | "bank" | "rules";
 type Filter = "ALL" | "CFB" | "NFL" | "DOGS" | "OPEN" | "LOCKED";
 
 type AppData = {
@@ -16,10 +16,14 @@ type AppData = {
   games: Game[];
   picks: Pick[];
   standings: Standing[];
+  bankSettings: BankSettings;
+  bankEntries: BankEntry[];
   week: number;
   weekRule: WeekRule;
   availableWeeks: number[];
 };
+
+type WeeklyStanding = Standing & { rank: number };
 
 function dt(iso: string) {
   return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
@@ -40,6 +44,33 @@ function teamIsDog(game: Game, team: string) {
 function teamDogValue(game: Game, team: string) {
   return underdogWinValue(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
 }
+function money(value: number) {
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  return `${sign}$${Math.abs(value).toFixed(0)}`;
+}
+function computeWeeklyStandings(profiles: Profile[], weekPicks: Pick[]): WeeklyStanding[] {
+  const map = new Map<string, WeeklyStanding>();
+  for (const profile of profiles) {
+    map.set(profile.id, { user_id: profile.id, display_name: profile.display_name, wins: 0, losses: 0, pushes: 0, win_pct: 0, rank: 0 });
+  }
+  for (const pick of weekPicks) {
+    const row = map.get(pick.user_id);
+    if (!row || pick.status !== "locked") continue;
+    if (pick.result === "win") row.wins += pick.pick_type === "underdog" ? Number(pick.underdog_win_value || 1) : 1;
+    if (pick.result === "loss") row.losses += 1;
+    if (pick.result === "push") row.pushes += 1;
+  }
+  const out = Array.from(map.values()).map((row) => ({ ...row, win_pct: row.wins + row.losses === 0 ? 0 : row.wins / (row.wins + row.losses) }));
+  out.sort((a, b) => (b.win_pct - a.win_pct) || (b.wins - a.wins) || (a.losses - b.losses) || a.display_name.localeCompare(b.display_name));
+  let rank = 1;
+  return out.map((row, index) => {
+    if (index > 0) {
+      const prev = out[index - 1];
+      if (!(row.win_pct === prev.win_pct && row.wins === prev.wins && row.losses === prev.losses)) rank = index + 1;
+    }
+    return { ...row, rank };
+  });
+}
 
 export default function PickemApp() {
   const [tab, setTab] = useState<Tab>("board");
@@ -48,6 +79,9 @@ export default function PickemApp() {
   const [week, setWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [savingBank, setSavingBank] = useState(false);
+  const [winnerAmount, setWinnerAmount] = useState("20");
+  const [loserAmount, setLoserAmount] = useState("10");
 
   async function load(nextWeek = week) {
     setLoading(true);
@@ -74,6 +108,8 @@ export default function PickemApp() {
       return;
     }
     setData(payload);
+    setWinnerAmount(String(payload.bankSettings?.winner_amount ?? 20));
+    setLoserAmount(String(payload.bankSettings?.loser_amount ?? 10));
     setWeek(payload.week);
     setLoading(false);
   }
@@ -94,6 +130,22 @@ export default function PickemApp() {
     return true;
   }
 
+  async function postBank(body: any) {
+    const supabase = getSupabaseBrowser();
+    const { data: sessionData } = await supabase!.auth.getSession();
+    const token = sessionData.session?.access_token;
+    setSavingBank(true);
+    const response = await fetch("/api/bank", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    const payload = await response.json();
+    setSavingBank(false);
+    if (!response.ok) {
+      alert(payload.error || "Bank update failed.");
+      return false;
+    }
+    await load(week);
+    return true;
+  }
+
   async function signOut() {
     const supabase = getSupabaseBrowser();
     await supabase?.auth.signOut();
@@ -103,13 +155,21 @@ export default function PickemApp() {
   if (loading) return <div className="app-shell"><main className="container"><div className="loading-card">Loading pick'em board…</div></main></div>;
   if (!data) return <div className="app-shell"><main className="container"><div className="error-card">{message || "Could not load app."}</div></main></div>;
 
-  const { currentUser, games, picks, profiles, standings, availableWeeks } = data;
+  const { currentUser, games, picks, profiles, standings, availableWeeks, bankEntries, bankSettings } = data;
   const rule = data.weekRule || getWeekRule(data.week);
   const myPicks = picks.filter((p) => p.user_id === currentUser.id && p.week === data.week);
   const myRegular = myPicks.filter((p) => p.pick_type === "regular");
   const myUnderdog = myPicks.find((p) => p.pick_type === "underdog");
   const regularCounts = countRegularByLeague(myPicks, games);
   const lockedCount = myPicks.filter((p) => p.status === "locked").length;
+  const weeklyStandings = computeWeeklyStandings(profiles, picks);
+  const weekSettlements = bankEntries.filter((entry) => entry.week === data.week);
+  const weekSettled = weekSettlements.length === profiles.length && profiles.length > 0;
+  const bankTotals = profiles.map((profile) => ({
+    id: profile.id,
+    display_name: profile.display_name,
+    total: bankEntries.filter((entry) => entry.user_id === profile.id).reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
+  })).sort((a, b) => b.total - a.total);
 
   const filteredGames = games.filter((g) => {
     if (filter === "CFB") return g.league === "CFB";
@@ -136,9 +196,12 @@ export default function PickemApp() {
     <header className="scoreboard-header">
       <div className="scoreboard-topline">Family Football Pick'em</div>
       <div className="scoreboard-main">
-        <div>
-          <div className="score-title">{rule.label}</div>
-          <div className="score-sub">{rule.regularTotal} regular · {rule.underdogTotal} dog · hidden until lock</div>
+        <div className="title-wrap">
+          <img src="/icon.png" alt="Go Chargers Go" className="brand-mark" />
+          <div>
+            <div className="score-title">{rule.label}</div>
+            <div className="score-sub">{rule.regularTotal} regular · {rule.underdogTotal} dog · hidden until lock</div>
+          </div>
         </div>
         <button className="profile-button" onClick={signOut}><span>{currentUser.display_name}</span><LogOut size={14} /></button>
       </div>
@@ -155,11 +218,11 @@ export default function PickemApp() {
       <section className="status-grid">
         <div className="status-card"><span>CFB</span><strong>{regularCounts.cfb}/{rule.cfbRequired}</strong></div>
         <div className="status-card"><span>NFL</span><strong>{regularCounts.nfl}/{rule.nflRequired}</strong></div>
-        <div className="status-card gold"><span>Dog</span><strong>{myUnderdog ? `+${myUnderdog.underdog_win_value || "?"}` : "Open"}</strong></div>
+        <div className="status-card gold"><span>Bank leader</span><strong>{bankTotals[0] ? money(bankTotals[0].total) : "$0"}</strong></div>
       </section>
 
-      <nav className="bottom-tabs">
-        {(["board", "card", "group", "standings", "rules"] as Tab[]).map((t) => <button key={t} className={`bottom-tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>{t === "card" ? "My Card" : t[0].toUpperCase() + t.slice(1)}</button>)}
+      <nav className="bottom-tabs six-tabs">
+        {(["board", "card", "group", "standings", "bank", "rules"] as Tab[]).map((t) => <button key={t} className={`bottom-tab ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>{t === "card" ? "My Card" : t[0].toUpperCase() + t.slice(1)}</button>)}
       </nav>
 
       {tab === "board" && <section className="panel">
@@ -171,7 +234,7 @@ export default function PickemApp() {
         </div>
         <div className="game-list">
           {filteredGames.length === 0 && <div className="empty-state">No games loaded for this week yet. When the Odds API has games for this week, your cron job will fill this board.</div>}
-          {filteredGames.map((game) => <GameCard key={game.id} game={game} picks={myPicks} rule={rule} addDraftPick={addDraftPick} />)}
+          {filteredGames.map((game) => <GameCard key={game.id} game={game} picks={myPicks} addDraftPick={addDraftPick} />)}
         </div>
       </section>}
 
@@ -198,6 +261,50 @@ export default function PickemApp() {
         </tbody></table>
       </section>}
 
+      {tab === "bank" && <section className="panel">
+        <div className="panel-head"><div><h2><Landmark size={18} /> Bank</h2><p>Weekly winner gets paid, losers pay. Running totals stay here all season.</p></div></div>
+        <div className="bank-summary-grid">
+          {bankTotals.map((row) => <div key={row.id} className="money-card">
+            <span>{row.display_name}</span>
+            <strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong>
+          </div>)}
+        </div>
+
+        <div className="subsection">
+          <h3><DollarSign size={16} /> This week's bank</h3>
+          <div className="weekly-bank-status">
+            <div>
+              <strong>{weekSettled ? "Week settled" : "Week not settled"}</strong>
+              <p className="muted">Once the week is graded, settle it and the running total updates automatically.</p>
+            </div>
+            {currentUser.is_admin && <button className="btn gold" disabled={savingBank} onClick={() => postBank({ action: "settleWeek", week: data.week })}>{savingBank ? "Working…" : weekSettled ? "Re-settle Week" : "Settle This Week"}</button>}
+          </div>
+          <table className="standings-table compact"><thead><tr><th>Rank</th><th>Name</th><th>W</th><th>L</th><th>P</th><th>%</th></tr></thead><tbody>
+            {weeklyStandings.map((s) => <tr key={s.user_id}><td>{s.rank}</td><td><strong>{s.display_name}</strong></td><td>{s.wins}</td><td>{s.losses}</td><td>{s.pushes}</td><td>{s.win_pct ? s.win_pct.toFixed(3).replace(/^0/, "") : "—"}</td></tr>)}
+          </tbody></table>
+          {weekSettlements.length > 0 && <div className="settlement-list">
+            {weekSettlements.map((entry) => <div key={entry.id} className="settlement-row"><span>{entry.profile?.display_name || profiles.find((p) => p.id === entry.user_id)?.display_name || "User"}</span><strong className={Number(entry.amount) > 0 ? "money-pos" : Number(entry.amount) < 0 ? "money-neg" : ""}>{money(Number(entry.amount))}</strong></div>)}
+          </div>}
+        </div>
+
+        {currentUser.is_admin && <div className="subsection bank-settings-panel">
+          <h3><Shield size={16} /> Bank settings</h3>
+          <div className="settings-grid">
+            <label><span>Winner gets</span><input className="input" inputMode="decimal" value={winnerAmount} onChange={(e) => setWinnerAmount(e.target.value)} /></label>
+            <label><span>Loser pays</span><input className="input" inputMode="decimal" value={loserAmount} onChange={(e) => setLoserAmount(e.target.value)} /></label>
+          </div>
+          <button className="btn" disabled={savingBank} onClick={() => postBank({ action: "saveSettings", winnerAmount: Number(winnerAmount || bankSettings.winner_amount), loserAmount: Number(loserAmount || bankSettings.loser_amount) })}>{savingBank ? "Saving…" : "Save bank settings"}</button>
+        </div>}
+
+        <div className="subsection">
+          <h3>Season ledger</h3>
+          <div className="ledger-list">
+            {bankEntries.length === 0 && <p className="muted">No bank entries yet.</p>}
+            {bankEntries.map((entry) => <div key={entry.id} className="ledger-row"><div><strong>Week {entry.week}</strong><p>{entry.profile?.display_name || profiles.find((p) => p.id === entry.user_id)?.display_name || "User"} · {entry.note || "Bank entry"}</p></div><strong className={Number(entry.amount) > 0 ? "money-pos" : Number(entry.amount) < 0 ? "money-neg" : ""}>{money(Number(entry.amount))}</strong></div>)}
+          </div>
+        </div>
+      </section>}
+
       {tab === "rules" && <section className="panel rules-panel">
         <h2>Rules</h2>
         <div className="rule-row"><Shield size={18} /><span>Week 0: 3 college picks only.</span></div>
@@ -211,7 +318,7 @@ export default function PickemApp() {
   </div>;
 }
 
-function GameCard({ game, picks, rule, addDraftPick }: { game: Game; picks: Pick[]; rule: WeekRule; addDraftPick: (game: Game, team: string, pickType: PickType) => void }) {
+function GameCard({ game, picks, addDraftPick }: { game: Game; picks: Pick[]; addDraftPick: (game: Game, team: string, pickType: PickType) => void }) {
   const closed = isClosed(game);
   const existing = picks.find((p) => p.game_id === game.id);
   return <article className={`game-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>

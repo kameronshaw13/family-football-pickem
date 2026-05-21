@@ -66,22 +66,50 @@ do $$ begin
 exception when duplicate_object then null;
 end $$;
 
+create table if not exists bank_settings (
+  id integer primary key default 1,
+  winner_amount numeric not null default 20,
+  loser_amount numeric not null default 10,
+  updated_at timestamptz not null default now(),
+  constraint bank_settings_singleton check (id = 1)
+);
+
+insert into bank_settings (id, winner_amount, loser_amount)
+values (1, 20, 10)
+on conflict (id) do nothing;
+
+create table if not exists bank_entries (
+  id uuid primary key default gen_random_uuid(),
+  week integer not null,
+  user_id uuid not null references profiles(id) on delete cascade,
+  amount numeric not null,
+  note text,
+  created_at timestamptz not null default now(),
+  unique(week, user_id)
+);
+
 create index if not exists idx_games_week on games(week);
 create index if not exists idx_games_lock_time on games(lock_time);
 create index if not exists idx_picks_user_week on picks(user_id, week);
 create index if not exists idx_picks_game on picks(game_id);
 create index if not exists idx_picks_type on picks(pick_type);
+create index if not exists idx_bank_entries_week on bank_entries(week);
+create index if not exists idx_bank_entries_user on bank_entries(user_id);
 
 alter table profiles enable row level security;
 alter table games enable row level security;
 alter table odds_snapshots enable row level security;
 alter table picks enable row level security;
+alter table bank_settings enable row level security;
+alter table bank_entries enable row level security;
 
 drop policy if exists "profiles visible to logged in users" on profiles;
 drop policy if exists "games visible to logged in users" on games;
 drop policy if exists "own picks visible before reveal" on picks;
 drop policy if exists "users insert their own picks" on picks;
 drop policy if exists "users update their own draft picks" on picks;
+drop policy if exists "bank settings visible to logged in users" on bank_settings;
+drop policy if exists "bank entries visible to logged in users" on bank_entries;
 
 create policy "profiles visible to logged in users" on profiles for select to authenticated using (true);
 create policy "games visible to logged in users" on games for select to authenticated using (true);
@@ -91,6 +119,8 @@ create policy "own picks visible before reveal" on picks for select to authentic
 );
 create policy "users insert their own picks" on picks for insert to authenticated with check (user_id = auth.uid());
 create policy "users update their own draft picks" on picks for update to authenticated using (user_id = auth.uid() and status = 'draft') with check (user_id = auth.uid());
+create policy "bank settings visible to logged in users" on bank_settings for select to authenticated using (true);
+create policy "bank entries visible to logged in users" on bank_entries for select to authenticated using (true);
 
 create or replace view standings as
 select
@@ -117,9 +147,13 @@ grant all privileges on table profiles to service_role;
 grant all privileges on table games to service_role;
 grant all privileges on table odds_snapshots to service_role;
 grant all privileges on table picks to service_role;
+grant all privileges on table bank_settings to service_role;
+grant all privileges on table bank_entries to service_role;
 grant select on table standings to anon, authenticated, service_role;
 grant select on table games to anon, authenticated;
 grant select on table odds_snapshots to anon, authenticated;
 grant select on table profiles to authenticated;
+grant select on table bank_settings to authenticated;
+grant select on table bank_entries to authenticated;
 grant select, insert, update, delete on table picks to authenticated;
 grant usage, select on all sequences in schema public to anon, authenticated, service_role;

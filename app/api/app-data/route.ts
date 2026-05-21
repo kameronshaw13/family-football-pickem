@@ -50,6 +50,16 @@ export async function GET(req: NextRequest) {
     const { data: standings, error: standingError } = await supabase.from("standings").select("*").order("win_pct", { ascending: false }).order("wins", { ascending: false });
     if (standingError) return NextResponse.json({ ok: false, error: standingError.message }, { status: 500 });
 
+    const { data: bankSettings, error: bankSettingsError } = await supabase.from("bank_settings").select("*").eq("id", 1).maybeSingle();
+    if (bankSettingsError) return NextResponse.json({ ok: false, error: bankSettingsError.message }, { status: 500 });
+
+    const { data: bankEntries, error: bankEntriesError } = await supabase
+      .from("bank_entries")
+      .select("*, profile:profiles(display_name)")
+      .order("week", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (bankEntriesError) return NextResponse.json({ ok: false, error: bankEntriesError.message }, { status: 500 });
+
     return NextResponse.json({
       ok: true,
       currentUser: profile,
@@ -57,6 +67,8 @@ export async function GET(req: NextRequest) {
       games,
       picks: visiblePicks,
       standings: standings || [],
+      bankSettings: bankSettings || { id: 1, winner_amount: 20, loser_amount: 10 },
+      bankEntries: bankEntries || [],
       week,
       weekRule: getWeekRule(week),
       availableWeeks: Array.from(new Set((allGames || []).map((g) => g.week))).sort((a, b) => a - b)
