@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/cron/odds?secret=$CRON_SECRET", "schedule": "0 2,6,10,14,18,22 * * 1-5" },
+    { "path": "/api/cron/lock?secret=$CRON_SECRET", "schedule": "*/10 * * * *" }
+  ]
+}
