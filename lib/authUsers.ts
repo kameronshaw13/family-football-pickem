@@ -1,6 +1,5 @@
 export const FAMILY_USERS = [
   { username: "kameron", displayName: "Kameron", isAdmin: true },
-  { username: "dad", displayName: "Dad", isAdmin: false },
   { username: "mike", displayName: "Mike", isAdmin: false },
   { username: "quentin", displayName: "Quentin", isAdmin: false }
 ] as const;
