@@ -4,7 +4,7 @@ import { useState } from "react";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import { usernameToEmail } from "@/lib/authUsers";
 
-const usernames = ["kameron", "dad", "mike", "quentin"];
+const usernames = ["kameron", "mike", "quentin"];
 
 export default function LoginPage() {
   const [mode, setMode] = useState<"signin" | "claim">("signin");
@@ -64,7 +64,7 @@ export default function LoginPage() {
         <button className="btn gold full" disabled={loading || password.length < 6}>{loading ? "Working…" : mode === "claim" ? "Create password" : "Sign in"}</button>
       </form>
       {message && <p className="login-message">{message}</p>}
-      <div className="username-list"><strong>Usernames:</strong> kameron · dad · mike · quentin</div>
+      <div className="username-list"><strong>Usernames:</strong> kameron · mike · quentin</div>
     </section>
   </main>;
 }

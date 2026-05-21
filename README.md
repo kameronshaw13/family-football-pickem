@@ -4,7 +4,7 @@ Ready-mode private family football pick'em app.
 
 ## Rules built in
 
-- Users: `kameron`, `dad`, `mike`, `quentin`.
+- Users: `kameron`, `mike`, `quentin`.
 - Each user claims their username once and creates their own password.
 - Week 0: 3 college regular picks only.
 - Week 1: 5 college regular picks only.

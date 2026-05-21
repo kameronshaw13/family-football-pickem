@@ -16,7 +16,6 @@ The app no longer uses demo mode. If you are not signed in, it sends you to `/lo
 ## Usernames
 
 - kameron
-- dad
 - mike
 - quentin
 
