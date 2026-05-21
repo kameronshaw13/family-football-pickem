@@ -1,6 +1,7 @@
 export type League = "NFL" | "CFB";
 export type PickStatus = "draft" | "locked";
 export type PickResult = "win" | "loss" | "push" | "pending";
+export type PickType = "regular" | "underdog";
 
 export type Game = {
   id: string;
@@ -26,10 +27,12 @@ export type Pick = {
   game_id: string;
   week: number;
   selected_team: string;
+  pick_type: PickType;
   status: PickStatus;
   locked_spread: number | null;
   locked_spread_team: string | null;
   locked_at: string | null;
+  underdog_win_value: number | null;
   result: PickResult;
   created_at?: string;
   updated_at?: string;
@@ -39,6 +42,7 @@ export type Pick = {
 
 export type Profile = {
   id: string;
+  username: string;
   display_name: string;
   is_admin: boolean;
 };
@@ -50,4 +54,13 @@ export type Standing = {
   losses: number;
   pushes: number;
   win_pct: number;
+};
+
+export type WeekRule = {
+  week: number;
+  label: string;
+  regularTotal: number;
+  cfbRequired: number;
+  nflRequired: number;
+  underdogTotal: number;
 };

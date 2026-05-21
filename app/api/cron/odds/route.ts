@@ -68,10 +68,7 @@ export async function GET(req: NextRequest) {
       const response = await fetch(url.toString(), { cache: "no-store" });
       if (!response.ok) {
         const text = await response.text();
-        return NextResponse.json(
-          { ok: false, error: `Odds API failed for ${sport.key}`, status: response.status, details: text },
-          { status: 502 }
-        );
+        return NextResponse.json({ ok: false, error: `Odds API failed for ${sport.key}`, status: response.status, details: text }, { status: 502 });
       }
 
       const data = (await response.json()) as OddsEvent[];
@@ -81,6 +78,7 @@ export async function GET(req: NextRequest) {
         const spread = pickSpread(event);
         const week = getFootballWeek(event.commence_time);
         const lockTime = getGameLockTime(event.commence_time).toISOString();
+        const now = new Date();
         const game = {
           id: event.id,
           week,
@@ -92,17 +90,12 @@ export async function GET(req: NextRequest) {
           current_spread: spread.spread,
           current_bookmaker: spread.bookmaker,
           lock_time: lockTime,
-          is_locked: new Date() >= new Date(lockTime),
-          updated_at: new Date().toISOString()
+          is_locked: now >= new Date(lockTime),
+          updated_at: now.toISOString()
         };
 
         const { error } = await supabase.from("games").upsert(game, { onConflict: "id" });
-        if (error) {
-          return NextResponse.json(
-            { ok: false, error: "Supabase upsert into games failed. Did you run supabase/schema.sql?", details: error.message },
-            { status: 500 }
-          );
-        }
+        if (error) return NextResponse.json({ ok: false, error: "Supabase upsert into games failed. Did you run the latest supabase/schema.sql?", details: error.message }, { status: 500 });
 
         const { error: snapshotError } = await supabase.from("odds_snapshots").insert({
           game_id: event.id,
@@ -112,13 +105,7 @@ export async function GET(req: NextRequest) {
           bookmaker: spread.bookmaker,
           raw: event
         });
-
-        if (snapshotError) {
-          return NextResponse.json(
-            { ok: false, error: "Supabase insert into odds_snapshots failed. Did you run supabase/schema.sql?", details: snapshotError.message },
-            { status: 500 }
-          );
-        }
+        if (snapshotError) return NextResponse.json({ ok: false, error: "Supabase insert into odds_snapshots failed.", details: snapshotError.message }, { status: 500 });
 
         inserted.push(game);
       }
@@ -126,13 +113,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, gamesUpdated: inserted.length, creditsEstimated: SPORTS.length, sportResults });
   } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "Odds route crashed.",
-        details: error instanceof Error ? error.message : String(error)
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: "Odds route crashed.", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
