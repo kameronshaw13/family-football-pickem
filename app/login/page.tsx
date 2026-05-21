@@ -48,7 +48,6 @@ export default function LoginPage() {
 
   return <main className="app-shell login-screen">
     <section className="login-card">
-      <img src="/icon.png" alt="Go Chargers Go" className="login-logo" />
       <h1>{mode === "claim" ? "Claim your account" : "Sign in"}</h1>
       <p>{mode === "claim" ? "Pick your username and create your own password. You only do this once." : "Use your private family username and password."}</p>
 

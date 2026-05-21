@@ -197,7 +197,6 @@ export default function PickemApp() {
       <div className="scoreboard-topline">Family Football Pick'em</div>
       <div className="scoreboard-main">
         <div className="title-wrap">
-          <img src="/icon.png" alt="Go Chargers Go" className="brand-mark" />
           <div>
             <div className="score-title">{rule.label}</div>
             <div className="score-sub">{rule.regularTotal} regular · {rule.underdogTotal} dog · hidden until lock</div>
