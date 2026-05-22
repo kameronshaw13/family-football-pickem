@@ -25,6 +25,39 @@ type AppData = {
 
 type WeeklyStanding = Standing & { rank: number };
 
+const NFL_NICKNAMES = [
+  "49ers", "Bears", "Bengals", "Bills", "Broncos", "Browns", "Buccaneers", "Cardinals", "Chargers", "Chiefs", "Colts", "Commanders", "Cowboys", "Dolphins", "Eagles", "Falcons", "Giants", "Jaguars", "Jets", "Lions", "Packers", "Panthers", "Patriots", "Raiders", "Rams", "Ravens", "Saints", "Seahawks", "Steelers", "Texans", "Titans", "Vikings"
+];
+
+const COLLEGE_MASCOTS = [
+  "Rainbow Warriors", "Rainbow Wahine", "Blue Raiders", "Green Wave", "Mean Green", "Red Wolves", "Golden Hurricane", "Golden Flashes", "Golden Gophers", "Golden Bears", "Ragin Cajuns", "Ragin' Cajuns", "Thundering Herd", "Fighting Irish", "Fighting Illini", "Gamecocks", "Mountaineers", "Commodores", "Scarlet Knights", "Yellow Jackets", "Boilermakers", "Nittany Lions", "Sun Devils", "Blue Devils", "Demon Deacons", "Crimson Tide", "Horned Frogs", "Red Raiders", "Jayhawks", "Buckeyes", "Spartans", "Wolverines", "Badgers", "Hawkeyes", "Hoosiers", "Terrapins", "Cornhuskers", "Wildcats", "Tigers", "Bulldogs", "Cougars", "Panthers", "Eagles", "Falcons", "Cardinals", "Huskies", "Aggies", "Rebels", "Pirates", "Mustangs", "Bearcats", "Bearkats", "Minutemen", "Lumberjacks", "Roadrunners", "Longhorns", "Sooners", "Cowboys", "Cyclones", "Utes", "Buffaloes", "Ducks", "Beavers", "Trojans", "Bruins", "Hokies", "Cavaliers", "Hurricanes", "Seminoles", "Gators", "Volunteers", "Razorbacks", "Blazers", "Owls", "Lobos", "Aztecs", "Warriors", "Knights", "Bulls", "Rams", "Zips", "Bobcats", "Rockets", "Broncos", "Chippewas", "RedHawks", "Redhawks", "Gaels", "Mocs"
+].sort((a, b) => b.length - a.length);
+
+function displayTeamName(game: Game, team: string) {
+  if (game.league === "NFL") {
+    const match = NFL_NICKNAMES.find((nickname) => team.toLowerCase().endsWith(nickname.toLowerCase()));
+    return match || team.split(/\s+/).slice(-1)[0] || team;
+  }
+
+  let cleaned = team
+    .replace(/\bUniversity of\b/gi, "")
+    .replace(/\bCollege\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const lower = cleaned.toLowerCase();
+  const mascot = COLLEGE_MASCOTS.find((name) => lower.endsWith(` ${name.toLowerCase()}`));
+  if (mascot) cleaned = cleaned.slice(0, cleaned.length - mascot.length).trim();
+
+  return cleaned || team;
+}
+
+function dogLineText(game: Game, team: string) {
+  const spread = normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread);
+  const value = underdogWinValue(spread);
+  return `${spreadText(spread)} = +${value}W`;
+}
+
 function dt(iso: string) {
   return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
 }
@@ -290,20 +323,21 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
   const closed = isClosed(game) || !weekIsOpen;
   const existing = picks.find((p) => p.game_id === game.id);
   const selectType: PickType = filter === "DOGS" ? "underdog" : "regular";
+  const visibleTeams = [game.away_team, game.home_team].filter((team) => filter !== "DOGS" || teamDogValue(game, team) > 0);
   return <article className={`game-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>
     <div className="game-head compact-game-head">
       <div className="badges"><span className="badge">{game.league}</span>{existing && <span className="badge picked">{existing.pick_type === "underdog" ? "dog" : "spread"}</span>}</div>
       <div className="kick"><CalendarClock size={13} /> {dt(game.commence_time)}</div>
     </div>
     <div className="team-stack">
-      {[game.away_team, game.home_team].map((team) => {
+      {visibleTeams.map((team) => {
         const dogValue = teamDogValue(game, team);
         const disabled = closed || Boolean(existing) || (selectType === "underdog" && dogValue === 0);
         return <div className="team-select-row" key={team}>
           <div className="team-pill">
             <TeamLogo url={logoForTeam(game, team)} name={team} />
-            <div className="team-pill-name">{team}</div>
-            <div className="team-pill-spread">{selectType === "underdog" && dogValue > 0 ? `+${dogValue}W` : spreadForTeam(game, team)}</div>
+            <div className="team-pill-name">{displayTeamName(game, team)}</div>
+            <div className="team-pill-spread">{selectType === "underdog" && dogValue > 0 ? dogLineText(game, team) : spreadForTeam(game, team)}</div>
           </div>
           <button className="select-btn" disabled={disabled} onClick={() => addPick(game, team, selectType)}>{existing?.selected_team === team ? "Picked" : "Select"}</button>
         </div>;

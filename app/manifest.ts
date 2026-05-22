@@ -2,26 +2,16 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Shaw Family Football Pick'em",
-    short_name: "Shaw Pick'em",
-    description: "Private football pick'em app for the Shaw family.",
+    name: "Family Football Pick'em",
+    short_name: "Pick'em",
+    description: "Private family football pick'em app.",
     start_url: "/",
     display: "standalone",
-    background_color: "#dceeff",
-    theme_color: "#dceeff",
+    background_color: "#442512",
+    theme_color: "#442512",
     icons: [
-      {
-        src: "/icon.png",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "any"
-      },
-      {
-        src: "/apple-icon.png",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "any"
-      }
+      { src: "/icon.png", sizes: "any", type: "image/png" },
+      { src: "/apple-icon.png", sizes: "180x180", type: "image/png", purpose: "any" }
     ]
   };
 }

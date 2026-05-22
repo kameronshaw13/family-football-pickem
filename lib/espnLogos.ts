@@ -12,12 +12,28 @@ type ESPNTeamLogo = {
 const STOP_WORDS = new Set(["the", "of", "university", "college", "state", "st", "and", "at"]);
 const COMMON_MASCOTS = new Set([
   "tigers", "wildcats", "bulldogs", "eagles", "hawks", "falcons", "panthers", "cougars", "bears", "lions", "rams", "aggies", "spartans", "trojans", "cardinals", "pirates", "knights", "warriors", "raiders", "rebels", "mustangs", "owls"
+);
+
+const MANUAL_CFB_LOGOS = new Map<string, string>([
+  ["san jose state", "https://a.espncdn.com/i/teamlogos/ncaa/500/23.png"],
+  ["san jose", "https://a.espncdn.com/i/teamlogos/ncaa/500/23.png"],
+  ["sjsu", "https://a.espncdn.com/i/teamlogos/ncaa/500/23.png"],
+  ["hawaii", "https://a.espncdn.com/i/teamlogos/ncaa/500/62.png"],
+  ["hawaii rainbow warriors", "https://a.espncdn.com/i/teamlogos/ncaa/500/62.png"],
+  ["memphis", "https://a.espncdn.com/i/teamlogos/ncaa/500/235.png"],
+  ["memphis tigers", "https://a.espncdn.com/i/teamlogos/ncaa/500/235.png"],
+  ["auburn", "https://a.espncdn.com/i/teamlogos/ncaa/500/2.png"],
+  ["auburn tigers", "https://a.espncdn.com/i/teamlogos/ncaa/500/2.png"]
 ]);
 
 function normalize(value: string | null | undefined) {
   return (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/&/g, "and")
+    .replace(/hawai[\s'’`-]*i/g, "hawaii")
+    .replace(/\bsan jos\b/g, "san jose")
     .replace(/\bst\.?\b/g, "state")
     .replace(/\bmiami fl\b/g, "miami")
     .replace(/\bmiami florida\b/g, "miami")
@@ -96,6 +112,12 @@ export async function fetchEspnLogoMap(league: "NFL" | "CFB") {
     }
   }
 
+  if (league === "CFB") {
+    for (const [alias, logo] of Array.from(MANUAL_CFB_LOGOS.entries())) {
+      map.set(normalize(alias), logo);
+    }
+  }
+
   // Keep the full records as JSON in a private map entry so findEspnLogo can score safely.
   map.set("__records__", JSON.stringify(records));
   return map;
@@ -132,6 +154,8 @@ export function findEspnLogo(teamName: string, logoMap: Map<string, string>) {
   const key = normalize(teamName);
   if (!key) return null;
 
+  const manual = MANUAL_CFB_LOGOS.get(key);
+  if (manual) return manual;
   if (logoMap.has(key)) return logoMap.get(key) || null;
   const exactNickname = logoMap.get(`exact:${key}`);
   if (exactNickname) return exactNickname;
