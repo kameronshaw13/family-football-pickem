@@ -30,10 +30,11 @@ const NFL_NICKNAMES = [
 ];
 
 const COLLEGE_MASCOTS = [
-  "Rainbow Warriors", "Rainbow Wahine", "Blue Raiders", "Green Wave", "Mean Green", "Red Wolves", "Golden Hurricane", "Golden Flashes", "Golden Gophers", "Golden Bears", "Golden Eagles", "Ragin Cajuns", "Ragin' Cajuns", "Thundering Herd", "Fighting Irish", "Fighting Illini", "Gamecocks", "Mountaineers", "Commodores", "Scarlet Knights", "Yellow Jackets", "Boilermakers", "Nittany Lions", "Sun Devils", "Blue Devils", "Demon Deacons", "Crimson Tide", "Horned Frogs", "Red Raiders", "Chanticleers", "Sycamores", "Governors", "Colonels", "Privateers", "Keydets", "Paladins", "Terriers", "Hatters", "Bison", "Bisons", "Phoenix", "Penguins", "Vandals", "Mavericks", "Musketeers", "Ramblers", "Flyers", "Explorers", "Billikens", "Salukis", "Sycamores", "Peacocks", "Jaspers", "Broncs", "Pioneers", "Retrievers", "Retrievers", "Catamounts", "Highlanders", "Mocs", "Lancers", "Camels", "Buccaneers", "Seawolves", "Great Danes", "River Hawks", "Minutemen", "Miners", "Runners", "Roadrunners", "Jaguars", "Jackrabbits", "Bison", "Coyotes", "Leathernecks", "Panthers", "Lions", "Tigers", "Wildcats", "Bulldogs", "Eagles", "Hawks", "Falcons", "Bears", "Bruins", "Rams", "Aggies", "Spartans", "Trojans", "Cardinals", "Pirates", "Knights", "Warriors", "Raiders", "Rebels", "Mustangs", "Owls", "Cougars", "Huskies", "Bearcats", "Bearkats", "Lumberjacks", "Longhorns", "Sooners", "Cowboys", "Cyclones", "Utes", "Buffaloes", "Ducks", "Beavers", "Hokies", "Cavaliers", "Hurricanes", "Seminoles", "Gators", "Volunteers", "Razorbacks", "Blazers", "Lobos", "Aztecs", "Bulls", "Zips", "Bobcats", "Rockets", "Broncos", "Chippewas", "RedHawks", "Redhawks", "Gaels", "Jayhawks", "Buckeyes", "Wolverines", "Badgers", "Hawkeyes", "Hoosiers", "Terrapins", "Cornhuskers"
+  "Rainbow Warriors", "Rainbow Wahine", "Blue Raiders", "Green Wave", "Mean Green", "Red Wolves", "Golden Hurricane", "Golden Flashes", "Golden Gophers", "Golden Bears", "Golden Eagles", "Ragin Cajuns", "Ragin' Cajuns", "Thundering Herd", "Fighting Irish", "Fighting Illini", "Black Knights", "Midshipmen", "Gamecocks", "Mountaineers", "Commodores", "Scarlet Knights", "Yellow Jackets", "Boilermakers", "Nittany Lions", "Sun Devils", "Blue Devils", "Demon Deacons", "Crimson Tide", "Horned Frogs", "Red Raiders", "Chanticleers", "Sycamores", "Governors", "Privateers", "Keydets", "Paladins", "Terriers", "Hatters", "Musketeers", "Ramblers", "Explorers", "Billikens", "Jackrabbits", "Leathernecks", "Roadrunners", "Lumberjacks", "Longhorns", "Sooners", "Cyclones", "Buffaloes", "Hurricanes", "Seminoles", "Volunteers", "Razorbacks", "Wolf Pack", "Wolfpack", "RedHawks", "Redhawks", "Jayhawks", "Buckeyes", "Wolverines", "Badgers", "Hawkeyes", "Hoosiers", "Terrapins", "Cornhuskers", "Rainbow Warriors",
+  "Flames", "Monarchs", "Miners", "Blazers", "Lobos", "Aztecs", "Bulls", "Zips", "Bobcats", "Rockets", "Broncos", "Chippewas", "Gaels", "Mocs", "Lancers", "Camels", "Seawolves", "Highlanders", "Retrievers", "Pioneers", "Broncs", "Jaspers", "Peacocks", "Salukis", "Flyers", "Penguins", "Vandals", "Mavericks", "Phoenix", "Bison", "Bisons", "Catamounts", "Minutemen", "Jaguars", "Coyotes", "Panthers", "Lions", "Tigers", "Wildcats", "Bulldogs", "Eagles", "Hawks", "Falcons", "Bears", "Bruins", "Rams", "Aggies", "Spartans", "Trojans", "Cardinals", "Pirates", "Knights", "Warriors", "Raiders", "Rebels", "Mustangs", "Owls", "Cougars", "Huskies", "Bearcats", "Bearkats", "Cowboys", "Utes", "Ducks", "Beavers", "Hokies", "Cavaliers", "Gators"
 ].sort((a, b) => b.length - a.length);
 
-const SCHOOL_SUFFIX_WORDS = new Set(["State", "Tech", "A&M", "International", "Southern", "Northern", "Eastern", "Western", "Central", "Carolina", "Florida", "Georgia", "Texas", "Washington", "Mississippi", "Arizona", "Alabama", "Louisiana", "California", "Colorado", "Dakota", "Mexico", "England", "Orleans", "Monroe", "Lafayette", "Vegas", "Jose", "Diego", "Angeles", "Louis", "Francisco"]);
+const SCHOOL_SUFFIX_WORDS = new Set(["State", "Tech", "A&M", "International", "Southern", "Northern", "Eastern", "Western", "Central", "Carolina", "Florida", "Georgia", "Texas", "Washington", "Mississippi", "Arizona", "Alabama", "Louisiana", "California", "Colorado", "Dakota", "Mexico", "England", "Orleans", "Monroe", "Lafayette", "Vegas", "Jose", "Diego", "Angeles", "Louis", "Francisco", "Forest", "Green", "Bowling", "Army", "Navy", "Air", "Force", "Notre", "Dame", "Ole", "Miss", "BYU", "TCU", "UAB", "UTEP", "UTSA", "UCF", "USF", "UCLA", "USC", "SMU", "UNLV", "UNM", "LSU", "NC"]);
 
 function displayTeamName(game: Game, team: string) {
   if (game.league === "NFL") {
@@ -42,20 +43,40 @@ function displayTeamName(game: Game, team: string) {
   }
 
   let cleaned = team
-    .replace(/\bUniversity of\b/gi, "")
-    .replace(/\bCollege\b/gi, "")
+    .replace(/University of/gi, "")
+    .replace(/College/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 
-  const lower = cleaned.toLowerCase();
-  const mascot = COLLEGE_MASCOTS.find((name) => lower.endsWith(` ${name.toLowerCase()}`));
-  if (mascot) cleaned = cleaned.slice(0, cleaned.length - mascot.length).trim();
+  // Strip mascot/nickname suffixes repeatedly. This catches names like
+  // "Liberty Flames", "Old Dominion Monarchs", "NC State Wolfpack", etc.
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const lower = cleaned.toLowerCase();
+    const mascot = COLLEGE_MASCOTS.find((name) => lower.endsWith(` ${name.toLowerCase()}`));
+    if (mascot) {
+      cleaned = cleaned.slice(0, cleaned.length - mascot.length).trim();
+      changed = true;
+    }
+  }
 
-  // Fallback for college nicknames ESPN/Odds API formats differently. If a CFB name
-  // still has 3+ words after known mascot stripping, the last word is usually the mascot.
+  const manualNames: Record<string, string> = {
+    "San José State": "San Jose State",
+    "San Jose State": "San Jose State",
+    "Hawai'i": "Hawaii",
+    "Hawaii": "Hawaii",
+    "Ole Miss": "Ole Miss",
+    "Miami FL": "Miami",
+    "Miami Florida": "Miami",
+    "NC State": "NC State",
+    "N.C. State": "NC State"
+  };
+  if (manualNames[cleaned]) return manualNames[cleaned];
+
   const parts = cleaned.split(/\s+/).filter(Boolean);
   const last = parts[parts.length - 1];
-  if (!mascot && parts.length >= 3 && last && !SCHOOL_SUFFIX_WORDS.has(last)) {
+  if (parts.length >= 3 && last && !SCHOOL_SUFFIX_WORDS.has(last)) {
     cleaned = parts.slice(0, -1).join(" ");
   }
 
