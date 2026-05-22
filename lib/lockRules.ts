@@ -10,26 +10,46 @@ export function getGameLockTime(commenceTimeIso: string, timezone = APP_TIMEZONE
   const day = kickoffLocal.getDay();
 
   // Tuesday-Friday games lock 24 hours before kickoff.
-  if ([2, 3, 4, 5].includes(day)) return subHours(kickoffUtc, 24);
+  if ([2, 3, 4, 5].includes(day)) {
+    return subHours(kickoffUtc, 24);
+  }
 
   // Saturday/Sunday/Monday games lock Friday at 5:00 PM CT before that football weekend.
   const fridayLocal = setDay(kickoffLocal, 5, { weekStartsOn: 1 });
   const lockLocal = new Date(fridayLocal);
   lockLocal.setHours(17, 0, 0, 0);
-  if (lockLocal.getTime() > kickoffLocal.getTime()) lockLocal.setDate(lockLocal.getDate() - 7);
+
+  if (lockLocal.getTime() > kickoffLocal.getTime()) {
+    lockLocal.setDate(lockLocal.getDate() - 7);
+  }
+
   return fromZonedTime(lockLocal, timezone);
 }
 
 export function getFootballWeek(dateIso: string, timezone = APP_TIMEZONE): number {
+  // Week 0 covers college games before the main Week 1 Saturday.
+  // Week 1 starts around Aug 25; everything before that is Week 0.
   const local = toZonedTime(new Date(dateIso), timezone);
-  const year = local.getFullYear();
-  const aug23 = new Date(year, 7, 23);
-  const firstSaturday = new Date(aug23);
-  while (firstSaturday.getDay() !== 6) firstSaturday.setDate(firstSaturday.getDate() + 1);
-  firstSaturday.setHours(0, 0, 0, 0);
+  const seasonStart = new Date(local.getFullYear(), 7, 25, 0, 0, 0, 0);
+  const diff = local.getTime() - seasonStart.getTime();
+  return Math.max(0, Math.ceil(diff / (7 * 24 * 60 * 60 * 1000)));
+}
 
-  const diff = local.getTime() - firstSaturday.getTime();
-  return Math.max(0, Math.floor(diff / (7 * 24 * 60 * 60 * 1000)));
+export function getWeekOpenTimeFromCommenceTimes(commenceTimes: string[], timezone = APP_TIMEZONE): Date | null {
+  if (!commenceTimes.length) return null;
+  const earliest = commenceTimes
+    .map((iso) => toZonedTime(new Date(iso), timezone))
+    .sort((a, b) => a.getTime() - b.getTime())[0];
+
+  // Picks for a week open Monday at 12:00 AM local time of that football week.
+  const mondayLocal = setDay(earliest, 1, { weekStartsOn: 1 });
+  mondayLocal.setHours(0, 0, 0, 0);
+
+  if (mondayLocal.getTime() > earliest.getTime()) {
+    mondayLocal.setDate(mondayLocal.getDate() - 7);
+  }
+
+  return fromZonedTime(mondayLocal, timezone);
 }
 
 export function isClosed(lockTimeIso: string, now = new Date()) {

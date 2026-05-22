@@ -10,6 +10,8 @@ export type Game = {
   commence_time: string;
   home_team: string;
   away_team: string;
+  home_logo_url: string | null;
+  away_logo_url: string | null;
   current_spread_team: string | null;
   current_spread: number | null;
   current_bookmaker: string | null;

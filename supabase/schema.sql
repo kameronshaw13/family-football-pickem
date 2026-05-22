@@ -1,11 +1,5 @@
 create extension if not exists pgcrypto;
 
--- RESET WHAT HAS BEEN SAVED FOR THE PICK'EM ACCOUNTS/PICKS/BANK.
--- This keeps the loaded games/spreads but clears old users, picks, and bank records.
-delete from bank_entries;
-delete from picks;
-delete from profiles;
-
 create table if not exists profiles (
   id uuid primary key default gen_random_uuid(),
   username text unique,
@@ -33,6 +27,8 @@ create table if not exists games (
   commence_time timestamptz not null,
   home_team text not null,
   away_team text not null,
+  home_logo_url text,
+  away_logo_url text,
   current_spread_team text,
   current_spread numeric,
   current_bookmaker text,
@@ -43,6 +39,17 @@ create table if not exists games (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table games add column if not exists home_logo_url text;
+alter table games add column if not exists away_logo_url text;
+
+-- Convert early college games that were previously bucketed as Week 1 into Week 0.
+update games
+set week = 0, updated_at = now()
+where league = 'CFB'
+  and week = 1
+  and extract(month from commence_time at time zone 'America/Chicago') = 8
+  and extract(day from commence_time at time zone 'America/Chicago') < 25;
 
 create table if not exists odds_snapshots (
   id uuid primary key default gen_random_uuid(),
@@ -129,8 +136,7 @@ drop policy if exists "bank entries visible to logged in users" on bank_entries;
 create policy "profiles visible to logged in users" on profiles for select to authenticated using (true);
 create policy "games visible to logged in users" on games for select to authenticated using (true);
 create policy "own picks visible before reveal" on picks for select to authenticated using (
-  user_id = auth.uid()
-  or exists (select 1 from games g where g.id = picks.game_id and g.lock_time <= now())
+  true
 );
 create policy "users insert their own picks" on picks for insert to authenticated with check (true);
 create policy "users update their own draft picks" on picks for update to authenticated using (true) with check (true);

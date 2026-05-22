@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getProfileFromRequest } from "@/lib/authServer";
+import { getProfileFromToken } from "@/lib/authServer";
+import { getWeekOpenTimeFromCommenceTimes } from "@/lib/lockRules";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { normalizeSpreadForSelectedTeam, underdogWinValue } from "@/lib/spreads";
 import { getWeekRule } from "@/lib/weekRules";
@@ -10,20 +11,27 @@ const lockSchema = z.object({ action: z.literal("lock"), pickId: z.string() });
 const removeSchema = z.object({ action: z.literal("remove"), pickId: z.string() });
 const bodySchema = z.discriminatedUnion("action", [draftSchema, lockSchema, removeSchema]);
 
+async function getAuthedProfile(req: NextRequest) {
+  const token = req.headers.get("authorization")?.replace("Bearer ", "");
+  if (!token) return { profile: null, error: "Missing auth token." };
+  const profile = await getProfileFromToken(token);
+  if (!profile) return { profile: null, error: "Invalid or expired session." };
+  return { profile, error: null };
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const auth = await getProfileFromRequest(req);
-    if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
+    const { profile, error } = await getAuthedProfile(req);
+    if (!profile) return NextResponse.json({ ok: false, error }, { status: 401 });
 
     const body = bodySchema.parse(await req.json());
     const supabase = getSupabaseAdmin();
-    const user = auth.profile;
 
     if (body.action === "remove") {
-      const { data: pick, error: pickErr } = await supabase.from("picks").select("*").eq("id", body.pickId).eq("user_id", user.id).single();
+      const { data: pick, error: pickErr } = await supabase.from("picks").select("*").eq("id", body.pickId).eq("user_id", profile.id).single();
       if (pickErr) return NextResponse.json({ ok: false, error: pickErr.message }, { status: 404 });
       if (pick.status === "locked") return NextResponse.json({ ok: false, error: "Locked picks cannot be removed." }, { status: 409 });
-      const { error: deleteErr } = await supabase.from("picks").delete().eq("id", body.pickId).eq("user_id", user.id);
+      const { error: deleteErr } = await supabase.from("picks").delete().eq("id", body.pickId).eq("user_id", profile.id);
       if (deleteErr) return NextResponse.json({ ok: false, error: deleteErr.message }, { status: 500 });
       return NextResponse.json({ ok: true });
     }
@@ -35,6 +43,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, error: "This game is closed and cannot be picked." }, { status: 409 });
       }
 
+      const { data: weekGames, error: weekGamesErr } = await supabase.from("games").select("commence_time").eq("week", game.week);
+      if (weekGamesErr) return NextResponse.json({ ok: false, error: weekGamesErr.message }, { status: 500 });
+      const weekOpen = getWeekOpenTimeFromCommenceTimes((weekGames || []).map((g) => g.commence_time));
+      if (weekOpen && new Date() < weekOpen) {
+        return NextResponse.json({ ok: false, error: `This week opens for picks on ${weekOpen.toLocaleString("en-US", { timeZone: "America/Chicago" })} CT.` }, { status: 409 });
+      }
+
       const selectedSpread = normalizeSpreadForSelectedTeam(body.selectedTeam, game.current_spread_team, game.current_spread);
       const dogValue = underdogWinValue(selectedSpread);
       if (body.pickType === "underdog" && dogValue === 0) {
@@ -44,7 +59,7 @@ export async function POST(req: NextRequest) {
       const { data: weekPicks, error: picksErr } = await supabase
         .from("picks")
         .select("*, game:games(*)")
-        .eq("user_id", user.id)
+        .eq("user_id", profile.id)
         .eq("week", game.week);
       if (picksErr) return NextResponse.json({ ok: false, error: picksErr.message }, { status: 500 });
 
@@ -73,7 +88,7 @@ export async function POST(req: NextRequest) {
       }
 
       const row = {
-        user_id: user.id,
+        user_id: profile.id,
         game_id: body.gameId,
         week: game.week,
         selected_team: body.selectedTeam,
@@ -98,7 +113,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.action === "lock") {
-      const { data: pick, error: pickErr } = await supabase.from("picks").select("*, game:games(*)").eq("id", body.pickId).eq("user_id", user.id).single();
+      const { data: pick, error: pickErr } = await supabase.from("picks").select("*, game:games(*)").eq("id", body.pickId).eq("user_id", profile.id).single();
       if (pickErr) return NextResponse.json({ ok: false, error: pickErr.message }, { status: 404 });
       if (pick.status === "locked") return NextResponse.json({ ok: true, pick });
       const game = pick.game;
@@ -119,8 +134,6 @@ export async function POST(req: NextRequest) {
       if (updateErr) return NextResponse.json({ ok: false, error: updateErr.message }, { status: 500 });
       return NextResponse.json({ ok: true, pick: data });
     }
-
-    return NextResponse.json({ ok: false, error: "Unknown action" }, { status: 400 });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }

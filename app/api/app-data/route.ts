@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProfileFromRequest } from "@/lib/authServer";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { getWeekOpenTimeFromCommenceTimes } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
+import { getProfileFromToken } from "@/lib/authServer";
+
+async function getAuthedProfile(req: NextRequest) {
+  const token = req.headers.get("authorization")?.replace("Bearer ", "");
+  if (!token) return { profile: null, error: "Missing auth token." };
+  const profile = await getProfileFromToken(token);
+  if (!profile) return { profile: null, error: "Invalid or expired session." };
+  return { profile, error: null };
+}
 
 export async function GET(req: NextRequest) {
   try {
-    const auth = await getProfileFromRequest(req);
-    if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
+    const { profile, error } = await getAuthedProfile(req);
+    if (!profile) return NextResponse.json({ ok: false, error }, { status: 401 });
 
     const supabase = getSupabaseAdmin();
     const now = new Date().toISOString();
@@ -19,21 +28,19 @@ export async function GET(req: NextRequest) {
     const defaultWeek = openGames[0]?.week ?? allGames?.[0]?.week ?? 0;
     const week = requestedWeek != null ? Number(requestedWeek) : defaultWeek;
     const games = (allGames || []).filter((g) => g.week === week);
+    const weekOpen = getWeekOpenTimeFromCommenceTimes(games.map((g) => g.commence_time));
 
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("id,username,display_name,is_admin")
-      .order("display_name", { ascending: true });
+    const { data: profiles, error: profilesError } = await supabase.from("profiles").select("*").order("display_name", { ascending: true });
     if (profilesError) return NextResponse.json({ ok: false, error: profilesError.message }, { status: 500 });
 
     const { data: picks, error: picksError } = await supabase
       .from("picks")
-      .select("*, game:games(*), profile:profiles(id,username,display_name,is_admin)")
+      .select("*, game:games(*), profile:profiles(*)")
       .eq("week", week);
     if (picksError) return NextResponse.json({ ok: false, error: picksError.message }, { status: 500 });
 
     const visiblePicks = (picks || []).filter((pick: any) => {
-      if (pick.user_id === auth.profile.id) return true;
+      if (pick.user_id === profile.id) return true;
       const game = pick.game;
       return game && new Date(game.lock_time).toISOString() <= now;
     });
@@ -53,12 +60,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      currentUser: {
-        id: auth.profile.id,
-        username: auth.profile.username,
-        display_name: auth.profile.display_name,
-        is_admin: auth.profile.is_admin
-      },
+      currentUser: profile,
       profiles: profiles || [],
       games,
       picks: visiblePicks,
@@ -67,6 +69,7 @@ export async function GET(req: NextRequest) {
       bankEntries: bankEntries || [],
       week,
       weekRule: getWeekRule(week),
+      weekOpenTime: weekOpen ? weekOpen.toISOString() : null,
       availableWeeks: Array.from(new Set((allGames || []).map((g) => g.week))).sort((a, b) => a - b)
     });
   } catch (error) {
