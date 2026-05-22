@@ -29,58 +29,123 @@ const NFL_NICKNAMES = [
   "49ers", "Bears", "Bengals", "Bills", "Broncos", "Browns", "Buccaneers", "Cardinals", "Chargers", "Chiefs", "Colts", "Commanders", "Cowboys", "Dolphins", "Eagles", "Falcons", "Giants", "Jaguars", "Jets", "Lions", "Packers", "Panthers", "Patriots", "Raiders", "Rams", "Ravens", "Saints", "Seahawks", "Steelers", "Texans", "Titans", "Vikings"
 ];
 
-const COLLEGE_MASCOTS = [
-  "Rainbow Warriors", "Rainbow Wahine", "Blue Raiders", "Green Wave", "Mean Green", "Red Wolves", "Golden Hurricane", "Golden Flashes", "Golden Gophers", "Golden Bears", "Golden Eagles", "Ragin Cajuns", "Ragin' Cajuns", "Thundering Herd", "Fighting Irish", "Fighting Illini", "Black Knights", "Midshipmen", "Gamecocks", "Mountaineers", "Commodores", "Scarlet Knights", "Yellow Jackets", "Boilermakers", "Nittany Lions", "Sun Devils", "Blue Devils", "Demon Deacons", "Crimson Tide", "Horned Frogs", "Red Raiders", "Chanticleers", "Sycamores", "Governors", "Privateers", "Keydets", "Paladins", "Terriers", "Hatters", "Musketeers", "Ramblers", "Explorers", "Billikens", "Jackrabbits", "Leathernecks", "Roadrunners", "Lumberjacks", "Longhorns", "Sooners", "Cyclones", "Buffaloes", "Hurricanes", "Seminoles", "Volunteers", "Razorbacks", "Wolf Pack", "Wolfpack", "RedHawks", "Redhawks", "Jayhawks", "Buckeyes", "Wolverines", "Badgers", "Hawkeyes", "Hoosiers", "Terrapins", "Cornhuskers", "Rainbow Warriors",
-  "Flames", "Monarchs", "Miners", "Blazers", "Lobos", "Aztecs", "Bulls", "Zips", "Bobcats", "Rockets", "Broncos", "Chippewas", "Gaels", "Mocs", "Lancers", "Camels", "Seawolves", "Highlanders", "Retrievers", "Pioneers", "Broncs", "Jaspers", "Peacocks", "Salukis", "Flyers", "Penguins", "Vandals", "Mavericks", "Phoenix", "Bison", "Bisons", "Catamounts", "Minutemen", "Jaguars", "Coyotes", "Panthers", "Lions", "Tigers", "Wildcats", "Bulldogs", "Eagles", "Hawks", "Falcons", "Bears", "Bruins", "Rams", "Aggies", "Spartans", "Trojans", "Cardinals", "Pirates", "Knights", "Warriors", "Raiders", "Rebels", "Mustangs", "Owls", "Cougars", "Huskies", "Bearcats", "Bearkats", "Cowboys", "Utes", "Ducks", "Beavers", "Hokies", "Cavaliers", "Gators"
+// These are mascot/nickname suffixes that should not show for college teams.
+// The app keeps the school/location name only: "Ohio State Buckeyes" -> "Ohio State".
+const COLLEGE_NICKNAME_SUFFIXES = [
+  "Rainbow Warriors", "Rainbow Wahine", "Blue Raiders", "Blue Hens", "Blue Hose", "Blue Devils", "Bluejays", "Green Wave", "Mean Green", "Red Wolves", "Red Raiders", "RedHawks", "Redhawks", "Black Knights", "Golden Hurricane", "Golden Flashes", "Golden Gophers", "Golden Bears", "Golden Eagles", "Golden Knights", "Golden Lions", "Golden Panthers", "Golden Rams", "Golden Grizzlies", "Ragin Cajuns", "Ragin' Cajuns", "Thundering Herd", "Fighting Irish", "Fighting Illini", "Fighting Hawks", "Fighting Camels", "Fighting Blue Hens", "Midshipmen", "Gamecocks", "Mountaineers", "Commodores", "Scarlet Knights", "Yellow Jackets", "Boilermakers", "Nittany Lions", "Sun Devils", "Demon Deacons", "Crimson Tide", "Horned Frogs", "Chanticleers", "Sycamores", "Governors", "Privateers", "Keydets", "Paladins", "Terriers", "Hatters", "Musketeers", "Ramblers", "Explorers", "Billikens", "Jackrabbits", "Leathernecks", "Roadrunners", "Lumberjacks", "Longhorns", "Sooners", "Cyclones", "Buffaloes", "Hurricanes", "Seminoles", "Volunteers", "Razorbacks", "Wolf Pack", "Wolfpack", "Jayhawks", "Buckeyes", "Wolverines", "Badgers", "Hawkeyes", "Hoosiers", "Terrapins", "Cornhuskers", "Flames", "Monarchs", "Miners", "Blazers", "Lobos", "Aztecs", "Bulls", "Zips", "Bobcats", "Rockets", "Chippewas", "Gaels", "Mocs", "Lancers", "Camels", "Seawolves", "Highlanders", "Retrievers", "Pioneers", "Broncs", "Jaspers", "Peacocks", "Salukis", "Flyers", "Penguins", "Vandals", "Mavericks", "Phoenix", "Bison", "Bisons", "Catamounts", "Minutemen", "Jaguars", "Coyotes", "Panthers", "Lions", "Tigers", "Wildcats", "Bulldogs", "Eagles", "Hawks", "Falcons", "Bears", "Bruins", "Rams", "Aggies", "Spartans", "Trojans", "Cardinals", "Pirates", "Knights", "Warriors", "Raiders", "Rebels", "Mustangs", "Owls", "Cougars", "Huskies", "Bearcats", "Bearkats", "Cowboys", "Cowgirls", "Utes", "Ducks", "Beavers", "Hokies", "Cavaliers", "Gators", "Gauchos", "Anteaters", "Matadors", "Titans", "Tritons", "Lopes", "Antelopes", "Vaqueros", "Vaqueras", "Lumberjills", "Colonels", "Racers", "Norfolk", "Dukes", "Dukes", "Dragons", "Quakers", "Big Red", "Crimson", "Bantams", "Engineers", "Statesmen", "Dutchmen", "Saints", "Saint Mary's", "Friars", "Friars", "Friars", "Vikings", "Ospreys", "Eagles", "Skyhawks", "Bucs", "Buccaneers", "Mocs", "Golden Eagles", "Hilltoppers", "Hilltoppers", "Hillcats", "Lions", "Lancers", "Patriots", "Minutewomen", "Greyhounds", "Greyhounds", "Mules", "Gorillas", "Grit", "Reivers", "Tars", "Royals"
 ].sort((a, b) => b.length - a.length);
 
-const SCHOOL_SUFFIX_WORDS = new Set(["State", "Tech", "A&M", "International", "Southern", "Northern", "Eastern", "Western", "Central", "Carolina", "Florida", "Georgia", "Texas", "Washington", "Mississippi", "Arizona", "Alabama", "Louisiana", "California", "Colorado", "Dakota", "Mexico", "England", "Orleans", "Monroe", "Lafayette", "Vegas", "Jose", "Diego", "Angeles", "Louis", "Francisco", "Forest", "Green", "Bowling", "Army", "Navy", "Air", "Force", "Notre", "Dame", "Ole", "Miss", "BYU", "TCU", "UAB", "UTEP", "UTSA", "UCF", "USF", "UCLA", "USC", "SMU", "UNLV", "UNM", "LSU", "NC"]);
+const COLLEGE_KEEP_LAST_WORDS = new Set([
+  "State", "Tech", "A&M", "International", "Southern", "Northern", "Eastern", "Western", "Central", "Atlantic", "Pacific", "Carolina", "Florida", "Georgia", "Texas", "Washington", "Mississippi", "Arizona", "Alabama", "Louisiana", "California", "Colorado", "Dakota", "Mexico", "England", "Orleans", "Monroe", "Lafayette", "Vegas", "Jose", "Diego", "Angeles", "Louis", "Francisco", "Forest", "Green", "Bowling", "Army", "Navy", "Air", "Force", "Notre", "Dame", "Ole", "Miss", "BYU", "TCU", "UAB", "UTEP", "UTSA", "UCF", "USF", "UCLA", "USC", "SMU", "UNLV", "UNM", "LSU", "NC", "Appalachian", "Liberty", "Temple", "Rice", "Duke", "Tulane", "Rutgers", "Purdue", "Stanford", "Syracuse", "Clemson", "Auburn", "Memphis", "Hawaii"
+]);
+
+const COLLEGE_MANUAL_DISPLAY: Record<string, string> = {
+  "san jose state spartans": "San Jose State",
+  "san jose state": "San Jose State",
+  "sjsu": "San Jose State",
+  "hawaii rainbow warriors": "Hawaii",
+  "hawai'i rainbow warriors": "Hawaii",
+  "hawaii": "Hawaii",
+  "hawai'i": "Hawaii",
+  "appalachian state mountaineers": "Appalachian State",
+  "app state mountaineers": "App State",
+  "app state": "App State",
+  "miami hurricanes": "Miami",
+  "miami fl hurricanes": "Miami",
+  "miami florida hurricanes": "Miami",
+  "miami ohio redhawks": "Miami Ohio",
+  "miami (oh) redhawks": "Miami Ohio",
+  "nc state wolfpack": "NC State",
+  "n.c. state wolfpack": "NC State",
+  "ole miss rebels": "Ole Miss",
+  "southern miss golden eagles": "Southern Miss",
+  "western kentucky hilltoppers": "Western Kentucky",
+  "middle tennessee blue raiders": "Middle Tennessee",
+  "bowling green falcons": "Bowling Green",
+  "florida international panthers": "FIU",
+  "fiu panthers": "FIU",
+  "florida atlantic owls": "Florida Atlantic",
+  "fau owls": "FAU",
+  "sam houston bearkats": "Sam Houston",
+  "sam houston state bearkats": "Sam Houston",
+  "louisiana ragin cajuns": "Louisiana",
+  "louisiana ragin' cajuns": "Louisiana",
+  "louisiana monroe warhawks": "Louisiana Monroe",
+  "ul monroe warhawks": "Louisiana Monroe",
+  "umass minutemen": "UMass",
+  "massachusetts minutemen": "UMass",
+  "utep miners": "UTEP",
+  "utsa roadrunners": "UTSA",
+  "uconn huskies": "UConn",
+  "connecticut huskies": "UConn",
+  "byu cougars": "BYU",
+  "tcu horned frogs": "TCU",
+  "ucf knights": "UCF",
+  "usf bulls": "USF",
+  "uab blazers": "UAB",
+  "unlv rebels": "UNLV",
+  "smu mustangs": "SMU",
+  "lsu tigers": "LSU",
+  "ucla bruins": "UCLA",
+  "usc trojans": "USC"
+};
+
+function normalizeNameKey(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/hawai[\s'’`-]*i/g, "hawaii")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stripCollegeNickname(rawTeam: string) {
+  const manual = COLLEGE_MANUAL_DISPLAY[normalizeNameKey(rawTeam)];
+  if (manual) return manual;
+
+  let cleaned = rawTeam
+    .replace(/\bUniversity of\b/gi, "")
+    .replace(/\bCollege\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const cleanedKey = normalizeNameKey(cleaned);
+    for (const suffix of COLLEGE_NICKNAME_SUFFIXES) {
+      const suffixKey = normalizeNameKey(suffix);
+      if (cleanedKey.endsWith(` ${suffixKey}`)) {
+        cleaned = cleaned.slice(0, Math.max(0, cleaned.length - suffix.length)).trim();
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  const manualAfterStrip = COLLEGE_MANUAL_DISPLAY[normalizeNameKey(cleaned)];
+  if (manualAfterStrip) return manualAfterStrip;
+
+  // Safety fallback for "School Mascot" names not listed above. If the school has
+  // 3+ words and the final word is not part of a school name, remove it.
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  const last = parts[parts.length - 1];
+  if (parts.length >= 3 && last && !COLLEGE_KEEP_LAST_WORDS.has(last)) {
+    cleaned = parts.slice(0, -1).join(" ");
+  }
+
+  return cleaned || rawTeam;
+}
 
 function displayTeamName(game: Game, team: string) {
   if (game.league === "NFL") {
     const match = NFL_NICKNAMES.find((nickname) => team.toLowerCase().endsWith(nickname.toLowerCase()));
     return match || team.split(/\s+/).slice(-1)[0] || team;
   }
-
-  let cleaned = team
-    .replace(/University of/gi, "")
-    .replace(/College/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  // Strip mascot/nickname suffixes repeatedly. This catches names like
-  // "Liberty Flames", "Old Dominion Monarchs", "NC State Wolfpack", etc.
-  let changed = true;
-  while (changed) {
-    changed = false;
-    const lower = cleaned.toLowerCase();
-    const mascot = COLLEGE_MASCOTS.find((name) => lower.endsWith(` ${name.toLowerCase()}`));
-    if (mascot) {
-      cleaned = cleaned.slice(0, cleaned.length - mascot.length).trim();
-      changed = true;
-    }
-  }
-
-  const manualNames: Record<string, string> = {
-    "San José State": "San Jose State",
-    "San Jose State": "San Jose State",
-    "Hawai'i": "Hawaii",
-    "Hawaii": "Hawaii",
-    "Ole Miss": "Ole Miss",
-    "Miami FL": "Miami",
-    "Miami Florida": "Miami",
-    "NC State": "NC State",
-    "N.C. State": "NC State"
-  };
-  if (manualNames[cleaned]) return manualNames[cleaned];
-
-  const parts = cleaned.split(/\s+/).filter(Boolean);
-  const last = parts[parts.length - 1];
-  if (parts.length >= 3 && last && !SCHOOL_SUFFIX_WORDS.has(last)) {
-    cleaned = parts.slice(0, -1).join(" ");
-  }
-
-  return cleaned || team;
+  return stripCollegeNickname(team);
 }
 
 function dogLineText(game: Game, team: string) {
@@ -356,30 +421,28 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
   const selectType: PickType = filter === "DOGS" ? "underdog" : "regular";
   const allTeams = [game.away_team, game.home_team];
   const dogTeams = allTeams.filter((team) => teamDogValue(game, team) > 0);
-  const visibleTeams = filter === "DOGS"
-    ? allTeams.filter((team) => dogTeams.includes(team) || dogTeams.some((dog) => dog !== team))
-    : allTeams;
+  const visibleTeams = filter === "DOGS" && dogTeams.length ? allTeams : allTeams;
 
-  return <article className={`game-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>
+  return <article className={`game-card compact-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>
     <div className="game-head compact-game-head">
       <div className="badges"><span className="badge">{game.league}</span>{existing && <span className="badge picked">{existing.pick_type === "underdog" ? "dog" : "spread"}</span>}</div>
       <div className="kick"><CalendarClock size={13} /> {dt(game.commence_time)}</div>
     </div>
-    <div className="team-stack">
+    <div className="team-stack compact-stack">
       {visibleTeams.map((team) => {
         const dogValue = teamDogValue(game, team);
         const isDogChoice = filter === "DOGS" && dogValue > 0;
         const isOpponentOnly = filter === "DOGS" && dogValue === 0;
         const disabled = closed || Boolean(existing) || (selectType === "underdog" && dogValue === 0);
-        return <div className={`team-select-row ${isOpponentOnly ? "opponent-only" : ""}`} key={team}>
-          <div className="team-pill">
+        return <div className={`team-select-row compact-team-row ${isOpponentOnly ? "opponent-only" : ""}`} key={team}>
+          <div className="team-line">
             <TeamLogo url={logoForTeam(game, team)} name={team} />
-            <div className="team-pill-name">{displayTeamName(game, team)}</div>
-            <div className="team-pill-spread">{isOpponentOnly ? "" : isDogChoice ? dogLineText(game, team) : spreadForTeam(game, team)}</div>
+            <div className="team-display-name">{displayTeamName(game, team)}</div>
+            <div className="team-line-spread">{isOpponentOnly ? "" : isDogChoice ? dogLineText(game, team) : spreadForTeam(game, team)}</div>
           </div>
           {isOpponentOnly
             ? <div className="select-spacer" aria-hidden="true" />
-            : <button className="select-btn" disabled={disabled} onClick={() => addPick(game, team, selectType)}>{existing?.selected_team === team ? "Picked" : "Select"}</button>}
+            : <button className="select-btn compact-select" disabled={disabled} onClick={() => addPick(game, team, selectType)}>{existing?.selected_team === team ? "Picked" : "Select"}</button>}
         </div>;
       })}
     </div>
@@ -401,7 +464,7 @@ function PickList({ picks, games, title, lockPick, removePick }: { picks: Pick[]
   return <div className="pick-section"><h3>{title}</h3>{!picks.length && <p className="muted">None yet.</p>}{picks.map((pick) => {
     const game = games.find((g) => g.id === pick.game_id) || pick.game;
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><div><p className="pick-title">{pick.selected_team} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{game?.away_team} at {game?.home_team}</p><p className="pick-meta">{pick.status === "locked" ? `Locked ${shortDt(pick.locked_at)} at ${spreadText(pick.locked_spread)}` : `Pick · current ${game ? spreadForTeam(game, pick.selected_team) : "line unknown"}`}</p></div><span className={`badge ${pick.status === "locked" ? "locked" : "open"}`}>{pick.status === "locked" ? "locked" : "pick"}</span></div>
+      <div className="pick-top"><div><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : ""}</p><p className="pick-meta">{pick.status === "locked" ? `Locked ${shortDt(pick.locked_at)} at ${spreadText(pick.locked_spread)}` : `Pick · current ${game ? spreadForTeam(game, pick.selected_team) : "line unknown"}`}</p></div><span className={`badge ${pick.status === "locked" ? "locked" : "open"}`}>{pick.status === "locked" ? "locked" : "pick"}</span></div>
       <div className="actions"><button className="btn gold" disabled={pick.status === "locked"} onClick={() => lockPick(pick)}><Lock size={13} /> Lock</button><button className="btn danger" disabled={pick.status === "locked"} onClick={() => removePick(pick)}>Remove</button></div>
     </div>;
   })}</div>;
@@ -409,5 +472,5 @@ function PickList({ picks, games, title, lockPick, removePick }: { picks: Pick[]
 
 function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const game = games.find((g) => g.id === pick.game_id) || pick.game;
-  return <div className="visible-pick"><div><strong>{pick.selected_team} {pick.locked_spread != null ? spreadText(pick.locked_spread) : ""}</strong><p>{pick.pick_type === "underdog" ? `Underdog +${pick.underdog_win_value || "?"} wins · must win outright` : "Spread pick"} · locked {shortDt(pick.locked_at)}</p><p>{game?.away_team} at {game?.home_team}</p></div><span className="badge">{pick.result}</span></div>;
+  return <div className="visible-pick"><div><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {pick.locked_spread != null ? spreadText(pick.locked_spread) : ""}</strong><p>{pick.pick_type === "underdog" ? `Underdog +${pick.underdog_win_value || "?"} wins · must win outright` : "Spread pick"} · locked {shortDt(pick.locked_at)}</p><p>{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : ""}</p></div><span className="badge">{pick.result}</span></div>;
 }
