@@ -1,0 +1,1 @@
+Code-only patch. Updates the same-line matchup layout so the away spread sits just left of @, the home spread sits just right of @, logos sit closer to team names, and team names truncate toward the outside.

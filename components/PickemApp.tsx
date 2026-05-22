@@ -466,8 +466,8 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
         onClick={() => choose(game.away_team)}
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
-        <span className="side-team-name">{displayTeamName(game, game.away_team)}</span>
-        {!awayOpponentOnly && <span className="side-spread">{sideLine(game.away_team)}</span>}
+        <span className="side-team-name away-name">{displayTeamName(game, game.away_team)}</span>
+        {!awayOpponentOnly && <span className="side-spread away-spread">{sideLine(game.away_team)}</span>}
       </button>
 
       <div className="at-symbol">@</div>
@@ -478,9 +478,9 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
         disabled={!homeSelectable}
         onClick={() => choose(game.home_team)}
       >
+        {!homeOpponentOnly && <span className="side-spread home-spread">{sideLine(game.home_team)}</span>}
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
-        <span className="side-team-name">{displayTeamName(game, game.home_team)}</span>
-        {!homeOpponentOnly && <span className="side-spread">{sideLine(game.home_team)}</span>}
+        <span className="side-team-name home-name">{displayTeamName(game, game.home_team)}</span>
       </button>
     </div>
 
