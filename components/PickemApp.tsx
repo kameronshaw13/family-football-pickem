@@ -85,7 +85,6 @@ function computeWeeklyStandings(profiles: Profile[], weekPicks: Pick[]): WeeklyS
 export default function PickemApp() {
   const [tab, setTab] = useState<Tab>("board");
   const [filter, setFilter] = useState<Filter>("ALL");
-  const [pickMode, setPickMode] = useState<PickType>("regular");
   const [data, setData] = useState<AppData | null>(null);
   const [week, setWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -189,8 +188,8 @@ export default function PickemApp() {
     return true;
   });
 
-  function addPick(game: Game, team: string) {
-    postPick({ action: "draft", gameId: game.id, selectedTeam: team, pickType: pickMode });
+  function addPick(game: Game, team: string, pickType: PickType) {
+    postPick({ action: "draft", gameId: game.id, selectedTeam: team, pickType });
   }
 
   function lockPick(pick: Pick) {
@@ -227,18 +226,14 @@ export default function PickemApp() {
       </nav>
 
       {tab === "board" && <section className="panel board-panel">
-        <div className="board-tools">
-          <div className="segmented-control">
-            <button className={pickMode === "regular" ? "active" : ""} onClick={() => setPickMode("regular")}>Spread</button>
-            <button className={pickMode === "underdog" ? "active" : ""} onClick={() => setPickMode("underdog")}>Dog</button>
-          </div>
+        <div className="board-tools compact-tools">
           <div className="filter-row slim">
             {(["ALL", "CFB", "NFL", "DOGS", "OPEN", "LOCKED"] as Filter[]).map((f) => <button key={f} className={`chip ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>{f}</button>)}
           </div>
         </div>
         <div className="game-list">
           {filteredGames.length === 0 && <div className="empty-state">No games loaded for this week yet.</div>}
-          {filteredGames.map((game) => <GameCard key={game.id} game={game} picks={myPicks} pickMode={pickMode} weekIsOpen={weekIsOpen} addPick={addPick} />)}
+          {filteredGames.map((game) => <GameCard key={game.id} game={game} picks={myPicks} filter={filter} weekIsOpen={weekIsOpen} addPick={addPick} />)}
         </div>
       </section>}
 
@@ -281,9 +276,9 @@ export default function PickemApp() {
 
       {tab === "rules" && <section className="panel rules-panel">
         <h2>Rules</h2>
-        <div className="rule-row"><Shield size={18} /><span>Week 0: 3 college picks plus 1 underdog.</span></div>
-        <div className="rule-row"><Shield size={18} /><span>Week 1: 5 college picks plus 1 underdog.</span></div>
-        <div className="rule-row"><Shield size={18} /><span>After NFL starts: 3 college and 2 NFL spread picks, plus 1 underdog.</span></div>
+        <div className="rule-row"><Shield size={18} /><span>Week 1: 3 college picks plus 1 underdog.</span></div>
+        <div className="rule-row"><Shield size={18} /><span>Week 2: 5 college picks plus 1 underdog.</span></div>
+        <div className="rule-row"><Shield size={18} /><span>Week 3 and later: 3 college and 2 NFL spread picks, plus 1 underdog.</span></div>
         <div className="rule-row"><Zap size={18} /><span>Underdog: +7 to +9.5 = 1 win, +10 to +19.5 = 2 wins, +20 or more = 3 wins. It must win outright.</span></div>
         <div className="rule-row"><Lock size={18} /><span>No double dipping the same game. Tuesday-Friday games close 24 hours before kickoff. Saturday, Sunday, and Monday games close Friday at 5 PM CT.</span></div>
       </section>}
@@ -291,9 +286,10 @@ export default function PickemApp() {
   </div>;
 }
 
-function GameCard({ game, picks, pickMode, weekIsOpen, addPick }: { game: Game; picks: Pick[]; pickMode: PickType; weekIsOpen: boolean; addPick: (game: Game, team: string) => void }) {
+function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; picks: Pick[]; filter: Filter; weekIsOpen: boolean; addPick: (game: Game, team: string, pickType: PickType) => void }) {
   const closed = isClosed(game) || !weekIsOpen;
   const existing = picks.find((p) => p.game_id === game.id);
+  const selectType: PickType = filter === "DOGS" ? "underdog" : "regular";
   return <article className={`game-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>
     <div className="game-head compact-game-head">
       <div className="badges"><span className="badge">{game.league}</span>{existing && <span className="badge picked">{existing.pick_type === "underdog" ? "dog" : "spread"}</span>}</div>
@@ -302,14 +298,14 @@ function GameCard({ game, picks, pickMode, weekIsOpen, addPick }: { game: Game; 
     <div className="team-stack">
       {[game.away_team, game.home_team].map((team) => {
         const dogValue = teamDogValue(game, team);
-        const disabled = closed || Boolean(existing) || (pickMode === "underdog" && dogValue === 0);
+        const disabled = closed || Boolean(existing) || (selectType === "underdog" && dogValue === 0);
         return <div className="team-select-row" key={team}>
           <div className="team-pill">
             <TeamLogo url={logoForTeam(game, team)} name={team} />
             <div className="team-pill-name">{team}</div>
-            <div className="team-pill-spread">{pickMode === "underdog" && dogValue > 0 ? `+${dogValue}W` : spreadForTeam(game, team)}</div>
+            <div className="team-pill-spread">{selectType === "underdog" && dogValue > 0 ? `+${dogValue}W` : spreadForTeam(game, team)}</div>
           </div>
-          <button className="select-btn" disabled={disabled} onClick={() => addPick(game, team)}>{existing?.selected_team === team ? "Picked" : "Select"}</button>
+          <button className="select-btn" disabled={disabled} onClick={() => addPick(game, team, selectType)}>{existing?.selected_team === team ? "Picked" : "Select"}</button>
         </div>;
       })}
     </div>
@@ -318,8 +314,8 @@ function GameCard({ game, picks, pickMode, weekIsOpen, addPick }: { game: Game; 
 }
 
 function TeamLogo({ url, name }: { url?: string | null; name: string }) {
-  if (url) return <span className="team-logo-shell"><img src={url} alt="" className="team-logo" loading="lazy" /></span>;
-  return <span className="team-logo-shell fallback">{name.slice(0, 1)}</span>;
+  if (url) return <img src={url} alt="" className="team-logo" loading="lazy" />;
+  return <div className="team-logo fallback">{name.slice(0, 1)}</div>;
 }
 
 function CardProgress({ rule, counts, hasDog }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number }; hasDog: boolean }) {

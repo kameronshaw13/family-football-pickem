@@ -43,6 +43,7 @@ img { max-width: 100%; display: block; }
 .panel h2 { margin: 0; font-size: 21px; letter-spacing: -.05em; display: flex; align-items: center; gap: 7px; }
 .panel p { margin: 4px 0 0; }
 .board-tools { display: grid; gap: 8px; margin-bottom: 10px; }
+.board-tools.compact-tools { margin-bottom: 8px; }
 .segmented-control { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: #f0e3cc; border-radius: 16px; padding: 5px; border: 1px solid var(--line); }
 .segmented-control button { border: 0; border-radius: 12px; padding: 10px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 1000; }
 .segmented-control button.active { background: var(--brown); color: #fff5dd; }
@@ -64,13 +65,12 @@ img { max-width: 100%; display: block; }
 .kick { color: var(--muted); font-size: 11px; font-weight: 850; text-align: right; display: flex; align-items: center; gap: 4px; }
 .team-stack { display: grid; gap: 8px; }
 .team-select-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
-.team-pill { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 8px; min-height: 52px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.72); padding: 7px 10px 7px 8px; }
-.team-logo-shell { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 999px; background: rgba(255,255,255,.92); box-shadow: inset 0 0 0 1px rgba(68,37,18,.08); flex-shrink: 0; }
-.team-logo { width: 28px; height: 28px; object-fit: contain; opacity: 1; filter: none; }
-.team-logo-shell.fallback { background: #eadcc3; color: var(--brown); font-size: 13px; font-weight: 1000; }
-.team-pill-name { min-width: 0; text-align: center; font-size: 14px; line-height: 1.05; font-weight: 1000; letter-spacing: -.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.team-pill-spread { min-width: 50px; text-align: right; color: var(--brown); font-size: 13px; font-weight: 1000; }
-.select-btn { border: 0; border-radius: 999px; padding: 12px 11px; background: var(--brown); color: #fff5dd; font-size: 11px; font-weight: 1000; min-width: 62px; }
+.team-pill { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 56px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.62); padding: 8px 10px 8px 10px; overflow: visible; }
+.team-logo { width: 34px; height: 34px; object-fit: contain; opacity: 1 !important; filter: drop-shadow(0 1px 1px rgba(47,28,18,.12)); }
+.team-logo.fallback { display: grid; place-items: center; border-radius: 10px; background: transparent; color: var(--brown); font-size: 13px; font-weight: 1000; }
+.team-pill-name { min-width: 0; text-align: center; font-size: 14px; line-height: 1.28; font-weight: 1000; letter-spacing: -.035em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 3px 0; }
+.team-pill-spread { min-width: 50px; text-align: right; color: var(--brown); font-size: 13px; line-height: 1.25; font-weight: 1000; padding: 2px 0; }
+.select-btn { border: 0; border-radius: 999px; padding: 13px 11px; background: var(--brown); color: #fff5dd; font-size: 11px; line-height: 1.2; font-weight: 1000; min-width: 62px; }
 .select-btn:disabled { opacity: .42; cursor: not-allowed; }
 .simple-close { margin: 9px 0 0 !important; color: var(--muted); font-size: 11px; font-weight: 850; text-align: right; }
 .dog-tag { display: inline-flex; margin-left: 5px; padding: 3px 6px; border-radius: 999px; background: rgba(215,169,74,.28); color: var(--brown); font-size: 10px; font-weight: 1000; }
@@ -129,8 +129,9 @@ img { max-width: 100%; display: block; }
   .bottom-tabs { top: 104px; }
   .bottom-tab { font-size: 10px; padding: 10px 2px; }
   .bank-summary-grid { grid-template-columns: 1fr; }
-  .team-pill { grid-template-columns: 30px 1fr auto; min-height: 50px; }
-  .team-pill-name { font-size: 13px; }
+  .team-pill { grid-template-columns: 34px minmax(0, 1fr) auto; min-height: 54px; }
+  .team-logo { width: 32px; height: 32px; }
+  .team-pill-name { font-size: 13px; line-height: 1.28; }
   .team-pill-spread { min-width: 44px; font-size: 12px; }
   .select-btn { min-width: 56px; padding: 11px 8px; }
 }
