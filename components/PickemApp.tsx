@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { CalendarClock, ChevronDown, DollarSign, EyeOff, Landmark, Lock, LogOut, Shield, Trophy, Zap } from "lucide-react";
-import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, Standing, WeekRule } from "@/lib/types";
 import { formatSpread, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
@@ -86,14 +85,7 @@ export default function PickemApp() {
   async function load(nextWeek = week) {
     setLoading(true);
     setMessage("");
-    const supabase = getSupabaseBrowser();
-    if (!supabase) {
-      setMessage("Supabase environment variables are missing. Add them in Vercel and redeploy.");
-      setLoading(false);
-      return;
-    }
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
+    const token = window.localStorage.getItem("pickem_session_token");
     if (!token) {
       window.location.href = "/login";
       return;
@@ -117,9 +109,11 @@ export default function PickemApp() {
   useEffect(() => { load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   async function postPick(body: any) {
-    const supabase = getSupabaseBrowser();
-    const { data: sessionData } = await supabase!.auth.getSession();
-    const token = sessionData.session?.access_token;
+    const token = window.localStorage.getItem("pickem_session_token");
+    if (!token) {
+      window.location.href = "/login";
+      return false;
+    }
     const response = await fetch("/api/picks", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
     const payload = await response.json();
     if (!response.ok) {
@@ -131,9 +125,11 @@ export default function PickemApp() {
   }
 
   async function postBank(body: any) {
-    const supabase = getSupabaseBrowser();
-    const { data: sessionData } = await supabase!.auth.getSession();
-    const token = sessionData.session?.access_token;
+    const token = window.localStorage.getItem("pickem_session_token");
+    if (!token) {
+      window.location.href = "/login";
+      return false;
+    }
     setSavingBank(true);
     const response = await fetch("/api/bank", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
     const payload = await response.json();
@@ -147,8 +143,8 @@ export default function PickemApp() {
   }
 
   async function signOut() {
-    const supabase = getSupabaseBrowser();
-    await supabase?.auth.signOut();
+    window.localStorage.removeItem("pickem_session_token");
+    window.localStorage.removeItem("pickem_profile");
     window.location.href = "/login";
   }
 

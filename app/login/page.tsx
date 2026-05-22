@@ -1,69 +1,70 @@
 "use client";
 
-import { useState } from "react";
-import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
-import { usernameToEmail } from "@/lib/authUsers";
+import { useEffect, useState } from "react";
 
-const usernames = ["kameron", "mike", "quentin"];
+const users = [
+  { username: "kameron", label: "Kameron" },
+  { username: "mike", label: "Mike" },
+  { username: "quentin", label: "Quentin" }
+];
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<"signin" | "claim">("signin");
+  const [mode, setMode] = useState<"create" | "signin">("create");
   const [username, setUsername] = useState("kameron");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function signIn(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
-    const supabase = getSupabaseBrowser();
-    if (!supabase) {
-      setMessage("Supabase env vars are missing in Vercel.");
-      setLoading(false);
-      return;
-    }
-    const email = usernameToEmail(username);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setMessage(error.message);
-    else window.location.href = "/";
-    setLoading(false);
-  }
+  useEffect(() => {
+    const token = window.localStorage.getItem("pickem_session_token");
+    if (token) window.location.href = "/";
+  }, []);
 
-  async function claim(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setMessage("");
-    const response = await fetch("/api/auth/claim", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }) });
+
+    const response = await fetch(mode === "create" ? "/api/auth/register" : "/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
     const payload = await response.json();
     if (!response.ok) {
-      setMessage(payload.error || "Could not claim account.");
+      setMessage(payload.error || "Could not continue.");
       setLoading(false);
       return;
     }
-    setMode("signin");
-    setMessage("Account claimed. Sign in with that username and password.");
-    setLoading(false);
+
+    window.localStorage.setItem("pickem_session_token", payload.token);
+    window.localStorage.setItem("pickem_profile", JSON.stringify(payload.profile));
+    window.location.href = "/";
   }
 
   return <main className="app-shell login-screen">
     <section className="login-card">
-      <h1>{mode === "claim" ? "Claim your account" : "Sign in"}</h1>
-      <p>{mode === "claim" ? "Pick your username and create your own password. You only do this once." : "Use your private family username and password."}</p>
+      <div className="login-mark">FP</div>
+      <h1>{mode === "create" ? "Create your account" : "Sign in"}</h1>
+      <p>{mode === "create" ? "Choose your name and create a private password. After this, use that password to get back in." : "Use your name and the password you created."}</p>
 
-      <div className="mode-toggle"><button type="button" className={mode === "signin" ? "active" : ""} onClick={() => setMode("signin")}>Sign in</button><button type="button" className={mode === "claim" ? "active" : ""} onClick={() => setMode("claim")}>First time</button></div>
+      <div className="mode-toggle">
+        <button type="button" className={mode === "create" ? "active" : ""} onClick={() => { setMode("create"); setMessage(""); }}>Create account</button>
+        <button type="button" className={mode === "signin" ? "active" : ""} onClick={() => { setMode("signin"); setMessage(""); }}>Sign in</button>
+      </div>
 
-      <form onSubmit={mode === "claim" ? claim : signIn}>
-        <label>Username</label>
+      <form onSubmit={submit}>
+        <label>Name</label>
         <select className="input" value={username} onChange={(e) => setUsername(e.target.value)}>
-          {usernames.map((u) => <option key={u} value={u}>{u}</option>)}
+          {users.map((u) => <option key={u.username} value={u.username}>{u.label}</option>)}
         </select>
         <label>Password</label>
-        <input className="input" type="password" placeholder={mode === "claim" ? "Create password" : "Password"} value={password} onChange={(e) => setPassword(e.target.value)} />
-        <button className="btn gold full" disabled={loading || password.length < 6}>{loading ? "Working…" : mode === "claim" ? "Create password" : "Sign in"}</button>
+        <input className="input" type="password" placeholder={mode === "create" ? "Create password" : "Password"} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <button className="btn gold full" disabled={loading || password.length < 6}>{loading ? "Working…" : mode === "create" ? "Create account" : "Sign in"}</button>
       </form>
+
       {message && <p className="login-message">{message}</p>}
-      <div className="username-list"><strong>Usernames:</strong> kameron · mike · quentin</div>
+      <div className="username-list"><strong>Names:</strong> Kameron · Mike · Quentin</div>
     </section>
   </main>;
 }

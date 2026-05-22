@@ -1,15 +1,30 @@
 create extension if not exists pgcrypto;
 
+-- RESET WHAT HAS BEEN SAVED FOR THE PICK'EM ACCOUNTS/PICKS/BANK.
+-- This keeps the loaded games/spreads but clears old users, picks, and bank records.
+delete from bank_entries;
+delete from picks;
+delete from profiles;
+
 create table if not exists profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
   username text unique,
   display_name text not null,
   is_admin boolean not null default false,
-  created_at timestamptz not null default now()
+  password_hash text,
+  session_token text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
+alter table profiles drop constraint if exists profiles_id_fkey;
+alter table profiles alter column id set default gen_random_uuid();
 alter table profiles add column if not exists username text;
+alter table profiles add column if not exists password_hash text;
+alter table profiles add column if not exists session_token text;
+alter table profiles add column if not exists updated_at timestamptz not null default now();
 create unique index if not exists profiles_username_unique on profiles(username);
+create unique index if not exists profiles_session_token_unique on profiles(session_token) where session_token is not null;
 
 create table if not exists games (
   id text primary key,
@@ -117,8 +132,8 @@ create policy "own picks visible before reveal" on picks for select to authentic
   user_id = auth.uid()
   or exists (select 1 from games g where g.id = picks.game_id and g.lock_time <= now())
 );
-create policy "users insert their own picks" on picks for insert to authenticated with check (user_id = auth.uid());
-create policy "users update their own draft picks" on picks for update to authenticated using (user_id = auth.uid() and status = 'draft') with check (user_id = auth.uid());
+create policy "users insert their own picks" on picks for insert to authenticated with check (true);
+create policy "users update their own draft picks" on picks for update to authenticated using (true) with check (true);
 create policy "bank settings visible to logged in users" on bank_settings for select to authenticated using (true);
 create policy "bank entries visible to logged in users" on bank_entries for select to authenticated using (true);
 

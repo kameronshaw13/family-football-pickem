@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { getProfileFromRequest } from "@/lib/authServer";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 const saveSettingsSchema = z.object({ action: z.literal("saveSettings"), winnerAmount: z.number(), loserAmount: z.number() });
 const settleWeekSchema = z.object({ action: z.literal("settleWeek"), week: z.number() });
 const bodySchema = z.discriminatedUnion("action", [saveSettingsSchema, settleWeekSchema]);
-
-async function getAdminProfile(req: NextRequest) {
-  const token = req.headers.get("authorization")?.replace("Bearer ", "");
-  if (!token) return { profile: null, error: "Missing auth token.", status: 401 };
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user) return { profile: null, error: error?.message || "Invalid auth token.", status: 401 };
-  const { data: profile, error: profileError } = await supabase.from("profiles").select("*").eq("id", data.user.id).single();
-  if (profileError || !profile) return { profile: null, error: "Profile not found.", status: 404 };
-  if (!profile.is_admin) return { profile: null, error: "Admin only.", status: 403 };
-  return { profile, error: null, status: 200 };
-}
 
 type WeekLine = { user_id: string; display_name: string; wins: number; losses: number; pushes: number; win_pct: number };
 
@@ -42,8 +31,10 @@ function computeWeeklyStandings(profiles: any[], picks: any[]): WeekLine[] {
 
 export async function POST(req: NextRequest) {
   try {
-    const adminResult = await getAdminProfile(req);
-    if (!adminResult.profile) return NextResponse.json({ ok: false, error: adminResult.error }, { status: adminResult.status });
+    const auth = await getProfileFromRequest(req);
+    if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
+    if (!auth.profile.is_admin) return NextResponse.json({ ok: false, error: "Admin only." }, { status: 403 });
+
     const body = bodySchema.parse(await req.json());
     const supabase = getSupabaseAdmin();
 
@@ -59,7 +50,7 @@ export async function POST(req: NextRequest) {
     const { data: settings, error: settingsError } = await supabase.from("bank_settings").select("*").eq("id", 1).maybeSingle();
     if (settingsError) return NextResponse.json({ ok: false, error: settingsError.message }, { status: 500 });
 
-    const { data: profiles, error: profilesError } = await supabase.from("profiles").select("*").order("display_name", { ascending: true });
+    const { data: profiles, error: profilesError } = await supabase.from("profiles").select("id,display_name").order("display_name", { ascending: true });
     if (profilesError) return NextResponse.json({ ok: false, error: profilesError.message }, { status: 500 });
 
     const { data: picks, error: picksError } = await supabase.from("picks").select("*").eq("week", week).eq("status", "locked");
@@ -73,9 +64,7 @@ export async function POST(req: NextRequest) {
 
     const top = standings[0];
     const winners = standings.filter((row) => row.win_pct === top.win_pct && row.wins === top.wins && row.losses === top.losses);
-    if (winners.length !== 1) {
-      return NextResponse.json({ ok: false, error: "This week has a tie for first. Leave the bank unsettled or adjust it manually later." }, { status: 409 });
-    }
+    if (winners.length !== 1) return NextResponse.json({ ok: false, error: "This week has a tie for first. Leave the bank unsettled or adjust it manually later." }, { status: 409 });
 
     const winner = winners[0];
     const winnerAmount = Number(settings?.winner_amount ?? 20);

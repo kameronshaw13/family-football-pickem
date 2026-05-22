@@ -4,10 +4,6 @@ export const FAMILY_USERS = [
   { username: "quentin", displayName: "Quentin", isAdmin: false }
 ] as const;
 
-export function usernameToEmail(username: string) {
-  return `${username.trim().toLowerCase()}@family-pickem.local`;
-}
-
 export function findFamilyUser(username: string) {
   const clean = username.trim().toLowerCase();
   return FAMILY_USERS.find((u) => u.username === clean) || null;

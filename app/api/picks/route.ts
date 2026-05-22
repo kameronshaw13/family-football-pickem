@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { getProfileFromRequest } from "@/lib/authServer";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { normalizeSpreadForSelectedTeam, underdogWinValue } from "@/lib/spreads";
 import { getWeekRule } from "@/lib/weekRules";
@@ -9,22 +10,14 @@ const lockSchema = z.object({ action: z.literal("lock"), pickId: z.string() });
 const removeSchema = z.object({ action: z.literal("remove"), pickId: z.string() });
 const bodySchema = z.discriminatedUnion("action", [draftSchema, lockSchema, removeSchema]);
 
-async function getAuthedUser(req: NextRequest) {
-  const token = req.headers.get("authorization")?.replace("Bearer ", "");
-  if (!token) return { user: null, error: "Missing auth token." };
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user) return { user: null, error: error?.message || "Invalid auth token." };
-  return { user: data.user, error: null };
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const { user, error } = await getAuthedUser(req);
-    if (!user) return NextResponse.json({ ok: false, error }, { status: 401 });
+    const auth = await getProfileFromRequest(req);
+    if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
 
     const body = bodySchema.parse(await req.json());
     const supabase = getSupabaseAdmin();
+    const user = auth.profile;
 
     if (body.action === "remove") {
       const { data: pick, error: pickErr } = await supabase.from("picks").select("*").eq("id", body.pickId).eq("user_id", user.id).single();
@@ -122,10 +115,12 @@ export async function POST(req: NextRequest) {
         locked_spread_team: pick.selected_team,
         underdog_win_value: dogValue,
         updated_at: new Date().toISOString()
-      }).eq("id", body.pickId).select().single();
+      }).eq("id", pick.id).select().single();
       if (updateErr) return NextResponse.json({ ok: false, error: updateErr.message }, { status: 500 });
       return NextResponse.json({ ok: true, pick: data });
     }
+
+    return NextResponse.json({ ok: false, error: "Unknown action" }, { status: 400 });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
