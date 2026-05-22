@@ -53,7 +53,7 @@ export function findEspnLogo(teamName: string, logoMap: Map<string, string>) {
   const key = normalize(teamName);
   if (logoMap.has(key)) return logoMap.get(key) || null;
 
-  for (const [alias, logo] of logoMap.entries()) {
+  for (const [alias, logo] of Array.from(logoMap.entries())) {
     if (alias.length > 3 && (key.includes(alias) || alias.includes(key))) return logo;
   }
   return null;
