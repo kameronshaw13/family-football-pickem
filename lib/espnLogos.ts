@@ -12,7 +12,7 @@ type ESPNTeamLogo = {
 const STOP_WORDS = new Set(["the", "of", "university", "college", "state", "st", "and", "at"]);
 const COMMON_MASCOTS = new Set([
   "tigers", "wildcats", "bulldogs", "eagles", "hawks", "falcons", "panthers", "cougars", "bears", "lions", "rams", "aggies", "spartans", "trojans", "cardinals", "pirates", "knights", "warriors", "raiders", "rebels", "mustangs", "owls"
-]]);
+]);
 
 const MANUAL_CFB_LOGOS = new Map<string, string>([
   ["san jose state", "https://a.espncdn.com/i/teamlogos/ncaa/500/23.png"],
