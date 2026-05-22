@@ -428,33 +428,62 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
   const closed = isClosed(game) || !weekIsOpen;
   const existing = picks.find((p) => p.game_id === game.id);
   const selectType: PickType = filter === "DOGS" ? "underdog" : "regular";
-  const allTeams = [game.away_team, game.home_team];
-  const dogTeams = allTeams.filter((team) => teamDogValue(game, team) > 0);
-  const visibleTeams = filter === "DOGS" && dogTeams.length ? allTeams : allTeams;
+  const awayDogValue = teamDogValue(game, game.away_team);
+  const homeDogValue = teamDogValue(game, game.home_team);
 
-  return <article className={`game-card compact-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>
+  function sideLine(team: string) {
+    if (filter === "DOGS") return dogLineText(game, team);
+    return spreadForTeam(game, team);
+  }
+
+  function sideIsSelectable(team: string) {
+    if (closed || Boolean(existing)) return false;
+    if (filter === "DOGS") return teamDogValue(game, team) > 0;
+    return true;
+  }
+
+  function choose(team: string) {
+    if (!sideIsSelectable(team)) return;
+    addPick(game, team, selectType);
+  }
+
+  const awaySelectable = sideIsSelectable(game.away_team);
+  const homeSelectable = sideIsSelectable(game.home_team);
+  const awayOpponentOnly = filter === "DOGS" && awayDogValue === 0;
+  const homeOpponentOnly = filter === "DOGS" && homeDogValue === 0;
+
+  return <article className={`game-card compact-card same-line-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>
     <div className="game-head compact-game-head">
       <div className="badges"><span className="badge">{game.league}</span>{existing && <span className="badge picked">{existing.pick_type === "underdog" ? "dog" : "spread"}</span>}</div>
       <div className="kick"><CalendarClock size={13} /> {dt(game.commence_time)}</div>
     </div>
-    <div className="team-stack compact-stack">
-      {visibleTeams.map((team) => {
-        const dogValue = teamDogValue(game, team);
-        const isDogChoice = filter === "DOGS" && dogValue > 0;
-        const isOpponentOnly = filter === "DOGS" && dogValue === 0;
-        const disabled = closed || Boolean(existing) || (selectType === "underdog" && dogValue === 0);
-        return <div className={`team-select-row compact-team-row ${isOpponentOnly ? "opponent-only" : ""}`} key={team}>
-          <div className="team-line">
-            <TeamLogo url={logoForTeam(game, team)} name={team} />
-            <div className="team-display-name">{displayTeamName(game, team)}</div>
-            <div className="team-line-spread">{isOpponentOnly ? "" : isDogChoice ? dogLineText(game, team) : spreadForTeam(game, team)}</div>
-          </div>
-          {isOpponentOnly
-            ? <div className="select-spacer" aria-hidden="true" />
-            : <button className="select-btn compact-select" disabled={disabled} onClick={() => addPick(game, team, selectType)}>{existing?.selected_team === team ? "Picked" : "Select"}</button>}
-        </div>;
-      })}
+
+    <div className="same-line-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
+      <button
+        type="button"
+        className={`team-side away-side ${awaySelectable ? "selectable" : ""} ${existing?.selected_team === game.away_team ? "picked-side" : ""} ${awayOpponentOnly ? "opponent-only" : ""}`}
+        disabled={!awaySelectable}
+        onClick={() => choose(game.away_team)}
+      >
+        <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
+        <span className="side-team-name">{displayTeamName(game, game.away_team)}</span>
+        {!awayOpponentOnly && <span className="side-spread">{sideLine(game.away_team)}</span>}
+      </button>
+
+      <div className="at-symbol">@</div>
+
+      <button
+        type="button"
+        className={`team-side home-side ${homeSelectable ? "selectable" : ""} ${existing?.selected_team === game.home_team ? "picked-side" : ""} ${homeOpponentOnly ? "opponent-only" : ""}`}
+        disabled={!homeSelectable}
+        onClick={() => choose(game.home_team)}
+      >
+        <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
+        <span className="side-team-name">{displayTeamName(game, game.home_team)}</span>
+        {!homeOpponentOnly && <span className="side-spread">{sideLine(game.home_team)}</span>}
+      </button>
     </div>
+
     <p className="simple-close">Closes {closeText(game.lock_time)} CT</p>
   </article>;
 }
