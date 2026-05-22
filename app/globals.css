@@ -53,7 +53,7 @@ img { max-width: 100%; display: block; }
 .game-list { display: grid; gap: 10px; }
 .game-card { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 12px; position: relative; overflow: hidden; }
 .game-card.selected { border-color: rgba(215,169,74,.8); box-shadow: inset 4px 0 0 var(--gold); }
-.game-card.closed { opacity: .72; background: #f1e4ce; }
+.game-card.closed { background: #f1e4ce; }
 .game-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
 .compact-game-head { margin-bottom: 8px; }
 .badges { display: flex; gap: 5px; flex-wrap: wrap; }
@@ -64,9 +64,10 @@ img { max-width: 100%; display: block; }
 .kick { color: var(--muted); font-size: 11px; font-weight: 850; text-align: right; display: flex; align-items: center; gap: 4px; }
 .team-stack { display: grid; gap: 8px; }
 .team-select-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
-.team-pill { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 8px; min-height: 52px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.6); padding: 7px 10px 7px 8px; }
-.team-logo { width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 1px 1px rgba(255,255,255,.6)); }
-.team-logo.fallback { display: grid; place-items: center; border-radius: 999px; background: #eadcc3; color: var(--brown); font-size: 13px; font-weight: 1000; }
+.team-pill { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 8px; min-height: 52px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.72); padding: 7px 10px 7px 8px; }
+.team-logo-shell { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 999px; background: rgba(255,255,255,.92); box-shadow: inset 0 0 0 1px rgba(68,37,18,.08); flex-shrink: 0; }
+.team-logo { width: 28px; height: 28px; object-fit: contain; opacity: 1; filter: none; }
+.team-logo-shell.fallback { background: #eadcc3; color: var(--brown); font-size: 13px; font-weight: 1000; }
 .team-pill-name { min-width: 0; text-align: center; font-size: 14px; line-height: 1.05; font-weight: 1000; letter-spacing: -.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .team-pill-spread { min-width: 50px; text-align: right; color: var(--brown); font-size: 13px; font-weight: 1000; }
 .select-btn { border: 0; border-radius: 999px; padding: 12px 11px; background: var(--brown); color: #fff5dd; font-size: 11px; font-weight: 1000; min-width: 62px; }

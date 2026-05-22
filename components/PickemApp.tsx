@@ -318,8 +318,8 @@ function GameCard({ game, picks, pickMode, weekIsOpen, addPick }: { game: Game; 
 }
 
 function TeamLogo({ url, name }: { url?: string | null; name: string }) {
-  if (url) return <img src={url} alt="" className="team-logo" loading="lazy" />;
-  return <div className="team-logo fallback">{name.slice(0, 1)}</div>;
+  if (url) return <span className="team-logo-shell"><img src={url} alt="" className="team-logo" loading="lazy" /></span>;
+  return <span className="team-logo-shell fallback">{name.slice(0, 1)}</span>;
 }
 
 function CardProgress({ rule, counts, hasDog }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number }; hasDog: boolean }) {
