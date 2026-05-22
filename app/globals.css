@@ -66,11 +66,13 @@ img { max-width: 100%; display: block; }
 .kick { color: var(--muted); font-size: 11px; font-weight: 850; text-align: right; display: flex; align-items: center; gap: 4px; }
 .team-stack { display: grid; gap: 8px; }
 .team-select-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
-.team-pill { display: grid; grid-template-columns: 38px minmax(0, 1fr) minmax(58px, auto); align-items: center; gap: 6px; min-height: 60px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.62); padding: 9px 10px; overflow: visible; }
+.team-select-row.opponent-only .team-pill { opacity: .82; }
+.team-pill { display: grid; grid-template-columns: 36px minmax(78px, auto) auto; justify-content: start; align-items: center; gap: 5px; min-height: 60px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.62); padding: 9px 10px; overflow: visible; }
 .team-logo { width: 34px; height: 34px; object-fit: contain; opacity: 1 !important; filter: none !important; flex-shrink: 0; transform: translateZ(0); }
 .team-logo.fallback { display: grid; place-items: center; border-radius: 10px; background: transparent; color: var(--brown); font-size: 13px; font-weight: 1000; opacity: 1 !important; }
-.team-pill-name { min-width: 0; text-align: center; font-size: 14px; line-height: 1.42; font-weight: 1000; letter-spacing: -.025em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 5px 0; }
-.team-pill-spread { min-width: 58px; text-align: left; color: var(--brown); font-size: 13px; line-height: 1.35; font-weight: 1000; padding: 4px 0; white-space: nowrap; }
+.team-pill-name { min-width: 0; max-width: 150px; text-align: left; font-size: 14px; line-height: 1.45; font-weight: 1000; letter-spacing: -.025em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 6px 0; }
+.team-pill-spread { min-width: 45px; text-align: left; color: var(--brown); font-size: 13px; line-height: 1.4; font-weight: 1000; padding: 5px 0; white-space: nowrap; }
+.select-spacer { width: 62px; min-width: 62px; }
 .select-btn { border: 0; border-radius: 999px; padding: 13px 11px; background: var(--brown); color: #fff5dd; font-size: 11px; line-height: 1.35; font-weight: 1000; min-width: 62px; }
 .select-btn:disabled { opacity: .42; cursor: not-allowed; }
 .simple-close { margin: 9px 0 0 !important; color: var(--muted); font-size: 11px; font-weight: 850; text-align: right; }
@@ -130,10 +132,11 @@ img { max-width: 100%; display: block; }
   .bottom-tabs { top: 104px; }
   .bottom-tab { font-size: 10px; padding: 10px 2px; }
   .bank-summary-grid { grid-template-columns: 1fr; }
-  .team-pill { grid-template-columns: 34px minmax(0, 1fr) minmax(55px, auto); min-height: 58px; gap: 5px; }
+  .team-pill { grid-template-columns: 34px minmax(70px, auto) auto; justify-content: start; min-height: 58px; gap: 4px; }
   .team-logo { width: 32px; height: 32px; }
-  .team-pill-name { font-size: 13px; line-height: 1.42; padding: 5px 0; }
-  .team-pill-spread { min-width: 55px; font-size: 12px; text-align: left; }
+  .team-pill-name { font-size: 13px; line-height: 1.45; padding: 6px 0; }
+  .team-pill-spread { min-width: 40px; font-size: 12px; text-align: left; }
+  .team-pill-name { max-width: 122px; }
   .select-btn { min-width: 56px; padding: 11px 8px; }
 }
 @media (max-width: 520px) {

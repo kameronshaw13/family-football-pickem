@@ -30,8 +30,10 @@ const NFL_NICKNAMES = [
 ];
 
 const COLLEGE_MASCOTS = [
-  "Rainbow Warriors", "Rainbow Wahine", "Blue Raiders", "Green Wave", "Mean Green", "Red Wolves", "Golden Hurricane", "Golden Flashes", "Golden Gophers", "Golden Bears", "Ragin Cajuns", "Ragin' Cajuns", "Thundering Herd", "Fighting Irish", "Fighting Illini", "Gamecocks", "Mountaineers", "Commodores", "Scarlet Knights", "Yellow Jackets", "Boilermakers", "Nittany Lions", "Sun Devils", "Blue Devils", "Demon Deacons", "Crimson Tide", "Horned Frogs", "Red Raiders", "Jayhawks", "Buckeyes", "Spartans", "Wolverines", "Badgers", "Hawkeyes", "Hoosiers", "Terrapins", "Cornhuskers", "Wildcats", "Tigers", "Bulldogs", "Cougars", "Panthers", "Eagles", "Falcons", "Cardinals", "Huskies", "Aggies", "Rebels", "Pirates", "Mustangs", "Bearcats", "Bearkats", "Minutemen", "Lumberjacks", "Roadrunners", "Longhorns", "Sooners", "Cowboys", "Cyclones", "Utes", "Buffaloes", "Ducks", "Beavers", "Trojans", "Bruins", "Hokies", "Cavaliers", "Hurricanes", "Seminoles", "Gators", "Volunteers", "Razorbacks", "Blazers", "Owls", "Lobos", "Aztecs", "Warriors", "Knights", "Bulls", "Rams", "Zips", "Bobcats", "Rockets", "Broncos", "Chippewas", "RedHawks", "Redhawks", "Gaels", "Mocs"
+  "Rainbow Warriors", "Rainbow Wahine", "Blue Raiders", "Green Wave", "Mean Green", "Red Wolves", "Golden Hurricane", "Golden Flashes", "Golden Gophers", "Golden Bears", "Golden Eagles", "Ragin Cajuns", "Ragin' Cajuns", "Thundering Herd", "Fighting Irish", "Fighting Illini", "Gamecocks", "Mountaineers", "Commodores", "Scarlet Knights", "Yellow Jackets", "Boilermakers", "Nittany Lions", "Sun Devils", "Blue Devils", "Demon Deacons", "Crimson Tide", "Horned Frogs", "Red Raiders", "Chanticleers", "Sycamores", "Governors", "Colonels", "Privateers", "Keydets", "Paladins", "Terriers", "Hatters", "Bison", "Bisons", "Phoenix", "Penguins", "Vandals", "Mavericks", "Musketeers", "Ramblers", "Flyers", "Explorers", "Billikens", "Salukis", "Sycamores", "Peacocks", "Jaspers", "Broncs", "Pioneers", "Retrievers", "Retrievers", "Catamounts", "Highlanders", "Mocs", "Lancers", "Camels", "Buccaneers", "Seawolves", "Great Danes", "River Hawks", "Minutemen", "Miners", "Runners", "Roadrunners", "Jaguars", "Jackrabbits", "Bison", "Coyotes", "Leathernecks", "Panthers", "Lions", "Tigers", "Wildcats", "Bulldogs", "Eagles", "Hawks", "Falcons", "Bears", "Bruins", "Rams", "Aggies", "Spartans", "Trojans", "Cardinals", "Pirates", "Knights", "Warriors", "Raiders", "Rebels", "Mustangs", "Owls", "Cougars", "Huskies", "Bearcats", "Bearkats", "Lumberjacks", "Longhorns", "Sooners", "Cowboys", "Cyclones", "Utes", "Buffaloes", "Ducks", "Beavers", "Hokies", "Cavaliers", "Hurricanes", "Seminoles", "Gators", "Volunteers", "Razorbacks", "Blazers", "Lobos", "Aztecs", "Bulls", "Zips", "Bobcats", "Rockets", "Broncos", "Chippewas", "RedHawks", "Redhawks", "Gaels", "Jayhawks", "Buckeyes", "Wolverines", "Badgers", "Hawkeyes", "Hoosiers", "Terrapins", "Cornhuskers"
 ].sort((a, b) => b.length - a.length);
+
+const SCHOOL_SUFFIX_WORDS = new Set(["State", "Tech", "A&M", "International", "Southern", "Northern", "Eastern", "Western", "Central", "Carolina", "Florida", "Georgia", "Texas", "Washington", "Mississippi", "Arizona", "Alabama", "Louisiana", "California", "Colorado", "Dakota", "Mexico", "England", "Orleans", "Monroe", "Lafayette", "Vegas", "Jose", "Diego", "Angeles", "Louis", "Francisco"]);
 
 function displayTeamName(game: Game, team: string) {
   if (game.league === "NFL") {
@@ -48,6 +50,14 @@ function displayTeamName(game: Game, team: string) {
   const lower = cleaned.toLowerCase();
   const mascot = COLLEGE_MASCOTS.find((name) => lower.endsWith(` ${name.toLowerCase()}`));
   if (mascot) cleaned = cleaned.slice(0, cleaned.length - mascot.length).trim();
+
+  // Fallback for college nicknames ESPN/Odds API formats differently. If a CFB name
+  // still has 3+ words after known mascot stripping, the last word is usually the mascot.
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  const last = parts[parts.length - 1];
+  if (!mascot && parts.length >= 3 && last && !SCHOOL_SUFFIX_WORDS.has(last)) {
+    cleaned = parts.slice(0, -1).join(" ");
+  }
 
   return cleaned || team;
 }
@@ -323,7 +333,12 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
   const closed = isClosed(game) || !weekIsOpen;
   const existing = picks.find((p) => p.game_id === game.id);
   const selectType: PickType = filter === "DOGS" ? "underdog" : "regular";
-  const visibleTeams = [game.away_team, game.home_team].filter((team) => filter !== "DOGS" || teamDogValue(game, team) > 0);
+  const allTeams = [game.away_team, game.home_team];
+  const dogTeams = allTeams.filter((team) => teamDogValue(game, team) > 0);
+  const visibleTeams = filter === "DOGS"
+    ? allTeams.filter((team) => dogTeams.includes(team) || dogTeams.some((dog) => dog !== team))
+    : allTeams;
+
   return <article className={`game-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>
     <div className="game-head compact-game-head">
       <div className="badges"><span className="badge">{game.league}</span>{existing && <span className="badge picked">{existing.pick_type === "underdog" ? "dog" : "spread"}</span>}</div>
@@ -332,14 +347,18 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
     <div className="team-stack">
       {visibleTeams.map((team) => {
         const dogValue = teamDogValue(game, team);
+        const isDogChoice = filter === "DOGS" && dogValue > 0;
+        const isOpponentOnly = filter === "DOGS" && dogValue === 0;
         const disabled = closed || Boolean(existing) || (selectType === "underdog" && dogValue === 0);
-        return <div className="team-select-row" key={team}>
+        return <div className={`team-select-row ${isOpponentOnly ? "opponent-only" : ""}`} key={team}>
           <div className="team-pill">
             <TeamLogo url={logoForTeam(game, team)} name={team} />
             <div className="team-pill-name">{displayTeamName(game, team)}</div>
-            <div className="team-pill-spread">{selectType === "underdog" && dogValue > 0 ? dogLineText(game, team) : spreadForTeam(game, team)}</div>
+            <div className="team-pill-spread">{isOpponentOnly ? "" : isDogChoice ? dogLineText(game, team) : spreadForTeam(game, team)}</div>
           </div>
-          <button className="select-btn" disabled={disabled} onClick={() => addPick(game, team, selectType)}>{existing?.selected_team === team ? "Picked" : "Select"}</button>
+          {isOpponentOnly
+            ? <div className="select-spacer" aria-hidden="true" />
+            : <button className="select-btn" disabled={disabled} onClick={() => addPick(game, team, selectType)}>{existing?.selected_team === team ? "Picked" : "Select"}</button>}
         </div>;
       })}
     </div>
