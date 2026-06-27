@@ -427,6 +427,7 @@ export default function PickemApp() {
 function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; picks: Pick[]; filter: Filter; weekIsOpen: boolean; addPick: (game: Game, team: string, pickType: PickType) => void }) {
   const closed = isClosed(game) || !weekIsOpen;
   const existing = picks.find((p) => p.game_id === game.id);
+  const canChangeExisting = existing?.status === "draft" && existing.pick_type === (filter === "DOGS" ? "underdog" : "regular");
   const selectType: PickType = filter === "DOGS" ? "underdog" : "regular";
   const awayDogValue = teamDogValue(game, game.away_team);
   const homeDogValue = teamDogValue(game, game.home_team);
@@ -437,7 +438,8 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
   }
 
   function sideIsSelectable(team: string) {
-    if (closed || Boolean(existing)) return false;
+    if (closed) return false;
+    if (existing && !canChangeExisting) return false;
     if (filter === "DOGS") return teamDogValue(game, team) > 0;
     return true;
   }
