@@ -164,14 +164,14 @@ function dogLineText(game: Game, team: string) {
 }
 
 function dt(iso: string) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso)).replace(":00 ", " ");
 }
 function shortDt(iso: string | null) {
   if (!iso) return "—";
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso)).replace(":00 ", " ");
 }
 function closeText(iso: string) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso)).replace(":00 ", " ");
 }
 function spreadForTeam(game: Game, team: string) {
   return spreadText(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
@@ -454,39 +454,35 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
   const awayOpponentOnly = filter === "DOGS" && awayDogValue === 0;
   const homeOpponentOnly = filter === "DOGS" && homeDogValue === 0;
 
-  return <article className={`game-card compact-card same-line-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>
+  return <article className={`game-card matchup-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>
     <div className="game-head compact-game-head">
       <div className="badges"><span className="badge">{game.league}</span>{existing && <span className="badge picked">{existing.pick_type === "underdog" ? "dog" : "spread"}</span>}</div>
-      <div className="kick"><CalendarClock size={13} /> {dt(game.commence_time)}</div>
+      <div className="kick"><CalendarClock size={13} /> {dt(game.commence_time)} · closes {closeText(game.lock_time)}</div>
     </div>
 
-    <div className="same-line-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
+    <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
       <button
         type="button"
-        className={`team-side away-side ${awaySelectable ? "selectable" : ""} ${existing?.selected_team === game.away_team ? "picked-side" : ""} ${awayOpponentOnly ? "opponent-only" : ""}`}
+        className={`team-row away-row ${awaySelectable ? "selectable" : ""} ${existing?.selected_team === game.away_team ? "picked-side" : ""} ${awayOpponentOnly ? "opponent-only" : ""}`}
         disabled={!awaySelectable}
         onClick={() => choose(game.away_team)}
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
-        <span className="side-team-name away-name">{displayTeamName(game, game.away_team)}</span>
-        {!awayOpponentOnly && <span className="side-spread away-spread">{sideLine(game.away_team)}</span>}
+        <span className="team-name">{displayTeamName(game, game.away_team)}</span>
+        {!awayOpponentOnly && <span className="team-spread">{sideLine(game.away_team)}</span>}
       </button>
-
-      <div className="at-symbol">@</div>
 
       <button
         type="button"
-        className={`team-side home-side ${homeSelectable ? "selectable" : ""} ${existing?.selected_team === game.home_team ? "picked-side" : ""} ${homeOpponentOnly ? "opponent-only" : ""}`}
+        className={`team-row home-row ${homeSelectable ? "selectable" : ""} ${existing?.selected_team === game.home_team ? "picked-side" : ""} ${homeOpponentOnly ? "opponent-only" : ""}`}
         disabled={!homeSelectable}
         onClick={() => choose(game.home_team)}
       >
-        {!homeOpponentOnly && <span className="side-spread home-spread">{sideLine(game.home_team)}</span>}
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
-        <span className="side-team-name home-name">{displayTeamName(game, game.home_team)}</span>
+        <span className="team-name">{displayTeamName(game, game.home_team)}</span>
+        {!homeOpponentOnly && <span className="team-spread">{sideLine(game.home_team)}</span>}
       </button>
     </div>
-
-    <p className="simple-close">Closes {closeText(game.lock_time)} CT</p>
   </article>;
 }
 
