@@ -239,6 +239,7 @@ export default function PickemApp() {
   const [betAmount, setBetAmount] = useState("20");
   const [betRecipients, setBetRecipients] = useState<string[]>([]);
   const [toast, setToast] = useState<Toast>(null);
+  const [pastDayState, setPastDayState] = useState<Record<string, boolean>>({});
 
   async function load(nextWeek = week) {
     setLoading(true);
@@ -500,10 +501,13 @@ export default function PickemApp() {
           </div>
           {filteredGames.length === 0 && <div className="empty-state">{filter === "PAST" ? "No past games this week." : `No open ${filter} games right now.`}</div>}
           <div className="game-days">
-            {gameGroups.map((group) => <div className="game-day-group" key={group.key}>
-              <div className="game-day-marker"><strong>{group.label}</strong><span /></div>
-              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} filter={filter} weekIsOpen={weekIsOpen} addPick={addPick} />)}</div>
-            </div>)}
+            {gameGroups.map((group, index) => {
+              const pastGroupOpen = pastDayState[group.key] ?? index === gameGroups.length - 1;
+              return <div className={`game-day-group ${filter === "PAST" ? "past-day-group" : ""}`} key={group.key}>
+                {filter === "PAST" ? <button className="game-day-marker game-day-toggle" aria-expanded={pastGroupOpen} onClick={() => setPastDayState((current) => ({ ...current, [group.key]: !pastGroupOpen }))}><strong>{group.label}</strong><span /><small>{group.games.length} game{group.games.length === 1 ? "" : "s"}</small><ChevronDown className={pastGroupOpen ? "open" : ""} size={16} /></button> : <div className="game-day-marker"><strong>{group.label}</strong><span /></div>}
+                {(filter !== "PAST" || pastGroupOpen) && <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} filter={filter} weekIsOpen={weekIsOpen} addPick={addPick} />)}</div>}
+              </div>;
+            })}
           </div>
         </>}
         {picksView === "sideBets" && <SideBetCenter
@@ -531,7 +535,7 @@ export default function PickemApp() {
         <SectionTabs items={[{ id: "mine", label: "My Card" }, { id: "group", label: "League Cards" }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
         {cardView === "mine" && <>
           <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />
-          <div className={`card-save-bar ${stagedPicks ? "dirty" : ""}`}><div><strong>{stagedPicks ? "Unsaved changes" : "Picks saved"}</strong><p>Saved picks stay editable until their listed lock time.</p></div><button className="btn accent" disabled={!stagedPicks || savingPicks} onClick={() => savePicks(cardPicks)}><Save size={14} /> {savingPicks ? "Saving…" : "Save picks"}</button></div>
+          <div className={`card-save-bar ${stagedPicks ? "dirty" : ""}`}><div><strong>{stagedPicks ? "Unsaved changes" : "Picks saved"}</strong><p>Saved picks stay editable until their listed lock time.</p></div>{!stagedPicks && <CircleCheckBig size={19} />}</div>
           <PickList picks={myRegular} games={games} title="Spread picks" removePick={removePick} />
           <PickList picks={myUnderdog ? [myUnderdog] : []} games={games} title="Underdog pick" removePick={removePick} />
         </>}
@@ -584,6 +588,7 @@ export default function PickemApp() {
       <span><b>Unsaved picks</b><small>Review your card before games lock</small></span>
       <strong>Review & save <ChevronRight size={17} /></strong>
     </button>}
+    {tab === "card" && cardView === "mine" && stagedPicks !== null && <button className="sticky-card-save" disabled={savingPicks} onClick={() => savePicks(cardPicks)}><Save size={17} /> {savingPicks ? "Saving picks…" : "Save picks"}</button>}
     {toast && <div className={`toast ${toast.tone}`} role="status" aria-live="polite">{toast.tone === "success" && <CircleCheckBig size={18} />}{toast.tone === "error" && <X size={18} />}<span>{toast.message}</span></div>}
   </div>;
 }
@@ -646,13 +651,21 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGam
   setAmount: (value: string) => void;
   toggleRecipient: (value: string) => void;
   createBet: () => void;
-  respond: (action: "accept" | "decline" | "cancel", sideBetId: string) => void;
+  respond: (action: "accept" | "decline" | "cancel", sideBetId: string) => Promise<boolean>;
 }) {
+  const [confirmingBetId, setConfirmingBetId] = useState<string | null>(null);
   const received = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
   const sent = sideBets.filter((bet) => bet.creator_id === currentUser.id);
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
   const creatorSpread = selectedGame ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
+  const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
+
+  async function acceptConfirmedBet() {
+    if (!confirmingBetId) return;
+    const accepted = await respond("accept", confirmingBetId);
+    if (accepted) setConfirmingBetId(null);
+  }
 
   return <div className="side-bet-center">
     <SectionTabs items={[{ id: "received", label: "For You" }, { id: "sent", label: "Sent" }, { id: "new", label: "Make Offer" }]} value={view} onChange={(value) => setView(value as BetView)} />
@@ -692,17 +705,30 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGam
       </div>}
     </div>}
 
-    {view === "received" && <SideBetList bets={received} mode="received" currentUser={currentUser} empty="No offers sent to you yet." saving={saving} respond={respond} />}
-    {view === "sent" && <SideBetList bets={sent} mode="sent" currentUser={currentUser} empty="You have not sent any offers yet." saving={saving} respond={respond} />}
+    {view === "received" && <SideBetList bets={received} mode="received" currentUser={currentUser} empty="No offers sent to you yet." saving={saving} requestAccept={setConfirmingBetId} respond={respond} />}
+    {view === "sent" && <SideBetList bets={sent} mode="sent" currentUser={currentUser} empty="You have not sent any offers yet." saving={saving} requestAccept={setConfirmingBetId} respond={respond} />}
+
+    {confirmingBet && <div className="confirmation-backdrop">
+      <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title">
+        <div className="confirmation-icon"><CircleDollarSign size={22} /></div>
+        <div className="confirmation-heading"><span>Review side bet</span><h2 id="accept-bet-title">Accept {stakeMoney(Number(confirmingBet.amount))} bet?</h2></div>
+        <div className="confirmation-matchup">
+          <div><span>You take</span><strong>{confirmingBet.game ? displayTeamName(confirmingBet.game, confirmingBet.offered_team) : confirmingBet.offered_team} {spreadText(Number(confirmingBet.offered_spread))}</strong></div>
+          <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? displayTeamName(confirmingBet.game, confirmingBet.creator_team) : confirmingBet.creator_team} {spreadText(Number(confirmingBet.creator_spread))}</strong></div>
+        </div>
+        {confirmingBet.game && <p className="confirmation-kickoff">Kickoff {dt(confirmingBet.game.commence_time)}</p>}
+        <div className="confirmation-actions"><button className="btn secondary" disabled={saving} onClick={() => setConfirmingBetId(null)}>Cancel</button><button className="btn accept" disabled={saving} onClick={acceptConfirmedBet}><Check size={16} /> {saving ? "Accepting…" : "Accept bet"}</button></div>
+      </section>
+    </div>}
   </div>;
 }
 
-function SideBetList({ bets, mode, currentUser, empty, saving, respond }: { bets: SideBet[]; mode: "received" | "sent"; currentUser: Profile; empty: string; saving: boolean; respond: (action: "accept" | "decline" | "cancel", sideBetId: string) => void }) {
+function SideBetList({ bets, mode, currentUser, empty, saving, requestAccept, respond }: { bets: SideBet[]; mode: "received" | "sent"; currentUser: Profile; empty: string; saving: boolean; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel", sideBetId: string) => Promise<boolean> }) {
   const sorted = [...bets].sort((a, b) => Number(b.status === "open") - Number(a.status === "open") || new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  return <div className="side-bet-list">{!sorted.length && <div className="empty-state">{empty}</div>}{sorted.map((bet) => <SideBetCard key={bet.id} bet={bet} mode={mode} currentUser={currentUser} saving={saving} respond={respond} />)}</div>;
+  return <div className="side-bet-list">{!sorted.length && <div className="empty-state">{empty}</div>}{sorted.map((bet) => <SideBetCard key={bet.id} bet={bet} mode={mode} currentUser={currentUser} saving={saving} requestAccept={requestAccept} respond={respond} />)}</div>;
 }
 
-function SideBetCard({ bet, mode, currentUser, saving, respond }: { bet: SideBet; mode: "received" | "sent"; currentUser: Profile; saving: boolean; respond: (action: "accept" | "decline" | "cancel", sideBetId: string) => void }) {
+function SideBetCard({ bet, mode, currentUser, saving, requestAccept, respond }: { bet: SideBet; mode: "received" | "sent"; currentUser: Profile; saving: boolean; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel", sideBetId: string) => Promise<boolean> }) {
   const game = bet.game;
   const creatorName = bet.creator?.display_name || "A player";
   const target = bet.targets?.find((row) => row.recipient_id === currentUser.id);
@@ -717,7 +743,7 @@ function SideBetCard({ bet, mode, currentUser, saving, respond }: { bet: SideBet
     <p className="offer-statement">{mode === "received" ? `${creatorName} offered you ${offeredName} ${spreadText(Number(bet.offered_spread))} vs ${creatorTeamName}.` : `You offered ${targetNames} ${offeredName} ${spreadText(Number(bet.offered_spread))} vs ${creatorTeamName}.`}</p>
     <div className="bet-line-summary"><span>{creatorName} has <strong>{creatorTeamName} {spreadText(Number(bet.creator_spread))}</strong></span><span>{bet.accepted_by_profile ? `Accepted by ${bet.accepted_by_profile.display_name}` : game ? `Kickoff ${dt(game.commence_time)}` : ""}</span></div>
     {bet.status === "settled" && <div className="bet-result">{bet.result === "push" ? "Push · no bank change" : `${bet.winner_id === currentUser.id ? "You won" : bet.winner_id === bet.creator_id ? `${creatorName} won` : `${bet.accepted_by_profile?.display_name || "Opponent"} won`} ${stakeMoney(Number(bet.amount))}`}</div>}
-    {mode === "received" && offerOpen && <div className="actions"><button className="btn accept" disabled={saving} onClick={() => respond("accept", bet.id)}><Check size={15} /> Accept</button><button className="btn secondary" disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
+    {mode === "received" && offerOpen && <div className="actions"><button className="btn accept" disabled={saving} onClick={() => requestAccept(bet.id)}><Check size={15} /> Review & accept</button><button className="btn secondary" disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
     {mode === "sent" && bet.status === "open" && <div className="actions"><button className="btn secondary" disabled={saving} onClick={() => respond("cancel", bet.id)}><X size={15} /> Cancel offer</button></div>}
   </article>;
 }

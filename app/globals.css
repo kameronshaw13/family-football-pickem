@@ -75,6 +75,11 @@ p { margin: 0; }
 .game-day-marker { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; color: var(--ink-soft); }
 .game-day-marker strong { flex: 0 0 auto; font-size: 10px; font-weight: 900; }
 .game-day-marker span { width: 100%; height: 1px; background: var(--line-strong); }
+.game-day-toggle { width: 100%; padding: 3px 0 5px; border: 0; background: transparent; text-align: left; }
+.game-day-toggle small { flex: 0 0 auto; color: var(--muted); font-size: 9px; font-weight: 700; }
+.game-day-toggle svg { flex: 0 0 auto; color: var(--muted); transition: transform .18s ease; }
+.game-day-toggle svg.open { transform: rotate(180deg); }
+.past-day-group + .past-day-group { margin-top: -5px; }
 .game-list { display: grid; gap: 8px; }
 .game-card { overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
 .game-card.selected { border-color: #8eb5ca; }
@@ -109,6 +114,8 @@ p { margin: 0; }
 .floating-review b { font-size: 12px; }
 .floating-review small { color: #becbd2; font-size: 9px; font-weight: 600; }
 .floating-review > strong { display: flex; flex: 0 0 auto; align-items: center; gap: 4px; color: #d7e8f2; font-size: 11px; }
+.sticky-card-save { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 10px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 31; display: flex; min-height: 52px; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 7px; color: #fff; background: var(--blue-dark); box-shadow: 0 12px 28px rgba(20, 33, 43, .24); font-size: 12px; font-weight: 850; }
+.sticky-card-save:disabled { opacity: .72; }
 .toast { position: fixed; right: max(14px, calc((100vw - 732px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 12px); left: max(14px, calc((100vw - 732px) / 2)); z-index: 60; display: flex; min-height: 48px; align-items: center; gap: 9px; padding: 11px 13px; border-radius: 6px; color: #fff; background: var(--graphite); box-shadow: 0 12px 30px rgba(20, 33, 43, .25); font-size: 11px; font-weight: 700; }
 .toast.success { background: var(--green); }
 .toast.error { background: #9f403c; }
@@ -123,6 +130,7 @@ p { margin: 0; }
 .card-save-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; padding: 12px 14px; border-left: 3px solid var(--line-strong); background: #e9edef; }
 .card-save-bar.dirty { border-left-color: var(--gold); background: #f5f0e3; }
 .card-save-bar p { margin-top: 3px; color: var(--muted); font-size: 10px; font-weight: 600; }
+.card-save-bar > svg { flex: 0 0 auto; color: var(--green); }
 .pick-section, .subsection { margin-top: 18px; }
 .pick-section h3, .subsection h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; color: var(--muted); font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
 .pick-card, .group-card { margin-bottom: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
@@ -188,6 +196,20 @@ fieldset .field-label { padding: 0; }
 .bet-line-summary { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; color: var(--muted); font-size: 11px; line-height: 1.4; }
 .bet-line-summary span:last-child { text-align: right; }
 .bet-result { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 12px; font-weight: 800; }
+.confirmation-backdrop { position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-end; justify-content: center; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); background: rgba(20, 33, 43, .54); backdrop-filter: blur(3px); }
+.confirmation-sheet { width: min(520px, 100%); padding: 18px; border-radius: 8px; background: var(--panel); box-shadow: 0 24px 60px rgba(20, 33, 43, .3); }
+.confirmation-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; color: var(--blue-dark); background: var(--blue-soft); }
+.confirmation-heading { margin-top: 12px; }
+.confirmation-heading > span { color: var(--muted); font-size: 9px; font-weight: 850; text-transform: uppercase; letter-spacing: .07em; }
+.confirmation-heading h2 { margin: 3px 0 0; font-size: 20px; }
+.confirmation-matchup { margin-top: 15px; border-block: 1px solid var(--line); }
+.confirmation-matchup > div { display: flex; min-height: 52px; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
+.confirmation-matchup > div:last-child { border-bottom: 0; }
+.confirmation-matchup span { color: var(--muted); font-size: 10px; font-weight: 750; text-transform: uppercase; }
+.confirmation-matchup strong { font-size: 13px; text-align: right; }
+.confirmation-kickoff { margin-top: 10px; color: var(--muted); font-size: 10px; font-weight: 700; }
+.confirmation-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 16px; }
+.confirmation-actions .btn { width: 100%; min-height: 43px; }
 
 .standings-title { justify-content: center; text-align: center; }
 .leaderboard { overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
@@ -283,5 +305,5 @@ fieldset .field-label { padding: 0; }
   .offer-fields { grid-template-columns: 1fr; gap: 12px; }
   .kick { max-width: 70%; }
   .leaderboard-labels, .leaderboard-row { grid-template-columns: 42px minmax(0, 1fr) 58px; }
-  .floating-review { right: 9px; left: 9px; }
+  .floating-review, .sticky-card-save { right: 9px; left: 9px; }
 }
