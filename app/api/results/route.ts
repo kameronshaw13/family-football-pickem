@@ -33,7 +33,26 @@ export async function POST(req: NextRequest) {
       graded++;
     }
 
-    return NextResponse.json({ ok: true, graded });
+    const { data: sideBets, error: sideBetError } = await supabase.from("side_bets").select("*").eq("game_id", body.gameId).eq("status", "accepted");
+    if (sideBetError) return NextResponse.json({ ok: false, error: sideBetError.message }, { status: 500 });
+
+    let sideBetsGraded = 0;
+    for (const sideBet of sideBets || []) {
+      if (!sideBet.accepted_by) continue;
+      const result = gradeAgainstSpread(sideBet.creator_team, game.home_team, game.away_team, body.homeScore, body.awayScore, Number(sideBet.creator_spread));
+      const sideBetResult = result === "win" ? "creator_win" : result === "loss" ? "acceptor_win" : "push";
+      const winnerId = result === "win" ? sideBet.creator_id : result === "loss" ? sideBet.accepted_by : null;
+      const { error } = await supabase.from("side_bets").update({
+        status: "settled",
+        result: sideBetResult,
+        winner_id: winnerId,
+        updated_at: new Date().toISOString()
+      }).eq("id", sideBet.id).eq("status", "accepted");
+      if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+      sideBetsGraded++;
+    }
+
+    return NextResponse.json({ ok: true, graded, sideBetsGraded });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }

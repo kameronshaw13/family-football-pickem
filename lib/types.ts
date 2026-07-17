@@ -62,8 +62,8 @@ export type WeekRule = {
   week: number;
   label: string;
   regularTotal: number;
-  cfbRequired: number;
-  nflRequired: number;
+  cfbMinimum: number;
+  nflMinimum: number;
   underdogTotal: number;
 };
 
@@ -82,4 +82,40 @@ export type BankEntry = {
   note: string | null;
   created_at?: string;
   profile?: { display_name: string } | null;
+};
+
+export type SideBetStatus = "open" | "accepted" | "declined" | "cancelled" | "expired" | "settled";
+export type SideBetResult = "pending" | "creator_win" | "acceptor_win" | "push";
+export type SideBetTargetResponse = "pending" | "accepted" | "declined" | "closed";
+export type ProfileSummary = { id: string; display_name: string };
+
+export type SideBetTarget = {
+  side_bet_id: string;
+  recipient_id: string;
+  response: SideBetTargetResponse;
+  responded_at: string | null;
+  recipient?: ProfileSummary | null;
+};
+
+export type SideBet = {
+  id: string;
+  creator_id: string;
+  game_id: string;
+  week: number;
+  creator_team: string;
+  offered_team: string;
+  creator_spread: number;
+  offered_spread: number;
+  amount: number;
+  status: SideBetStatus;
+  accepted_by: string | null;
+  accepted_at: string | null;
+  winner_id: string | null;
+  result: SideBetResult;
+  created_at: string;
+  updated_at: string;
+  game?: Game;
+  creator?: ProfileSummary | null;
+  accepted_by_profile?: ProfileSummary | null;
+  targets?: SideBetTarget[];
 };

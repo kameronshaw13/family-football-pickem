@@ -110,6 +110,41 @@ create table if not exists bank_entries (
   unique(week, user_id)
 );
 
+create table if not exists side_bets (
+  id uuid primary key default gen_random_uuid(),
+  creator_id uuid not null,
+  game_id text not null,
+  week integer not null,
+  creator_team text not null,
+  offered_team text not null,
+  creator_spread numeric not null,
+  offered_spread numeric not null,
+  amount numeric(10,2) not null check (amount > 0 and amount <= 10000),
+  status text not null default 'open' check (status in ('open','accepted','declined','cancelled','expired','settled')),
+  accepted_by uuid,
+  accepted_at timestamptz,
+  winner_id uuid,
+  result text not null default 'pending' check (result in ('pending','creator_win','acceptor_win','push')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint side_bets_creator_id_fkey foreign key (creator_id) references profiles(id) on delete cascade,
+  constraint side_bets_game_id_fkey foreign key (game_id) references games(id) on delete cascade,
+  constraint side_bets_accepted_by_fkey foreign key (accepted_by) references profiles(id) on delete set null,
+  constraint side_bets_winner_id_fkey foreign key (winner_id) references profiles(id) on delete set null,
+  constraint side_bets_distinct_teams check (creator_team <> offered_team)
+);
+
+create table if not exists side_bet_targets (
+  side_bet_id uuid not null,
+  recipient_id uuid not null,
+  response text not null default 'pending' check (response in ('pending','accepted','declined','closed')),
+  responded_at timestamptz,
+  created_at timestamptz not null default now(),
+  primary key (side_bet_id, recipient_id),
+  constraint side_bet_targets_side_bet_id_fkey foreign key (side_bet_id) references side_bets(id) on delete cascade,
+  constraint side_bet_targets_recipient_id_fkey foreign key (recipient_id) references profiles(id) on delete cascade
+);
+
 create index if not exists idx_games_week on games(week);
 create index if not exists idx_games_lock_time on games(lock_time);
 create index if not exists idx_picks_user_week on picks(user_id, week);
@@ -117,6 +152,11 @@ create index if not exists idx_picks_game on picks(game_id);
 create index if not exists idx_picks_type on picks(pick_type);
 create index if not exists idx_bank_entries_week on bank_entries(week);
 create index if not exists idx_bank_entries_user on bank_entries(user_id);
+create index if not exists idx_side_bets_creator on side_bets(creator_id);
+create index if not exists idx_side_bets_game on side_bets(game_id);
+create index if not exists idx_side_bets_status on side_bets(status);
+create index if not exists idx_side_bets_accepted_by on side_bets(accepted_by);
+create index if not exists idx_side_bet_targets_recipient on side_bet_targets(recipient_id);
 
 alter table profiles enable row level security;
 alter table games enable row level security;
@@ -124,6 +164,8 @@ alter table odds_snapshots enable row level security;
 alter table picks enable row level security;
 alter table bank_settings enable row level security;
 alter table bank_entries enable row level security;
+alter table side_bets enable row level security;
+alter table side_bet_targets enable row level security;
 
 drop policy if exists "profiles visible to logged in users" on profiles;
 drop policy if exists "games visible to logged in users" on games;
@@ -132,6 +174,8 @@ drop policy if exists "users insert their own picks" on picks;
 drop policy if exists "users update their own draft picks" on picks;
 drop policy if exists "bank settings visible to logged in users" on bank_settings;
 drop policy if exists "bank entries visible to logged in users" on bank_entries;
+drop policy if exists "side bets visible to logged in users" on side_bets;
+drop policy if exists "side bet targets visible to logged in users" on side_bet_targets;
 
 create policy "profiles visible to logged in users" on profiles for select to authenticated using (true);
 create policy "games visible to logged in users" on games for select to authenticated using (true);
@@ -142,6 +186,8 @@ create policy "users insert their own picks" on picks for insert to authenticate
 create policy "users update their own draft picks" on picks for update to authenticated using (true) with check (true);
 create policy "bank settings visible to logged in users" on bank_settings for select to authenticated using (true);
 create policy "bank entries visible to logged in users" on bank_entries for select to authenticated using (true);
+create policy "side bets visible to logged in users" on side_bets for select to authenticated using (true);
+create policy "side bet targets visible to logged in users" on side_bet_targets for select to authenticated using (true);
 
 create or replace view standings as
 select
@@ -170,11 +216,15 @@ grant all privileges on table odds_snapshots to service_role;
 grant all privileges on table picks to service_role;
 grant all privileges on table bank_settings to service_role;
 grant all privileges on table bank_entries to service_role;
+grant all privileges on table side_bets to service_role;
+grant all privileges on table side_bet_targets to service_role;
 grant select on table standings to anon, authenticated, service_role;
 grant select on table games to anon, authenticated;
 grant select on table odds_snapshots to anon, authenticated;
 grant select on table profiles to authenticated;
 grant select on table bank_settings to authenticated;
 grant select on table bank_entries to authenticated;
+grant select on table side_bets to authenticated;
+grant select on table side_bet_targets to authenticated;
 grant select, insert, update, delete on table picks to authenticated;
 grant usage, select on all sequences in schema public to anon, authenticated, service_role;

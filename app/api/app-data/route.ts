@@ -58,6 +58,32 @@ export async function GET(req: NextRequest) {
       .order("created_at", { ascending: false });
     if (bankEntriesError) return NextResponse.json({ ok: false, error: bankEntriesError.message }, { status: 500 });
 
+    const { data: allSideBets, error: sideBetError } = await supabase
+      .from("side_bets")
+      .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
+      .order("created_at", { ascending: false });
+    if (sideBetError) return NextResponse.json({ ok: false, error: `${sideBetError.message} Run the updated Supabase schema before using side bets.` }, { status: 500 });
+
+    const expiredIds = (allSideBets || [])
+      .filter((bet: any) => bet.status === "open" && bet.game && new Date(bet.game.commence_time) <= new Date())
+      .map((bet: any) => bet.id);
+    if (expiredIds.length) {
+      await supabase.from("side_bets").update({ status: "expired", updated_at: now }).in("id", expiredIds).eq("status", "open");
+      await supabase.from("side_bet_targets").update({ response: "closed", responded_at: now }).in("side_bet_id", expiredIds).eq("response", "pending");
+    }
+
+    const sideBets = (allSideBets || []).filter((bet: any) =>
+      bet.creator_id === profile.id || bet.accepted_by === profile.id || bet.targets?.some((target: any) => target.recipient_id === profile.id)
+    ).map((bet: any) => expiredIds.includes(bet.id) ? { ...bet, status: "expired" } : bet);
+
+    const sideBetBankTotals = Object.fromEntries((profiles || []).map((player: any) => [player.id, 0]));
+    for (const bet of allSideBets || []) {
+      if (bet.status !== "settled" || bet.result === "push" || !bet.accepted_by || !bet.winner_id) continue;
+      const loserId = bet.winner_id === bet.creator_id ? bet.accepted_by : bet.creator_id;
+      sideBetBankTotals[bet.winner_id] = Number(sideBetBankTotals[bet.winner_id] || 0) + Number(bet.amount);
+      sideBetBankTotals[loserId] = Number(sideBetBankTotals[loserId] || 0) - Number(bet.amount);
+    }
+
     return NextResponse.json({
       ok: true,
       currentUser: profile,
@@ -67,6 +93,8 @@ export async function GET(req: NextRequest) {
       standings: standings || [],
       bankSettings: bankSettings || { id: 1, winner_amount: 20, loser_amount: 10 },
       bankEntries: bankEntries || [],
+      sideBets,
+      sideBetBankTotals,
       week,
       weekRule: getWeekRule(week),
       weekOpenTime: weekOpen ? weekOpen.toISOString() : null,

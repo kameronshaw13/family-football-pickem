@@ -6,9 +6,7 @@ Ready-mode private family football pick'em app.
 
 - Users: `kameron`, `mike`, `quentin`.
 - Each user claims their username once and creates their own password.
-- Week 0: 3 college regular picks only.
-- Week 1: 5 college regular picks only.
-- After the NFL starts: 3 college + 2 NFL regular picks.
+- Five regular spread picks with at least one CFB and one NFL pick.
 - One underdog pick per week.
 - Underdog bonus wins:
   - +7 to +9.5: 1 extra win
@@ -22,6 +20,13 @@ Ready-mode private family football pick'em app.
 - Saturday/Sunday/Monday games close Friday at 5 PM CT.
 - Picks stay hidden from the group until the game closes.
 - Pushes do not count against win percentage.
+- Standings use win percentage first, then total wins.
+- Weekly bank payouts are $20 from last and $10 from second to first.
+- Tied last-place players pay $15 each. Tied winners split the $20 last-place payment.
+- A 5-0 or better winning record with no losses doubles the weekly payments.
+- Side bets use a frozen point spread and a player-chosen dollar amount.
+- Side bets can be sent to one player or both; the first player to accept owns the offered side.
+- Side bets must be accepted before kickoff and settle into bank balances with the game result.
 
 ## Setup after applying this patch
 

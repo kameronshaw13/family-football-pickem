@@ -83,8 +83,8 @@ export async function POST(req: NextRequest) {
         const cfb = nextRegular.filter((p: any) => p.game?.league === "CFB").length;
         const nfl = nextRegular.filter((p: any) => p.game?.league === "NFL").length;
         if (nextRegular.length > rule.regularTotal) return NextResponse.json({ ok: false, error: `You can only have ${rule.regularTotal} regular picks this week.` }, { status: 409 });
-        if (cfb > rule.cfbRequired) return NextResponse.json({ ok: false, error: `This week only allows ${rule.cfbRequired} CFB regular picks.` }, { status: 409 });
-        if (nfl > rule.nflRequired) return NextResponse.json({ ok: false, error: `This week only allows ${rule.nflRequired} NFL regular picks.` }, { status: 409 });
+        if (cfb > rule.regularTotal - rule.nflMinimum) return NextResponse.json({ ok: false, error: `Keep at least ${rule.nflMinimum} NFL pick on your five-pick card.` }, { status: 409 });
+        if (nfl > rule.regularTotal - rule.cfbMinimum) return NextResponse.json({ ok: false, error: `Keep at least ${rule.cfbMinimum} college pick on your five-pick card.` }, { status: 409 });
       }
 
       const row = {

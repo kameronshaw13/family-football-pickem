@@ -2,32 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
 
 const saveSettingsSchema = z.object({ action: z.literal("saveSettings"), winnerAmount: z.number(), loserAmount: z.number() });
 const settleWeekSchema = z.object({ action: z.literal("settleWeek"), week: z.number() });
 const bodySchema = z.discriminatedUnion("action", [saveSettingsSchema, settleWeekSchema]);
-
-type WeekLine = { user_id: string; display_name: string; wins: number; losses: number; pushes: number; win_pct: number };
-
-function computeWeeklyStandings(profiles: any[], picks: any[]): WeekLine[] {
-  const map = new Map<string, WeekLine>();
-  for (const profile of profiles) {
-    map.set(profile.id, { user_id: profile.id, display_name: profile.display_name, wins: 0, losses: 0, pushes: 0, win_pct: 0 });
-  }
-  for (const pick of picks) {
-    const row = map.get(pick.user_id);
-    if (!row || pick.status !== "locked") continue;
-    if (pick.result === "win") row.wins += pick.pick_type === "underdog" ? Number(pick.underdog_win_value || 1) : 1;
-    if (pick.result === "loss") row.losses += 1;
-    if (pick.result === "push") row.pushes += 1;
-  }
-  const out = Array.from(map.values());
-  for (const row of out) {
-    row.win_pct = row.wins + row.losses === 0 ? 0 : row.wins / (row.wins + row.losses);
-  }
-  out.sort((a, b) => (b.win_pct - a.win_pct) || (b.wins - a.wins) || (a.losses - b.losses) || a.display_name.localeCompare(b.display_name));
-  return out;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -47,9 +26,6 @@ export async function POST(req: NextRequest) {
     }
 
     const week = Number(body.week);
-    const { data: settings, error: settingsError } = await supabase.from("bank_settings").select("*").eq("id", 1).maybeSingle();
-    if (settingsError) return NextResponse.json({ ok: false, error: settingsError.message }, { status: 500 });
-
     const { data: profiles, error: profilesError } = await supabase.from("profiles").select("id,display_name").order("display_name", { ascending: true });
     if (profilesError) return NextResponse.json({ ok: false, error: profilesError.message }, { status: 500 });
 
@@ -61,14 +37,7 @@ export async function POST(req: NextRequest) {
 
     const standings = computeWeeklyStandings(profiles || [], picks || []);
     if (!standings.length) return NextResponse.json({ ok: false, error: "No weekly standings found." }, { status: 404 });
-
-    const top = standings[0];
-    const winners = standings.filter((row) => row.win_pct === top.win_pct && row.wins === top.wins && row.losses === top.losses);
-    if (winners.length !== 1) return NextResponse.json({ ok: false, error: "This week has a tie for first. Leave the bank unsettled or adjust it manually later." }, { status: 409 });
-
-    const winner = winners[0];
-    const winnerAmount = Number(settings?.winner_amount ?? 20);
-    const loserAmount = Number(settings?.loser_amount ?? 10);
+    const settlement = computeWeeklySettlement(standings);
 
     const { error: deleteError } = await supabase.from("bank_entries").delete().eq("week", week);
     if (deleteError) return NextResponse.json({ ok: false, error: deleteError.message }, { status: 500 });
@@ -76,14 +45,14 @@ export async function POST(req: NextRequest) {
     const rows = (profiles || []).map((profile) => ({
       week,
       user_id: profile.id,
-      amount: profile.id === winner.user_id ? winnerAmount : -loserAmount,
-      note: profile.id === winner.user_id ? `Week ${week} winner` : `Week ${week} loss`
+      amount: settlement.amounts.get(profile.id) || 0,
+      note: settlement.notes.get(profile.id) || `Week ${week} settlement`
     }));
 
     const { error: insertError } = await supabase.from("bank_entries").insert(rows);
     if (insertError) return NextResponse.json({ ok: false, error: insertError.message }, { status: 500 });
 
-    return NextResponse.json({ ok: true, week, winner: winner.display_name, winnerAmount, loserAmount });
+    return NextResponse.json({ ok: true, week, perfect: settlement.perfect, entries: rows });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
