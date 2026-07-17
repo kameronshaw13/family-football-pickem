@@ -475,7 +475,7 @@ export default function PickemApp() {
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <img className="app-logo" src="/header-logo.png" alt="Shaw Family Pick'em" />
+          <strong className="brand-title">Shaw Family Pick'em</strong>
         </div>
         {availableWeeks.length > 0 && <div className="header-slate"><div className="week-select-wrap"><select aria-label="Select week" value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
           {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
@@ -496,9 +496,7 @@ export default function PickemApp() {
         {!weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens for picks on {closeText(data.weekOpenTime)} CT.</div>}
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: `Side Bets${pendingOfferCount ? ` (${pendingOfferCount})` : ""}` }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
-          <div className="filter-row">
-            {(["CFB", "NFL", "DOGS", "PAST"] as Filter[]).map((f) => <button key={f} className={`chip ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>{f}</button>)}
-          </div>
+          <div className="view-select-row"><div className="compact-select"><select aria-label="Choose pick board category" value={filter} onChange={(event) => setFilter(event.target.value as Filter)}>{(["CFB", "NFL", "DOGS", "PAST"] as Filter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div></div>
           {filteredGames.length === 0 && <div className="empty-state">{filter === "PAST" ? "No past games this week." : `No open ${filter} games right now.`}</div>}
           <div className="game-days">
             {gameGroups.map((group, index) => {
@@ -552,13 +550,13 @@ export default function PickemApp() {
         <SectionTabs items={[{ id: "standings", label: "Standings" }, { id: "bank", label: "Bank" }]} value={standingsView} onChange={(value) => setStandingsView(value as StandingsView)} />
         {standingsView === "standings" && <>
           <div className="section-title standings-title"><Trophy size={19} /><div><h2>Season standings</h2><p>Ranked by win percentage, then wins.</p></div></div>
-          <Leaderboard rows={standings} currentUserId={currentUser.id} />
-          <div className="subsection weekly-standings"><h3>This week</h3><Leaderboard rows={weeklyStandings} currentUserId={currentUser.id} /></div>
+          <Leaderboard rows={standings} />
+          <div className="subsection weekly-standings"><h3>This week</h3><Leaderboard rows={weeklyStandings} /></div>
         </>}
         {standingsView === "bank" && <>
           <div className="section-title"><Landmark size={19} /><div><h2>Bank</h2><p>Weekly results and settled side bets.</p></div></div>
           <div className="bank-summary-grid">
-            {bankTotals.map((row) => <div key={row.id} className={`money-card ${row.id === currentUser.id ? "current-user" : ""}`}><span>{row.display_name}{row.id === currentUser.id && <small>You</small>}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
+            {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
           </div>
           <div className="subsection">
             <h3>This week</h3>
@@ -597,7 +595,7 @@ function SectionTabs({ items, value, onChange }: { items: Array<{ id: string; la
   return <div className="section-tabs">{items.map((item) => <button key={item.id} className={value === item.id ? "active" : ""} onClick={() => onChange(item.id)}>{item.label}</button>)}</div>;
 }
 
-function Leaderboard({ rows, currentUserId }: { rows: Array<Standing & { rank?: number }>; currentUserId: string }) {
+function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {
   function rankFor(index: number) {
     if (rows[index].rank) return rows[index].rank;
     const firstMatch = rows.findIndex((row) => row.win_pct === rows[index].win_pct && row.wins === rows[index].wins);
@@ -606,9 +604,9 @@ function Leaderboard({ rows, currentUserId }: { rows: Array<Standing & { rank?: 
 
   return <div className="leaderboard">
     <div className="leaderboard-labels"><span>Rank</span><span>Player</span><span>Win %</span></div>
-    {rows.map((row, index) => <div className={`leaderboard-row ${row.user_id === currentUserId ? "current-user" : ""}`} key={row.user_id}>
+    {rows.map((row, index) => <div className="leaderboard-row" key={row.user_id}>
       <span className={`leaderboard-rank rank-${rankFor(index)}`}>{rankFor(index)}</span>
-      <div className="leaderboard-player"><strong>{row.display_name}{row.user_id === currentUserId && <small>You</small>}</strong><span>{row.wins}-{row.losses}-{row.pushes}</span></div>
+      <div className="leaderboard-player"><strong>{row.display_name}</strong><span>{row.wins}-{row.losses}-{row.pushes}</span></div>
       <strong className="leaderboard-pct">{pctText(row.win_pct)}</strong>
     </div>)}
   </div>;
@@ -623,7 +621,7 @@ function RuleItem({ icon: Icon, title, children }: { icon: typeof Trophy; title:
 
 function LoadingShell() {
   return <div className="app-shell loading-shell">
-    <header className="scoreboard-header"><div className="scoreboard-main"><img className="app-logo" src="/header-logo.png" alt="Shaw Family Pick'em" /><div className="skeleton skeleton-week" /></div></header>
+    <header className="scoreboard-header"><div className="scoreboard-main"><strong className="brand-title">Shaw Family Pick'em</strong><div className="skeleton skeleton-week" /></div></header>
     <main className="container">
       <div className="skeleton skeleton-tabs" />
       <div className="skeleton skeleton-filters" />
@@ -668,7 +666,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGam
   }
 
   return <div className="side-bet-center">
-    <SectionTabs items={[{ id: "received", label: "For You" }, { id: "sent", label: "Sent" }, { id: "new", label: "Make Offer" }]} value={view} onChange={(value) => setView(value as BetView)} />
+    <div className="view-select-row"><div className="compact-select"><select aria-label="Choose side bet view" value={view} onChange={(event) => setView(event.target.value as BetView)}><option value="received">For You</option><option value="sent">Sent</option><option value="new">Make Offer</option></select><ChevronDown size={15} /></div></div>
 
     {view === "new" && <div className="bet-composer">
       <div className="section-title"><Send size={19} /><div><h2>Make an offer</h2><p>Spread only · line locks when sent</p></div></div>
