@@ -12,7 +12,7 @@ type PicksView = "board" | "sideBets";
 type CardView = "mine" | "group";
 type StandingsView = "standings" | "bank";
 type BetView = "new" | "received" | "sent";
-type Filter = "ALL" | "CFB" | "NFL" | "DOGS" | "OPEN" | "LOCKED";
+type Filter = "CFB" | "NFL" | "DOGS" | "PAST";
 
 type AppData = {
   currentUser: Profile;
@@ -198,10 +198,6 @@ function money(value: number) {
 function stakeMoney(value: number) {
   return `$${Math.abs(Number(value)).toFixed(Number.isInteger(Number(value)) ? 0 : 2)}`;
 }
-function recordText(line?: Standing) {
-  if (!line) return "0-0-0";
-  return `${line.wins}-${line.losses}-${line.pushes}`;
-}
 function pctText(value: number) {
   return value ? value.toFixed(3).replace(/^0/, "") : "—";
 }
@@ -211,7 +207,7 @@ export default function PickemApp() {
   const [cardView, setCardView] = useState<CardView>("mine");
   const [standingsView, setStandingsView] = useState<StandingsView>("standings");
   const [betView, setBetView] = useState<BetView>("received");
-  const [filter, setFilter] = useState<Filter>("ALL");
+  const [filter, setFilter] = useState<Filter>("CFB");
   const [data, setData] = useState<AppData | null>(null);
   const [week, setWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -311,7 +307,6 @@ export default function PickemApp() {
   const { currentUser, games, picks, profiles, standings, availableWeeks, bankEntries } = data;
   const sideBets = data.sideBets || [];
   const rule = data.weekRule || getWeekRule(data.week);
-  const mySeasonLine = standings.find((s) => s.user_id === currentUser.id);
   const myPicks = picks.filter((p) => p.user_id === currentUser.id && p.week === data.week);
   const myRegular = myPicks.filter((p) => p.pick_type === "regular");
   const myUnderdog = myPicks.find((p) => p.pick_type === "underdog");
@@ -332,12 +327,12 @@ export default function PickemApp() {
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : selectedBetGame?.away_team || "";
 
   const filteredGames = games.filter((g) => {
+    const past = isClosed(g) || g.final_home_score != null || g.final_away_score != null;
+    if (filter === "PAST") return past;
+    if (past || !weekIsOpen) return false;
     if (filter === "CFB") return g.league === "CFB";
     if (filter === "NFL") return g.league === "NFL";
-    if (filter === "OPEN") return !isClosed(g);
-    if (filter === "LOCKED") return isClosed(g);
-    if (filter === "DOGS") return [g.away_team, g.home_team].some((team) => teamDogValue(g, team) > 0);
-    return true;
+    return [g.away_team, g.home_team].some((team) => teamDogValue(g, team) > 0);
   });
 
   function addPick(game: Game, team: string, pickType: PickType) {
@@ -376,12 +371,11 @@ export default function PickemApp() {
   return <div className="app-shell">
     <header className="scoreboard-header">
       <div className="scoreboard-main">
-        <div>
-          <div className="brand-kicker">Family Football</div>
-          <div className="score-title">Pick&apos;em · {rule.label}</div>
-          <div className="score-sub">{currentUser.display_name} · {recordText(mySeasonLine)} · {pctText(mySeasonLine?.win_pct || 0)}</div>
+        <div className="brand-lockup">
+          <span className="header-mark">FP</span>
+          <div className="score-title">Family Pick&apos;em</div>
         </div>
-        <button className="profile-button" onClick={signOut} aria-label="Sign out"><span>{currentUser.display_name}</span><LogOut size={16} /></button>
+        <div className="user-cluster"><span>{currentUser.display_name}</span><button className="profile-button" onClick={signOut} aria-label="Sign out"><LogOut size={16} /></button></div>
       </div>
       <div className="week-strip">
         {availableWeeks.length > 0 && <div className="week-select-wrap"><select value={data.week} onChange={(e) => load(Number(e.target.value))} className="week-select">
@@ -405,10 +399,10 @@ export default function PickemApp() {
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: `Side Bets${pendingOfferCount ? ` (${pendingOfferCount})` : ""}` }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
           <div className="filter-row">
-            {(["ALL", "CFB", "NFL", "DOGS", "OPEN", "LOCKED"] as Filter[]).map((f) => <button key={f} className={`chip ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>{f}</button>)}
+            {(["CFB", "NFL", "DOGS", "PAST"] as Filter[]).map((f) => <button key={f} className={`chip ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>{f}</button>)}
           </div>
           <div className="game-list">
-            {filteredGames.length === 0 && <div className="empty-state">No games loaded for this week yet.</div>}
+            {filteredGames.length === 0 && <div className="empty-state">{filter === "PAST" ? "No past games this week." : `No open ${filter} games right now.`}</div>}
             {filteredGames.map((game) => <GameCard key={game.id} game={game} picks={myPicks} filter={filter} weekIsOpen={weekIsOpen} addPick={addPick} />)}
           </div>
         </>}

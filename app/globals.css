@@ -23,8 +23,8 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100%; background: var(--canvas); }
-body { color: var(--ink); font-family: Inter, system-ui, sans-serif; letter-spacing: 0; }
+html { min-height: 100%; background: var(--navy); }
+body { margin: 0; min-height: 100%; color: var(--ink); background: transparent; font-family: Inter, system-ui, sans-serif; letter-spacing: 0; overscroll-behavior-y: none; }
 button, input, select { color: inherit; font: inherit; letter-spacing: 0; }
 button { -webkit-tap-highlight-color: transparent; }
 img { display: block; max-width: 100%; }
@@ -35,10 +35,11 @@ p { margin: 0; }
 .scoreboard-header::before { position: fixed; inset: 0 0 auto; z-index: 31; height: env(safe-area-inset-top); background: var(--navy); content: ""; pointer-events: none; }
 .scoreboard-main, .week-strip, .primary-nav-inner, .container { width: min(760px, 100%); margin-inline: auto; }
 .scoreboard-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.brand-kicker { margin-bottom: 3px; color: #7fd1d2; font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .12em; }
-.score-title { font-size: 22px; font-weight: 850; line-height: 1.05; }
-.score-sub { margin-top: 5px; color: #bac8d6; font-size: 11px; font-weight: 650; }
-.profile-button { display: flex; align-items: center; gap: 7px; min-height: 36px; padding: 7px 9px; border: 1px solid #415673; border-radius: 4px; color: #e7eef5; background: var(--navy-light); font-size: 11px; font-weight: 750; }
+.brand-lockup, .user-cluster { display: flex; align-items: center; gap: 9px; }
+.header-mark { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid #42617f; border-radius: 4px; color: #7fd1d2; background: var(--navy-light); font-size: 11px; font-weight: 900; }
+.score-title { font-size: 18px; font-weight: 850; line-height: 1.05; }
+.user-cluster > span { color: #c7d3df; font-size: 11px; font-weight: 750; }
+.profile-button { display: grid; width: 32px; height: 32px; place-items: center; padding: 0; border: 0; border-radius: 4px; color: #c7d3df; background: var(--navy-light); }
 .week-strip { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 9px; }
 .week-select-wrap { position: relative; display: flex; align-items: center; border-bottom: 1px solid #58708d; color: #fff; }
 .week-select { appearance: none; min-width: 92px; padding: 5px 19px 5px 1px; border: 0; color: #fff; background: transparent; font-size: 12px; font-weight: 800; }
@@ -46,7 +47,7 @@ p { margin: 0; }
 .mini-record { color: #bac8d6; font-size: 11px; font-weight: 650; }
 .mini-record strong { color: #fff; }
 
-.primary-nav { position: sticky; top: 112px; z-index: 20; border-bottom: 1px solid #29415f; background: rgba(19, 34, 56, .97); backdrop-filter: blur(12px); }
+.primary-nav { position: sticky; top: calc(env(safe-area-inset-top) + 86px); z-index: 20; border-bottom: 1px solid #29415f; background: rgba(19, 34, 56, .97); backdrop-filter: blur(12px); }
 .primary-nav-inner { display: grid; grid-template-columns: repeat(4, 1fr); }
 .primary-nav button { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; min-height: 48px; padding: 7px 5px 6px; border: 0; border-bottom: 3px solid transparent; color: #9eb0c3; background: transparent; font-size: 11px; font-weight: 800; line-height: 1.12; }
 .primary-nav button.active { border-bottom-color: #58c6c7; color: #fff; }
@@ -191,7 +192,6 @@ fieldset .field-label { padding: 0; }
 .username-list { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; font-weight: 700; }
 
 @media (max-width: 640px) {
-  .primary-nav { top: 110px; }
   .primary-nav button { gap: 4px; font-size: 10px; }
   .primary-nav button svg { width: 15px; }
   .bank-summary-grid { grid-template-columns: 1fr; }
@@ -201,9 +201,8 @@ fieldset .field-label { padding: 0; }
 }
 
 @media (max-width: 520px) {
-  .score-title { font-size: 20px; }
-  .profile-button span { display: none; }
-  .primary-nav { top: 108px; }
+  .score-title { font-size: 17px; }
+  .user-cluster > span { max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .primary-nav button { flex-direction: column; min-height: 52px; padding-inline: 2px; }
   .primary-nav button span { max-width: 100%; text-align: center; }
   .container { padding-inline: 9px; }
