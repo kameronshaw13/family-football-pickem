@@ -171,17 +171,17 @@ function dogLineText(game: Game, team: string) {
 }
 
 function dt(iso: string) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso)).replace(":00 ", " ");
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
 }
 function shortDt(iso: string | null) {
   if (!iso) return "—";
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso)).replace(":00 ", " ");
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
 }
 function closeText(iso: string) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso)).replace(":00 ", " ");
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
 }
 function timeText(iso: string) {
-  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso)).replace(":00 ", " ");
+  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
 }
 function gameDayKey(iso: string) {
   return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
@@ -476,7 +476,7 @@ export default function PickemApp() {
         <div className="brand-lockup">
           <img className="app-logo" src="/header-logo.png" alt="Shaw Family Pick'em" />
         </div>
-        {availableWeeks.length > 0 && <div className="header-slate"><span>Weekly slate</span><div className="week-select-wrap"><select aria-label="Select week" value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
+        {availableWeeks.length > 0 && <div className="header-slate"><div className="week-select-wrap"><select aria-label="Select week" value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
           {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
         </select><ChevronDown size={14} /></div></div>}
       </div>

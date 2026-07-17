@@ -2,7 +2,7 @@
 
 :root {
   --header-height: 68px;
-  --nav-height: 64px;
+  --nav-height: 72px;
   --canvas: #f2f4f6;
   --canvas-deep: #e9edf0;
   --panel: #ffffff;
@@ -38,17 +38,17 @@ p { margin: 0; }
 .scoreboard-header::before { position: fixed; inset: 0 0 auto; z-index: 41; height: env(safe-area-inset-top); background: var(--graphite); content: ""; pointer-events: none; }
 .scoreboard-main, .primary-nav-inner, .container { width: min(760px, 100%); margin-inline: auto; }
 .scoreboard-main { display: flex; height: var(--header-height); align-items: center; justify-content: space-between; gap: 14px; }
-.brand-lockup { display: flex; min-width: 0; align-items: center; margin-left: 5px; }
-.app-logo { width: 62px; height: 62px; object-fit: contain; }
-.header-slate { display: grid; flex: 0 0 auto; justify-items: end; }
-.header-slate > span { color: #b9c8d1; font-size: 9px; font-weight: 800; text-transform: uppercase; }
-.week-select-wrap { position: relative; display: flex; align-items: center; margin-top: 3px; border-bottom: 1px solid rgba(255, 255, 255, .55); }
+.brand-lockup { display: flex; min-width: 0; height: 100%; align-items: center; margin-left: 5px; }
+.app-logo { width: 60px; height: 60px; object-fit: contain; object-position: center; }
+.header-slate { display: flex; flex: 0 0 auto; height: 100%; align-items: center; }
+.week-select-wrap { position: relative; display: flex; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, .55); }
 .week-select { appearance: none; min-width: 98px; padding: 4px 22px 5px 1px; border: 0; color: #fff; background: transparent; font-size: 14px; font-weight: 800; outline: none; }
 .week-select-wrap svg { position: absolute; right: 1px; pointer-events: none; }
 
 .primary-nav { position: fixed; inset: auto 0 0; z-index: 35; min-height: calc(var(--nav-height) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid rgba(20, 33, 43, .11); background: rgba(251, 252, 253, .97); box-shadow: 0 -8px 24px rgba(20, 33, 43, .07); backdrop-filter: blur(16px); }
 .primary-nav-inner { display: grid; height: var(--nav-height); grid-template-columns: repeat(4, 1fr); }
-.primary-nav button { position: relative; display: flex; min-width: 0; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 7px 3px 5px; border: 0; color: #77848d; background: transparent; font-size: 10px; font-weight: 750; line-height: 1; }
+.primary-nav button { position: relative; display: flex; min-width: 0; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 8px 3px 6px; border: 0; color: #77848d; background: transparent; font-size: 11px; font-weight: 750; line-height: 1; }
+.primary-nav button svg { width: 21px; height: 21px; }
 .primary-nav button::before { position: absolute; inset: 0 27% auto; height: 3px; background: transparent; content: ""; }
 .primary-nav button.active { color: var(--blue-dark); }
 .primary-nav button.active::before { background: var(--blue); }
@@ -266,11 +266,10 @@ fieldset .field-label { padding: 0; }
 }
 
 @media (max-width: 520px) {
-  :root { --header-height: 66px; --nav-height: 62px; }
+  :root { --header-height: 70px; --nav-height: 70px; }
   .scoreboard-header { padding-inline: 11px; }
   .brand-lockup { margin-left: 5px; }
-  .app-logo { width: 59px; height: 59px; }
-  .header-slate > span { font-size: 8px; }
+  .app-logo { width: 58px; height: 58px; }
   .week-select { min-width: 90px; font-size: 13px; }
   .container { padding-inline: 9px; }
   .picks-panel > .section-tabs { margin-inline: -9px; padding-inline: 9px; }
