@@ -61,10 +61,12 @@ export type Standing = {
 export type WeekRule = {
   week: number;
   label: string;
+  phase: "opening" | "college" | "mixed" | "nfl";
   regularTotal: number;
   cfbMinimum: number;
   nflMinimum: number;
   underdogTotal: number;
+  perfectBonus: boolean;
 };
 
 export type BankSettings = {

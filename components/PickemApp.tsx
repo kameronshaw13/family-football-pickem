@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarClock, Check, ChevronDown, CircleDollarSign, EyeOff, Landmark, Lock, LogOut, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { CalendarClock, Check, ChevronDown, CircleDollarSign, EyeOff, Landmark, Lock, LogOut, RefreshCw, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import { computeWeeklyStandings } from "@/lib/weeklyBank";
+import { hasChargers, isChargersTeam } from "@/lib/seasonRules";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -213,7 +214,11 @@ export default function PickemApp() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [savingBank, setSavingBank] = useState(false);
+  const [savingPicks, setSavingPicks] = useState(false);
   const [savingBet, setSavingBet] = useState(false);
+  const [refreshingOdds, setRefreshingOdds] = useState(false);
+  const [stagedPicks, setStagedPicks] = useState<Pick[] | null>(null);
+  const [, setClock] = useState(() => Date.now());
   const [betGameId, setBetGameId] = useState("");
   const [betCreatorTeam, setBetCreatorTeam] = useState("");
   const [betAmount, setBetAmount] = useState("20");
@@ -242,21 +247,48 @@ export default function PickemApp() {
   }
 
   useEffect(() => { load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
-  async function postPick(body: any) {
+  async function savePicks(card: Pick[]) {
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) {
       window.location.href = "/login";
       return false;
     }
-    const response = await fetch("/api/picks", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    setSavingPicks(true);
+    const response = await fetch("/api/picks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: "saveCard", week: data?.week, picks: card.map((pick) => ({ gameId: pick.game_id, selectedTeam: pick.selected_team, pickType: pick.pick_type })) })
+    });
     const payload = await response.json();
+    setSavingPicks(false);
     if (!response.ok) {
-      alert(payload.error || "Pick action failed.");
+      alert(payload.error || "Picks could not be saved.");
       return false;
     }
+    setStagedPicks(null);
     await load(week);
+    alert("Picks saved. They remain editable until each game locks.");
     return true;
+  }
+
+  async function refreshOdds() {
+    const token = window.localStorage.getItem("pickem_session_token");
+    if (!token) return;
+    setRefreshingOdds(true);
+    const response = await fetch("/api/cron/odds", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+    const payload = await response.json();
+    setRefreshingOdds(false);
+    if (!response.ok) {
+      alert(payload.error || "Odds refresh failed.");
+      return;
+    }
+    await load(week);
+    alert(`Odds refreshed for ${payload.gamesUpdated || 0} games.`);
   }
 
   async function postBank(body: any) {
@@ -308,9 +340,10 @@ export default function PickemApp() {
   const sideBets = data.sideBets || [];
   const rule = data.weekRule || getWeekRule(data.week);
   const myPicks = picks.filter((p) => p.user_id === currentUser.id && p.week === data.week);
-  const myRegular = myPicks.filter((p) => p.pick_type === "regular");
-  const myUnderdog = myPicks.find((p) => p.pick_type === "underdog");
-  const regularCounts = countRegularByLeague(myPicks, games);
+  const cardPicks = stagedPicks || myPicks;
+  const myRegular = cardPicks.filter((p) => p.pick_type === "regular");
+  const myUnderdog = cardPicks.find((p) => p.pick_type === "underdog");
+  const regularCounts = countRegularByLeague(cardPicks, games);
   const weeklyStandings = computeWeeklyStandings(profiles, picks);
   const weekSettlements = bankEntries.filter((entry) => entry.week === data.week);
   const weekSettled = weekSettlements.length === profiles.length && profiles.length > 0;
@@ -322,7 +355,7 @@ export default function PickemApp() {
     display_name: profile.display_name,
     total: bankEntries.filter((entry) => entry.user_id === profile.id).reduce((sum, entry) => sum + Number(entry.amount || 0), 0) + Number(data.sideBetBankTotals?.[profile.id] || 0)
   })).sort((a, b) => b.total - a.total);
-  const openBetGames = games.filter((game) => new Date(game.commence_time) > new Date() && game.current_spread != null && game.current_spread_team);
+  const openBetGames = games.filter((game) => !hasChargers(game) && new Date(game.commence_time) > new Date() && game.current_spread != null && game.current_spread_team);
   const selectedBetGame = openBetGames.find((game) => game.id === betGameId) || openBetGames[0];
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : selectedBetGame?.away_team || "";
 
@@ -332,19 +365,61 @@ export default function PickemApp() {
     if (past) return false;
     if (filter === "CFB") return g.league === "CFB";
     if (filter === "NFL") return g.league === "NFL";
-    return [g.away_team, g.home_team].some((team) => teamDogValue(g, team) > 0);
+    return [g.away_team, g.home_team].some((team) => !isChargersTeam(team) && teamDogValue(g, team) > 0);
   });
 
   function addPick(game: Game, team: string, pickType: PickType) {
-    postPick({ action: "draft", gameId: game.id, selectedTeam: team, pickType });
-  }
+    if (isChargersTeam(team)) {
+      alert("Los Angeles Chargers picks are not allowed in this league.");
+      return;
+    }
+    const existing = cardPicks.find((pick) => pick.game_id === game.id);
+    if (existing?.status === "locked") return;
+    if (existing && existing.pick_type !== pickType) {
+      alert("Remove this game from My Card before switching between spread and dog.");
+      return;
+    }
 
-  function lockPick(pick: Pick) {
-    postPick({ action: "lock", pickId: pick.id });
+    const selectedSpread = normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread);
+    const nextPick: Pick = existing ? {
+      ...existing,
+      selected_team: team,
+      underdog_win_value: pickType === "underdog" ? underdogWinValue(selectedSpread) : null,
+      game
+    } : {
+      id: `unsaved-${game.id}`,
+      user_id: currentUser.id,
+      game_id: game.id,
+      week: game.week,
+      selected_team: team,
+      pick_type: pickType,
+      status: "draft",
+      locked_spread: null,
+      locked_spread_team: null,
+      locked_at: null,
+      underdog_win_value: pickType === "underdog" ? underdogWinValue(selectedSpread) : null,
+      result: "pending",
+      game
+    };
+    const nextCard = existing ? cardPicks.map((pick) => pick.game_id === game.id ? nextPick : pick) : [...cardPicks, nextPick];
+    const nextRegular = nextCard.filter((pick) => pick.pick_type === "regular");
+    const nextDogs = nextCard.filter((pick) => pick.pick_type === "underdog");
+    const counts = countRegularByLeague(nextCard, games);
+    if (nextRegular.length > rule.regularTotal) return alert(`This week allows ${rule.regularTotal} regular picks.`);
+    if (nextDogs.length > rule.underdogTotal) return alert("Only one underdog pick is allowed.");
+    if (counts.cfb > rule.regularTotal - rule.nflMinimum) return alert(`This week requires ${rule.nflMinimum} NFL regular pick${rule.nflMinimum === 1 ? "" : "s"}.`);
+    if (counts.nfl > rule.regularTotal - rule.cfbMinimum) return alert(`This week requires ${rule.cfbMinimum} CFB regular pick${rule.cfbMinimum === 1 ? "" : "s"}.`);
+    setStagedPicks(nextCard);
   }
 
   function removePick(pick: Pick) {
-    postPick({ action: "remove", pickId: pick.id });
+    if (pick.status === "locked") return;
+    const game = games.find((item) => item.id === pick.game_id) || pick.game;
+    if (game && isClosed(game)) {
+      alert("This pick has reached its lock time and is final.");
+      return;
+    }
+    setStagedPicks(cardPicks.filter((item) => item.game_id !== pick.game_id));
   }
 
   function toggleBetRecipient(profileId: string) {
@@ -377,7 +452,7 @@ export default function PickemApp() {
         <div className="user-cluster"><span>{currentUser.display_name}</span><button className="profile-button" onClick={signOut} aria-label="Sign out"><LogOut size={16} /></button></div>
       </div>
       <div className="week-strip">
-        {availableWeeks.length > 0 && <div className="week-select-wrap"><select value={data.week} onChange={(e) => load(Number(e.target.value))} className="week-select">
+        {availableWeeks.length > 0 && <div className="week-select-wrap"><select value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
           {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
         </select><ChevronDown size={14} /></div>}
         <div className="mini-record"><strong>{regularCounts.total}/{rule.regularTotal}</strong> picks · <strong>{myUnderdog ? 1 : 0}/{rule.underdogTotal}</strong> dog</div>
@@ -402,7 +477,7 @@ export default function PickemApp() {
           </div>
           <div className="game-list">
             {filteredGames.length === 0 && <div className="empty-state">{filter === "PAST" ? "No past games this week." : `No open ${filter} games right now.`}</div>}
-            {filteredGames.map((game) => <GameCard key={game.id} game={game} picks={myPicks} filter={filter} weekIsOpen={weekIsOpen} addPick={addPick} />)}
+            {filteredGames.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} filter={filter} weekIsOpen={weekIsOpen} addPick={addPick} />)}
           </div>
         </>}
         {picksView === "sideBets" && <SideBetCenter
@@ -429,9 +504,10 @@ export default function PickemApp() {
       {tab === "card" && <section className="panel">
         <SectionTabs items={[{ id: "mine", label: "My Card" }, { id: "group", label: "League Cards" }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
         {cardView === "mine" && <>
-          <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} />
-          <PickList picks={myRegular} games={games} title="Spread picks" lockPick={lockPick} removePick={removePick} />
-          <PickList picks={myUnderdog ? [myUnderdog] : []} games={games} title="Underdog pick" lockPick={lockPick} removePick={removePick} />
+          <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />
+          <div className={`card-save-bar ${stagedPicks ? "dirty" : ""}`}><div><strong>{stagedPicks ? "Unsaved changes" : "Picks saved"}</strong><p>Saved picks stay editable until their listed lock time.</p></div><button className="btn accent" disabled={!stagedPicks || savingPicks} onClick={() => savePicks(cardPicks)}><Save size={14} /> {savingPicks ? "Saving…" : "Save picks"}</button></div>
+          <PickList picks={myRegular} games={games} title="Spread picks" removePick={removePick} />
+          <PickList picks={myUnderdog ? [myUnderdog] : []} games={games} title="Underdog pick" removePick={removePick} />
         </>}
         {cardView === "group" && <div className="group-list">
           {profiles.map((profile) => <div key={profile.id} className="group-card">
@@ -458,7 +534,7 @@ export default function PickemApp() {
           </div>
           <div className="subsection">
             <h3>This week</h3>
-            <div className="weekly-bank-status"><div><strong>{weekSettled ? "Week settled" : "Awaiting final results"}</strong><p>Normal pool $30 · perfect winner $60</p></div>{currentUser.is_admin && <button className="btn accent" disabled={savingBank} onClick={() => postBank({ action: "settleWeek", week: data.week })}>{savingBank ? "Working…" : weekSettled ? "Re-settle" : "Settle week"}</button>}</div>
+            <div className="weekly-bank-status"><div><strong>{weekSettled ? "Week settled" : "Awaiting final results"}</strong><p>{rule.perfectBonus ? "Normal pool $30 · perfect winner $60" : "NFL-only pool · $30"}</p></div>{currentUser.is_admin && <button className="btn accent" disabled={savingBank} onClick={() => postBank({ action: "settleWeek", week: data.week })}>{savingBank ? "Working…" : weekSettled ? "Re-settle" : "Settle week"}</button>}</div>
           </div>
           <div className="subsection"><h3>Weekly ledger</h3><div className="ledger-list">{bankEntries.length === 0 && <p className="muted">No weekly entries yet.</p>}{bankEntries.map((entry) => <div key={entry.id} className="ledger-row"><div><strong>Week {entry.week} · {entry.profile?.display_name || profiles.find((p) => p.id === entry.user_id)?.display_name || "User"}</strong><p>{entry.note || "Bank entry"}</p></div><strong className={Number(entry.amount) > 0 ? "money-pos" : Number(entry.amount) < 0 ? "money-neg" : ""}>{money(Number(entry.amount))}</strong></div>)}</div></div>
           <div className="subsection"><h3>Side bet ledger</h3><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
@@ -467,13 +543,16 @@ export default function PickemApp() {
 
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2><p>Three players · $150 season entry</p></div></div>
-        <div className="rule-row"><WalletCards size={18} /><span>Pick 5 spread games plus 1 underdog each week. The five can be any CFB/NFL mix, with at least one pick from each league.</span></div>
+        <div className="rule-row"><WalletCards size={18} /><span>Week 1 is 3 CFB picks plus a dog. Week 2 is 5 CFB picks plus a dog. During the mixed regular season, pick 5 with at least one CFB and one NFL, plus a dog.</span></div>
+        <div className="rule-row"><WalletCards size={18} /><span>After CFB ends, the card becomes 2 NFL picks plus a dog through the end of the NFL regular season. Bowl, CFP, and NFL playoff games are excluded.</span></div>
+        <div className="rule-row"><Shield size={18} /><span>Los Angeles Chargers selections are never allowed. The opponent can still be picked.</span></div>
         <div className="rule-row"><Zap size={18} /><span>Underdog: +7 to +9.5 = 1 win, +10 to +19.5 = 2 wins, +20 or more = 3 wins. It must win outright.</span></div>
         <div className="rule-row"><Trophy size={18} /><span>Standings use win percentage first, then total wins. The season winner receives $300.</span></div>
         <div className="rule-row"><CircleDollarSign size={18} /><span>Weekly: last pays first $20 and second pays first $10. If second and third tie, both pay $15. If first is tied, last pays $20 split between the winners. A three-way tie pays nothing.</span></div>
-        <div className="rule-row"><CircleDollarSign size={18} /><span>A 5-0 or better winner with no losses doubles every payment. A lower-ranked perfect player still pays according to final rank.</span></div>
+        <div className="rule-row"><CircleDollarSign size={18} /><span>A 5-0 or better winner with no losses doubles every payment while CFB is active. The multiplier ends when the league moves to NFL-only cards.</span></div>
         <div className="rule-row"><Send size={18} /><span>Side bets use frozen spreads only. Offers must be accepted before kickoff. If sent to both players, the first acceptance takes the bet. Settled bets post directly to the bank.</span></div>
-        <div className="rule-row"><Lock size={18} /><span>No double dipping the same game. Tuesday-Friday games close 24 hours before kickoff. Saturday, Sunday, and Monday games close Friday at 5 PM CT.</span></div>
+        <div className="rule-row"><Lock size={18} /><span>Save stores editable picks. Tuesday-Friday picks become final 24 hours before kickoff. Saturday, Sunday, and Monday picks become final Friday at 5 PM CT.</span></div>
+        {currentUser.is_admin && <div className="admin-action"><button className="btn secondary" disabled={refreshingOdds} onClick={refreshOdds}><RefreshCw size={15} /> {refreshingOdds ? "Refreshing odds…" : "Refresh odds now"}</button></div>}
       </section>}
     </main>
   </div>;
@@ -593,6 +672,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
 
   function sideIsSelectable(team: string) {
     if (closed) return false;
+    if (isChargersTeam(team)) return false;
     if (existing && !canChangeExisting) return false;
     if (filter === "DOGS") return teamDogValue(game, team) > 0;
     return true;
@@ -605,6 +685,8 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
 
   const awaySelectable = sideIsSelectable(game.away_team);
   const homeSelectable = sideIsSelectable(game.home_team);
+  const awayBlocked = isChargersTeam(game.away_team);
+  const homeBlocked = isChargersTeam(game.home_team);
   const awayOpponentOnly = filter === "DOGS" && awayDogValue === 0;
   const homeOpponentOnly = filter === "DOGS" && homeDogValue === 0;
 
@@ -617,24 +699,24 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
       <button
         type="button"
-        className={`team-row away-row ${awaySelectable ? "selectable" : ""} ${existing?.selected_team === game.away_team ? "picked-side" : ""} ${awayOpponentOnly ? "opponent-only" : ""}`}
+        className={`team-row away-row ${awaySelectable ? "selectable" : ""} ${existing?.selected_team === game.away_team ? "picked-side" : ""} ${awayOpponentOnly ? "opponent-only" : ""} ${awayBlocked ? "blocked-side" : ""}`}
         disabled={!awaySelectable}
         onClick={() => choose(game.away_team)}
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
         <span className="team-name">{displayTeamName(game, game.away_team)}</span>
-        {!awayOpponentOnly && <span className="team-spread">{sideLine(game.away_team)}</span>}
+        {!awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span>}
       </button>
 
       <button
         type="button"
-        className={`team-row home-row ${homeSelectable ? "selectable" : ""} ${existing?.selected_team === game.home_team ? "picked-side" : ""} ${homeOpponentOnly ? "opponent-only" : ""}`}
+        className={`team-row home-row ${homeSelectable ? "selectable" : ""} ${existing?.selected_team === game.home_team ? "picked-side" : ""} ${homeOpponentOnly ? "opponent-only" : ""} ${homeBlocked ? "blocked-side" : ""}`}
         disabled={!homeSelectable}
         onClick={() => choose(game.home_team)}
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
         <span className="team-name">{displayTeamName(game, game.home_team)}</span>
-        {!homeOpponentOnly && <span className="team-spread">{sideLine(game.home_team)}</span>}
+        {!homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span>}
       </button>
     </div>
   </article>;
@@ -645,17 +727,18 @@ function TeamLogo({ url, name }: { url?: string | null; name: string }) {
   return <div className="team-logo fallback">{name.slice(0, 1)}</div>;
 }
 
-function CardProgress({ rule, counts, hasDog }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number }; hasDog: boolean }) {
+function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number }; hasDog: boolean; dirty: boolean }) {
   const ok = counts.total === rule.regularTotal && counts.cfb >= rule.cfbMinimum && counts.nfl >= rule.nflMinimum && hasDog;
-  return <div className={`card-progress ${ok ? "complete" : ""}`}><strong>{ok ? "Card complete" : "Card in progress"}</strong><span>{counts.total}/{rule.regularTotal} spreads · {counts.cfb} CFB · {counts.nfl} NFL · dog {hasDog ? "set" : "open"}</span></div>;
+  return <div className={`card-progress ${ok ? "complete" : ""} ${dirty ? "dirty" : ""}`}><strong>{ok ? "Card complete" : "Card in progress"}</strong><span>{counts.total}/{rule.regularTotal} spreads · {counts.cfb} CFB · {counts.nfl} NFL · dog {hasDog ? "set" : "open"}</span></div>;
 }
 
-function PickList({ picks, games, title, lockPick, removePick }: { picks: Pick[]; games: Game[]; title: string; lockPick: (p: Pick) => void; removePick: (p: Pick) => void }) {
+function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: Game[]; title: string; removePick: (p: Pick) => void }) {
   return <div className="pick-section"><h3>{title}</h3>{!picks.length && <p className="muted">None yet.</p>}{picks.map((pick) => {
     const game = games.find((g) => g.id === pick.game_id) || pick.game;
+    const final = pick.status === "locked" || Boolean(game && isClosed(game));
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><div><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : ""}</p><p className="pick-meta">{pick.status === "locked" ? `Locked ${shortDt(pick.locked_at)} at ${spreadText(pick.locked_spread)}` : `Pick · current ${game ? spreadForTeam(game, pick.selected_team) : "line unknown"}`}</p></div><span className={`badge ${pick.status === "locked" ? "locked" : "open"}`}>{pick.status === "locked" ? "locked" : "pick"}</span></div>
-      <div className="actions"><button className="btn gold" disabled={pick.status === "locked"} onClick={() => lockPick(pick)}><Lock size={13} /> Lock</button><button className="btn danger" disabled={pick.status === "locked"} onClick={() => removePick(pick)}>Remove</button></div>
+      <div className="pick-top"><div><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : ""}</p><p className="pick-meta">{pick.status === "locked" ? `Locked ${shortDt(pick.locked_at)} at ${spreadText(pick.locked_spread)}` : final ? `Final · lock time reached` : `Current ${game ? spreadForTeam(game, pick.selected_team) : "line unknown"} · locks ${game ? closeText(game.lock_time) : "later"}`}</p></div><span className={`badge ${final ? "locked" : "open"}`}>{final ? "final" : "editable"}</span></div>
+      {!final && <div className="actions"><button className="btn danger" onClick={() => removePick(pick)}>Remove</button></div>}
     </div>;
   })}</div>;
 }

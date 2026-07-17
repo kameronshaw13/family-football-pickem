@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findEspnLogo, fetchEspnLogoMap } from "@/lib/espnLogos";
+import { getProfileFromRequest } from "@/lib/authServer";
 import { getFootballWeek, getGameLockTime } from "@/lib/lockRules";
+import { isEligibleRegularSeasonGame } from "@/lib/seasonRules";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 const SPORTS = [
@@ -46,15 +48,13 @@ function pickSpread(event: OddsEvent) {
   return { team: null, spread: null, bookmaker: null };
 }
 
-export async function GET(req: NextRequest) {
+async function refreshOdds() {
   try {
-    const secret = req.headers.get("authorization")?.replace("Bearer ", "") || req.nextUrl.searchParams.get("secret");
-    if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) return unauthorized();
     if (!process.env.ODDS_API_KEY) return NextResponse.json({ ok: false, error: "Missing ODDS_API_KEY" }, { status: 500 });
 
     const supabase = getSupabaseAdmin();
     const inserted: any[] = [];
-    const sportResults: Array<{ sport: string; eventsReturned: number }> = [];
+    const sportResults: Array<{ sport: string; eventsReturned: number; eventsImported: number }> = [];
 
     for (const sport of SPORTS) {
       const logoMap = await fetchEspnLogoMap(sport.league);
@@ -71,8 +71,14 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ ok: false, error: `Odds API failed for ${sport.key}`, details: text }, { status: 502 });
       }
 
-      const data = (await response.json()) as OddsEvent[];
-      sportResults.push({ sport: sport.key, eventsReturned: data.length });
+      const returned = (await response.json()) as OddsEvent[];
+      const data = returned.filter((event) => isEligibleRegularSeasonGame({
+        league: sport.league,
+        commence_time: event.commence_time,
+        home_team: event.home_team,
+        away_team: event.away_team
+      }));
+      sportResults.push({ sport: sport.key, eventsReturned: returned.length, eventsImported: data.length });
       for (const event of data) {
         const spread = pickSpread(event);
         const week = getFootballWeek(event.commence_time);
@@ -113,4 +119,17 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
+}
+
+export async function GET(req: NextRequest) {
+  const secret = req.headers.get("authorization")?.replace("Bearer ", "") || req.nextUrl.searchParams.get("secret");
+  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) return unauthorized();
+  return refreshOdds();
+}
+
+export async function POST(req: NextRequest) {
+  const auth = await getProfileFromRequest(req);
+  if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
+  if (!auth.profile.is_admin) return NextResponse.json({ ok: false, error: "Admin only." }, { status: 403 });
+  return refreshOdds();
 }

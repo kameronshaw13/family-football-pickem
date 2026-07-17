@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { getWeekOpenTimeFromCommenceTimes } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
 import { getProfileFromToken } from "@/lib/authServer";
+import { isEligibleRegularSeasonGame } from "@/lib/seasonRules";
 
 async function getAuthedProfile(req: NextRequest) {
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
@@ -21,13 +22,14 @@ export async function GET(req: NextRequest) {
     const now = new Date().toISOString();
     const requestedWeek = req.nextUrl.searchParams.get("week");
 
-    const { data: allGames, error: gameError } = await supabase.from("games").select("*").order("commence_time", { ascending: true });
+    const { data: rawGames, error: gameError } = await supabase.from("games").select("*").order("commence_time", { ascending: true });
     if (gameError) return NextResponse.json({ ok: false, error: gameError.message }, { status: 500 });
+    const allGames = (rawGames || []).filter(isEligibleRegularSeasonGame);
 
-    const openGames = (allGames || []).filter((g) => new Date(g.commence_time).getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const openGames = allGames.filter((g) => new Date(g.commence_time).getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000);
     const defaultWeek = openGames[0]?.week ?? allGames?.[0]?.week ?? 0;
     const week = requestedWeek != null ? Number(requestedWeek) : defaultWeek;
-    const games = (allGames || []).filter((g) => g.week === week);
+    const games = allGames.filter((g) => g.week === week);
     const weekOpen = getWeekOpenTimeFromCommenceTimes(games.map((g) => g.commence_time));
 
     const { data: profiles, error: profilesError } = await supabase.from("profiles").select("*").order("display_name", { ascending: true });
@@ -98,7 +100,7 @@ export async function GET(req: NextRequest) {
       week,
       weekRule: getWeekRule(week),
       weekOpenTime: weekOpen ? weekOpen.toISOString() : null,
-      availableWeeks: Array.from(new Set((allGames || []).map((g) => g.week))).sort((a, b) => a - b)
+      availableWeeks: Array.from(new Set(allGames.map((g) => g.week))).sort((a, b) => a - b)
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });

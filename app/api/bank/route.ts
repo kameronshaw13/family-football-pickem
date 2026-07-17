@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
+import { getWeekRule } from "@/lib/weekRules";
 
 const saveSettingsSchema = z.object({ action: z.literal("saveSettings"), winnerAmount: z.number(), loserAmount: z.number() });
 const settleWeekSchema = z.object({ action: z.literal("settleWeek"), week: z.number() });
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     const standings = computeWeeklyStandings(profiles || [], picks || []);
     if (!standings.length) return NextResponse.json({ ok: false, error: "No weekly standings found." }, { status: 404 });
-    const settlement = computeWeeklySettlement(standings);
+    const settlement = computeWeeklySettlement(standings, getWeekRule(week).perfectBonus);
 
     const { error: deleteError } = await supabase.from("bank_entries").delete().eq("week", week);
     if (deleteError) return NextResponse.json({ ok: false, error: deleteError.message }, { status: 500 });

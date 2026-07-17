@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromRequest } from "@/lib/authServer";
+import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
@@ -29,6 +30,8 @@ export async function POST(req: NextRequest) {
     if (body.action === "create") {
       const { data: game, error: gameError } = await supabase.from("games").select("*").eq("id", body.gameId).single();
       if (gameError || !game) return NextResponse.json({ ok: false, error: "Game not found." }, { status: 404 });
+      if (!isEligibleRegularSeasonGame(game)) return NextResponse.json({ ok: false, error: "Side bets are limited to eligible regular-season games." }, { status: 409 });
+      if (hasChargers(game)) return NextResponse.json({ ok: false, error: "Chargers games are not available for side bets." }, { status: 409 });
       if (new Date(game.commence_time) <= now) return NextResponse.json({ ok: false, error: "Side bets must be offered before kickoff." }, { status: 409 });
       if (![game.away_team, game.home_team].includes(body.creatorTeam)) return NextResponse.json({ ok: false, error: "Choose one of the two teams in this game." }, { status: 400 });
 

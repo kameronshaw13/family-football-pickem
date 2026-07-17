@@ -37,13 +37,13 @@ export function computeWeeklyStandings(profiles: ProfileSummary[], picks: Footba
   });
 }
 
-export function computeWeeklySettlement(standings: WeeklyStanding[]): WeeklySettlement {
+export function computeWeeklySettlement(standings: WeeklyStanding[], allowPerfectBonus = true): WeeklySettlement {
   const amounts = new Map(standings.map((row) => [row.user_id, 0]));
   const notes = new Map<string, string>();
   if (standings.length !== 3) throw new Error("Weekly settlement requires exactly three players.");
 
   const top = standings.filter((row) => tied(row, standings[0]));
-  const perfect = standings[0].losses === 0 && standings[0].wins >= 5;
+  const perfect = allowPerfectBonus && standings[0].losses === 0 && standings[0].wins >= 5;
   const multiplier = perfect ? 2 : 1;
 
   if (top.length === 3) {
