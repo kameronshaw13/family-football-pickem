@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarClock, Check, ChevronDown, CircleDollarSign, EyeOff, Landmark, Lock, RefreshCw, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { Check, ChevronDown, EyeOff, Landmark, RefreshCw, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
@@ -178,6 +178,25 @@ function shortDt(iso: string | null) {
 }
 function closeText(iso: string) {
   return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso)).replace(":00 ", " ");
+}
+function timeText(iso: string) {
+  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso)).replace(":00 ", " ");
+}
+function gameDayKey(iso: string) {
+  return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
+}
+function gameDayLabel(iso: string) {
+  return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
+}
+function lockText(iso: string) {
+  const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
+  const labels: Record<string, string> = { TUESDAY: "TUES", WEDNESDAY: "WEDS", THURSDAY: "THURS" };
+  return `${labels[weekday] || weekday.slice(0, 3)} ${timeText(iso)}`;
+}
+function ordinal(value: number) {
+  const lastTwo = value % 100;
+  if (lastTwo >= 11 && lastTwo <= 13) return `${value}th`;
+  return `${value}${value % 10 === 1 ? "st" : value % 10 === 2 ? "nd" : value % 10 === 3 ? "rd" : "th"}`;
 }
 function spreadForTeam(game: Game, team: string) {
   return spreadText(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
@@ -361,6 +380,17 @@ export default function PickemApp() {
     if (filter === "NFL") return g.league === "NFL";
     return [g.away_team, g.home_team].some((team) => !isChargersTeam(team) && teamDogValue(g, team) > 0);
   });
+  const gameGroups = filteredGames.reduce<Array<{ key: string; label: string; games: Game[] }>>((groups, game) => {
+    const key = gameDayKey(game.commence_time);
+    const existingGroup = groups[groups.length - 1];
+    if (existingGroup?.key === key) existingGroup.games.push(game);
+    else groups.push({ key, label: gameDayLabel(game.commence_time), games: [game] });
+    return groups;
+  }, []);
+  const currentStanding = standings.find((standing) => standing.user_id === currentUser.id);
+  const currentStandingRank = currentStanding
+    ? standings.findIndex((standing) => standing.win_pct === currentStanding.win_pct && standing.wins === currentStanding.wins && standing.losses === currentStanding.losses) + 1
+    : 0;
 
   function addPick(game: Game, team: string, pickType: PickType) {
     if (hasChargers(game)) {
@@ -441,8 +471,17 @@ export default function PickemApp() {
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <img className="app-logo" src="/icon.png" alt="" />
-          <div className="score-title">Shaw Family Pick&apos;em</div>
+          <img className="app-logo" src="/header-logo.png" alt="" />
+          <div className="brand-copy">
+            <div className="score-title">Shaw Family Pick&apos;em</div>
+            <div className="player-standing">
+              <strong>{currentStanding ? `${currentStanding.wins}-${currentStanding.losses}${currentStanding.pushes ? `-${currentStanding.pushes}` : ""}` : "0-0"}</strong>
+              <span>record</span>
+              <i />
+              <strong>{currentStandingRank ? ordinal(currentStandingRank) : "--"}</strong>
+              <span>place</span>
+            </div>
+          </div>
         </div>
         {availableWeeks.length > 0 && <div className="week-select-wrap"><select value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
           {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
@@ -466,9 +505,12 @@ export default function PickemApp() {
           <div className="filter-row">
             {(["CFB", "NFL", "DOGS", "PAST"] as Filter[]).map((f) => <button key={f} className={`chip ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>{f}</button>)}
           </div>
-          <div className="game-list">
-            {filteredGames.length === 0 && <div className="empty-state">{filter === "PAST" ? "No past games this week." : `No open ${filter} games right now.`}</div>}
-            {filteredGames.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} filter={filter} weekIsOpen={weekIsOpen} addPick={addPick} />)}
+          {filteredGames.length === 0 && <div className="empty-state">{filter === "PAST" ? "No past games this week." : `No open ${filter} games right now.`}</div>}
+          <div className="game-days">
+            {gameGroups.map((group) => <div className="game-day-group" key={group.key}>
+              <div className="game-day-marker"><strong>{group.label}</strong><span /></div>
+              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} filter={filter} weekIsOpen={weekIsOpen} addPick={addPick} />)}</div>
+            </div>)}
           </div>
         </>}
         {picksView === "sideBets" && <SideBetCenter
@@ -534,15 +576,16 @@ export default function PickemApp() {
 
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2><p>Three players · $150 season entry</p></div></div>
-        <div className="rule-row"><WalletCards size={18} /><span>Week 1 is 3 CFB picks plus a dog. Week 2 is 5 CFB picks plus a dog. During the mixed regular season, pick 5 with at least one CFB and one NFL, plus a dog.</span></div>
-        <div className="rule-row"><WalletCards size={18} /><span>After CFB ends, the card becomes 2 NFL picks plus a dog through the end of the NFL regular season. Bowl, CFP, and NFL playoff games are excluded.</span></div>
-        <div className="rule-row"><Shield size={18} /><span>Los Angeles Chargers games are excluded entirely.</span></div>
-        <div className="rule-row"><Zap size={18} /><span>Underdog: +7 to +9.5 = 1 win, +10 to +19.5 = 2 wins, +20 or more = 3 wins. It must win outright.</span></div>
-        <div className="rule-row"><Trophy size={18} /><span>Standings use win percentage first, then total wins. The season winner receives $300.</span></div>
-        <div className="rule-row"><CircleDollarSign size={18} /><span>Weekly: last pays first $20 and second pays first $10. If second and third tie, both pay $15. If first is tied, last pays $20 split between the winners. A three-way tie pays nothing.</span></div>
-        <div className="rule-row"><CircleDollarSign size={18} /><span>Only five-pick weeks can double payments. A 5-0 or better winner with no losses triggers the multiplier; Week 1 and NFL-only weeks use normal payouts.</span></div>
-        <div className="rule-row"><Send size={18} /><span>Side bets use frozen spreads only. Offers must be accepted before kickoff. If sent to both players, the first acceptance takes the bet. Settled bets post directly to the bank.</span></div>
-        <div className="rule-row"><Lock size={18} /><span>Save stores editable picks. Tuesday-Friday picks become final 24 hours before kickoff. Saturday, Sunday, and Monday picks become final Friday at 5 PM CT.</span></div>
+        <div className="rules-list">
+          <div className="rule-row"><strong>Weekly card</strong><span>Week 1: 3 CFB + dog. Week 2: 5 CFB + dog. Mixed weeks: 5 picks with at least 1 CFB and 1 NFL + dog. After CFB: 2 NFL + dog.</span></div>
+          <div className="rule-row"><strong>Eligible games</strong><span>Regular season only. Bowls, CFP, NFL playoffs, and every Chargers game are excluded.</span></div>
+          <div className="rule-row"><strong>Underdog</strong><span>+7 to +9.5 = +1W, +10 to +19.5 = +2W, and +20 or more = +3W. The dog must win outright.</span></div>
+          <div className="rule-row"><strong>Standings</strong><span>Win percentage first, then total wins. The season winner receives $300.</span></div>
+          <div className="rule-row"><strong>Weekly bank</strong><span>Last pays $20 and second pays $10 to first. Tied last pays $15 each; tied first splits $20; a three-way tie pays $0.</span></div>
+          <div className="rule-row"><strong>Perfect week</strong><span>On five-pick weeks only, a winning record with at least 5 wins and no losses doubles payments.</span></div>
+          <div className="rule-row"><strong>Pick locks</strong><span>Saved picks stay editable. Tue-Fri games lock 24 hours before kickoff; Sat-Mon games lock Friday at 5 PM CT.</span></div>
+          <div className="rule-row"><strong>Side bets</strong><span>Spread only. Offers must be accepted before kickoff and settle directly into the bank.</span></div>
+        </div>
         {currentUser.is_admin && <div className="admin-action"><button className="btn secondary" disabled={refreshingOdds} onClick={refreshOdds}><RefreshCw size={15} /> {refreshingOdds ? "Refreshing odds…" : "Refresh odds now"}</button></div>}
       </section>}
     </main>
@@ -650,6 +693,7 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
 
 function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; picks: Pick[]; filter: Filter; weekIsOpen: boolean; addPick: (game: Game, team: string, pickType: PickType) => void }) {
   const closed = isClosed(game) || !weekIsOpen;
+  const hasFinalScore = game.final_away_score != null && game.final_home_score != null;
   const existing = picks.find((p) => p.game_id === game.id);
   const canChangeExisting = existing?.status === "draft" && existing.pick_type === (filter === "DOGS" ? "underdog" : "regular");
   const selectType: PickType = filter === "DOGS" ? "underdog" : "regular";
@@ -657,6 +701,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
   const homeDogValue = teamDogValue(game, game.home_team);
 
   function sideLine(team: string) {
+    if (filter === "PAST" && hasFinalScore) return String(team === game.away_team ? game.final_away_score : game.final_home_score);
     if (filter === "DOGS") return dogLineText(game, team);
     return spreadForTeam(game, team);
   }
@@ -683,8 +728,8 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
 
   return <article className={`game-card matchup-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>
     <div className="game-head compact-game-head">
-      <div className="badges"><span className="badge">{game.league}</span>{existing && <span className="badge picked">{existing.pick_type === "underdog" ? "dog" : "spread"}</span>}</div>
-      <div className="kick"><CalendarClock size={13} /> {dt(game.commence_time)} · closes {closeText(game.lock_time)}</div>
+      <div className="badges"><span className="badge">{game.league}</span>{hasFinalScore && <span className="badge final">Final</span>}{existing && <span className="badge picked">{existing.pick_type === "underdog" ? "dog" : "spread"}</span>}</div>
+      <div className="kick">{timeText(game.commence_time)}{filter !== "PAST" && <><span className="time-separator">-</span> Closes {lockText(game.lock_time)}</>}</div>
     </div>
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
@@ -696,7 +741,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
         <span className="team-name">{displayTeamName(game, game.away_team)}</span>
-        {!awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span>}
+        {!awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""} ${filter === "PAST" && hasFinalScore ? "final-score" : ""}`}>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span>}
       </button>
 
       <button
@@ -707,7 +752,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
         <span className="team-name">{displayTeamName(game, game.home_team)}</span>
-        {!homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span>}
+        {!homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""} ${filter === "PAST" && hasFinalScore ? "final-score" : ""}`}>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span>}
       </button>
     </div>
   </article>;
