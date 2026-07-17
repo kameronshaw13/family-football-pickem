@@ -329,7 +329,7 @@ export default function PickemApp() {
   const filteredGames = games.filter((g) => {
     const past = isClosed(g) || g.final_home_score != null || g.final_away_score != null;
     if (filter === "PAST") return past;
-    if (past || !weekIsOpen) return false;
+    if (past) return false;
     if (filter === "CFB") return g.league === "CFB";
     if (filter === "NFL") return g.league === "NFL";
     return [g.away_team, g.home_team].some((team) => teamDogValue(g, team) > 0);
@@ -372,8 +372,7 @@ export default function PickemApp() {
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <span className="header-mark">FP</span>
-          <div className="score-title">Family Pick&apos;em</div>
+          <div className="score-title">Shaw Family Pick&apos;em</div>
         </div>
         <div className="user-cluster"><span>{currentUser.display_name}</span><button className="profile-button" onClick={signOut} aria-label="Sign out"><LogOut size={16} /></button></div>
       </div>

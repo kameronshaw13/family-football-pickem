@@ -36,7 +36,6 @@ p { margin: 0; }
 .scoreboard-main, .week-strip, .primary-nav-inner, .container { width: min(760px, 100%); margin-inline: auto; }
 .scoreboard-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .brand-lockup, .user-cluster { display: flex; align-items: center; gap: 9px; }
-.header-mark { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid #42617f; border-radius: 4px; color: #7fd1d2; background: var(--navy-light); font-size: 11px; font-weight: 900; }
 .score-title { font-size: 18px; font-weight: 850; line-height: 1.05; }
 .user-cluster > span { color: #c7d3df; font-size: 11px; font-weight: 750; }
 .profile-button { display: grid; width: 32px; height: 32px; place-items: center; padding: 0; border: 0; border-radius: 4px; color: #c7d3df; background: var(--navy-light); }
