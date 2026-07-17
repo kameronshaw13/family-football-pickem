@@ -2,7 +2,7 @@ import type { Game, Pick, WeekRule } from "@/lib/types";
 
 export function getWeekRule(week: number): WeekRule {
   if (week <= 1) {
-    return { week, label: `Week ${week}`, phase: "opening", regularTotal: 3, cfbMinimum: 3, nflMinimum: 0, underdogTotal: 1, perfectBonus: true };
+    return { week, label: `Week ${week}`, phase: "opening", regularTotal: 3, cfbMinimum: 3, nflMinimum: 0, underdogTotal: 1, perfectBonus: false };
   }
   if (week === 2) {
     return { week, label: "Week 2", phase: "college", regularTotal: 5, cfbMinimum: 5, nflMinimum: 0, underdogTotal: 1, perfectBonus: true };

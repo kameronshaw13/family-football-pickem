@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarClock, Check, ChevronDown, CircleDollarSign, EyeOff, Landmark, Lock, LogOut, RefreshCw, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { CalendarClock, Check, ChevronDown, CircleDollarSign, EyeOff, Landmark, Lock, RefreshCw, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
@@ -327,12 +327,6 @@ export default function PickemApp() {
     return true;
   }
 
-  function signOut() {
-    window.localStorage.removeItem("pickem_session_token");
-    window.localStorage.removeItem("pickem_profile");
-    window.location.href = "/login";
-  }
-
   if (loading) return <div className="app-shell"><main className="container"><div className="loading-card">Loading pick'em board…</div></main></div>;
   if (!data) return <div className="app-shell"><main className="container"><div className="error-card">{message || "Could not load app."}</div></main></div>;
 
@@ -369,8 +363,8 @@ export default function PickemApp() {
   });
 
   function addPick(game: Game, team: string, pickType: PickType) {
-    if (isChargersTeam(team)) {
-      alert("Los Angeles Chargers picks are not allowed in this league.");
+    if (hasChargers(game)) {
+      alert("Los Angeles Chargers games are not available in this league.");
       return;
     }
     const existing = cardPicks.find((pick) => pick.game_id === game.id);
@@ -447,15 +441,12 @@ export default function PickemApp() {
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
+          <img className="app-logo" src="/icon.png" alt="" />
           <div className="score-title">Shaw Family Pick&apos;em</div>
         </div>
-        <div className="user-cluster"><span>{currentUser.display_name}</span><button className="profile-button" onClick={signOut} aria-label="Sign out"><LogOut size={16} /></button></div>
-      </div>
-      <div className="week-strip">
         {availableWeeks.length > 0 && <div className="week-select-wrap"><select value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
           {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
         </select><ChevronDown size={14} /></div>}
-        <div className="mini-record"><strong>{regularCounts.total}/{rule.regularTotal}</strong> picks · <strong>{myUnderdog ? 1 : 0}/{rule.underdogTotal}</strong> dog</div>
       </div>
     </header>
 
@@ -467,9 +458,9 @@ export default function PickemApp() {
 
     <main className="container">
       {message && <div className="error-card">{message}</div>}
-      {!weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens for picks on {closeText(data.weekOpenTime)} CT.</div>}
 
       {tab === "picks" && <section className="panel">
+        {!weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens for picks on {closeText(data.weekOpenTime)} CT.</div>}
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: `Side Bets${pendingOfferCount ? ` (${pendingOfferCount})` : ""}` }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
           <div className="filter-row">
@@ -534,7 +525,7 @@ export default function PickemApp() {
           </div>
           <div className="subsection">
             <h3>This week</h3>
-            <div className="weekly-bank-status"><div><strong>{weekSettled ? "Week settled" : "Awaiting final results"}</strong><p>{rule.perfectBonus ? "Normal pool $30 · perfect winner $60" : "NFL-only pool · $30"}</p></div>{currentUser.is_admin && <button className="btn accent" disabled={savingBank} onClick={() => postBank({ action: "settleWeek", week: data.week })}>{savingBank ? "Working…" : weekSettled ? "Re-settle" : "Settle week"}</button>}</div>
+            <div className="weekly-bank-status"><div><strong>{weekSettled ? "Week settled" : "Awaiting final results"}</strong><p>{rule.perfectBonus ? "Normal pool $30 · perfect winner $60" : "Standard pool · $30"}</p></div>{currentUser.is_admin && <button className="btn accent" disabled={savingBank} onClick={() => postBank({ action: "settleWeek", week: data.week })}>{savingBank ? "Working…" : weekSettled ? "Re-settle" : "Settle week"}</button>}</div>
           </div>
           <div className="subsection"><h3>Weekly ledger</h3><div className="ledger-list">{bankEntries.length === 0 && <p className="muted">No weekly entries yet.</p>}{bankEntries.map((entry) => <div key={entry.id} className="ledger-row"><div><strong>Week {entry.week} · {entry.profile?.display_name || profiles.find((p) => p.id === entry.user_id)?.display_name || "User"}</strong><p>{entry.note || "Bank entry"}</p></div><strong className={Number(entry.amount) > 0 ? "money-pos" : Number(entry.amount) < 0 ? "money-neg" : ""}>{money(Number(entry.amount))}</strong></div>)}</div></div>
           <div className="subsection"><h3>Side bet ledger</h3><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
@@ -545,11 +536,11 @@ export default function PickemApp() {
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2><p>Three players · $150 season entry</p></div></div>
         <div className="rule-row"><WalletCards size={18} /><span>Week 1 is 3 CFB picks plus a dog. Week 2 is 5 CFB picks plus a dog. During the mixed regular season, pick 5 with at least one CFB and one NFL, plus a dog.</span></div>
         <div className="rule-row"><WalletCards size={18} /><span>After CFB ends, the card becomes 2 NFL picks plus a dog through the end of the NFL regular season. Bowl, CFP, and NFL playoff games are excluded.</span></div>
-        <div className="rule-row"><Shield size={18} /><span>Los Angeles Chargers selections are never allowed. The opponent can still be picked.</span></div>
+        <div className="rule-row"><Shield size={18} /><span>Los Angeles Chargers games are excluded entirely.</span></div>
         <div className="rule-row"><Zap size={18} /><span>Underdog: +7 to +9.5 = 1 win, +10 to +19.5 = 2 wins, +20 or more = 3 wins. It must win outright.</span></div>
         <div className="rule-row"><Trophy size={18} /><span>Standings use win percentage first, then total wins. The season winner receives $300.</span></div>
         <div className="rule-row"><CircleDollarSign size={18} /><span>Weekly: last pays first $20 and second pays first $10. If second and third tie, both pay $15. If first is tied, last pays $20 split between the winners. A three-way tie pays nothing.</span></div>
-        <div className="rule-row"><CircleDollarSign size={18} /><span>A 5-0 or better winner with no losses doubles every payment while CFB is active. The multiplier ends when the league moves to NFL-only cards.</span></div>
+        <div className="rule-row"><CircleDollarSign size={18} /><span>Only five-pick weeks can double payments. A 5-0 or better winner with no losses triggers the multiplier; Week 1 and NFL-only weeks use normal payouts.</span></div>
         <div className="rule-row"><Send size={18} /><span>Side bets use frozen spreads only. Offers must be accepted before kickoff. If sent to both players, the first acceptance takes the bet. Settled bets post directly to the bank.</span></div>
         <div className="rule-row"><Lock size={18} /><span>Save stores editable picks. Tuesday-Friday picks become final 24 hours before kickoff. Saturday, Sunday, and Monday picks become final Friday at 5 PM CT.</span></div>
         {currentUser.is_admin && <div className="admin-action"><button className="btn secondary" disabled={refreshingOdds} onClick={refreshOdds}><RefreshCw size={15} /> {refreshingOdds ? "Refreshing odds…" : "Refresh odds now"}</button></div>}

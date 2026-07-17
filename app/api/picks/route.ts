@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromToken } from "@/lib/authServer";
 import { getWeekOpenTimeFromCommenceTimes } from "@/lib/lockRules";
-import { isChargersTeam, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
+import { hasChargers, isChargersTeam, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam, underdogWinValue } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { getWeekRule } from "@/lib/weekRules";
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     const { data: rawWeekGames, error: gamesError } = await supabase.from("games").select("*").eq("week", body.week);
     if (gamesError) return NextResponse.json({ ok: false, error: gamesError.message }, { status: 500 });
-    const weekGames = (rawWeekGames || []).filter(isEligibleRegularSeasonGame);
+    const weekGames = (rawWeekGames || []).filter((game) => isEligibleRegularSeasonGame(game) && !hasChargers(game));
     const gameMap = new Map(weekGames.map((game) => [game.id, game]));
 
     const weekOpen = getWeekOpenTimeFromCommenceTimes(weekGames.map((game) => game.commence_time));
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     const existing = [...(existingRows || [])];
     for (const pick of existing) {
       if (pick.status !== "draft" || !pick.game) continue;
-      if (isChargersTeam(pick.selected_team)) {
+      if (hasChargers(pick.game) || isChargersTeam(pick.selected_team)) {
         const { error: deleteError } = await supabase.from("picks").delete().eq("id", pick.id).eq("status", "draft");
         if (deleteError) return NextResponse.json({ ok: false, error: deleteError.message }, { status: 500 });
         pick.removed = true;
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
       const game = gameMap.get(pick.gameId);
       if (!game) return NextResponse.json({ ok: false, error: "That game is outside the eligible regular season." }, { status: 409 });
       if (![game.away_team, game.home_team].includes(pick.selectedTeam)) return NextResponse.json({ ok: false, error: "Choose a team in the selected game." }, { status: 400 });
-      if (isChargersTeam(pick.selectedTeam)) return NextResponse.json({ ok: false, error: "Los Angeles Chargers picks are not allowed in this league." }, { status: 409 });
+      if (hasChargers(game) || isChargersTeam(pick.selectedTeam)) return NextResponse.json({ ok: false, error: "Los Angeles Chargers games are not available in this league." }, { status: 409 });
       if (game.is_locked || new Date(game.lock_time) <= now) return NextResponse.json({ ok: false, error: `${pick.selectedTeam} has reached its lock time and cannot be changed.` }, { status: 409 });
 
       const selectedSpread = normalizeSpreadForSelectedTeam(pick.selectedTeam, game.current_spread_team, game.current_spread);

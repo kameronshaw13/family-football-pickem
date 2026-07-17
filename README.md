@@ -11,7 +11,7 @@ Ready-mode private family football pick'em app.
 - Mixed regular season: five spread picks with at least one CFB and one NFL pick, plus one dog.
 - After CFB ends: two NFL spread picks plus one dog through the end of the NFL regular season.
 - Bowl games, the CFP, and NFL playoff games are excluded.
-- Los Angeles Chargers selections are not allowed.
+- Los Angeles Chargers games are excluded entirely.
 - One underdog pick per week.
 - Underdog bonus wins:
   - +7 to +9.5: 1 extra win
@@ -28,7 +28,7 @@ Ready-mode private family football pick'em app.
 - Standings use win percentage first, then total wins.
 - Weekly bank payouts are $20 from last and $10 from second to first.
 - Tied last-place players pay $15 each. Tied winners split the $20 last-place payment.
-- A 5-0 or better winning record with no losses doubles weekly payments only while CFB is active.
+- A 5-0 or better winning record with no losses doubles weekly payments only on five-pick weeks.
 - Side bets use a frozen point spread and a player-chosen dollar amount.
 - Side bets can be sent to one player or both; the first player to accept owns the offered side.
 - Side bets must be accepted before kickoff and settle into bank balances with the game result.

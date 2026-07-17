@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { getWeekOpenTimeFromCommenceTimes } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
 import { getProfileFromToken } from "@/lib/authServer";
-import { isEligibleRegularSeasonGame } from "@/lib/seasonRules";
+import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
 
 async function getAuthedProfile(req: NextRequest) {
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     const { data: rawGames, error: gameError } = await supabase.from("games").select("*").order("commence_time", { ascending: true });
     if (gameError) return NextResponse.json({ ok: false, error: gameError.message }, { status: 500 });
-    const allGames = (rawGames || []).filter(isEligibleRegularSeasonGame);
+    const allGames = (rawGames || []).filter((game) => isEligibleRegularSeasonGame(game) && !hasChargers(game));
 
     const openGames = allGames.filter((g) => new Date(g.commence_time).getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000);
     const defaultWeek = openGames[0]?.week ?? allGames?.[0]?.week ?? 0;
@@ -42,9 +42,10 @@ export async function GET(req: NextRequest) {
     if (picksError) return NextResponse.json({ ok: false, error: picksError.message }, { status: 500 });
 
     const visiblePicks = (picks || []).filter((pick: any) => {
-      if (pick.user_id === profile.id) return true;
       const game = pick.game;
-      return game && new Date(game.lock_time).toISOString() <= now;
+      if (!game || !isEligibleRegularSeasonGame(game) || hasChargers(game)) return false;
+      if (pick.user_id === profile.id) return true;
+      return new Date(game.lock_time).toISOString() <= now;
     });
 
     const { data: standings, error: standingError } = await supabase.from("standings").select("*").order("win_pct", { ascending: false }).order("wins", { ascending: false });
