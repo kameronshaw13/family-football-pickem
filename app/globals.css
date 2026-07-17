@@ -11,14 +11,14 @@
   --muted: #627386;
   --line: #cfd9e3;
   --line-strong: #aebdca;
-  --navy: #132238;
-  --navy-light: #1d3350;
-  --teal: #087f8c;
-  --teal-dark: #056570;
-  --teal-soft: #dff3f2;
+  --navy: #0080c6;
+  --navy-light: #005a8e;
+  --teal: #0072b1;
+  --teal-dark: #004f7a;
+  --teal-soft: #dceff8;
   --coral: #c94f38;
   --coral-soft: #fbe9e5;
-  --gold: #d2a43c;
+  --gold: #ffc20e;
   --green: #147d5a;
   --red: #b83a36;
   --shadow: 0 8px 20px rgba(19, 34, 56, .08);
@@ -37,23 +37,23 @@ p { margin: 0; }
 .scoreboard-header { position: fixed; inset: 0 0 auto; z-index: 30; height: calc(env(safe-area-inset-top) + var(--header-height)); padding: env(safe-area-inset-top) 12px 0; color: #fff; background: var(--navy); }
 .scoreboard-header::before { position: fixed; inset: 0 0 auto; z-index: 31; height: env(safe-area-inset-top); background: var(--navy); content: ""; pointer-events: none; }
 .scoreboard-main, .primary-nav-inner, .container { width: min(760px, 100%); margin-inline: auto; }
-.scoreboard-main { display: flex; height: var(--header-height); align-items: center; justify-content: space-between; gap: 10px; }
+.scoreboard-main { display: flex; height: var(--header-height); align-items: center; justify-content: space-between; gap: 12px; }
 .brand-lockup { display: flex; min-width: 0; align-items: center; gap: 10px; }
 .brand-copy { min-width: 0; }
 .app-logo { flex: 0 0 auto; width: 56px; height: 58px; object-fit: contain; }
-.score-title { font-size: 18px; font-weight: 850; line-height: 1.05; white-space: nowrap; }
-.player-standing { display: grid; flex: 0 0 auto; gap: 5px; min-width: 72px; }
+.score-title { font-size: 21px; font-weight: 850; line-height: 1.05; white-space: nowrap; }
+.player-standing { display: grid; flex: 0 0 auto; gap: 6px; min-width: 82px; }
 .player-stat { display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; }
-.player-stat span { color: #91a5ba; font-size: 8px; font-weight: 750; text-transform: uppercase; }
-.player-stat strong { color: #fff; font-size: 13px; font-weight: 850; white-space: nowrap; }
-.week-select-wrap { position: relative; display: flex; width: max-content; align-items: center; margin-top: 6px; border-bottom: 1px solid #58708d; color: #fff; }
-.week-select { appearance: none; min-width: 76px; padding: 2px 17px 3px 0; border: 0; color: #c7d3df; background: transparent; font-size: 10px; font-weight: 800; }
+.player-stat span { color: #d8eef9; font-size: 9px; font-weight: 750; text-transform: uppercase; }
+.player-stat strong { color: #fff; font-size: 15px; font-weight: 850; white-space: nowrap; }
+.week-select-wrap { position: relative; display: flex; width: max-content; align-items: center; margin-top: 7px; border-bottom: 1px solid rgba(255, 255, 255, .65); color: #fff; }
+.week-select { appearance: none; min-width: 78px; padding: 2px 17px 3px 0; border: 0; color: #fff; background: transparent; font-size: 11px; font-weight: 800; }
 .week-select-wrap svg { position: absolute; right: 0; pointer-events: none; }
 
 .primary-nav { position: fixed; inset: calc(env(safe-area-inset-top) + var(--header-height)) 0 auto; z-index: 20; height: var(--nav-height); border: 0; background: var(--navy); }
 .primary-nav-inner { display: grid; height: var(--nav-height); grid-template-columns: repeat(4, 1fr); }
-.primary-nav button { position: relative; display: flex; height: 100%; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 7px 5px 6px; border: 0; border-bottom: 3px solid transparent; color: #9eb0c3; background: transparent; font-size: 11px; font-weight: 800; line-height: 1.12; }
-.primary-nav button.active { border-bottom-color: #58c6c7; color: #fff; }
+.primary-nav button { position: relative; display: flex; height: 100%; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 7px 5px 6px; border: 0; border-bottom: 3px solid transparent; color: rgba(255, 255, 255, .74); background: transparent; font-size: 11px; font-weight: 800; line-height: 1.12; }
+.primary-nav button.active { border-bottom-color: var(--gold); color: #fff; }
 .primary-nav button b { display: grid; place-items: center; min-width: 17px; height: 17px; border-radius: 50%; color: #fff; background: var(--coral); font-size: 9px; }
 
 .container { padding: calc(env(safe-area-inset-top) + var(--header-height) + var(--nav-height) + 15px) 11px 90px; }
@@ -61,13 +61,17 @@ p { margin: 0; }
 .section-tabs { display: flex; gap: 22px; margin-bottom: 14px; border-bottom: 1px solid var(--line-strong); overflow-x: auto; }
 .section-tabs button { flex: 0 0 auto; padding: 8px 0 9px; border: 0; border-bottom: 3px solid transparent; color: var(--muted); background: transparent; font-size: 12px; font-weight: 850; }
 .section-tabs button.active { border-bottom-color: var(--teal); color: var(--ink); }
+.picks-panel > .section-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
+.picks-panel > .section-tabs button { width: 100%; text-align: center; }
 .section-title { display: flex; align-items: flex-start; gap: 9px; margin: 4px 0 12px; }
 .section-title > svg { flex: 0 0 auto; margin-top: 2px; color: var(--teal); }
 .section-title h2 { margin: 0; font-size: 18px; line-height: 1.2; }
 .section-title p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 650; }
 
 .filter-row { display: flex; gap: 15px; margin: -2px 0 10px; overflow-x: auto; }
+.picks-panel .filter-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; width: 100%; }
 .chip { flex: 0 0 auto; padding: 5px 0 7px; border: 0; border-bottom: 2px solid transparent; color: var(--muted); background: transparent; font-size: 10px; font-weight: 850; }
+.picks-panel .chip { width: 100%; text-align: center; }
 .chip.active { border-bottom-color: var(--teal); color: var(--teal-dark); }
 .game-days { display: grid; gap: 14px; }
 .game-day-marker { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; color: var(--ink-soft); }
@@ -75,7 +79,7 @@ p { margin: 0; }
 .game-day-marker span { width: 100%; height: 1px; background: var(--line-strong); }
 .game-list { display: grid; gap: 9px; }
 .game-card { overflow: hidden; border: 1px solid var(--line); border-radius: 5px; background: var(--panel); box-shadow: var(--shadow); }
-.game-card.selected { border-color: #65aeb4; }
+.game-card.selected { border-color: var(--teal); }
 .game-card.closed { background: #edf1f5; box-shadow: none; }
 .game-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 34px; padding: 7px 10px; border-bottom: 1px solid var(--line); background: #f2f5f8; }
 .badges { display: flex; gap: 5px; }
@@ -90,7 +94,7 @@ p { margin: 0; }
 .team-row { display: grid; grid-template-columns: 32px minmax(0, 1fr) max-content; align-items: center; gap: 10px; width: 100%; min-height: 51px; padding: 9px 11px; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); background: transparent; text-align: left; cursor: pointer; transition: background .15s ease, box-shadow .15s ease; opacity: 1 !important; }
 .team-row:last-child { border-bottom: 0; }
 .team-row:disabled { cursor: default; }
-.team-row.selectable:not(.picked-side):hover { background: #edf7f7; }
+.team-row.selectable:not(.picked-side):hover { background: #edf7fc; }
 .team-row.picked-side { background: var(--teal-soft); box-shadow: inset 4px 0 0 var(--teal); }
 .team-row.opponent-only { color: var(--muted); }
 .team-row.blocked-side { color: #8593a2; background: #edf1f4; }
@@ -118,7 +122,7 @@ p { margin: 0; }
 .visible-pick { display: flex; justify-content: space-between; gap: 10px; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line); }
 .dog-tag { color: var(--coral); font-size: 10px; }
 .actions { display: flex; gap: 8px; margin-top: 10px; }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 8px 12px; border: 1px solid transparent; border-radius: 4px; color: #fff; background: var(--navy); font-size: 11px; font-weight: 850; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 8px 12px; border: 1px solid transparent; border-radius: 4px; color: #fff; background: var(--navy-light); font-size: 11px; font-weight: 850; }
 .btn.accent, .btn.gold { background: var(--teal); }
 .btn.accept { background: var(--green); }
 .btn.secondary, .btn.danger { border-color: var(--line-strong); color: var(--ink-soft); background: transparent; }
@@ -190,10 +194,11 @@ fieldset .field-label { padding: 0; }
 .admin-action { padding-top: 8px; }
 .rules-list { border-top: 1px solid var(--line-strong); }
 .rule-row { display: flex; align-items: flex-start; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line-strong); }
-.rule-icon { display: grid; flex: 0 0 28px; height: 28px; place-items: center; margin-top: 2px; color: var(--teal); }
+.rule-icon { display: grid; flex: 0 0 28px; height: 28px; place-items: center; margin-top: 6px; color: var(--teal); }
 .rule-row > div { min-width: 0; }
 .rule-row strong { display: block; margin-bottom: 3px; color: var(--ink); font-size: 12px; line-height: 1.3; }
-.rule-row p { color: var(--ink-soft); font-size: 12px; font-weight: 650; line-height: 1.45; }
+.rule-row p { color: var(--ink-soft); font-size: 12px; font-weight: 650; line-height: 1.5; text-wrap: pretty; }
+.rule-row p span { display: block; }
 .small, .muted { color: var(--muted); font-size: 11px; font-weight: 650; line-height: 1.4; }
 .empty-state, .loading-card, .error-card, .notice-card { margin-bottom: 10px; padding: 14px; border-left: 4px solid var(--line-strong); color: var(--muted); background: #f7f9fb; font-size: 12px; font-weight: 700; }
 .error-card { border-left-color: var(--coral); }
@@ -225,13 +230,13 @@ fieldset .field-label { padding: 0; }
   .scoreboard-main { gap: 7px; }
   .brand-lockup { gap: 6px; }
   .app-logo { width: 48px; height: 52px; }
-  .score-title { font-size: 15px; }
-  .player-standing { gap: 4px; min-width: 67px; }
+  .score-title { font-size: 17px; }
+  .player-standing { gap: 5px; min-width: 73px; }
   .player-stat { gap: 4px; }
-  .player-stat span { font-size: 7px; }
-  .player-stat strong { font-size: 12px; }
+  .player-stat span { font-size: 8px; }
+  .player-stat strong { font-size: 14px; }
   .week-select-wrap { margin-top: 5px; }
-  .week-select { min-width: 68px; font-size: 9px; }
+  .week-select { min-width: 70px; font-size: 10px; }
   .primary-nav button { flex-direction: column; padding-inline: 2px; }
   .primary-nav button span { max-width: 100%; text-align: center; }
   .container { padding-inline: 9px; }
