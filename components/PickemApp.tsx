@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, EyeOff, Landmark, RefreshCw, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { Check, ChevronDown, CircleDollarSign, EyeOff, Landmark, Lock, RefreshCw, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
@@ -474,18 +474,15 @@ export default function PickemApp() {
           <img className="app-logo" src="/header-logo.png" alt="" />
           <div className="brand-copy">
             <div className="score-title">Shaw Family Pick&apos;em</div>
-            <div className="player-standing">
-              <strong>{currentStanding ? `${currentStanding.wins}-${currentStanding.losses}${currentStanding.pushes ? `-${currentStanding.pushes}` : ""}` : "0-0"}</strong>
-              <span>record</span>
-              <i />
-              <strong>{currentStandingRank ? ordinal(currentStandingRank) : "--"}</strong>
-              <span>place</span>
-            </div>
+            {availableWeeks.length > 0 && <div className="week-select-wrap"><select value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
+              {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
+            </select><ChevronDown size={13} /></div>}
           </div>
         </div>
-        {availableWeeks.length > 0 && <div className="week-select-wrap"><select value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
-          {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
-        </select><ChevronDown size={14} /></div>}
+        <div className="player-standing" aria-label="Season standing">
+          <div className="player-stat"><span>Record</span><strong>{currentStanding ? `${currentStanding.wins}-${currentStanding.losses}-${currentStanding.pushes}` : "0-0-0"}</strong></div>
+          <div className="player-stat"><span>Place</span><strong>{currentStandingRank ? ordinal(currentStandingRank) : "--"}</strong></div>
+        </div>
       </div>
     </header>
 
@@ -577,14 +574,14 @@ export default function PickemApp() {
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2><p>Three players · $150 season entry</p></div></div>
         <div className="rules-list">
-          <div className="rule-row"><strong>Weekly card</strong><span>Week 1: 3 CFB + dog. Week 2: 5 CFB + dog. Mixed weeks: 5 picks with at least 1 CFB and 1 NFL + dog. After CFB: 2 NFL + dog.</span></div>
-          <div className="rule-row"><strong>Eligible games</strong><span>Regular season only. Bowls, CFP, NFL playoffs, and every Chargers game are excluded.</span></div>
-          <div className="rule-row"><strong>Underdog</strong><span>+7 to +9.5 = +1W, +10 to +19.5 = +2W, and +20 or more = +3W. The dog must win outright.</span></div>
-          <div className="rule-row"><strong>Standings</strong><span>Win percentage first, then total wins. The season winner receives $300.</span></div>
-          <div className="rule-row"><strong>Weekly bank</strong><span>Last pays $20 and second pays $10 to first. Tied last pays $15 each; tied first splits $20; a three-way tie pays $0.</span></div>
-          <div className="rule-row"><strong>Perfect week</strong><span>On five-pick weeks only, a winning record with at least 5 wins and no losses doubles payments.</span></div>
-          <div className="rule-row"><strong>Pick locks</strong><span>Saved picks stay editable. Tue-Fri games lock 24 hours before kickoff; Sat-Mon games lock Friday at 5 PM CT.</span></div>
-          <div className="rule-row"><strong>Side bets</strong><span>Spread only. Offers must be accepted before kickoff and settle directly into the bank.</span></div>
+          <div className="rule-row"><span className="rule-icon"><WalletCards size={19} /></span><div><strong>Weekly card</strong><p>Week 1: 3 CFB + dog. Week 2: 5 CFB + dog. Mixed weeks: 5 picks with at least 1 CFB and 1 NFL + dog. After CFB: 2 NFL + dog.</p></div></div>
+          <div className="rule-row"><span className="rule-icon"><Shield size={19} /></span><div><strong>Eligible games</strong><p>Regular season only. Bowls, CFP, NFL playoffs, and every Chargers game are excluded.</p></div></div>
+          <div className="rule-row"><span className="rule-icon"><Zap size={19} /></span><div><strong>Underdog</strong><p>+7 to +9.5 = +1W, +10 to +19.5 = +2W, and +20 or more = +3W. The dog must win outright.</p></div></div>
+          <div className="rule-row"><span className="rule-icon"><Trophy size={19} /></span><div><strong>Standings</strong><p>Win percentage first, then total wins. Records always display wins-losses-pushes. The season winner receives $300.</p></div></div>
+          <div className="rule-row"><span className="rule-icon"><CircleDollarSign size={19} /></span><div><strong>Weekly bank</strong><p>Last pays $20 and second pays $10 to first. Tied last pays $15 each; tied first splits $20; a three-way tie pays $0.</p></div></div>
+          <div className="rule-row"><span className="rule-icon"><Trophy size={19} /></span><div><strong>Perfect week</strong><p>On five-pick weeks only, a winning record with at least 5 wins and no losses doubles payments.</p></div></div>
+          <div className="rule-row"><span className="rule-icon"><Lock size={19} /></span><div><strong>Pick locks</strong><p>Saved picks stay editable. Tue-Fri games lock 24 hours before kickoff; Sat-Mon games lock Friday at 5 PM CT.</p></div></div>
+          <div className="rule-row"><span className="rule-icon"><Send size={19} /></span><div><strong>Side bets</strong><p>Spread only. Offers must be accepted before kickoff and settle directly into the bank.</p></div></div>
         </div>
         {currentUser.is_admin && <div className="admin-action"><button className="btn secondary" disabled={refreshingOdds} onClick={refreshOdds}><RefreshCw size={15} /> {refreshingOdds ? "Refreshing odds…" : "Refresh odds now"}</button></div>}
       </section>}
