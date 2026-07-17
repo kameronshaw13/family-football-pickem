@@ -762,12 +762,11 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
   const homeBlocked = isChargersTeam(game.home_team);
   const awayOpponentOnly = filter === "DOGS" && awayDogValue === 0;
   const homeOpponentOnly = filter === "DOGS" && homeDogValue === 0;
-  const showLeagueBadge = filter === "DOGS" || filter === "PAST";
 
   return <article className={`game-card matchup-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>
     <div className="game-head compact-game-head">
-      <div className="badges">{showLeagueBadge && <span className="badge">{game.league}</span>}{hasFinalScore && <span className="badge final">Final</span>}{existing && <span className="badge picked">{existing.pick_type === "underdog" ? "dog" : "spread"}</span>}</div>
-      <div className="kick">{timeText(game.commence_time)}{filter !== "PAST" && <><span className="time-separator">-</span> Closes {lockText(game.lock_time)}</>}</div>
+      <div className="game-time-group"><span className="game-time">{timeText(game.commence_time)}</span>{hasFinalScore && <span className="badge final">Final</span>}{existing && <span className="badge picked">{existing.pick_type === "underdog" ? "dog" : "spread"}</span>}</div>
+      {filter !== "PAST" && <div className="kick">Closes {lockText(game.lock_time)}</div>}
     </div>
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
