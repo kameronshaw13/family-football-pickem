@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Private family football pick'em app.",
     start_url: "/",
     display: "standalone",
-    background_color: "#e9eef3",
-    theme_color: "#132238",
+    background_color: "#f2f4f6",
+    theme_color: "#273640",
     icons: [
       { src: "/icon.png", sizes: "any", type: "image/png" },
       { src: "/apple-icon.png", sizes: "180x180", type: "image/png", purpose: "any" }
