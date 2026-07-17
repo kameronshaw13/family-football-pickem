@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, Landmark, Lock, RefreshCw, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, Landmark, Lock, Moon, RefreshCw, Save, Send, Shield, Sun, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
@@ -15,6 +15,7 @@ type StandingsView = "standings" | "bank";
 type BetView = "new" | "received" | "sent";
 type Filter = "CFB" | "NFL" | "DOGS" | "PAST";
 type Toast = { message: string; tone: "success" | "error" | "info" } | null;
+type Theme = "light" | "dark";
 
 type AppData = {
   currentUser: Profile;
@@ -187,7 +188,10 @@ function gameDayKey(iso: string) {
   return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
 }
 function gameDayLabel(iso: string) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
+  return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
+}
+function gameDayShort(iso: string) {
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
 }
 function lockText(iso: string) {
   const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
@@ -240,6 +244,7 @@ export default function PickemApp() {
   const [betRecipients, setBetRecipients] = useState<string[]>([]);
   const [toast, setToast] = useState<Toast>(null);
   const [pastDayState, setPastDayState] = useState<Record<string, boolean>>({});
+  const [theme, setTheme] = useState<Theme>("light");
 
   async function load(nextWeek = week) {
     setLoading(true);
@@ -265,6 +270,10 @@ export default function PickemApp() {
 
   useEffect(() => { load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   useEffect(() => {
+    const initialTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    setTheme(initialTheme);
+  }, []);
+  useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
@@ -276,6 +285,13 @@ export default function PickemApp() {
 
   function notify(message: string, tone: NonNullable<Toast>["tone"] = "info") {
     setToast({ message, tone });
+  }
+
+  function toggleTheme() {
+    const nextTheme: Theme = theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = nextTheme;
+    window.localStorage.setItem("pickem_theme", nextTheme);
+    setTheme(nextTheme);
   }
 
   async function savePicks(card: Pick[]) {
@@ -388,11 +404,11 @@ export default function PickemApp() {
     if (filter === "NFL") return g.league === "NFL";
     return [g.away_team, g.home_team].some((team) => !isChargersTeam(team) && teamDogValue(g, team) > 0);
   });
-  const gameGroups = filteredGames.reduce<Array<{ key: string; label: string; games: Game[] }>>((groups, game) => {
+  const gameGroups = filteredGames.reduce<Array<{ key: string; label: string; shortDay: string; games: Game[] }>>((groups, game) => {
     const key = gameDayKey(game.commence_time);
     const existingGroup = groups[groups.length - 1];
     if (existingGroup?.key === key) existingGroup.games.push(game);
-    else groups.push({ key, label: gameDayLabel(game.commence_time), games: [game] });
+    else groups.push({ key, label: gameDayLabel(game.commence_time), shortDay: gameDayShort(game.commence_time), games: [game] });
     return groups;
   }, []);
   function addPick(game: Game, team: string, pickType: PickType) {
@@ -477,9 +493,12 @@ export default function PickemApp() {
         <div className="brand-lockup">
           <strong className="brand-title">Shaw Family Pick'em</strong>
         </div>
-        {availableWeeks.length > 0 && <div className="header-slate"><div className="week-select-wrap"><select aria-label="Select week" value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
-          {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
-        </select><ChevronDown size={14} /></div></div>}
+        <div className="header-actions">
+          {availableWeeks.length > 0 && <div className="header-slate"><div className="week-select-wrap"><select aria-label="Select week" value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
+            {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
+          </select><ChevronDown size={14} /></div></div>}
+          <button className="theme-toggle" onClick={toggleTheme} aria-label={theme === "dark" ? "Use light theme" : "Use dark theme"}>{theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}</button>
+        </div>
       </div>
     </header>
 
@@ -502,7 +521,7 @@ export default function PickemApp() {
             {gameGroups.map((group, index) => {
               const pastGroupOpen = pastDayState[group.key] ?? index === gameGroups.length - 1;
               return <div className={`game-day-group ${filter === "PAST" ? "past-day-group" : ""}`} key={group.key}>
-                {filter === "PAST" ? <button className="game-day-marker game-day-toggle" aria-expanded={pastGroupOpen} onClick={() => setPastDayState((current) => ({ ...current, [group.key]: !pastGroupOpen }))}><strong>{group.label}</strong><span /><small>{group.games.length} game{group.games.length === 1 ? "" : "s"}</small><ChevronDown className={pastGroupOpen ? "open" : ""} size={16} /></button> : <div className="game-day-marker"><strong>{group.label}</strong><span /></div>}
+                {filter === "PAST" ? <button className="game-day-marker game-day-toggle" aria-expanded={pastGroupOpen} onClick={() => setPastDayState((current) => ({ ...current, [group.key]: !pastGroupOpen }))}><b>{group.shortDay}</b><strong>{group.label}</strong><span /><small>{group.games.length} game{group.games.length === 1 ? "" : "s"}</small><ChevronDown className={pastGroupOpen ? "open" : ""} size={16} /></button> : <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong><span /></div>}
                 {(filter !== "PAST" || pastGroupOpen) && <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} filter={filter} weekIsOpen={weekIsOpen} addPick={addPick} />)}</div>}
               </div>;
             })}
