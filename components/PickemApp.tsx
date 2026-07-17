@@ -193,11 +193,6 @@ function lockText(iso: string) {
   const labels: Record<string, string> = { TUESDAY: "TUES", WEDNESDAY: "WEDS", THURSDAY: "THURS" };
   return `${labels[weekday] || weekday.slice(0, 3)} ${timeText(iso)}`;
 }
-function ordinal(value: number) {
-  const lastTwo = value % 100;
-  if (lastTwo >= 11 && lastTwo <= 13) return `${value}th`;
-  return `${value}${value % 10 === 1 ? "st" : value % 10 === 2 ? "nd" : value % 10 === 3 ? "rd" : "th"}`;
-}
 function spreadForTeam(game: Game, team: string) {
   return spreadText(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
 }
@@ -387,11 +382,6 @@ export default function PickemApp() {
     else groups.push({ key, label: gameDayLabel(game.commence_time), games: [game] });
     return groups;
   }, []);
-  const currentStanding = standings.find((standing) => standing.user_id === currentUser.id);
-  const currentStandingRank = currentStanding
-    ? standings.findIndex((standing) => standing.win_pct === currentStanding.win_pct && standing.wins === currentStanding.wins && standing.losses === currentStanding.losses) + 1
-    : 0;
-
   function addPick(game: Game, team: string, pickType: PickType) {
     if (hasChargers(game)) {
       alert("Los Angeles Chargers games are not available in this league.");
@@ -472,17 +462,10 @@ export default function PickemApp() {
       <div className="scoreboard-main">
         <div className="brand-lockup">
           <img className="app-logo" src="/header-logo.png" alt="" />
-          <div className="brand-copy">
-            <div className="score-title">Shaw Family Pick&apos;em</div>
-            {availableWeeks.length > 0 && <div className="week-select-wrap"><select value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
-              {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
-            </select><ChevronDown size={13} /></div>}
-          </div>
         </div>
-        <div className="player-standing" aria-label="Season standing">
-          <div className="player-stat"><span>Record</span><strong>{currentStanding ? `${currentStanding.wins}-${currentStanding.losses}-${currentStanding.pushes}` : "0-0-0"}</strong></div>
-          <div className="player-stat"><span>Place</span><strong>{currentStandingRank ? ordinal(currentStandingRank) : "--"}</strong></div>
-        </div>
+        {availableWeeks.length > 0 && <div className="header-slate"><span>Current slate</span><div className="week-select-wrap"><select value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
+          {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
+        </select><ChevronDown size={14} /></div></div>}
       </div>
     </header>
 
@@ -548,14 +531,14 @@ export default function PickemApp() {
         </div>}
       </section>}
 
-      {tab === "standings" && <section className="panel">
+      {tab === "standings" && <section className="panel standings-panel">
         <SectionTabs items={[{ id: "standings", label: "Standings" }, { id: "bank", label: "Bank" }]} value={standingsView} onChange={(value) => setStandingsView(value as StandingsView)} />
         {standingsView === "standings" && <>
-          <div className="section-title"><Trophy size={19} /><div><h2>Season standings</h2><p>Ranked by win percentage, then wins.</p></div></div>
-          <table className="standings-table"><thead><tr><th>Name</th><th>W</th><th>L</th><th>P</th><th>%</th></tr></thead><tbody>
+          <div className="section-title standings-title"><Trophy size={19} /><div><h2>Season standings</h2><p>Ranked by win percentage, then wins.</p></div></div>
+          <table className="standings-table season-standings-table"><thead><tr><th>Name</th><th>W</th><th>L</th><th>P</th><th>%</th></tr></thead><tbody>
             {standings.map((s) => <tr key={s.user_id}><td><strong>{s.display_name}</strong></td><td>{s.wins}</td><td>{s.losses}</td><td>{s.pushes}</td><td>{pctText(s.win_pct)}</td></tr>)}
           </tbody></table>
-          <div className="subsection"><h3>This week</h3><table className="standings-table compact"><thead><tr><th>Rank</th><th>Name</th><th>W</th><th>L</th><th>P</th><th>%</th></tr></thead><tbody>{weeklyStandings.map((s) => <tr key={s.user_id}><td>{s.rank}</td><td><strong>{s.display_name}</strong></td><td>{s.wins}</td><td>{s.losses}</td><td>{s.pushes}</td><td>{pctText(s.win_pct)}</td></tr>)}</tbody></table></div>
+          <div className="subsection weekly-standings"><h3>This week</h3><table className="standings-table compact weekly-standings-table"><thead><tr><th>Rank</th><th>Name</th><th>W</th><th>L</th><th>P</th><th>%</th></tr></thead><tbody>{weeklyStandings.map((s) => <tr key={s.user_id}><td>{s.rank}</td><td><strong>{s.display_name}</strong></td><td>{s.wins}</td><td>{s.losses}</td><td>{s.pushes}</td><td>{pctText(s.win_pct)}</td></tr>)}</tbody></table></div>
         </>}
         {standingsView === "bank" && <>
           <div className="section-title"><Landmark size={19} /><div><h2>Bank</h2><p>Weekly results and settled side bets.</p></div></div>
@@ -619,7 +602,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGam
   const creatorSpread = selectedGame ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
 
   return <div className="side-bet-center">
-    <SectionTabs items={[{ id: "received", label: "For You" }, { id: "sent", label: "Sent" }, { id: "new", label: "New Offer" }]} value={view} onChange={(value) => setView(value as BetView)} />
+    <SectionTabs items={[{ id: "received", label: "For You" }, { id: "sent", label: "Sent" }, { id: "new", label: "Make Offer" }]} value={view} onChange={(value) => setView(value as BetView)} />
 
     {view === "new" && <div className="bet-composer">
       <div className="section-title"><Send size={19} /><div><h2>Make an offer</h2><p>Spread only · line locks when sent</p></div></div>
@@ -722,10 +705,11 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
   const homeBlocked = isChargersTeam(game.home_team);
   const awayOpponentOnly = filter === "DOGS" && awayDogValue === 0;
   const homeOpponentOnly = filter === "DOGS" && homeDogValue === 0;
+  const showLeagueBadge = filter === "DOGS" || filter === "PAST";
 
   return <article className={`game-card matchup-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>
     <div className="game-head compact-game-head">
-      <div className="badges"><span className="badge">{game.league}</span>{hasFinalScore && <span className="badge final">Final</span>}{existing && <span className="badge picked">{existing.pick_type === "underdog" ? "dog" : "spread"}</span>}</div>
+      <div className="badges">{showLeagueBadge && <span className="badge">{game.league}</span>}{hasFinalScore && <span className="badge final">Final</span>}{existing && <span className="badge picked">{existing.pick_type === "underdog" ? "dog" : "spread"}</span>}</div>
       <div className="kick">{timeText(game.commence_time)}{filter !== "PAST" && <><span className="time-separator">-</span> Closes {lockText(game.lock_time)}</>}</div>
     </div>
 
