@@ -531,7 +531,7 @@ export default function PickemApp() {
         />}
       </section>}
 
-      {tab === "card" && <section className="panel">
+      {tab === "card" && <section className="panel card-panel">
         <SectionTabs items={[{ id: "mine", label: "My Card" }, { id: "group", label: "League Cards" }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
         {cardView === "mine" && <>
           <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />
@@ -552,13 +552,13 @@ export default function PickemApp() {
         <SectionTabs items={[{ id: "standings", label: "Standings" }, { id: "bank", label: "Bank" }]} value={standingsView} onChange={(value) => setStandingsView(value as StandingsView)} />
         {standingsView === "standings" && <>
           <div className="section-title standings-title"><Trophy size={19} /><div><h2>Season standings</h2><p>Ranked by win percentage, then wins.</p></div></div>
-          <Leaderboard rows={standings} />
-          <div className="subsection weekly-standings"><h3>This week</h3><Leaderboard rows={weeklyStandings} /></div>
+          <Leaderboard rows={standings} currentUserId={currentUser.id} />
+          <div className="subsection weekly-standings"><h3>This week</h3><Leaderboard rows={weeklyStandings} currentUserId={currentUser.id} /></div>
         </>}
         {standingsView === "bank" && <>
           <div className="section-title"><Landmark size={19} /><div><h2>Bank</h2><p>Weekly results and settled side bets.</p></div></div>
           <div className="bank-summary-grid">
-            {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
+            {bankTotals.map((row) => <div key={row.id} className={`money-card ${row.id === currentUser.id ? "current-user" : ""}`}><span>{row.display_name}{row.id === currentUser.id && <small>You</small>}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
           </div>
           <div className="subsection">
             <h3>This week</h3>
@@ -597,7 +597,7 @@ function SectionTabs({ items, value, onChange }: { items: Array<{ id: string; la
   return <div className="section-tabs">{items.map((item) => <button key={item.id} className={value === item.id ? "active" : ""} onClick={() => onChange(item.id)}>{item.label}</button>)}</div>;
 }
 
-function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {
+function Leaderboard({ rows, currentUserId }: { rows: Array<Standing & { rank?: number }>; currentUserId: string }) {
   function rankFor(index: number) {
     if (rows[index].rank) return rows[index].rank;
     const firstMatch = rows.findIndex((row) => row.win_pct === rows[index].win_pct && row.wins === rows[index].wins);
@@ -606,9 +606,9 @@ function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {
 
   return <div className="leaderboard">
     <div className="leaderboard-labels"><span>Rank</span><span>Player</span><span>Win %</span></div>
-    {rows.map((row, index) => <div className="leaderboard-row" key={row.user_id}>
+    {rows.map((row, index) => <div className={`leaderboard-row ${row.user_id === currentUserId ? "current-user" : ""}`} key={row.user_id}>
       <span className={`leaderboard-rank rank-${rankFor(index)}`}>{rankFor(index)}</span>
-      <div className="leaderboard-player"><strong>{row.display_name}</strong><span>{row.wins}-{row.losses}-{row.pushes}</span></div>
+      <div className="leaderboard-player"><strong>{row.display_name}{row.user_id === currentUserId && <small>You</small>}</strong><span>{row.wins}-{row.losses}-{row.pushes}</span></div>
       <strong className="leaderboard-pct">{pctText(row.win_pct)}</strong>
     </div>)}
   </div>;
@@ -841,8 +841,7 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const game = games.find((g) => g.id === pick.game_id) || pick.game;
     const final = pick.status === "locked" || Boolean(game && isClosed(game));
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><div><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : ""}</p><p className="pick-meta">{pick.status === "locked" ? `Locked ${shortDt(pick.locked_at)} at ${spreadText(pick.locked_spread)}` : final ? `Final · lock time reached` : `Current ${game ? spreadForTeam(game, pick.selected_team) : "line unknown"} · locks ${game ? closeText(game.lock_time) : "later"}`}</p></div><span className={`badge ${final ? "locked" : "open"}`}>{final ? "final" : "editable"}</span></div>
-      {!final && <div className="actions"><button className="btn danger" onClick={() => removePick(pick)}>Remove</button></div>}
+      <div className="pick-top"><div><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : ""}</p><p className="pick-meta">{pick.status === "locked" ? `Locked ${shortDt(pick.locked_at)} at ${spreadText(pick.locked_spread)}` : final ? "Final · lock time reached" : `${game ? spreadForTeam(game, pick.selected_team) : "Line unavailable"} · locks ${game ? closeText(game.lock_time) : "later"}`}</p></div><div className="pick-row-actions"><span className={`badge ${final ? "locked" : "open"}`}>{final ? "final" : "editable"}</span>{!final && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
