@@ -191,7 +191,7 @@ function gameDayLabel(iso: string) {
   return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
 }
 function gameDayShort(iso: string) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
+  return new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
 }
 function lockText(iso: string) {
   const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
@@ -491,7 +491,7 @@ export default function PickemApp() {
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <strong className="brand-title">Shaw Family Pick'em</strong>
+          <span className="header-logo-mark" role="img" aria-label="Shaw Family Pick'em" />
         </div>
         <div className="header-actions">
           {availableWeeks.length > 0 && <div className="header-slate"><div className="week-select-wrap"><select aria-label="Select week" value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
@@ -640,7 +640,7 @@ function RuleItem({ icon: Icon, title, children }: { icon: typeof Trophy; title:
 
 function LoadingShell() {
   return <div className="app-shell loading-shell">
-    <header className="scoreboard-header"><div className="scoreboard-main"><strong className="brand-title">Shaw Family Pick'em</strong><div className="skeleton skeleton-week" /></div></header>
+    <header className="scoreboard-header"><div className="scoreboard-main"><span className="header-logo-mark" role="img" aria-label="Shaw Family Pick'em" /><div className="skeleton skeleton-week" /></div></header>
     <main className="container">
       <div className="skeleton skeleton-tabs" />
       <div className="skeleton skeleton-filters" />

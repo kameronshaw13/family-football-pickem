@@ -4,6 +4,7 @@
   color-scheme: light;
   --header-height: 68px;
   --nav-height: 76px;
+  --page-gutter: 11px;
   --canvas: #f2f4f6;
   --canvas-deep: #e9edf0;
   --panel: #ffffff;
@@ -83,7 +84,7 @@ p { margin: 0; }
 .scoreboard-main, .primary-nav-inner, .container { width: min(760px, 100%); margin-inline: auto; }
 .scoreboard-main { display: flex; height: var(--header-height); align-items: center; justify-content: space-between; gap: 14px; }
 .brand-lockup { display: flex; min-width: 0; height: 100%; align-items: center; margin-left: 5px; }
-.brand-title { color: #fff; font-size: 17px; font-weight: 850; line-height: 1; white-space: nowrap; }
+.header-logo-mark { display: block; width: 60px; height: 60px; background: #fff; -webkit-mask: url("/header-logo.png") center / contain no-repeat; mask: url("/header-logo.png") center / contain no-repeat; }
 .header-actions { display: flex; height: 100%; align-items: center; gap: 9px; }
 .header-slate { display: flex; flex: 0 0 auto; height: 100%; align-items: center; }
 .week-select-wrap { position: relative; display: flex; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, .55); }
@@ -101,13 +102,13 @@ p { margin: 0; }
 .nav-icon { position: relative; display: grid; place-items: center; }
 .primary-nav button b { position: absolute; top: -6px; right: -9px; display: grid; min-width: 16px; height: 16px; place-items: center; padding: 0 4px; border: 2px solid var(--panel); border-radius: 8px; color: #fff; background: var(--red); font-size: 8px; }
 
-.container { padding: calc(env(safe-area-inset-top) + var(--header-height) + 14px) 11px calc(var(--nav-height) + env(safe-area-inset-bottom) + 28px); }
+.container { padding: calc(env(safe-area-inset-top) + var(--header-height) + 14px) var(--page-gutter) calc(var(--nav-height) + env(safe-area-inset-bottom) + 28px); }
 .panel { padding: 0; }
 .section-tabs { display: flex; gap: 22px; margin-bottom: 14px; border-bottom: 1px solid var(--line-strong); overflow-x: auto; scrollbar-width: none; }
 .section-tabs::-webkit-scrollbar { display: none; }
 .section-tabs button { flex: 0 0 auto; padding: 9px 0 10px; border: 0; border-bottom: 3px solid transparent; color: var(--muted); background: transparent; font-size: 12px; font-weight: 800; }
 .section-tabs button.active { border-bottom-color: var(--blue); color: var(--ink); }
-.picks-panel > .section-tabs, .card-panel > .section-tabs, .standings-panel > .section-tabs { display: grid; height: 44px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0 -11px 14px; padding-inline: 11px; background: var(--canvas); }
+.picks-panel > .section-tabs, .card-panel > .section-tabs, .standings-panel > .section-tabs { display: grid; height: 44px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0 calc(var(--page-gutter) * -1) 14px; padding-inline: var(--page-gutter); background: var(--canvas); }
 .picks-panel > .section-tabs { position: sticky; top: calc(env(safe-area-inset-top) + var(--header-height)); z-index: 14; }
 .picks-panel > .section-tabs button, .card-panel > .section-tabs button, .standings-panel > .section-tabs button { width: 100%; text-align: center; }
 .section-title { display: flex; align-items: flex-start; gap: 10px; margin: 5px 0 14px; }
@@ -181,9 +182,11 @@ p { margin: 0; }
 .card-save-bar.dirty { border-left-color: var(--gold); background: var(--saved-dirty); }
 .card-save-bar p { margin-top: 3px; color: var(--muted); font-size: 10px; font-weight: 600; }
 .card-save-bar > svg { flex: 0 0 auto; color: var(--green); }
+.game-list, .card-progress, .card-save-bar, .group-list, .side-bet-list, .leaderboard, .bank-summary-grid, .weekly-bank-status, .ledger-list, .rules-list { margin-inline: calc(var(--page-gutter) * -1); }
 .pick-section, .subsection { margin-top: 18px; }
 .pick-section h3, .subsection h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; color: var(--muted); font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
-.pick-card, .group-card { margin-bottom: 0; padding: 12px 2px; border: 0; border-bottom: 1px solid var(--line); background: transparent; }
+.pick-card, .group-card { margin-bottom: 0; padding: 12px var(--page-gutter); border: 0; border-bottom: 1px solid var(--line); background: transparent; }
+.pick-card { margin-inline: calc(var(--page-gutter) * -1); }
 .pick-card:first-of-type, .group-card:first-child { border-top: 1px solid var(--line); }
 .group-list { display: grid; gap: 0; }
 .group-card h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; }
@@ -300,7 +303,8 @@ fieldset .field-label { padding: 0; }
 .rule-item summary strong { font-size: 13px; }
 .rule-chevron { color: var(--muted); transition: transform .18s ease; }
 .rule-item[open] .rule-chevron { transform: rotate(180deg); }
-.rule-copy { padding: 0 31px 14px 43px; color: var(--ink-soft); font-size: 12px; font-weight: 600; line-height: 1.55; text-wrap: pretty; }
+.rule-item summary { padding-inline: var(--page-gutter); }
+.rule-copy { padding: 0 calc(var(--page-gutter) + 31px) 14px calc(var(--page-gutter) + 43px); color: var(--ink-soft); font-size: 12px; font-weight: 600; line-height: 1.55; text-wrap: pretty; }
 .rule-copy span { display: block; }
 .admin-action { padding-top: 12px; }
 .small, .muted { color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; }
@@ -340,16 +344,14 @@ fieldset .field-label { padding: 0; }
 }
 
 @media (max-width: 520px) {
-  :root { --header-height: 70px; --nav-height: 76px; }
+  :root { --header-height: 70px; --nav-height: 76px; --page-gutter: 9px; }
   .scoreboard-header { padding-inline: 11px; }
   .scoreboard-main { gap: 7px; }
   .brand-lockup { margin-left: 5px; }
-  .brand-title { font-size: 15px; }
+  .header-logo-mark { width: 58px; height: 58px; }
   .header-actions { gap: 4px; }
   .week-select { min-width: 78px; font-size: 12px; }
   .theme-toggle { width: 30px; height: 30px; }
-  .container { padding-inline: 9px; }
-  .picks-panel > .section-tabs, .card-panel > .section-tabs, .standings-panel > .section-tabs { margin-inline: -9px; padding-inline: 9px; }
   .team-row { grid-template-columns: 27px minmax(0, 1fr) max-content; min-height: 51px; gap: 8px; padding: 9px; }
   .team-logo { width: 25px; height: 25px; }
   .team-name { font-size: 13px; }
