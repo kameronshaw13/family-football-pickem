@@ -24,20 +24,9 @@ export const viewport: Viewport = {
   themeColor: "#20282d"
 };
 
-const themeScript = `
-  try {
-    const savedTheme = localStorage.getItem("pickem_theme");
-    const theme = savedTheme === "light" || savedTheme === "dark"
-      ? savedTheme
-      : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    document.documentElement.dataset.theme = theme;
-  } catch {}
-`;
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
+    <html lang="en" data-theme="light">
       <body>{children}</body>
     </html>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, Landmark, Lock, Moon, RefreshCw, Save, Send, Shield, Sun, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, Landmark, LoaderCircle, Lock, RefreshCw, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
@@ -15,7 +15,6 @@ type StandingsView = "standings" | "bank";
 type BetView = "new" | "received" | "sent";
 type Filter = "CFB" | "NFL" | "DOGS" | "PAST";
 type Toast = { message: string; tone: "success" | "error" | "info" } | null;
-type Theme = "light" | "dark";
 
 type AppData = {
   currentUser: Profile;
@@ -231,6 +230,7 @@ export default function PickemApp() {
   const [data, setData] = useState<AppData | null>(null);
   const [week, setWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState("");
   const [savingBank, setSavingBank] = useState(false);
   const [savingPicks, setSavingPicks] = useState(false);
@@ -244,10 +244,11 @@ export default function PickemApp() {
   const [betRecipients, setBetRecipients] = useState<string[]>([]);
   const [toast, setToast] = useState<Toast>(null);
   const [pastDayState, setPastDayState] = useState<Record<string, boolean>>({});
-  const [theme, setTheme] = useState<Theme>("light");
 
   async function load(nextWeek = week) {
-    setLoading(true);
+    const isInitialLoad = data === null;
+    if (isInitialLoad) setLoading(true);
+    else setRefreshing(true);
     setMessage("");
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) {
@@ -261,18 +262,16 @@ export default function PickemApp() {
     if (!response.ok) {
       setMessage(payload.error || "Could not load app data.");
       setLoading(false);
+      setRefreshing(false);
       return;
     }
     setData(payload);
     setWeek(payload.week);
     setLoading(false);
+    setRefreshing(false);
   }
 
   useEffect(() => { load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
-  useEffect(() => {
-    const initialTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-    setTheme(initialTheme);
-  }, []);
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 30_000);
     return () => window.clearInterval(timer);
@@ -285,13 +284,6 @@ export default function PickemApp() {
 
   function notify(message: string, tone: NonNullable<Toast>["tone"] = "info") {
     setToast({ message, tone });
-  }
-
-  function toggleTheme() {
-    const nextTheme: Theme = theme === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = nextTheme;
-    window.localStorage.setItem("pickem_theme", nextTheme);
-    setTheme(nextTheme);
   }
 
   async function savePicks(card: Pick[]) {
@@ -491,13 +483,13 @@ export default function PickemApp() {
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <img className="header-logo-mark" src="/header-logo.png" alt="Shaw Family Pick'em" />
+          <span className="header-brand-title">Shaw Family Pick'em</span>
         </div>
         <div className="header-actions">
-          {availableWeeks.length > 0 && <div className="header-slate"><div className="week-select-wrap"><select aria-label="Select week" value={data.week} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
+          <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
+          {availableWeeks.length > 0 && <div className="header-slate"><div className="week-select-wrap"><select aria-label="Select week" value={data.week} disabled={refreshing} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
             {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
           </select><ChevronDown size={14} /></div></div>}
-          <button className="theme-toggle" onClick={toggleTheme} aria-label={theme === "dark" ? "Use light theme" : "Use dark theme"}>{theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}</button>
         </div>
       </div>
     </header>
@@ -568,12 +560,12 @@ export default function PickemApp() {
       {tab === "standings" && <section className="panel standings-panel">
         <SectionTabs items={[{ id: "standings", label: "Standings" }, { id: "bank", label: "Bank" }]} value={standingsView} onChange={(value) => setStandingsView(value as StandingsView)} />
         {standingsView === "standings" && <>
-          <div className="section-title standings-title"><Trophy size={19} /><div><h2>Season standings</h2><p>Ranked by win percentage, then wins.</p></div></div>
+          <div className="section-title standings-title"><Trophy size={19} /><div><h2>Season standings</h2></div></div>
           <Leaderboard rows={standings} />
           <div className="subsection weekly-standings"><h3>This week</h3><Leaderboard rows={weeklyStandings} /></div>
         </>}
         {standingsView === "bank" && <>
-          <div className="section-title"><Landmark size={19} /><div><h2>Bank</h2><p>Weekly results and settled side bets.</p></div></div>
+          <div className="section-title"><Landmark size={19} /><div><h2>Bank</h2></div></div>
           <div className="bank-summary-grid">
             {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
           </div>
@@ -594,7 +586,7 @@ export default function PickemApp() {
           <RuleItem icon={Zap} title="Underdog">+7 to +9.5 = +1W, +10 to +19.5 = +2W, and +20 or more = +3W. The dog must win outright.</RuleItem>
           <RuleItem icon={Trophy} title="Standings">The season winner receives $300. Winner is based on win percentage, then total wins.</RuleItem>
           <RuleItem icon={CircleDollarSign} title="Weekly bank">Last pays $20 and second pays $10 to first. Tied last pays $15 each; tied first splits $20; a three-way tie pays $0.</RuleItem>
-          <RuleItem icon={Trophy} title="Perfect week">Five-pick weeks only. A perfect week doubles all payments.</RuleItem>
+          <RuleItem icon={Trophy} title="Perfect week">The perfect-week multiplier is only eligible during five-game weeks. A perfect card doubles all weekly payments.</RuleItem>
           <RuleItem icon={Lock} title="Pick locks">Saved picks stay editable. Tue-Fri games lock 24 hours before kickoff; Sat-Mon games lock Friday at 5 PM CT.</RuleItem>
           <RuleItem icon={Send} title="Side bets">Spread only. Offers must be accepted before kickoff and settle directly into the bank.</RuleItem>
         </div>
@@ -622,10 +614,13 @@ function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {
   }
 
   return <div className="leaderboard">
-    <div className="leaderboard-labels"><span>Rank</span><span>Player</span><span>Win %</span></div>
+    <div className="leaderboard-labels"><span>Rank</span><span>Player</span><span>W</span><span>L</span><span>P</span><span>Win %</span></div>
     {rows.map((row, index) => <div className="leaderboard-row" key={row.user_id}>
       <span className={`leaderboard-rank rank-${rankFor(index)}`}>{rankFor(index)}</span>
-      <div className="leaderboard-player"><strong>{row.display_name}</strong><span>{row.wins}-{row.losses}-{row.pushes}</span></div>
+      <div className="leaderboard-player"><strong>{row.display_name}</strong></div>
+      <span className="leaderboard-stat">{row.wins}</span>
+      <span className="leaderboard-stat">{row.losses}</span>
+      <span className="leaderboard-stat">{row.pushes}</span>
       <strong className="leaderboard-pct">{pctText(row.win_pct)}</strong>
     </div>)}
   </div>;
@@ -640,7 +635,7 @@ function RuleItem({ icon: Icon, title, children }: { icon: typeof Trophy; title:
 
 function LoadingShell() {
   return <div className="app-shell loading-shell">
-    <header className="scoreboard-header"><div className="scoreboard-main"><img className="header-logo-mark" src="/header-logo.png" alt="Shaw Family Pick'em" /><div className="skeleton skeleton-week" /></div></header>
+    <header className="scoreboard-header"><div className="scoreboard-main"><span className="header-brand-title">Shaw Family Pick'em</span><div className="skeleton skeleton-week" /></div></header>
     <main className="container">
       <div className="skeleton skeleton-tabs" />
       <div className="skeleton skeleton-filters" />
