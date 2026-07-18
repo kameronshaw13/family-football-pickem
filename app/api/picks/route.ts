@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromToken } from "@/lib/authServer";
-import { getWeekOpenTimeFromCommenceTimes } from "@/lib/lockRules";
+import { getPickWeekOpenTime } from "@/lib/lockRules";
 import { hasChargers, isChargersTeam, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam, underdogWinValue } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const weekGames = (rawWeekGames || []).filter((game) => isEligibleRegularSeasonGame(game) && !hasChargers(game));
     const gameMap = new Map(weekGames.map((game) => [game.id, game]));
 
-    const weekOpen = getWeekOpenTimeFromCommenceTimes(weekGames.map((game) => game.commence_time));
+    const weekOpen = getPickWeekOpenTime(body.week, weekGames.map((game) => game.commence_time));
     if (weekOpen && now < weekOpen) {
       return NextResponse.json({ ok: false, error: `This week opens for picks on ${weekOpen.toLocaleString("en-US", { timeZone: "America/Chicago" })} CT.` }, { status: 409 });
     }

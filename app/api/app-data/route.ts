@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
-import { getWeekOpenTimeFromCommenceTimes } from "@/lib/lockRules";
+import { getPickWeekOpenTime } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
 import { getProfileFromToken } from "@/lib/authServer";
 import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     const defaultWeek = openGames[0]?.week ?? allGames?.[0]?.week ?? 0;
     const week = requestedWeek != null ? Number(requestedWeek) : defaultWeek;
     const games = allGames.filter((g) => g.week === week);
-    const weekOpen = getWeekOpenTimeFromCommenceTimes(games.map((g) => g.commence_time));
+    const weekOpen = getPickWeekOpenTime(week, games.map((g) => g.commence_time));
 
     const { data: profiles, error: profilesError } = await supabase.from("profiles").select("*").order("display_name", { ascending: true });
     if (profilesError) return NextResponse.json({ ok: false, error: profilesError.message }, { status: 500 });
