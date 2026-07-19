@@ -369,7 +369,7 @@ export default function PickemApp() {
   const sideBets = data.sideBets || [];
   const rule = data.weekRule || getWeekRule(data.week);
   const myPicks = picks.filter((p) => p.user_id === currentUser.id && p.week === data.week);
-  const cardPicks = stagedPicks || myPicks;
+  const cardPicks = stagedPicks ?? myPicks;
   const myRegular = cardPicks.filter((p) => p.pick_type === "regular");
   const myUnderdog = cardPicks.find((p) => p.pick_type === "underdog");
   const regularCounts = countRegularByLeague(cardPicks, games);
@@ -387,6 +387,14 @@ export default function PickemApp() {
   const openBetGames = games.filter((game) => !hasChargers(game) && new Date(game.commence_time) > new Date() && game.current_spread != null && game.current_spread_team);
   const selectedBetGame = openBetGames.find((game) => game.id === betGameId) || openBetGames[0];
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : selectedBetGame?.away_team || "";
+
+  function stageCard(nextCard: Pick[]) {
+    const matchesSaved = nextCard.length === myPicks.length && nextCard.every((nextPick) => {
+      const savedPick = myPicks.find((pick) => pick.game_id === nextPick.game_id);
+      return savedPick?.selected_team === nextPick.selected_team && savedPick.pick_type === nextPick.pick_type;
+    });
+    setStagedPicks(matchesSaved ? null : nextCard);
+  }
 
   const filteredGames = games.filter((g) => {
     const past = isClosed(g) || g.final_home_score != null || g.final_away_score != null;
@@ -410,6 +418,10 @@ export default function PickemApp() {
     }
     const existing = cardPicks.find((pick) => pick.game_id === game.id);
     if (existing?.status === "locked") return;
+    if (existing?.selected_team === team && existing.pick_type === pickType) {
+      stageCard(cardPicks.filter((pick) => pick.game_id !== game.id));
+      return;
+    }
     if (existing && existing.pick_type !== pickType) {
       notify("Remove this game from My Card before switching between spread and dog.", "error");
       return;
@@ -444,7 +456,7 @@ export default function PickemApp() {
     if (nextDogs.length > rule.underdogTotal) return notify("Only one underdog pick is allowed.", "error");
     if (counts.cfb > rule.regularTotal - rule.nflMinimum) return notify(`This week requires ${rule.nflMinimum} NFL regular pick${rule.nflMinimum === 1 ? "" : "s"}.`, "error");
     if (counts.nfl > rule.regularTotal - rule.cfbMinimum) return notify(`This week requires ${rule.cfbMinimum} CFB regular pick${rule.cfbMinimum === 1 ? "" : "s"}.`, "error");
-    setStagedPicks(nextCard);
+    stageCard(nextCard);
   }
 
   function removePick(pick: Pick) {
@@ -454,7 +466,7 @@ export default function PickemApp() {
       notify("This pick has reached its lock time and is final.", "error");
       return;
     }
-    setStagedPicks(cardPicks.filter((item) => item.game_id !== pick.game_id));
+    stageCard(cardPicks.filter((item) => item.game_id !== pick.game_id));
   }
 
   function toggleBetRecipient(profileId: string) {
@@ -483,7 +495,7 @@ export default function PickemApp() {
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <span className="header-brand-title">Shaw Family Pick'em</span>
+          <img className="header-app-icon" src="/header-app-icon.png" alt="Shaw Family Football Pick'em" />
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
@@ -635,7 +647,7 @@ function RuleItem({ icon: Icon, title, children }: { icon: typeof Trophy; title:
 
 function LoadingShell() {
   return <div className="app-shell loading-shell">
-    <header className="scoreboard-header"><div className="scoreboard-main"><span className="header-brand-title">Shaw Family Pick'em</span><div className="skeleton skeleton-week" /></div></header>
+    <header className="scoreboard-header"><div className="scoreboard-main"><img className="header-app-icon" src="/header-app-icon.png" alt="Shaw Family Football Pick'em" /><div className="skeleton skeleton-week" /></div></header>
     <main className="container">
       <div className="skeleton skeleton-tabs" />
       <div className="skeleton skeleton-filters" />
@@ -803,7 +815,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
 
   return <article className={`game-card matchup-card ${closed ? "closed" : ""} ${existing ? "selected" : ""}`}>
     <div className="game-head compact-game-head">
-      <div className="game-time-group"><span className="game-time">{timeText(game.commence_time)}</span>{hasFinalScore && <span className="badge final">Final</span>}{existing && <span className="badge picked">{existing.pick_type === "underdog" ? "dog" : "spread"}</span>}</div>
+      <div className="game-time-group"><span className="game-time">{timeText(game.commence_time)}</span>{hasFinalScore && <span className="badge final">Final</span>}</div>
       {filter !== "PAST" && <div className="kick">Closes {lockText(game.lock_time)}</div>}
     </div>
 
