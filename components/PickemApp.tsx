@@ -495,7 +495,7 @@ export default function PickemApp() {
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <img className="header-app-icon" src="/header-app-icon.png" alt="Shaw Family Football Pick'em" />
+          <img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" />
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
@@ -647,7 +647,7 @@ function RuleItem({ icon: Icon, title, children }: { icon: typeof Trophy; title:
 
 function LoadingShell() {
   return <div className="app-shell loading-shell">
-    <header className="scoreboard-header"><div className="scoreboard-main"><img className="header-app-icon" src="/header-app-icon.png" alt="Shaw Family Football Pick'em" /><div className="skeleton skeleton-week" /></div></header>
+    <header className="scoreboard-header"><div className="scoreboard-main"><img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" /><div className="skeleton skeleton-week" /></div></header>
     <main className="container">
       <div className="skeleton skeleton-tabs" />
       <div className="skeleton skeleton-filters" />

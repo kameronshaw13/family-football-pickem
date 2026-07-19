@@ -52,8 +52,8 @@ p { margin: 0; }
 .scoreboard-header::before { position: fixed; inset: 0 0 auto; z-index: 41; height: env(safe-area-inset-top); background: var(--graphite); content: ""; pointer-events: none; }
 .scoreboard-main, .primary-nav-inner, .container { width: min(760px, 100%); margin-inline: auto; }
 .scoreboard-main { display: flex; height: var(--header-height); align-items: center; justify-content: space-between; gap: 14px; }
-.brand-lockup { display: flex; min-width: 0; height: 100%; align-items: center; margin-left: 5px; }
-.header-app-icon { width: 58px; height: 58px; border: 1px solid rgba(255, 255, 255, .2); border-radius: 13px; object-fit: cover; box-shadow: 0 2px 8px rgba(0, 0, 0, .2); }
+.brand-lockup { display: flex; min-width: 0; height: 100%; flex: 1 1 auto; align-items: center; margin-left: 5px; overflow: hidden; }
+.header-wordmark { width: min(236px, 100%); height: auto; max-height: 54px; flex: 0 1 auto; object-fit: contain; object-position: left center; }
 .header-actions { display: flex; height: 100%; align-items: center; gap: 9px; }
 .header-refresh-indicator { display: grid; width: 18px; height: 18px; flex: 0 0 18px; place-items: center; color: #c5dbe7; }
 .header-refresh-indicator svg { animation: spin .8s linear infinite; }
@@ -306,7 +306,7 @@ fieldset .field-label { padding: 0; }
 .login-screen { display: grid; min-height: 100vh; min-height: 100dvh; place-items: start center; padding: max(40px, env(safe-area-inset-top)) 14px 40px; background: var(--graphite); }
 .login-card { width: min(420px, 100%); margin-top: 18px; padding: 22px; border-top: 4px solid var(--blue); border-radius: 6px; background: var(--panel); box-shadow: 0 20px 50px rgba(4, 14, 29, .3); }
 .login-brand { display: flex; height: 94px; align-items: center; margin: -22px -22px 18px; padding: 8px 22px; border-radius: 6px 6px 0 0; background: var(--graphite); }
-.login-logo { width: 92px; height: 92px; object-fit: contain; filter: drop-shadow(.8px 0 0 rgba(248, 244, 232, .82)) drop-shadow(-.8px 0 0 rgba(248, 244, 232, .82)) drop-shadow(0 .8px 0 rgba(248, 244, 232, .82)) drop-shadow(0 -.8px 0 rgba(248, 244, 232, .82)); }
+.login-logo { width: min(290px, 100%); height: auto; max-height: 68px; object-fit: contain; object-position: left center; }
 .login-card h1 { margin: 14px 0 5px; font-family: var(--font-display); font-size: 27px; }
 .login-card > p { margin-bottom: 14px; color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
 .mode-toggle { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
@@ -326,7 +326,7 @@ fieldset .field-label { padding: 0; }
   .scoreboard-header { padding-inline: 11px; }
   .scoreboard-main { gap: 7px; }
   .brand-lockup { margin-left: 2px; }
-  .header-app-icon { width: 56px; height: 56px; border-radius: 12px; }
+  .header-wordmark { width: min(222px, 100%); max-height: 50px; }
   .header-actions { gap: 4px; }
   .week-select { min-width: 78px; font-size: 13px; }
   .team-row { grid-template-columns: 34px minmax(0, 1fr) max-content; min-height: 58px; gap: 9px; padding: 10px 9px; }
