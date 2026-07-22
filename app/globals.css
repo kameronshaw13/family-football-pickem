@@ -245,14 +245,15 @@ fieldset .field-label { padding: 0; }
 
 .standings-title { justify-content: center; text-align: center; }
 .leaderboard { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
-.leaderboard-labels, .leaderboard-row { display: grid; grid-template-columns: 50px minmax(100px, 1fr) 76px 66px; align-items: center; }
+.leaderboard-labels, .leaderboard-row { display: grid; grid-template-columns: 48px minmax(94px, 1fr) repeat(3, 32px) 62px; align-items: center; }
 .leaderboard-labels { min-height: 34px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: 0; }
 .leaderboard-labels span { text-align: center; }
+.leaderboard-labels span:nth-child(2) { text-align: left; }
 .leaderboard-row { min-height: 58px; padding: 8px 11px; border-top: 1px solid var(--line); }
 .leaderboard-rank { display: block; color: var(--muted); font-family: var(--font-display); font-size: 13px; font-weight: 850; text-align: center; }
 .leaderboard-rank.rank-1 { color: var(--rank-gold); }
 .leaderboard-player { min-width: 0; }
-.leaderboard-player strong { display: block; overflow: hidden; font-size: 14px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.leaderboard-player strong { display: block; overflow: hidden; font-size: 14px; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 .leaderboard-stat { color: var(--ink-soft); font-family: var(--font-display); font-size: 13px; font-variant-numeric: tabular-nums; text-align: center; }
 .leaderboard-pct { font-family: var(--font-display); font-size: 15px; font-variant-numeric: tabular-nums; text-align: center; }
 .weekly-standings > h3 { justify-content: center; }
@@ -337,6 +338,6 @@ fieldset .field-label { padding: 0; }
   .card-progress-copy span, .bet-line-summary span:last-child { text-align: left; }
   .offer-fields { grid-template-columns: 1fr; gap: 12px; }
   .kick { max-width: 70%; }
-  .leaderboard-labels, .leaderboard-row { grid-template-columns: 44px minmax(86px, 1fr) 70px 60px; }
+  .leaderboard-labels, .leaderboard-row { grid-template-columns: 42px minmax(82px, 1fr) repeat(3, 28px) 58px; }
   .floating-review, .sticky-card-save { right: 9px; left: 9px; }
 }

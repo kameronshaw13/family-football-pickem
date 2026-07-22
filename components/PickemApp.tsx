@@ -656,11 +656,13 @@ function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {
   }
 
   return <div className="leaderboard">
-    <div className="leaderboard-labels"><span>Rank</span><span>Player</span><span>W-L-P</span><span>Win %</span></div>
+    <div className="leaderboard-labels"><span>Rank</span><span>Player</span><span>W</span><span>L</span><span>P</span><span>Win %</span></div>
     {rows.map((row, index) => <div className="leaderboard-row" key={row.user_id}>
       <span className={`leaderboard-rank rank-${rankFor(index)}`}>{rankFor(index)}</span>
       <div className="leaderboard-player"><strong>{row.display_name}</strong></div>
-      <span className="leaderboard-stat">{row.wins}-{row.losses}-{row.pushes}</span>
+      <span className="leaderboard-stat">{row.wins}</span>
+      <span className="leaderboard-stat">{row.losses}</span>
+      <span className="leaderboard-stat">{row.pushes}</span>
       <strong className="leaderboard-pct">{pctText(row.win_pct)}</strong>
     </div>)}
   </div>;
