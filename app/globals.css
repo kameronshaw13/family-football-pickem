@@ -160,13 +160,14 @@ p { margin: 0; }
 .pick-card:first-of-type, .group-card:first-child { border-top: 1px solid var(--line); }
 .group-list { display: grid; gap: 0; }
 .group-card h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; }
-.pick-top { display: flex; justify-content: space-between; gap: 10px; }
-.pick-top > div:first-child { min-width: 0; }
+.pick-top { display: grid; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: start; gap: 10px; }
+.pick-top > .team-logo, .visible-pick > .team-logo { width: 34px; height: 34px; }
+.pick-copy, .visible-pick-copy { min-width: 0; }
 .pick-row-actions { display: flex; flex: 0 0 auto; align-items: flex-start; gap: 7px; }
 .icon-btn { display: grid; width: 29px; height: 29px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: transparent; }
 .pick-title { font-size: 15px; font-weight: 850; }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
-.visible-pick { display: flex; justify-content: space-between; gap: 10px; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line); }
+.visible-pick { display: grid; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: start; gap: 10px; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line); }
 .dog-tag { color: var(--red); font-size: 11px; }
 .actions { display: flex; gap: 8px; margin-top: 11px; }
 .btn { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 6px; padding: 8px 13px; border: 1px solid transparent; border-radius: 5px; color: #fff; background: var(--graphite-light); font-size: 12px; font-weight: 800; }
@@ -244,17 +245,16 @@ fieldset .field-label { padding: 0; }
 
 .standings-title { justify-content: center; text-align: center; }
 .leaderboard { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
-.leaderboard-labels, .leaderboard-row { display: grid; grid-template-columns: 40px minmax(90px, 1fr) repeat(3, 32px) 58px; align-items: center; }
+.leaderboard-labels, .leaderboard-row { display: grid; grid-template-columns: 50px minmax(100px, 1fr) 76px 66px; align-items: center; }
 .leaderboard-labels { min-height: 34px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: 0; }
-.leaderboard-labels span:nth-child(n+3):nth-child(-n+5) { text-align: center; }
-.leaderboard-labels span:last-child { text-align: right; }
+.leaderboard-labels span { text-align: center; }
 .leaderboard-row { min-height: 58px; padding: 8px 11px; border-top: 1px solid var(--line); }
-.leaderboard-rank { display: block; color: var(--muted); font-family: var(--font-display); font-size: 13px; font-weight: 850; }
+.leaderboard-rank { display: block; color: var(--muted); font-family: var(--font-display); font-size: 13px; font-weight: 850; text-align: center; }
 .leaderboard-rank.rank-1 { color: var(--rank-gold); }
 .leaderboard-player { min-width: 0; }
-.leaderboard-player strong { display: block; overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.leaderboard-player strong { display: block; overflow: hidden; font-size: 14px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .leaderboard-stat { color: var(--ink-soft); font-family: var(--font-display); font-size: 13px; font-variant-numeric: tabular-nums; text-align: center; }
-.leaderboard-pct { font-family: var(--font-display); font-size: 15px; font-variant-numeric: tabular-nums; text-align: right; }
+.leaderboard-pct { font-family: var(--font-display); font-size: 15px; font-variant-numeric: tabular-nums; text-align: center; }
 .weekly-standings > h3 { justify-content: center; }
 .bank-summary-grid { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
 .money-card { display: flex; min-height: 58px; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--line); }
@@ -337,6 +337,6 @@ fieldset .field-label { padding: 0; }
   .card-progress-copy span, .bet-line-summary span:last-child { text-align: left; }
   .offer-fields { grid-template-columns: 1fr; gap: 12px; }
   .kick { max-width: 70%; }
-  .leaderboard-labels, .leaderboard-row { grid-template-columns: 34px minmax(82px, 1fr) repeat(3, 27px) 54px; }
+  .leaderboard-labels, .leaderboard-row { grid-template-columns: 44px minmax(86px, 1fr) 70px 60px; }
   .floating-review, .sticky-card-save { right: 9px; left: 9px; }
 }
