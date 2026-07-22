@@ -280,6 +280,12 @@ export default function PickemApp() {
     const response = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) {
+      if (response.status === 401) {
+        window.localStorage.removeItem("pickem_session_token");
+        window.localStorage.removeItem("pickem_profile");
+        window.location.replace("/login");
+        return;
+      }
       setMessage(payload.error || "Could not load app data.");
       setLoading(false);
       setRefreshing(false);

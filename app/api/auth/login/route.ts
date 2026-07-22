@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { createProfileSession } from "@/lib/authServer";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { makeSessionToken, verifyPassword } from "@/lib/passwords";
 
@@ -25,15 +26,10 @@ export async function POST(req: NextRequest) {
     if (!verifyPassword(body.password, profile.password_hash)) return NextResponse.json({ ok: false, error: "Incorrect password." }, { status: 401 });
 
     const token = makeSessionToken();
-    const { data: updated, error: updateError } = await supabase
-      .from("profiles")
-      .update({ session_token: token, updated_at: new Date().toISOString() })
-      .eq("id", profile.id)
-      .select("id,username,display_name,is_admin")
-      .single();
-    if (updateError) return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
+    const sessionError = await createProfileSession(profile.id, token);
+    if (sessionError) return NextResponse.json({ ok: false, error: `Could not create this device session: ${sessionError.message}` }, { status: 500 });
 
-    return NextResponse.json({ ok: true, token, profile: publicProfile(updated) });
+    return NextResponse.json({ ok: true, token, profile: publicProfile(profile) });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }

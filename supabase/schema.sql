@@ -20,6 +20,19 @@ alter table profiles add column if not exists updated_at timestamptz not null de
 create unique index if not exists profiles_username_unique on profiles(username);
 create unique index if not exists profiles_session_token_unique on profiles(session_token) where session_token is not null;
 
+create table if not exists profile_sessions (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references profiles(id) on delete cascade,
+  token_hash text not null unique,
+  created_at timestamptz not null default now()
+);
+
+insert into profile_sessions (profile_id, token_hash)
+select id, encode(digest(session_token, 'sha256'), 'hex')
+from profiles
+where session_token is not null
+on conflict (token_hash) do nothing;
+
 create table if not exists games (
   id text primary key,
   week integer not null,
@@ -157,8 +170,10 @@ create index if not exists idx_side_bets_game on side_bets(game_id);
 create index if not exists idx_side_bets_status on side_bets(status);
 create index if not exists idx_side_bets_accepted_by on side_bets(accepted_by);
 create index if not exists idx_side_bet_targets_recipient on side_bet_targets(recipient_id);
+create index if not exists idx_profile_sessions_profile on profile_sessions(profile_id);
 
 alter table profiles enable row level security;
+alter table profile_sessions enable row level security;
 alter table games enable row level security;
 alter table odds_snapshots enable row level security;
 alter table picks enable row level security;
@@ -211,6 +226,7 @@ group by p.user_id, pr.display_name;
 
 grant usage on schema public to anon, authenticated, service_role;
 grant all privileges on table profiles to service_role;
+grant all privileges on table profile_sessions to service_role;
 grant all privileges on table games to service_role;
 grant all privileges on table odds_snapshots to service_role;
 grant all privileges on table picks to service_role;
