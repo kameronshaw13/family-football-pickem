@@ -252,20 +252,20 @@ fieldset .field-label { padding: 0; }
 .confirmation-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 16px; }
 .confirmation-actions .btn { width: 100%; min-height: 43px; }
 
-.scoreboard-heading { display: flex; min-height: 46px; align-items: center; justify-content: center; padding: 4px var(--page-gutter) 10px; text-align: center; }
-.scoreboard-heading h2 { margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 20px; font-weight: 800; line-height: 1.2; }
+.scoreboard-heading { display: flex; min-height: 52px; align-items: center; justify-content: center; padding: 0 var(--page-gutter); text-align: center; }
+.scoreboard-heading h2 { display: flex; min-height: 24px; align-items: center; margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 20px; font-weight: 800; line-height: 1.15; }
 .heading-with-icon { gap: var(--space-2); }
-.heading-with-icon > svg { flex: 0 0 auto; color: var(--blue-dark); }
+.heading-with-icon > svg { display: block; flex: 0 0 auto; align-self: center; color: var(--blue-dark); }
 .leaderboard { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
 .leaderboard-labels, .leaderboard-row { display: grid; grid-template-columns: 48px minmax(94px, 1fr) repeat(3, 32px) 62px; align-items: center; }
 .leaderboard-labels { min-height: 34px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
-.leaderboard-labels span { text-align: center; }
-.leaderboard-labels span:nth-child(2) { text-align: left; }
 .leaderboard-row { min-height: 58px; padding: 8px 11px; border-top: 1px solid var(--line); }
-.leaderboard-rank { display: block; align-self: center; color: var(--muted); font-family: var(--font-display); font-size: 13px; font-weight: 800; text-align: center; }
+.leaderboard-labels > span, .leaderboard-row > span, .leaderboard-row > strong, .leaderboard-player { display: flex; height: 100%; align-items: center; justify-content: center; line-height: 1.2; text-align: center; }
+.leaderboard-labels span:nth-child(2), .leaderboard-player { justify-content: flex-start; text-align: left; }
+.leaderboard-rank { color: var(--muted); font-family: var(--font-display); font-size: 13px; font-weight: 800; }
 .leaderboard-rank.rank-1 { color: var(--rank-gold); }
-.leaderboard-player { min-width: 0; align-self: center; }
-.leaderboard-player strong { display: block; overflow: hidden; font-size: 14px; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.leaderboard-player { min-width: 0; }
+.leaderboard-player strong { display: block; overflow: hidden; font-size: 15px; line-height: 1.2; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 .leaderboard-stat { color: var(--ink-soft); font-family: var(--font-display); font-size: 13px; font-variant-numeric: tabular-nums; text-align: center; }
 .leaderboard-pct { font-family: var(--font-display); font-size: 15px; font-variant-numeric: tabular-nums; text-align: center; }
 .weekly-standings { margin-top: var(--space-5); }
