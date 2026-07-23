@@ -4,6 +4,7 @@ import { getPickWeekOpenTime } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
 import { getProfileFromToken } from "@/lib/authServer";
 import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
+import { computeWeeklyStandings } from "@/lib/weeklyBank";
 
 async function getAuthedProfile(req: NextRequest) {
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
@@ -40,6 +41,17 @@ export async function GET(req: NextRequest) {
       .select("*, game:games(*), profile:profiles(*)")
       .eq("week", week);
     if (picksError) return NextResponse.json({ ok: false, error: picksError.message }, { status: 500 });
+
+    const { data: allLockedPicks, error: allLockedPicksError } = await supabase
+      .from("picks")
+      .select("user_id,week,pick_type,status,result,underdog_win_value")
+      .eq("status", "locked");
+    if (allLockedPicksError) return NextResponse.json({ ok: false, error: allLockedPicksError.message }, { status: 500 });
+    const standingsWeeks = Array.from(new Set(allGames.map((game) => Number(game.week))));
+    const weeklyStandingsByWeek = Object.fromEntries(standingsWeeks.map((standingWeek) => [
+      String(standingWeek),
+      computeWeeklyStandings(profiles || [], (allLockedPicks || []).filter((pick) => Number(pick.week) === standingWeek) as any)
+    ]));
 
     const visiblePicks = (picks || []).filter((pick: any) => {
       const game = pick.game;
@@ -94,6 +106,7 @@ export async function GET(req: NextRequest) {
       games,
       picks: visiblePicks,
       standings: standings || [],
+      weeklyStandingsByWeek,
       bankSettings: bankSettings || { id: 1, winner_amount: 20, loser_amount: 10 },
       bankEntries: bankEntries || [],
       sideBets,

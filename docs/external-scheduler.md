@@ -21,6 +21,8 @@ Create six jobs, Monday-Friday only:
 - 6:00 PM CT
 - 10:00 PM CT
 
+This is the automatic odds schedule. Each run refreshes both CFB and NFL. For Saturday-Monday games, the Friday 6:00 PM run is the final spread update and picks close at 7:00 PM. For Tuesday-Friday games, the app stops accepting spread changes 25 hours before kickoff and closes picks 24 hours before kickoff.
+
 Because many schedulers use UTC, during daylight saving time Central Time is UTC-5:
 
 - 2:00 AM CT = 07:00 UTC
@@ -39,4 +41,4 @@ If the scheduler supports America/Chicago time zones, use that instead.
 1. `/api/cron/odds` to refresh current spreads.
 2. `/api/cron/lock` to close any games whose deadline has passed and lock draft picks.
 
-No manual refresh button is included, so nobody can manipulate the line timing.
+The admin refresh button remains available as a fallback, but it cannot change a spread after that game's spread cutoff.

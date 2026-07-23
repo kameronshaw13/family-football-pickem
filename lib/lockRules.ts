@@ -1,4 +1,4 @@
-import { setDay, subHours } from "date-fns";
+import { addMinutes, setDay, subHours } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 
 export const APP_TIMEZONE = process.env.APP_TIMEZONE || "America/Chicago";
@@ -14,16 +14,47 @@ export function getGameLockTime(commenceTimeIso: string, timezone = APP_TIMEZONE
     return subHours(kickoffUtc, 24);
   }
 
-  // Saturday/Sunday/Monday games lock Friday at 5:00 PM CT before that football weekend.
+  // Saturday/Sunday/Monday games lock Friday at 7:00 PM CT before that football weekend.
   const fridayLocal = setDay(kickoffLocal, 5, { weekStartsOn: 1 });
   const lockLocal = new Date(fridayLocal);
-  lockLocal.setHours(17, 0, 0, 0);
+  lockLocal.setHours(19, 0, 0, 0);
 
   if (lockLocal.getTime() > kickoffLocal.getTime()) {
     lockLocal.setDate(lockLocal.getDate() - 7);
   }
 
   return fromZonedTime(lockLocal, timezone);
+}
+
+export function getSpreadFreezeTime(commenceTimeIso: string, timezone = APP_TIMEZONE): Date {
+  const kickoffUtc = new Date(commenceTimeIso);
+  const kickoffLocal = toZonedTime(kickoffUtc, timezone);
+  const day = kickoffLocal.getDay();
+
+  // Weekday lines stop changing at least one hour before picks close.
+  if ([2, 3, 4, 5].includes(day)) {
+    return subHours(kickoffUtc, 25);
+  }
+
+  // Weekend lines receive their final scheduled refresh Friday at 6:00 PM CT.
+  const fridayLocal = setDay(kickoffLocal, 5, { weekStartsOn: 1 });
+  const freezeLocal = new Date(fridayLocal);
+  freezeLocal.setHours(18, 0, 0, 0);
+
+  if (freezeLocal.getTime() > kickoffLocal.getTime()) {
+    freezeLocal.setDate(freezeLocal.getDate() - 7);
+  }
+
+  return fromZonedTime(freezeLocal, timezone);
+}
+
+export function canRefreshSpread(commenceTimeIso: string, now = new Date(), timezone = APP_TIMEZONE) {
+  const kickoffLocal = toZonedTime(new Date(commenceTimeIso), timezone);
+  const freezeTime = getSpreadFreezeTime(commenceTimeIso, timezone);
+  if ([2, 3, 4, 5].includes(kickoffLocal.getDay())) return now < freezeTime;
+
+  // Leave a short delivery window for the external 6:00 PM scheduler request.
+  return now <= addMinutes(freezeTime, 10);
 }
 
 export function getFootballWeek(dateIso: string, timezone = APP_TIMEZONE): number {

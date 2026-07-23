@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findEspnLogo, fetchEspnLogoMap } from "@/lib/espnLogos";
 import { getProfileFromRequest } from "@/lib/authServer";
-import { getFootballWeek, getGameLockTime } from "@/lib/lockRules";
+import { canRefreshSpread, getFootballWeek, getGameLockTime, getSpreadFreezeTime } from "@/lib/lockRules";
 import { isEligibleRegularSeasonGame } from "@/lib/seasonRules";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
@@ -54,7 +54,11 @@ async function refreshOdds() {
 
     const supabase = getSupabaseAdmin();
     const inserted: any[] = [];
-    const sportResults: Array<{ sport: string; eventsReturned: number; eventsImported: number }> = [];
+    const now = new Date();
+    const { data: knownGames, error: knownGamesError } = await supabase.from("games").select("id");
+    if (knownGamesError) return NextResponse.json({ ok: false, error: "Could not read existing games.", details: knownGamesError.message }, { status: 500 });
+    const knownGameIds = new Set((knownGames || []).map((game) => game.id));
+    const sportResults: Array<{ sport: string; eventsReturned: number; eventsImported: number; spreadsUpdated: number }> = [];
 
     for (const sport of SPORTS) {
       const logoMap = await fetchEspnLogoMap(sport.league);
@@ -78,12 +82,14 @@ async function refreshOdds() {
         home_team: event.home_team,
         away_team: event.away_team
       }));
-      sportResults.push({ sport: sport.key, eventsReturned: returned.length, eventsImported: data.length });
+      let spreadsUpdated = 0;
       for (const event of data) {
         const spread = pickSpread(event);
         const week = getFootballWeek(event.commence_time);
         const lockTime = getGameLockTime(event.commence_time).toISOString();
-        const game = {
+        const spreadFreezeTime = getSpreadFreezeTime(event.commence_time).toISOString();
+        const updateSpread = !knownGameIds.has(event.id) || canRefreshSpread(event.commence_time, now);
+        const gameBase = {
           id: event.id,
           week,
           league: sport.league,
@@ -92,27 +98,36 @@ async function refreshOdds() {
           away_team: event.away_team,
           home_logo_url: findEspnLogo(event.home_team, logoMap),
           away_logo_url: findEspnLogo(event.away_team, logoMap),
+          lock_time: lockTime,
+          is_locked: now >= new Date(lockTime),
+          updated_at: now.toISOString()
+        };
+        const game = updateSpread ? {
+          ...gameBase,
           current_spread_team: spread.team,
           current_spread: spread.spread,
-          current_bookmaker: spread.bookmaker,
-          lock_time: lockTime,
-          is_locked: new Date() >= new Date(lockTime),
-          updated_at: new Date().toISOString()
-        };
+          current_bookmaker: spread.bookmaker
+        } : gameBase;
 
-        const { error } = await supabase.from("games").upsert(game, { onConflict: "id" });
+        const { error } = updateSpread
+          ? await supabase.from("games").upsert(game, { onConflict: "id" })
+          : await supabase.from("games").update(gameBase).eq("id", event.id);
         if (error) return NextResponse.json({ ok: false, error: "Supabase upsert into games failed. Did you run supabase/schema.sql?", details: error.message }, { status: 500 });
 
-        await supabase.from("odds_snapshots").insert({
-          game_id: event.id,
-          league: sport.league,
-          spread_team: spread.team,
-          spread: spread.spread,
-          bookmaker: spread.bookmaker,
-          raw: event
-        });
-        inserted.push(game);
+        if (updateSpread) {
+          await supabase.from("odds_snapshots").insert({
+            game_id: event.id,
+            league: sport.league,
+            spread_team: spread.team,
+            spread: spread.spread,
+            bookmaker: spread.bookmaker,
+            raw: { ...event, spread_freeze_time: spreadFreezeTime }
+          });
+          spreadsUpdated++;
+          inserted.push(game);
+        }
       }
+      sportResults.push({ sport: sport.key, eventsReturned: returned.length, eventsImported: data.length, spreadsUpdated });
     }
 
     return NextResponse.json({ ok: true, gamesUpdated: inserted.length, creditsEstimated: SPORTS.length, sportResults });

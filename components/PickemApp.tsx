@@ -22,6 +22,7 @@ type AppData = {
   games: Game[];
   picks: Pick[];
   standings: Standing[];
+  weeklyStandingsByWeek: Record<string, Standing[]>;
   bankSettings: BankSettings;
   bankEntries: BankEntry[];
   sideBets: SideBet[];
@@ -180,6 +181,9 @@ function shortDt(iso: string | null) {
 function closeText(iso: string) {
   return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
 }
+function cardLockText(iso: string) {
+  return closeText(iso).replace(",", "");
+}
 function timeText(iso: string) {
   return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
 }
@@ -245,6 +249,7 @@ export default function PickemApp() {
   const [picksView, setPicksView] = useState<PicksView>("board");
   const [cardView, setCardView] = useState<CardView>("mine");
   const [standingsView, setStandingsView] = useState<StandingsView>("standings");
+  const [standingsWeek, setStandingsWeek] = useState<number | null>(null);
   const [betView, setBetView] = useState<BetView>("received");
   const [filter, setFilter] = useState<Filter>("CFB");
   const [data, setData] = useState<AppData | null>(null);
@@ -298,6 +303,7 @@ export default function PickemApp() {
   }
 
   useEffect(() => { load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { if (week != null) setStandingsWeek(week); }, [week]);
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 30_000);
     return () => window.clearInterval(timer);
@@ -400,7 +406,9 @@ export default function PickemApp() {
   const myUnderdog = cardPicks.find((p) => p.pick_type === "underdog");
   const regularCounts = countRegularByLeague(cardPicks, games);
   const seasonStandings = completeSeasonStandings(profiles, standings);
-  const weeklyStandings = computeWeeklyStandings(profiles, picks);
+  const selectedStandingsWeek = standingsWeek ?? data.week;
+  const weeklyStandings = data.weeklyStandingsByWeek?.[String(selectedStandingsWeek)] || (selectedStandingsWeek === data.week ? computeWeeklyStandings(profiles, picks) : computeWeeklyStandings(profiles, []));
+  const standingsWeeks = availableWeeks.filter((availableWeek) => availableWeek <= data.week).sort((a, b) => b - a);
   const weekSettlements = bankEntries.filter((entry) => entry.week === data.week);
   const weekSettled = weekSettlements.length === profiles.length && profiles.length > 0;
   const weekIsOpen = !data.weekOpenTime || new Date(data.weekOpenTime) <= new Date();
@@ -610,7 +618,10 @@ export default function PickemApp() {
         {standingsView === "standings" && <>
           <div className="section-title standings-title"><Trophy size={19} /><div><h2>Season standings</h2></div></div>
           <Leaderboard rows={seasonStandings} />
-          <div className="subsection weekly-standings"><h3>Week {data.week} standings</h3><Leaderboard rows={weeklyStandings} /></div>
+          <div className="subsection weekly-standings">
+            <div className="weekly-standings-head"><h3>Weekly standings</h3><label><span>Week</span><select aria-label="Select standings week" value={selectedStandingsWeek} onChange={(event) => setStandingsWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select><ChevronDown size={14} /></label></div>
+            <Leaderboard rows={weeklyStandings} />
+          </div>
         </>}
         {standingsView === "bank" && <>
           <div className="section-title"><Landmark size={19} /><div><h2>Bank</h2></div></div>
@@ -635,7 +646,7 @@ export default function PickemApp() {
           <RuleItem icon={Trophy} title="Standings">The season winner receives $300. Winner is based on win percentage, then total wins.</RuleItem>
           <RuleItem icon={CircleDollarSign} title="Weekly bank">Last pays $20 and second pays $10 to first. Tied last pays $15 each; tied first splits $20; a three-way tie pays $0.</RuleItem>
           <RuleItem icon={Trophy} title="Perfect week">The perfect-week multiplier is only eligible during five-game weeks. A perfect card doubles all weekly payments.</RuleItem>
-          <RuleItem icon={Lock} title="Pick locks">Saved picks stay editable. Tue-Fri games lock 24 hours before kickoff; Sat-Mon games lock Friday at 5 PM CT.</RuleItem>
+          <RuleItem icon={Lock} title="Pick locks">Weekday lines freeze 25 hours before kickoff and picks lock 24 hours before. Sat-Mon lines update for the final time Friday at 6 PM CT and picks lock Friday at 7 PM CT.</RuleItem>
           <RuleItem icon={Send} title="Side bets">Spread only. Offers must be accepted before kickoff and settle directly into the bank.</RuleItem>
         </div>
         {currentUser.is_admin && <div className="admin-action"><button className="btn secondary" disabled={refreshingOdds} onClick={refreshOdds}><RefreshCw size={15} /> {refreshingOdds ? "Refreshing odds…" : "Refresh odds now"}</button></div>}
@@ -891,8 +902,11 @@ function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts:
   const ok = counts.total === rule.regularTotal && counts.cfb >= rule.cfbMinimum && counts.nfl >= rule.nflMinimum && hasDog;
   const completeSlots = Math.min(counts.total + Number(hasDog), rule.regularTotal + 1);
   const progress = completeSlots / (rule.regularTotal + 1) * 100;
+  const countText = rule.phase === "opening" || rule.phase === "college"
+    ? `${counts.cfb}/${rule.regularTotal} CFB spreads · dog ${hasDog ? "set" : "open"}`
+    : `${counts.total}/${rule.regularTotal} spreads · ${counts.cfb} CFB · ${counts.nfl} NFL · dog ${hasDog ? "set" : "open"}`;
   return <div className={`card-progress ${ok ? "complete" : ""} ${dirty ? "dirty" : ""}`}>
-    <div className="card-progress-copy"><strong>{ok ? "Card complete" : "Build your card"}</strong><span>{counts.total}/{rule.regularTotal} spreads · {counts.cfb} CFB · {counts.nfl} NFL · dog {hasDog ? "set" : "open"}</span></div>
+    <div className="card-progress-copy"><strong>{ok ? "Card complete" : "Build your card"}</strong><span>{countText}</span></div>
     <div className="progress-track" aria-hidden="true"><span style={{ width: `${progress}%` }} /></div>
   </div>;
 }
@@ -901,8 +915,11 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
   return <div className="pick-section"><h3>{title}</h3>{!picks.length && <p className="muted">None yet.</p>}{picks.map((pick) => {
     const game = games.find((g) => g.id === pick.game_id) || pick.game;
     const final = pick.status === "locked" || Boolean(game && isClosed(game));
+    const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
+    const matchupText = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable";
+    const lockStatus = !game ? "lock time unavailable" : pick.status === "locked" ? `locked ${cardLockText(game.lock_time)}` : final ? "closed" : `locks ${cardLockText(game.lock_time)}`;
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : ""}</p><p className="pick-meta">{pick.status === "locked" ? `Locked ${shortDt(pick.locked_at)} at ${spreadText(pick.locked_spread)}` : final ? "Final · lock time reached" : `${game ? spreadForTeam(game, pick.selected_team) : "Line unavailable"} · locks ${game ? closeText(game.lock_time) : "later"}`}</p></div><div className="pick-row-actions"><span className={`badge ${final ? "locked" : "open"}`}>{final ? "final" : "editable"}</span>{!final && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{matchupText} · {lockStatus}</p></div><div className="pick-row-actions"><span className={`badge ${final ? "locked" : "open"}`}>{final ? "final" : "editable"}</span>{!final && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
