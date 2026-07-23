@@ -251,14 +251,14 @@ fieldset .field-label { padding: 0; }
 .leaderboard-labels span { text-align: center; }
 .leaderboard-labels span:nth-child(2) { text-align: left; }
 .leaderboard-row { min-height: 58px; padding: 8px 11px; border-top: 1px solid var(--line); }
-.leaderboard-rank { display: flex; height: 100%; align-items: center; justify-content: center; color: var(--muted); font-family: var(--font-display); font-size: 14px; font-weight: 850; line-height: 1; text-align: center; }
+.leaderboard-rank { display: block; align-self: center; color: var(--muted); font-family: var(--font-display); font-size: 13px; font-weight: 850; text-align: center; }
 .leaderboard-rank.rank-1 { color: var(--rank-gold); }
-.leaderboard-player { display: flex; min-width: 0; height: 100%; align-items: center; }
-.leaderboard-player strong { display: block; overflow: hidden; font-size: 14px; line-height: 1; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
-.leaderboard-stat { display: flex; height: 100%; align-items: center; justify-content: center; color: var(--ink-soft); font-family: var(--font-display); font-size: 14px; font-variant-numeric: tabular-nums; line-height: 1; text-align: center; }
-.leaderboard-pct { display: flex; height: 100%; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 15px; font-variant-numeric: tabular-nums; line-height: 1; text-align: center; }
+.leaderboard-player { min-width: 0; align-self: center; }
+.leaderboard-player strong { display: block; overflow: hidden; font-size: 14px; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.leaderboard-stat { color: var(--ink-soft); font-family: var(--font-display); font-size: 13px; font-variant-numeric: tabular-nums; text-align: center; }
+.leaderboard-pct { font-family: var(--font-display); font-size: 15px; font-variant-numeric: tabular-nums; text-align: center; }
 .weekly-standings-head { display: flex; min-height: 38px; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.weekly-standings-head h3 { margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 15px; font-weight: 850; text-transform: none; }
+.weekly-standings-head h3 { margin: 0; }
 .weekly-standings-head label { position: relative; display: flex; align-items: center; border-bottom: 2px solid var(--line-strong); color: var(--muted); }
 .weekly-standings-head select { appearance: none; min-width: 76px; padding: 6px 22px 6px 7px; border: 0; color: var(--ink); background: transparent; font-family: var(--font-display); font-size: 12px; font-weight: 850; outline: 0; }
 .weekly-standings-head svg { position: absolute; right: 2px; pointer-events: none; }
