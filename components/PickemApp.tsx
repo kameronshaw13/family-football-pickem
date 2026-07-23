@@ -181,6 +181,16 @@ function shortDt(iso: string | null) {
 function closeText(iso: string) {
   return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
 }
+function openText(iso: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/Chicago"
+  }).format(new Date(iso));
+}
 function cardLockText(iso: string) {
   return closeText(iso).replace(",", "");
 }
@@ -198,9 +208,8 @@ function gameDayShort(iso: string) {
 }
 function lockText(iso: string) {
   const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
-  const date = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
   const labels: Record<string, string> = { TUESDAY: "TUES", WEDNESDAY: "WEDS", THURSDAY: "THURS" };
-  return `${labels[weekday] || weekday.slice(0, 3)} ${date} · ${timeText(iso)}`;
+  return `${labels[weekday] || weekday.slice(0, 3)} ${timeText(iso)}`;
 }
 function spreadForTeam(game: Game, team: string) {
   return spreadText(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
@@ -549,7 +558,7 @@ export default function PickemApp() {
       {message && <div className="error-card">{message}</div>}
 
       {tab === "picks" && <section className="panel picks-panel">
-        {!weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens for picks on {closeText(data.weekOpenTime)} CT.</div>}
+        {!weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens for picks on {openText(data.weekOpenTime)} CT.</div>}
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: `Side Bets${pendingOfferCount ? ` (${pendingOfferCount})` : ""}` }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
           <div className="view-select-row"><div className="compact-select"><select aria-label="Choose pick board category" value={filter} onChange={(event) => setFilter(event.target.value as Filter)}>{(["CFB", "NFL", "DOGS", "PAST"] as Filter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div></div>

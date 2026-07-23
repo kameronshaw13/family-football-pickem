@@ -57,14 +57,7 @@ async function refreshOdds() {
     const { data: knownGames, error: knownGamesError } = await supabase.from("games").select("id");
     if (knownGamesError) return NextResponse.json({ ok: false, error: "Could not read existing games.", details: knownGamesError.message }, { status: 500 });
     const knownGameIds = new Set((knownGames || []).map((game) => game.id));
-    const sportResults: Array<{
-      sport: string;
-      eventsReturned: number;
-      scheduleEventsReturned: number;
-      scheduleFeedAvailable: boolean;
-      eventsImported: number;
-      spreadsUpdated: number;
-    }> = [];
+    const sportResults: Array<{ sport: string; eventsReturned: number; eventsImported: number; spreadsUpdated: number }> = [];
 
     for (const sport of SPORTS) {
       const logoMap = await fetchEspnLogoMap(sport.league);
@@ -75,26 +68,14 @@ async function refreshOdds() {
       oddsUrl.searchParams.set("oddsFormat", "american");
       oddsUrl.searchParams.set("dateFormat", "iso");
 
-      const scheduleUrl = new URL(`https://api.the-odds-api.com/v4/sports/${sport.key}/events`);
-      scheduleUrl.searchParams.set("apiKey", process.env.ODDS_API_KEY);
-      scheduleUrl.searchParams.set("dateFormat", "iso");
-
-      const [oddsResponse, scheduleResponse] = await Promise.all([
-        fetch(oddsUrl.toString(), { cache: "no-store" }),
-        fetch(scheduleUrl.toString(), { cache: "no-store" })
-      ]);
+      const oddsResponse = await fetch(oddsUrl.toString(), { cache: "no-store" });
       if (!oddsResponse.ok) {
         const text = await oddsResponse.text();
         return NextResponse.json({ ok: false, error: `Odds API failed for ${sport.key}`, details: text }, { status: 502 });
       }
 
       const returned = (await oddsResponse.json()) as OddsEvent[];
-      const scheduleReturned = scheduleResponse.ok ? (await scheduleResponse.json()) as OddsEvent[] : [];
-      const mergedEvents = new Map<string, OddsEvent>();
-      scheduleReturned.forEach((event) => mergedEvents.set(event.id, event));
-      returned.forEach((event) => mergedEvents.set(event.id, { ...mergedEvents.get(event.id), ...event }));
-
-      const data = Array.from(mergedEvents.values()).filter((event) => isEligibleRegularSeasonGame({
+      const data = returned.filter((event) => isEligibleRegularSeasonGame({
         league: sport.league,
         commence_time: event.commence_time,
         home_team: event.home_team,
@@ -103,12 +84,12 @@ async function refreshOdds() {
       let spreadsUpdated = 0;
       for (const event of data) {
         const spread = pickSpread(event);
+        if (spread.team == null || spread.spread == null) continue;
         const week = getFootballWeek(event.commence_time);
         const lockTime = getGameLockTime(event.commence_time).toISOString();
         const spreadFreezeTime = getSpreadFreezeTime(event.commence_time).toISOString();
         const isKnownGame = knownGameIds.has(event.id);
-        const hasSpread = spread.team != null && spread.spread != null;
-        const updateSpread = hasSpread && (!isKnownGame || canRefreshSpread(event.commence_time, now));
+        const updateSpread = !isKnownGame || canRefreshSpread(event.commence_time, now);
         const gameBase = {
           id: event.id,
           week,
@@ -148,14 +129,7 @@ async function refreshOdds() {
           inserted.push(game);
         }
       }
-      sportResults.push({
-        sport: sport.key,
-        eventsReturned: returned.length,
-        scheduleEventsReturned: scheduleReturned.length,
-        scheduleFeedAvailable: scheduleResponse.ok,
-        eventsImported: data.length,
-        spreadsUpdated
-      });
+      sportResults.push({ sport: sport.key, eventsReturned: returned.length, eventsImported: data.length, spreadsUpdated });
     }
 
     return NextResponse.json({ ok: true, gamesUpdated: inserted.length, creditsEstimated: SPORTS.length, sportResults });

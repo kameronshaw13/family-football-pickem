@@ -42,7 +42,12 @@ export async function POST(req: NextRequest) {
       const lockTime = getGameLockTime(game.commence_time).toISOString();
       return { ...game, lock_time: lockTime, is_locked: now >= new Date(lockTime) };
     };
-    const weekGames = (rawWeekGames || []).filter((game) => isEligibleRegularSeasonGame(game) && !hasChargers(game)).map(normalizeGameLock);
+    const weekGames = (rawWeekGames || []).filter((game) =>
+      isEligibleRegularSeasonGame(game) &&
+      !hasChargers(game) &&
+      game.current_spread_team != null &&
+      game.current_spread != null
+    ).map(normalizeGameLock);
     const gameMap = new Map(weekGames.map((game) => [game.id, game]));
 
     const weekOpen = getPickWeekOpenTime(body.week, weekGames.map((game) => game.commence_time));

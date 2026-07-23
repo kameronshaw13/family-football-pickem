@@ -26,10 +26,28 @@ export async function GET(req: NextRequest) {
     const { data: rawGames, error: gameError } = await supabase.from("games").select("*").order("commence_time", { ascending: true });
     if (gameError) return NextResponse.json({ ok: false, error: gameError.message }, { status: 500 });
     const requestTime = new Date();
-    const allGames = (rawGames || []).filter((game) => isEligibleRegularSeasonGame(game) && !hasChargers(game)).map((game) => {
+    const eligibleGames = (rawGames || []).filter((game) =>
+      isEligibleRegularSeasonGame(game) &&
+      !hasChargers(game) &&
+      game.current_spread_team != null &&
+      game.current_spread != null
+    ).map((game) => {
       const lockTime = getGameLockTime(game.commence_time).toISOString();
       return { ...game, lock_time: lockTime, is_locked: requestTime >= new Date(lockTime) };
     });
+    const uniqueGames = new Map<string, any>();
+    for (const game of eligibleGames) {
+      const matchupKey = [game.league, game.week, game.away_team, game.home_team]
+        .map((value) => String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, " "))
+        .join(":");
+      const existing = uniqueGames.get(matchupKey);
+      if (!existing || new Date(game.updated_at || 0) > new Date(existing.updated_at || 0)) {
+        uniqueGames.set(matchupKey, game);
+      }
+    }
+    const allGames = Array.from(uniqueGames.values()).sort((a, b) =>
+      new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime()
+    );
     const gameById = new Map(allGames.map((game) => [game.id, game]));
 
     const openGames = allGames.filter((g) => new Date(g.commence_time).getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000);
