@@ -231,6 +231,9 @@ fieldset .field-label { padding: 0; }
 .status-mark.settled { color: #fff; background: var(--graphite-light); }
 .status-mark.declined, .status-mark.cancelled, .status-mark.expired { color: var(--red); background: var(--red-soft); }
 .offer-statement { margin-top: 10px; font-size: 14px; font-weight: 800; line-height: 1.4; }
+.sent-offer-statement { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.sent-offer-statement span { min-width: 0; }
+.sent-offer-statement strong { flex: 0 0 auto; font-family: var(--font-display); font-size: 18px; white-space: nowrap; }
 .bet-line-summary { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.4; }
 .bet-line-summary span:last-child { text-align: right; }
 .bet-result { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 12px; font-weight: 800; }
