@@ -1,5 +1,5 @@
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
-import { optimizeEspnLogoUrl } from "@/lib/espnLogos";
+import { normalizeEspnLogoUrl } from "@/lib/espnLogos";
 
 type EspnTeam = {
   displayName: string;
@@ -74,7 +74,7 @@ function teamFromCompetitor(competitor: any): EspnTeam {
     location: team.location || team.shortDisplayName || "",
     nickname: team.name || "",
     abbreviation: team.abbreviation || "",
-    logoUrl: optimizeEspnLogoUrl(team.logo || team.logos?.[0]?.href)
+    logoUrl: normalizeEspnLogoUrl(team.logo || team.logos?.[0]?.href)
   };
 }
 

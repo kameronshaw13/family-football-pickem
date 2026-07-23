@@ -31,8 +31,8 @@ const MANUAL_CFB_LOGOS = new Map<string, string>([
   ["sam houston state bearcats", "https://a.espncdn.com/i/teamlogos/ncaa/500/2534.png"]
 ]);
 
-export function optimizeEspnLogoUrl(url: string | null | undefined) {
-  return url?.replace(/\/(?:300|500)\//, "/100/") || null;
+export function normalizeEspnLogoUrl(url: string | null | undefined) {
+  return url?.replace(/\/(?:100|300)\//, "/500/") || null;
 }
 
 function normalize(value: string | null | undefined) {
@@ -58,7 +58,7 @@ function tokens(value: string) {
 function logoFromTeam(team: any) {
   const logos = team?.logos || [];
   const preferred = logos.find((logo: any) => typeof logo?.href === "string" && (!logo.rel || logo.rel.includes("default"))) || logos[0];
-  return optimizeEspnLogoUrl(preferred?.href);
+  return normalizeEspnLogoUrl(preferred?.href);
 }
 
 function uniq(values: Array<string | null | undefined>) {
@@ -164,10 +164,10 @@ export function findEspnLogo(teamName: string, logoMap: Map<string, string>) {
   if (!key) return null;
 
   const manual = MANUAL_CFB_LOGOS.get(key);
-  if (manual) return optimizeEspnLogoUrl(manual);
-  if (logoMap.has(key)) return optimizeEspnLogoUrl(logoMap.get(key));
+  if (manual) return normalizeEspnLogoUrl(manual);
+  if (logoMap.has(key)) return normalizeEspnLogoUrl(logoMap.get(key));
   const exactNickname = logoMap.get(`exact:${key}`);
-  if (exactNickname) return optimizeEspnLogoUrl(exactNickname);
+  if (exactNickname) return normalizeEspnLogoUrl(exactNickname);
 
   const recordsRaw = logoMap.get("__records__");
   if (!recordsRaw) return null;
@@ -188,5 +188,5 @@ export function findEspnLogo(teamName: string, logoMap: Map<string, string>) {
   }
 
   // Require a strong match. Better to show no logo than the wrong logo.
-  return best.score >= 70 ? optimizeEspnLogoUrl(best.logo) : null;
+  return best.score >= 70 ? normalizeEspnLogoUrl(best.logo) : null;
 }

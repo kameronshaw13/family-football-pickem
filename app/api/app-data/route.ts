@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
-import { findEspnLogo, optimizeEspnLogoUrl } from "@/lib/espnLogos";
+import { findEspnLogo, normalizeEspnLogoUrl } from "@/lib/espnLogos";
 import { fetchEspnSchedule, findEspnScheduleMatch, resolveEspnCommenceTime } from "@/lib/espnSchedule";
 import { getFootballWeek, getGameLockTime, getPickWeekOpenTime } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
@@ -84,8 +84,8 @@ export async function GET(req: NextRequest) {
       const lockTime = getGameLockTime(game.commence_time).toISOString();
       return {
         ...game,
-        home_logo_url: optimizeEspnLogoUrl(game.home_logo_url),
-        away_logo_url: optimizeEspnLogoUrl(game.away_logo_url),
+        home_logo_url: normalizeEspnLogoUrl(game.home_logo_url),
+        away_logo_url: normalizeEspnLogoUrl(game.away_logo_url),
         lock_time: lockTime,
         is_locked: requestTime >= new Date(lockTime)
       };
