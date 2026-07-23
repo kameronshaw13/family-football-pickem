@@ -637,14 +637,14 @@ export default function PickemApp() {
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
-          <RuleItem icon={WalletCards} title="Weekly card"><span>Week 1: 3 CFB + dog.</span><span>Week 2: 5 CFB + dog.</span><span>Mixed weeks: 5 picks with at least 1 CFB and 1 NFL + dog.</span><span>After CFB: 2 NFL + dog.</span></RuleItem>
-          <RuleItem icon={Shield} title="Eligible games">Regular season only. Bowls, CFP, NFL playoffs, and every Chargers game are excluded.</RuleItem>
-          <RuleItem icon={Zap} title="Underdog">+7 to +9.5 = +1W, +10 to +19.5 = +2W, and +20 or more = +3W. The dog must win outright.</RuleItem>
-          <RuleItem icon={Trophy} title="Standings">Season and weekly standings are ranked by win percentage, then total wins. The season winner receives $300.</RuleItem>
-          <RuleItem icon={CircleDollarSign} title="Weekly bank">Last pays $20 and second pays $10 to first. Tied last pays $15 each; tied first splits $20; a three-way tie pays $0.</RuleItem>
-          <RuleItem icon={Trophy} title="Perfect week">The perfect-week multiplier is only eligible during five-game weeks. A perfect card doubles all weekly payments.</RuleItem>
-          <RuleItem icon={Lock} title="Pick locks">Weekday lines freeze 25 hours before kickoff and picks lock 24 hours before. Sat-Mon lines update for the final time Friday at 6 PM CT and picks lock Friday at 7 PM CT.</RuleItem>
-          <RuleItem icon={Send} title="Side bets">Spread only. Offers must be accepted before kickoff and settle directly into the bank.</RuleItem>
+          <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Mixed weeks: 5 picks with at least 1 CFB and 1 NFL + dog.</li><li>After CFB: 2 NFL picks + dog.</li></ul></RuleItem>
+          <RuleItem icon={Shield} title="Eligible games"><ul><li>Regular-season games only.</li><li>Bowls, CFP, and NFL playoffs are excluded.</li><li>Every Chargers game is excluded.</li></ul></RuleItem>
+          <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5 = +1W.</li><li>+10 to +19.5 = +2W.</li><li>+20 or more = +3W.</li><li>The dog must win outright.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season winner receives $300.</li></ul></RuleItem>
+          <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each.</li><li>Tied first splits $20.</li><li>A three-way tie pays $0.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Perfect week"><ul><li>Available only during five-game weeks.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
+          <RuleItem icon={Lock} title="Pick locks"><ul><li>Weekday lines freeze 25 hours before kickoff.</li><li>Weekday picks lock 24 hours before kickoff.</li><li>Sat-Mon lines update for the final time Friday at 6 PM CT.</li><li>Sat-Mon picks lock Friday at 7 PM CT.</li></ul></RuleItem>
+          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>Offers must be accepted before kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
         </div>
       </section>}
     </main>

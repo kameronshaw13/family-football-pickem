@@ -263,9 +263,9 @@ fieldset .field-label { padding: 0; }
 .leaderboard-stat { color: var(--ink-soft); font-family: var(--font-display); font-size: 13px; font-variant-numeric: tabular-nums; text-align: center; }
 .leaderboard-pct { font-family: var(--font-display); font-size: 15px; font-variant-numeric: tabular-nums; text-align: center; }
 .weekly-standings { margin-top: var(--space-5); }
-.weekly-standings-head { display: grid; min-height: 0; justify-items: center; gap: var(--space-2); margin-bottom: var(--space-3); text-align: center; }
-.weekly-standings-head h3 { margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 800; text-transform: none; }
-.weekly-standings-head label { position: relative; display: flex; align-items: center; border-bottom: 2px solid var(--line-strong); color: var(--muted); }
+.weekly-standings-head { display: grid; min-height: 38px; grid-template-columns: 92px minmax(0, 1fr) 92px; align-items: center; margin-bottom: var(--space-3); text-align: center; }
+.weekly-standings-head h3 { grid-column: 2; margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 800; text-transform: none; white-space: nowrap; }
+.weekly-standings-head label { position: relative; display: flex; grid-column: 3; align-items: center; justify-self: end; border-bottom: 2px solid var(--line-strong); color: var(--muted); }
 .weekly-standings-head select { appearance: none; min-width: 92px; padding: 6px 22px 6px 7px; border: 0; color: var(--ink); background: transparent; font-family: var(--font-display); font-size: 12px; font-weight: 800; outline: 0; text-align: center; }
 .weekly-standings-head svg { position: absolute; right: 2px; pointer-events: none; }
 .bank-summary-grid { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
@@ -288,13 +288,14 @@ fieldset .field-label { padding: 0; }
 .rule-item { border-bottom: 1px solid var(--line-strong); }
 .rule-item summary { display: grid; grid-template-columns: 34px minmax(0, 1fr) 22px; min-height: 55px; align-items: center; gap: 9px; padding: 6px 0; list-style: none; cursor: pointer; }
 .rule-item summary::-webkit-details-marker { display: none; }
-.rule-icon { display: grid; width: 30px; height: 30px; place-items: center; color: var(--blue-dark); }
-.rule-item summary strong { font-family: var(--font-display); font-size: 14px; }
-.rule-chevron { color: var(--muted); transition: transform .18s ease; }
+.rule-icon { display: grid; width: 30px; height: 30px; align-self: center; place-items: center; color: var(--blue-dark); }
+.rule-item summary strong { display: flex; min-height: 30px; align-items: center; font-family: var(--font-display); font-size: 14px; line-height: 1.2; }
+.rule-chevron { align-self: center; color: var(--muted); transition: transform .18s ease; }
 .rule-item[open] .rule-chevron { transform: rotate(180deg); }
 .rule-item summary { padding-inline: var(--page-gutter); }
-.rule-copy { padding: 0 calc(var(--page-gutter) + 31px) 14px calc(var(--page-gutter) + 43px); color: var(--ink-soft); font-size: 13px; font-weight: 600; line-height: 1.55; text-wrap: pretty; }
-.rule-copy span { display: block; }
+.rule-copy { padding: 0 calc(var(--page-gutter) + 31px) 14px calc(var(--page-gutter) + 43px); color: var(--ink-soft); font-size: 13px; font-weight: 600; line-height: 1.5; text-wrap: pretty; }
+.rule-copy ul { display: grid; gap: 5px; margin: 0; padding-left: 18px; }
+.rule-copy li { padding-left: 2px; }
 .small, .muted { color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
 .empty-state, .loading-card, .error-card, .notice-card { margin-bottom: 10px; padding: 14px; border-left: 3px solid var(--line-strong); color: var(--muted); background: var(--saved); font-size: 13px; font-weight: 700; }
 .error-card { border-left-color: var(--red); }
@@ -360,4 +361,10 @@ fieldset .field-label { padding: 0; }
   .kick { max-width: 70%; }
   .leaderboard-labels, .leaderboard-row { grid-template-columns: 42px minmax(82px, 1fr) repeat(3, 28px) 58px; }
   .floating-review, .sticky-card-save { right: 9px; left: 9px; }
+}
+
+@media (max-width: 360px) {
+  .weekly-standings-head { grid-template-columns: 76px minmax(0, 1fr) 76px; }
+  .weekly-standings-head h3 { font-size: 14px; }
+  .weekly-standings-head select { min-width: 76px; font-size: 11px; }
 }
