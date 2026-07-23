@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, RotateCcw, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
-import { computeWeeklyStandings } from "@/lib/weeklyBank";
+import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
 import { hasChargers, isChargersTeam } from "@/lib/seasonRules";
 
 type Tab = "picks" | "card" | "standings" | "rules";
@@ -15,6 +15,15 @@ type StandingsView = "standings" | "bank";
 type BetView = "new" | "received" | "sent";
 type Filter = "CFB" | "NFL" | "DOGS" | "PAST";
 type Toast = { message: string; tone: "success" | "error" | "info" } | null;
+type TestPickRow = {
+  id: string;
+  team: string;
+  spread: number;
+  matchup: string;
+  finalScore: string;
+  result: "win" | "loss" | "push";
+  dogValue?: number;
+};
 
 type AppData = {
   currentUser: Profile;
@@ -254,6 +263,54 @@ function completeSeasonStandings(profiles: Profile[], rows: Standing[]) {
   );
 }
 
+function buildTestWeekCards(profiles: Profile[]) {
+  const cards: TestPickRow[][] = [
+    [
+      { id: "iowa-rutgers", team: "Iowa", spread: -7.5, matchup: "Iowa vs Rutgers", finalScore: "27-17", result: "win" },
+      { id: "unc-tcu", team: "North Carolina", spread: 6.5, matchup: "North Carolina at TCU", finalScore: "24-27", result: "win" },
+      { id: "chiefs-cowboys", team: "Chiefs", spread: -3, matchup: "Cowboys at Chiefs", finalScore: "30-24", result: "win" },
+      { id: "osu-texas", team: "Ohio State", spread: -10.5, matchup: "Texas at Ohio State", finalScore: "31-17", result: "win" },
+      { id: "seahawks-patriots", team: "Patriots", spread: -2.5, matchup: "Seahawks at Patriots", finalScore: "23-20", result: "win" },
+      { id: "stanford-usc", team: "Stanford", spread: 10.5, matchup: "Stanford at USC", finalScore: "24-21", result: "win", dogValue: 2 }
+    ],
+    [
+      { id: "iowa-rutgers", team: "Iowa", spread: -7.5, matchup: "Iowa vs Rutgers", finalScore: "27-17", result: "win" },
+      { id: "unc-tcu", team: "North Carolina", spread: 6.5, matchup: "North Carolina at TCU", finalScore: "24-27", result: "win" },
+      { id: "chiefs-cowboys", team: "Chiefs", spread: -3, matchup: "Cowboys at Chiefs", finalScore: "30-24", result: "win" },
+      { id: "osu-texas", team: "Ohio State", spread: -10.5, matchup: "Texas at Ohio State", finalScore: "31-17", result: "win" },
+      { id: "seahawks-patriots", team: "Patriots", spread: -2.5, matchup: "Seahawks at Patriots", finalScore: "23-20", result: "win" },
+      { id: "iowa-rutgers-dog", team: "Rutgers", spread: 7.5, matchup: "Rutgers at Iowa", finalScore: "17-27", result: "loss", dogValue: 1 }
+    ],
+    [
+      { id: "iowa-rutgers", team: "Iowa", spread: -7.5, matchup: "Iowa vs Rutgers", finalScore: "27-17", result: "win" },
+      { id: "unc-tcu", team: "TCU", spread: -6.5, matchup: "North Carolina at TCU", finalScore: "27-24", result: "loss" },
+      { id: "chiefs-cowboys", team: "Cowboys", spread: 3, matchup: "Cowboys at Chiefs", finalScore: "24-30", result: "loss" },
+      { id: "osu-texas", team: "Ohio State", spread: -10.5, matchup: "Texas at Ohio State", finalScore: "31-17", result: "win" },
+      { id: "seahawks-patriots", team: "Seahawks", spread: 3, matchup: "Seahawks at Patriots", finalScore: "20-23", result: "push" },
+      { id: "iowa-rutgers-dog", team: "Rutgers", spread: 7.5, matchup: "Rutgers at Iowa", finalScore: "17-27", result: "loss", dogValue: 1 }
+    ]
+  ];
+
+  return profiles.slice(0, 3).map((profile, profileIndex) => {
+    const rows = cards[profileIndex] || [];
+    const picks = rows.map((row, pickIndex): Pick => ({
+      id: `test-${profile.id}-${pickIndex}`,
+      user_id: profile.id,
+      game_id: `test-${row.id}-${profileIndex}`,
+      week: 3,
+      selected_team: row.team,
+      pick_type: row.dogValue ? "underdog" : "regular",
+      status: "locked",
+      locked_spread: row.spread,
+      locked_spread_team: row.team,
+      locked_at: "2026-09-11T00:00:00.000Z",
+      underdog_win_value: row.dogValue || null,
+      result: row.result
+    }));
+    return { profile, rows, picks };
+  });
+}
+
 export default function PickemApp() {
   const [tab, setTab] = useState<Tab>("picks");
   const [picksView, setPicksView] = useState<PicksView>("board");
@@ -278,6 +335,8 @@ export default function PickemApp() {
   const [betRecipients, setBetRecipients] = useState<string[]>([]);
   const [toast, setToast] = useState<Toast>(null);
   const [pastDayState, setPastDayState] = useState<Record<string, boolean>>({});
+  const [testWeekOpen, setTestWeekOpen] = useState(false);
+  const [testWeekSettled, setTestWeekSettled] = useState(false);
 
   async function load(nextWeek = week) {
     const isInitialLoad = data === null;
@@ -630,6 +689,8 @@ export default function PickemApp() {
             <div className="bank-section-heading"><h3>This week</h3></div>
             <div className="weekly-bank-status"><div><strong>{weekSettled ? "Week settled" : "Awaiting final results"}</strong><p>{rule.perfectBonus ? "Normal pool $30 · perfect winner $60" : "Standard pool · $30"}</p></div>{currentUser.is_admin && <button className="btn accent" disabled={savingBank} onClick={() => postBank({ action: "settleWeek", week: data.week })}>{savingBank ? "Working…" : weekSettled ? "Re-settle" : "Settle week"}</button>}</div>
           </div>
+          {currentUser.is_admin && !testWeekOpen && <button className="test-week-launch" onClick={() => { setTestWeekOpen(true); setTestWeekSettled(false); }}><FlaskConical size={18} /><span><strong>Open test week</strong><small>Preview final cards and settlement</small></span><ChevronRight size={17} /></button>}
+          {currentUser.is_admin && testWeekOpen && <TestWeekPreview profiles={profiles} settled={testWeekSettled} onSettle={() => setTestWeekSettled(true)} onReset={() => setTestWeekSettled(false)} onClose={() => setTestWeekOpen(false)} />}
           <div className="subsection bank-section"><div className="bank-section-heading"><h3>Weekly ledger</h3></div><div className="ledger-list">{bankEntries.length === 0 && <p className="muted">No weekly entries yet.</p>}{bankEntries.map((entry) => <div key={entry.id} className="ledger-row"><div><strong>Week {entry.week} · {entry.profile?.display_name || profiles.find((p) => p.id === entry.user_id)?.display_name || "User"}</strong><p>{entry.note || "Bank entry"}</p></div><strong className={Number(entry.amount) > 0 ? "money-pos" : Number(entry.amount) < 0 ? "money-neg" : ""}>{money(Number(entry.amount))}</strong></div>)}</div></div>
           <div className="subsection bank-section"><div className="bank-section-heading"><h3>Side bet ledger</h3></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
         </>}
@@ -640,7 +701,7 @@ export default function PickemApp() {
         <div className="rules-list">
           <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Mixed weeks: 5 picks with at least 1 CFB and 1 NFL + dog.</li><li>After CFB: 2 NFL picks + dog.</li></ul></RuleItem>
           <RuleItem icon={Shield} title="Eligible games"><ul><li>Regular-season games only.</li><li>Bowls, CFP, and NFL playoffs are excluded.</li><li>Every Chargers game is excluded.</li></ul></RuleItem>
-          <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5 = +1W.</li><li>+10 to +19.5 = +2W.</li><li>+20 or more = +3W.</li><li>The dog must win outright.</li></ul></RuleItem>
+          <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5 = +1W.</li><li>+10 to +19.5 = +2W.</li><li>+20 or more = +3W.</li><li>The dog must win outright.</li><li>A missed dog does not add a loss.</li></ul></RuleItem>
           <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season winner receives $300.</li></ul></RuleItem>
           <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each.</li><li>Tied first splits $20.</li><li>A three-way tie pays $0.</li></ul></RuleItem>
           <RuleItem icon={Trophy} title="Perfect week"><ul><li>Available only during five-game weeks.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
@@ -660,6 +721,46 @@ export default function PickemApp() {
 
 function SectionTabs({ items, value, onChange }: { items: Array<{ id: string; label: string }>; value: string; onChange: (value: string) => void }) {
   return <div className="section-tabs">{items.map((item) => <button key={item.id} className={value === item.id ? "active" : ""} onClick={() => onChange(item.id)}>{item.label}</button>)}</div>;
+}
+
+function TestWeekPreview({ profiles, settled, onSettle, onReset, onClose }: { profiles: Profile[]; settled: boolean; onSettle: () => void; onReset: () => void; onClose: () => void }) {
+  if (profiles.length !== 3) {
+    return <section className="test-week-preview"><div className="test-week-head"><span><FlaskConical size={16} /> Test week</span><button aria-label="Close test week" onClick={onClose}><X size={16} /></button></div><p className="test-week-unavailable">The settlement preview requires exactly three players.</p></section>;
+  }
+
+  const cards = buildTestWeekCards(profiles);
+  const standings = computeWeeklyStandings(profiles, cards.flatMap((card) => card.picks));
+  const settlement = computeWeeklySettlement(standings, true);
+
+  return <section className="test-week-preview">
+    <div className="test-week-head"><span><FlaskConical size={16} /> Test week · preview only</span><button aria-label="Close test week" onClick={onClose}><X size={16} /></button></div>
+    <div className="test-week-status">
+      <div><strong>{settled ? "Test week settled" : "All test games are final"}</strong><p>{settled ? "Perfect-week payments applied without changing the real bank." : "Review the cards, then run the settlement."}</p></div>
+      {settled ? <button className="btn secondary" onClick={onReset}><RotateCcw size={15} /> Reset</button> : <button className="btn accent" onClick={onSettle}>Settle test week</button>}
+    </div>
+    <div className="test-week-section">
+      <h3>Final standings</h3>
+      <Leaderboard rows={standings} />
+    </div>
+    <div className="test-week-section">
+      <h3>Final cards</h3>
+      <div className="test-card-list">{cards.map((card, cardIndex) => <details key={card.profile.id} open={cardIndex === 0}>
+        <summary><span>{card.profile.display_name}</span><strong>{standings.find((row) => row.user_id === card.profile.id)?.wins || 0}-{standings.find((row) => row.user_id === card.profile.id)?.losses || 0}-{standings.find((row) => row.user_id === card.profile.id)?.pushes || 0}</strong><ChevronDown size={15} /></summary>
+        <div className="test-pick-list">{card.rows.map((row) => <div className="test-pick-row" key={row.id}>
+          <span className={`test-result ${row.result}`}>{row.result === "win" ? "W" : row.result === "loss" ? "L" : "P"}</span>
+          <div><strong>{row.team} {spreadText(row.spread)}{row.dogValue ? ` · DOG +${row.dogValue}W` : ""}</strong><p>{row.matchup}</p></div>
+          <div className="test-final"><strong>{row.finalScore}</strong><span>Final</span></div>
+        </div>)}</div>
+      </details>)}</div>
+    </div>
+    {settled && <div className="test-week-section test-ledger">
+      <h3>Test settlement</h3>
+      <div className="ledger-list">{standings.map((row) => {
+        const amount = settlement.amounts.get(row.user_id) || 0;
+        return <div className="ledger-row" key={row.user_id}><div><strong>{row.display_name}</strong><p>{settlement.notes.get(row.user_id)}</p></div><strong className={amount > 0 ? "money-pos" : amount < 0 ? "money-neg" : ""}>{money(amount)}</strong></div>;
+      })}</div>
+    </div>}
+  </section>;
 }
 
 function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {

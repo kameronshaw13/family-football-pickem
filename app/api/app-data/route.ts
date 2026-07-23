@@ -115,7 +115,6 @@ export async function GET(req: NextRequest) {
       profilesResult,
       picksResult,
       allLockedPicksResult,
-      standingsResult,
       bankSettingsResult,
       bankEntriesResult,
       sideBetsResult
@@ -129,7 +128,6 @@ export async function GET(req: NextRequest) {
         .from("picks")
         .select("user_id,week,pick_type,status,result,underdog_win_value")
         .eq("status", "locked"),
-      supabase.from("standings").select("*").order("win_pct", { ascending: false }).order("wins", { ascending: false }),
       supabase.from("bank_settings").select("*").eq("id", 1).maybeSingle(),
       supabase
         .from("bank_entries")
@@ -145,7 +143,6 @@ export async function GET(req: NextRequest) {
     const { data: profiles, error: profilesError } = profilesResult;
     const { data: picks, error: picksError } = picksResult;
     const { data: allLockedPicks, error: allLockedPicksError } = allLockedPicksResult;
-    const { data: standings, error: standingError } = standingsResult;
     const { data: bankSettings, error: bankSettingsError } = bankSettingsResult;
     const { data: bankEntries, error: bankEntriesError } = bankEntriesResult;
     const { data: allSideBets, error: sideBetError } = sideBetsResult;
@@ -153,7 +150,6 @@ export async function GET(req: NextRequest) {
     if (profilesError) return NextResponse.json({ ok: false, error: profilesError.message }, { status: 500 });
     if (picksError) return NextResponse.json({ ok: false, error: picksError.message }, { status: 500 });
     if (allLockedPicksError) return NextResponse.json({ ok: false, error: allLockedPicksError.message }, { status: 500 });
-    if (standingError) return NextResponse.json({ ok: false, error: standingError.message }, { status: 500 });
     if (bankSettingsError) return NextResponse.json({ ok: false, error: bankSettingsError.message }, { status: 500 });
     if (bankEntriesError) return NextResponse.json({ ok: false, error: bankEntriesError.message }, { status: 500 });
     if (sideBetError) return NextResponse.json({ ok: false, error: `${sideBetError.message} Run the updated Supabase schema before using side bets.` }, { status: 500 });
@@ -163,6 +159,7 @@ export async function GET(req: NextRequest) {
       String(standingWeek),
       computeWeeklyStandings(profiles || [], (allLockedPicks || []).filter((pick) => Number(pick.week) === standingWeek) as any)
     ]));
+    const standings = computeWeeklyStandings(profiles || [], (allLockedPicks || []) as any);
 
     const normalizedPicks = (picks || []).map((pick: any) => ({ ...pick, game: gameById.get(pick.game_id) || pick.game }));
     const visiblePicks = normalizedPicks.filter((pick: any) => {

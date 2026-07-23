@@ -20,8 +20,8 @@ export function computeWeeklyStandings(profiles: ProfileSummary[], picks: Footba
     const row = map.get(pick.user_id);
     if (!row || pick.status !== "locked") continue;
     if (pick.result === "win") row.wins += pick.pick_type === "underdog" ? Number(pick.underdog_win_value || 1) : 1;
-    if (pick.result === "loss") row.losses += 1;
-    if (pick.result === "push") row.pushes += 1;
+    if (pick.pick_type === "regular" && pick.result === "loss") row.losses += 1;
+    if (pick.pick_type === "regular" && pick.result === "push") row.pushes += 1;
   }
 
   const sorted = Array.from(map.values()).map((row) => ({
