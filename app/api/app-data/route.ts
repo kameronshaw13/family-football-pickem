@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
-import { getGameLockTime, getPickWeekOpenTime } from "@/lib/lockRules";
+import { findEspnLogo } from "@/lib/espnLogos";
+import { fetchEspnSchedule, findEspnScheduleMatch, resolveEspnCommenceTime } from "@/lib/espnSchedule";
+import { getFootballWeek, getGameLockTime, getPickWeekOpenTime } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
 import { getProfileFromToken } from "@/lib/authServer";
 import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
@@ -26,14 +28,40 @@ export async function GET(req: NextRequest) {
     const { data: rawGames, error: gameError } = await supabase.from("games").select("*").order("commence_time", { ascending: true });
     if (gameError) return NextResponse.json({ ok: false, error: gameError.message }, { status: 500 });
     const requestTime = new Date();
-    const eligibleGames = (rawGames || []).filter((game) =>
+    const spreadGames = (rawGames || []).filter((game) =>
       isEligibleRegularSeasonGame(game) &&
       !hasChargers(game) &&
       game.current_spread_team != null &&
       game.current_spread != null
-    ).map((game) => {
-      const lockTime = getGameLockTime(game.commence_time).toISOString();
-      return { ...game, lock_time: lockTime, is_locked: requestTime >= new Date(lockTime) };
+    );
+    const schedules = new Map<string, Awaited<ReturnType<typeof fetchEspnSchedule>>>();
+    await Promise.all((["CFB", "NFL"] as const).map(async (league) => {
+      const leagueGames = spreadGames.filter((game) => game.league === league);
+      if (!leagueGames.length) return;
+      try {
+        schedules.set(league, await fetchEspnSchedule(league, leagueGames.map((game) => game.commence_time)));
+      } catch {
+        schedules.set(league, []);
+      }
+    }));
+    const manualLogoMap = new Map<string, string>();
+    const eligibleGames = spreadGames.map((game) => {
+      const scheduleMatch = findEspnScheduleMatch(game, schedules.get(game.league) || []);
+      const commenceTime = scheduleMatch ? resolveEspnCommenceTime(scheduleMatch, game.commence_time) : game.commence_time;
+      const homeTeam = scheduleMatch?.swapped ? game.away_team : game.home_team;
+      const awayTeam = scheduleMatch?.swapped ? game.home_team : game.away_team;
+      const lockTime = getGameLockTime(commenceTime).toISOString();
+      return {
+        ...game,
+        week: getFootballWeek(commenceTime),
+        commence_time: commenceTime,
+        home_team: homeTeam,
+        away_team: awayTeam,
+        home_logo_url: scheduleMatch?.game.homeTeam.logoUrl || findEspnLogo(homeTeam, manualLogoMap) || game.home_logo_url,
+        away_logo_url: scheduleMatch?.game.awayTeam.logoUrl || findEspnLogo(awayTeam, manualLogoMap) || game.away_logo_url,
+        lock_time: lockTime,
+        is_locked: requestTime >= new Date(lockTime)
+      };
     });
     const uniqueGames = new Map<string, any>();
     for (const game of eligibleGames) {
