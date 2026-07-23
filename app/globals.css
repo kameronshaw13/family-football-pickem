@@ -259,7 +259,6 @@ fieldset .field-label { padding: 0; }
 .weekly-standings-head { display: flex; min-height: 38px; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .weekly-standings-head h3 { margin: 0; }
 .weekly-standings-head label { position: relative; display: flex; align-items: center; border-bottom: 2px solid var(--line-strong); color: var(--muted); }
-.weekly-standings-head label > span { padding-left: 2px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
 .weekly-standings-head select { appearance: none; min-width: 76px; padding: 6px 22px 6px 7px; border: 0; color: var(--ink); background: transparent; font-family: var(--font-display); font-size: 12px; font-weight: 850; outline: 0; }
 .weekly-standings-head svg { position: absolute; right: 2px; pointer-events: none; }
 .bank-summary-grid { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
@@ -289,7 +288,6 @@ fieldset .field-label { padding: 0; }
 .rule-item summary { padding-inline: var(--page-gutter); }
 .rule-copy { padding: 0 calc(var(--page-gutter) + 31px) 14px calc(var(--page-gutter) + 43px); color: var(--ink-soft); font-size: 13px; font-weight: 600; line-height: 1.55; text-wrap: pretty; }
 .rule-copy span { display: block; }
-.admin-action { padding-top: 12px; }
 .small, .muted { color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
 .empty-state, .loading-card, .error-card, .notice-card { margin-bottom: 10px; padding: 14px; border-left: 3px solid var(--line-strong); color: var(--muted); background: var(--saved); font-size: 13px; font-weight: 700; }
 .error-card { border-left-color: var(--red); }

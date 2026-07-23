@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromToken } from "@/lib/authServer";
-import { getPickWeekOpenTime } from "@/lib/lockRules";
+import { getGameLockTime, getPickWeekOpenTime } from "@/lib/lockRules";
 import { hasChargers, isChargersTeam, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam, underdogWinValue } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
@@ -38,7 +38,11 @@ export async function POST(req: NextRequest) {
 
     const { data: rawWeekGames, error: gamesError } = await supabase.from("games").select("*").eq("week", body.week);
     if (gamesError) return NextResponse.json({ ok: false, error: gamesError.message }, { status: 500 });
-    const weekGames = (rawWeekGames || []).filter((game) => isEligibleRegularSeasonGame(game) && !hasChargers(game));
+    const normalizeGameLock = (game: any) => {
+      const lockTime = getGameLockTime(game.commence_time).toISOString();
+      return { ...game, lock_time: lockTime, is_locked: now >= new Date(lockTime) };
+    };
+    const weekGames = (rawWeekGames || []).filter((game) => isEligibleRegularSeasonGame(game) && !hasChargers(game)).map(normalizeGameLock);
     const gameMap = new Map(weekGames.map((game) => [game.id, game]));
 
     const weekOpen = getPickWeekOpenTime(body.week, weekGames.map((game) => game.commence_time));
@@ -53,7 +57,7 @@ export async function POST(req: NextRequest) {
       .eq("week", body.week);
     if (existingError) return NextResponse.json({ ok: false, error: existingError.message }, { status: 500 });
 
-    const existing = [...(existingRows || [])];
+    const existing = (existingRows || []).map((pick: any) => ({ ...pick, game: pick.game ? normalizeGameLock(pick.game) : pick.game }));
     for (const pick of existing) {
       if (pick.status !== "draft" || !pick.game) continue;
       if (hasChargers(pick.game) || isChargersTeam(pick.selected_team)) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
-import { getPickWeekOpenTime } from "@/lib/lockRules";
+import { getGameLockTime, getPickWeekOpenTime } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
 import { getProfileFromToken } from "@/lib/authServer";
 import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
@@ -25,7 +25,12 @@ export async function GET(req: NextRequest) {
 
     const { data: rawGames, error: gameError } = await supabase.from("games").select("*").order("commence_time", { ascending: true });
     if (gameError) return NextResponse.json({ ok: false, error: gameError.message }, { status: 500 });
-    const allGames = (rawGames || []).filter((game) => isEligibleRegularSeasonGame(game) && !hasChargers(game));
+    const requestTime = new Date();
+    const allGames = (rawGames || []).filter((game) => isEligibleRegularSeasonGame(game) && !hasChargers(game)).map((game) => {
+      const lockTime = getGameLockTime(game.commence_time).toISOString();
+      return { ...game, lock_time: lockTime, is_locked: requestTime >= new Date(lockTime) };
+    });
+    const gameById = new Map(allGames.map((game) => [game.id, game]));
 
     const openGames = allGames.filter((g) => new Date(g.commence_time).getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000);
     const defaultWeek = openGames[0]?.week ?? allGames?.[0]?.week ?? 0;
@@ -53,7 +58,8 @@ export async function GET(req: NextRequest) {
       computeWeeklyStandings(profiles || [], (allLockedPicks || []).filter((pick) => Number(pick.week) === standingWeek) as any)
     ]));
 
-    const visiblePicks = (picks || []).filter((pick: any) => {
+    const normalizedPicks = (picks || []).map((pick: any) => ({ ...pick, game: gameById.get(pick.game_id) || pick.game }));
+    const visiblePicks = normalizedPicks.filter((pick: any) => {
       const game = pick.game;
       if (!game || !isEligibleRegularSeasonGame(game) || hasChargers(game)) return false;
       if (pick.user_id === profile.id) return true;

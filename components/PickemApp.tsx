@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, Landmark, LoaderCircle, Lock, RefreshCw, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
@@ -260,7 +260,6 @@ export default function PickemApp() {
   const [savingBank, setSavingBank] = useState(false);
   const [savingPicks, setSavingPicks] = useState(false);
   const [savingBet, setSavingBet] = useState(false);
-  const [refreshingOdds, setRefreshingOdds] = useState(false);
   const [stagedPicks, setStagedPicks] = useState<Pick[] | null>(null);
   const [, setClock] = useState(() => Date.now());
   const [betGameId, setBetGameId] = useState("");
@@ -340,21 +339,6 @@ export default function PickemApp() {
     await load(week);
     notify("Picks saved. They remain editable until each game locks.", "success");
     return true;
-  }
-
-  async function refreshOdds() {
-    const token = window.localStorage.getItem("pickem_session_token");
-    if (!token) return;
-    setRefreshingOdds(true);
-    const response = await fetch("/api/cron/odds", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-    const payload = await response.json();
-    setRefreshingOdds(false);
-    if (!response.ok) {
-      notify(payload.error || "Odds refresh failed.", "error");
-      return;
-    }
-    await load(week);
-    notify(`Odds refreshed for ${payload.gamesUpdated || 0} games.`, "success");
   }
 
   async function postBank(body: any) {
@@ -619,7 +603,7 @@ export default function PickemApp() {
           <div className="section-title standings-title"><Trophy size={19} /><div><h2>Season standings</h2></div></div>
           <Leaderboard rows={seasonStandings} />
           <div className="subsection weekly-standings">
-            <div className="weekly-standings-head"><h3>Weekly standings</h3><label><span>Week</span><select aria-label="Select standings week" value={selectedStandingsWeek} onChange={(event) => setStandingsWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select><ChevronDown size={14} /></label></div>
+            <div className="weekly-standings-head"><h3>Weekly standings</h3><label><select aria-label="Select standings week" value={selectedStandingsWeek} onChange={(event) => setStandingsWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select><ChevronDown size={14} /></label></div>
             <Leaderboard rows={weeklyStandings} />
           </div>
         </>}
@@ -649,7 +633,6 @@ export default function PickemApp() {
           <RuleItem icon={Lock} title="Pick locks">Weekday lines freeze 25 hours before kickoff and picks lock 24 hours before. Sat-Mon lines update for the final time Friday at 6 PM CT and picks lock Friday at 7 PM CT.</RuleItem>
           <RuleItem icon={Send} title="Side bets">Spread only. Offers must be accepted before kickoff and settle directly into the bank.</RuleItem>
         </div>
-        {currentUser.is_admin && <div className="admin-action"><button className="btn secondary" disabled={refreshingOdds} onClick={refreshOdds}><RefreshCw size={15} /> {refreshingOdds ? "Refreshing odds…" : "Refresh odds now"}</button></div>}
       </section>}
     </main>
     {tab === "picks" && stagedPicks !== null && <button className="floating-review" onClick={() => { setTab("card"); setCardView("mine"); }}>

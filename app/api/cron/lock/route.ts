@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getGameLockTime } from "@/lib/lockRules";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { normalizeSpreadForSelectedTeam, underdogWinValue } from "@/lib/spreads";
 import { hasChargers, isChargersTeam } from "@/lib/seasonRules";
@@ -13,9 +14,10 @@ export async function GET(req: NextRequest) {
     if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) return unauthorized();
 
     const supabase = getSupabaseAdmin();
-    const now = new Date().toISOString();
+    const currentTime = new Date();
+    const now = currentTime.toISOString();
 
-    const { data: games, error: gameErr } = await supabase.from("games").select("*").lte("lock_time", now).eq("is_locked", false);
+    const { data: games, error: gameErr } = await supabase.from("games").select("*").eq("is_locked", false);
     if (gameErr) return NextResponse.json({ ok: false, error: "Supabase select from games failed.", details: gameErr.message }, { status: 500 });
 
     let gamesLocked = 0;
@@ -23,7 +25,17 @@ export async function GET(req: NextRequest) {
     let picksRemoved = 0;
 
     for (const game of games || []) {
-      const { error: updateGameErr } = await supabase.from("games").update({ is_locked: true, updated_at: now }).eq("id", game.id);
+      const effectiveLockTime = getGameLockTime(game.commence_time);
+      const effectiveLockTimeIso = effectiveLockTime.toISOString();
+      if (effectiveLockTime > currentTime) {
+        if (game.lock_time !== effectiveLockTimeIso) {
+          const { error: syncError } = await supabase.from("games").update({ lock_time: effectiveLockTimeIso, updated_at: now }).eq("id", game.id);
+          if (syncError) return NextResponse.json({ ok: false, error: "Supabase lock-time sync failed.", details: syncError.message }, { status: 500 });
+        }
+        continue;
+      }
+
+      const { error: updateGameErr } = await supabase.from("games").update({ is_locked: true, lock_time: effectiveLockTimeIso, updated_at: now }).eq("id", game.id);
       if (updateGameErr) return NextResponse.json({ ok: false, error: "Supabase update games failed.", details: updateGameErr.message }, { status: 500 });
       gamesLocked++;
 

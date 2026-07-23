@@ -41,4 +41,4 @@ If the scheduler supports America/Chicago time zones, use that instead.
 1. `/api/cron/odds` to refresh current spreads.
 2. `/api/cron/lock` to close any games whose deadline has passed and lock draft picks.
 
-The admin refresh button remains available as a fallback, but it cannot change a spread after that game's spread cutoff.
+There is no manual refresh control in the app. The external cron schedule is the only way spreads are refreshed.

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findEspnLogo, fetchEspnLogoMap } from "@/lib/espnLogos";
-import { getProfileFromRequest } from "@/lib/authServer";
 import { canRefreshSpread, getFootballWeek, getGameLockTime, getSpreadFreezeTime } from "@/lib/lockRules";
 import { isEligibleRegularSeasonGame } from "@/lib/seasonRules";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
@@ -139,12 +138,5 @@ async function refreshOdds() {
 export async function GET(req: NextRequest) {
   const secret = req.headers.get("authorization")?.replace("Bearer ", "") || req.nextUrl.searchParams.get("secret");
   if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) return unauthorized();
-  return refreshOdds();
-}
-
-export async function POST(req: NextRequest) {
-  const auth = await getProfileFromRequest(req);
-  if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
-  if (!auth.profile.is_admin) return NextResponse.json({ ok: false, error: "Admin only." }, { status: 403 });
   return refreshOdds();
 }
