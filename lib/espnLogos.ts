@@ -23,7 +23,12 @@ const MANUAL_CFB_LOGOS = new Map<string, string>([
   ["memphis", "https://a.espncdn.com/i/teamlogos/ncaa/500/235.png"],
   ["memphis tigers", "https://a.espncdn.com/i/teamlogos/ncaa/500/235.png"],
   ["auburn", "https://a.espncdn.com/i/teamlogos/ncaa/500/2.png"],
-  ["auburn tigers", "https://a.espncdn.com/i/teamlogos/ncaa/500/2.png"]
+  ["auburn tigers", "https://a.espncdn.com/i/teamlogos/ncaa/500/2.png"],
+  ["sam houston", "https://a.espncdn.com/i/teamlogos/ncaa/500/2534.png"],
+  ["sam houston state", "https://a.espncdn.com/i/teamlogos/ncaa/500/2534.png"],
+  ["sam houston bearkats", "https://a.espncdn.com/i/teamlogos/ncaa/500/2534.png"],
+  ["sam houston state bearkats", "https://a.espncdn.com/i/teamlogos/ncaa/500/2534.png"],
+  ["sam houston state bearcats", "https://a.espncdn.com/i/teamlogos/ncaa/500/2534.png"]
 ]);
 
 function normalize(value: string | null | undefined) {
@@ -127,7 +132,7 @@ function scoreAlias(teamKey: string, alias: string) {
   const aliasKey = normalize(alias);
   if (!aliasKey) return 0;
   if (teamKey === aliasKey) return 100;
-  if (teamKey.includes(aliasKey) && aliasKey.length >= 5) return 90;
+  if (teamKey.includes(aliasKey) && aliasKey.length >= 5 && tokens(aliasKey).length >= 2) return 90;
   if (aliasKey.includes(teamKey) && teamKey.length >= 5) return 86;
 
   const teamTokens = new Set(tokens(teamKey));

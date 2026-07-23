@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findEspnLogo, fetchEspnLogoMap } from "@/lib/espnLogos";
+import { fetchEspnSchedule, findEspnScheduleMatch, resolveEspnCommenceTime } from "@/lib/espnSchedule";
 import { canRefreshSpread, getFootballWeek, getGameLockTime, getSpreadFreezeTime } from "@/lib/lockRules";
 import { isEligibleRegularSeasonGame } from "@/lib/seasonRules";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
@@ -57,7 +58,7 @@ async function refreshOdds() {
     const { data: knownGames, error: knownGamesError } = await supabase.from("games").select("id");
     if (knownGamesError) return NextResponse.json({ ok: false, error: "Could not read existing games.", details: knownGamesError.message }, { status: 500 });
     const knownGameIds = new Set((knownGames || []).map((game) => game.id));
-    const sportResults: Array<{ sport: string; eventsReturned: number; eventsImported: number; spreadsUpdated: number }> = [];
+    const sportResults: Array<{ sport: string; eventsReturned: number; scheduleMatched: number; eventsImported: number; spreadsUpdated: number }> = [];
 
     for (const sport of SPORTS) {
       const logoMap = await fetchEspnLogoMap(sport.league);
@@ -75,30 +76,45 @@ async function refreshOdds() {
       }
 
       const returned = (await oddsResponse.json()) as OddsEvent[];
-      const data = returned.filter((event) => isEligibleRegularSeasonGame({
-        league: sport.league,
-        commence_time: event.commence_time,
-        home_team: event.home_team,
-        away_team: event.away_team
-      }));
+      const schedule = await fetchEspnSchedule(sport.league, returned.map((event) => event.commence_time));
+      const data = returned.flatMap((event) => {
+        const scheduleMatch = findEspnScheduleMatch(event, schedule);
+        if (!scheduleMatch) return [];
+        const officialHomeName = scheduleMatch.swapped ? event.away_team : event.home_team;
+        const officialAwayName = scheduleMatch.swapped ? event.home_team : event.away_team;
+        const officialGame = {
+          event,
+          scheduleMatch,
+          commenceTime: resolveEspnCommenceTime(scheduleMatch, event.commence_time),
+          homeTeam: officialHomeName,
+          awayTeam: officialAwayName
+        };
+        return isEligibleRegularSeasonGame({
+          league: sport.league,
+          commence_time: officialGame.commenceTime,
+          home_team: officialGame.homeTeam,
+          away_team: officialGame.awayTeam
+        }) ? [officialGame] : [];
+      });
       let spreadsUpdated = 0;
-      for (const event of data) {
+      for (const official of data) {
+        const { event, scheduleMatch } = official;
         const spread = pickSpread(event);
         if (spread.team == null || spread.spread == null) continue;
-        const week = getFootballWeek(event.commence_time);
-        const lockTime = getGameLockTime(event.commence_time).toISOString();
-        const spreadFreezeTime = getSpreadFreezeTime(event.commence_time).toISOString();
+        const week = getFootballWeek(official.commenceTime);
+        const lockTime = getGameLockTime(official.commenceTime).toISOString();
+        const spreadFreezeTime = getSpreadFreezeTime(official.commenceTime).toISOString();
         const isKnownGame = knownGameIds.has(event.id);
-        const updateSpread = !isKnownGame || canRefreshSpread(event.commence_time, now);
+        const updateSpread = !isKnownGame || canRefreshSpread(official.commenceTime, now);
         const gameBase = {
           id: event.id,
           week,
           league: sport.league,
-          commence_time: event.commence_time,
-          home_team: event.home_team,
-          away_team: event.away_team,
-          home_logo_url: findEspnLogo(event.home_team, logoMap),
-          away_logo_url: findEspnLogo(event.away_team, logoMap),
+          commence_time: official.commenceTime,
+          home_team: official.homeTeam,
+          away_team: official.awayTeam,
+          home_logo_url: scheduleMatch.game.homeTeam.logoUrl || findEspnLogo(official.homeTeam, logoMap),
+          away_logo_url: scheduleMatch.game.awayTeam.logoUrl || findEspnLogo(official.awayTeam, logoMap),
           lock_time: lockTime,
           is_locked: now >= new Date(lockTime),
           updated_at: now.toISOString()
@@ -123,13 +139,24 @@ async function refreshOdds() {
             spread_team: spread.team,
             spread: spread.spread,
             bookmaker: spread.bookmaker,
-            raw: { ...event, spread_freeze_time: spreadFreezeTime }
+            raw: {
+              ...event,
+              official_schedule_id: scheduleMatch.game.id,
+              official_commence_time: official.commenceTime,
+              spread_freeze_time: spreadFreezeTime
+            }
           });
           spreadsUpdated++;
           inserted.push(game);
         }
       }
-      sportResults.push({ sport: sport.key, eventsReturned: returned.length, eventsImported: data.length, spreadsUpdated });
+      sportResults.push({
+        sport: sport.key,
+        eventsReturned: returned.length,
+        scheduleMatched: data.length,
+        eventsImported: data.length,
+        spreadsUpdated
+      });
     }
 
     return NextResponse.json({ ok: true, gamesUpdated: inserted.length, creditsEstimated: SPORTS.length, sportResults });
