@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Shaw Family Pick'em Spatial Preview</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --header-height: 68px;
+      --nav-height: 72px;
+      --gutter: 7px;
+      --team-height: 52px;
+      --meta-height: 29px;
+      --day-gap: 13px;
+      --logo: 29px;
+      --team-size: 14px;
+      --canvas: #eef0ed;
+      --panel: #fbfaf6;
+      --ink: #172127;
+      --ink-soft: #34434b;
+      --muted: #68747a;
+      --line: #d0d4d1;
+      --line-strong: #afb7b4;
+      --graphite: #20282d;
+      --blue: #4d91b8;
+      --blue-dark: #2f7097;
+      --blue-soft: #dcebf1;
+      --gold: #d2a92f;
+      --surface-soft: #f2f2ed;
+      --surface-muted: #e3e6e3;
+      --font-display: Rockwell, "Roboto Slab", Georgia, serif;
+      --font-condensed: "Avenir Next Condensed", "Arial Narrow", Arial, sans-serif;
+    }
+    html[data-layout="balanced-mobile"] {
+      --header-height: 74px;
+      --nav-height: 78px;
+      --gutter: 12px;
+      --team-height: 64px;
+      --meta-height: 35px;
+      --day-gap: 22px;
+      --logo: 35px;
+      --team-size: 16px;
+    }
+    html[data-layout="scoreboard-rail"] {
+      --header-height: 70px;
+      --nav-height: 76px;
+      --gutter: 10px;
+      --team-height: 56px;
+      --meta-height: 112px;
+      --day-gap: 18px;
+      --logo: 31px;
+      --team-size: 15px;
+    }
+    html, body { min-height: 100%; }
+    body { margin: 0; color: var(--ink); background: var(--canvas); font-family: var(--font-condensed); }
+    header {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 3;
+      display: flex;
+      height: var(--header-height);
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 11px;
+      color: #fff;
+      background: var(--graphite);
+      box-shadow: inset 0 -3px 0 var(--blue), inset 0 -4px 0 rgba(255,255,255,.13);
+    }
+    header img { width: 218px; height: auto; max-height: 48px; object-fit: contain; }
+    html[data-layout="balanced-mobile"] header img { width: 228px; max-height: 51px; }
+    .week { padding: 6px 2px; border-block: 1px solid rgba(255,255,255,.36); font: 800 13px var(--font-display); white-space: nowrap; }
+    main { padding: calc(var(--header-height) + 8px) var(--gutter) calc(var(--nav-height) + 25px); }
+    html[data-layout="balanced-mobile"] main { padding-top: calc(var(--header-height) + 12px); }
+    .top-tabs {
+      display: grid;
+      height: 39px;
+      grid-template-columns: 1fr 1fr;
+      margin: 0 calc(var(--gutter) * -1) 9px;
+      padding-inline: var(--gutter);
+      border-bottom: 1px solid var(--line-strong);
+    }
+    html[data-layout="balanced-mobile"] .top-tabs { height: 44px; margin-bottom: 16px; }
+    html[data-layout="scoreboard-rail"] .top-tabs { height: 42px; margin-bottom: 12px; }
+    .top-tabs span { display: grid; place-items: center; color: var(--muted); font: 800 12px var(--font-display); }
+    .top-tabs .active { border-bottom: 3px solid var(--blue); color: var(--ink); }
+    .filter { display: flex; margin-bottom: 8px; }
+    html[data-layout="balanced-mobile"] .filter { margin-bottom: 15px; }
+    html[data-layout="scoreboard-rail"] .filter { margin-bottom: 11px; }
+    .select {
+      min-width: 120px;
+      min-height: 31px;
+      padding: 5px 27px 4px 8px;
+      border: 1px solid var(--line-strong);
+      border-bottom: 3px solid var(--blue);
+      color: var(--ink);
+      background: var(--panel);
+      font: 850 11px var(--font-display);
+    }
+    html[data-layout="balanced-mobile"] .select { min-width: 126px; min-height: 36px; }
+    .days { display: grid; gap: var(--day-gap); }
+    .date { display: flex; align-items: center; gap: 9px; margin-bottom: 5px; }
+    html[data-layout="balanced-mobile"] .date { margin-bottom: 9px; }
+    .date b { padding: 4px 7px; color: #fff; background: var(--graphite); box-shadow: inset 0 -2px 0 var(--blue); font: 900 10px var(--font-display); }
+    html[data-layout="balanced-mobile"] .date b { padding: 6px 9px; }
+    .date strong { font: 900 11px var(--font-display); }
+    .date i { height: 1px; flex: 1; background: var(--line-strong); }
+    .games { overflow: hidden; border-block: 1px solid var(--line-strong); background: var(--panel); }
+    html[data-layout="balanced-mobile"] .games,
+    html[data-layout="scoreboard-rail"] .games { margin-inline: calc(var(--gutter) * -1); }
+    .game + .game { border-top: 1px solid var(--line-strong); }
+    .game-head {
+      display: flex;
+      min-height: var(--meta-height);
+      align-items: center;
+      justify-content: space-between;
+      gap: 7px;
+      padding: 5px 8px;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink-soft);
+      background: var(--surface-soft);
+      font-size: 10px;
+      font-weight: 850;
+      text-transform: uppercase;
+    }
+    html[data-layout="balanced-mobile"] .game-head { padding-inline: 12px; font-size: 11px; }
+    .team {
+      display: grid;
+      min-height: var(--team-height);
+      grid-template-columns: var(--logo) minmax(0,1fr) max-content;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+    html[data-layout="balanced-mobile"] .team { gap: 12px; padding: 11px 12px; }
+    html[data-layout="scoreboard-rail"] .team { gap: 9px; padding: 9px 10px; }
+    .team:last-child { border-bottom: 0; }
+    .team.selected { background: var(--blue-soft); box-shadow: inset 4px 0 0 var(--blue); }
+    .mark { display: grid; width: var(--logo); height: var(--logo); place-items: center; border: 1px solid var(--line); color: var(--blue-dark); background: var(--surface-muted); font: 850 9px var(--font-display); }
+    .team strong { min-width: 0; font-size: var(--team-size); font-weight: 850; overflow-wrap: anywhere; }
+    .spread { font: 850 13px var(--font-display); }
+    html[data-layout="balanced-mobile"] .spread { font-size: 15px; }
+    html[data-layout="scoreboard-rail"] .spread { font-size: 14px; }
+    .check { display: inline-grid; width: 15px; height: 15px; margin-left: 4px; place-items: center; border-radius: 50%; color: #fff; background: var(--blue-dark); font: 900 10px Arial; }
+    html[data-layout="scoreboard-rail"] .game {
+      display: grid;
+      grid-template-columns: 78px minmax(0,1fr);
+    }
+    html[data-layout="scoreboard-rail"] .game-head {
+      grid-column: 1;
+      grid-row: 1;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 8px;
+      border-right: 1px solid var(--line-strong);
+      border-bottom: 0;
+      line-height: 1.3;
+    }
+    html[data-layout="scoreboard-rail"] .matchup { grid-column: 2; grid-row: 1; }
+    html[data-layout="scoreboard-rail"] .game-head span:last-child { max-width: 60px; }
+    nav {
+      position: fixed;
+      inset: auto 0 0;
+      z-index: 3;
+      display: grid;
+      height: var(--nav-height);
+      grid-template-columns: repeat(4,1fr);
+      color: #a3adb2;
+      background: rgba(32,40,45,.98);
+    }
+    nav div { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 8px; font-size: 11px; font-weight: 750; }
+    html[data-layout="balanced-mobile"] nav div { gap: 6px; padding-top: 9px; font-size: 12px; }
+    nav .active { color: #eef7fb; }
+    nav .active::before { position: absolute; inset: 0 27% auto; height: 3px; background: var(--blue); content: ""; }
+    nav b { font-size: 19px; line-height: 1; }
+    .concept { position: fixed; right: 8px; bottom: calc(var(--nav-height) + 7px); z-index: 4; padding: 5px 7px; color: #fff; background: var(--graphite); font: 850 9px var(--font-condensed); text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="../../public/header-wordmark.png" alt="Shaw Family Pick'em">
+    <span class="week">WEEK 4⌄</span>
+  </header>
+  <main>
+    <div class="top-tabs"><span class="active">Pick Board</span><span>Side Bets</span></div>
+    <div class="filter"><select class="select"><option>CFB</option></select></div>
+    <div class="days">
+      <section>
+        <div class="date"><b>FRI</b><strong>Friday, September 18</strong><i></i></div>
+        <div class="games">
+          <article class="game">
+            <div class="game-head"><span>7:00 PM</span><span>Closes THU 7:00 PM</span></div>
+            <div class="matchup">
+              <div class="team"><span class="mark">TT</span><strong>Texas Tech</strong><span class="spread">-4.5</span></div>
+              <div class="team selected"><span class="mark">UH</span><strong>Houston</strong><span class="spread">+4.5 <i class="check">✓</i></span></div>
+            </div>
+          </article>
+          <article class="game">
+            <div class="game-head"><span>8:30 PM</span><span>Closes THU 8:30 PM</span></div>
+            <div class="matchup">
+              <div class="team"><span class="mark">NC</span><strong>North Carolina</strong><span class="spread">+6.5</span></div>
+              <div class="team"><span class="mark">TCU</span><strong>TCU</strong><span class="spread">-6.5</span></div>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section>
+        <div class="date"><b>SAT</b><strong>Saturday, September 19</strong><i></i></div>
+        <div class="games">
+          <article class="game">
+            <div class="game-head"><span>11:00 AM</span><span>Closes FRI 7:00 PM</span></div>
+            <div class="matchup">
+              <div class="team"><span class="mark">IA</span><strong>Iowa</strong><span class="spread">-7.5</span></div>
+              <div class="team"><span class="mark">RU</span><strong>Rutgers</strong><span class="spread">+7.5</span></div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+  </main>
+  <span class="concept" id="concept"></span>
+  <nav>
+    <div class="active"><b>ϟ</b><span>Picks</span></div>
+    <div><b>▤</b><span>My Card</span></div>
+    <div><b>♜</b><span>Standings</span></div>
+    <div><b>◇</b><span>Rules</span></div>
+  </nav>
+  <script>
+    const layout = new URLSearchParams(location.search).get("layout") || "compact-feed";
+    document.documentElement.dataset.layout = layout;
+    document.getElementById("concept").textContent = layout.replaceAll("-", " ");
+  </script>
+</body>
+</html>

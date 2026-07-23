@@ -1,0 +1,83 @@
+/* Scoreboard Rail: time and lock details form a dedicated rail beside each matchup. */
+:root {
+  --header-height: 70px;
+  --nav-height: 76px;
+  --page-gutter: 10px;
+}
+
+.scoreboard-header { padding-inline: 12px; }
+.header-wordmark { width: min(222px, 100%); max-height: 48px; }
+.week-select { min-width: 80px; font-size: 13px; }
+.primary-nav button { padding-top: 9px; }
+.container { padding-top: calc(env(safe-area-inset-top) + var(--header-height) + 10px); }
+.picks-panel > .section-tabs, .card-panel > .section-tabs, .standings-panel > .section-tabs {
+  height: 42px;
+  margin-bottom: 12px;
+}
+.view-select-row { margin-bottom: 11px; }
+.game-days { gap: 18px; }
+.game-day-marker { margin-bottom: 6px; }
+.game-list { margin-inline: calc(var(--page-gutter) * -1); border-block-width: 1px; }
+.game-card {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+}
+.game-head {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 112px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 8px;
+  border-right: 1px solid var(--line-strong);
+  border-bottom: 0;
+}
+.game-time-group { flex-direction: column; align-items: flex-start; gap: 5px; }
+.game-time { line-height: 1.2; }
+.kick { max-width: none; line-height: 1.3; text-align: left; }
+.stacked-matchup {
+  grid-column: 2;
+  grid-row: 1;
+}
+.team-row {
+  grid-template-columns: 33px minmax(0, 1fr) max-content;
+  min-height: 56px;
+  gap: 9px;
+  padding: 9px 10px;
+}
+.team-logo { width: 31px; height: 31px; }
+.team-name { font-size: 15px; }
+.team-spread { font-size: 14px; }
+.card-progress-copy, .card-save-bar, .weekly-bank-status, .bet-line-summary {
+  align-items: center;
+  flex-direction: row;
+}
+.card-progress-copy span, .bet-line-summary span:last-child { text-align: right; }
+.card-save-bar { display: grid; grid-template-columns: minmax(0, 1fr) max-content; }
+.pick-card, .group-card, .leaderboard, .bank-summary-grid, .ledger-list, .rules-list,
+.offer-flow, .side-bet-list {
+  margin-inline: calc(var(--page-gutter) * -1);
+}
+.pick-card { display: grid; align-items: center; min-height: 61px; }
+.pick-top { align-items: center; }
+.pick-row-actions { align-items: center; }
+.offer-step { grid-template-columns: 52px minmax(0, 1fr); }
+.step-number { width: 52px; min-height: 62px; justify-content: flex-start; padding-left: 14px; }
+.side-bet-card { display: grid; grid-template-columns: minmax(0, 1fr); padding-inline: 12px; }
+.standings-title { justify-content: flex-start; text-align: left; }
+.leaderboard-labels, .leaderboard-row { grid-template-columns: 46px minmax(88px, 1fr) repeat(3, 29px) 60px; }
+.leaderboard-labels, .leaderboard-row { padding-inline: 10px; }
+.weekly-standings-head { padding-inline: 2px; }
+.money-card { padding-inline: 15px; }
+.rule-item summary { grid-template-columns: 42px minmax(0, 1fr) 22px; min-height: 57px; }
+.rule-icon { width: 38px; border-right: 1px solid var(--line); }
+.rule-copy { padding-left: calc(var(--page-gutter) + 53px); }
+.floating-review, .sticky-card-save { right: 10px; left: 10px; }
+
+@media (min-width: 521px) {
+  .game-card { grid-template-columns: 94px minmax(0, 1fr); }
+  .game-head { min-height: 120px; padding-inline: 12px; }
+  .team-row { min-height: 60px; }
+}

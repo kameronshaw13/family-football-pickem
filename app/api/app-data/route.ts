@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
-import { findEspnLogo } from "@/lib/espnLogos";
+import { findEspnLogo, optimizeEspnLogoUrl } from "@/lib/espnLogos";
 import { fetchEspnSchedule, findEspnScheduleMatch, resolveEspnCommenceTime } from "@/lib/espnSchedule";
 import { getFootballWeek, getGameLockTime, getPickWeekOpenTime } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
@@ -82,7 +82,13 @@ export async function GET(req: NextRequest) {
 
     const eligibleGames = reconciledGames.map((game) => {
       const lockTime = getGameLockTime(game.commence_time).toISOString();
-      return { ...game, lock_time: lockTime, is_locked: requestTime >= new Date(lockTime) };
+      return {
+        ...game,
+        home_logo_url: optimizeEspnLogoUrl(game.home_logo_url),
+        away_logo_url: optimizeEspnLogoUrl(game.away_logo_url),
+        lock_time: lockTime,
+        is_locked: requestTime >= new Date(lockTime)
+      };
     });
     const uniqueGames = new Map<string, any>();
     for (const game of eligibleGames) {
@@ -105,20 +111,53 @@ export async function GET(req: NextRequest) {
     const games = allGames.filter((g) => g.week === week);
     const weekOpen = getPickWeekOpenTime(week, games.map((g) => g.commence_time));
 
-    const { data: profiles, error: profilesError } = await supabase.from("profiles").select("*").order("display_name", { ascending: true });
+    const [
+      profilesResult,
+      picksResult,
+      allLockedPicksResult,
+      standingsResult,
+      bankSettingsResult,
+      bankEntriesResult,
+      sideBetsResult
+    ] = await Promise.all([
+      supabase.from("profiles").select("id,username,display_name,is_admin").order("display_name", { ascending: true }),
+      supabase
+        .from("picks")
+        .select("*, game:games(*), profile:profiles(id,username,display_name,is_admin)")
+        .eq("week", week),
+      supabase
+        .from("picks")
+        .select("user_id,week,pick_type,status,result,underdog_win_value")
+        .eq("status", "locked"),
+      supabase.from("standings").select("*").order("win_pct", { ascending: false }).order("wins", { ascending: false }),
+      supabase.from("bank_settings").select("*").eq("id", 1).maybeSingle(),
+      supabase
+        .from("bank_entries")
+        .select("*, profile:profiles(display_name)")
+        .order("week", { ascending: false })
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("side_bets")
+        .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
+        .order("created_at", { ascending: false })
+    ]);
+
+    const { data: profiles, error: profilesError } = profilesResult;
+    const { data: picks, error: picksError } = picksResult;
+    const { data: allLockedPicks, error: allLockedPicksError } = allLockedPicksResult;
+    const { data: standings, error: standingError } = standingsResult;
+    const { data: bankSettings, error: bankSettingsError } = bankSettingsResult;
+    const { data: bankEntries, error: bankEntriesError } = bankEntriesResult;
+    const { data: allSideBets, error: sideBetError } = sideBetsResult;
+
     if (profilesError) return NextResponse.json({ ok: false, error: profilesError.message }, { status: 500 });
-
-    const { data: picks, error: picksError } = await supabase
-      .from("picks")
-      .select("*, game:games(*), profile:profiles(*)")
-      .eq("week", week);
     if (picksError) return NextResponse.json({ ok: false, error: picksError.message }, { status: 500 });
-
-    const { data: allLockedPicks, error: allLockedPicksError } = await supabase
-      .from("picks")
-      .select("user_id,week,pick_type,status,result,underdog_win_value")
-      .eq("status", "locked");
     if (allLockedPicksError) return NextResponse.json({ ok: false, error: allLockedPicksError.message }, { status: 500 });
+    if (standingError) return NextResponse.json({ ok: false, error: standingError.message }, { status: 500 });
+    if (bankSettingsError) return NextResponse.json({ ok: false, error: bankSettingsError.message }, { status: 500 });
+    if (bankEntriesError) return NextResponse.json({ ok: false, error: bankEntriesError.message }, { status: 500 });
+    if (sideBetError) return NextResponse.json({ ok: false, error: `${sideBetError.message} Run the updated Supabase schema before using side bets.` }, { status: 500 });
+
     const standingsWeeks = Array.from(new Set(allGames.map((game) => Number(game.week))));
     const weeklyStandingsByWeek = Object.fromEntries(standingsWeeks.map((standingWeek) => [
       String(standingWeek),
@@ -132,25 +171,6 @@ export async function GET(req: NextRequest) {
       if (pick.user_id === profile.id) return true;
       return new Date(game.lock_time).toISOString() <= now;
     });
-
-    const { data: standings, error: standingError } = await supabase.from("standings").select("*").order("win_pct", { ascending: false }).order("wins", { ascending: false });
-    if (standingError) return NextResponse.json({ ok: false, error: standingError.message }, { status: 500 });
-
-    const { data: bankSettings, error: bankSettingsError } = await supabase.from("bank_settings").select("*").eq("id", 1).maybeSingle();
-    if (bankSettingsError) return NextResponse.json({ ok: false, error: bankSettingsError.message }, { status: 500 });
-
-    const { data: bankEntries, error: bankEntriesError } = await supabase
-      .from("bank_entries")
-      .select("*, profile:profiles(display_name)")
-      .order("week", { ascending: false })
-      .order("created_at", { ascending: false });
-    if (bankEntriesError) return NextResponse.json({ ok: false, error: bankEntriesError.message }, { status: 500 });
-
-    const { data: allSideBets, error: sideBetError } = await supabase
-      .from("side_bets")
-      .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
-      .order("created_at", { ascending: false });
-    if (sideBetError) return NextResponse.json({ ok: false, error: `${sideBetError.message} Run the updated Supabase schema before using side bets.` }, { status: 500 });
 
     const expiredIds = (allSideBets || [])
       .filter((bet: any) => bet.status === "open" && bet.game && new Date(bet.game.commence_time) <= new Date())

@@ -537,7 +537,7 @@ export default function PickemApp() {
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" />
+          <img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" width={800} height={96} />
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
@@ -691,7 +691,7 @@ function RuleItem({ icon: Icon, title, children }: { icon: typeof Trophy; title:
 
 function LoadingShell() {
   return <div className="app-shell loading-shell">
-    <header className="scoreboard-header"><div className="scoreboard-main"><img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" /><div className="skeleton skeleton-week" /></div></header>
+    <header className="scoreboard-header"><div className="scoreboard-main"><img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" width={800} height={96} /><div className="skeleton skeleton-week" /></div></header>
     <main className="container">
       <div className="skeleton skeleton-tabs" />
       <div className="skeleton skeleton-filters" />
@@ -892,7 +892,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
 }
 
 function TeamLogo({ url, name }: { url?: string | null; name: string }) {
-  if (url) return <img src={url} alt="" className="team-logo" loading="lazy" />;
+  if (url) return <img src={url} alt="" className="team-logo" width={34} height={34} loading="lazy" decoding="async" />;
   return <div className="team-logo fallback">{name.slice(0, 1)}</div>;
 }
 
