@@ -251,6 +251,8 @@ fieldset .field-label { padding: 0; }
 
 .scoreboard-heading { display: flex; min-height: 46px; align-items: center; justify-content: center; padding: 4px var(--page-gutter) 10px; text-align: center; }
 .scoreboard-heading h2 { margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 20px; font-weight: 800; line-height: 1.2; }
+.heading-with-icon { gap: var(--space-2); }
+.heading-with-icon > svg { flex: 0 0 auto; color: var(--blue-dark); }
 .leaderboard { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
 .leaderboard-labels, .leaderboard-row { display: grid; grid-template-columns: 48px minmax(94px, 1fr) repeat(3, 32px) 62px; align-items: center; }
 .leaderboard-labels { min-height: 34px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
@@ -263,7 +265,6 @@ fieldset .field-label { padding: 0; }
 .leaderboard-player strong { display: block; overflow: hidden; font-size: 14px; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 .leaderboard-stat { color: var(--ink-soft); font-family: var(--font-display); font-size: 13px; font-variant-numeric: tabular-nums; text-align: center; }
 .leaderboard-pct { font-family: var(--font-display); font-size: 15px; font-variant-numeric: tabular-nums; text-align: center; }
-.standings-heading { justify-content: flex-start; padding-inline: 2px; text-align: left; }
 .weekly-standings { margin-top: var(--space-5); }
 .standings-heading-row { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 2px 2px 8px; }
 .standings-heading-row h2 { margin: 0; color: var(--ink-soft); font-family: var(--font-display); font-size: 16px; font-weight: 800; line-height: 1.2; }

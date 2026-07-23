@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, LoaderCircle, Lock, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
@@ -613,7 +613,7 @@ export default function PickemApp() {
       {tab === "standings" && <section className="panel standings-panel">
         <SectionTabs items={[{ id: "standings", label: "Standings" }, { id: "bank", label: "Bank" }]} value={standingsView} onChange={(value) => setStandingsView(value as StandingsView)} />
         {standingsView === "standings" && <>
-          <div className="scoreboard-heading standings-heading"><h2>Season standings</h2></div>
+          <div className="scoreboard-heading heading-with-icon"><Trophy size={19} /><h2>Season standings</h2></div>
           <Leaderboard rows={seasonStandings} />
           <div className="subsection weekly-standings">
             <div className="standings-heading-row"><h2>Weekly standings</h2><label><select aria-label="Select standings week" value={selectedStandingsWeek} onChange={(event) => setStandingsWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select><ChevronDown size={14} /></label></div>
@@ -621,7 +621,7 @@ export default function PickemApp() {
           </div>
         </>}
         {standingsView === "bank" && <>
-          <div className="scoreboard-heading"><h2>Bank balances</h2></div>
+          <div className="scoreboard-heading heading-with-icon"><Landmark size={19} /><h2>Bank balances</h2></div>
           <div className="bank-summary-grid">
             <div className="bank-summary-head"><span>Player</span><span>Balance</span></div>
             {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
