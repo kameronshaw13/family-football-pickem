@@ -8,6 +8,8 @@ import { getProfileFromToken } from "@/lib/authServer";
 import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
 import { computeWeeklyStandings } from "@/lib/weeklyBank";
 
+const SCHEDULE_SOURCE_ROLLOUT = new Date("2026-07-23T03:25:00.000Z");
+
 async function getAuthedProfile(req: NextRequest) {
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return { profile: null, error: "Missing auth token." };
@@ -34,34 +36,53 @@ export async function GET(req: NextRequest) {
       game.current_spread_team != null &&
       game.current_spread != null
     );
-    const schedules = new Map<string, Awaited<ReturnType<typeof fetchEspnSchedule>>>();
-    await Promise.all((["CFB", "NFL"] as const).map(async (league) => {
-      const leagueGames = spreadGames.filter((game) => game.league === league);
-      if (!leagueGames.length) return;
-      try {
-        schedules.set(league, await fetchEspnSchedule(league, leagueGames.map((game) => game.commence_time)));
-      } catch {
-        schedules.set(league, []);
-      }
-    }));
-    const manualLogoMap = new Map<string, string>();
-    const eligibleGames = spreadGames.map((game) => {
-      const scheduleMatch = findEspnScheduleMatch(game, schedules.get(game.league) || []);
-      const commenceTime = scheduleMatch ? resolveEspnCommenceTime(scheduleMatch, game.commence_time) : game.commence_time;
-      const homeTeam = scheduleMatch?.swapped ? game.away_team : game.home_team;
-      const awayTeam = scheduleMatch?.swapped ? game.home_team : game.away_team;
-      const lockTime = getGameLockTime(commenceTime).toISOString();
-      return {
-        ...game,
-        week: getFootballWeek(commenceTime),
-        commence_time: commenceTime,
-        home_team: homeTeam,
-        away_team: awayTeam,
-        home_logo_url: scheduleMatch?.game.homeTeam.logoUrl || findEspnLogo(homeTeam, manualLogoMap) || game.home_logo_url,
-        away_logo_url: scheduleMatch?.game.awayTeam.logoUrl || findEspnLogo(awayTeam, manualLogoMap) || game.away_logo_url,
-        lock_time: lockTime,
-        is_locked: requestTime >= new Date(lockTime)
-      };
+    let reconciledGames = spreadGames;
+    const needsScheduleBackfill = spreadGames.some((game) =>
+      !game.updated_at || new Date(game.updated_at) < SCHEDULE_SOURCE_ROLLOUT
+    );
+
+    if (needsScheduleBackfill) {
+      const schedules = new Map<string, Awaited<ReturnType<typeof fetchEspnSchedule>>>();
+      await Promise.all((["CFB", "NFL"] as const).map(async (league) => {
+        const leagueGames = spreadGames.filter((game) => game.league === league);
+        if (!leagueGames.length) return;
+        try {
+          schedules.set(league, await fetchEspnSchedule(league, leagueGames.map((game) => game.commence_time)));
+        } catch {
+          schedules.set(league, []);
+        }
+      }));
+
+      const manualLogoMap = new Map<string, string>();
+      const backfilledAt = new Date().toISOString();
+      reconciledGames = spreadGames.map((game) => {
+        const scheduleMatch = findEspnScheduleMatch(game, schedules.get(game.league) || []);
+        if (!scheduleMatch) return { ...game, updated_at: backfilledAt };
+        const commenceTime = resolveEspnCommenceTime(scheduleMatch, game.commence_time);
+        const homeTeam = scheduleMatch.swapped ? game.away_team : game.home_team;
+        const awayTeam = scheduleMatch.swapped ? game.home_team : game.away_team;
+        const lockTime = getGameLockTime(commenceTime).toISOString();
+        return {
+          ...game,
+          week: getFootballWeek(commenceTime),
+          commence_time: commenceTime,
+          home_team: homeTeam,
+          away_team: awayTeam,
+          home_logo_url: scheduleMatch.game.homeTeam.logoUrl || findEspnLogo(homeTeam, manualLogoMap) || game.home_logo_url,
+          away_logo_url: scheduleMatch.game.awayTeam.logoUrl || findEspnLogo(awayTeam, manualLogoMap) || game.away_logo_url,
+          lock_time: lockTime,
+          is_locked: requestTime >= new Date(lockTime),
+          updated_at: backfilledAt
+        };
+      });
+
+      const { error: backfillError } = await supabase.from("games").upsert(reconciledGames, { onConflict: "id" });
+      if (backfillError) return NextResponse.json({ ok: false, error: `Could not backfill official schedules: ${backfillError.message}` }, { status: 500 });
+    }
+
+    const eligibleGames = reconciledGames.map((game) => {
+      const lockTime = getGameLockTime(game.commence_time).toISOString();
+      return { ...game, lock_time: lockTime, is_locked: requestTime >= new Date(lockTime) };
     });
     const uniqueGames = new Map<string, any>();
     for (const game of eligibleGames) {
