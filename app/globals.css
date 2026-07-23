@@ -87,6 +87,7 @@ p { margin: 0; }
 .section-tabs button.active { border-bottom-color: var(--blue); color: var(--ink); }
 .picks-panel > .section-tabs, .card-panel > .section-tabs, .standings-panel > .section-tabs { display: grid; height: 44px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0 calc(var(--page-gutter) * -1) var(--space-3); padding-inline: var(--page-gutter); background: var(--canvas); }
 .picks-panel > .section-tabs { position: sticky; top: calc(env(safe-area-inset-top) + var(--header-height)); z-index: 14; }
+.standings-panel > .section-tabs { margin-bottom: 0; }
 .picks-panel > .section-tabs button, .card-panel > .section-tabs button, .standings-panel > .section-tabs button { width: 100%; text-align: center; }
 .section-title { display: flex; align-items: flex-start; gap: var(--space-2); margin: var(--space-1) 0 var(--space-4); }
 .section-title > svg { flex: 0 0 auto; margin-top: 2px; color: var(--blue-dark); }
@@ -222,19 +223,23 @@ fieldset .field-label { padding: 0; }
 .bet-preview strong { font-family: var(--font-display); font-size: 14px; line-height: 1.25; text-align: right; }
 .offer-flow > .btn.full { width: calc(100% - (var(--page-gutter) * 2)); margin: 14px var(--page-gutter) 0; }
 .side-bet-list { display: grid; gap: 0; }
-.side-bet-card { padding: 13px 10px; border: 0; border-bottom: 1px solid var(--line); border-left: 3px solid var(--line-strong); background: transparent; }
+.side-bet-card { padding: 10px; border: 0; border-bottom: 1px solid var(--line); border-left: 3px solid var(--line-strong); background: transparent; }
 .side-bet-card.open { border-left-color: var(--blue); }
-.side-bet-head { display: flex; align-items: center; justify-content: space-between; }
+.side-bet-card .status-mark { padding: 2px 5px; }
 .status-mark.open { color: var(--blue-dark); background: var(--blue-soft); }
 .status-mark.accepted { color: var(--green); background: var(--green-soft); }
 .status-mark.settled { color: #fff; background: var(--graphite-light); }
 .status-mark.declined, .status-mark.cancelled, .status-mark.expired { color: var(--red); background: var(--red-soft); }
-.offer-statement { margin-top: 10px; font-size: 14px; font-weight: 800; line-height: 1.4; }
+.offer-statement { font-size: 14px; font-weight: 800; line-height: 1.35; }
 .inline-offer-statement { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .inline-offer-statement span { min-width: 0; }
-.inline-offer-statement strong { flex: 0 0 auto; font-family: var(--font-display); font-size: 18px; white-space: nowrap; }
-.bet-line-summary { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.4; }
-.bet-line-summary span:last-child { text-align: right; }
+.inline-offer-statement strong { flex: 0 0 auto; font-family: var(--font-display); font-size: 17px; white-space: nowrap; }
+.bet-line-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 7px; color: var(--muted); font-size: 11px; line-height: 1.35; }
+.bet-side-detail { display: flex; min-width: 0; align-items: center; gap: 7px; }
+.bet-side-detail > span:last-child { min-width: 0; }
+.bet-line-summary > span:last-child { text-align: right; }
+.side-bet-card .actions { margin-top: 8px; }
+.side-bet-card .actions .btn { min-height: 36px; padding: 6px 10px; }
 .bet-result { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 12px; font-weight: 800; }
 .confirmation-backdrop { position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-end; justify-content: center; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); background: rgba(20, 33, 43, .54); backdrop-filter: blur(3px); }
 .confirmation-sheet { width: min(520px, 100%); padding: 18px; border-radius: 8px; background: var(--panel); box-shadow: 0 24px 60px rgba(20, 33, 43, .3); }
@@ -251,7 +256,7 @@ fieldset .field-label { padding: 0; }
 .confirmation-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 16px; }
 .confirmation-actions .btn { width: 100%; min-height: 43px; }
 
-.scoreboard-heading { display: flex; min-height: 52px; align-items: center; justify-content: center; padding: 0 var(--page-gutter); text-align: center; }
+.scoreboard-heading { display: flex; min-height: 44px; align-items: center; justify-content: center; padding: 0 var(--page-gutter); text-align: center; }
 .scoreboard-heading h2 { display: flex; min-height: 24px; align-items: center; margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 20px; font-weight: 800; line-height: 1.15; }
 .heading-with-icon { gap: var(--space-2); }
 .heading-with-icon > svg { display: block; flex: 0 0 auto; align-self: center; color: var(--blue-dark); }
@@ -368,7 +373,7 @@ fieldset .field-label { padding: 0; }
   .offer-team-line { font-size: 14px; }
   .card-progress-copy, .weekly-bank-status, .bet-line-summary { align-items: flex-start; flex-direction: column; }
   .card-progress-count { max-width: none; text-align: left; }
-  .bet-line-summary span:last-child { text-align: left; }
+  .bet-line-summary > span:last-child { text-align: left; }
   .offer-fields { grid-template-columns: 1fr; gap: 12px; }
   .kick { max-width: 70%; }
   .leaderboard-labels, .leaderboard-row { grid-template-columns: 42px minmax(82px, 1fr) repeat(3, 28px) 58px; }
