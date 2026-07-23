@@ -598,7 +598,6 @@ export default function PickemApp() {
         <SectionTabs items={[{ id: "mine", label: "My Card" }, { id: "group", label: "League Cards" }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
         {cardView === "mine" && <>
           <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />
-          <div className={`card-save-bar ${stagedPicks ? "dirty" : ""}`}><div><strong>{stagedPicks ? "Unsaved changes" : "Picks saved"}</strong><p>Saved picks stay editable until their listed lock time.</p></div>{!stagedPicks && <CircleCheckBig size={19} />}</div>
           <PickList picks={myRegular} games={games} title="Spread picks" removePick={removePick} />
           <PickList picks={myUnderdog ? [myUnderdog] : []} games={games} title="Underdog pick" removePick={removePick} />
         </>}
@@ -859,7 +858,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
   const awayOpponentOnly = filter === "DOGS" && awayDogValue === 0;
   const homeOpponentOnly = filter === "DOGS" && homeDogValue === 0;
 
-  return <article className={`game-card matchup-card ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""}`}>
+  return <article className={`game-card matchup-card filter-${filter.toLowerCase()} ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""}`}>
     <div className="game-head compact-game-head">
       <div className="game-time-group"><span className="game-time">{timeText(game.commence_time)}</span>{hasFinalScore && <span className="badge final">Final</span>}</div>
       {filter !== "PAST" && <div className="kick">Closes {lockText(game.lock_time)}</div>}
@@ -874,7 +873,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
         <span className="team-name">{displayTeamName(game, game.away_team)}</span>
-        {!awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""} ${filter === "PAST" && hasFinalScore ? "final-score" : ""}`}><span>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span>{existingMatchesView && existing?.selected_team === game.away_team && <Check className="pick-check" size={15} />}</span>}
+        {!awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""} ${filter === "PAST" && hasFinalScore ? "final-score" : ""}`}><span>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span></span>}
       </button>
 
       <button
@@ -885,7 +884,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
         <span className="team-name">{displayTeamName(game, game.home_team)}</span>
-        {!homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""} ${filter === "PAST" && hasFinalScore ? "final-score" : ""}`}><span>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span>{existingMatchesView && existing?.selected_team === game.home_team && <Check className="pick-check" size={15} />}</span>}
+        {!homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""} ${filter === "PAST" && hasFinalScore ? "final-score" : ""}`}><span>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span></span>}
       </button>
     </div>
   </article>;
@@ -904,7 +903,13 @@ function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts:
     ? `${counts.cfb}/${rule.regularTotal} CFB spreads · dog ${hasDog ? "set" : "open"}`
     : `${counts.total}/${rule.regularTotal} spreads · ${counts.cfb} CFB · ${counts.nfl} NFL · dog ${hasDog ? "set" : "open"}`;
   return <div className={`card-progress ${ok ? "complete" : ""} ${dirty ? "dirty" : ""}`}>
-    <div className="card-progress-copy"><strong>{ok ? "Card complete" : "Build your card"}</strong><span>{countText}</span></div>
+    <div className="card-progress-copy">
+      <div className="card-progress-heading">
+        <strong>{ok ? "Card complete" : "Build your card"}</strong>
+        <span className={`card-progress-state ${dirty ? "unsaved" : "saved"}`}>{!dirty && <CircleCheckBig size={14} />}{dirty ? "Unsaved changes" : "Picks saved"}</span>
+      </div>
+      <span className="card-progress-count">{countText}</span>
+    </div>
     <div className="progress-track" aria-hidden="true"><span style={{ width: `${progress}%` }} /></div>
   </div>;
 }
