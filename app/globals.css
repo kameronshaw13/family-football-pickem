@@ -249,7 +249,8 @@ fieldset .field-label { padding: 0; }
 .confirmation-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 16px; }
 .confirmation-actions .btn { width: 100%; min-height: 43px; }
 
-.standings-title { justify-content: center; text-align: center; }
+.scoreboard-heading { display: flex; min-height: 46px; align-items: center; justify-content: center; padding: 4px var(--page-gutter) 10px; text-align: center; }
+.scoreboard-heading h2 { margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 20px; font-weight: 800; line-height: 1.2; }
 .leaderboard { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
 .leaderboard-labels, .leaderboard-row { display: grid; grid-template-columns: 48px minmax(94px, 1fr) repeat(3, 32px) 62px; align-items: center; }
 .leaderboard-labels { min-height: 34px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
@@ -263,24 +264,31 @@ fieldset .field-label { padding: 0; }
 .leaderboard-stat { color: var(--ink-soft); font-family: var(--font-display); font-size: 13px; font-variant-numeric: tabular-nums; text-align: center; }
 .leaderboard-pct { font-family: var(--font-display); font-size: 15px; font-variant-numeric: tabular-nums; text-align: center; }
 .weekly-standings { margin-top: var(--space-5); }
-.weekly-standings-head { display: grid; min-height: 38px; grid-template-columns: 92px minmax(0, 1fr) 92px; align-items: center; margin-bottom: var(--space-3); text-align: center; }
-.weekly-standings-head h3 { grid-column: 2; margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 800; text-transform: none; white-space: nowrap; }
-.weekly-standings-head label { position: relative; display: flex; grid-column: 3; align-items: center; justify-self: end; border-bottom: 2px solid var(--line-strong); color: var(--muted); }
-.weekly-standings-head select { appearance: none; min-width: 92px; padding: 6px 22px 6px 7px; border: 0; color: var(--ink); background: transparent; font-family: var(--font-display); font-size: 12px; font-weight: 800; outline: 0; text-align: center; }
-.weekly-standings-head svg { position: absolute; right: 2px; pointer-events: none; }
+.weekly-standings .scoreboard-heading { min-height: 40px; padding-bottom: 5px; }
+.standings-week-row { display: flex; min-height: 35px; align-items: center; justify-content: flex-end; margin-inline: calc(var(--page-gutter) * -1); padding: 0 var(--page-gutter) 6px; }
+.standings-week-row label { position: relative; display: flex; align-items: center; border-bottom: 2px solid var(--line-strong); color: var(--muted); }
+.standings-week-row select { appearance: none; min-width: 92px; padding: 6px 22px 6px 7px; border: 0; color: var(--ink); background: transparent; font-family: var(--font-display); font-size: 12px; font-weight: 800; outline: 0; text-align: center; }
+.standings-week-row svg { position: absolute; right: 2px; pointer-events: none; }
 .bank-summary-grid { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
-.money-card { display: flex; min-height: 58px; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.bank-summary-head, .money-card { display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; padding-inline: 14px; }
+.bank-summary-head { min-height: 34px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.bank-summary-head span:last-child { text-align: right; }
+.money-card { min-height: 58px; padding-block: 12px; border-bottom: 1px solid var(--line); }
 .money-card:last-child { border-bottom: 0; }
 .money-card span { color: var(--ink-soft); font-size: 13px; font-weight: 700; }
 .money-card strong { font-family: var(--font-display); font-size: 20px; font-variant-numeric: tabular-nums; }
 .money-pos { color: var(--green); }
 .money-neg { color: var(--red); }
+.bank-section { margin-top: var(--space-5); }
+.bank-section-heading { min-height: 26px; padding: 0 2px; }
+.bank-section-heading h3 { margin: 0; }
 .weekly-bank-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-left: 3px solid var(--gold); background: var(--bank-status); }
 .weekly-bank-status p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; }
 .ledger-list { display: grid; overflow: hidden; gap: 1px; border-block: 1px solid var(--line); background: var(--line); }
 .ledger-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 12px; background: var(--panel); }
 .ledger-row strong { font-size: 13px; }
 .ledger-row p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: capitalize; }
+.ledger-list > .muted { margin: 0; padding: 13px 14px; background: var(--panel); }
 
 .rules-panel { display: grid; }
 .rules-panel .section-title { margin-bottom: 8px; }
@@ -361,10 +369,4 @@ fieldset .field-label { padding: 0; }
   .kick { max-width: 70%; }
   .leaderboard-labels, .leaderboard-row { grid-template-columns: 42px minmax(82px, 1fr) repeat(3, 28px) 58px; }
   .floating-review, .sticky-card-save { right: 9px; left: 9px; }
-}
-
-@media (max-width: 360px) {
-  .weekly-standings-head { grid-template-columns: 76px minmax(0, 1fr) 76px; }
-  .weekly-standings-head h3 { font-size: 14px; }
-  .weekly-standings-head select { min-width: 76px; font-size: 11px; }
 }
