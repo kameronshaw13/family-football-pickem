@@ -198,8 +198,9 @@ function gameDayShort(iso: string) {
 }
 function lockText(iso: string) {
   const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
+  const date = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
   const labels: Record<string, string> = { TUESDAY: "TUES", WEDNESDAY: "WEDS", THURSDAY: "THURS" };
-  return `${labels[weekday] || weekday.slice(0, 3)} ${timeText(iso)}`;
+  return `${labels[weekday] || weekday.slice(0, 3)} ${date} · ${timeText(iso)}`;
 }
 function spreadForTeam(game: Game, team: string) {
   return spreadText(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
@@ -435,6 +436,10 @@ export default function PickemApp() {
       notify("Los Angeles Chargers games are not available in this league.", "error");
       return;
     }
+    if (!game.current_spread_team || game.current_spread == null) {
+      notify("This game cannot be picked until a spread is available.", "error");
+      return;
+    }
     const existing = cardPicks.find((pick) => pick.game_id === game.id);
     if (existing?.status === "locked") {
       if (existing.pick_type !== pickType) {
@@ -627,7 +632,7 @@ export default function PickemApp() {
           <RuleItem icon={WalletCards} title="Weekly card"><span>Week 1: 3 CFB + dog.</span><span>Week 2: 5 CFB + dog.</span><span>Mixed weeks: 5 picks with at least 1 CFB and 1 NFL + dog.</span><span>After CFB: 2 NFL + dog.</span></RuleItem>
           <RuleItem icon={Shield} title="Eligible games">Regular season only. Bowls, CFP, NFL playoffs, and every Chargers game are excluded.</RuleItem>
           <RuleItem icon={Zap} title="Underdog">+7 to +9.5 = +1W, +10 to +19.5 = +2W, and +20 or more = +3W. The dog must win outright.</RuleItem>
-          <RuleItem icon={Trophy} title="Standings">The season winner receives $300. Winner is based on win percentage, then total wins.</RuleItem>
+          <RuleItem icon={Trophy} title="Standings">Season and weekly standings are ranked by win percentage, then total wins. The season winner receives $300.</RuleItem>
           <RuleItem icon={CircleDollarSign} title="Weekly bank">Last pays $20 and second pays $10 to first. Tied last pays $15 each; tied first splits $20; a three-way tie pays $0.</RuleItem>
           <RuleItem icon={Trophy} title="Perfect week">The perfect-week multiplier is only eligible during five-game weeks. A perfect card doubles all weekly payments.</RuleItem>
           <RuleItem icon={Lock} title="Pick locks">Weekday lines freeze 25 hours before kickoff and picks lock 24 hours before. Sat-Mon lines update for the final time Friday at 6 PM CT and picks lock Friday at 7 PM CT.</RuleItem>
@@ -827,6 +832,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
   function sideIsSelectable(team: string) {
     if (closed) return false;
     if (isChargersTeam(team)) return false;
+    if (!game.current_spread_team || game.current_spread == null) return false;
     if (filter === "DOGS") return teamDogValue(game, team) > 0;
     if (existingMatchesView && !canChangeExisting) return false;
     return true;

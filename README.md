@@ -25,7 +25,7 @@ Ready-mode private family football pick'em app.
 - Saturday/Sunday/Monday lines receive their final scheduled update Friday at 6 PM CT and picks close Friday at 7 PM CT.
 - Picks stay hidden from the group until the game closes.
 - Pushes do not count against win percentage.
-- Standings use win percentage first, then total wins.
+- Season and weekly standings use win percentage first, then total wins.
 - Weekly bank payouts are $20 from last and $10 from second to first.
 - Tied last-place players pay $15 each. Tied winners split the $20 last-place payment.
 - A 5-0 or better winning record with no losses doubles weekly payments only on five-pick weeks.

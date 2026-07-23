@@ -107,6 +107,9 @@ export async function POST(req: NextRequest) {
       if (game.is_locked || new Date(game.lock_time) <= now) return NextResponse.json({ ok: false, error: `${pick.selectedTeam} has reached its lock time and cannot be changed.` }, { status: 409 });
 
       const selectedSpread = normalizeSpreadForSelectedTeam(pick.selectedTeam, game.current_spread_team, game.current_spread);
+      if (selectedSpread == null) {
+        return NextResponse.json({ ok: false, error: "This game cannot be picked until a spread is available." }, { status: 409 });
+      }
       if (pick.pickType === "underdog" && underdogWinValue(selectedSpread) === 0) {
         return NextResponse.json({ ok: false, error: "Underdog picks must be +7 or higher." }, { status: 409 });
       }

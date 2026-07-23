@@ -16,7 +16,8 @@ function nflKickoff(year: number) {
   const laborDay = new Date(year, 8, 1, 0, 0, 0, 0);
   while (laborDay.getDay() !== 1) laborDay.setDate(laborDay.getDate() + 1);
   const kickoff = new Date(laborDay);
-  kickoff.setDate(kickoff.getDate() + 3);
+  // The 2026 season opens Wednesday; the standard opener is Thursday.
+  kickoff.setDate(kickoff.getDate() + (year === 2026 ? 2 : 3));
   return kickoff;
 }
 
