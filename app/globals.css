@@ -200,9 +200,8 @@ p { margin: 0; }
 .offer-team-select button:last-child { border-bottom: 0; }
 .offer-team-select button.active { background: var(--blue-soft); box-shadow: inset 4px 0 0 var(--blue); }
 .offer-team-select .team-logo { width: 34px; height: 34px; }
-.offer-team-name { min-width: 0; font-size: 15px; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
-.offer-team-line { display: flex; align-items: center; justify-content: flex-end; gap: 7px; color: var(--ink); font-family: var(--font-display); font-size: 14px; }
-.offer-team-line svg { padding: 2px; border-radius: 50%; color: #fff; background: var(--blue-dark); }
+.offer-team-name { min-width: 0; font-size: 15px; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+.offer-team-line { display: flex; width: 100%; align-items: center; justify-content: flex-end; color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; text-align: right; }
 .offer-fields { display: grid; grid-template-columns: 1fr; gap: 14px; }
 .money-input { display: flex; min-height: 43px; align-items: center; border: 0; border-bottom: 2px solid var(--line-strong); border-radius: 0; background: var(--surface-soft); }
 .money-input:focus-within { border-color: var(--blue); box-shadow: none; }
@@ -250,7 +249,7 @@ fieldset .field-label { padding: 0; }
 .confirmation-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 16px; }
 .confirmation-actions .btn { width: 100%; min-height: 43px; }
 
-.standings-title { justify-content: flex-start; text-align: left; }
+.standings-title { justify-content: center; text-align: center; }
 .leaderboard { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
 .leaderboard-labels, .leaderboard-row { display: grid; grid-template-columns: 48px minmax(94px, 1fr) repeat(3, 32px) 62px; align-items: center; }
 .leaderboard-labels { min-height: 34px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
@@ -263,10 +262,11 @@ fieldset .field-label { padding: 0; }
 .leaderboard-player strong { display: block; overflow: hidden; font-size: 14px; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 .leaderboard-stat { color: var(--ink-soft); font-family: var(--font-display); font-size: 13px; font-variant-numeric: tabular-nums; text-align: center; }
 .leaderboard-pct { font-family: var(--font-display); font-size: 15px; font-variant-numeric: tabular-nums; text-align: center; }
-.weekly-standings-head { display: flex; min-height: 38px; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.weekly-standings-head h3 { margin: 0; }
+.weekly-standings { margin-top: var(--space-5); }
+.weekly-standings-head { display: grid; min-height: 0; justify-items: center; gap: var(--space-2); margin-bottom: var(--space-3); text-align: center; }
+.weekly-standings-head h3 { margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 800; text-transform: none; }
 .weekly-standings-head label { position: relative; display: flex; align-items: center; border-bottom: 2px solid var(--line-strong); color: var(--muted); }
-.weekly-standings-head select { appearance: none; min-width: 76px; padding: 6px 22px 6px 7px; border: 0; color: var(--ink); background: transparent; font-family: var(--font-display); font-size: 12px; font-weight: 800; outline: 0; }
+.weekly-standings-head select { appearance: none; min-width: 92px; padding: 6px 22px 6px 7px; border: 0; color: var(--ink); background: transparent; font-family: var(--font-display); font-size: 12px; font-weight: 800; outline: 0; text-align: center; }
 .weekly-standings-head svg { position: absolute; right: 2px; pointer-events: none; }
 .bank-summary-grid { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
 .money-card { display: flex; min-height: 58px; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--line); }
@@ -288,7 +288,7 @@ fieldset .field-label { padding: 0; }
 .rule-item { border-bottom: 1px solid var(--line-strong); }
 .rule-item summary { display: grid; grid-template-columns: 34px minmax(0, 1fr) 22px; min-height: 55px; align-items: center; gap: 9px; padding: 6px 0; list-style: none; cursor: pointer; }
 .rule-item summary::-webkit-details-marker { display: none; }
-.rule-icon { display: grid; width: 30px; height: 30px; place-items: center; color: var(--blue-dark); transform: translateY(1px); }
+.rule-icon { display: grid; width: 30px; height: 30px; place-items: center; color: var(--blue-dark); }
 .rule-item summary strong { font-family: var(--font-display); font-size: 14px; }
 .rule-chevron { color: var(--muted); transition: transform .18s ease; }
 .rule-item[open] .rule-chevron { transform: rotate(180deg); }
@@ -349,6 +349,10 @@ fieldset .field-label { padding: 0; }
   .team-logo { width: 31px; height: 31px; }
   .team-name { font-size: 15px; }
   .team-spread { font-size: 14px; }
+  .offer-team-select button { grid-template-columns: 34px minmax(0, 1fr) 64px; gap: var(--space-2); padding: 10px 9px; }
+  .offer-team-select .team-logo { width: 31px; height: 31px; }
+  .offer-team-name { font-size: 15px; }
+  .offer-team-line { font-size: 14px; }
   .card-progress-copy, .weekly-bank-status, .bet-line-summary { align-items: flex-start; flex-direction: column; }
   .card-progress-count { max-width: none; text-align: left; }
   .bet-line-summary span:last-child { text-align: left; }

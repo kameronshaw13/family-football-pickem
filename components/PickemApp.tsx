@@ -754,7 +754,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGam
             {[selectedGame.away_team, selectedGame.home_team].map((team) => <button type="button" key={team} className={selectedCreatorTeam === team ? "active" : ""} onClick={() => setCreatorTeam(team)}>
               <TeamLogo url={logoForTeam(selectedGame, team)} name={team} />
               <span className="offer-team-name">{displayTeamName(selectedGame, team)}</span>
-              <span className="offer-team-line"><strong>{spreadForTeam(selectedGame, team)}</strong>{selectedCreatorTeam === team && <Check size={16} />}</span>
+              <span className="offer-team-line"><strong>{spreadForTeam(selectedGame, team)}</strong></span>
             </button>)}
           </div>
         </div></div>
