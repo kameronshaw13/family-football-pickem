@@ -12,7 +12,7 @@ The `CRON_SECRET` value must match the environment variable you set in Vercel.
 
 ## Schedule
 
-Create six jobs, Monday-Friday only:
+Create six jobs every day:
 
 - 2:00 AM CT
 - 6:00 AM CT
@@ -21,7 +21,7 @@ Create six jobs, Monday-Friday only:
 - 6:00 PM CT
 - 10:00 PM CT
 
-This is the automatic odds schedule. Each run refreshes both CFB and NFL. For Saturday-Monday games, the Friday 6:00 PM run is the final spread update and picks close at 7:00 PM. For Tuesday-Friday games, the app stops accepting spread changes 25 hours before kickoff and closes picks 24 hours before kickoff.
+This is the automatic football schedule. Each run refreshes both CFB and NFL, locks closed picks, checks official ESPN final scores, grades picks and side bets, and settles the weekly bank once all three cards are final. For Saturday-Monday games, the Friday 6:00 PM run is the final spread update and picks close at 7:00 PM. For Tuesday-Friday games, the app stops accepting spread changes 25 hours before kickoff and closes picks 24 hours before kickoff.
 
 Because many schedulers use UTC, during daylight saving time Central Time is UTC-5:
 
@@ -40,5 +40,6 @@ If the scheduler supports America/Chicago time zones, use that instead.
 
 1. `/api/cron/odds` to refresh current spreads.
 2. `/api/cron/lock` to close any games whose deadline has passed and lock draft picks.
+3. `/api/cron/results` to import ESPN finals, grade picks and side bets, and automatically settle completed weeks.
 
-There is no manual refresh control in the app. The external cron schedule is the only way spreads are refreshed.
+There is no manual refresh or weekly settlement control in the app. The external cron schedule handles both. Vercel also runs `/api/cron/results` once nightly as a fallback.

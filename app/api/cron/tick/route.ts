@@ -51,17 +51,19 @@ export async function GET(req: NextRequest) {
 
     const odds = await callCronEndpoint(origin, "/api/cron/odds", process.env.CRON_SECRET);
     const lock = await callCronEndpoint(origin, "/api/cron/lock", process.env.CRON_SECRET);
+    const results = await callCronEndpoint(origin, "/api/cron/results", process.env.CRON_SECRET);
 
-    const ok = odds.ok && lock.ok;
+    const ok = odds.ok && lock.ok && results.ok;
 
     return NextResponse.json(
       {
         ok,
         odds,
         lock,
+        results,
         message: ok
-          ? "Odds refreshed and closed games locked."
-          : "At least one scheduled task failed. Read odds.payload and lock.payload for the exact reason."
+          ? "Odds refreshed, closed games locked, and final scores checked."
+          : "At least one scheduled task failed. Read each task payload for the exact reason."
       },
       { status: ok ? 200 : 502 }
     );

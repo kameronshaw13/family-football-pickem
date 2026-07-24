@@ -13,6 +13,9 @@ export type EspnScheduleGame = {
   id: string;
   commenceTime: string;
   timeValid: boolean;
+  completed: boolean;
+  homeScore: number | null;
+  awayScore: number | null;
   homeTeam: EspnTeam;
   awayTeam: EspnTeam;
 };
@@ -78,6 +81,12 @@ function teamFromCompetitor(competitor: any): EspnTeam {
   };
 }
 
+function scoreFromCompetitor(competitor: any) {
+  const rawScore = competitor?.score?.value ?? competitor?.score;
+  const score = Number(rawScore);
+  return Number.isFinite(score) ? score : null;
+}
+
 function compactDate(date: Date) {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -85,7 +94,7 @@ function compactDate(date: Date) {
   return `${year}${month}${day}`;
 }
 
-export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string[]) {
+export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string[], fresh = false) {
   const parsedDates = dateHints.map((date) => new Date(date)).filter((date) => !Number.isNaN(date.getTime()));
   if (!parsedDates.length) return [];
 
@@ -99,7 +108,9 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
   url.searchParams.set("limit", "1000");
   url.searchParams.set("dates", `${compactDate(min)}-${compactDate(max)}`);
 
-  const response = await fetch(url.toString(), { next: { revalidate: 60 * 60 } });
+  const response = await fetch(url.toString(), fresh
+    ? { cache: "no-store" }
+    : { next: { revalidate: 60 * 60 } });
   if (!response.ok) throw new Error(`ESPN schedule failed for ${league}.`);
   const payload = await response.json();
 
@@ -113,6 +124,9 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
       id: String(event.id),
       commenceTime,
       timeValid: competition?.timeValid !== false,
+      completed: Boolean(competition?.status?.type?.completed),
+      homeScore: scoreFromCompetitor(home),
+      awayScore: scoreFromCompetitor(away),
       homeTeam: teamFromCompetitor(home),
       awayTeam: teamFromCompetitor(away)
     }];
