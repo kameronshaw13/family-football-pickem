@@ -177,6 +177,8 @@ p { margin: 0; }
 .pick-top > .team-logo, .visible-pick > .team-logo { width: 34px; height: 34px; }
 .pick-copy, .visible-pick-copy { min-width: 0; }
 .pick-row-actions { display: flex; flex: 0 0 auto; align-items: flex-start; gap: 7px; }
+.pick-row-actions .badge.pick-result-win, .pick-row-actions .badge.pick-result-loss, .pick-row-actions .badge.pick-result-push, .visible-pick > .badge.pick-result-win, .visible-pick > .badge.pick-result-loss, .visible-pick > .badge.pick-result-push { min-width: 26px; min-height: 26px; font-size: 12px; }
+.pick-lock-mark { display: grid; width: 28px; height: 28px; place-items: center; color: var(--muted); }
 .icon-btn { display: grid; width: 29px; height: 29px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: transparent; }
 .pick-title { font-size: 15px; font-weight: 800; }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
@@ -310,7 +312,7 @@ fieldset .field-label { padding: 0; }
 .bank-result-rank { color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-align: center; }
 .bank-result-record { font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .bank-player-result > .muted { margin: 0; padding: 11px 12px; background: var(--panel); }
-.bank-game-result { display: grid; min-height: 53px; grid-template-columns: 34px minmax(0, 1fr) 24px; align-items: center; gap: 9px; padding: 7px 10px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.bank-game-result { display: grid; min-height: 53px; grid-template-columns: 34px minmax(0, 1fr) 26px; align-items: center; gap: 9px; padding: 7px 10px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .bank-game-result:last-child { border-bottom: 0; }
 .bank-game-result .team-logo { width: 30px; height: 30px; }
 .bank-game-result > div { min-width: 0; }
@@ -322,7 +324,7 @@ fieldset .field-label { padding: 0; }
 .test-week-launch span { display: grid; gap: 2px; }
 .test-week-launch strong { font-size: 13px; }
 .test-week-launch small { color: var(--muted); font-size: 11px; font-weight: 600; }
-.test-result { display: grid; width: 22px; height: 22px; place-items: center; color: #fff; background: var(--muted); font-family: var(--font-display); font-size: 10px; font-weight: 900; }
+.test-result { display: grid; width: 25px; height: 25px; place-items: center; color: #fff; background: var(--muted); font-family: var(--font-display); font-size: 12px; font-weight: 900; }
 .test-result.win { background: var(--green); }
 .test-result.loss { background: var(--red); }
 .test-result.push { color: var(--ink); background: var(--line-strong); }

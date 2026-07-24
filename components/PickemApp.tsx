@@ -527,6 +527,7 @@ export default function PickemApp() {
     : data.weeklyStandingsByWeek?.[String(viewedWeek)] || computeWeeklyStandings(profiles, viewedPicks);
   const standingsWeeks = availableWeeks.filter((availableWeek) => availableWeek <= data.week).sort((a, b) => b - a);
   const weekIsOpen = !previewActive && (!data.weekOpenTime || new Date(data.weekOpenTime) <= new Date());
+  const leagueCardsHidden = viewedGames.some((game) => !isClosed(game));
   const incomingOffers = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
   const pendingOfferCount = incomingOffers.filter((bet) => bet.status === "open" && bet.targets?.some((target) => target.recipient_id === currentUser.id && target.response === "pending")).length;
   const bankTotals = profiles.map((profile) => ({
@@ -553,7 +554,7 @@ export default function PickemApp() {
     if (filter === "CFB") return g.league === "CFB";
     if (filter === "NFL") return g.league === "NFL";
     return [g.away_team, g.home_team].some((team) => !isChargersTeam(team) && teamDogValue(g, team) > 0);
-  });
+  }).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
   const gameGroups = filteredGames.reduce<Array<{ key: string; label: string; shortDay: string; games: Game[] }>>((groups, game) => {
     const key = gameDayKey(game.commence_time);
     const existingGroup = groups[groups.length - 1];
@@ -722,7 +723,7 @@ export default function PickemApp() {
         </>}
         {cardView === "group" && <div className="group-list">
           {profiles.map((profile) => <div key={profile.id} className="group-card">
-            <h3><EyeOff size={15} /> {profile.display_name}</h3>
+            <h3>{leagueCardsHidden && <EyeOff size={15} />} {profile.display_name}</h3>
             {viewedPicks.filter((p) => p.user_id === profile.id).length === 0 && <p className="muted">No visible picks yet.</p>}
             {viewedPicks.filter((p) => p.user_id === profile.id).map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} />)}
           </div>)}
@@ -1061,12 +1062,13 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
   return <div className="pick-section"><h3>{title}</h3>{!picks.length && <p className="muted">None yet.</p>}{picks.map((pick) => {
     const game = games.find((g) => g.id === pick.game_id) || pick.game;
     const final = pick.status === "locked" || Boolean(game && isClosed(game));
+    const graded = pick.result !== "pending";
     const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
     const matchupText = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable";
-    const lockStatus = !game ? "lock time unavailable" : pick.status === "locked" ? `locked ${cardLockText(game.lock_time)}` : final ? "closed" : `locks ${cardLockText(game.lock_time)}`;
-    const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : final ? "final" : "editable";
+    const lockStatus = !game ? "lock time unavailable" : final ? "" : `locks ${cardLockText(game.lock_time)}`;
+    const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{matchupText} · {lockStatus}</p></div><div className="pick-row-actions"><span className={`badge pick-result-${pick.result} ${final ? "locked" : "open"}`}>{resultLabel}</span>{!final && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{matchupText}{lockStatus ? ` · ${lockStatus}` : ""}</p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : final ? <span className="pick-lock-mark" aria-label="Locked"><Lock size={16} /></span> : <span className="badge open">editable</span>}{!final && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
