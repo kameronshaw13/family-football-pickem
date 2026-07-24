@@ -1084,18 +1084,18 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGam
     <div className="view-select-row"><div className="compact-select"><select aria-label="Choose side bet view" value={view} onChange={(event) => setView(event.target.value as BetView)}><option value="received">For You</option><option value="sent">Sent</option><option value="new">Make Offer</option></select><ChevronDown size={15} /></div></div>
 
     {view === "new" && <div className="bet-composer">
-      <div className="section-title"><Send size={19} /><div><h2>Make an offer</h2><p>Spread only · line locks when sent</p></div></div>
+      <div className="section-title"><Send size={19} /><div><h2>Make an offer</h2></div></div>
       {openGames.length === 0 && <div className="empty-state">No games with an open spread are available.</div>}
       {selectedGame && <div className="offer-flow">
-        <div className="offer-step"><span className="step-number">01</span><div className="step-content">
-          <label className="field-label" htmlFor="side-bet-game">Choose a game</label>
+        <section className="offer-block">
+          <label className="field-label" htmlFor="side-bet-game">Game</label>
           <select id="side-bet-game" className="input" value={selectedGame.id} onChange={(event) => setGame(event.target.value)}>
             {openGames.map((game) => <option key={game.id} value={game.id}>{dt(game.commence_time)} · {displayTeamName(game, game.away_team)} at {displayTeamName(game, game.home_team)}</option>)}
           </select>
-        </div></div>
+        </section>
 
-        <div className="offer-step"><span className="step-number">02</span><div className="step-content">
-          <span className="field-label">Choose your side</span>
+        <section className="offer-block offer-side-block">
+          <span className="field-label">Your side</span>
           <div className="offer-team-select">
             {[selectedGame.away_team, selectedGame.home_team].map((team) => <button type="button" key={team} className={selectedCreatorTeam === team ? "active" : ""} onClick={() => setCreatorTeam(team)}>
               <TeamLogo url={logoForTeam(selectedGame, team)} name={team} />
@@ -1103,14 +1103,14 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGam
               <span className="offer-team-line"><strong>{spreadForTeam(selectedGame, team)}</strong></span>
             </button>)}
           </div>
-        </div></div>
+        </section>
 
-        <div className="offer-step"><span className="step-number">03</span><div className="step-content offer-fields">
+        <section className="offer-block offer-fields">
           <label><span className="field-label">Amount</span><div className="money-input"><b>$</b><input aria-label="Side bet amount" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} /></div></label>
           <fieldset><legend className="field-label">Send to</legend><div className="recipient-grid">{otherPlayers.map((profile) => <label key={profile.id} className={recipients.includes(profile.id) ? "checked" : ""}><input type="checkbox" checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}</span></label>)}</div></fieldset>
-        </div></div>
+        </section>
 
-        <div className="offer-review"><span>Offer review</span><div className="bet-preview">
+        <div className="offer-review"><div className="offer-review-head"><span>Offer summary</span><strong>{stakeMoney(Number(amount || 0))}</strong></div><div className="bet-preview">
           <div><span>You keep</span><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} {spreadText(creatorSpread)}</strong></div>
           <div><span>They get</span><strong>{displayTeamName(selectedGame, offeredTeam)} {spreadText(creatorSpread == null ? null : -creatorSpread)}</strong></div>
         </div></div>
