@@ -177,8 +177,9 @@ p { margin: 0; }
 .pick-top > .team-logo, .visible-pick > .team-logo { width: 34px; height: 34px; }
 .pick-copy, .visible-pick-copy { min-width: 0; }
 .pick-row-actions { display: flex; flex: 0 0 auto; align-items: flex-start; gap: 7px; }
-.pick-row-actions .badge.pick-result-win, .pick-row-actions .badge.pick-result-loss, .pick-row-actions .badge.pick-result-push, .visible-pick > .badge.pick-result-win, .visible-pick > .badge.pick-result-loss, .visible-pick > .badge.pick-result-push { min-width: 26px; min-height: 26px; font-size: 12px; }
-.pick-lock-mark { display: grid; width: 28px; height: 28px; place-items: center; color: var(--muted); }
+.visible-pick-actions { display: flex; align-items: center; gap: 5px; }
+.pick-row-actions .badge.pick-result-win, .pick-row-actions .badge.pick-result-loss, .pick-row-actions .badge.pick-result-push, .visible-pick-actions .badge.pick-result-win, .visible-pick-actions .badge.pick-result-loss, .visible-pick-actions .badge.pick-result-push { min-width: 26px; min-height: 26px; font-size: 12px; }
+.pick-lock-mark { display: grid; width: 26px; height: 26px; flex: 0 0 26px; place-items: center; color: var(--blue-dark); }
 .icon-btn { display: grid; width: 29px; height: 29px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: transparent; }
 .pick-title { font-size: 15px; font-weight: 800; }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
