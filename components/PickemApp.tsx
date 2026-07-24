@@ -408,7 +408,6 @@ export default function PickemApp() {
   const [betAmount, setBetAmount] = useState("20");
   const [betRecipients, setBetRecipients] = useState<string[]>([]);
   const [toast, setToast] = useState<Toast>(null);
-  const [pastDayState, setPastDayState] = useState<Record<string, boolean>>({});
   const [testWeekActive, setTestWeekActive] = useState(false);
 
   async function load(nextWeek = week) {
@@ -523,9 +522,10 @@ export default function PickemApp() {
   const weeklyStandings = previewActive
     ? testWeek!.standings
     : data.weeklyStandingsByWeek?.[String(selectedStandingsWeek)] || (selectedStandingsWeek === data.week ? computeWeeklyStandings(profiles, picks) : computeWeeklyStandings(profiles, []));
+  const bankWeekStandings = previewActive
+    ? testWeek!.standings
+    : data.weeklyStandingsByWeek?.[String(viewedWeek)] || computeWeeklyStandings(profiles, viewedPicks);
   const standingsWeeks = availableWeeks.filter((availableWeek) => availableWeek <= data.week).sort((a, b) => b - a);
-  const weekSettlements = viewedBankEntries.filter((entry) => entry.week === viewedWeek);
-  const weekSettled = weekSettlements.length === profiles.length && profiles.length > 0;
   const weekIsOpen = !previewActive && (!data.weekOpenTime || new Date(data.weekOpenTime) <= new Date());
   const incomingOffers = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
   const pendingOfferCount = incomingOffers.filter((bet) => bet.status === "open" && bet.targets?.some((target) => target.recipient_id === currentUser.id && target.response === "pending")).length;
@@ -686,13 +686,10 @@ export default function PickemApp() {
           <div className="view-select-row"><div className="compact-select"><select aria-label="Choose pick board category" value={previewActive ? "PAST" : filter} disabled={previewActive} onChange={(event) => setFilter(event.target.value as Filter)}>{(["CFB", "NFL", "DOGS", "PAST"] as Filter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div></div>
           {filteredGames.length === 0 && <div className="empty-state">{filter === "PAST" ? "No past games this week." : `No open ${filter} games right now.`}</div>}
           <div className="game-days">
-            {gameGroups.map((group, index) => {
-              const pastGroupOpen = pastDayState[group.key] ?? index === gameGroups.length - 1;
-              return <div className={`game-day-group ${filter === "PAST" ? "past-day-group" : ""}`} key={group.key}>
-                {filter === "PAST" ? <button className="game-day-marker game-day-toggle" aria-expanded={pastGroupOpen} onClick={() => setPastDayState((current) => ({ ...current, [group.key]: !pastGroupOpen }))}><b>{group.shortDay}</b><strong>{group.label}</strong><span /><small>{group.games.length} game{group.games.length === 1 ? "" : "s"}</small><ChevronDown className={pastGroupOpen ? "open" : ""} size={16} /></button> : <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong><span /></div>}
-                {(filter !== "PAST" || pastGroupOpen) && <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} filter={filter} weekIsOpen={weekIsOpen} addPick={addPick} />)}</div>}
-              </div>;
-            })}
+            {gameGroups.map((group) => <div className={`game-day-group ${filter === "PAST" ? "past-day-group" : ""}`} key={group.key}>
+              <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong><span /></div>
+              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} filter={filter} weekIsOpen={weekIsOpen} addPick={addPick} />)}</div>
+            </div>)}
           </div>
         </>}
         {picksView === "sideBets" && <SideBetCenter
@@ -748,14 +745,9 @@ export default function PickemApp() {
             <div className="bank-summary-head"><span>Player</span><span>Balance</span></div>
             {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
           </div>
-          <div className="subsection bank-section">
-            <div className="bank-section-heading"><h3>This week</h3></div>
-            <div className="weekly-bank-status"><div><strong>{weekSettled ? "Week settled automatically" : "Awaiting final results"}</strong><p>{weekSettled ? "All cards are final and payments are posted." : "Payments post automatically after every card is final."}</p></div></div>
-          </div>
-          {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setPastDayState({}); setFilter("PAST"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview completed week</strong><small>See final Picks, My Card, standings, and settlement</small></span><ChevronRight size={17} /></button>}
-          {previewActive && testWeek && <TestWeekPreview testWeek={testWeek} />}
-          <div className="subsection bank-section"><div className="bank-section-heading"><h3>Weekly ledger</h3></div><div className="ledger-list">{viewedBankEntries.length === 0 && <p className="muted">No weekly entries yet.</p>}{viewedBankEntries.map((entry) => <div key={entry.id} className="ledger-row"><div><strong>{previewActive ? "Completed Week" : `Week ${entry.week}`} · {entry.profile?.display_name || profiles.find((p) => p.id === entry.user_id)?.display_name || "User"}</strong><p>{entry.note || "Bank entry"}</p></div><strong className={Number(entry.amount) > 0 ? "money-pos" : Number(entry.amount) < 0 ? "money-neg" : ""}>{money(Number(entry.amount))}</strong></div>)}</div></div>
+          <div className="subsection bank-section"><div className="bank-section-heading"><h3>{previewActive ? "Completed week" : `Week ${viewedWeek}`} results</h3></div><BankWeekResults rows={bankWeekStandings} picks={viewedPicks} games={viewedGames} /></div>
           <div className="subsection bank-section"><div className="bank-section-heading"><h3>Side bet ledger</h3></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
+          {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setFilter("PAST"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview completed week</strong><small>See final Picks, My Card, standings, and settlement</small></span><ChevronRight size={17} /></button>}
         </>}
       </section>}
 
@@ -786,36 +778,30 @@ function SectionTabs({ items, value, onChange }: { items: Array<{ id: string; la
   return <div className="section-tabs">{items.map((item) => <button key={item.id} className={value === item.id ? "active" : ""} onClick={() => onChange(item.id)}>{item.label}</button>)}</div>;
 }
 
-function TestWeekPreview({ testWeek }: { testWeek: ReturnType<typeof buildTestWeek> }) {
-  const { playerCards, standings, settlement } = testWeek;
-  return <section className="test-week-preview">
-    <div className="test-week-head"><span><FlaskConical size={16} /> Completed week · preview only</span></div>
-    <div className="test-week-status">
-      <div><strong>Week settled automatically</strong><p>Every card is final, so perfect-week payments are already posted.</p></div>
-    </div>
-    <div className="test-week-section">
-      <h3>Final standings</h3>
-      <Leaderboard rows={standings} />
-    </div>
-    <div className="test-week-section">
-      <h3>Final cards</h3>
-      <div className="test-card-list">{playerCards.map((card, cardIndex) => <details key={card.profile.id} open={cardIndex === 0}>
-        <summary><span>{card.profile.display_name}</span><strong>{standings.find((row) => row.user_id === card.profile.id)?.wins || 0}-{standings.find((row) => row.user_id === card.profile.id)?.losses || 0}-{standings.find((row) => row.user_id === card.profile.id)?.pushes || 0}</strong><ChevronDown size={15} /></summary>
-        <div className="test-pick-list">{card.rows.map((row) => <div className="test-pick-row" key={row.id}>
-          <span className={`test-result ${row.result}`}>{row.result === "win" ? "W" : row.result === "loss" ? "L" : "P"}</span>
-          <div><strong>{row.team} {spreadText(row.spread)}{row.dogValue ? ` · DOG +${row.dogValue}W` : ""}</strong><p>{row.matchup}</p></div>
-          <div className="test-final"><strong>{row.finalScore}</strong><span>Final</span></div>
-        </div>)}</div>
-      </details>)}</div>
-    </div>
-    <div className="test-week-section test-ledger">
-      <h3>Test settlement</h3>
-      <div className="ledger-list">{standings.map((row) => {
-        const amount = settlement.amounts.get(row.user_id) || 0;
-        return <div className="ledger-row" key={row.user_id}><div><strong>{row.display_name}</strong><p>{settlement.notes.get(row.user_id)}</p></div><strong className={amount > 0 ? "money-pos" : amount < 0 ? "money-neg" : ""}>{money(amount)}</strong></div>;
-      })}</div>
-    </div>
-  </section>;
+function BankWeekResults({ rows, picks, games }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[] }) {
+  return <div className="bank-week-results">{rows.map((row, index) => {
+    const playerPicks = picks
+      .filter((pick) => pick.user_id === row.user_id)
+      .sort((a, b) => {
+        const gameA = games.find((game) => game.id === a.game_id) || a.game;
+        const gameB = games.find((game) => game.id === b.game_id) || b.game;
+        return new Date(gameA?.commence_time || 0).getTime() - new Date(gameB?.commence_time || 0).getTime();
+      });
+    return <section className="bank-player-result" key={row.user_id}>
+      <header><span className="bank-result-rank">{row.rank || index + 1}</span><strong>{row.display_name}</strong><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span></header>
+      {!playerPicks.length && <p className="muted">No visible picks yet.</p>}
+      {playerPicks.map((pick) => {
+        const game = games.find((item) => item.id === pick.game_id) || pick.game;
+        const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
+        const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
+        return <div className="bank-game-result" key={pick.id}>
+          <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
+          <div><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)}{pick.pick_type === "underdog" ? ` · DOG +${pick.underdog_win_value || "?"}W` : ""}</strong><p>{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable"}</p></div>
+          <span className={`test-result ${pick.result}`}>{resultLabel}</span>
+        </div>;
+      })}
+    </section>;
+  })}</div>;
 }
 
 function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {
