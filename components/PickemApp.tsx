@@ -1107,10 +1107,11 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, accepte
       {limitReached && <div className="empty-state">You have reached the {MAX_ACCEPTED_SIDE_BETS_PER_WEEK} side bet limit for this week.</div>}
       {openGames.length === 0 && <div className="empty-state">No games with an open spread are available.</div>}
       {!limitReached && selectedGame && <div className="offer-flow">
-        <section className="offer-block">
+        <section className="offer-block offer-game-amount">
           <label><span className="field-label">Game</span><select id="side-bet-game" aria-label="Side bet game" className="input" value={selectedGame.id} onChange={(event) => setGame(event.target.value)}>
               {openGames.map((game) => <option key={game.id} value={game.id}>{dt(game.commence_time)} · {displayTeamName(game, game.away_team)} at {displayTeamName(game, game.home_team)}</option>)}
             </select></label>
+          <label><span className="field-label">Amount</span><div className="money-input"><b>$</b><input aria-label="Side bet amount" type="number" inputMode="decimal" min="1" max={MAX_SIDE_BET_AMOUNT} step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></div></label>
         </section>
 
         <section className="offer-block offer-side-block">
@@ -1131,7 +1132,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, accepte
           })}</div></fieldset>
         </section>
 
-        <div className="offer-review"><div className="offer-review-head"><span>Offer summary</span><label className="offer-stake-input"><span>$</span><input aria-label="Side bet amount" type="number" inputMode="decimal" min="1" max={MAX_SIDE_BET_AMOUNT} step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></label></div><div className="bet-preview">
+        <div className="offer-review"><div className="offer-review-head"><span>Offer summary</span><strong>{stakeMoney(Number(amount || 0))}</strong></div><div className="bet-preview">
           <div><span>You keep</span><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} {spreadText(creatorSpread)}</strong></div>
           <div><span>They get</span><strong>{displayTeamName(selectedGame, offeredTeam)} {spreadText(creatorSpread == null ? null : -creatorSpread)}</strong></div>
         </div></div>

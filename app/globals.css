@@ -208,18 +208,28 @@ p { margin: 0; }
 .offer-block { min-width: 0; padding: var(--space-3) var(--page-gutter); border: 0; border-bottom: 1px solid var(--line); background: var(--panel); }
 .field-label { display: block; margin: 2px 0 var(--space-2); color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .input { width: 100%; min-height: 43px; padding: 9px 10px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--ink); background: var(--panel); outline: none; }
-.input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(79, 137, 173, .13); }
+.input:focus, .money-input:focus-within { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(79, 137, 173, .13); }
 .bet-composer .input { overflow: hidden; border: 0; border-bottom: 2px solid var(--line-strong); border-radius: 0; background: transparent; text-overflow: ellipsis; }
 .bet-composer .input:focus { border: 0; border-bottom: 2px solid var(--blue); box-shadow: none; }
+.offer-game-amount { display: grid; grid-template-columns: minmax(0, 1fr) 82px; align-items: end; gap: 12px; }
+.offer-game-amount > label { min-width: 0; }
+.offer-game-amount .money-input b { padding-left: 4px; }
+.offer-game-amount .money-input input { padding-inline: 3px; font-variant-numeric: tabular-nums; }
 .offer-side-block { padding-bottom: 0; }
 .offer-team-select { display: grid; grid-template-columns: 1fr; overflow: hidden; margin-inline: calc(var(--page-gutter) * -1); border-top: 1px solid var(--line); background: var(--panel); }
 .offer-team-select button { display: grid; grid-template-columns: 38px minmax(0, 1fr) 68px; min-width: 0; min-height: 60px; align-items: center; gap: var(--space-3); padding: 10px var(--space-3); border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; transition: background-color .15s ease, box-shadow .15s ease; }
+.offer-team-select button:first-child { position: relative; }
+.offer-team-select button:first-child::after { position: absolute; z-index: 2; bottom: -8px; left: 29px; display: grid; width: 16px; height: 16px; place-items: center; color: var(--muted); background: var(--panel); content: "@"; font-size: 11px; font-weight: 900; line-height: 1; pointer-events: none; }
 .offer-team-select button:last-child { border-bottom: 0; }
 .offer-team-select button.active { background: var(--blue-soft); box-shadow: inset 4px 0 0 var(--blue); }
 .offer-team-select .team-logo { width: 34px; height: 34px; }
 .offer-team-name { min-width: 0; font-size: 15px; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
 .offer-team-line { display: flex; width: 100%; align-items: center; justify-content: flex-end; color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; text-align: right; }
 .offer-fields { display: grid; grid-template-columns: 1fr; gap: var(--space-4); }
+.money-input { display: flex; min-height: 43px; align-items: center; border: 0; border-bottom: 2px solid var(--line-strong); border-radius: 0; background: transparent; }
+.money-input:focus-within { border-color: var(--blue); box-shadow: none; }
+.money-input b { padding-left: 10px; color: var(--blue-dark); }
+.money-input input { width: 100%; padding: 9px 10px 9px 4px; border: 0; outline: 0; background: transparent; }
 fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 fieldset .field-label { padding: 0; }
 .recipient-grid { display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; border: 1px solid var(--line); }
@@ -230,9 +240,7 @@ fieldset .field-label { padding: 0; }
 .recipient-grid input { accent-color: var(--blue-dark); }
 .offer-review { border-bottom: 1px solid var(--line); background: var(--panel); }
 .offer-review-head { display: flex; min-height: 34px; align-items: center; justify-content: space-between; padding: 7px var(--page-gutter); color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
-.offer-stake-input { display: flex; align-items: center; color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; }
-.offer-stake-input input { width: 45px; padding: 2px 0; border: 0; border-bottom: 1px solid var(--line-strong); border-radius: 0; color: var(--ink); background: transparent; font: inherit; font-weight: 800; text-align: right; outline: 0; }
-.offer-stake-input input:focus { border-color: var(--blue); }
+.offer-review-head strong { color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; }
 .bet-preview { display: grid; grid-template-columns: 1fr; color: var(--ink); background: var(--panel); }
 .bet-preview > div { display: grid; min-height: 48px; grid-template-columns: 82px minmax(0, 1fr); align-items: center; gap: 12px; padding: 9px var(--page-gutter); border-bottom: 1px solid var(--line); }
 .bet-preview > div:last-child { border-bottom: 0; }
@@ -436,6 +444,7 @@ fieldset .field-label { padding: 0; }
   .team-name { font-size: 15px; }
   .team-spread { font-size: 14px; }
   .offer-team-select button { grid-template-columns: 34px minmax(0, 1fr) 64px; gap: var(--space-2); padding: 10px 9px; }
+  .offer-team-select button:first-child::after { left: 25px; }
   .offer-team-select .team-logo { width: 31px; height: 31px; }
   .offer-team-name { font-size: 15px; }
   .offer-team-line { font-size: 14px; }
