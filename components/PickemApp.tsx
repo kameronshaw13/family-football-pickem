@@ -898,15 +898,19 @@ export default function PickemApp() {
         <SectionTabs items={[{ id: "mine", label: "My Card" }, { id: "group", label: "League Cards" }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
         {cardView === "mine" && <>
           {!cardIsLocked && <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />}
-          <PickList picks={myRegular} games={viewedGames} title="Spread picks" removePick={removePick} />
-          <PickList picks={myUnderdog ? [myUnderdog] : []} games={viewedGames} title="Underdog pick" removePick={removePick} />
+          <PickList picks={myUnderdog ? [...myRegular, myUnderdog] : myRegular} games={viewedGames} title="Picks" removePick={removePick} />
         </>}
         {cardView === "group" && <div className="group-list">
-          {profiles.map((profile) => <div key={profile.id} className="group-card">
-            <h3>{leagueCardsHidden && <EyeOff size={14} />} {profile.display_name}</h3>
-            {viewedPicks.filter((p) => p.user_id === profile.id).length === 0 && <p className="muted group-empty-picks">No visible picks yet.</p>}
-            {viewedPicks.filter((p) => p.user_id === profile.id).map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} />)}
-          </div>)}
+          {profiles.map((profile) => {
+            const playerPicks = viewedPicks
+              .filter((pick) => pick.user_id === profile.id)
+              .sort((a, b) => Number(a.pick_type === "underdog") - Number(b.pick_type === "underdog"));
+            return <div key={profile.id} className="group-card">
+              <h3>{leagueCardsHidden && <EyeOff size={14} />} {profile.display_name}</h3>
+              {playerPicks.length === 0 && <p className="muted group-empty-picks">No visible picks yet.</p>}
+              {playerPicks.map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} />)}
+            </div>;
+          })}
         </div>}
       </section>}
 
@@ -986,7 +990,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
         const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
-          <div><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</strong><p>{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)} · ${cardGameStateText(game, true)}` : "Matchup unavailable"}</p></div>
+          <div><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span></>}</strong><p>{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)} · ${cardGameStateText(game, true)}` : "Matchup unavailable"}</p></div>
           <span className={`test-result ${pick.result}`}>{resultLabel}</span>
         </div>;
       })}
@@ -1282,7 +1286,7 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const gameState = game ? cardGameStateText(game, locked) : "game status unavailable";
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{matchupText} · {gameState}</p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !locked && <span className="badge open">editable</span>}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span></>}</p><p className="pick-meta">{matchupText} · {gameState}</p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !locked && <span className="badge open">editable</span>}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
@@ -1295,5 +1299,5 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
   const matchup = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable";
   const gameState = game ? cardGameStateText(game, locked) : "game status unavailable";
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</strong><p>{matchup} · {gameState}</p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !locked && <span className="badge open">editable</span>}</div></div>;
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span></>}</strong><p>{matchup} · {gameState}</p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !locked && <span className="badge open">editable</span>}</div></div>;
 }
