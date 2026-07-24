@@ -175,6 +175,7 @@ p { margin: 0; }
 .group-list { display: grid; gap: 0; }
 .group-card { margin: 0; padding: 0; border: 0; background: transparent; }
 .group-card h3 { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-4) var(--page-gutter) var(--space-2); color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.group-card:first-child h3 { margin-top: var(--space-1); }
 .group-empty-picks { margin: 0; padding: 12px var(--page-gutter); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .card-empty-picks { margin: 0 calc(var(--page-gutter) * -1); padding: 12px var(--page-gutter); border-block: 1px solid var(--line); }
 .pick-top { display: grid; width: 100%; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; }
