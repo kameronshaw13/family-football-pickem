@@ -262,6 +262,22 @@ function money(value: number) {
 function stakeMoney(value: number) {
   return `$${Math.abs(Number(value)).toFixed(Number.isInteger(Number(value)) ? 0 : 2)}`;
 }
+function sideBetAmountForUser(bet: SideBet, userId: string) {
+  const stake = Number(bet.amount);
+  if (bet.status !== "settled") return { text: stakeMoney(stake), tone: "" };
+  if (bet.result === "push") return { text: "$0", tone: "" };
+
+  const involved = bet.creator_id === userId || bet.accepted_by === userId;
+  if (!involved) return { text: stakeMoney(stake), tone: "" };
+
+  const won = bet.winner_id === userId ||
+    (!bet.winner_id && bet.result === "creator_win" && bet.creator_id === userId) ||
+    (!bet.winner_id && bet.result === "acceptor_win" && bet.accepted_by === userId);
+  return {
+    text: money(won ? stake : -stake),
+    tone: won ? "money-pos" : "money-neg"
+  };
+}
 function pctText(value: number) {
   return Number(value || 0).toFixed(3).replace(/^0/, "");
 }
@@ -447,6 +463,9 @@ export default function PickemApp() {
   const [cardView, setCardView] = useState<CardView>("mine");
   const [standingsView, setStandingsView] = useState<StandingsView>("standings");
   const [standingsWeek, setStandingsWeek] = useState<number | null>(null);
+  const [bankWeek, setBankWeek] = useState<number | null>(null);
+  const [bankWeekData, setBankWeekData] = useState<AppData | null>(null);
+  const [bankWeekLoading, setBankWeekLoading] = useState(false);
   const [betView, setBetView] = useState<BetView>("received");
   const [filter, setFilter] = useState<Filter>("CFB");
   const [data, setData] = useState<AppData | null>(null);
@@ -506,7 +525,12 @@ export default function PickemApp() {
   }
 
   useEffect(() => { load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
-  useEffect(() => { if (week != null) setStandingsWeek(week); }, [week]);
+  useEffect(() => {
+    if (week == null) return;
+    setStandingsWeek(week);
+    setBankWeek(week);
+    setBankWeekData(null);
+  }, [week]);
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 30_000);
     return () => window.clearInterval(timer);
@@ -559,6 +583,44 @@ export default function PickemApp() {
 
   function notify(message: string, tone: NonNullable<Toast>["tone"] = "info") {
     setToast({ message, tone });
+  }
+
+  async function loadBankWeek(nextWeek: number) {
+    setBankWeek(nextWeek);
+    if (nextWeek === data?.week) {
+      setBankWeekData(null);
+      return;
+    }
+
+    const token = window.localStorage.getItem("pickem_session_token");
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
+
+    setBankWeekLoading(true);
+    try {
+      const response = await fetch(`/api/app-data?week=${nextWeek}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store"
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.localStorage.removeItem("pickem_session_token");
+          window.localStorage.removeItem("pickem_profile");
+          window.location.replace("/login");
+          return;
+        }
+        notify(payload.error || "Could not load those weekly results.", "error");
+        return;
+      }
+      setBankWeekData(payload);
+    } catch {
+      notify("Could not load those weekly results.", "error");
+    } finally {
+      setBankWeekLoading(false);
+    }
   }
 
   async function savePicks(card: Pick[]) {
@@ -631,11 +693,16 @@ export default function PickemApp() {
   const weeklyStandings = previewActive
     ? testWeek!.standings
     : data.weeklyStandingsByWeek?.[String(selectedStandingsWeek)] || (selectedStandingsWeek === data.week ? computeWeeklyStandings(profiles, picks) : computeWeeklyStandings(profiles, []));
+  const selectedBankWeek = bankWeek ?? data.week;
+  const selectedBankData = selectedBankWeek === data.week ? data : bankWeekData?.week === selectedBankWeek ? bankWeekData : null;
+  const bankResultWeek = previewActive ? 3 : selectedBankWeek;
+  const bankResultGames = previewActive ? testWeek!.games : selectedBankData?.games || [];
+  const bankResultPicks = previewActive ? testWeek!.picks : selectedBankData?.picks || [];
   const bankWeekStandings = previewActive
     ? testWeek!.standings
-    : data.weeklyStandingsByWeek?.[String(viewedWeek)] || computeWeeklyStandings(profiles, viewedPicks);
+    : selectedBankData?.weeklyStandingsByWeek?.[String(bankResultWeek)] || computeWeeklyStandings(profiles, bankResultPicks);
   const bankWeekAmounts = Object.fromEntries(profiles.map((profile) => {
-    const entries = viewedBankEntries.filter((entry) => entry.week === viewedWeek && entry.user_id === profile.id);
+    const entries = viewedBankEntries.filter((entry) => entry.week === bankResultWeek && entry.user_id === profile.id);
     return [profile.id, entries.length ? entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : null];
   }));
   const standingsWeeks = availableWeeks.filter((availableWeek) => availableWeek <= data.week).sort((a, b) => b - a);
@@ -836,8 +903,8 @@ export default function PickemApp() {
         </>}
         {cardView === "group" && <div className="group-list">
           {profiles.map((profile) => <div key={profile.id} className="group-card">
-            <h3>{leagueCardsHidden && <EyeOff size={15} />} {profile.display_name}</h3>
-            {viewedPicks.filter((p) => p.user_id === profile.id).length === 0 && <p className="muted">No visible picks yet.</p>}
+            <h3>{leagueCardsHidden && <EyeOff size={14} />} {profile.display_name}</h3>
+            {viewedPicks.filter((p) => p.user_id === profile.id).length === 0 && <p className="muted group-empty-picks">No visible picks yet.</p>}
             {viewedPicks.filter((p) => p.user_id === profile.id).map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} />)}
           </div>)}
         </div>}
@@ -859,8 +926,14 @@ export default function PickemApp() {
             <div className="bank-summary-head"><span>Player</span><span>Balance</span></div>
             {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
           </div>
-          <div className="subsection bank-section"><div className="bank-section-heading"><h3>{previewActive ? "Completed week" : `Week ${viewedWeek}`} results</h3></div><BankWeekResults rows={bankWeekStandings} picks={viewedPicks} games={viewedGames} amounts={bankWeekAmounts} /></div>
-          <div className="subsection bank-section"><div className="bank-section-heading"><h3>Side bet ledger</h3></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} />)}</div></div>
+          <div className="subsection bank-section">
+            <div className="bank-section-heading standings-heading-row bank-results-heading">
+              <h3>{previewActive ? "Completed week results" : "Week results"}</h3>
+              {previewActive ? <span className="test-standings-label">Week 3</span> : <label><select aria-label="Select Bank results week" value={selectedBankWeek} disabled={bankWeekLoading} onChange={(event) => void loadBankWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select>{bankWeekLoading ? <LoaderCircle className="bank-week-spinner" size={14} /> : <ChevronDown size={14} />}</label>}
+            </div>
+            <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} />
+          </div>
+          <div className="subsection bank-section"><div className="bank-section-heading"><h3>Side bet ledger</h3></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
           {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setFilter("PAST"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview completed week</strong><small>See final Picks, My Card, standings, and settlement</small></span><ChevronRight size={17} /></button>}
         </>}
       </section>}
@@ -905,7 +978,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
       });
     const amount = amounts[row.user_id];
     return <details className="bank-player-result" key={row.user_id}>
-      <summary><span className="bank-result-rank">{row.rank || index + 1}</span><strong>{row.display_name}</strong><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><ChevronDown size={16} /></summary>
+      <summary><span className="bank-result-rank">{row.rank || index + 1}</span><strong>{row.display_name}</strong><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><ChevronDown size={16} /></summary>
       {!playerPicks.length && <p className="muted">No visible picks yet.</p>}
       {playerPicks.map((pick) => {
         const game = games.find((item) => item.id === pick.game_id) || pick.game;
@@ -1064,18 +1137,23 @@ function SideBetCard({ bet, mode, currentUser, saving, requestAccept, respond }:
   const status = bet.status === "open" && target?.response === "declined" ? "declined" : bet.status;
   const offeredName = game ? displayTeamName(game, bet.offered_team) : bet.offered_team;
   const creatorTeamName = game ? displayTeamName(game, bet.creator_team) : bet.creator_team;
-  const offerText = mode === "received" ? `${creatorName} offered you ${offeredName} ${spreadText(Number(bet.offered_spread))} vs ${creatorTeamName}.` : `You offered ${targetNames} ${offeredName} ${spreadText(Number(bet.offered_spread))} vs ${creatorTeamName}.`;
+  const offerText = mode === "received"
+    ? `${creatorName} offered you ${offeredName} ${spreadText(Number(bet.offered_spread))} vs ${creatorTeamName}.`
+    : `${offeredName} ${spreadText(Number(bet.offered_spread))} vs ${creatorTeamName}`;
+  const sideDetail = mode === "sent"
+    ? `To ${targetNames} · You have ${creatorTeamName} ${spreadText(Number(bet.creator_spread))}`
+    : `${creatorName} has ${creatorTeamName} ${spreadText(Number(bet.creator_spread))}`;
+  const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
 
-  return <article className={`side-bet-card ${offerOpen ? "open" : ""}`}>
-    <p className="offer-statement inline-offer-statement"><span>{offerText}</span><strong>{stakeMoney(Number(bet.amount))}</strong></p>
-    <div className="bet-line-summary"><span className="bet-side-detail"><span className={`status-mark ${status}`}>{status}</span><span>{creatorName} has <strong>{creatorTeamName} {spreadText(Number(bet.creator_spread))}</strong></span></span><span>{bet.accepted_by_profile ? `Accepted by ${bet.accepted_by_profile.display_name}` : game ? `Kickoff ${dt(game.commence_time)}` : ""}</span></div>
-    {bet.status === "settled" && <div className="bet-result">{bet.result === "push" ? "Push · no bank change" : `${bet.winner_id === currentUser.id ? "You won" : bet.winner_id === bet.creator_id ? `${creatorName} won` : `${bet.accepted_by_profile?.display_name || "Opponent"} won`} ${stakeMoney(Number(bet.amount))}`}</div>}
+  return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""}`}>
+    <p className="offer-statement inline-offer-statement"><span>{offerText}</span><strong className={amountDisplay.tone}>{amountDisplay.text}</strong></p>
+    <div className="bet-line-summary"><span className="bet-side-detail"><span className={`status-mark ${status}`}>{status}</span><span>{sideDetail}</span></span><span>{bet.accepted_by_profile ? `Accepted by ${bet.accepted_by_profile.display_name}` : game ? `Kickoff ${dt(game.commence_time)}` : ""}</span></div>
     {mode === "received" && offerOpen && <div className="actions"><button className="btn accept" disabled={saving} onClick={() => requestAccept(bet.id)}><Check size={15} /> Review & accept</button><button className="btn secondary" disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
     {mode === "sent" && bet.status === "open" && <div className="actions"><button className="btn secondary" disabled={saving} onClick={() => respond("cancel", bet.id)}><X size={15} /> Cancel offer</button></div>}
   </article>;
 }
 
-function SideBetLedgerRow({ bet }: { bet: SideBet }) {
+function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Profile }) {
   const game = bet.game;
   const creatorName = bet.creator?.display_name || "Player";
   const acceptorName = bet.accepted_by_profile?.display_name || "Opponent";
@@ -1086,10 +1164,11 @@ function SideBetLedgerRow({ bet }: { bet: SideBet }) {
   const otherName = game ? displayTeamName(game, otherTeam) : otherTeam;
   const coveredTeam = bet.result === "creator_win" ? bet.creator_team : bet.result === "acceptor_win" ? bet.offered_team : null;
   const winnerName = bet.result === "creator_win" ? creatorName : bet.result === "acceptor_win" ? acceptorName : null;
+  const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
   return <div className="ledger-row side-bet-ledger-row">
     {bet.result === "push" ? <span className="tie-icon" role="img" aria-label="Tie">👔</span> : <TeamLogo url={game && coveredTeam ? logoForTeam(game, coveredTeam) : null} name={coveredTeam || "Winner"} />}
     <div><strong>{otherName} vs {favoriteName} {spreadText(favoriteSpread)}</strong><p>{creatorName} vs {acceptorName} · {winnerName ? `${winnerName} Wins` : "Push"}</p></div>
-    <strong>{bet.result === "push" ? "$0" : stakeMoney(Number(bet.amount))}</strong>
+    <strong className={amountDisplay.tone}>{amountDisplay.text}</strong>
   </div>;
 }
 
