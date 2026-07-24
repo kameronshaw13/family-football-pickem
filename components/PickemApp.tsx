@@ -1068,7 +1068,26 @@ function RuleItem({ icon: Icon, title, children }: { icon: typeof Trophy; title:
 }
 
 function LoadingShell() {
-  return <div className="initial-loading" role="status" aria-label="Loading app"><LoaderCircle size={30} /></div>;
+  const loadingNav = [
+    { label: "Picks", icon: Zap },
+    { label: "My Card", icon: WalletCards },
+    { label: "Standings", icon: Trophy },
+    { label: "Rules", icon: Shield }
+  ];
+
+  return <div className="app-shell loading-shell">
+    <header className="scoreboard-header">
+      <div className="scoreboard-main">
+        <div className="brand-lockup"><img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" width={800} height={96} /></div>
+      </div>
+    </header>
+    <nav className="primary-nav" aria-label="Main navigation">
+      <div className="primary-nav-inner">
+        {loadingNav.map((item, index) => <button type="button" key={item.label} className={index === 0 ? "active" : ""} disabled><span className="nav-icon"><item.icon size={19} /></span><span>{item.label}</span></button>)}
+      </div>
+    </nav>
+    <main className="initial-loading" role="status" aria-label="Loading app"><LoaderCircle size={30} /></main>
+  </div>;
 }
 
 function SideBetCenter({ view, setView, currentUser, profiles, sideBets, acceptedCounts, openGames, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, setGame, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
