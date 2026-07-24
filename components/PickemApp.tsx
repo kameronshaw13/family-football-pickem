@@ -191,11 +191,14 @@ function dogLineText(game: Game, team: string) {
   return `${spreadText(spread)} = +${value}W`;
 }
 
+function weekdayAbbreviation(iso: string) {
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/Chicago" }).format(new Date(iso)).slice(0, 3).toUpperCase();
+}
 function dt(iso: string) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
+  return `${weekdayAbbreviation(iso)} ${timeText(iso)}`;
 }
 function closeText(iso: string) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
+  return dt(iso);
 }
 function openText(iso: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -240,9 +243,7 @@ function gameDayShort(iso: string) {
   return new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
 }
 function lockText(iso: string) {
-  const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
-  const labels: Record<string, string> = { TUESDAY: "TUES", WEDNESDAY: "WED", THURSDAY: "THURS" };
-  return `${labels[weekday] || weekday.slice(0, 3)} ${timeText(iso)}`;
+  return `${weekdayAbbreviation(iso)} ${timeText(iso)}`;
 }
 function spreadForTeam(game: Game, team: string) {
   return spreadText(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
@@ -477,6 +478,7 @@ export default function PickemApp() {
   const [message, setMessage] = useState("");
   const [savingPicks, setSavingPicks] = useState(false);
   const [savingBet, setSavingBet] = useState(false);
+  const [savingBetId, setSavingBetId] = useState<string | null>(null);
   const [stagedPicks, setStagedPicks] = useState<Pick[] | null>(null);
   const [clock, setClock] = useState(() => Date.now());
   const [betGameId, setBetGameId] = useState("");
@@ -632,21 +634,27 @@ export default function PickemApp() {
       return false;
     }
     setSavingPicks(true);
-    const response = await fetch("/api/picks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ action: "saveCard", week: data?.week, picks: card.map((pick) => ({ gameId: pick.game_id, selectedTeam: pick.selected_team, pickType: pick.pick_type })) })
-    });
-    const payload = await response.json();
-    setSavingPicks(false);
-    if (!response.ok) {
-      notify(payload.error || "Picks could not be saved.", "error");
+    try {
+      const response = await fetch("/api/picks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "saveCard", week: data?.week, picks: card.map((pick) => ({ gameId: pick.game_id, selectedTeam: pick.selected_team, pickType: pick.pick_type })) })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        notify(payload.error || "Picks could not be saved.", "error");
+        return false;
+      }
+      await load(week);
+      setStagedPicks(null);
+      notify("Picks saved. They remain editable until each game locks.", "success");
+      return true;
+    } catch {
+      notify("Picks could not be saved.", "error");
       return false;
+    } finally {
+      setSavingPicks(false);
     }
-    setStagedPicks(null);
-    await load(week);
-    notify("Picks saved. They remain editable until each game locks.", "success");
-    return true;
   }
 
   async function postSideBet(body: any) {
@@ -656,15 +664,23 @@ export default function PickemApp() {
       return false;
     }
     setSavingBet(true);
-    const response = await fetch("/api/side-bets", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
-    const payload = await response.json();
-    setSavingBet(false);
-    if (!response.ok) {
-      notify(payload.error || "Side bet action failed.", "error");
+    setSavingBetId(body.sideBetId || null);
+    try {
+      const response = await fetch("/api/side-bets", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+      const payload = await response.json();
+      if (!response.ok) {
+        notify(payload.error || "Side bet action failed.", "error");
+        return false;
+      }
+      await load(week);
+      return true;
+    } catch {
+      notify("Side bet action failed.", "error");
       return false;
+    } finally {
+      setSavingBet(false);
+      setSavingBetId(null);
     }
-    await load(week);
-    return true;
   }
 
   if (loading) return <LoadingShell />;
@@ -901,6 +917,7 @@ export default function PickemApp() {
           amount={betAmount}
           recipients={betRecipients}
           saving={savingBet}
+          savingBetId={savingBetId}
           setGame={(gameId) => { setBetGameId(gameId); setBetCreatorTeam(""); }}
           setCreatorTeam={setBetCreatorTeam}
           setAmount={setBetAmount}
@@ -1051,19 +1068,10 @@ function RuleItem({ icon: Icon, title, children }: { icon: typeof Trophy; title:
 }
 
 function LoadingShell() {
-  return <div className="app-shell loading-shell">
-    <header className="scoreboard-header"><div className="scoreboard-main"><img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" width={800} height={96} /><div className="skeleton skeleton-week" /></div></header>
-    <main className="container">
-      <div className="skeleton skeleton-tabs" />
-      <div className="skeleton skeleton-filters" />
-      <div className="skeleton skeleton-day" />
-      {[0, 1, 2].map((item) => <div className="skeleton-game" key={item}><div className="skeleton skeleton-meta" /><div className="skeleton skeleton-team" /><div className="skeleton skeleton-team" /></div>)}
-    </main>
-    <nav className="primary-nav"><div className="primary-nav-inner">{[Zap, WalletCards, Trophy, Shield].map((Icon, index) => <span className="loading-nav-item" key={index}><Icon size={19} /><i /></span>)}</div></nav>
-  </div>;
+  return <div className="initial-loading" role="status" aria-label="Loading app"><LoaderCircle size={30} /></div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, acceptedCounts, openGames, selectedGame, selectedCreatorTeam, amount, recipients, saving, setGame, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, acceptedCounts, openGames, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, setGame, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
@@ -1076,6 +1084,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, accepte
   amount: string;
   recipients: string[];
   saving: boolean;
+  savingBetId: string | null;
   setGame: (value: string) => void;
   setCreatorTeam: (value: string) => void;
   setAmount: (value: string) => void;
@@ -1140,8 +1149,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, accepte
       </div>}
     </div>}
 
-    {view === "received" && <SideBetList bets={received} mode="received" currentUser={currentUser} empty="No offers sent to you yet." saving={saving} canAccept={!limitReached} requestAccept={setConfirmingBetId} respond={respond} />}
-    {view === "sent" && <SideBetList bets={sent} mode="sent" currentUser={currentUser} empty="You have not sent any offers yet." saving={saving} canAccept={!limitReached} requestAccept={setConfirmingBetId} respond={respond} />}
+    {view === "received" && <SideBetList bets={received} mode="received" currentUser={currentUser} empty="No offers sent to you yet." saving={saving} savingBetId={savingBetId} canAccept={!limitReached} requestAccept={setConfirmingBetId} respond={respond} />}
+    {view === "sent" && <SideBetList bets={sent} mode="sent" currentUser={currentUser} empty="You have not sent any offers yet." saving={saving} savingBetId={savingBetId} canAccept={!limitReached} requestAccept={setConfirmingBetId} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop">
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title">
@@ -1158,12 +1167,12 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, accepte
   </div>;
 }
 
-function SideBetList({ bets, mode, currentUser, empty, saving, canAccept, requestAccept, respond }: { bets: SideBet[]; mode: "received" | "sent"; currentUser: Profile; empty: string; saving: boolean; canAccept: boolean; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
+function SideBetList({ bets, mode, currentUser, empty, saving, savingBetId, canAccept, requestAccept, respond }: { bets: SideBet[]; mode: "received" | "sent"; currentUser: Profile; empty: string; saving: boolean; savingBetId: string | null; canAccept: boolean; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
   const sorted = [...bets].sort((a, b) => Number(b.status === "open") - Number(a.status === "open") || new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  return <div className="side-bet-list">{!sorted.length && <div className="empty-state">{empty}</div>}{sorted.map((bet) => <SideBetCard key={bet.id} bet={bet} mode={mode} currentUser={currentUser} saving={saving} canAccept={canAccept} requestAccept={requestAccept} respond={respond} />)}</div>;
+  return <div className="side-bet-list">{!sorted.length && <div className="empty-state">{empty}</div>}{sorted.map((bet) => <SideBetCard key={bet.id} bet={bet} mode={mode} currentUser={currentUser} saving={saving} working={savingBetId === bet.id} canAccept={canAccept} requestAccept={requestAccept} respond={respond} />)}</div>;
 }
 
-function SideBetCard({ bet, mode, currentUser, saving, canAccept, requestAccept, respond }: { bet: SideBet; mode: "received" | "sent"; currentUser: Profile; saving: boolean; canAccept: boolean; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
+function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, requestAccept, respond }: { bet: SideBet; mode: "received" | "sent"; currentUser: Profile; saving: boolean; working: boolean; canAccept: boolean; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
   const game = bet.game;
   const creatorName = bet.creator?.display_name || "A player";
   const target = bet.targets?.find((row) => row.recipient_id === currentUser.id);
@@ -1206,15 +1215,15 @@ function SideBetCard({ bet, mode, currentUser, saving, canAccept, requestAccept,
     ? target?.response === "declined" || bet.status === "cancelled"
     : ["declined", "cancelled"].includes(bet.status);
 
-  return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""}`}>
+  return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""}`}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, creatorSideTeam) : null} name={creatorSideTeam} />
       <div className="side-bet-offer-copy"><strong>{matchupText}</strong><p>{actionFirst ? <><span className={`side-bet-response ${responseTone}`}>{responseAction}</span> {responseName}</> : <>{responseName} <span className={`side-bet-response ${responseTone}`}>{responseAction}</span></>} {offeredSideName} {spreadText(offeredSideSpread)}{game ? ` · ${dt(game.commence_time)}` : ""}</p></div>
       <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}>{amountDisplay.text}</strong>
     </div>
-    {mode === "received" && offerOpen && <div className="actions"><button className="btn accept" disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : "Limit reached"}</button><button className="btn secondary" disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
-    {mode === "sent" && bet.status === "open" && <div className="actions"><button className="btn secondary" disabled={saving} onClick={() => respond("cancel", bet.id)}><X size={15} /> Cancel offer</button></div>}
-    {canClearOffer && <div className="actions clear-offer-actions"><button className="btn secondary" disabled={saving} onClick={() => respond("clear", bet.id)}><Trash2 size={14} /> Clear</button></div>}
+    {mode === "received" && offerOpen && <div className="actions"><button className={`btn accept ${working ? "working" : ""}`} disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : "Limit reached"}</button><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
+    {mode === "sent" && bet.status === "open" && <div className="actions"><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("cancel", bet.id)}><X size={15} /> Cancel offer</button></div>}
+    {canClearOffer && <div className="actions clear-offer-actions"><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("clear", bet.id)}><Trash2 size={14} /> Clear</button></div>}
   </article>;
 }
 

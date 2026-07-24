@@ -280,6 +280,7 @@ fieldset .field-label { padding: 0; }
 .bet-line-summary > span:last-child { text-align: right; }
 .side-bet-card .actions { margin-top: 8px; }
 .side-bet-card .actions .btn { min-height: 36px; padding: 6px 10px; }
+.side-bet-card.background-busy .btn:disabled { opacity: 1; }
 .side-bet-card .clear-offer-actions { justify-content: flex-end; }
 .side-bet-card .clear-offer-actions .btn { min-height: 32px; padding: 4px 8px; }
 .confirmation-backdrop { position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-end; justify-content: center; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); background: rgba(20, 33, 43, .54); backdrop-filter: blur(3px); }
@@ -399,18 +400,8 @@ fieldset .field-label { padding: 0; }
 .error-card { border-left-color: var(--red); }
 .notice-card { border-left-color: var(--gold); }
 
-.skeleton { overflow: hidden; border-radius: 3px; background: var(--skeleton); }
-.skeleton::after, .skeleton-team::after { display: block; width: 42%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .65), transparent); animation: shimmer 1.2s infinite; content: ""; }
-.skeleton-week { width: 94px; height: 28px; background: rgba(255, 255, 255, .13); }
-.skeleton-tabs { height: 40px; margin-bottom: 8px; }
-.skeleton-filters { height: 35px; margin-bottom: 18px; }
-.skeleton-day { width: 130px; height: 12px; margin-bottom: 8px; }
-.skeleton-game { overflow: hidden; margin-bottom: 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
-.skeleton-meta { height: 32px; border-radius: 0; }
-.skeleton-team { position: relative; height: 53px; border-top: 1px solid var(--line); background: var(--canvas-muted); }
-.loading-nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--muted); }
-.loading-nav-item i { display: block; width: 35px; height: 6px; border-radius: 3px; background: var(--skeleton); }
-@keyframes shimmer { from { transform: translateX(-120%); } to { transform: translateX(340%); } }
+.initial-loading { display: grid; min-height: 100vh; min-height: 100dvh; place-items: center; color: var(--blue-dark); background: var(--canvas); }
+.initial-loading svg { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .login-screen { display: grid; min-height: 100vh; min-height: 100dvh; place-items: start center; padding: max(40px, env(safe-area-inset-top)) 14px 40px; background: var(--graphite); }
