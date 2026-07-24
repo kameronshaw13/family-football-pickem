@@ -239,7 +239,7 @@ function gameDayShort(iso: string) {
 }
 function lockText(iso: string) {
   const weekday = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
-  const labels: Record<string, string> = { TUESDAY: "TUES", WEDNESDAY: "WEDS", THURSDAY: "THURS" };
+  const labels: Record<string, string> = { TUESDAY: "TUES", WEDNESDAY: "WED", THURSDAY: "THURS" };
   return `${labels[weekday] || weekday.slice(0, 3)} ${timeText(iso)}`;
 }
 function spreadForTeam(game: Game, team: string) {
@@ -1129,7 +1129,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGam
           <div><span>You take</span><strong>{confirmingBet.game ? displayTeamName(confirmingBet.game, confirmingBet.offered_team) : confirmingBet.offered_team} {spreadText(Number(confirmingBet.offered_spread))}</strong></div>
           <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? displayTeamName(confirmingBet.game, confirmingBet.creator_team) : confirmingBet.creator_team} {spreadText(Number(confirmingBet.creator_spread))}</strong></div>
         </div>
-        {confirmingBet.game && <p className="confirmation-kickoff">Kickoff {dt(confirmingBet.game.commence_time)}</p>}
+        {confirmingBet.game && <p className="confirmation-kickoff">{dt(confirmingBet.game.commence_time)}</p>}
         <div className="confirmation-actions"><button className="btn secondary" disabled={saving} onClick={() => setConfirmingBetId(null)}>Cancel</button><button className="btn accept" disabled={saving} onClick={acceptConfirmedBet}><Check size={16} /> {saving ? "Accepting…" : "Accept bet"}</button></div>
       </section>
     </div>}
@@ -1147,20 +1147,39 @@ function SideBetCard({ bet, mode, currentUser, saving, requestAccept, respond }:
   const target = bet.targets?.find((row) => row.recipient_id === currentUser.id);
   const targetNames = bet.targets?.map((row) => row.recipient?.display_name).filter(Boolean).join(" or ") || "player";
   const offerOpen = bet.status === "open" && target?.response === "pending" && Boolean(game && new Date(game.commence_time) > new Date());
-  const status = bet.status === "open" && target?.response === "declined" ? "declined" : bet.status;
-  const offeredName = game ? displayTeamName(game, bet.offered_team) : bet.offered_team;
-  const creatorTeamName = game ? displayTeamName(game, bet.creator_team) : bet.creator_team;
-  const offerText = mode === "received"
-    ? `${creatorName} offered you ${offeredName} ${spreadText(Number(bet.offered_spread))} vs ${creatorTeamName}.`
-    : `${offeredName} ${spreadText(Number(bet.offered_spread))} vs ${creatorTeamName}`;
-  const sideDetail = mode === "sent"
-    ? `To ${targetNames} · You have ${creatorTeamName} ${spreadText(Number(bet.creator_spread))}`
-    : `${creatorName} has ${creatorTeamName} ${spreadText(Number(bet.creator_spread))}`;
+  const heldTeam = mode === "sent" ? bet.creator_team : bet.offered_team;
+  const heldSpread = Number(mode === "sent" ? bet.creator_spread : bet.offered_spread);
+  const heldName = game ? displayTeamName(game, heldTeam) : heldTeam;
+  const awayName = game ? displayTeamName(game, game.away_team) : "";
+  const homeName = game ? displayTeamName(game, game.home_team) : "";
+  const matchupText = !game
+    ? `${heldName} ${spreadText(heldSpread)}`
+    : heldTeam === game.away_team
+      ? `${awayName} ${spreadText(heldSpread)} at ${homeName}`
+      : `${awayName} at ${homeName} ${spreadText(heldSpread)}`;
+  const declinedTarget = bet.targets?.find((row) => row.response === "declined");
+  const acceptedName = bet.accepted_by_profile?.display_name;
+  const responseText = acceptedName
+    ? `${acceptedName} Accepted`
+    : declinedTarget
+      ? `${declinedTarget.recipient?.display_name || (declinedTarget.recipient_id === currentUser.id ? currentUser.display_name : "Player")} Declined`
+      : bet.status === "cancelled"
+        ? `${creatorName} Cancelled`
+        : bet.status === "expired"
+          ? `${mode === "sent" ? targetNames : currentUser.display_name} Expired`
+          : bet.status === "declined"
+            ? `${mode === "sent" ? targetNames : currentUser.display_name} Declined`
+            : mode === "sent"
+              ? `${targetNames} Pending`
+              : `${creatorName} Offered`;
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
 
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""}`}>
-    <p className="offer-statement inline-offer-statement"><span>{offerText}</span><strong className={amountDisplay.tone}>{amountDisplay.text}</strong></p>
-    <div className="bet-line-summary"><span className="bet-side-detail"><span className={`status-mark ${status}`}>{status}</span><span>{sideDetail}</span></span><span>{bet.accepted_by_profile ? `Accepted by ${bet.accepted_by_profile.display_name}` : game ? `Kickoff ${dt(game.commence_time)}` : ""}</span></div>
+    <div className="side-bet-offer-row">
+      <TeamLogo url={game ? logoForTeam(game, heldTeam) : null} name={heldTeam} />
+      <div className="side-bet-offer-copy"><strong>{matchupText}</strong><p>{responseText} · {currentUser.display_name} has {heldName} {spreadText(heldSpread)}{game ? ` · ${dt(game.commence_time)}` : ""}</p></div>
+      <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}>{amountDisplay.text}</strong>
+    </div>
     {mode === "received" && offerOpen && <div className="actions"><button className="btn accept" disabled={saving} onClick={() => requestAccept(bet.id)}><Check size={15} /> Review & accept</button><button className="btn secondary" disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
     {mode === "sent" && bet.status === "open" && <div className="actions"><button className="btn secondary" disabled={saving} onClick={() => respond("cancel", bet.id)}><X size={15} /> Cancel offer</button></div>}
   </article>;
