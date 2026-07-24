@@ -1172,12 +1172,17 @@ function SideBetCard({ bet, mode, currentUser, saving, requestAccept, respond }:
             : mode === "sent"
               ? `${targetNames} Pending`
               : `${creatorName} Offered`;
+  const responseTone = acceptedName
+    ? "accepted"
+    : declinedTarget || bet.status === "declined" || bet.status === "cancelled" || bet.status === "expired"
+      ? "declined"
+      : "pending";
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
 
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""}`}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, heldTeam) : null} name={heldTeam} />
-      <div className="side-bet-offer-copy"><strong>{matchupText}</strong><p>{responseText} · {currentUser.display_name} has {heldName} {spreadText(heldSpread)}{game ? ` · ${dt(game.commence_time)}` : ""}</p></div>
+      <div className="side-bet-offer-copy"><strong>{matchupText}</strong><p><span className={`side-bet-response ${responseTone}`}>{responseText}</span> {heldName} {spreadText(heldSpread)}{game ? ` · ${dt(game.commence_time)}` : ""}</p></div>
       <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}>{amountDisplay.text}</strong>
     </div>
     {mode === "received" && offerOpen && <div className="actions"><button className="btn accept" disabled={saving} onClick={() => requestAccept(bet.id)}><Check size={15} /> Review & accept</button><button className="btn secondary" disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
