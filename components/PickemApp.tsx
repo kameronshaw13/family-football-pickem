@@ -1077,11 +1077,13 @@ function SideBetLedgerRow({ bet }: { bet: SideBet }) {
   const favoriteTeam = Number(bet.creator_spread) < 0 ? bet.creator_team : Number(bet.offered_spread) < 0 ? bet.offered_team : bet.creator_team;
   const favoriteSpread = favoriteTeam === bet.creator_team ? Number(bet.creator_spread) : Number(bet.offered_spread);
   const favoriteName = game ? displayTeamName(game, favoriteTeam) : favoriteTeam;
+  const otherTeam = favoriteTeam === bet.creator_team ? bet.offered_team : bet.creator_team;
+  const otherName = game ? displayTeamName(game, otherTeam) : otherTeam;
   const coveredTeam = bet.result === "creator_win" ? bet.creator_team : bet.result === "acceptor_win" ? bet.offered_team : null;
   const winnerName = bet.result === "creator_win" ? creatorName : bet.result === "acceptor_win" ? acceptorName : null;
   return <div className="ledger-row side-bet-ledger-row">
     {bet.result === "push" ? <span className="tie-icon" role="img" aria-label="Tie">👔</span> : <TeamLogo url={game && coveredTeam ? logoForTeam(game, coveredTeam) : null} name={coveredTeam || "Winner"} />}
-    <div><strong>{favoriteName} {spreadText(favoriteSpread)}</strong><p>{creatorName} vs {acceptorName} · {winnerName ? `${winnerName} Wins` : "Push"}</p></div>
+    <div><strong>{otherName} vs {favoriteName} {spreadText(favoriteSpread)}</strong><p>{creatorName} vs {acceptorName} · {winnerName ? `${winnerName} Wins` : "Push"}</p></div>
     <strong>{bet.result === "push" ? "$0" : stakeMoney(Number(bet.amount))}</strong>
   </div>;
 }
