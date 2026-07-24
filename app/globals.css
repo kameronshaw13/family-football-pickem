@@ -40,6 +40,8 @@
   --bank-status: #e7eae7;
   --skeleton: #d9ddda;
   --rank-gold: #8a6a16;
+  --rank-silver: #68747a;
+  --rank-bronze: #965f35;
   --font-display: "Roboto Slab", Rockwell, Georgia, serif;
   --font-condensed: "Roboto Condensed", "Arial Narrow", Arial, sans-serif;
 }
@@ -95,6 +97,7 @@ p { margin: 0; }
 .section-tabs button.active { border-bottom-color: var(--blue); color: var(--ink); }
 .picks-panel > .section-tabs, .card-panel > .section-tabs, .standings-panel > .section-tabs { display: grid; height: 44px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0 calc(var(--page-gutter) * -1) var(--space-3); padding-inline: var(--page-gutter); background: var(--canvas); }
 .picks-panel > .section-tabs, .card-panel > .section-tabs, .standings-panel > .section-tabs { position: sticky; top: calc(env(safe-area-inset-top) + var(--header-height)); z-index: 14; }
+.standings-panel > .section-tabs { margin-bottom: 0; }
 .picks-panel > .section-tabs button, .card-panel > .section-tabs button, .standings-panel > .section-tabs button { width: 100%; text-align: center; }
 .section-title { display: flex; align-items: flex-start; gap: var(--space-2); margin: var(--space-1) 0 var(--space-4); }
 .section-title > svg { flex: 0 0 auto; margin-top: 2px; color: var(--blue-dark); }
@@ -283,7 +286,10 @@ fieldset .field-label { padding: 0; }
 .leaderboard-row { min-height: 58px; padding: 8px 11px; border-top: 1px solid var(--line); }
 .leaderboard-labels > span, .leaderboard-row > span, .leaderboard-row > strong, .leaderboard-player { display: flex; height: 100%; align-items: center; justify-content: center; line-height: 1.2; text-align: center; }
 .leaderboard-labels span:nth-child(2), .leaderboard-player { justify-content: flex-start; text-align: left; }
-.leaderboard-rank { font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif; font-size: 20px; font-weight: 400; line-height: 1; }
+.leaderboard-rank { color: var(--muted); font-family: var(--font-display); font-size: 15px; font-weight: 900; line-height: 1; }
+.leaderboard-rank.rank-1, .bank-result-rank.rank-1 { color: var(--rank-gold); }
+.leaderboard-rank.rank-2, .bank-result-rank.rank-2 { color: var(--rank-silver); }
+.leaderboard-rank.rank-3, .bank-result-rank.rank-3 { color: var(--rank-bronze); }
 .leaderboard-player { min-width: 0; }
 .leaderboard-player strong { display: block; overflow: hidden; font-size: 15px; line-height: 1.2; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 .leaderboard-stat { color: var(--ink-soft); font-family: var(--font-display); font-size: 13px; font-variant-numeric: tabular-nums; text-align: center; }
@@ -319,7 +325,7 @@ fieldset .field-label { padding: 0; }
 .bank-player-result > summary > svg { color: var(--muted); transition: transform .18s ease; }
 .bank-player-result[open] > summary { border-bottom: 1px solid var(--line-strong); }
 .bank-player-result[open] > summary > svg { transform: rotate(180deg); }
-.bank-result-rank { font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif; font-size: 19px; font-weight: 400; line-height: 1; text-align: center; }
+.bank-result-rank { color: var(--muted); font-family: var(--font-display); font-size: 14px; font-weight: 900; line-height: 1; text-align: center; }
 .bank-result-record { min-width: 48px; font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-result-amount { font-family: var(--font-display); font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-player-result > .muted { margin: 0; padding: 11px 12px; background: var(--panel); }
