@@ -1147,16 +1147,19 @@ function SideBetCard({ bet, mode, currentUser, saving, requestAccept, respond }:
   const target = bet.targets?.find((row) => row.recipient_id === currentUser.id);
   const targetNames = bet.targets?.map((row) => row.recipient?.display_name).filter(Boolean).join(" or ") || "player";
   const offerOpen = bet.status === "open" && target?.response === "pending" && Boolean(game && new Date(game.commence_time) > new Date());
-  const heldTeam = bet.offered_team;
-  const heldSpread = Number(bet.offered_spread);
-  const heldName = game ? displayTeamName(game, heldTeam) : heldTeam;
+  const creatorSideTeam = bet.creator_team;
+  const creatorSideSpread = Number(bet.creator_spread);
+  const creatorSideName = game ? displayTeamName(game, creatorSideTeam) : creatorSideTeam;
+  const offeredSideTeam = bet.offered_team;
+  const offeredSideSpread = Number(bet.offered_spread);
+  const offeredSideName = game ? displayTeamName(game, offeredSideTeam) : offeredSideTeam;
   const awayName = game ? displayTeamName(game, game.away_team) : "";
   const homeName = game ? displayTeamName(game, game.home_team) : "";
   const matchupText = !game
-    ? `${heldName} ${spreadText(heldSpread)}`
-    : heldTeam === game.away_team
-      ? `${awayName} ${spreadText(heldSpread)} at ${homeName}`
-      : `${awayName} at ${homeName} ${spreadText(heldSpread)}`;
+    ? `${creatorSideName} ${spreadText(creatorSideSpread)}`
+    : creatorSideTeam === game.away_team
+      ? `${awayName} ${spreadText(creatorSideSpread)} at ${homeName}`
+      : `${awayName} at ${homeName} ${spreadText(creatorSideSpread)}`;
   const declinedTarget = bet.targets?.find((row) => row.response === "declined");
   const acceptedName = bet.accepted_by_profile?.display_name;
   const responseName = acceptedName ||
@@ -1180,8 +1183,8 @@ function SideBetCard({ bet, mode, currentUser, saving, requestAccept, respond }:
 
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""}`}>
     <div className="side-bet-offer-row">
-      <TeamLogo url={game ? logoForTeam(game, heldTeam) : null} name={heldTeam} />
-      <div className="side-bet-offer-copy"><strong>{matchupText}</strong><p>{actionFirst ? <><span className={`side-bet-response ${responseTone}`}>{responseAction}</span> {responseName}</> : <>{responseName} <span className={`side-bet-response ${responseTone}`}>{responseAction}</span></>} {heldName} {spreadText(heldSpread)}{game ? ` · ${dt(game.commence_time)}` : ""}</p></div>
+      <TeamLogo url={game ? logoForTeam(game, creatorSideTeam) : null} name={creatorSideTeam} />
+      <div className="side-bet-offer-copy"><strong>{matchupText}</strong><p>{actionFirst ? <><span className={`side-bet-response ${responseTone}`}>{responseAction}</span> {responseName}</> : <>{responseName} <span className={`side-bet-response ${responseTone}`}>{responseAction}</span></>} {offeredSideName} {spreadText(offeredSideSpread)}{game ? ` · ${dt(game.commence_time)}` : ""}</p></div>
       <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}>{amountDisplay.text}</strong>
     </div>
     {mode === "received" && offerOpen && <div className="actions"><button className="btn accept" disabled={saving} onClick={() => requestAccept(bet.id)}><Check size={15} /> Review & accept</button><button className="btn secondary" disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
