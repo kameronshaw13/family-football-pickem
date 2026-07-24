@@ -281,7 +281,7 @@ function buildTestWeek(profiles: Profile[]) {
       away_team: "Dallas Cowboys", home_team: "Kansas City Chiefs",
       away_logo_url: "https://a.espncdn.com/i/teamlogos/nfl/500/6.png", home_logo_url: "https://a.espncdn.com/i/teamlogos/nfl/500/12.png",
       current_spread_team: "Kansas City Chiefs", current_spread: -3, current_bookmaker: "Test line",
-      lock_time: "2026-09-11T23:00:00.000Z", is_locked: true, final_away_score: 24, final_home_score: 30
+      lock_time: "2026-09-11T23:00:00.000Z", is_locked: true, final_away_score: 24, final_home_score: 29
     },
     {
       id: "test-texas-ohio-state", week: 3, league: "CFB", commence_time: "2026-09-13T19:30:00.000Z",
@@ -324,7 +324,7 @@ function buildTestWeek(profiles: Profile[]) {
     [
       { id: "iowa", gameId: "test-iowa-rutgers", team: "Iowa Hawkeyes", spread: -7.5, matchup: "Rutgers at Iowa", finalScore: "17-27", result: "win" },
       { id: "unc", gameId: "test-unc-tcu", team: "North Carolina Tar Heels", spread: 6.5, matchup: "North Carolina at TCU", finalScore: "24-27", result: "win" },
-      { id: "chiefs", gameId: "test-cowboys-chiefs", team: "Kansas City Chiefs", spread: -3, matchup: "Cowboys at Chiefs", finalScore: "24-30", result: "win" },
+      { id: "chiefs", gameId: "test-cowboys-chiefs", team: "Kansas City Chiefs", spread: -3, matchup: "Cowboys at Chiefs", finalScore: "24-29", result: "win" },
       { id: "ohio-state", gameId: "test-texas-ohio-state", team: "Ohio State Buckeyes", spread: -10.5, matchup: "Texas at Ohio State", finalScore: "17-31", result: "win" },
       { id: "patriots", gameId: "test-seahawks-patriots", team: "New England Patriots", spread: -2.5, matchup: "Seahawks at Patriots", finalScore: "20-23", result: "win" },
       { id: "stanford-dog", gameId: "test-stanford-usc", team: "Stanford Cardinal", spread: 10.5, matchup: "Stanford at USC", finalScore: "24-21", result: "win", dogValue: 2 }
@@ -332,7 +332,7 @@ function buildTestWeek(profiles: Profile[]) {
     [
       { id: "iowa", gameId: "test-iowa-rutgers", team: "Iowa Hawkeyes", spread: -7.5, matchup: "Rutgers at Iowa", finalScore: "17-27", result: "win" },
       { id: "unc", gameId: "test-unc-tcu", team: "North Carolina Tar Heels", spread: 6.5, matchup: "North Carolina at TCU", finalScore: "24-27", result: "win" },
-      { id: "chiefs", gameId: "test-cowboys-chiefs", team: "Kansas City Chiefs", spread: -3, matchup: "Cowboys at Chiefs", finalScore: "24-30", result: "win" },
+      { id: "chiefs", gameId: "test-cowboys-chiefs", team: "Kansas City Chiefs", spread: -3, matchup: "Cowboys at Chiefs", finalScore: "24-29", result: "win" },
       { id: "ohio-state", gameId: "test-texas-ohio-state", team: "Ohio State Buckeyes", spread: -10.5, matchup: "Texas at Ohio State", finalScore: "17-31", result: "win" },
       { id: "patriots", gameId: "test-seahawks-patriots", team: "New England Patriots", spread: -2.5, matchup: "Seahawks at Patriots", finalScore: "20-23", result: "win" },
       { id: "hawaii-dog", gameId: "test-hawaii-oregon", team: "Hawaii Rainbow Warriors", spread: 20.5, matchup: "Hawaii at Oregon", finalScore: "14-38", result: "loss", dogValue: 3 }
@@ -340,7 +340,7 @@ function buildTestWeek(profiles: Profile[]) {
     [
       { id: "iowa", gameId: "test-iowa-rutgers", team: "Iowa Hawkeyes", spread: -7.5, matchup: "Rutgers at Iowa", finalScore: "17-27", result: "win" },
       { id: "tcu", gameId: "test-unc-tcu", team: "TCU Horned Frogs", spread: -6.5, matchup: "North Carolina at TCU", finalScore: "24-27", result: "loss" },
-      { id: "cowboys", gameId: "test-cowboys-chiefs", team: "Dallas Cowboys", spread: 3, matchup: "Cowboys at Chiefs", finalScore: "24-30", result: "loss" },
+      { id: "cowboys", gameId: "test-cowboys-chiefs", team: "Dallas Cowboys", spread: 3, matchup: "Cowboys at Chiefs", finalScore: "24-29", result: "loss" },
       { id: "ohio-state", gameId: "test-texas-ohio-state", team: "Ohio State Buckeyes", spread: -10.5, matchup: "Texas at Ohio State", finalScore: "17-31", result: "win" },
       { id: "ucla", gameId: "test-ucla-oregon", team: "UCLA Bruins", spread: 7, matchup: "UCLA at Oregon", finalScore: "21-28", result: "push" },
       { id: "hawaii-dog", gameId: "test-hawaii-oregon", team: "Hawaii Rainbow Warriors", spread: 20.5, matchup: "Hawaii at Oregon", finalScore: "14-38", result: "loss", dogValue: 3 }
@@ -384,10 +384,10 @@ function buildTestWeek(profiles: Profile[]) {
     creator_id: profiles[0].id,
     game_id: "test-cowboys-chiefs",
     week: 3,
-    creator_team: "Kansas City Chiefs",
-    offered_team: "Dallas Cowboys",
-    creator_spread: -3,
-    offered_spread: 3,
+    creator_team: "Dallas Cowboys",
+    offered_team: "Kansas City Chiefs",
+    creator_spread: 6,
+    offered_spread: -6,
     amount: 25,
     status: "settled",
     accepted_by: profiles[1].id,
@@ -783,7 +783,7 @@ export default function PickemApp() {
             {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
           </div>
           <div className="subsection bank-section"><div className="bank-section-heading"><h3>{previewActive ? "Completed week" : `Week ${viewedWeek}`} results</h3></div><BankWeekResults rows={bankWeekStandings} picks={viewedPicks} games={viewedGames} /></div>
-          <div className="subsection bank-section"><div className="bank-section-heading"><h3>Side bet ledger</h3></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
+          <div className="subsection bank-section"><div className="bank-section-heading"><h3>Side bet ledger</h3></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} />)}</div></div>
           {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setFilter("PAST"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview completed week</strong><small>See final Picks, My Card, standings, and settlement</small></span><ChevronRight size={17} /></button>}
         </>}
       </section>}
@@ -997,10 +997,19 @@ function SideBetCard({ bet, mode, currentUser, saving, requestAccept, respond }:
   </article>;
 }
 
-function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Profile }) {
-  const participant = bet.creator_id === currentUser.id || bet.accepted_by === currentUser.id;
-  const delta = bet.result === "push" || !participant ? 0 : bet.winner_id === currentUser.id ? Number(bet.amount) : -Number(bet.amount);
-  return <div className="ledger-row"><div><strong>{bet.game ? `${displayTeamName(bet.game, bet.offered_team)} ${spreadText(Number(bet.offered_spread))}` : "Side bet"}</strong><p>{bet.creator?.display_name} vs {bet.accepted_by_profile?.display_name} · {bet.result.replaceAll("_", " ")}</p></div>{participant && <strong className={delta > 0 ? "money-pos" : delta < 0 ? "money-neg" : ""}>{money(delta)}</strong>}</div>;
+function SideBetLedgerRow({ bet }: { bet: SideBet }) {
+  const game = bet.game;
+  const creatorName = bet.creator?.display_name || "Player";
+  const acceptorName = bet.accepted_by_profile?.display_name || "Opponent";
+  const creatorTeam = game ? displayTeamName(game, bet.creator_team) : bet.creator_team;
+  const offeredTeam = game ? displayTeamName(game, bet.offered_team) : bet.offered_team;
+  const coveredTeam = bet.result === "creator_win" ? bet.creator_team : bet.result === "acceptor_win" ? bet.offered_team : null;
+  const winnerName = bet.result === "creator_win" ? creatorName : bet.result === "acceptor_win" ? acceptorName : null;
+  return <div className="ledger-row side-bet-ledger-row">
+    <TeamLogo url={game && coveredTeam ? logoForTeam(game, coveredTeam) : null} name={coveredTeam || "Push"} />
+    <div><strong>{creatorTeam} {spreadText(Number(bet.creator_spread))} vs {offeredTeam} {spreadText(Number(bet.offered_spread))}</strong><p>{creatorName} vs {acceptorName} · {winnerName ? `${winnerName} Wins` : "Push"}</p></div>
+    <strong>{stakeMoney(Number(bet.amount))}</strong>
+  </div>;
 }
 
 function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; picks: Pick[]; filter: Filter; weekIsOpen: boolean; addPick: (game: Game, team: string, pickType: PickType) => void }) {
@@ -1106,7 +1115,7 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const lockStatus = !game ? "lock time unavailable" : final ? "" : `locks ${cardLockText(game.lock_time)}`;
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{matchupText}{lockStatus ? ` · ${lockStatus}` : ""}</p></div><div className="pick-row-actions">{final && <span className="pick-lock-mark" aria-label="Locked"><Lock size={16} /></span>}{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !final && <span className="badge open">editable</span>}{!final && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{matchupText}{final ? <span className="inline-lock" aria-label="Locked"> · <Lock size={12} /></span> : lockStatus ? ` · ${lockStatus}` : ""}</p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !final && <span className="badge open">editable</span>}{!final && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
@@ -1119,5 +1128,5 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
   const matchup = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable";
   const lockStatus = !game ? "lock time unavailable" : final ? "" : `locks ${cardLockText(game.lock_time)}`;
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</strong><p>{matchup}{lockStatus ? ` · ${lockStatus}` : ""}</p></div><div className="visible-pick-actions">{final && <span className="pick-lock-mark" aria-label="Locked"><Lock size={16} /></span>}{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !final && <span className="badge open">editable</span>}</div></div>;
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</strong><p>{matchup}{final ? <span className="inline-lock" aria-label="Locked"> · <Lock size={12} /></span> : lockStatus ? ` · ${lockStatus}` : ""}</p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !final && <span className="badge open">editable</span>}</div></div>;
 }

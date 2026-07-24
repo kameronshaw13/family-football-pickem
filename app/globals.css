@@ -179,7 +179,8 @@ p { margin: 0; }
 .pick-row-actions { display: flex; flex: 0 0 auto; align-items: flex-start; gap: 7px; }
 .visible-pick-actions { display: flex; align-items: center; gap: 5px; }
 .pick-row-actions .badge.pick-result-win, .pick-row-actions .badge.pick-result-loss, .pick-row-actions .badge.pick-result-push, .visible-pick-actions .badge.pick-result-win, .visible-pick-actions .badge.pick-result-loss, .visible-pick-actions .badge.pick-result-push { min-width: 26px; min-height: 26px; font-size: 12px; }
-.pick-lock-mark { display: grid; width: 26px; height: 26px; flex: 0 0 26px; place-items: center; color: var(--blue-dark); }
+.inline-lock { display: inline-flex; align-items: center; color: var(--blue-dark); vertical-align: -2px; white-space: nowrap; }
+.inline-lock svg { margin-left: 2px; }
 .icon-btn { display: grid; width: 29px; height: 29px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: transparent; }
 .pick-title { font-size: 15px; font-weight: 800; }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
@@ -333,6 +334,12 @@ fieldset .field-label { padding: 0; }
 .ledger-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 12px; background: var(--panel); }
 .ledger-row strong { font-size: 13px; }
 .ledger-row p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: capitalize; }
+.ledger-row.side-bet-ledger-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 9px; }
+.side-bet-ledger-row .team-logo { width: 30px; height: 30px; }
+.side-bet-ledger-row > div { min-width: 0; }
+.side-bet-ledger-row > div strong, .side-bet-ledger-row > div p { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-bet-ledger-row > div p { text-transform: none; }
+.side-bet-ledger-row > strong:last-child { font-family: var(--font-display); font-size: 15px; }
 .ledger-list > .muted { margin: 0; padding: 13px 14px; background: var(--panel); }
 
 .rules-panel { display: grid; }
