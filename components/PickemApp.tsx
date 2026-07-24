@@ -15,6 +15,14 @@ type StandingsView = "standings" | "bank";
 type BetView = "new" | "received" | "sent";
 type Filter = "CFB" | "NFL" | "DOGS" | "PAST";
 type Toast = { message: string; tone: "success" | "error" | "info" } | null;
+type LiveScoreUpdate = {
+  id: string;
+  live_home_score?: number | null;
+  live_away_score?: number | null;
+  live_status?: string | null;
+  live_state?: string | null;
+  live_completed?: boolean;
+};
 type TestPickRow = {
   id: string;
   gameId: string;
@@ -199,6 +207,23 @@ function openText(iso: string) {
 }
 function cardLockText(iso: string) {
   return closeText(iso).replace(",", "");
+}
+function cardGameStateText(game: Game, locked: boolean) {
+  if (game.final_away_score != null && game.final_home_score != null) {
+    return `Final ${game.final_away_score}-${game.final_home_score}`;
+  }
+  if ((game.live_completed || game.live_state === "post") && game.live_away_score != null && game.live_home_score != null) {
+    return `Final ${game.live_away_score}-${game.live_home_score}`;
+  }
+  if (locked) {
+    if (new Date(game.commence_time) > new Date()) return `Starts ${dt(game.commence_time)}`;
+    if (game.live_state === "in" && game.live_away_score != null && game.live_home_score != null) {
+      return `Live ${game.live_away_score}-${game.live_home_score}${game.live_status ? ` · ${game.live_status}` : ""}`;
+    }
+    if (game.live_status) return game.live_status;
+    return "Live score updating";
+  }
+  return `locks ${cardLockText(game.lock_time)}`;
 }
 function timeText(iso: string) {
   return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
@@ -432,13 +457,21 @@ export default function PickemApp() {
   const [savingPicks, setSavingPicks] = useState(false);
   const [savingBet, setSavingBet] = useState(false);
   const [stagedPicks, setStagedPicks] = useState<Pick[] | null>(null);
-  const [, setClock] = useState(() => Date.now());
+  const [clock, setClock] = useState(() => Date.now());
   const [betGameId, setBetGameId] = useState("");
   const [betCreatorTeam, setBetCreatorTeam] = useState("");
   const [betAmount, setBetAmount] = useState("20");
   const [betRecipients, setBetRecipients] = useState<string[]>([]);
   const [toast, setToast] = useState<Toast>(null);
   const [testWeekActive, setTestWeekActive] = useState(false);
+  const hasActiveGames = Boolean(data?.games.some((game) => {
+    const start = new Date(game.commence_time).getTime();
+    return game.final_home_score == null &&
+      game.final_away_score == null &&
+      !game.live_completed &&
+      start <= clock &&
+      start >= clock - 12 * 60 * 60 * 1000;
+  }));
 
   async function load(nextWeek = week) {
     const isInitialLoad = data === null;
@@ -478,6 +511,46 @@ export default function PickemApp() {
     const timer = window.setInterval(() => setClock(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
+  useEffect(() => {
+    if (week == null || !hasActiveGames) return;
+    let cancelled = false;
+
+    async function refreshLiveScores() {
+      const token = window.localStorage.getItem("pickem_session_token");
+      if (!token) return;
+      try {
+        const response = await fetch(`/api/live-scores?week=${week}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store"
+        });
+        if (!response.ok) return;
+        const payload = await response.json() as { games?: LiveScoreUpdate[] };
+        if (cancelled || !payload.games?.length) return;
+        const scoresById = new Map(payload.games.map((game) => [game.id, game]));
+        setData((current) => current ? {
+          ...current,
+          games: current.games.map((game) => {
+            const score = scoresById.get(game.id);
+            return score ? { ...game, ...score } : game;
+          })
+        } : current);
+      } catch {
+        // Keep the last known score visible through brief network interruptions.
+      }
+    }
+
+    void refreshLiveScores();
+    const timer = window.setInterval(refreshLiveScores, 20_000);
+    const refreshOnResume = () => void refreshLiveScores();
+    window.addEventListener("focus", refreshOnResume);
+    window.addEventListener("online", refreshOnResume);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshOnResume);
+      window.removeEventListener("online", refreshOnResume);
+    };
+  }, [hasActiveGames, week]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 3200);
@@ -835,7 +908,7 @@ function BankWeekResults({ rows, picks, games }: { rows: Array<Standing & { rank
         const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
-          <div><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</strong><p>{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable"}</p></div>
+          <div><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</strong><p>{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)} · ${cardGameStateText(game, true)}` : "Matchup unavailable"}</p></div>
           <span className={`test-result ${pick.result}`}>{resultLabel}</span>
         </div>;
       })}
@@ -1001,20 +1074,24 @@ function SideBetLedgerRow({ bet }: { bet: SideBet }) {
   const game = bet.game;
   const creatorName = bet.creator?.display_name || "Player";
   const acceptorName = bet.accepted_by_profile?.display_name || "Opponent";
-  const creatorTeam = game ? displayTeamName(game, bet.creator_team) : bet.creator_team;
-  const offeredTeam = game ? displayTeamName(game, bet.offered_team) : bet.offered_team;
+  const favoriteTeam = Number(bet.creator_spread) < 0 ? bet.creator_team : Number(bet.offered_spread) < 0 ? bet.offered_team : bet.creator_team;
+  const favoriteSpread = favoriteTeam === bet.creator_team ? Number(bet.creator_spread) : Number(bet.offered_spread);
+  const favoriteName = game ? displayTeamName(game, favoriteTeam) : favoriteTeam;
   const coveredTeam = bet.result === "creator_win" ? bet.creator_team : bet.result === "acceptor_win" ? bet.offered_team : null;
   const winnerName = bet.result === "creator_win" ? creatorName : bet.result === "acceptor_win" ? acceptorName : null;
   return <div className="ledger-row side-bet-ledger-row">
-    <TeamLogo url={game && coveredTeam ? logoForTeam(game, coveredTeam) : null} name={coveredTeam || "Push"} />
-    <div><strong>{creatorTeam} {spreadText(Number(bet.creator_spread))} vs {offeredTeam} {spreadText(Number(bet.offered_spread))}</strong><p>{creatorName} vs {acceptorName} · {winnerName ? `${winnerName} Wins` : "Push"}</p></div>
-    <strong>{stakeMoney(Number(bet.amount))}</strong>
+    {bet.result === "push" ? <span className="tie-icon" role="img" aria-label="Tie">👔</span> : <TeamLogo url={game && coveredTeam ? logoForTeam(game, coveredTeam) : null} name={coveredTeam || "Winner"} />}
+    <div><strong>{favoriteName} {spreadText(favoriteSpread)}</strong><p>{creatorName} vs {acceptorName} · {winnerName ? `${winnerName} Wins` : "Push"}</p></div>
+    <strong>{bet.result === "push" ? "$0" : stakeMoney(Number(bet.amount))}</strong>
   </div>;
 }
 
 function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; picks: Pick[]; filter: Filter; weekIsOpen: boolean; addPick: (game: Game, team: string, pickType: PickType) => void }) {
   const closed = isClosed(game) || !weekIsOpen;
   const hasFinalScore = game.final_away_score != null && game.final_home_score != null;
+  const hasLiveScore = game.live_state !== "pre" && game.live_away_score != null && game.live_home_score != null;
+  const hasScore = hasFinalScore || hasLiveScore;
+  const gameIsFinal = hasFinalScore || Boolean(game.live_completed) || game.live_state === "post";
   const existing = picks.find((p) => p.game_id === game.id);
   const selectType: PickType = filter === "DOGS" ? "underdog" : "regular";
   const existingMatchesView = filter === "PAST" ? Boolean(existing) : existing?.pick_type === selectType;
@@ -1023,7 +1100,11 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
   const homeDogValue = teamDogValue(game, game.home_team);
 
   function sideLine(team: string) {
-    if (filter === "PAST" && hasFinalScore) return String(team === game.away_team ? game.final_away_score : game.final_home_score);
+    if (filter === "PAST" && hasScore) {
+      const awayScore = hasFinalScore ? game.final_away_score : game.live_away_score;
+      const homeScore = hasFinalScore ? game.final_home_score : game.live_home_score;
+      return String(team === game.away_team ? awayScore : homeScore);
+    }
     if (filter === "DOGS") return dogLineText(game, team);
     return spreadForTeam(game, team);
   }
@@ -1051,7 +1132,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
 
   return <article className={`game-card matchup-card filter-${filter.toLowerCase()} ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""}`}>
     <div className="game-head compact-game-head">
-      <div className="game-time-group"><span className="game-time">{timeText(game.commence_time)}</span>{hasFinalScore && <span className="badge final">Final</span>}</div>
+      <div className="game-time-group"><span className="game-time">{timeText(game.commence_time)}</span>{gameIsFinal && <span className="badge final">Final</span>}{!gameIsFinal && hasLiveScore && <span className="badge live">Live</span>}</div>
       {filter !== "PAST" && <div className="kick">Closes {lockText(game.lock_time)}</div>}
     </div>
 
@@ -1064,7 +1145,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
         <span className="team-name">{displayTeamName(game, game.away_team)}</span>
-        {!awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""} ${filter === "PAST" && hasFinalScore ? "final-score" : ""}`}><span>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span></span>}
+        {!awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""} ${filter === "PAST" && hasScore ? "final-score" : ""}`}><span>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span></span>}
       </button>
 
       <button
@@ -1075,7 +1156,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
         <span className="team-name">{displayTeamName(game, game.home_team)}</span>
-        {!homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""} ${filter === "PAST" && hasFinalScore ? "final-score" : ""}`}><span>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span></span>}
+        {!homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""} ${filter === "PAST" && hasScore ? "final-score" : ""}`}><span>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span></span>}
       </button>
     </div>
   </article>;
@@ -1108,25 +1189,25 @@ function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts:
 function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: Game[]; title: string; removePick: (p: Pick) => void }) {
   return <div className="pick-section"><h3>{title}</h3>{!picks.length && <p className="muted">None yet.</p>}{picks.map((pick) => {
     const game = games.find((g) => g.id === pick.game_id) || pick.game;
-    const final = pick.status === "locked" || Boolean(game && isClosed(game));
+    const locked = pick.status === "locked" || Boolean(game && isClosed(game));
     const graded = pick.result !== "pending";
     const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
     const matchupText = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable";
-    const lockStatus = !game ? "lock time unavailable" : final ? "" : `locks ${cardLockText(game.lock_time)}`;
+    const gameState = game ? cardGameStateText(game, locked) : "game status unavailable";
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{matchupText}{final ? <span className="inline-lock" aria-label="Locked"> · <Lock size={12} /></span> : lockStatus ? ` · ${lockStatus}` : ""}</p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !final && <span className="badge open">editable</span>}{!final && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</p><p className="pick-meta">{matchupText} · {gameState}</p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !locked && <span className="badge open">editable</span>}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
 
 function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const game = games.find((g) => g.id === pick.game_id) || pick.game;
-  const final = pick.status === "locked" || Boolean(game && isClosed(game));
+  const locked = pick.status === "locked" || Boolean(game && isClosed(game));
   const graded = pick.result !== "pending";
   const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
   const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
   const matchup = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable";
-  const lockStatus = !game ? "lock time unavailable" : final ? "" : `locks ${cardLockText(game.lock_time)}`;
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</strong><p>{matchup}{final ? <span className="inline-lock" aria-label="Locked"> · <Lock size={12} /></span> : lockStatus ? ` · ${lockStatus}` : ""}</p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !final && <span className="badge open">editable</span>}</div></div>;
+  const gameState = game ? cardGameStateText(game, locked) : "game status unavailable";
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</strong><p>{matchup} · {gameState}</p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !locked && <span className="badge open">editable</span>}</div></div>;
 }

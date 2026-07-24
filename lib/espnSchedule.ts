@@ -16,6 +16,8 @@ export type EspnScheduleGame = {
   completed: boolean;
   homeScore: number | null;
   awayScore: number | null;
+  statusDetail: string | null;
+  statusState: string | null;
   homeTeam: EspnTeam;
   awayTeam: EspnTeam;
 };
@@ -94,7 +96,7 @@ function compactDate(date: Date) {
   return `${year}${month}${day}`;
 }
 
-export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string[], fresh = false) {
+export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string[], freshness: boolean | number = false) {
   const parsedDates = dateHints.map((date) => new Date(date)).filter((date) => !Number.isNaN(date.getTime()));
   if (!parsedDates.length) return [];
 
@@ -108,9 +110,9 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
   url.searchParams.set("limit", "1000");
   url.searchParams.set("dates", `${compactDate(min)}-${compactDate(max)}`);
 
-  const response = await fetch(url.toString(), fresh
+  const response = await fetch(url.toString(), freshness === true
     ? { cache: "no-store" }
-    : { next: { revalidate: 60 * 60 } });
+    : { next: { revalidate: typeof freshness === "number" ? freshness : 60 * 60 } });
   if (!response.ok) throw new Error(`ESPN schedule failed for ${league}.`);
   const payload = await response.json();
 
@@ -127,6 +129,8 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
       completed: Boolean(competition?.status?.type?.completed),
       homeScore: scoreFromCompetitor(home),
       awayScore: scoreFromCompetitor(away),
+      statusDetail: competition?.status?.type?.shortDetail || competition?.status?.type?.detail || null,
+      statusState: competition?.status?.type?.state || null,
       homeTeam: teamFromCompetitor(home),
       awayTeam: teamFromCompetitor(away)
     }];

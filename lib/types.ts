@@ -19,6 +19,11 @@ export type Game = {
   is_locked: boolean;
   final_home_score: number | null;
   final_away_score: number | null;
+  live_home_score?: number | null;
+  live_away_score?: number | null;
+  live_status?: string | null;
+  live_state?: string | null;
+  live_completed?: boolean;
   created_at?: string;
   updated_at?: string;
 };

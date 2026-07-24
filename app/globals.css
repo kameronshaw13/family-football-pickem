@@ -120,6 +120,7 @@ p { margin: 0; }
 .badge.open { color: var(--green); background: var(--green-soft); }
 .badge.locked { color: var(--red); background: var(--red-soft); }
 .badge.final { color: #fff; background: var(--graphite-light); }
+.badge.live { color: #fff; background: var(--red); }
 .badge.pick-result-win { color: #fff; background: var(--green); }
 .badge.pick-result-loss { color: #fff; background: var(--red); }
 .badge.pick-result-push { color: var(--ink); background: var(--line-strong); }
@@ -179,8 +180,6 @@ p { margin: 0; }
 .pick-row-actions { display: flex; flex: 0 0 auto; align-items: flex-start; gap: 7px; }
 .visible-pick-actions { display: flex; align-items: center; gap: 5px; }
 .pick-row-actions .badge.pick-result-win, .pick-row-actions .badge.pick-result-loss, .pick-row-actions .badge.pick-result-push, .visible-pick-actions .badge.pick-result-win, .visible-pick-actions .badge.pick-result-loss, .visible-pick-actions .badge.pick-result-push { min-width: 26px; min-height: 26px; font-size: 12px; }
-.inline-lock { display: inline-flex; align-items: center; color: var(--blue-dark); vertical-align: -2px; white-space: nowrap; }
-.inline-lock svg { margin-left: 2px; }
 .icon-btn { display: grid; width: 29px; height: 29px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: transparent; }
 .pick-title { font-size: 15px; font-weight: 800; }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
@@ -336,6 +335,7 @@ fieldset .field-label { padding: 0; }
 .ledger-row p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: capitalize; }
 .ledger-row.side-bet-ledger-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 9px; }
 .side-bet-ledger-row .team-logo { width: 30px; height: 30px; }
+.tie-icon { display: grid; width: 30px; height: 30px; place-items: center; font-size: 22px; line-height: 1; }
 .side-bet-ledger-row > div { min-width: 0; }
 .side-bet-ledger-row > div strong, .side-bet-ledger-row > div p { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side-bet-ledger-row > div p { text-transform: none; }
