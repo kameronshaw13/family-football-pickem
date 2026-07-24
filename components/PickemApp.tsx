@@ -969,6 +969,12 @@ function SectionTabs({ items, value, onChange }: { items: Array<{ id: string; la
   return <div className="section-tabs">{items.map((item) => <button key={item.id} className={value === item.id ? "active" : ""} onClick={() => onChange(item.id)}>{item.label}</button>)}</div>;
 }
 
+function RankMedal({ rank, className }: { rank: number; className: string }) {
+  const medals: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+  const labels: Record<number, string> = { 1: "First place", 2: "Second place", 3: "Third place" };
+  return <span className={className} role={medals[rank] ? "img" : undefined} aria-label={labels[rank]}>{medals[rank] || rank}</span>;
+}
+
 function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null> }) {
   return <div className="bank-week-results">{rows.map((row, index) => {
     const playerPicks = picks
@@ -981,8 +987,9 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
         return new Date(gameA?.commence_time || 0).getTime() - new Date(gameB?.commence_time || 0).getTime();
       });
     const amount = amounts[row.user_id];
+    const rank = row.rank || index + 1;
     return <details className="bank-player-result" key={row.user_id}>
-      <summary><span className="bank-result-rank">{row.rank || index + 1}</span><strong>{row.display_name}</strong><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><ChevronDown size={16} /></summary>
+      <summary><RankMedal rank={rank} className="bank-result-rank" /><strong>{row.display_name}</strong><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><ChevronDown size={16} /></summary>
       {!playerPicks.length && <p className="muted">No visible picks yet.</p>}
       {playerPicks.map((pick) => {
         const game = games.find((item) => item.id === pick.game_id) || pick.game;
@@ -1007,14 +1014,17 @@ function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {
 
   return <div className="leaderboard">
     <div className="leaderboard-labels"><span>Rank</span><span>Player</span><span>W</span><span>L</span><span>P</span><span>Win %</span></div>
-    {rows.map((row, index) => <div className="leaderboard-row" key={row.user_id}>
-      <span className={`leaderboard-rank rank-${rankFor(index)}`}>{rankFor(index)}</span>
-      <div className="leaderboard-player"><strong>{row.display_name}</strong></div>
-      <span className="leaderboard-stat">{row.wins}</span>
-      <span className="leaderboard-stat">{row.losses}</span>
-      <span className="leaderboard-stat">{row.pushes}</span>
-      <strong className="leaderboard-pct">{pctText(row.win_pct)}</strong>
-    </div>)}
+    {rows.map((row, index) => {
+      const rank = rankFor(index);
+      return <div className="leaderboard-row" key={row.user_id}>
+        <RankMedal rank={rank} className={`leaderboard-rank rank-${rank}`} />
+        <div className="leaderboard-player"><strong>{row.display_name}</strong></div>
+        <span className="leaderboard-stat">{row.wins}</span>
+        <span className="leaderboard-stat">{row.losses}</span>
+        <span className="leaderboard-stat">{row.pushes}</span>
+        <strong className="leaderboard-pct">{pctText(row.win_pct)}</strong>
+      </div>;
+    })}
   </div>;
 }
 
