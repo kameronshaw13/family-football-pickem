@@ -1202,7 +1202,9 @@ function SideBetCard({ bet, mode, currentUser, saving, canAccept, requestAccept,
   const responseTone = responseAction === "Accepted" ? "accepted" : ["Declined", "Cancelled", "Expired"].includes(responseAction) ? "declined" : "pending";
   const actionFirst = responseAction === "Offered";
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
-  const canClearDeclined = mode === "received" ? target?.response === "declined" : bet.status === "declined";
+  const canClearOffer = mode === "received"
+    ? target?.response === "declined" || bet.status === "cancelled"
+    : ["declined", "cancelled"].includes(bet.status);
 
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""}`}>
     <div className="side-bet-offer-row">
@@ -1212,7 +1214,7 @@ function SideBetCard({ bet, mode, currentUser, saving, canAccept, requestAccept,
     </div>
     {mode === "received" && offerOpen && <div className="actions"><button className="btn accept" disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : "Limit reached"}</button><button className="btn secondary" disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
     {mode === "sent" && bet.status === "open" && <div className="actions"><button className="btn secondary" disabled={saving} onClick={() => respond("cancel", bet.id)}><X size={15} /> Cancel offer</button></div>}
-    {canClearDeclined && <div className="actions clear-offer-actions"><button className="btn secondary" disabled={saving} onClick={() => respond("clear", bet.id)}><Trash2 size={14} /> Clear</button></div>}
+    {canClearOffer && <div className="actions clear-offer-actions"><button className="btn secondary" disabled={saving} onClick={() => respond("clear", bet.id)}><Trash2 size={14} /> Clear</button></div>}
   </article>;
 }
 

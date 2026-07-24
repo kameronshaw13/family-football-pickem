@@ -91,13 +91,13 @@ export async function POST(req: NextRequest) {
 
     if (body.action === "clear") {
       if (sideBet.creator_id === auth.profile.id) {
-        if (sideBet.status !== "declined") return NextResponse.json({ ok: false, error: "Only declined offers can be cleared." }, { status: 409 });
-        const { error: deleteError } = await supabase.from("side_bets").delete().eq("id", sideBet.id).eq("creator_id", auth.profile.id).eq("status", "declined");
+        if (!["declined", "cancelled"].includes(sideBet.status)) return NextResponse.json({ ok: false, error: "Only declined or cancelled offers can be cleared." }, { status: 409 });
+        const { error: deleteError } = await supabase.from("side_bets").delete().eq("id", sideBet.id).eq("creator_id", auth.profile.id).in("status", ["declined", "cancelled"]);
         if (deleteError) return NextResponse.json({ ok: false, error: deleteError.message }, { status: 500 });
         return NextResponse.json({ ok: true });
       }
-      if (!target || target.response !== "declined") return NextResponse.json({ ok: false, error: "Only declined offers can be cleared." }, { status: 409 });
-      const { error: clearError } = await supabase.from("side_bet_targets").delete().eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id).eq("response", "declined");
+      if (!target || (target.response !== "declined" && sideBet.status !== "cancelled")) return NextResponse.json({ ok: false, error: "Only declined or cancelled offers can be cleared." }, { status: 409 });
+      const { error: clearError } = await supabase.from("side_bet_targets").delete().eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id);
       if (clearError) return NextResponse.json({ ok: false, error: clearError.message }, { status: 500 });
       return NextResponse.json({ ok: true });
     }
