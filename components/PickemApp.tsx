@@ -1147,8 +1147,8 @@ function SideBetCard({ bet, mode, currentUser, saving, requestAccept, respond }:
   const target = bet.targets?.find((row) => row.recipient_id === currentUser.id);
   const targetNames = bet.targets?.map((row) => row.recipient?.display_name).filter(Boolean).join(" or ") || "player";
   const offerOpen = bet.status === "open" && target?.response === "pending" && Boolean(game && new Date(game.commence_time) > new Date());
-  const heldTeam = mode === "sent" ? bet.creator_team : bet.offered_team;
-  const heldSpread = Number(mode === "sent" ? bet.creator_spread : bet.offered_spread);
+  const heldTeam = bet.offered_team;
+  const heldSpread = Number(bet.offered_spread);
   const heldName = game ? displayTeamName(game, heldTeam) : heldTeam;
   const awayName = game ? displayTeamName(game, game.away_team) : "";
   const homeName = game ? displayTeamName(game, game.home_team) : "";
@@ -1159,30 +1159,29 @@ function SideBetCard({ bet, mode, currentUser, saving, requestAccept, respond }:
       : `${awayName} at ${homeName} ${spreadText(heldSpread)}`;
   const declinedTarget = bet.targets?.find((row) => row.response === "declined");
   const acceptedName = bet.accepted_by_profile?.display_name;
-  const responseText = acceptedName
-    ? `${acceptedName} Accepted`
-    : declinedTarget
-      ? `${declinedTarget.recipient?.display_name || (declinedTarget.recipient_id === currentUser.id ? currentUser.display_name : "Player")} Declined`
+  const responseName = acceptedName ||
+    declinedTarget?.recipient?.display_name ||
+    (declinedTarget?.recipient_id === currentUser.id ? currentUser.display_name : "") ||
+    (bet.status === "declined" ? (mode === "sent" ? targetNames : currentUser.display_name) : "") ||
+    (bet.status === "cancelled" ? creatorName : "") ||
+    (mode === "sent" ? targetNames : creatorName);
+  const responseAction = acceptedName
+    ? "Accepted"
+    : declinedTarget || bet.status === "declined"
+      ? "Declined"
       : bet.status === "cancelled"
-        ? `${creatorName} Cancelled`
+        ? "Cancelled"
         : bet.status === "expired"
-          ? `${mode === "sent" ? targetNames : currentUser.display_name} Expired`
-          : bet.status === "declined"
-            ? `${mode === "sent" ? targetNames : currentUser.display_name} Declined`
-            : mode === "sent"
-              ? `${targetNames} Pending`
-              : `${creatorName} Offered`;
-  const responseTone = acceptedName
-    ? "accepted"
-    : declinedTarget || bet.status === "declined" || bet.status === "cancelled" || bet.status === "expired"
-      ? "declined"
-      : "pending";
+          ? "Expired"
+          : "Offered";
+  const responseTone = responseAction === "Accepted" ? "accepted" : ["Declined", "Cancelled", "Expired"].includes(responseAction) ? "declined" : "pending";
+  const actionFirst = responseAction === "Offered";
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
 
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""}`}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, heldTeam) : null} name={heldTeam} />
-      <div className="side-bet-offer-copy"><strong>{matchupText}</strong><p><span className={`side-bet-response ${responseTone}`}>{responseText}</span> {heldName} {spreadText(heldSpread)}{game ? ` · ${dt(game.commence_time)}` : ""}</p></div>
+      <div className="side-bet-offer-copy"><strong>{matchupText}</strong><p>{actionFirst ? <><span className={`side-bet-response ${responseTone}`}>{responseAction}</span> {responseName}</> : <>{responseName} <span className={`side-bet-response ${responseTone}`}>{responseAction}</span></>} {heldName} {spreadText(heldSpread)}{game ? ` · ${dt(game.commence_time)}` : ""}</p></div>
       <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}>{amountDisplay.text}</strong>
     </div>
     {mode === "received" && offerOpen && <div className="actions"><button className="btn accept" disabled={saving} onClick={() => requestAccept(bet.id)}><Check size={15} /> Review & accept</button><button className="btn secondary" disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
