@@ -988,7 +988,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
     const amount = amounts[row.user_id];
     const rank = row.rank || index + 1;
     return <details className="bank-player-result" key={row.user_id}>
-      <summary><RankNumber rank={rank} className="bank-result-rank" /><strong>{row.display_name}</strong><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><ChevronDown size={16} /></summary>
+      <summary><span className="bank-player-identity"><RankNumber rank={rank} className="bank-result-rank" /><strong>{row.display_name}</strong></span><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><ChevronDown size={16} /></summary>
       {!playerPicks.length && <p className="muted">No visible picks yet.</p>}
       {playerPicks.map((pick) => {
         const game = games.find((item) => item.id === pick.game_id) || pick.game;

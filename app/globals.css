@@ -319,13 +319,14 @@ fieldset .field-label { padding: 0; }
 .bank-results-heading h3 { color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .bank-week-results { border-block: 1px solid var(--line); background: var(--panel); }
 .bank-player-result + .bank-player-result { border-top: 1px solid var(--line); }
-.bank-player-result > summary { display: grid; min-height: 58px; grid-template-columns: 28px minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 8px 10px; list-style: none; cursor: pointer; background: var(--panel); }
+.bank-player-result > summary { display: grid; min-height: 58px; grid-template-columns: minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 8px 10px; list-style: none; cursor: pointer; background: var(--panel); }
 .bank-player-result > summary::-webkit-details-marker { display: none; }
-.bank-player-result > summary > strong { display: flex; height: 100%; align-items: center; color: var(--ink-soft); font-family: var(--font-display); font-size: 14px; font-weight: 800; line-height: 1.2; }
+.bank-player-identity { display: grid; min-width: 0; grid-template-columns: 28px minmax(0, 1fr); align-items: baseline; gap: 8px; }
+.bank-player-identity > strong { overflow: hidden; color: var(--ink-soft); font-family: var(--font-display); font-size: 14px; font-weight: 800; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .bank-player-result > summary > svg { color: var(--muted); transition: transform .18s ease; }
 .bank-player-result[open] > summary { border-bottom: 1px solid var(--line-strong); }
 .bank-player-result[open] > summary > svg { transform: rotate(180deg); }
-.bank-result-rank { display: flex; height: 100%; align-self: stretch; align-items: center; justify-content: center; color: var(--muted); font-family: var(--font-display); font-size: 13px; font-weight: 900; line-height: 1.2; text-align: center; }
+.bank-result-rank { display: block; align-self: baseline; color: var(--muted); font-family: var(--font-display); font-size: 13px; font-weight: 900; line-height: 1.2; text-align: center; }
 .bank-result-record { min-width: 48px; font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-result-amount { font-family: var(--font-display); font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-player-result > .muted { margin: 0; padding: 11px 12px; background: var(--panel); }
