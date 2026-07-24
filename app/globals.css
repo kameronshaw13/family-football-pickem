@@ -325,7 +325,7 @@ fieldset .field-label { padding: 0; }
 .bank-player-result > summary > svg { color: var(--muted); transition: transform .18s ease; }
 .bank-player-result[open] > summary { border-bottom: 1px solid var(--line-strong); }
 .bank-player-result[open] > summary > svg { transform: rotate(180deg); }
-.bank-result-rank { color: var(--muted); font-family: var(--font-display); font-size: 14px; font-weight: 900; line-height: 1; text-align: center; }
+.bank-result-rank { display: flex; height: 100%; align-self: stretch; align-items: center; justify-content: center; color: var(--muted); font-family: var(--font-display); font-size: 15px; font-weight: 900; line-height: 1.2; text-align: center; }
 .bank-result-record { min-width: 48px; font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-result-amount { font-family: var(--font-display); font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-player-result > .muted { margin: 0; padding: 11px 12px; background: var(--panel); }
