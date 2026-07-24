@@ -787,8 +787,8 @@ function BankWeekResults({ rows, picks, games }: { rows: Array<Standing & { rank
         const gameB = games.find((game) => game.id === b.game_id) || b.game;
         return new Date(gameA?.commence_time || 0).getTime() - new Date(gameB?.commence_time || 0).getTime();
       });
-    return <section className="bank-player-result" key={row.user_id}>
-      <header><span className="bank-result-rank">{row.rank || index + 1}</span><strong>{row.display_name}</strong><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span></header>
+    return <details className="bank-player-result" key={row.user_id}>
+      <summary><span className="bank-result-rank">{row.rank || index + 1}</span><strong>{row.display_name}</strong><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><ChevronDown size={16} /></summary>
       {!playerPicks.length && <p className="muted">No visible picks yet.</p>}
       {playerPicks.map((pick) => {
         const game = games.find((item) => item.id === pick.game_id) || pick.game;
@@ -800,7 +800,7 @@ function BankWeekResults({ rows, picks, games }: { rows: Array<Standing & { rank
           <span className={`test-result ${pick.result}`}>{resultLabel}</span>
         </div>;
       })}
-    </section>;
+    </details>;
   })}</div>;
 }
 
@@ -1075,5 +1075,7 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const game = games.find((g) => g.id === pick.game_id) || pick.game;
   const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
   const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "Pending";
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)}</strong><p>{pick.pick_type === "underdog" ? `Underdog +${pick.underdog_win_value || "?"} wins · must win outright` : "Spread pick"} · {pick.locked_at ? `locked ${shortDt(pick.locked_at)}` : "editable"}</p><p>{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : ""}</p></div><span className={`badge pick-result-${pick.result}`}>{resultLabel}</span></div>;
+  const matchup = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable";
+  const lockStatus = pick.locked_at ? `locked ${shortDt(pick.locked_at)}` : "editable";
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span>}</strong><p>{matchup} · {lockStatus}</p></div><span className={`badge pick-result-${pick.result}`}>{resultLabel}</span></div>;
 }
