@@ -6,6 +6,7 @@ import { getFootballWeek, getGameLockTime, getPickWeekOpenTime } from "@/lib/loc
 import { getWeekRule } from "@/lib/weekRules";
 import { getProfileFromToken } from "@/lib/authServer";
 import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
+import { acceptedSideBetCounts, closeOpenOffersForCappedPlayer, MAX_ACCEPTED_SIDE_BETS_PER_WEEK } from "@/lib/sideBetLimits";
 import { computeWeeklyStandings } from "@/lib/weeklyBank";
 
 const SCHEDULE_SOURCE_ROLLOUT = new Date("2026-07-23T03:25:00.000Z");
@@ -154,6 +155,26 @@ export async function GET(req: NextRequest) {
     if (bankEntriesError) return NextResponse.json({ ok: false, error: bankEntriesError.message }, { status: 500 });
     if (sideBetError) return NextResponse.json({ ok: false, error: `${sideBetError.message} Run the updated Supabase schema before using side bets.` }, { status: 500 });
 
+    let reconciledSideBets = allSideBets || [];
+    const initialAcceptedCounts = acceptedSideBetCounts(
+      reconciledSideBets.filter((bet: any) => bet.week === week && ["accepted", "settled"].includes(bet.status)),
+      (profiles || []).map((player: any) => player.id)
+    );
+    const cappedPlayerIds = Object.entries(initialAcceptedCounts)
+      .filter(([, count]) => count >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK)
+      .map(([playerId]) => playerId);
+    if (cappedPlayerIds.length) {
+      for (const playerId of cappedPlayerIds) {
+        await closeOpenOffersForCappedPlayer(supabase, playerId, week, now);
+      }
+      const { data: refreshedSideBets, error: refreshSideBetError } = await supabase
+        .from("side_bets")
+        .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
+        .order("created_at", { ascending: false });
+      if (refreshSideBetError) return NextResponse.json({ ok: false, error: refreshSideBetError.message }, { status: 500 });
+      reconciledSideBets = refreshedSideBets || [];
+    }
+
     const standingsWeeks = Array.from(new Set(allGames.map((game) => Number(game.week))));
     const weeklyStandingsByWeek = Object.fromEntries(standingsWeeks.map((standingWeek) => [
       String(standingWeek),
@@ -169,7 +190,7 @@ export async function GET(req: NextRequest) {
       return new Date(game.lock_time).toISOString() <= now;
     });
 
-    const expiredIds = (allSideBets || [])
+    const expiredIds = reconciledSideBets
       .filter((bet: any) => bet.status === "open" && bet.game && new Date(bet.game.commence_time) <= new Date())
       .map((bet: any) => bet.id);
     if (expiredIds.length) {
@@ -177,12 +198,16 @@ export async function GET(req: NextRequest) {
       await supabase.from("side_bet_targets").update({ response: "closed", responded_at: now }).in("side_bet_id", expiredIds).eq("response", "pending");
     }
 
-    const sideBets = (allSideBets || []).filter((bet: any) =>
+    const sideBets = reconciledSideBets.filter((bet: any) =>
       bet.creator_id === profile.id || bet.accepted_by === profile.id || bet.targets?.some((target: any) => target.recipient_id === profile.id)
     ).map((bet: any) => expiredIds.includes(bet.id) ? { ...bet, status: "expired" } : bet);
+    const sideBetAcceptedCounts = acceptedSideBetCounts(
+      reconciledSideBets.filter((bet: any) => bet.week === week && ["accepted", "settled"].includes(bet.status)),
+      (profiles || []).map((player: any) => player.id)
+    );
 
     const sideBetBankTotals = Object.fromEntries((profiles || []).map((player: any) => [player.id, 0]));
-    for (const bet of allSideBets || []) {
+    for (const bet of reconciledSideBets) {
       if (bet.status !== "settled" || bet.result === "push" || !bet.accepted_by || !bet.winner_id) continue;
       const loserId = bet.winner_id === bet.creator_id ? bet.accepted_by : bet.creator_id;
       sideBetBankTotals[bet.winner_id] = Number(sideBetBankTotals[bet.winner_id] || 0) + Number(bet.amount);
@@ -200,6 +225,7 @@ export async function GET(req: NextRequest) {
       bankSettings: bankSettings || { id: 1, winner_amount: 20, loser_amount: 10 },
       bankEntries: bankEntries || [],
       sideBets,
+      sideBetAcceptedCounts,
       sideBetBankTotals,
       week,
       weekRule: getWeekRule(week),

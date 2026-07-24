@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
+import { closeOpenOffersForCappedPlayer, getAcceptedSideBetCounts, MAX_ACCEPTED_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
@@ -9,13 +10,14 @@ const createSchema = z.object({
   action: z.literal("create"),
   gameId: z.string().min(1),
   creatorTeam: z.string().min(1),
-  amount: z.number().positive().max(10000),
+  amount: z.number().positive().max(MAX_SIDE_BET_AMOUNT),
   recipientIds: z.array(z.string().uuid()).min(1).max(2)
 });
 const acceptSchema = z.object({ action: z.literal("accept"), sideBetId: z.string().uuid() });
 const declineSchema = z.object({ action: z.literal("decline"), sideBetId: z.string().uuid() });
 const cancelSchema = z.object({ action: z.literal("cancel"), sideBetId: z.string().uuid() });
-const bodySchema = z.discriminatedUnion("action", [createSchema, acceptSchema, declineSchema, cancelSchema]);
+const clearSchema = z.object({ action: z.literal("clear"), sideBetId: z.string().uuid() });
+const bodySchema = z.discriminatedUnion("action", [createSchema, acceptSchema, declineSchema, cancelSchema, clearSchema]);
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,9 +41,20 @@ export async function POST(req: NextRequest) {
       if (creatorSpread == null) return NextResponse.json({ ok: false, error: "This game does not have a spread available." }, { status: 409 });
 
       const recipientIds = Array.from(new Set(body.recipientIds)).filter((id) => id !== auth.profile.id);
-      const { data: recipients, error: recipientError } = await supabase.from("profiles").select("id").in("id", recipientIds);
+      const { data: recipients, error: recipientError } = await supabase.from("profiles").select("id,display_name").in("id", recipientIds);
       if (recipientError) return NextResponse.json({ ok: false, error: recipientError.message }, { status: 500 });
       if (!recipientIds.length || recipients?.length !== recipientIds.length) return NextResponse.json({ ok: false, error: "Choose one or both of the other players." }, { status: 400 });
+
+      const acceptedCounts = await getAcceptedSideBetCounts(supabase, game.week, [auth.profile.id, ...recipientIds]);
+      if ((acceptedCounts[auth.profile.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK) {
+        await closeOpenOffersForCappedPlayer(supabase, auth.profile.id, game.week, nowIso);
+        return NextResponse.json({ ok: false, error: `You already have ${MAX_ACCEPTED_SIDE_BETS_PER_WEEK} accepted side bets this week.` }, { status: 409 });
+      }
+      const fullRecipient = recipients?.find((recipient) => (acceptedCounts[recipient.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK);
+      if (fullRecipient) {
+        await closeOpenOffersForCappedPlayer(supabase, fullRecipient.id, game.week, nowIso);
+        return NextResponse.json({ ok: false, error: `${fullRecipient.display_name} already has ${MAX_ACCEPTED_SIDE_BETS_PER_WEEK} accepted side bets this week.` }, { status: 409 });
+      }
 
       const offeredTeam = body.creatorTeam === game.home_team ? game.away_team : game.home_team;
       const amount = Math.round(body.amount * 100) / 100;
@@ -74,6 +87,21 @@ export async function POST(req: NextRequest) {
       .single();
     if (sideBetError || !sideBet) return NextResponse.json({ ok: false, error: "Side bet not found." }, { status: 404 });
 
+    const target = sideBet.targets?.find((row: any) => row.recipient_id === auth.profile.id);
+
+    if (body.action === "clear") {
+      if (sideBet.creator_id === auth.profile.id) {
+        if (sideBet.status !== "declined") return NextResponse.json({ ok: false, error: "Only declined offers can be cleared." }, { status: 409 });
+        const { error: deleteError } = await supabase.from("side_bets").delete().eq("id", sideBet.id).eq("creator_id", auth.profile.id).eq("status", "declined");
+        if (deleteError) return NextResponse.json({ ok: false, error: deleteError.message }, { status: 500 });
+        return NextResponse.json({ ok: true });
+      }
+      if (!target || target.response !== "declined") return NextResponse.json({ ok: false, error: "Only declined offers can be cleared." }, { status: 409 });
+      const { error: clearError } = await supabase.from("side_bet_targets").delete().eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id).eq("response", "declined");
+      if (clearError) return NextResponse.json({ ok: false, error: clearError.message }, { status: 500 });
+      return NextResponse.json({ ok: true });
+    }
+
     if (body.action === "cancel") {
       if (sideBet.creator_id !== auth.profile.id) return NextResponse.json({ ok: false, error: "Only the sender can cancel this offer." }, { status: 403 });
       if (sideBet.status !== "open") return NextResponse.json({ ok: false, error: "This offer is no longer open." }, { status: 409 });
@@ -84,7 +112,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    const target = sideBet.targets?.find((row: any) => row.recipient_id === auth.profile.id);
     if (!target) return NextResponse.json({ ok: false, error: "This offer was not sent to you." }, { status: 403 });
     if (target.response !== "pending" || sideBet.status !== "open") return NextResponse.json({ ok: false, error: "This offer is no longer available." }, { status: 409 });
     if (!sideBet.game || new Date(sideBet.game.commence_time) <= now) {
@@ -100,6 +127,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    const acceptedCounts = await getAcceptedSideBetCounts(supabase, sideBet.week, [auth.profile.id, sideBet.creator_id]);
+    if ((acceptedCounts[auth.profile.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK) {
+      await closeOpenOffersForCappedPlayer(supabase, auth.profile.id, sideBet.week, nowIso);
+      return NextResponse.json({ ok: false, error: `You already have ${MAX_ACCEPTED_SIDE_BETS_PER_WEEK} accepted side bets this week.` }, { status: 409 });
+    }
+    if ((acceptedCounts[sideBet.creator_id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK) {
+      await closeOpenOffersForCappedPlayer(supabase, sideBet.creator_id, sideBet.week, nowIso);
+      return NextResponse.json({ ok: false, error: "The sender has already reached the weekly side bet limit." }, { status: 409 });
+    }
+
     const { data: accepted, error: acceptError } = await supabase.from("side_bets").update({
       status: "accepted",
       accepted_by: auth.profile.id,
@@ -111,6 +148,13 @@ export async function POST(req: NextRequest) {
 
     await supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("response", "pending");
     await supabase.from("side_bet_targets").update({ response: "accepted", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id);
+    const updatedCounts = await getAcceptedSideBetCounts(supabase, sideBet.week, [auth.profile.id, sideBet.creator_id]);
+    if ((updatedCounts[auth.profile.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK) {
+      await closeOpenOffersForCappedPlayer(supabase, auth.profile.id, sideBet.week, nowIso);
+    }
+    if ((updatedCounts[sideBet.creator_id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK) {
+      await closeOpenOffersForCappedPlayer(supabase, sideBet.creator_id, sideBet.week, nowIso);
+    }
     return NextResponse.json({ ok: true, sideBet: accepted });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });

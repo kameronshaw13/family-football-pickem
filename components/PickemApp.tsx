@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
+import { MAX_ACCEPTED_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
@@ -44,6 +45,7 @@ type AppData = {
   bankSettings: BankSettings;
   bankEntries: BankEntry[];
   sideBets: SideBet[];
+  sideBetAcceptedCounts: Record<string, number>;
   sideBetBankTotals: Record<string, number>;
   week: number;
   weekRule: WeekRule;
@@ -819,6 +821,19 @@ export default function PickemApp() {
 
   async function createSideBet() {
     if (!selectedBetGame || !selectedCreatorTeam || !betRecipients.length) return;
+    if (Number(betAmount) > MAX_SIDE_BET_AMOUNT) {
+      notify(`Side bets are capped at $${MAX_SIDE_BET_AMOUNT}.`, "error");
+      return;
+    }
+    if ((data?.sideBetAcceptedCounts?.[currentUser.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK) {
+      notify(`You already have ${MAX_ACCEPTED_SIDE_BETS_PER_WEEK} accepted side bets this week.`, "error");
+      return;
+    }
+    const fullRecipient = profiles.find((profile) => betRecipients.includes(profile.id) && (data?.sideBetAcceptedCounts?.[profile.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK);
+    if (fullRecipient) {
+      notify(`${fullRecipient.display_name} has reached the weekly side bet limit.`, "error");
+      return;
+    }
     const ok = await postSideBet({ action: "create", gameId: selectedBetGame.id, creatorTeam: selectedCreatorTeam, amount: Number(betAmount), recipientIds: betRecipients });
     if (ok) {
       setBetRecipients([]);
@@ -879,6 +894,7 @@ export default function PickemApp() {
           currentUser={currentUser}
           profiles={profiles}
           sideBets={sideBets}
+          acceptedCounts={data.sideBetAcceptedCounts || {}}
           openGames={openBetGames}
           selectedGame={selectedBetGame}
           selectedCreatorTeam={selectedCreatorTeam}
@@ -952,7 +968,7 @@ export default function PickemApp() {
           <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each.</li><li>Tied first splits $20.</li><li>A three-way tie pays $0.</li><li>Payments post automatically after all three cards are final.</li></ul></RuleItem>
           <RuleItem icon={Trophy} title="Perfect week"><ul><li>Available only during five-game weeks.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
           <RuleItem icon={Lock} title="Pick locks"><ul><li>Weekday lines freeze 25 hours before kickoff.</li><li>Weekday picks lock 24 hours before kickoff.</li><li>Sat-Mon lines update for the final time Friday at 6 PM CT.</li><li>Sat-Mon picks lock Friday at 7 PM CT.</li></ul></RuleItem>
-          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>Offers must be accepted before kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
+          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each player may have 3 accepted bets per week.</li><li>Offers must be accepted before kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
         </div>
       </section>}
     </main>
@@ -1047,12 +1063,13 @@ function LoadingShell() {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGames, selectedGame, selectedCreatorTeam, amount, recipients, saving, setGame, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, acceptedCounts, openGames, selectedGame, selectedCreatorTeam, amount, recipients, saving, setGame, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
   profiles: Profile[];
   sideBets: SideBet[];
+  acceptedCounts: Record<string, number>;
   openGames: Game[];
   selectedGame?: Game;
   selectedCreatorTeam: string;
@@ -1064,7 +1081,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGam
   setAmount: (value: string) => void;
   toggleRecipient: (value: string) => void;
   createBet: () => void;
-  respond: (action: "accept" | "decline" | "cancel", sideBetId: string) => Promise<boolean>;
+  respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean>;
 }) {
   const [confirmingBetId, setConfirmingBetId] = useState<string | null>(null);
   const received = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
@@ -1073,6 +1090,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGam
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
   const creatorSpread = selectedGame ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
+  const acceptedCount = acceptedCounts[currentUser.id] || 0;
+  const limitReached = acceptedCount >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK;
 
   async function acceptConfirmedBet() {
     if (!confirmingBetId) return;
@@ -1085,13 +1104,14 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGam
 
     {view === "new" && <div className="bet-composer">
       <div className="section-title"><Send size={19} /><div><h2>Make an offer</h2></div></div>
+      {limitReached && <div className="empty-state">You have reached the {MAX_ACCEPTED_SIDE_BETS_PER_WEEK} side bet limit for this week.</div>}
       {openGames.length === 0 && <div className="empty-state">No games with an open spread are available.</div>}
-      {selectedGame && <div className="offer-flow">
-        <section className="offer-block">
-          <label className="field-label" htmlFor="side-bet-game">Game</label>
-          <select id="side-bet-game" className="input" value={selectedGame.id} onChange={(event) => setGame(event.target.value)}>
-            {openGames.map((game) => <option key={game.id} value={game.id}>{dt(game.commence_time)} · {displayTeamName(game, game.away_team)} at {displayTeamName(game, game.home_team)}</option>)}
-          </select>
+      {!limitReached && selectedGame && <div className="offer-flow">
+        <section className="offer-block offer-game-amount">
+          <label><span className="field-label">Game</span><select id="side-bet-game" aria-label="Side bet game" className="input" value={selectedGame.id} onChange={(event) => setGame(event.target.value)}>
+              {openGames.map((game) => <option key={game.id} value={game.id}>{dt(game.commence_time)} · {displayTeamName(game, game.away_team)} at {displayTeamName(game, game.home_team)}</option>)}
+            </select></label>
+          <label><span className="field-label">Amount</span><div className="money-input"><b>$</b><input aria-label="Side bet amount" type="number" inputMode="decimal" min="1" max={MAX_SIDE_BET_AMOUNT} step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></div></label>
         </section>
 
         <section className="offer-block offer-side-block">
@@ -1106,20 +1126,22 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGam
         </section>
 
         <section className="offer-block offer-fields">
-          <label><span className="field-label">Amount</span><div className="money-input"><b>$</b><input aria-label="Side bet amount" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} /></div></label>
-          <fieldset><legend className="field-label">Send to</legend><div className="recipient-grid">{otherPlayers.map((profile) => <label key={profile.id} className={recipients.includes(profile.id) ? "checked" : ""}><input type="checkbox" checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}</span></label>)}</div></fieldset>
+          <fieldset><legend className="field-label">Send to</legend><div className="recipient-grid">{otherPlayers.map((profile) => {
+            const recipientFull = (acceptedCounts[profile.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK;
+            return <label key={profile.id} className={`${recipients.includes(profile.id) ? "checked" : ""} ${recipientFull ? "disabled" : ""}`.trim()}><input type="checkbox" disabled={recipientFull} checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}{recipientFull ? " · 3/3" : ""}</span></label>;
+          })}</div></fieldset>
         </section>
 
         <div className="offer-review"><div className="offer-review-head"><span>Offer summary</span><strong>{stakeMoney(Number(amount || 0))}</strong></div><div className="bet-preview">
           <div><span>You keep</span><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} {spreadText(creatorSpread)}</strong></div>
           <div><span>They get</span><strong>{displayTeamName(selectedGame, offeredTeam)} {spreadText(creatorSpread == null ? null : -creatorSpread)}</strong></div>
         </div></div>
-        <button className="btn accent full" disabled={saving || Number(amount) <= 0 || !recipients.length} onClick={createBet}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
+        <button className="btn accent full" disabled={saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={createBet}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
       </div>}
     </div>}
 
-    {view === "received" && <SideBetList bets={received} mode="received" currentUser={currentUser} empty="No offers sent to you yet." saving={saving} requestAccept={setConfirmingBetId} respond={respond} />}
-    {view === "sent" && <SideBetList bets={sent} mode="sent" currentUser={currentUser} empty="You have not sent any offers yet." saving={saving} requestAccept={setConfirmingBetId} respond={respond} />}
+    {view === "received" && <SideBetList bets={received} mode="received" currentUser={currentUser} empty="No offers sent to you yet." saving={saving} canAccept={!limitReached} requestAccept={setConfirmingBetId} respond={respond} />}
+    {view === "sent" && <SideBetList bets={sent} mode="sent" currentUser={currentUser} empty="You have not sent any offers yet." saving={saving} canAccept={!limitReached} requestAccept={setConfirmingBetId} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop">
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title">
@@ -1136,12 +1158,12 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, openGam
   </div>;
 }
 
-function SideBetList({ bets, mode, currentUser, empty, saving, requestAccept, respond }: { bets: SideBet[]; mode: "received" | "sent"; currentUser: Profile; empty: string; saving: boolean; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel", sideBetId: string) => Promise<boolean> }) {
+function SideBetList({ bets, mode, currentUser, empty, saving, canAccept, requestAccept, respond }: { bets: SideBet[]; mode: "received" | "sent"; currentUser: Profile; empty: string; saving: boolean; canAccept: boolean; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
   const sorted = [...bets].sort((a, b) => Number(b.status === "open") - Number(a.status === "open") || new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  return <div className="side-bet-list">{!sorted.length && <div className="empty-state">{empty}</div>}{sorted.map((bet) => <SideBetCard key={bet.id} bet={bet} mode={mode} currentUser={currentUser} saving={saving} requestAccept={requestAccept} respond={respond} />)}</div>;
+  return <div className="side-bet-list">{!sorted.length && <div className="empty-state">{empty}</div>}{sorted.map((bet) => <SideBetCard key={bet.id} bet={bet} mode={mode} currentUser={currentUser} saving={saving} canAccept={canAccept} requestAccept={requestAccept} respond={respond} />)}</div>;
 }
 
-function SideBetCard({ bet, mode, currentUser, saving, requestAccept, respond }: { bet: SideBet; mode: "received" | "sent"; currentUser: Profile; saving: boolean; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel", sideBetId: string) => Promise<boolean> }) {
+function SideBetCard({ bet, mode, currentUser, saving, canAccept, requestAccept, respond }: { bet: SideBet; mode: "received" | "sent"; currentUser: Profile; saving: boolean; canAccept: boolean; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
   const game = bet.game;
   const creatorName = bet.creator?.display_name || "A player";
   const target = bet.targets?.find((row) => row.recipient_id === currentUser.id);
@@ -1180,6 +1202,7 @@ function SideBetCard({ bet, mode, currentUser, saving, requestAccept, respond }:
   const responseTone = responseAction === "Accepted" ? "accepted" : ["Declined", "Cancelled", "Expired"].includes(responseAction) ? "declined" : "pending";
   const actionFirst = responseAction === "Offered";
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
+  const canClearDeclined = mode === "received" ? target?.response === "declined" : bet.status === "declined";
 
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""}`}>
     <div className="side-bet-offer-row">
@@ -1187,8 +1210,9 @@ function SideBetCard({ bet, mode, currentUser, saving, requestAccept, respond }:
       <div className="side-bet-offer-copy"><strong>{matchupText}</strong><p>{actionFirst ? <><span className={`side-bet-response ${responseTone}`}>{responseAction}</span> {responseName}</> : <>{responseName} <span className={`side-bet-response ${responseTone}`}>{responseAction}</span></>} {offeredSideName} {spreadText(offeredSideSpread)}{game ? ` · ${dt(game.commence_time)}` : ""}</p></div>
       <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}>{amountDisplay.text}</strong>
     </div>
-    {mode === "received" && offerOpen && <div className="actions"><button className="btn accept" disabled={saving} onClick={() => requestAccept(bet.id)}><Check size={15} /> Review & accept</button><button className="btn secondary" disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
+    {mode === "received" && offerOpen && <div className="actions"><button className="btn accept" disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : "Limit reached"}</button><button className="btn secondary" disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
     {mode === "sent" && bet.status === "open" && <div className="actions"><button className="btn secondary" disabled={saving} onClick={() => respond("cancel", bet.id)}><X size={15} /> Cancel offer</button></div>}
+    {canClearDeclined && <div className="actions clear-offer-actions"><button className="btn secondary" disabled={saving} onClick={() => respond("clear", bet.id)}><Trash2 size={14} /> Clear</button></div>}
   </article>;
 }
 
