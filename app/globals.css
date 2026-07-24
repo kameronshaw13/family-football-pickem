@@ -95,8 +95,6 @@ p { margin: 0; }
 .section-tabs button.active { border-bottom-color: var(--blue); color: var(--ink); }
 .picks-panel > .section-tabs, .card-panel > .section-tabs, .standings-panel > .section-tabs { display: grid; height: 44px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0 calc(var(--page-gutter) * -1) var(--space-3); padding-inline: var(--page-gutter); background: var(--canvas); }
 .picks-panel > .section-tabs, .card-panel > .section-tabs, .standings-panel > .section-tabs { position: sticky; top: calc(env(safe-area-inset-top) + var(--header-height)); z-index: 14; }
-.card-panel, .standings-panel { margin-top: calc(var(--space-3) * -1); }
-.standings-panel > .section-tabs { margin-bottom: 0; }
 .picks-panel > .section-tabs button, .card-panel > .section-tabs button, .standings-panel > .section-tabs button { width: 100%; text-align: center; }
 .section-title { display: flex; align-items: flex-start; gap: var(--space-2); margin: var(--space-1) 0 var(--space-4); }
 .section-title > svg { flex: 0 0 auto; margin-top: 2px; color: var(--blue-dark); }
@@ -176,21 +174,21 @@ p { margin: 0; }
 .pick-card:first-of-type { border-top: 1px solid var(--line); }
 .group-list { display: grid; gap: 0; }
 .group-card { margin: 0; padding: 0; border: 0; background: transparent; }
-.group-card h3 { display: flex; align-items: center; gap: 6px; margin: 0 var(--page-gutter) var(--space-2); color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; }
-.group-card + .group-card h3 { margin-top: var(--space-4); }
+.group-card h3 { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-4) var(--page-gutter) var(--space-2); color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .group-empty-picks { margin: 0; padding: 12px var(--page-gutter); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.card-empty-picks { margin: 0 calc(var(--page-gutter) * -1); padding: 12px var(--page-gutter); border-block: 1px solid var(--line); }
 .pick-top { display: grid; width: 100%; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; }
 .pick-top > .team-logo, .visible-pick > .team-logo { width: 34px; height: 34px; }
 .pick-copy, .visible-pick-copy { min-width: 0; }
-.pick-row-actions { display: flex; flex: 0 0 auto; align-items: flex-start; gap: 7px; }
-.visible-pick-actions { display: flex; align-items: center; gap: 5px; }
+.pick-row-actions { display: flex; min-width: 26px; flex: 0 0 auto; align-items: center; justify-content: flex-end; gap: 7px; }
+.visible-pick-actions { display: flex; min-width: 26px; align-items: center; justify-content: flex-end; gap: 5px; }
 .pick-row-actions .badge.pick-result-win, .pick-row-actions .badge.pick-result-loss, .pick-row-actions .badge.pick-result-push, .visible-pick-actions .badge.pick-result-win, .visible-pick-actions .badge.pick-result-loss, .visible-pick-actions .badge.pick-result-push { min-width: 26px; min-height: 26px; font-size: 12px; }
 .icon-btn { display: grid; width: 29px; height: 29px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: transparent; }
-.pick-title { font-size: 15px; font-weight: 800; }
+.pick-title, .visible-pick-copy strong { display: block; overflow: hidden; font-size: 15px; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
 .visible-pick { display: grid; min-height: 62px; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; margin: 0; padding: 7px var(--page-gutter); border-top: 1px solid var(--line); }
-.visible-pick-copy strong { display: block; overflow: hidden; font-size: 14px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-.visible-pick-copy p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.visible-pick:last-child { border-bottom: 1px solid var(--line); }
+.pick-meta, .visible-pick-copy p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dog-tag { color: var(--red); font-size: inherit; }
 .actions { display: flex; gap: 8px; margin-top: 11px; }
 .btn { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 6px; padding: 8px 13px; border: 1px solid transparent; border-radius: 5px; color: #fff; background: var(--graphite-light); font-size: 12px; font-weight: 800; }

@@ -1277,7 +1277,7 @@ function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts:
 }
 
 function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: Game[]; title: string; removePick: (p: Pick) => void }) {
-  return <div className="pick-section"><h3>{title}</h3>{!picks.length && <p className="muted">None yet.</p>}{picks.map((pick) => {
+  return <div className="pick-section"><h3>{title}</h3>{!picks.length && <p className="muted card-empty-picks">None yet.</p>}{picks.map((pick) => {
     const game = games.find((g) => g.id === pick.game_id) || pick.game;
     const locked = pick.status === "locked" || Boolean(game && isClosed(game));
     const graded = pick.result !== "pending";
