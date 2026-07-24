@@ -634,6 +634,10 @@ export default function PickemApp() {
   const bankWeekStandings = previewActive
     ? testWeek!.standings
     : data.weeklyStandingsByWeek?.[String(viewedWeek)] || computeWeeklyStandings(profiles, viewedPicks);
+  const bankWeekAmounts = Object.fromEntries(profiles.map((profile) => {
+    const entries = viewedBankEntries.filter((entry) => entry.week === viewedWeek && entry.user_id === profile.id);
+    return [profile.id, entries.length ? entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : null];
+  }));
   const standingsWeeks = availableWeeks.filter((availableWeek) => availableWeek <= data.week).sort((a, b) => b - a);
   const weekIsOpen = !previewActive && (!data.weekOpenTime || new Date(data.weekOpenTime) <= new Date());
   const leagueCardsHidden = viewedGames.some((game) => !isClosed(game));
@@ -855,7 +859,7 @@ export default function PickemApp() {
             <div className="bank-summary-head"><span>Player</span><span>Balance</span></div>
             {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
           </div>
-          <div className="subsection bank-section"><div className="bank-section-heading"><h3>{previewActive ? "Completed week" : `Week ${viewedWeek}`} results</h3></div><BankWeekResults rows={bankWeekStandings} picks={viewedPicks} games={viewedGames} /></div>
+          <div className="subsection bank-section"><div className="bank-section-heading"><h3>{previewActive ? "Completed week" : `Week ${viewedWeek}`} results</h3></div><BankWeekResults rows={bankWeekStandings} picks={viewedPicks} games={viewedGames} amounts={bankWeekAmounts} /></div>
           <div className="subsection bank-section"><div className="bank-section-heading"><h3>Side bet ledger</h3></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} />)}</div></div>
           {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setFilter("PAST"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview completed week</strong><small>See final Picks, My Card, standings, and settlement</small></span><ChevronRight size={17} /></button>}
         </>}
@@ -888,7 +892,7 @@ function SectionTabs({ items, value, onChange }: { items: Array<{ id: string; la
   return <div className="section-tabs">{items.map((item) => <button key={item.id} className={value === item.id ? "active" : ""} onClick={() => onChange(item.id)}>{item.label}</button>)}</div>;
 }
 
-function BankWeekResults({ rows, picks, games }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[] }) {
+function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null> }) {
   return <div className="bank-week-results">{rows.map((row, index) => {
     const playerPicks = picks
       .filter((pick) => pick.user_id === row.user_id)
@@ -899,8 +903,9 @@ function BankWeekResults({ rows, picks, games }: { rows: Array<Standing & { rank
         const gameB = games.find((game) => game.id === b.game_id) || b.game;
         return new Date(gameA?.commence_time || 0).getTime() - new Date(gameB?.commence_time || 0).getTime();
       });
+    const amount = amounts[row.user_id];
     return <details className="bank-player-result" key={row.user_id}>
-      <summary><span className="bank-result-rank">{row.rank || index + 1}</span><strong>{row.display_name}</strong><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><ChevronDown size={16} /></summary>
+      <summary><span className="bank-result-rank">{row.rank || index + 1}</span><strong>{row.display_name}</strong><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><ChevronDown size={16} /></summary>
       {!playerPicks.length && <p className="muted">No visible picks yet.</p>}
       {playerPicks.map((pick) => {
         const game = games.find((item) => item.id === pick.game_id) || pick.game;
