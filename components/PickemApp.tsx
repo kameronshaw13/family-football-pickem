@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_ACCEPTED_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
-import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
+import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
 import { hasChargers, isChargersTeam } from "@/lib/seasonRules";
@@ -15,6 +15,8 @@ type CardView = "mine" | "group";
 type StandingsView = "standings" | "bank";
 type BetView = "new" | "received" | "sent";
 type Filter = "CFB" | "NFL" | "DOGS" | "PAST";
+type PastFilter = "CFB" | "NFL" | "DOGS";
+type GameOutcome = "win" | "loss" | "push";
 type Toast = { message: string; tone: "success" | "error" | "info" } | null;
 type LiveScoreUpdate = {
   id: string;
@@ -477,6 +479,7 @@ export default function PickemApp() {
   const [bankWeekLoading, setBankWeekLoading] = useState(false);
   const [betView, setBetView] = useState<BetView>("received");
   const [filter, setFilter] = useState<Filter>("CFB");
+  const [pastFilter, setPastFilter] = useState<PastFilter>("CFB");
   const [data, setData] = useState<AppData | null>(null);
   const [week, setWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -780,7 +783,13 @@ export default function PickemApp() {
 
   const filteredGames = viewedGames.filter((g) => {
     const past = isClosed(g) || g.final_home_score != null || g.final_away_score != null;
-    if (filter === "PAST") return past;
+    if (filter === "PAST") {
+      if (!past) return false;
+      if (pastFilter === "DOGS") {
+        return [g.away_team, g.home_team].some((team) => !isChargersTeam(team) && teamDogValue(g, team) > 0);
+      }
+      return g.league === pastFilter;
+    }
     if (past) return false;
     if (filter === "CFB") return g.league === "CFB";
     if (filter === "NFL") return g.league === "NFL";
@@ -928,12 +937,15 @@ export default function PickemApp() {
         {!previewActive && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens for picks on {openText(data.weekOpenTime)} CT.</div>}
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: `Side Bets${pendingOfferCount ? ` (${pendingOfferCount})` : ""}` }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
-          <div className="view-select-row"><div className="compact-select"><select aria-label="Choose pick board category" value={previewActive ? "PAST" : filter} disabled={previewActive} onChange={(event) => setFilter(event.target.value as Filter)}>{(["CFB", "NFL", "DOGS", "PAST"] as Filter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div></div>
-          {filteredGames.length === 0 && <div className="empty-state">{filter === "PAST" ? "No past games this week." : `No open ${filter} games right now.`}</div>}
+          <div className={`view-select-row ${filter === "PAST" || previewActive ? "past-view-selects" : ""}`}>
+            <div className="compact-select"><select aria-label="Choose pick board category" value={previewActive ? "PAST" : filter} disabled={previewActive} onChange={(event) => setFilter(event.target.value as Filter)}>{(["CFB", "NFL", "DOGS", "PAST"] as Filter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
+            {(filter === "PAST" || previewActive) && <div className="compact-select"><select aria-label="Choose past game category" value={pastFilter} onChange={(event) => setPastFilter(event.target.value as PastFilter)}>{(["CFB", "NFL", "DOGS"] as PastFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>}
+          </div>
+          {filteredGames.length === 0 && <div className="empty-state">{filter === "PAST" ? `No past ${pastFilter} games this week.` : `No open ${filter} games right now.`}</div>}
           <div className="game-days">
             {gameGroups.map((group) => <div className={`game-day-group ${filter === "PAST" ? "past-day-group" : ""}`} key={group.key}>
               <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong><span /></div>
-              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} filter={filter} weekIsOpen={weekIsOpen} addPick={addPick} />)}</div>
+              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} filter={filter} pastFilter={pastFilter} weekIsOpen={weekIsOpen} addPick={addPick} />)}</div>
             </div>)}
           </div>
         </>}
@@ -1298,26 +1310,27 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   </div>;
 }
 
-function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; picks: Pick[]; filter: Filter; weekIsOpen: boolean; addPick: (game: Game, team: string, pickType: PickType) => void }) {
+function GameCard({ game, picks, filter, pastFilter, weekIsOpen, addPick }: { game: Game; picks: Pick[]; filter: Filter; pastFilter: PastFilter; weekIsOpen: boolean; addPick: (game: Game, team: string, pickType: PickType) => void }) {
   const closed = isClosed(game) || !weekIsOpen;
   const hasFinalScore = game.final_away_score != null && game.final_home_score != null;
   const hasLiveScore = game.live_state !== "pre" && game.live_away_score != null && game.live_home_score != null;
   const hasScore = hasFinalScore || hasLiveScore;
   const gameIsFinal = hasFinalScore || Boolean(game.live_completed) || game.live_state === "post";
+  const awayScore = hasFinalScore ? game.final_away_score : game.live_away_score;
+  const homeScore = hasFinalScore ? game.final_home_score : game.live_home_score;
+  const dogView = filter === "DOGS" || (filter === "PAST" && pastFilter === "DOGS");
   const existing = picks.find((p) => p.game_id === game.id);
-  const selectType: PickType = filter === "DOGS" ? "underdog" : "regular";
-  const existingMatchesView = filter === "PAST" ? Boolean(existing) : existing?.pick_type === selectType;
+  const selectType: PickType = dogView ? "underdog" : "regular";
+  const existingMatchesView = existing?.pick_type === selectType;
   const canChangeExisting = existing?.status === "draft" && existingMatchesView;
   const awayDogValue = teamDogValue(game, game.away_team);
   const homeDogValue = teamDogValue(game, game.home_team);
 
   function sideLine(team: string) {
     if (filter === "PAST" && hasScore) {
-      const awayScore = hasFinalScore ? game.final_away_score : game.live_away_score;
-      const homeScore = hasFinalScore ? game.final_home_score : game.live_home_score;
       return String(team === game.away_team ? awayScore : homeScore);
     }
-    if (filter === "DOGS") return dogLineText(game, team);
+    if (dogView) return dogLineText(game, team);
     return spreadForTeam(game, team);
   }
 
@@ -1325,7 +1338,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
     if (closed) return false;
     if (isChargersTeam(team)) return false;
     if (!game.current_spread_team || game.current_spread == null) return false;
-    if (filter === "DOGS") return teamDogValue(game, team) > 0;
+    if (dogView) return teamDogValue(game, team) > 0;
     if (existingMatchesView && !canChangeExisting) return false;
     return true;
   }
@@ -1339,19 +1352,49 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
   const homeSelectable = sideIsSelectable(game.home_team);
   const awayBlocked = isChargersTeam(game.away_team);
   const homeBlocked = isChargersTeam(game.home_team);
-  const awayOpponentOnly = filter === "DOGS" && awayDogValue === 0;
-  const homeOpponentOnly = filter === "DOGS" && homeDogValue === 0;
+  const awayOpponentOnly = dogView && !hasScore && awayDogValue === 0;
+  const homeOpponentOnly = dogView && !hasScore && homeDogValue === 0;
 
-  return <article className={`game-card matchup-card filter-${filter.toLowerCase()} ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""}`}>
+  function pickedResult(): GameOutcome | null {
+    if (!existingMatchesView || !existing || !gameIsFinal || awayScore == null || homeScore == null) return null;
+    if (existing.result !== "pending") return existing.result;
+    if (existing.pick_type === "underdog") {
+      return gradeUnderdogOutright(existing.selected_team, game.home_team, game.away_team, homeScore, awayScore);
+    }
+    const spread = existing.locked_spread ?? normalizeSpreadForSelectedTeam(existing.selected_team, game.current_spread_team, game.current_spread);
+    return spread == null ? null : gradeAgainstSpread(existing.selected_team, game.home_team, game.away_team, homeScore, awayScore, spread);
+  }
+
+  function unpickedResult(team: string): GameOutcome | null {
+    if (!gameIsFinal || awayScore == null || homeScore == null) return null;
+    if (dogView) return gradeUnderdogOutright(team, game.home_team, game.away_team, homeScore, awayScore);
+    const spread = normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread);
+    return spread == null ? null : gradeAgainstSpread(team, game.home_team, game.away_team, homeScore, awayScore, spread);
+  }
+
+  const finalPickResult = pickedResult();
+  function resultClasses(team: string) {
+    const classes: string[] = [];
+    if (gameIsFinal && !existingMatchesView) {
+      const outcome = unpickedResult(team);
+      if (outcome) classes.push(`outcome-${outcome}`);
+    }
+    if (existingMatchesView && existing?.selected_team === team && finalPickResult) {
+      classes.push(`picked-${finalPickResult}`);
+    }
+    return classes.join(" ");
+  }
+
+  return <article className={`game-card matchup-card filter-${filter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${gameIsFinal && hasScore && !existingMatchesView ? "unpicked-final" : ""}`}>
     <div className="game-head compact-game-head">
-      <div className="game-time-group"><span className="game-time">{timeText(game.commence_time)}</span>{gameIsFinal && <span className="badge final">Final</span>}{!gameIsFinal && hasLiveScore && <span className="badge live">Live</span>}</div>
+      <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : <><span className="game-time">{timeText(game.commence_time)}</span>{hasLiveScore && <span className="badge live">Live</span>}</>}</div>
       {filter !== "PAST" && <div className="kick">Closes {lockText(game.lock_time)}</div>}
     </div>
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
       <button
         type="button"
-        className={`team-row away-row ${awaySelectable ? "selectable" : ""} ${existingMatchesView && existing?.selected_team === game.away_team ? "picked-side" : ""} ${awayOpponentOnly ? "opponent-only" : ""} ${awayBlocked ? "blocked-side" : ""}`}
+        className={`team-row away-row ${awaySelectable ? "selectable" : ""} ${existingMatchesView && existing?.selected_team === game.away_team ? "picked-side" : ""} ${awayOpponentOnly ? "opponent-only" : ""} ${awayBlocked ? "blocked-side" : ""} ${resultClasses(game.away_team)}`}
         disabled={!awaySelectable}
         onClick={() => choose(game.away_team)}
       >
@@ -1362,7 +1405,7 @@ function GameCard({ game, picks, filter, weekIsOpen, addPick }: { game: Game; pi
 
       <button
         type="button"
-        className={`team-row home-row ${homeSelectable ? "selectable" : ""} ${existingMatchesView && existing?.selected_team === game.home_team ? "picked-side" : ""} ${homeOpponentOnly ? "opponent-only" : ""} ${homeBlocked ? "blocked-side" : ""}`}
+        className={`team-row home-row ${homeSelectable ? "selectable" : ""} ${existingMatchesView && existing?.selected_team === game.home_team ? "picked-side" : ""} ${homeOpponentOnly ? "opponent-only" : ""} ${homeBlocked ? "blocked-side" : ""} ${resultClasses(game.home_team)}`}
         disabled={!homeSelectable}
         onClick={() => choose(game.home_team)}
       >

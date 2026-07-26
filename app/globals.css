@@ -104,7 +104,8 @@ p { margin: 0; }
 .section-title h2 { margin: 0; font-family: var(--font-display); font-size: 20px; line-height: 1.2; }
 .section-title p { margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 600; }
 
-.view-select-row { display: flex; justify-content: flex-start; margin-bottom: var(--space-3); }
+.view-select-row { display: flex; justify-content: flex-start; gap: var(--space-2); margin-bottom: var(--space-3); }
+.view-select-row.past-view-selects .compact-select { flex: 0 1 120px; min-width: 0; }
 .compact-select { position: relative; display: inline-flex; min-width: 120px; min-height: 34px; align-items: center; border: 1px solid var(--line-strong); border-bottom: 3px solid var(--blue); background: var(--panel); }
 .compact-select select { appearance: none; width: 100%; padding: 6px 27px 5px 8px; border: 0; color: var(--ink); background: transparent; font-family: var(--font-display); font-size: 12px; font-weight: 800; outline: none; text-transform: uppercase; }
 .compact-select svg { position: absolute; right: 1px; color: var(--blue-dark); pointer-events: none; }
@@ -128,17 +129,30 @@ p { margin: 0; }
 .badge.pick-result-loss { color: #fff; background: var(--red); }
 .badge.pick-result-push { color: var(--ink); background: var(--line-strong); }
 .game-time { color: var(--ink); font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.game-final-status { color: var(--ink-soft); font-size: 11px; font-weight: 900; text-transform: uppercase; }
 .kick { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; font-weight: 700; text-align: right; text-transform: uppercase; }
 .stacked-matchup { display: grid; }
 .team-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) 68px; min-height: 60px; width: 100%; align-items: center; gap: var(--space-3); padding: 10px var(--space-3); border: 0; border-bottom: 1px solid var(--line); color: var(--ink); background: var(--panel); text-align: left; cursor: pointer; transition: background-color .15s ease, box-shadow .15s ease; opacity: 1 !important; }
 .stacked-matchup .team-row:first-child { --matchup-marker-x: 29px; position: relative; border-bottom: 0; }
 .stacked-matchup .team-row:first-child::before { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: linear-gradient(to right, var(--line) 0, var(--line) calc(var(--matchup-marker-x) - 7px), transparent calc(var(--matchup-marker-x) - 7px), transparent calc(var(--matchup-marker-x) + 7px), var(--line) calc(var(--matchup-marker-x) + 7px), var(--line) 100%); content: ""; pointer-events: none; }
 .stacked-matchup .team-row:first-child::after { position: absolute; z-index: 2; bottom: -7px; left: var(--matchup-marker-x); display: grid; width: 16px; height: 16px; transform: translateX(-50%); place-items: center; color: var(--muted); background: transparent; content: "@"; font-family: var(--font-display); font-size: 12px; font-weight: 900; line-height: 1; pointer-events: none; }
-.game-card.filter-dogs .team-row { grid-template-columns: 38px minmax(0, 1fr) 98px; }
+.game-card.filter-dogs .team-row, .game-card.dog-view:not(.final-outcome) .team-row { grid-template-columns: 38px minmax(0, 1fr) 98px; }
 .team-row:last-child { border-bottom: 0; }
 .team-row:disabled { cursor: default; }
 .team-row.selectable:not(.picked-side):active { background: var(--hover); }
 .team-row.picked-side { background: var(--blue-soft); box-shadow: inset 4px 0 0 var(--blue); }
+.team-row.picked-win { background: var(--green-soft); box-shadow: inset 4px 0 0 var(--green); }
+.team-row.picked-loss { background: var(--red-soft); box-shadow: inset 4px 0 0 var(--red); }
+.team-row.picked-push { background: var(--surface-muted); box-shadow: inset 4px 0 0 var(--line-strong); }
+.team-row.picked-win .team-name, .team-row.picked-win .team-spread { color: var(--green); font-weight: 900; }
+.team-row.picked-loss .team-name, .team-row.picked-loss .team-spread { color: var(--red); font-weight: 900; }
+.game-card.unpicked-final .team-row.outcome-win .team-name,
+.game-card.unpicked-final .team-row.outcome-win .team-spread { color: var(--ink); font-weight: 950; }
+.game-card.unpicked-final .team-row.outcome-loss .team-name,
+.game-card.unpicked-final .team-row.outcome-loss .team-spread { color: var(--muted); font-weight: 500; }
+.game-card.unpicked-final .team-row.outcome-loss .team-logo { opacity: .55; filter: saturate(.5); }
+.game-card.unpicked-final .team-row.outcome-push .team-name,
+.game-card.unpicked-final .team-row.outcome-push .team-spread { color: var(--ink-soft); font-weight: 750; }
 .team-row.opponent-only { color: var(--muted); }
 .team-row.blocked-side { color: var(--muted); background: var(--canvas-muted); }
 .team-name { min-width: 0; font-size: 16px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
