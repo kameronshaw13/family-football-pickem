@@ -1,7 +1,14 @@
-import { addMinutes, setDay, subHours } from "date-fns";
+import { addMinutes, setDay } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 
 export const APP_TIMEZONE = process.env.APP_TIMEZONE || "America/Chicago";
+
+function previousDayAt(kickoffLocal: Date, hour: number) {
+  const previousDay = new Date(kickoffLocal);
+  previousDay.setDate(previousDay.getDate() - 1);
+  previousDay.setHours(hour, 0, 0, 0);
+  return previousDay;
+}
 
 // JS day: 0 Sunday, 1 Monday, 2 Tuesday, 3 Wednesday, 4 Thursday, 5 Friday, 6 Saturday.
 export function getGameLockTime(commenceTimeIso: string, timezone = APP_TIMEZONE): Date {
@@ -9,9 +16,9 @@ export function getGameLockTime(commenceTimeIso: string, timezone = APP_TIMEZONE
   const kickoffLocal = toZonedTime(kickoffUtc, timezone);
   const day = kickoffLocal.getDay();
 
-  // Tuesday-Friday games lock 24 hours before kickoff.
+  // Tuesday-Friday games lock at 7:00 PM local time on the previous day.
   if ([2, 3, 4, 5].includes(day)) {
-    return subHours(kickoffUtc, 24);
+    return fromZonedTime(previousDayAt(kickoffLocal, 19), timezone);
   }
 
   // Saturday/Sunday/Monday games lock Friday at 7:00 PM CT before that football weekend.
@@ -31,9 +38,9 @@ export function getSpreadFreezeTime(commenceTimeIso: string, timezone = APP_TIME
   const kickoffLocal = toZonedTime(kickoffUtc, timezone);
   const day = kickoffLocal.getDay();
 
-  // Weekday lines stop changing at least one hour before picks close.
+  // Tuesday-Friday games receive their final spread at 6:00 PM local time on the previous day.
   if ([2, 3, 4, 5].includes(day)) {
-    return subHours(kickoffUtc, 25);
+    return fromZonedTime(previousDayAt(kickoffLocal, 18), timezone);
   }
 
   // Weekend lines receive their final scheduled refresh Friday at 6:00 PM CT.
@@ -49,9 +56,7 @@ export function getSpreadFreezeTime(commenceTimeIso: string, timezone = APP_TIME
 }
 
 export function canRefreshSpread(commenceTimeIso: string, now = new Date(), timezone = APP_TIMEZONE) {
-  const kickoffLocal = toZonedTime(new Date(commenceTimeIso), timezone);
   const freezeTime = getSpreadFreezeTime(commenceTimeIso, timezone);
-  if ([2, 3, 4, 5].includes(kickoffLocal.getDay())) return now < freezeTime;
 
   // Leave a short delivery window for the external 6:00 PM scheduler request.
   return now <= addMinutes(freezeTime, 10);
