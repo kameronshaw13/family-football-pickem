@@ -271,6 +271,10 @@ function defaultBoardStatus(games: Game[], now: number, weekIsOpen: boolean): Ga
   const statuses: GameStatusFilter[] = ["OPEN", "LOCKED", "FINAL"];
   return statuses.find((status) => games.some((game) => !hasChargers(game) && boardStatusForGame(game, now, weekIsOpen) === status)) || "OPEN";
 }
+function liveGameStatus(game: Game) {
+  const detail = game.live_status?.trim().replace(/\s*-\s*/g, " · ");
+  return detail ? `Live · ${detail}` : "Live · Score updating";
+}
 function teamDogValue(game: Game, team: string) {
   return underdogWinValue(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
 }
@@ -1451,7 +1455,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
 
   return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
     <div className="game-head compact-game-head">
-      <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : <><span className="game-time">{timeText(game.commence_time)}</span>{gameIsLive && <span className="badge live">Live</span>}</>}</div>
+      <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status">{liveGameStatus(game)}</span> : <span className="game-time">{timeText(game.commence_time)}</span>}</div>
       {statusFilter === "OPEN" && <div className="kick">Closes {lockText(game.lock_time)}</div>}
     </div>
 
