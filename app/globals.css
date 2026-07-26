@@ -121,7 +121,7 @@ p { margin: 0; }
 .game-card { overflow: hidden; border: 0; border-bottom: 1px solid var(--line-strong); border-radius: 0; background: var(--panel); content-visibility: auto; contain-intrinsic-block-size: 153px; }
 .game-card:last-child { border-bottom: 0; }
 .game-card.closed { background: var(--canvas-muted); }
-.game-head { display: flex; min-height: 33px; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 10px; border-bottom: 1px solid var(--line); background: var(--surface-soft); }
+.game-head { display: flex; min-height: 33px; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 14px; border-bottom: 1px solid var(--line); background: var(--surface-soft); }
 .badges, .game-time-group { display: flex; align-items: center; gap: 6px; }
 .badge, .status-mark { display: inline-flex; align-items: center; justify-content: center; padding: 3px 5px; border-radius: 1px; color: var(--muted); background: var(--surface-muted); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .badge.open { color: var(--green); background: var(--green-soft); }
@@ -131,11 +131,10 @@ p { margin: 0; }
 .badge.pick-result-win { color: #fff; background: var(--green); }
 .badge.pick-result-loss { color: #fff; background: var(--red); }
 .badge.pick-result-push { color: var(--ink); background: var(--line-strong); }
-.game-time { color: var(--ink); font-size: 11.5px; font-weight: 800; line-height: 1.1; text-transform: uppercase; }
-.game-final-status { color: var(--ink-soft); font-size: 11.5px; font-weight: 900; line-height: 1.1; text-transform: uppercase; }
-.game-live-status { color: var(--ink-soft); font-size: 11.5px; font-weight: 900; line-height: 1.1; }
-.game-live-situation { min-width: 0; overflow: hidden; color: var(--muted); font-size: 10.5px; font-weight: 800; line-height: 1.1; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
-.kick { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; font-weight: 700; text-align: right; text-transform: uppercase; }
+.game-time, .game-final-status, .game-live-status, .game-live-situation, .kick { color: var(--ink-soft); font-size: 11.5px; font-weight: 800; line-height: 1.1; }
+.game-time, .game-final-status, .kick { text-transform: uppercase; }
+.game-live-situation { min-width: 0; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.kick { display: flex; align-items: center; gap: 5px; text-align: right; }
 .stacked-matchup { display: grid; }
 .team-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) 68px; min-height: 60px; width: 100%; align-items: center; gap: var(--space-3); padding: 10px 14px; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); background: var(--panel); text-align: left; cursor: pointer; transition: background-color .15s ease, box-shadow .15s ease; opacity: 1 !important; }
 .stacked-matchup .team-row:first-child { --matchup-marker-x: 31px; position: relative; border-bottom: 0; }
@@ -249,8 +248,8 @@ p { margin: 0; }
 .offer-game-amount .money-input input { padding-inline: 3px; font-variant-numeric: tabular-nums; }
 .offer-side-block { padding-bottom: 0; }
 .offer-team-select { display: grid; grid-template-columns: 1fr; overflow: hidden; margin-inline: calc(var(--page-gutter) * -1); border-top: 1px solid var(--line); background: var(--panel); }
-.offer-team-select button { display: grid; grid-template-columns: 38px minmax(0, 1fr) 68px; min-width: 0; min-height: 60px; align-items: center; gap: var(--space-3); padding: 10px var(--space-3); border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; transition: background-color .15s ease, box-shadow .15s ease; }
-.offer-team-select button:first-child { --matchup-marker-x: 29px; position: relative; border-bottom: 0; }
+.offer-team-select button { display: grid; grid-template-columns: 38px minmax(0, 1fr) 68px; min-width: 0; min-height: 60px; align-items: center; gap: var(--space-3); padding: 10px 14px; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; transition: background-color .15s ease, box-shadow .15s ease; }
+.offer-team-select button:first-child { --matchup-marker-x: 31px; position: relative; border-bottom: 0; }
 .offer-team-select button:first-child::before { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: linear-gradient(to right, var(--line) 0, var(--line) calc(var(--matchup-marker-x) - 7px), transparent calc(var(--matchup-marker-x) - 7px), transparent calc(var(--matchup-marker-x) + 7px), var(--line) calc(var(--matchup-marker-x) + 7px), var(--line) 100%); content: ""; pointer-events: none; }
 .offer-team-select button:first-child::after { position: absolute; z-index: 2; bottom: -7px; left: var(--matchup-marker-x); display: grid; width: 16px; height: 16px; transform: translateX(-50%); place-items: center; color: var(--muted); background: transparent; content: "@"; font-family: var(--font-display); font-size: 12px; font-weight: 900; line-height: 1; pointer-events: none; }
 .offer-team-select button:last-child { border-bottom: 0; }
@@ -380,11 +379,11 @@ fieldset .field-label { padding: 0; }
 .bank-result-record { min-width: 48px; font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-result-amount { font-family: var(--font-display); font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-player-result > .muted { margin: 0; padding: 11px 12px; background: var(--panel); }
-.bank-game-result { display: grid; min-height: 62px; grid-template-columns: 38px minmax(0, 1fr) 26px; align-items: center; gap: 10px; padding: 7px 10px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.bank-game-result { display: grid; min-height: 62px; grid-template-columns: 38px minmax(0, 1fr) 26px; align-items: center; gap: 10px; padding: 7px var(--page-gutter); border-bottom: 1px solid var(--line); background: var(--panel); }
 .bank-game-result:last-child { border-bottom: 0; }
 .bank-game-result .team-logo { width: 34px; height: 34px; }
 .bank-game-result > div { min-width: 0; }
-.bank-game-result > div strong { display: block; overflow: hidden; font-size: 14px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.bank-game-result > div strong { display: block; overflow: hidden; font-size: 15px; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .bank-game-result p { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .test-week-launch { display: grid; width: calc(100% + (var(--page-gutter) * 2)); min-height: 54px; grid-template-columns: 24px minmax(0, 1fr) 18px; align-items: center; gap: 9px; margin: var(--space-4) calc(var(--page-gutter) * -1) 0; padding: 8px var(--page-gutter); border: 0; border-block: 1px solid var(--line); color: var(--ink); background: var(--surface-soft); text-align: left; }
 .test-week-launch > svg:first-child { color: var(--blue-dark); }
@@ -462,6 +461,7 @@ fieldset .field-label { padding: 0; }
   .header-wordmark { width: min(222px, 100%); max-height: 50px; }
   .header-actions { gap: 4px; }
   .week-select { font-size: 13px; }
+  .game-head { padding-inline: 12px; }
   .team-row { grid-template-columns: 34px minmax(0, 1fr) 64px; min-height: 58px; gap: var(--space-2); padding: 10px 12px; }
   .stacked-matchup .team-row:first-child { --matchup-marker-x: 28px; }
   .game-card.filter-dogs .team-row, .game-card.dog-view:not(.score-values) .team-row { grid-template-columns: 34px minmax(0, 1fr) 94px; }
@@ -471,8 +471,8 @@ fieldset .field-label { padding: 0; }
   .team-name { font-size: 15px; }
   .team-result-spread { font-size: 14px; }
   .team-spread { font-size: 15px; }
-  .offer-team-select button { grid-template-columns: 34px minmax(0, 1fr) 64px; gap: var(--space-2); padding: 10px 9px; }
-  .offer-team-select button:first-child { --matchup-marker-x: 25px; }
+  .offer-team-select button { grid-template-columns: 34px minmax(0, 1fr) 64px; gap: var(--space-2); padding: 10px 12px; }
+  .offer-team-select button:first-child { --matchup-marker-x: 28px; }
   .offer-team-select .team-logo { width: 31px; height: 31px; }
   .offer-team-name { font-size: 15px; }
   .offer-team-line { font-size: 14px; }
