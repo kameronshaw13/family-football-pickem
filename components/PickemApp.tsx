@@ -317,11 +317,11 @@ function stakeMoney(value: number) {
 }
 function sideBetAmountForUser(bet: SideBet, userId: string) {
   const stake = Number(bet.amount);
-  if (bet.status !== "settled") return { text: stakeMoney(stake), tone: "" };
-  if (bet.result === "push") return { text: "$0", tone: "" };
+  if (bet.status !== "settled") return { text: stakeMoney(stake), tone: "money-neutral" };
+  if (bet.result === "push") return { text: "$0", tone: "money-neutral" };
 
   const involved = bet.creator_id === userId || bet.accepted_by === userId;
-  if (!involved) return { text: stakeMoney(stake), tone: "" };
+  if (!involved) return { text: stakeMoney(stake), tone: "money-neutral" };
 
   const won = bet.winner_id === userId ||
     (!bet.winner_id && bet.result === "creator_win" && bet.creator_id === userId) ||

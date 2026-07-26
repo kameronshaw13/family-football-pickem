@@ -357,10 +357,11 @@ fieldset .field-label { padding: 0; }
 .bank-summary-head span:last-child { text-align: right; }
 .money-card { min-height: 58px; padding-block: 12px; border-bottom: 1px solid var(--line); }
 .money-card:last-child { border-bottom: 0; }
-.money-card span { color: var(--ink-soft); font-family: var(--font-display); font-size: 14px; font-weight: 800; }
+.money-card span { color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; }
 .money-card strong { font-family: var(--font-display); font-size: 20px; font-variant-numeric: tabular-nums; }
 .money-pos { color: var(--green); }
 .money-neg { color: var(--red); }
+.money-neutral { color: var(--ink); }
 .bank-section { margin-top: var(--space-5); }
 .bank-section-heading { min-height: 26px; padding: 0 2px; }
 .bank-section-heading h3 { margin: 0; }
@@ -371,7 +372,7 @@ fieldset .field-label { padding: 0; }
 .bank-player-result > summary { display: grid; min-height: 58px; grid-template-columns: minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 8px 10px; list-style: none; cursor: pointer; background: var(--panel); }
 .bank-player-result > summary::-webkit-details-marker { display: none; }
 .bank-player-identity { display: grid; min-width: 0; grid-template-columns: 28px minmax(0, 1fr); align-items: baseline; gap: 8px; }
-.bank-player-identity > strong { overflow: hidden; color: var(--ink-soft); font-family: var(--font-display); font-size: 14px; font-weight: 800; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.bank-player-identity > strong { overflow: hidden; color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .bank-player-result > summary > svg { color: var(--muted); transition: transform .18s ease; }
 .bank-player-result[open] > summary { border-bottom: 1px solid var(--line-strong); }
 .bank-player-result[open] > summary > svg { transform: rotate(180deg); }
