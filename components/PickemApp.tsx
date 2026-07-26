@@ -325,7 +325,41 @@ function completeSeasonStandings(profiles: Profile[], rows: Standing[]) {
 }
 
 function buildTestWeek(profiles: Profile[]) {
+  const previewNow = Date.now();
+  const previewTime = (minutesFromNow: number) => new Date(previewNow + minutesFromNow * 60_000).toISOString();
   const games: Game[] = [
+    {
+      id: "test-virginia-nc-state", week: 3, league: "CFB", commence_time: previewTime(240),
+      away_team: "Virginia Cavaliers", home_team: "NC State Wolfpack",
+      away_logo_url: "https://a.espncdn.com/i/teamlogos/ncaa/500/258.png", home_logo_url: "https://a.espncdn.com/i/teamlogos/ncaa/500/152.png",
+      current_spread_team: "NC State Wolfpack", current_spread: -10.5, current_bookmaker: "Test line",
+      lock_time: previewTime(-120), is_locked: true, final_away_score: null, final_home_score: null,
+      live_away_score: null, live_home_score: null, live_status: null, live_state: "pre", live_completed: false
+    },
+    {
+      id: "test-raiders-broncos", week: 3, league: "NFL", commence_time: previewTime(360),
+      away_team: "Las Vegas Raiders", home_team: "Denver Broncos",
+      away_logo_url: "https://a.espncdn.com/i/teamlogos/nfl/500/13.png", home_logo_url: "https://a.espncdn.com/i/teamlogos/nfl/500/7.png",
+      current_spread_team: "Denver Broncos", current_spread: -7.5, current_bookmaker: "Test line",
+      lock_time: previewTime(-120), is_locked: true, final_away_score: null, final_home_score: null,
+      live_away_score: null, live_home_score: null, live_status: null, live_state: "pre", live_completed: false
+    },
+    {
+      id: "test-sjsu-fresno", week: 3, league: "CFB", commence_time: previewTime(-50),
+      away_team: "San Jose State Spartans", home_team: "Fresno State Bulldogs",
+      away_logo_url: "https://a.espncdn.com/i/teamlogos/ncaa/500/23.png", home_logo_url: "https://a.espncdn.com/i/teamlogos/ncaa/500/278.png",
+      current_spread_team: "Fresno State Bulldogs", current_spread: -10.5, current_bookmaker: "Test line",
+      lock_time: previewTime(-180), is_locked: true, final_away_score: null, final_home_score: null,
+      live_away_score: 13, live_home_score: 17, live_status: "3rd 8:42", live_state: "in", live_completed: false
+    },
+    {
+      id: "test-giants-eagles", week: 3, league: "NFL", commence_time: previewTime(-80),
+      away_team: "New York Giants", home_team: "Philadelphia Eagles",
+      away_logo_url: "https://a.espncdn.com/i/teamlogos/nfl/500/19.png", home_logo_url: "https://a.espncdn.com/i/teamlogos/nfl/500/21.png",
+      current_spread_team: "Philadelphia Eagles", current_spread: -8.5, current_bookmaker: "Test line",
+      lock_time: previewTime(-180), is_locked: true, final_away_score: null, final_home_score: null,
+      live_away_score: 10, live_home_score: 17, live_status: "3rd 5:16", live_state: "in", live_completed: false
+    },
     {
       id: "test-iowa-rutgers", week: 3, league: "CFB", commence_time: "2026-09-12T00:00:00.000Z",
       away_team: "Rutgers Scarlet Knights", home_team: "Iowa Hawkeyes",
@@ -932,7 +966,7 @@ export default function PickemApp() {
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
-          {previewActive ? <div className="test-week-chip">Completed Week</div> : availableWeeks.length > 0 && <div className="header-slate"><div className="week-select-wrap"><select aria-label="Select week" value={data.week} disabled={refreshing} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
+          {previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><div className="week-select-wrap"><select aria-label="Select week" value={data.week} disabled={refreshing} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
             {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
           </select><ChevronDown size={14} /></div></div>}
         </div>
@@ -947,7 +981,7 @@ export default function PickemApp() {
 
     <main className="container">
       {message && <div className="error-card">{message}</div>}
-      {previewActive && <div className="test-mode-banner"><span><FlaskConical size={16} /><span><strong>Completed week preview</strong><small>No real picks or bank balances are changed</small></span></span><button type="button" onClick={() => { setTestWeekActive(false); setStatusFilter(defaultBoardStatus(data.games, clock, weekIsOpen)); setStatusFilterTouched(false); }}><X size={16} /> Exit</button></div>}
+      {previewActive && <div className="test-mode-banner"><span><FlaskConical size={16} /><span><strong>Board state preview</strong><small>No real picks or bank balances are changed</small></span></span><button type="button" onClick={() => { setTestWeekActive(false); setStatusFilter(defaultBoardStatus(data.games, clock, !data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock)); setStatusFilterTouched(false); }}><X size={16} /> Exit</button></div>}
 
       {tab === "picks" && <section className="panel picks-panel">
         {!previewActive && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens for picks on {openText(data.weekOpenTime)} CT.</div>}
@@ -1014,7 +1048,7 @@ export default function PickemApp() {
           <div className="scoreboard-heading heading-with-icon"><Trophy size={19} /><h2>Season standings</h2></div>
           <Leaderboard rows={seasonStandings} />
           <div className="subsection weekly-standings">
-            <div className="standings-heading-row"><h2>Weekly standings</h2>{previewActive ? <span className="test-standings-label">Completed Week</span> : <label><select aria-label="Select standings week" value={selectedStandingsWeek} onChange={(event) => setStandingsWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select><ChevronDown size={14} /></label>}</div>
+            <div className="standings-heading-row"><h2>Weekly standings</h2>{previewActive ? <span className="test-standings-label">Test Week</span> : <label><select aria-label="Select standings week" value={selectedStandingsWeek} onChange={(event) => setStandingsWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select><ChevronDown size={14} /></label>}</div>
             <Leaderboard rows={weeklyStandings} />
           </div>
         </>}
@@ -1026,13 +1060,13 @@ export default function PickemApp() {
           </div>
           <div className="subsection bank-section">
             <div className="bank-section-heading standings-heading-row bank-results-heading">
-              <h3>{previewActive ? "Completed week results" : "Week results"}</h3>
+              <h3>{previewActive ? "Test week results" : "Week results"}</h3>
               {previewActive ? <span className="test-standings-label">Week 3</span> : <label><select aria-label="Select Bank results week" value={selectedBankWeek} disabled={bankWeekLoading} onChange={(event) => void loadBankWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select>{bankWeekLoading ? <LoaderCircle className="bank-week-spinner" size={14} /> : <ChevronDown size={14} />}</label>}
             </div>
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} />
           </div>
           <div className="subsection bank-section"><div className="bank-section-heading"><h3>Side bet ledger</h3></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
-          {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setStatusFilter("FINAL"); setStatusFilterTouched(true); setLeagueFilter("CFB"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview completed week</strong><small>See final Picks, My Card, standings, and settlement</small></span><ChevronRight size={17} /></button>}
+          {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setStatusFilter("LOCKED"); setStatusFilterTouched(true); setLeagueFilter("CFB"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview board states</strong><small>See locked upcoming, live, and final games</small></span><ChevronRight size={17} /></button>}
         </>}
       </section>}
 
