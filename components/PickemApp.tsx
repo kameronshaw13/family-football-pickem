@@ -1506,8 +1506,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
         {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.away_team)}</span><PossessionIcon game={game} team={game.away_team} /></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
-        {showScoreValues && <span className="team-result-line">{awayResultLine && <span className="team-result-spread">{awayResultLine}</span>}</span>}
-        {showScoreValues ? <span className="team-final-score">{awayScore}</span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span></span>}
+        {showScoreValues ? <span className="team-score-stack"><span className="team-final-score">{awayScore}</span>{awayResultLine && <span className="team-result-spread">{awayResultLine}</span>}</span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span></span>}
       </button>
 
       <button
@@ -1518,8 +1517,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
         {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.home_team)}</span><PossessionIcon game={game} team={game.home_team} /></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
-        {showScoreValues && <span className="team-result-line">{homeResultLine && <span className="team-result-spread">{homeResultLine}</span>}</span>}
-        {showScoreValues ? <span className="team-final-score">{homeScore}</span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span></span>}
+        {showScoreValues ? <span className="team-score-stack"><span className="team-final-score">{homeScore}</span>{homeResultLine && <span className="team-result-spread">{homeResultLine}</span>}</span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span></span>}
       </button>
     </div>
   </article>;
