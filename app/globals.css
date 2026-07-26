@@ -139,7 +139,7 @@ p { margin: 0; }
 .stacked-matchup .team-row:first-child { --matchup-marker-x: 31px; position: relative; border-bottom: 0; }
 .stacked-matchup .team-row:first-child::before { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: linear-gradient(to right, var(--line) 0, var(--line) calc(var(--matchup-marker-x) - 7px), transparent calc(var(--matchup-marker-x) - 7px), transparent calc(var(--matchup-marker-x) + 7px), var(--line) calc(var(--matchup-marker-x) + 7px), var(--line) 100%); content: ""; pointer-events: none; }
 .stacked-matchup .team-row:first-child::after { position: absolute; z-index: 2; bottom: -7px; left: var(--matchup-marker-x); display: grid; width: 16px; height: 16px; transform: translateX(-50%); place-items: center; color: var(--muted); background: transparent; content: "@"; font-family: var(--font-display); font-size: 12px; font-weight: 900; line-height: 1; pointer-events: none; }
-.game-card.filter-dogs .team-row, .game-card.dog-view:not(.score-values) .team-row { grid-template-columns: 38px minmax(0, 1fr) 98px; }
+.game-card.filter-dogs .team-row, .game-card.dog-view .team-row { grid-template-columns: 38px minmax(0, 1fr) 98px; }
 .game-card.score-values .team-row { grid-template-columns: 38px minmax(0, 1fr) 68px; }
 .game-card.score-values.filter-dogs .team-row, .game-card.score-values.dog-view .team-row { grid-template-columns: 38px minmax(0, 1fr) 98px; }
 .team-row:last-child { border-bottom: 0; }
@@ -151,22 +151,22 @@ p { margin: 0; }
 .team-row.picked-push { background: var(--push-soft); box-shadow: inset 4px 0 0 var(--gold); }
 .game-card.final-outcome .team-row.outcome-loss .team-name,
 .game-card.final-outcome .team-row.outcome-loss .team-result-spread,
-.game-card.final-outcome .team-row.outcome-loss .team-final-score { color: var(--muted); font-weight: 500; }
+.game-card.final-outcome .team-row.outcome-loss .team-inline-score { color: var(--muted); font-weight: 500; }
 .game-card.final-outcome .team-row.outcome-loss .team-logo { opacity: .55; filter: saturate(.5); }
 .game-card.final-outcome .team-row.outcome-push .team-name,
 .game-card.final-outcome .team-row.outcome-push .team-result-spread,
-.game-card.final-outcome .team-row.outcome-push .team-final-score { color: var(--ink); font-weight: 750; }
+.game-card.final-outcome .team-row.outcome-push .team-inline-score { color: var(--ink); font-weight: 750; }
 .team-row.opponent-only { color: var(--muted); }
 .team-row.blocked-side { color: var(--muted); background: var(--canvas-muted); }
-.team-name-line { min-width: 0; line-height: 1.2; }
-.team-name-line .team-name { display: inline; }
+.team-name-line { display: flex; min-width: 0; align-items: center; line-height: 1.2; }
+.team-name-line .team-name { min-width: 0; }
 .team-name { min-width: 0; font-family: var(--font-display); font-size: 16px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
 .team-spread { display: inline-flex; width: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-.team-score-stack { display: grid; min-width: 0; align-items: center; justify-items: end; gap: 1px; }
-.team-result-spread { color: inherit; font-family: var(--font-display); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.team-result-line { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: flex-end; }
+.team-result-spread { color: inherit; }
 .possession-icon { display: inline-flex; width: 17px; height: 11px; flex: 0 0 17px; align-items: center; margin-left: 5px; color: #8a512f; vertical-align: -1px; }
 .possession-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.team-final-score { color: var(--ink); font-family: var(--font-display); font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.team-inline-score { flex: 0 0 auto; margin-left: 7px; color: var(--ink); font-family: var(--font-display); font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .team-spread.unavailable { color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; white-space: normal; }
 .team-logo { width: 34px; height: 34px; object-fit: contain; }
 .team-logo.fallback { display: grid; place-items: center; border-radius: 3px; color: var(--muted); background: var(--surface-muted); font-size: 11px; font-weight: 800; }
@@ -461,12 +461,11 @@ fieldset .field-label { padding: 0; }
   .game-head { padding-inline: 12px; }
   .team-row { grid-template-columns: 34px minmax(0, 1fr) 64px; min-height: 58px; gap: var(--space-2); padding: 10px 12px; }
   .stacked-matchup .team-row:first-child { --matchup-marker-x: 28px; }
-  .game-card.filter-dogs .team-row, .game-card.dog-view:not(.score-values) .team-row { grid-template-columns: 34px minmax(0, 1fr) 94px; }
+  .game-card.filter-dogs .team-row, .game-card.dog-view .team-row { grid-template-columns: 34px minmax(0, 1fr) 94px; }
   .game-card.score-values .team-row { grid-template-columns: 34px minmax(0, 1fr) 64px; }
   .game-card.score-values.filter-dogs .team-row, .game-card.score-values.dog-view .team-row { grid-template-columns: 34px minmax(0, 1fr) 94px; }
   .team-logo { width: 31px; height: 31px; }
   .team-name { font-size: 15px; }
-  .team-result-spread { font-size: 14px; }
   .team-spread { font-size: 15px; }
   .offer-team-select button { grid-template-columns: 34px minmax(0, 1fr) 64px; gap: var(--space-2); padding: 10px 12px; }
   .offer-team-select button:first-child { --matchup-marker-x: 28px; }
