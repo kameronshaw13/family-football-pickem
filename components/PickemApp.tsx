@@ -1525,9 +1525,9 @@ function TeamLogo({ url, name }: { url?: string | null; name: string }) {
 function PossessionIcon({ game, team }: { game: Game; team: string }) {
   if (game.live_state !== "in" || game.live_possession_team !== team) return null;
   return <span className="possession-icon" role="img" aria-label="Possession" title="Possession">
-    <svg viewBox="0 0 24 14" aria-hidden="true">
-      <path d="M1 7C3.8 2.7 7.4 1 12 1s8.2 1.7 11 6c-2.8 4.3-6.4 6-11 6S3.8 11.3 1 7Z" fill="currentColor" />
-      <path d="M8 7h8M10 4.8v4.4M12 4.8v4.4M14 4.8v4.4" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="1.3" />
+    <svg viewBox="0 0 24 14" aria-hidden="true" shapeRendering="geometricPrecision">
+      <path d="M1.5 7C4.1 3 7.6 1.4 12 1.4S19.9 3 22.5 7c-2.6 4-6.1 5.6-10.5 5.6S4.1 11 1.5 7Z" fill="currentColor" stroke="#62371f" strokeWidth=".9" vectorEffect="non-scaling-stroke" />
+      <path d="M8 7h8M10 5.7v2.6M12 5.7v2.6M14 5.7v2.6" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="1.15" vectorEffect="non-scaling-stroke" />
     </svg>
   </span>;
 }
