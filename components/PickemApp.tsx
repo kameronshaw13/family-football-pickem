@@ -1522,7 +1522,7 @@ function TeamLogo({ url, name }: { url?: string | null; name: string }) {
 
 function PossessionIcon({ game, team }: { game: Game; team: string }) {
   if (game.live_state !== "in" || game.live_possession_team !== team) return null;
-  return <span className="possession-icon" role="img" aria-label="Possession" title="Possession">🏈</span>;
+  return <span className="possession-icon" role="img" aria-label="Possession" title="Possession" />;
 }
 
 function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number }; hasDog: boolean; dirty: boolean }) {
