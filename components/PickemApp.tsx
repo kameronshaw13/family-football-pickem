@@ -272,7 +272,14 @@ function defaultBoardStatus(games: Game[], now: number, weekIsOpen: boolean): Ga
   return statuses.find((status) => games.some((game) => !hasChargers(game) && boardStatusForGame(game, now, weekIsOpen) === status)) || "OPEN";
 }
 function liveGameStatus(game: Game) {
-  const detail = game.live_status?.trim().replace(/\s*-\s*/g, " · ");
+  const detail = game.live_status?.trim() || "";
+  const quarter = detail.match(/\b(1st|2nd|3rd|4th)\b/i)?.[1];
+  const clock = detail.match(/\b\d{1,2}:\d{2}\b/)?.[0];
+  if (quarter && clock) return `Live · ${quarter} Qtr · ${clock}`;
+  if (quarter) return `Live · ${quarter} Qtr`;
+  if (/\bhalftime\b/i.test(detail)) return "Live · Halftime";
+  if (/\bOT\b/i.test(detail)) return clock ? `Live · OT · ${clock}` : "Live · OT";
+  if (clock) return `Live · ${clock}`;
   return detail ? `Live · ${detail}` : "Live · Score updating";
 }
 function teamDogValue(game: Game, team: string) {
