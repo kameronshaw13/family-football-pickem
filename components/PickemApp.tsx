@@ -1497,7 +1497,8 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.away_team)}
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
-        {showScoreValues ? <span className="team-name-result"><span className="team-name">{displayTeamName(game, game.away_team)}</span>{awayResultLine && <span className="team-result-spread">{awayResultLine}</span>}<PossessionIcon game={game} team={game.away_team} /></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
+        <span className="team-name">{displayTeamName(game, game.away_team)}</span>
+        {showScoreValues && <span className="team-result-line">{awayResultLine && <span className="team-result-spread">{awayResultLine}</span>}<PossessionIcon game={game} team={game.away_team} /></span>}
         {showScoreValues ? <span className="team-final-score">{awayScore}</span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span></span>}
       </button>
 
@@ -1508,7 +1509,8 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.home_team)}
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
-        {showScoreValues ? <span className="team-name-result"><span className="team-name">{displayTeamName(game, game.home_team)}</span>{homeResultLine && <span className="team-result-spread">{homeResultLine}</span>}<PossessionIcon game={game} team={game.home_team} /></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
+        <span className="team-name">{displayTeamName(game, game.home_team)}</span>
+        {showScoreValues && <span className="team-result-line">{homeResultLine && <span className="team-result-spread">{homeResultLine}</span>}<PossessionIcon game={game} team={game.home_team} /></span>}
         {showScoreValues ? <span className="team-final-score">{homeScore}</span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span></span>}
       </button>
     </div>
@@ -1522,7 +1524,12 @@ function TeamLogo({ url, name }: { url?: string | null; name: string }) {
 
 function PossessionIcon({ game, team }: { game: Game; team: string }) {
   if (game.live_state !== "in" || game.live_possession_team !== team) return null;
-  return <span className="possession-icon" role="img" aria-label="Possession" title="Possession" />;
+  return <span className="possession-icon" role="img" aria-label="Possession" title="Possession">
+    <svg viewBox="0 0 24 14" aria-hidden="true">
+      <path d="M1 7C3.8 2.7 7.4 1 12 1s8.2 1.7 11 6c-2.8 4.3-6.4 6-11 6S3.8 11.3 1 7Z" fill="currentColor" />
+      <path d="M8 7h8M10 4.8v4.4M12 4.8v4.4M14 4.8v4.4" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="1.3" />
+    </svg>
+  </span>;
 }
 
 function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number }; hasDog: boolean; dirty: boolean }) {

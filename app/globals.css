@@ -141,7 +141,8 @@ p { margin: 0; }
 .stacked-matchup .team-row:first-child::before { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: linear-gradient(to right, var(--line) 0, var(--line) calc(var(--matchup-marker-x) - 7px), transparent calc(var(--matchup-marker-x) - 7px), transparent calc(var(--matchup-marker-x) + 7px), var(--line) calc(var(--matchup-marker-x) + 7px), var(--line) 100%); content: ""; pointer-events: none; }
 .stacked-matchup .team-row:first-child::after { position: absolute; z-index: 2; bottom: -7px; left: var(--matchup-marker-x); display: grid; width: 16px; height: 16px; transform: translateX(-50%); place-items: center; color: var(--muted); background: transparent; content: "@"; font-family: var(--font-display); font-size: 12px; font-weight: 900; line-height: 1; pointer-events: none; }
 .game-card.filter-dogs .team-row, .game-card.dog-view:not(.score-values) .team-row { grid-template-columns: 38px minmax(0, 1fr) 98px; }
-.game-card.score-values .team-row { grid-template-columns: 38px minmax(0, 1fr) 28px; }
+.game-card.score-values .team-row { grid-template-columns: 38px minmax(0, 1fr) 68px 28px; }
+.game-card.score-values.filter-dogs .team-row, .game-card.score-values.dog-view .team-row { grid-template-columns: 38px minmax(0, 1fr) 98px 28px; }
 .team-row:last-child { border-bottom: 0; }
 .team-row:disabled { cursor: default; }
 .team-row.selectable:not(.picked-side):active { background: var(--hover); }
@@ -163,12 +164,10 @@ p { margin: 0; }
 .team-row.blocked-side { color: var(--muted); background: var(--canvas-muted); }
 .team-name { min-width: 0; font-family: var(--font-display); font-size: 16px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
 .team-spread { display: inline-flex; width: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-.team-name-result { display: block; min-width: 0; line-height: 1.2; }
-.team-name-result .team-name { display: inline; }
-.team-result-spread { display: inline-block; margin-left: 6px; color: inherit; font-family: var(--font-display); font-size: 16px; font-weight: 700; white-space: nowrap; }
-.possession-icon { position: relative; display: inline-block; width: 15px; height: 9px; margin-left: 6px; border: 1px solid #75482b; border-radius: 50%; background: #9b6038; vertical-align: -1px; }
-.possession-icon::before { position: absolute; top: 3px; left: 3px; width: 7px; height: 1px; background: #fff; content: ""; }
-.possession-icon::after { position: absolute; top: 2px; left: 6px; width: 1px; height: 5px; background: #fff; box-shadow: -2px 0 #fff, 2px 0 #fff; content: ""; }
+.team-result-line { display: flex; min-width: 0; align-items: center; justify-content: flex-end; }
+.team-result-spread { color: inherit; font-family: var(--font-display); font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.possession-icon { display: inline-flex; width: 17px; height: 11px; flex: 0 0 17px; align-items: center; margin-left: 5px; color: var(--blue-dark); vertical-align: -1px; }
+.possession-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .team-final-score { color: var(--ink); font-family: var(--font-display); font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .team-spread.unavailable { color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; white-space: normal; }
 .team-logo { width: 34px; height: 34px; object-fit: contain; }
@@ -463,7 +462,8 @@ fieldset .field-label { padding: 0; }
   .team-row { grid-template-columns: 34px minmax(0, 1fr) 64px; min-height: 58px; gap: var(--space-2); padding: 10px 9px; }
   .stacked-matchup .team-row:first-child { --matchup-marker-x: 25px; }
   .game-card.filter-dogs .team-row, .game-card.dog-view:not(.score-values) .team-row { grid-template-columns: 34px minmax(0, 1fr) 94px; }
-  .game-card.score-values .team-row { grid-template-columns: 34px minmax(0, 1fr) 26px; }
+  .game-card.score-values .team-row { grid-template-columns: 34px minmax(0, 1fr) 64px 26px; }
+  .game-card.score-values.filter-dogs .team-row, .game-card.score-values.dog-view .team-row { grid-template-columns: 34px minmax(0, 1fr) 94px 26px; }
   .team-logo { width: 31px; height: 31px; }
   .team-name { font-size: 15px; }
   .team-result-spread, .team-spread { font-size: 15px; }
