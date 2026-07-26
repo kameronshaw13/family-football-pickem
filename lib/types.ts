@@ -24,6 +24,8 @@ export type Game = {
   live_status?: string | null;
   live_state?: string | null;
   live_completed?: boolean;
+  live_possession_team?: string | null;
+  live_situation?: string | null;
   created_at?: string;
   updated_at?: string;
 };

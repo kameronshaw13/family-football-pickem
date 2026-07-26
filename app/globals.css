@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;500;600;700;800;900&family=Roboto+Slab:wght@500;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;500;600;700;800;900&display=swap");
 
 :root {
   color-scheme: light;
@@ -45,12 +45,11 @@
   --rank-silver: #68747a;
   --rank-bronze: #965f35;
   --font-display: "Roboto Slab", Rockwell, Georgia, serif;
-  --font-condensed: "Roboto Condensed", "Arial Narrow", Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
 html { min-height: 100%; background: var(--canvas); scrollbar-width: none; }
-body { position: relative; margin: 0; min-height: 100%; color: var(--ink); background: var(--canvas); font-family: var(--font-condensed); font-size: 16px; letter-spacing: 0; scrollbar-width: none; overscroll-behavior-y: none; }
+body { position: relative; margin: 0; min-height: 100%; color: var(--ink); background: var(--canvas); font-family: var(--font-display); font-size: 16px; letter-spacing: 0; scrollbar-width: none; overscroll-behavior-y: none; }
 html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; }
 body::before { position: fixed; inset: -100vh 0 auto; z-index: -1; height: 100vh; background: var(--graphite); content: ""; }
 button, input, select { color: inherit; font: inherit; letter-spacing: 0; }
@@ -134,8 +133,7 @@ p { margin: 0; }
 .badge.pick-result-push { color: var(--ink); background: var(--line-strong); }
 .game-time { color: var(--ink); font-size: 12px; font-weight: 800; line-height: 1.1; text-transform: uppercase; }
 .game-final-status { color: var(--ink-soft); font-size: 12px; font-weight: 900; line-height: 1.1; text-transform: uppercase; }
-.game-live-status { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); font-size: 12px; font-weight: 900; line-height: 1.1; }
-.game-live-status::before { width: 6px; height: 6px; align-self: center; flex: 0 0 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 2px color-mix(in srgb, var(--red) 16%, transparent); content: ""; }
+.game-live-status { color: var(--ink-soft); font-size: 12px; font-weight: 900; line-height: 1.1; }
 .kick { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; font-weight: 700; text-align: right; text-transform: uppercase; }
 .stacked-matchup { display: grid; }
 .team-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) 68px; min-height: 60px; width: 100%; align-items: center; gap: var(--space-3); padding: 10px var(--space-3); border: 0; border-bottom: 1px solid var(--line); color: var(--ink); background: var(--panel); text-align: left; cursor: pointer; transition: background-color .15s ease, box-shadow .15s ease; opacity: 1 !important; }
@@ -164,10 +162,11 @@ p { margin: 0; }
 .team-row.opponent-only { color: var(--muted); }
 .team-row.blocked-side { color: var(--muted); background: var(--canvas-muted); }
 .team-name { min-width: 0; font-family: var(--font-display); font-size: 16px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
-.team-spread { display: inline-flex; width: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.team-spread { display: inline-flex; width: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .team-name-result { display: block; min-width: 0; line-height: 1.2; }
 .team-name-result .team-name { display: inline; }
-.team-result-spread { display: inline-block; margin-left: 6px; color: inherit; font-family: var(--font-display); font-size: 15px; font-weight: 700; white-space: nowrap; }
+.team-result-spread { display: inline-block; margin-left: 6px; color: inherit; font-family: var(--font-display); font-size: 16px; font-weight: 700; white-space: nowrap; }
+.possession-icon { display: inline-block; margin-left: 5px; font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif; font-size: 12px; font-weight: 400; line-height: 1; vertical-align: -1px; }
 .team-final-score { color: var(--ink); font-family: var(--font-display); font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .team-spread.unavailable { color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; white-space: normal; }
 .team-logo { width: 34px; height: 34px; object-fit: contain; }
@@ -465,8 +464,7 @@ fieldset .field-label { padding: 0; }
   .game-card.score-values .team-row { grid-template-columns: 34px minmax(0, 1fr) 26px; }
   .team-logo { width: 31px; height: 31px; }
   .team-name { font-size: 15px; }
-  .team-result-spread { font-size: 14px; }
-  .team-spread { font-size: 14px; }
+  .team-result-spread, .team-spread { font-size: 15px; }
   .offer-team-select button { grid-template-columns: 34px minmax(0, 1fr) 64px; gap: var(--space-2); padding: 10px 9px; }
   .offer-team-select button:first-child { --matchup-marker-x: 25px; }
   .offer-team-select .team-logo { width: 31px; height: 31px; }

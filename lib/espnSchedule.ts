@@ -18,6 +18,8 @@ export type EspnScheduleGame = {
   awayScore: number | null;
   statusDetail: string | null;
   statusState: string | null;
+  possessionSide: "home" | "away" | null;
+  situationText: string | null;
   homeTeam: EspnTeam;
   awayTeam: EspnTeam;
 };
@@ -122,6 +124,12 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
     const away = competition?.competitors?.find((competitor: any) => competitor.homeAway === "away");
     const commenceTime = competition?.date || event?.date;
     if (!home || !away || !commenceTime) return [];
+    const possessionId = String(competition?.situation?.possession || "");
+    const possessionSide = possessionId && possessionId === String(home?.team?.id)
+      ? "home"
+      : possessionId && possessionId === String(away?.team?.id)
+        ? "away"
+        : null;
     return [{
       id: String(event.id),
       commenceTime,
@@ -131,6 +139,8 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
       awayScore: scoreFromCompetitor(away),
       statusDetail: competition?.status?.type?.shortDetail || competition?.status?.type?.detail || null,
       statusState: competition?.status?.type?.state || null,
+      possessionSide,
+      situationText: competition?.situation?.downDistanceText || competition?.situation?.shortDownDistanceText || null,
       homeTeam: teamFromCompetitor(home),
       awayTeam: teamFromCompetitor(away)
     }];

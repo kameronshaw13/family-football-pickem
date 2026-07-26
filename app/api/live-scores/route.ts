@@ -66,13 +66,20 @@ export async function GET(req: NextRequest) {
     const games = candidates.flatMap((game) => {
       const match = findEspnScheduleMatch(game, schedules.get(game.league) || []);
       if (!match || match.game.homeScore == null || match.game.awayScore == null) return [];
+      const possessionTeam = match.game.possessionSide === "home"
+        ? (match.swapped ? game.away_team : game.home_team)
+        : match.game.possessionSide === "away"
+          ? (match.swapped ? game.home_team : game.away_team)
+          : null;
       return [{
         id: game.id,
         live_home_score: match.swapped ? match.game.awayScore : match.game.homeScore,
         live_away_score: match.swapped ? match.game.homeScore : match.game.awayScore,
         live_status: match.game.statusDetail,
         live_state: match.game.statusState,
-        live_completed: match.game.completed
+        live_completed: match.game.completed,
+        live_possession_team: possessionTeam,
+        live_situation: match.game.situationText
       }];
     });
 
