@@ -163,7 +163,15 @@ export async function GET(req: NextRequest) {
     const cappedPlayerIds = Object.entries(initialAcceptedCounts)
       .filter(([, count]) => count >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK)
       .map(([playerId]) => playerId);
-    if (cappedPlayerIds.length) {
+    const cappedPlayerSet = new Set(cappedPlayerIds);
+    const cappedOffersNeedCleanup = reconciledSideBets.some((bet: any) =>
+      bet.week === week &&
+      bet.status === "open" &&
+      (cappedPlayerSet.has(bet.creator_id) || bet.targets?.some((target: any) =>
+        target.response === "pending" && cappedPlayerSet.has(target.recipient_id)
+      ))
+    );
+    if (cappedOffersNeedCleanup) {
       for (const playerId of cappedPlayerIds) {
         await closeOpenOffersForCappedPlayer(supabase, playerId, week, now);
       }

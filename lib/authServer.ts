@@ -2,8 +2,20 @@ import { NextRequest } from "next/server";
 import { createHash } from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
+const SESSION_CACHE_TTL_MS = 60_000;
+const SESSION_CACHE_LIMIT = 32;
+const sessionCache = new Map<string, { profile: any; expiresAt: number }>();
+
 function sessionTokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
+}
+
+function cacheProfile(tokenHash: string, profile: any) {
+  if (sessionCache.size >= SESSION_CACHE_LIMIT) {
+    const oldestKey = sessionCache.keys().next().value;
+    if (oldestKey) sessionCache.delete(oldestKey);
+  }
+  sessionCache.set(tokenHash, { profile, expiresAt: Date.now() + SESSION_CACHE_TTL_MS });
 }
 
 export async function createProfileSession(profileId: string, token: string) {
@@ -19,30 +31,44 @@ export async function getProfileFromToken(token: string) {
   const clean = token.trim();
   if (!clean) return null;
 
+  const tokenHash = sessionTokenHash(clean);
+  const cached = sessionCache.get(tokenHash);
+  if (cached && cached.expiresAt > Date.now()) return cached.profile;
+  if (cached) sessionCache.delete(tokenHash);
+
   const supabase = getSupabaseAdmin();
   const { data: session, error: sessionError } = await supabase
     .from("profile_sessions")
-    .select("profile_id")
-    .eq("token_hash", sessionTokenHash(clean))
+    .select("profile_id, profile:profiles(id,username,display_name,is_admin)")
+    .eq("token_hash", tokenHash)
     .maybeSingle();
 
   if (!sessionError && session?.profile_id) {
+    const embeddedProfile = Array.isArray(session.profile) ? session.profile[0] : session.profile;
+    if (embeddedProfile) {
+      cacheProfile(tokenHash, embeddedProfile);
+      return embeddedProfile;
+    }
     const { data: sessionProfile, error: profileError } = await supabase
       .from("profiles")
-      .select("*")
+      .select("id,username,display_name,is_admin")
       .eq("id", session.profile_id)
       .maybeSingle();
-    if (!profileError && sessionProfile) return sessionProfile;
+    if (!profileError && sessionProfile) {
+      cacheProfile(tokenHash, sessionProfile);
+      return sessionProfile;
+    }
   }
 
   // Keep the most recent pre-migration session working while the new table rolls out.
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id,username,display_name,is_admin")
     .eq("session_token", clean)
     .maybeSingle();
 
   if (error || !profile) return null;
+  cacheProfile(tokenHash, profile);
   return profile;
 }
 

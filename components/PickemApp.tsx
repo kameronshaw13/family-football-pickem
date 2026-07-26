@@ -52,6 +52,12 @@ type AppData = {
   weekOpenTime: string | null;
   availableWeeks: number[];
 };
+type BankWeekData = {
+  week: number;
+  games: Game[];
+  picks: Pick[];
+  weeklyStandingsByWeek?: Record<string, Standing[]>;
+};
 
 const NFL_NICKNAMES = [
   "49ers", "Bears", "Bengals", "Bills", "Broncos", "Browns", "Buccaneers", "Cardinals", "Chargers", "Chiefs", "Colts", "Commanders", "Cowboys", "Dolphins", "Eagles", "Falcons", "Giants", "Jaguars", "Jets", "Lions", "Packers", "Panthers", "Patriots", "Raiders", "Rams", "Ravens", "Saints", "Seahawks", "Steelers", "Texans", "Titans", "Vikings"
@@ -467,7 +473,7 @@ export default function PickemApp() {
   const [standingsView, setStandingsView] = useState<StandingsView>("standings");
   const [standingsWeek, setStandingsWeek] = useState<number | null>(null);
   const [bankWeek, setBankWeek] = useState<number | null>(null);
-  const [bankWeekData, setBankWeekData] = useState<AppData | null>(null);
+  const [bankWeekData, setBankWeekData] = useState<BankWeekData | null>(null);
   const [bankWeekLoading, setBankWeekLoading] = useState(false);
   const [betView, setBetView] = useState<BetView>("received");
   const [filter, setFilter] = useState<Filter>("CFB");
@@ -544,6 +550,7 @@ export default function PickemApp() {
     let cancelled = false;
 
     async function refreshLiveScores() {
+      if (document.visibilityState === "hidden") return;
       const token = window.localStorage.getItem("pickem_session_token");
       if (!token) return;
       try {
@@ -572,11 +579,13 @@ export default function PickemApp() {
     const refreshOnResume = () => void refreshLiveScores();
     window.addEventListener("focus", refreshOnResume);
     window.addEventListener("online", refreshOnResume);
+    document.addEventListener("visibilitychange", refreshOnResume);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
       window.removeEventListener("focus", refreshOnResume);
       window.removeEventListener("online", refreshOnResume);
+      document.removeEventListener("visibilitychange", refreshOnResume);
     };
   }, [hasActiveGames, week]);
   useEffect(() => {
@@ -604,7 +613,7 @@ export default function PickemApp() {
 
     setBankWeekLoading(true);
     try {
-      const response = await fetch(`/api/app-data?week=${nextWeek}`, {
+      const response = await fetch(`/api/bank?week=${nextWeek}`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store"
       });
@@ -645,7 +654,20 @@ export default function PickemApp() {
         notify(payload.error || "Picks could not be saved.", "error");
         return false;
       }
-      await load(week);
+      setData((current) => {
+        if (!current) return current;
+        const savedPicks = (payload.picks || []).map((pick: Pick) => ({
+          ...pick,
+          game: current.games.find((game) => game.id === pick.game_id) || pick.game
+        }));
+        return {
+          ...current,
+          picks: [
+            ...current.picks.filter((pick) => !(pick.user_id === current.currentUser.id && pick.week === current.week)),
+            ...savedPicks
+          ]
+        };
+      });
       setStagedPicks(null);
       notify("Picks saved. They remain editable until each game locks.", "success");
       return true;
@@ -666,13 +688,24 @@ export default function PickemApp() {
     setSavingBet(true);
     setSavingBetId(body.sideBetId || null);
     try {
-      const response = await fetch("/api/side-bets", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+      const response = await fetch("/api/side-bets", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ ...body, viewWeek: data?.week }) });
       const payload = await response.json();
       if (!response.ok) {
         notify(payload.error || "Side bet action failed.", "error");
         return false;
       }
-      await load(week);
+      if (Array.isArray(payload.sideBets)) {
+        setData((current) => current ? {
+          ...current,
+          sideBets: payload.sideBets.map((bet: SideBet) => ({
+            ...bet,
+            game: current.games.find((game) => game.id === bet.game_id) || bet.game
+          })),
+          sideBetAcceptedCounts: payload.sideBetAcceptedCounts || current.sideBetAcceptedCounts
+        } : current);
+      } else {
+        await load(week);
+      }
       return true;
     } catch {
       notify("Side bet action failed.", "error");

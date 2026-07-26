@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
         schedules.set(league, await fetchEspnSchedule(
           league,
           leagueGames.map((game) => game.commence_time),
-          true
+          10
         ));
       } catch {
         schedules.set(league, []);

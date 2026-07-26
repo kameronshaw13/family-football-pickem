@@ -2,22 +2,67 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
-import { closeOpenOffersForCappedPlayer, getAcceptedSideBetCounts, MAX_ACCEPTED_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
+import { acceptedSideBetCounts, closeOpenOffersForCappedPlayer, getAcceptedSideBetCounts, MAX_ACCEPTED_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
+const viewWeek = z.number().int().nonnegative().optional();
 const createSchema = z.object({
   action: z.literal("create"),
   gameId: z.string().min(1),
   creatorTeam: z.string().min(1),
   amount: z.number().positive().max(MAX_SIDE_BET_AMOUNT),
-  recipientIds: z.array(z.string().uuid()).min(1).max(2)
+  recipientIds: z.array(z.string().uuid()).min(1).max(2),
+  viewWeek
 });
-const acceptSchema = z.object({ action: z.literal("accept"), sideBetId: z.string().uuid() });
-const declineSchema = z.object({ action: z.literal("decline"), sideBetId: z.string().uuid() });
-const cancelSchema = z.object({ action: z.literal("cancel"), sideBetId: z.string().uuid() });
-const clearSchema = z.object({ action: z.literal("clear"), sideBetId: z.string().uuid() });
+const acceptSchema = z.object({ action: z.literal("accept"), sideBetId: z.string().uuid(), viewWeek });
+const declineSchema = z.object({ action: z.literal("decline"), sideBetId: z.string().uuid(), viewWeek });
+const cancelSchema = z.object({ action: z.literal("cancel"), sideBetId: z.string().uuid(), viewWeek });
+const clearSchema = z.object({ action: z.literal("clear"), sideBetId: z.string().uuid(), viewWeek });
 const bodySchema = z.discriminatedUnion("action", [createSchema, acceptSchema, declineSchema, cancelSchema, clearSchema]);
+
+async function sideBetSnapshot(supabase: any, profileId: string, week: number) {
+  const { data, error } = await supabase
+    .from("side_bets")
+    .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+
+  let allSideBets = data || [];
+  const nowIso = new Date().toISOString();
+  const expiredIds = allSideBets
+    .filter((bet: any) => bet.status === "open" && bet.game && new Date(bet.game.commence_time) <= new Date(nowIso))
+    .map((bet: any) => bet.id);
+  if (expiredIds.length) {
+    const [{ error: betError }, { error: targetError }] = await Promise.all([
+      supabase.from("side_bets").update({ status: "expired", updated_at: nowIso }).in("id", expiredIds).eq("status", "open"),
+      supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).in("side_bet_id", expiredIds).eq("response", "pending")
+    ]);
+    if (betError) throw new Error(betError.message);
+    if (targetError) throw new Error(targetError.message);
+    const expiredSet = new Set(expiredIds);
+    allSideBets = allSideBets.map((bet: any) => expiredSet.has(bet.id) ? {
+      ...bet,
+      status: "expired",
+      targets: bet.targets?.map((target: any) => target.response === "pending" ? { ...target, response: "closed", responded_at: nowIso } : target)
+    } : bet);
+  }
+  return {
+    sideBets: allSideBets.filter((bet: any) =>
+      bet.creator_id === profileId ||
+      bet.accepted_by === profileId ||
+      bet.targets?.some((target: any) => target.recipient_id === profileId)
+    ),
+    sideBetAcceptedCounts: acceptedSideBetCounts(
+      allSideBets.filter((bet: any) => bet.week === week && ["accepted", "settled"].includes(bet.status))
+    )
+  };
+}
+
+async function successResponse(supabase: any, profileId: string, week: number, extra: Record<string, unknown> = {}) {
+  const snapshot = await sideBetSnapshot(supabase, profileId, week);
+  return NextResponse.json({ ok: true, ...extra, ...snapshot });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -77,7 +122,7 @@ export async function POST(req: NextRequest) {
         await supabase.from("side_bets").delete().eq("id", sideBet.id);
         return NextResponse.json({ ok: false, error: targetError.message }, { status: 500 });
       }
-      return NextResponse.json({ ok: true, sideBet });
+      return successResponse(supabase, auth.profile.id, body.viewWeek ?? game.week, { sideBet });
     }
 
     const { data: sideBet, error: sideBetError } = await supabase
@@ -94,12 +139,12 @@ export async function POST(req: NextRequest) {
         if (!["declined", "cancelled"].includes(sideBet.status)) return NextResponse.json({ ok: false, error: "Only declined or cancelled offers can be cleared." }, { status: 409 });
         const { error: deleteError } = await supabase.from("side_bets").delete().eq("id", sideBet.id).eq("creator_id", auth.profile.id).in("status", ["declined", "cancelled"]);
         if (deleteError) return NextResponse.json({ ok: false, error: deleteError.message }, { status: 500 });
-        return NextResponse.json({ ok: true });
+        return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week);
       }
       if (!target || (target.response !== "declined" && sideBet.status !== "cancelled")) return NextResponse.json({ ok: false, error: "Only declined or cancelled offers can be cleared." }, { status: 409 });
       const { error: clearError } = await supabase.from("side_bet_targets").delete().eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id);
       if (clearError) return NextResponse.json({ ok: false, error: clearError.message }, { status: 500 });
-      return NextResponse.json({ ok: true });
+      return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week);
     }
 
     if (body.action === "cancel") {
@@ -109,7 +154,7 @@ export async function POST(req: NextRequest) {
       if (cancelError) return NextResponse.json({ ok: false, error: cancelError.message }, { status: 500 });
       if (!cancelled) return NextResponse.json({ ok: false, error: "This offer was accepted before it could be cancelled." }, { status: 409 });
       await supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("response", "pending");
-      return NextResponse.json({ ok: true });
+      return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week);
     }
 
     if (!target) return NextResponse.json({ ok: false, error: "This offer was not sent to you." }, { status: 403 });
@@ -124,7 +169,7 @@ export async function POST(req: NextRequest) {
       await supabase.from("side_bet_targets").update({ response: "declined", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id).eq("response", "pending");
       const { count } = await supabase.from("side_bet_targets").select("recipient_id", { count: "exact", head: true }).eq("side_bet_id", sideBet.id).eq("response", "pending");
       if (!count) await supabase.from("side_bets").update({ status: "declined", updated_at: nowIso }).eq("id", sideBet.id).eq("status", "open");
-      return NextResponse.json({ ok: true });
+      return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week);
     }
 
     const acceptedCounts = await getAcceptedSideBetCounts(supabase, sideBet.week, [auth.profile.id, sideBet.creator_id]);
@@ -155,7 +200,7 @@ export async function POST(req: NextRequest) {
     if ((updatedCounts[sideBet.creator_id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK) {
       await closeOpenOffersForCappedPlayer(supabase, sideBet.creator_id, sideBet.week, nowIso);
     }
-    return NextResponse.json({ ok: true, sideBet: accepted });
+    return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week, { sideBet: accepted });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
