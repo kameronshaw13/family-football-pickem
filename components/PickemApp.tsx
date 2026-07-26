@@ -273,9 +273,8 @@ function defaultBoardStatus(games: Game[], now: number, weekIsOpen: boolean): Ga
   const statuses: GameStatusFilter[] = ["OPEN", "LOCKED", "FINAL"];
   return statuses.find((status) => games.some((game) => !hasChargers(game) && boardStatusForGame(game, now, weekIsOpen) === status)) || "OPEN";
 }
-function liveGameStatus(game: Game) {
+function livePeriodStatus(game: Game) {
   const detail = game.live_status?.trim() || "";
-  const situation = game.live_situation?.trim() || "";
   const quarter = detail.match(/\b(1st|2nd|3rd|4th)\b/i)?.[1];
   const clock = detail.match(/\b\d{1,2}:\d{2}\b/)?.[0];
   let status = detail || "Score updating";
@@ -292,6 +291,14 @@ function liveGameStatus(game: Game) {
     status = clock;
   }
 
+  return status;
+}
+function liveSituationStatus(game: Game) {
+  return (game.live_situation?.trim() || "").replace(/\s+at\s+/i, " · ");
+}
+function liveGameStatus(game: Game) {
+  const status = livePeriodStatus(game);
+  const situation = liveSituationStatus(game);
   return situation && status !== "Halftime" ? `${status} · ${situation}` : status;
 }
 function teamDogValue(game: Game, team: string) {
@@ -1482,11 +1489,12 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
   const showScoreValues = hasScore && (gameIsLive || gameIsFinal);
   const awayResultLine = showScoreValues ? resultLine(game.away_team) : null;
   const homeResultLine = showScoreValues ? resultLine(game.home_team) : null;
+  const liveSituation = gameIsLive ? liveSituationStatus(game) : "";
 
   return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
     <div className="game-head compact-game-head">
-      <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status">{liveGameStatus(game)}</span> : <span className="game-time">{timeText(game.commence_time)}</span>}</div>
-      {statusFilter === "OPEN" && <div className="kick">Closes {lockText(game.lock_time)}</div>}
+      <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status">{livePeriodStatus(game)}</span> : <span className="game-time">{timeText(game.commence_time)}</span>}</div>
+      {statusFilter === "OPEN" ? <div className="kick">Closes {lockText(game.lock_time)}</div> : gameIsLive && liveSituation && <div className="game-live-situation">{liveSituation}</div>}
     </div>
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
