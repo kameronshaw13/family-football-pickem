@@ -1393,6 +1393,13 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
     return normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread);
   }
 
+  function resultLine(team: string) {
+    const spread = resultSpread(team);
+    if (!dogView) return spreadText(spread);
+    const dogValue = underdogWinValue(spread);
+    return dogValue > 0 ? `${spreadText(spread)} = +${dogValue}W` : null;
+  }
+
   function sideIsSelectable(team: string) {
     if (statusFilter !== "OPEN") return false;
     if (closed) return false;
@@ -1452,6 +1459,8 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
   }
 
   const showScoreValues = hasScore && (gameIsLive || gameIsFinal);
+  const awayResultLine = showScoreValues ? resultLine(game.away_team) : null;
+  const homeResultLine = showScoreValues ? resultLine(game.home_team) : null;
 
   return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
     <div className="game-head compact-game-head">
@@ -1467,7 +1476,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.away_team)}
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
-        {showScoreValues ? <span className="team-name-result"><span className="team-name">{displayTeamName(game, game.away_team)}</span><span className="team-result-spread">{spreadText(resultSpread(game.away_team))}</span></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
+        {showScoreValues ? <span className="team-name-result"><span className="team-name">{displayTeamName(game, game.away_team)}</span>{awayResultLine && <span className="team-result-spread">{awayResultLine}</span>}</span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
         {showScoreValues ? <span className="team-final-score">{awayScore}</span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span></span>}
       </button>
 
@@ -1478,7 +1487,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.home_team)}
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
-        {showScoreValues ? <span className="team-name-result"><span className="team-name">{displayTeamName(game, game.home_team)}</span><span className="team-result-spread">{spreadText(resultSpread(game.home_team))}</span></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
+        {showScoreValues ? <span className="team-name-result"><span className="team-name">{displayTeamName(game, game.home_team)}</span>{homeResultLine && <span className="team-result-spread">{homeResultLine}</span>}</span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
         {showScoreValues ? <span className="team-final-score">{homeScore}</span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span></span>}
       </button>
     </div>
