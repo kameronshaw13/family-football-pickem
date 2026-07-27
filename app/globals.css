@@ -105,9 +105,9 @@ p { margin: 0; }
 .section-title p { margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 600; }
 
 .view-select-row { display: flex; justify-content: flex-start; gap: var(--space-2); margin-bottom: var(--space-3); }
-.view-select-row.board-filter-row .compact-select { min-width: 0; }
-.board-filter-row .status-select { flex: 0 1 138px; }
-.board-filter-row .league-select { flex: 0 1 120px; }
+.view-select-row.board-filter-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.view-select-row.board-filter-row.has-context-filter { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.view-select-row.board-filter-row .compact-select { width: 100%; min-width: 0; }
 .compact-select { position: relative; display: inline-flex; min-width: 120px; min-height: 34px; align-items: center; border: 1px solid var(--line-strong); border-bottom: 3px solid var(--blue); background: var(--panel); }
 .compact-select select { appearance: none; width: 100%; padding: 6px 27px 5px 8px; border: 0; color: var(--ink); background: transparent; font-family: var(--font-display); font-size: 12px; font-weight: 800; outline: none; text-transform: uppercase; }
 .compact-select svg { position: absolute; right: 1px; color: var(--blue-dark); pointer-events: none; }
@@ -160,13 +160,14 @@ p { margin: 0; }
 .team-row.blocked-side { color: var(--muted); background: var(--canvas-muted); }
 .team-name-line { display: flex; min-width: 0; align-items: center; line-height: 1.2; }
 .team-name-line .team-name { min-width: 0; }
+.team-name-separator { flex: 0 0 auto; margin-left: 5px; font-size: 16px; font-weight: 700; }
 .team-name { min-width: 0; font-family: var(--font-display); font-size: 16px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
 .team-spread { display: inline-flex; width: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .team-result-line { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: flex-end; }
 .team-result-spread { color: inherit; }
 .possession-icon { display: inline-flex; width: 17px; height: 11px; flex: 0 0 17px; align-items: center; margin-left: 5px; color: #8a512f; vertical-align: -1px; }
 .possession-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.team-inline-score { flex: 0 0 auto; margin-left: 7px; color: var(--ink); font-family: var(--font-display); font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.team-inline-score { flex: 0 0 auto; margin-left: 5px; color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .team-spread.unavailable { color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; white-space: normal; }
 .team-logo { width: 34px; height: 34px; object-fit: contain; }
 .team-logo.fallback { display: grid; place-items: center; border-radius: 3px; color: var(--muted); background: var(--surface-muted); font-size: 11px; font-weight: 800; }
@@ -466,6 +467,7 @@ fieldset .field-label { padding: 0; }
   .game-card.score-values.filter-dogs .team-row, .game-card.score-values.dog-view .team-row { grid-template-columns: 34px minmax(0, 1fr) 94px; }
   .team-logo { width: 31px; height: 31px; }
   .team-name { font-size: 15px; }
+  .team-name-separator, .team-inline-score { font-size: 15px; }
   .team-spread { font-size: 15px; }
   .offer-team-select button { grid-template-columns: 34px minmax(0, 1fr) 64px; gap: var(--space-2); padding: 10px 12px; }
   .offer-team-select button:first-child { --matchup-marker-x: 28px; }

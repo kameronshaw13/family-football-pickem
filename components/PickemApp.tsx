@@ -8,6 +8,7 @@ import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTe
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
 import { hasChargers, isChargersTeam } from "@/lib/seasonRules";
+import { cfbConferenceForLogo } from "@/lib/cfbConferences";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -16,6 +17,7 @@ type StandingsView = "standings" | "bank";
 type BetView = "new" | "received" | "sent";
 type GameStatusFilter = "OPEN" | "LOCKED" | "FINAL";
 type LeagueFilter = "CFB" | "NFL" | "DOGS";
+type DogValueFilter = "ALL" | "1" | "2" | "3";
 type GameOutcome = "win" | "loss" | "push";
 type Toast = { message: string; tone: "success" | "error" | "info" } | null;
 type LiveScoreUpdate = {
@@ -304,6 +306,13 @@ function liveGameStatus(game: Game) {
 function teamDogValue(game: Game, team: string) {
   return underdogWinValue(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
 }
+
+function gameConferences(game: Game) {
+  return Array.from(new Set([
+    cfbConferenceForLogo(game.away_logo_url),
+    cfbConferenceForLogo(game.home_logo_url)
+  ].filter((conference): conference is string => Boolean(conference))));
+}
 function logoForTeam(game: Game, team: string) {
   return team === game.home_team ? game.home_logo_url : game.away_logo_url;
 }
@@ -558,6 +567,8 @@ export default function PickemApp() {
   const [betView, setBetView] = useState<BetView>("received");
   const [statusFilter, setStatusFilter] = useState<GameStatusFilter>("OPEN");
   const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>("CFB");
+  const [conferenceFilter, setConferenceFilter] = useState("ALL");
+  const [dogValueFilter, setDogValueFilter] = useState<DogValueFilter>("ALL");
   const [statusFilterTouched, setStatusFilterTouched] = useState(false);
   const [data, setData] = useState<AppData | null>(null);
   const [week, setWeek] = useState<number | null>(null);
@@ -870,12 +881,21 @@ export default function PickemApp() {
     setStagedPicks(matchesSaved ? null : nextCard);
   }
 
+  const conferenceOptions = Array.from(new Set(viewedGames
+    .filter((game) => game.league === "CFB" && !hasChargers(game))
+    .flatMap(gameConferences)))
+    .sort((a, b) => a.localeCompare(b));
   const filteredGames = viewedGames.filter((g) => {
     if (hasChargers(g)) return false;
     if (boardStatusForGame(g, clock, weekIsOpen) !== statusFilter) return false;
-    if (leagueFilter === "CFB") return g.league === "CFB";
+    if (leagueFilter === "CFB") {
+      return g.league === "CFB" && (conferenceFilter === "ALL" || gameConferences(g).includes(conferenceFilter));
+    }
     if (leagueFilter === "NFL") return g.league === "NFL";
-    return [g.away_team, g.home_team].some((team) => !isChargersTeam(team) && teamDogValue(g, team) > 0);
+    const dogValue = Math.max(...[g.away_team, g.home_team].map((team) =>
+      isChargersTeam(team) ? 0 : teamDogValue(g, team)
+    ));
+    return dogValue > 0 && (dogValueFilter === "ALL" || dogValue === Number(dogValueFilter));
   }).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
   const gameGroups = filteredGames.reduce<Array<{ key: string; label: string; shortDay: string; games: Game[] }>>((groups, game) => {
     const key = gameDayKey(game.commence_time);
@@ -1019,9 +1039,11 @@ export default function PickemApp() {
         {!previewActive && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens for picks on {openText(data.weekOpenTime)} CT.</div>}
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: `Side Bets${pendingOfferCount ? ` (${pendingOfferCount})` : ""}` }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
-          <div className="view-select-row board-filter-row">
+          <div className={`view-select-row board-filter-row ${leagueFilter !== "NFL" ? "has-context-filter" : ""}`}>
             <div className="compact-select status-select"><select aria-label="Choose game status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as GameStatusFilter); setStatusFilterTouched(true); }}>{(["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
             <div className="compact-select league-select"><select aria-label="Choose league" value={leagueFilter} onChange={(event) => setLeagueFilter(event.target.value as LeagueFilter)}>{(["CFB", "NFL", "DOGS"] as LeagueFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
+            {leagueFilter === "CFB" && <div className="compact-select context-select"><select aria-label="Filter college games by conference" value={conferenceFilter} onChange={(event) => setConferenceFilter(event.target.value)}><option value="ALL">ALL CONF.</option>{conferenceOptions.map((conference) => <option key={conference} value={conference}>{conference}</option>)}</select><ChevronDown size={15} /></div>}
+            {leagueFilter === "DOGS" && <div className="compact-select context-select"><select aria-label="Filter dogs by win value" value={dogValueFilter} onChange={(event) => setDogValueFilter(event.target.value as DogValueFilter)}><option value="ALL">ALL DOGS</option>{(["1", "2", "3"] as const).map((value) => <option key={value} value={value}>+{value}W</option>)}</select><ChevronDown size={15} /></div>}
           </div>
           {filteredGames.length === 0 && <div className="empty-state">No {statusFilter.toLowerCase()} {leagueFilter === "DOGS" ? "dog" : leagueFilter} games.</div>}
           <div className="game-days">
@@ -1505,7 +1527,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.away_team)}
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
-        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.away_team)}</span><PossessionIcon game={game} team={game.away_team} /><span className="team-inline-score">{awayScore}</span></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
+        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.away_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{awayScore}</span><PossessionIcon game={game} team={game.away_team} /></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
         {showScoreValues ? <span className="team-result-line">{awayResultLine && <span className="team-spread team-result-spread">{awayResultLine}</span>}</span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span></span>}
       </button>
 
@@ -1516,7 +1538,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.home_team)}
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
-        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.home_team)}</span><PossessionIcon game={game} team={game.home_team} /><span className="team-inline-score">{homeScore}</span></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
+        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.home_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{homeScore}</span><PossessionIcon game={game} team={game.home_team} /></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
         {showScoreValues ? <span className="team-result-line">{homeResultLine && <span className="team-spread team-result-spread">{homeResultLine}</span>}</span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span></span>}
       </button>
     </div>
