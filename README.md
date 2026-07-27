@@ -21,8 +21,8 @@ Ready-mode private family football pick'em app.
 - You cannot double dip the same game as both a regular spread pick and an underdog pick.
 - Board selections are staged locally until the user saves the card.
 - Saved draft picks can be changed until their game closes.
-- Tuesday-Friday lines freeze two hours before kickoff and picks close one hour before kickoff.
-- Saturday/Sunday/Monday lines receive their final scheduled update Friday at 6 PM CT and picks close Friday at 7 PM CT.
+- Tuesday-Friday lines freeze one hour before kickoff and picks close at kickoff.
+- Saturday/Sunday/Monday lines receive their final scheduled update Friday at 7 PM CT and picks close Friday at 8 PM CT.
 - Picks stay hidden from the group until the game closes.
 - Pushes do not count against win percentage.
 - Season and weekly standings use win percentage first, then total wins.

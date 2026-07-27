@@ -128,10 +128,9 @@ p { margin: 0; }
 .badge.pick-result-win { color: #fff; background: var(--green); }
 .badge.pick-result-loss { color: #fff; background: var(--red); }
 .badge.pick-result-push { color: var(--ink); background: var(--line-strong); }
-.game-time, .game-final-status, .game-live-status, .game-live-situation, .kick { color: var(--ink); font-size: 11.5px; font-weight: 800; line-height: 1.1; }
-.game-time, .game-final-status, .kick { text-transform: uppercase; }
+.game-time, .game-final-status, .game-live-status, .game-live-situation { color: var(--ink); font-size: 11.5px; font-weight: 800; line-height: 1.1; }
+.game-time, .game-final-status { text-transform: uppercase; }
 .game-live-situation { min-width: 0; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
-.kick { display: flex; align-items: center; gap: 5px; text-align: right; }
 .stacked-matchup { display: grid; }
 .team-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) 68px; min-height: 60px; width: 100%; align-items: center; gap: var(--space-3); padding: 10px 14px; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); background: var(--panel); text-align: left; cursor: pointer; transition: background-color .15s ease, box-shadow .15s ease; opacity: 1 !important; }
 .stacked-matchup .team-row:first-child { --matchup-marker-x: 31px; position: relative; border-bottom: 0; }
@@ -478,7 +477,6 @@ fieldset .field-label { padding: 0; }
   .card-progress-copy, .bet-line-summary { align-items: flex-start; flex-direction: column; }
   .card-progress-count { max-width: none; text-align: left; }
   .bet-line-summary > span:last-child { text-align: left; }
-  .kick { max-width: 70%; }
   .leaderboard-labels, .leaderboard-row { grid-template-columns: 42px minmax(82px, 1fr) repeat(3, 28px) 58px; }
   .floating-review, .sticky-card-save { right: 9px; left: 9px; }
 }

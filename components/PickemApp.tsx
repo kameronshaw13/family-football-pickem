@@ -254,9 +254,6 @@ function gameDayLabel(iso: string) {
 function gameDayShort(iso: string) {
   return new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
 }
-function lockText(iso: string) {
-  return `${weekdayAbbreviation(iso)} ${timeText(iso)}`;
-}
 function spreadForTeam(game: Game, team: string) {
   return spreadText(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
 }
@@ -1142,8 +1139,8 @@ export default function PickemApp() {
           <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season winner receives $300.</li></ul></RuleItem>
           <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each.</li><li>Tied first splits $20.</li><li>A three-way tie pays $0.</li><li>Payments post automatically after all three cards are final.</li></ul></RuleItem>
           <RuleItem icon={Trophy} title="Perfect week"><ul><li>Available only during five-game weeks.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
-          <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines freeze 2 hours before kickoff.</li><li>Tue-Fri picks close 1 hour before kickoff.</li><li>Sat-Mon lines freeze Friday at 6 PM CT.</li><li>Sat-Mon picks close Friday at 7 PM CT.</li></ul></RuleItem>
-          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each player may have 3 bets per week.</li><li>Accepted and pending offers count toward the limit.</li><li>Tue-Fri lines freeze 2 hours before kickoff.</li><li>Sat-Mon lines freeze Friday at 6 PM CT.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
+          <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Tue-Fri picks close at kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Sat-Mon picks close Friday at 8 PM CT.</li></ul></RuleItem>
+          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each player may have 3 bets per week.</li><li>Accepted and pending offers count toward the limit.</li><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
         </div>
       </section>}
     </main>
@@ -1527,7 +1524,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
   return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
     <div className="game-head compact-game-head">
       <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status">{livePeriodStatus(game)}</span> : <span className="game-time">{timeText(game.commence_time)}</span>}</div>
-      {statusFilter === "OPEN" ? <div className="kick">Closes {lockText(game.lock_time)}</div> : gameIsLive && liveSituation && <div className="game-live-situation">{liveSituation}</div>}
+      {statusFilter !== "OPEN" && gameIsLive && liveSituation && <div className="game-live-situation">{liveSituation}</div>}
     </div>
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>

@@ -52,7 +52,8 @@ export async function POST(req: NextRequest) {
 
     const weekOpen = getPickWeekOpenTime(body.week, weekGames.map((game) => game.commence_time));
     if (weekOpen && now < weekOpen) {
-      return NextResponse.json({ ok: false, error: `This week opens for picks on ${weekOpen.toLocaleString("en-US", { timeZone: "America/Chicago" })} CT.` }, { status: 409 });
+      const openDate = weekOpen.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/Chicago" });
+      return NextResponse.json({ ok: false, error: `This week opens on ${openDate}.` }, { status: 409 });
     }
 
     const { data: existingRows, error: existingError } = await supabase

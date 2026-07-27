@@ -9,15 +9,15 @@ export function getGameLockTime(commenceTimeIso: string, timezone = APP_TIMEZONE
   const kickoffLocal = toZonedTime(kickoffUtc, timezone);
   const day = kickoffLocal.getDay();
 
-  // Tuesday-Friday picks close one hour before kickoff.
+  // Tuesday-Friday picks close at kickoff.
   if ([2, 3, 4, 5].includes(day)) {
-    return new Date(kickoffUtc.getTime() - 60 * 60 * 1000);
+    return kickoffUtc;
   }
 
-  // Saturday/Sunday/Monday games lock Friday at 7:00 PM CT before that football weekend.
+  // Saturday/Sunday/Monday games lock Friday at 8:00 PM CT before that football weekend.
   const fridayLocal = setDay(kickoffLocal, 5, { weekStartsOn: 1 });
   const lockLocal = new Date(fridayLocal);
-  lockLocal.setHours(19, 0, 0, 0);
+  lockLocal.setHours(20, 0, 0, 0);
 
   if (lockLocal.getTime() > kickoffLocal.getTime()) {
     lockLocal.setDate(lockLocal.getDate() - 7);
@@ -31,16 +31,15 @@ export function getSpreadFreezeTime(commenceTimeIso: string, timezone = APP_TIME
   const kickoffLocal = toZonedTime(kickoffUtc, timezone);
   const day = kickoffLocal.getDay();
 
-  // Tuesday-Friday spreads freeze two hours before kickoff, giving players
-  // one hour with the final line before picks close.
+  // Tuesday-Friday spreads freeze one hour before kickoff.
   if ([2, 3, 4, 5].includes(day)) {
-    return new Date(kickoffUtc.getTime() - 2 * 60 * 60 * 1000);
+    return new Date(kickoffUtc.getTime() - 60 * 60 * 1000);
   }
 
-  // Weekend lines receive their final scheduled refresh Friday at 6:00 PM CT.
+  // Weekend lines receive their final scheduled refresh Friday at 7:00 PM CT.
   const fridayLocal = setDay(kickoffLocal, 5, { weekStartsOn: 1 });
   const freezeLocal = new Date(fridayLocal);
-  freezeLocal.setHours(18, 0, 0, 0);
+  freezeLocal.setHours(19, 0, 0, 0);
 
   if (freezeLocal.getTime() > kickoffLocal.getTime()) {
     freezeLocal.setDate(freezeLocal.getDate() - 7);
