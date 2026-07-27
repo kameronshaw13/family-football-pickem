@@ -1,0 +1,255 @@
+/* Phase 1 family-only visual refresh.
+   This file intentionally overrides presentation only; game logic remains untouched. */
+
+:root {
+  --header-height: 82px;
+  --nav-height: 78px;
+  --page-gutter: 14px;
+  --canvas: #f2efe7;
+  --canvas-deep: #e7e0d4;
+  --panel: #fffdf8;
+  --ink: #17242f;
+  --muted: #69757d;
+  --line: #d8d2c6;
+  --line-strong: #bbb2a4;
+  --graphite: #17242f;
+  --graphite-light: #263846;
+  --blue: #6ea9ca;
+  --blue-dark: #38789d;
+  --blue-soft: #e1eff6;
+  --gold: #c69b32;
+  --shadow: 0 10px 28px rgba(25, 37, 45, .09);
+}
+
+body {
+  background:
+    radial-gradient(circle at 50% -12%, rgba(110, 169, 202, .12), transparent 36%),
+    var(--canvas);
+}
+
+.app-shell { background: transparent; }
+
+.scoreboard-header {
+  border-bottom: 0;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.035), transparent 50%),
+    var(--graphite);
+  box-shadow: inset 0 -4px 0 var(--blue), 0 8px 24px rgba(14, 28, 38, .16);
+}
+
+.scoreboard-main { gap: 16px; }
+.brand-lockup { margin-left: 2px; }
+.header-wordmark { max-height: 58px; filter: drop-shadow(0 2px 0 rgba(0,0,0,.18)); }
+.week-select-wrap, .test-week-chip {
+  min-height: 40px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 8px;
+  background: rgba(255,255,255,.055);
+}
+.week-select { padding-left: 9px; }
+
+.container {
+  padding-top: calc(env(safe-area-inset-top) + var(--header-height) + 18px);
+}
+
+.primary-nav {
+  border-top: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 -10px 28px rgba(16, 29, 37, .18);
+}
+.primary-nav button {
+  gap: 6px;
+  padding-top: 11px;
+  font-size: 11px;
+  transition: color .18s ease, transform .16s ease, background-color .18s ease;
+}
+.primary-nav button:active { transform: scale(.96); }
+.primary-nav button::before {
+  inset-inline: 34%;
+  height: 4px;
+  border-radius: 0 0 4px 4px;
+}
+
+.picks-panel > .section-tabs,
+.card-panel > .section-tabs,
+.standings-panel > .section-tabs {
+  height: 48px;
+  margin-bottom: 16px;
+  border-bottom-color: var(--line);
+  background: rgba(242, 239, 231, .96);
+  backdrop-filter: blur(14px);
+}
+.section-tabs button { font-size: 12px; letter-spacing: .015em; }
+.section-tabs button.active { color: var(--graphite); }
+
+.section-title { margin-bottom: 18px; }
+.section-title h2 { font-size: 22px; letter-spacing: -.015em; }
+.section-title p { margin-top: 5px; font-size: 12px; line-height: 1.45; }
+
+.view-select-row { margin-bottom: 15px; }
+.compact-select {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,253,248,.86);
+  box-shadow: 0 3px 12px rgba(25,37,45,.04);
+}
+.compact-select select { padding-left: 10px; }
+
+.game-days { gap: 22px; }
+.game-day-marker { margin-bottom: 9px; }
+.game-day-marker > b {
+  padding: 6px 10px;
+  border-radius: 6px;
+  box-shadow: inset 0 -3px 0 var(--blue);
+  letter-spacing: .035em;
+}
+.game-day-marker strong { font-size: 12px; }
+
+.game-list {
+  gap: 10px;
+  overflow: visible;
+  margin-inline: 0;
+  border: 0;
+  background: transparent;
+}
+.game-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 5px 18px rgba(25,37,45,.055);
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.game-card:last-child { border-bottom: 1px solid var(--line); }
+.game-card:active { transform: scale(.995); }
+.game-card.closed { background: #eeece6; }
+.game-head {
+  min-height: 38px;
+  padding: 8px 13px;
+  background: #f6f2e9;
+}
+.badge, .status-mark {
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  letter-spacing: .035em;
+}
+
+.team-row {
+  grid-template-columns: 42px minmax(0,1fr) 72px;
+  min-height: 66px;
+  padding: 12px 14px;
+  transition: background-color .16s ease, box-shadow .16s ease, transform .12s ease;
+}
+.team-row.selectable:active { transform: scale(.99); }
+.team-row.picked-side {
+  background: linear-gradient(90deg, rgba(110,169,202,.23), var(--blue-soft));
+  box-shadow: inset 5px 0 0 var(--blue-dark);
+}
+.team-row.picked-win { box-shadow: inset 5px 0 0 var(--green); }
+.team-row.picked-loss { box-shadow: inset 5px 0 0 var(--red); }
+.team-row.picked-push { box-shadow: inset 5px 0 0 var(--gold); }
+.team-logo { width: 38px; height: 38px; filter: drop-shadow(0 2px 3px rgba(20,32,40,.13)); }
+.team-name { font-size: 16px; font-weight: 800; }
+.team-spread, .team-inline-score { font-size: 17px; }
+
+.floating-review, .sticky-card-save {
+  right: max(14px, calc((100vw - 732px) / 2));
+  left: max(14px, calc((100vw - 732px) / 2));
+  min-height: 58px;
+  border-radius: 12px;
+  box-shadow: 0 16px 34px rgba(20,33,43,.26);
+}
+.sticky-card-save { background: linear-gradient(180deg, #4185aa, var(--blue-dark)); }
+
+.card-progress {
+  margin-inline: 0;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--line-strong);
+  border-radius: 10px;
+  background: rgba(255,253,248,.82);
+  box-shadow: 0 4px 14px rgba(25,37,45,.045);
+}
+.card-progress.complete { border-left-color: var(--green); }
+.card-progress.dirty { border-left-color: var(--gold); }
+.progress-track { height: 7px; border-radius: 999px; }
+.progress-track span { border-radius: inherit; }
+
+.btn {
+  min-height: 43px;
+  border-radius: 9px;
+  box-shadow: 0 4px 12px rgba(25,37,45,.08);
+  transition: transform .14s ease, box-shadow .14s ease, opacity .14s ease;
+}
+.btn:active:not(:disabled) { transform: translateY(1px) scale(.99); box-shadow: 0 2px 6px rgba(25,37,45,.1); }
+.icon-btn { border-radius: 8px; }
+.input { border-radius: 8px; }
+
+.scoreboard-heading { min-height: 54px; }
+.scoreboard-heading h2 { font-size: 22px; }
+.leaderboard {
+  overflow: hidden;
+  margin-inline: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.leaderboard-labels { min-height: 38px; background: #e8e3d9; }
+.leaderboard-row {
+  min-height: 64px;
+  padding-block: 10px;
+  background: rgba(255,253,248,.94);
+}
+.leaderboard-row:nth-child(2) {
+  background: linear-gradient(90deg, rgba(198,155,50,.14), rgba(255,253,248,.95) 42%);
+}
+.leaderboard-rank { font-size: 16px; }
+.leaderboard-player strong, .leaderboard-stat, .leaderboard-pct { font-size: 15px; }
+
+.bank-summary-grid, .bank-week-results, .ledger-list, .rules-list, .group-list, .side-bet-list {
+  overflow: hidden;
+  margin-inline: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 5px 18px rgba(25,37,45,.05);
+}
+.money-card, .bank-player-result > summary, .ledger-row { background: var(--panel); }
+.rule-item summary { min-height: 62px; }
+.rule-icon { width: 34px; height: 34px; border-radius: 50%; background: var(--blue-soft); }
+
+.empty-state, .loading-card, .error-card, .notice-card {
+  padding: 16px;
+  border-radius: 10px;
+  background: rgba(255,253,248,.82);
+  box-shadow: 0 4px 14px rgba(25,37,45,.045);
+}
+.toast, .confirmation-sheet, .login-card { border-radius: 12px; }
+.login-card { border-top-width: 5px; }
+
+@keyframes pickPulse {
+  0% { transform: scale(1); }
+  45% { transform: scale(.992); }
+  100% { transform: scale(1); }
+}
+.team-row.picked-side { animation: pickPulse .22s ease-out; }
+
+@media (hover: hover) {
+  .game-card:hover { transform: translateY(-1px); border-color: #c3b9aa; box-shadow: 0 10px 24px rgba(25,37,45,.085); }
+  .team-row.selectable:not(.picked-side):hover { background: #f2f6f7; }
+}
+
+@media (max-width: 520px) {
+  :root { --header-height: 78px; --page-gutter: 11px; }
+  .header-wordmark { max-height: 54px; }
+  .game-list { gap: 9px; }
+  .team-row { grid-template-columns: 38px minmax(0,1fr) 68px; min-height: 64px; padding: 11px 12px; }
+  .team-logo { width: 35px; height: 35px; }
+  .team-name { font-size: 15px; }
+  .game-card.filter-dogs .team-row, .game-card.dog-view .team-row { grid-template-columns: 38px minmax(0,1fr) 96px; }
+  .game-card.score-values .team-row { grid-template-columns: 38px minmax(0,1fr) 68px; }
+  .game-card.score-values.filter-dogs .team-row, .game-card.score-values.dog-view .team-row { grid-template-columns: 38px minmax(0,1fr) 96px; }
+  .leaderboard-labels, .leaderboard-row { grid-template-columns: 40px minmax(78px,1fr) repeat(3,27px) 57px; }
+}
