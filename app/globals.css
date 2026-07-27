@@ -336,9 +336,9 @@ fieldset .field-label { padding: 0; }
 .leaderboard-rank.rank-2, .bank-result-rank.rank-2 { color: var(--rank-silver); }
 .leaderboard-rank.rank-3, .bank-result-rank.rank-3 { color: var(--rank-bronze); }
 .leaderboard-player { min-width: 0; }
-.leaderboard-player strong { display: block; overflow: hidden; color: var(--ink); font-family: var(--font-display); font-size: 15px; font-weight: 800; line-height: 1.2; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
-.leaderboard-stat { color: var(--ink); font-family: var(--font-display); font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; }
-.leaderboard-pct { color: var(--ink); font-family: var(--font-display); font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; }
+.leaderboard-player strong { display: block; overflow: hidden; color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; line-height: 1.2; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.leaderboard-stat { color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; }
+.leaderboard-pct { color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; }
 .leaderboard-pct.pct-positive { color: var(--green); }
 .leaderboard-pct.pct-negative { color: var(--red); }
 .weekly-standings { margin-top: var(--space-5); }
