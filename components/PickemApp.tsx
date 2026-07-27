@@ -15,7 +15,7 @@ type PicksView = "board" | "sideBets";
 type CardView = "mine" | "group";
 type StandingsView = "standings" | "bank";
 type BetView = "new" | "received" | "sent";
-type GameStatusFilter = "OPEN" | "LOCKED" | "FINAL";
+type GameStatusFilter = "OPEN" | "UPCOMING" | "LIVE" | "FINAL";
 type LeagueFilter = "CFB" | "NFL" | "DOGS";
 type DogValueFilter = "ALL" | "1" | "2" | "3";
 type GameOutcome = "win" | "loss" | "push";
@@ -268,11 +268,12 @@ function isFinalGame(game: Game) {
 }
 function boardStatusForGame(game: Game, now: number, weekIsOpen: boolean): GameStatusFilter {
   if (isFinalGame(game)) return "FINAL";
+  if (new Date(game.commence_time).getTime() <= now) return "LIVE";
   const locked = game.is_locked || new Date(game.lock_time).getTime() <= now;
-  return locked || !weekIsOpen || new Date(game.commence_time).getTime() <= now ? "LOCKED" : "OPEN";
+  return locked || !weekIsOpen ? "UPCOMING" : "OPEN";
 }
 function defaultBoardStatus(games: Game[], now: number, weekIsOpen: boolean): GameStatusFilter {
-  const statuses: GameStatusFilter[] = ["OPEN", "LOCKED", "FINAL"];
+  const statuses: GameStatusFilter[] = ["OPEN", "LIVE", "UPCOMING", "FINAL"];
   return statuses.find((status) => games.some((game) => !hasChargers(game) && boardStatusForGame(game, now, weekIsOpen) === status)) || "OPEN";
 }
 function livePeriodStatus(game: Game) {
@@ -349,7 +350,7 @@ function sideBetAmountForUser(bet: SideBet, userId: string) {
   };
 }
 function pctText(value: number) {
-  return Number(value || 0).toFixed(3).replace(/^0/, "");
+  return `${(Number(value || 0) * 100).toFixed(1)}%`;
 }
 
 function completeSeasonStandings(profiles: Profile[], rows: Standing[]) {
@@ -1048,12 +1049,12 @@ export default function PickemApp() {
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: `Side Bets${pendingOfferCount ? ` (${pendingOfferCount})` : ""}` }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
           <div className="view-select-row board-filter-row">
-            <div className="compact-select status-select"><select aria-label="Choose game status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as GameStatusFilter); setStatusFilterTouched(true); }}>{(["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => <option key={option} value={option}>{option === "LOCKED" ? "CLOSED" : option}</option>)}</select><ChevronDown size={15} /></div>
+            <div className="compact-select status-select"><select aria-label="Choose game status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as GameStatusFilter); setStatusFilterTouched(true); }}>{(["OPEN", "UPCOMING", "LIVE", "FINAL"] as GameStatusFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
             <div className="compact-select league-select"><select aria-label="Choose league" value={leagueFilter} onChange={(event) => setLeagueFilter(event.target.value as LeagueFilter)}>{(["CFB", "NFL", "DOGS"] as LeagueFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
             {leagueFilter === "CFB" && <div className="compact-select context-select"><select aria-label="Filter college games by subdivision or conference" value={conferenceFilter} onChange={(event) => setConferenceFilter(event.target.value)}><option value="ALL">ALL CONF.</option><option value="FBS">FBS</option><option value="FCS">FCS</option>{conferenceOptions.map((conference) => <option key={conference} value={conference}>{conference}</option>)}</select><ChevronDown size={15} /></div>}
             {leagueFilter === "DOGS" && <div className="compact-select context-select"><select aria-label="Filter dogs by win value" value={dogValueFilter} onChange={(event) => setDogValueFilter(event.target.value as DogValueFilter)}><option value="ALL">ALL DOGS</option>{(["1", "2", "3"] as const).map((value) => <option key={value} value={value}>+{value}W</option>)}</select><ChevronDown size={15} /></div>}
           </div>
-          {filteredGames.length === 0 && <div className="empty-state">No {statusFilter === "LOCKED" ? "closed" : statusFilter.toLowerCase()} {leagueFilter === "DOGS" ? "dog" : leagueFilter} games.</div>}
+          {filteredGames.length === 0 && <div className="empty-state">No {statusFilter.toLowerCase()} {leagueFilter === "DOGS" ? "dog" : leagueFilter} games.</div>}
           <div className="game-days">
             {gameGroups.map((group) => <div className={`game-day-group ${statusFilter === "FINAL" ? "past-day-group" : ""}`} key={group.key}>
               <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong><span /></div>
@@ -1122,13 +1123,13 @@ export default function PickemApp() {
           </div>
           <div className="subsection bank-section">
             <div className="bank-section-heading standings-heading-row bank-results-heading">
-              <h3>{previewActive ? "Test week results" : "Week results"}</h3>
+              <h3>{previewActive ? "Test Weekly Results" : "Weekly Results"}</h3>
               {previewActive ? <span className="test-standings-label">Week 3</span> : <label><select aria-label="Select Bank results week" value={selectedBankWeek} disabled={bankWeekLoading} onChange={(event) => void loadBankWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select>{bankWeekLoading ? <LoaderCircle className="bank-week-spinner" size={14} /> : <ChevronDown size={14} />}</label>}
             </div>
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} />
           </div>
           <div className="subsection bank-section"><div className="bank-section-heading"><h3>Side bet ledger</h3></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
-          {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setStatusFilter("LOCKED"); setStatusFilterTouched(true); setLeagueFilter("CFB"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview board states</strong><small>See closed upcoming, live, and final games</small></span><ChevronRight size={17} /></button>}
+          {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setStatusFilter("UPCOMING"); setStatusFilterTouched(true); setLeagueFilter("CFB"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview board states</strong><small>See upcoming, live, and final games</small></span><ChevronRight size={17} /></button>}
         </>}
       </section>}
 
@@ -1205,13 +1206,15 @@ function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {
     <div className="leaderboard-labels"><span>Rank</span><span>Player</span><span>W</span><span>L</span><span>P</span><span>Win %</span></div>
     {rows.map((row, index) => {
       const rank = rankFor(index);
+      const hasResults = row.wins + row.losses + row.pushes > 0;
+      const pctTone = !hasResults || row.win_pct === 0.5 ? "" : row.win_pct > 0.5 ? "pct-positive" : "pct-negative";
       return <div className="leaderboard-row" key={row.user_id}>
         <RankNumber rank={rank} className="leaderboard-rank" />
         <div className="leaderboard-player"><strong>{row.display_name}</strong></div>
         <span className="leaderboard-stat">{row.wins}</span>
         <span className="leaderboard-stat">{row.losses}</span>
         <span className="leaderboard-stat">{row.pushes}</span>
-        <strong className="leaderboard-pct">{pctText(row.win_pct)}</strong>
+        <strong className={`leaderboard-pct ${pctTone}`}>{pctText(row.win_pct)}</strong>
       </div>;
     })}
   </div>;
