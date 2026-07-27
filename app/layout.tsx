@@ -1,14 +1,15 @@
 import "./globals.css";
 import "./spatial-layout.css";
+import "./family-ui-refresh.css";
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Family Football Pick'em",
-  description: "Private record-based football pick'em app with hidden locked picks and spread snapshots.",
-  applicationName: "Family Pick'em",
+  title: "Shaw Family Pick'em",
+  description: "The private Shaw family football pick'em league.",
+  applicationName: "Shaw Pick'em",
   appleWebApp: {
     capable: true,
-    title: "Family Pick'em",
+    title: "Shaw Pick'em",
     statusBarStyle: "black-translucent"
   },
   icons: {
@@ -22,7 +23,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#20282d"
+  themeColor: "#17242f"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
