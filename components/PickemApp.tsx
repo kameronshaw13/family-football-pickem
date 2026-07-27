@@ -22,6 +22,8 @@ type GameOutcome = "win" | "loss" | "push";
 type Toast = { message: string; tone: "success" | "error" | "info" } | null;
 type LiveScoreUpdate = {
   id: string;
+  final_home_score?: number | null;
+  final_away_score?: number | null;
   live_home_score?: number | null;
   live_away_score?: number | null;
   live_status?: string | null;
@@ -256,6 +258,17 @@ function gameDayShort(iso: string) {
 }
 function lockText(iso: string) {
   return `${weekdayAbbreviation(iso)} ${timeText(iso)}`;
+}
+function spreadFreezeTime(game: Game) {
+  if (game.spread_freeze_time) return new Date(game.spread_freeze_time);
+  return new Date(new Date(game.lock_time).getTime() - 60 * 60 * 1000);
+}
+function gameDeadlineText(game: Game, now: number) {
+  const freezeTime = spreadFreezeTime(game);
+  const lineStatus = freezeTime.getTime() <= now
+    ? "Line locked"
+    : `Line locks ${lockText(freezeTime.toISOString())}`;
+  return `${lineStatus} · Closes ${lockText(game.lock_time)}`;
 }
 function spreadForTeam(game: Game, team: string) {
   return spreadText(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
@@ -671,7 +684,7 @@ export default function PickemApp() {
           cache: "no-store"
         });
         if (!response.ok) return;
-        const payload = await response.json() as { games?: LiveScoreUpdate[] };
+        const payload = await response.json() as { games?: LiveScoreUpdate[]; resultsUpdated?: boolean };
         if (cancelled || !payload.games?.length) return;
         const scoresById = new Map(payload.games.map((game) => [game.id, game]));
         setData((current) => current ? {
@@ -681,6 +694,7 @@ export default function PickemApp() {
             return score ? { ...game, ...score } : game;
           })
         } : current);
+        if (payload.resultsUpdated) void load(week);
       } catch {
         // Keep the last known score visible through brief network interruptions.
       }
@@ -700,6 +714,14 @@ export default function PickemApp() {
       document.removeEventListener("visibilitychange", refreshOnResume);
     };
   }, [hasActiveGames, week]);
+  useEffect(() => {
+    if (!data || refreshing || week == null) return;
+    const crossedDeadline = data.games.some((game) =>
+      !game.is_locked && new Date(game.lock_time).getTime() <= clock
+    );
+    if (crossedDeadline) void load(week);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clock, data, refreshing, week]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 3200);
@@ -1142,7 +1164,7 @@ export default function PickemApp() {
           <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season winner receives $300.</li></ul></RuleItem>
           <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each.</li><li>Tied first splits $20.</li><li>A three-way tie pays $0.</li><li>Payments post automatically after all three cards are final.</li></ul></RuleItem>
           <RuleItem icon={Trophy} title="Perfect week"><ul><li>Available only during five-game weeks.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
-          <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines update for the final time at 6 PM CT the day before kickoff.</li><li>Tue-Fri picks lock at 7 PM CT the day before kickoff.</li><li>Sat-Mon lines update for the final time Friday at 6 PM CT.</li><li>Sat-Mon picks lock Friday at 7 PM CT.</li></ul></RuleItem>
+          <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines freeze 2 hours before kickoff.</li><li>Tue-Fri picks close 1 hour before kickoff.</li><li>Sat-Mon lines freeze Friday at 6 PM CT.</li><li>Sat-Mon picks close Friday at 7 PM CT.</li></ul></RuleItem>
           <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each player may have 3 accepted bets per week.</li><li>Offers must be accepted before kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
         </div>
       </section>}
@@ -1527,7 +1549,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
   return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
     <div className="game-head compact-game-head">
       <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status">{livePeriodStatus(game)}</span> : <span className="game-time">{timeText(game.commence_time)}</span>}</div>
-      {statusFilter === "OPEN" ? <div className="kick">Closes {lockText(game.lock_time)}</div> : gameIsLive && liveSituation && <div className="game-live-situation">{liveSituation}</div>}
+      {statusFilter === "OPEN" ? <div className="kick">{gameDeadlineText(game, now)}</div> : gameIsLive && liveSituation && <div className="game-live-situation">{liveSituation}</div>}
     </div>
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>

@@ -1,14 +1,7 @@
-import { addMinutes, setDay } from "date-fns";
+import { setDay } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 
 export const APP_TIMEZONE = process.env.APP_TIMEZONE || "America/Chicago";
-
-function previousDayAt(kickoffLocal: Date, hour: number) {
-  const previousDay = new Date(kickoffLocal);
-  previousDay.setDate(previousDay.getDate() - 1);
-  previousDay.setHours(hour, 0, 0, 0);
-  return previousDay;
-}
 
 // JS day: 0 Sunday, 1 Monday, 2 Tuesday, 3 Wednesday, 4 Thursday, 5 Friday, 6 Saturday.
 export function getGameLockTime(commenceTimeIso: string, timezone = APP_TIMEZONE): Date {
@@ -16,9 +9,9 @@ export function getGameLockTime(commenceTimeIso: string, timezone = APP_TIMEZONE
   const kickoffLocal = toZonedTime(kickoffUtc, timezone);
   const day = kickoffLocal.getDay();
 
-  // Tuesday-Friday games lock at 7:00 PM local time on the previous day.
+  // Tuesday-Friday picks close one hour before kickoff.
   if ([2, 3, 4, 5].includes(day)) {
-    return fromZonedTime(previousDayAt(kickoffLocal, 19), timezone);
+    return new Date(kickoffUtc.getTime() - 60 * 60 * 1000);
   }
 
   // Saturday/Sunday/Monday games lock Friday at 7:00 PM CT before that football weekend.
@@ -38,9 +31,10 @@ export function getSpreadFreezeTime(commenceTimeIso: string, timezone = APP_TIME
   const kickoffLocal = toZonedTime(kickoffUtc, timezone);
   const day = kickoffLocal.getDay();
 
-  // Tuesday-Friday games receive their final spread at 6:00 PM local time on the previous day.
+  // Tuesday-Friday spreads freeze two hours before kickoff, giving players
+  // one hour with the final line before picks close.
   if ([2, 3, 4, 5].includes(day)) {
-    return fromZonedTime(previousDayAt(kickoffLocal, 18), timezone);
+    return new Date(kickoffUtc.getTime() - 2 * 60 * 60 * 1000);
   }
 
   // Weekend lines receive their final scheduled refresh Friday at 6:00 PM CT.
@@ -58,8 +52,7 @@ export function getSpreadFreezeTime(commenceTimeIso: string, timezone = APP_TIME
 export function canRefreshSpread(commenceTimeIso: string, now = new Date(), timezone = APP_TIMEZONE) {
   const freezeTime = getSpreadFreezeTime(commenceTimeIso, timezone);
 
-  // Leave a short delivery window for the external 6:00 PM scheduler request.
-  return now <= addMinutes(freezeTime, 10);
+  return now <= freezeTime;
 }
 
 export function getFootballWeek(dateIso: string, timezone = APP_TIMEZONE): number {

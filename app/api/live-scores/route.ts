@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { fetchEspnSchedule, findEspnScheduleMatch } from "@/lib/espnSchedule";
+import { finalizeGame } from "@/lib/finalizeGame";
+import { lockDuePicks } from "@/lib/lockDuePicks";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import type { Game } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -29,7 +32,7 @@ export async function GET(req: NextRequest) {
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from("games")
-      .select("id,week,league,commence_time,home_team,away_team,final_home_score,final_away_score")
+      .select("*")
       .eq("week", week);
 
     if (error) throw error;
@@ -63,27 +66,39 @@ export async function GET(req: NextRequest) {
       }
     }));
 
-    const games = candidates.flatMap((game) => {
+    const games = [];
+    let resultsUpdated = false;
+    await lockDuePicks(supabase);
+
+    for (const game of candidates) {
       const match = findEspnScheduleMatch(game, schedules.get(game.league) || []);
-      if (!match || match.game.homeScore == null || match.game.awayScore == null) return [];
+      if (!match || match.game.homeScore == null || match.game.awayScore == null) continue;
+      const homeScore = match.swapped ? match.game.awayScore : match.game.homeScore;
+      const awayScore = match.swapped ? match.game.homeScore : match.game.awayScore;
       const possessionTeam = match.game.possessionSide === "home"
         ? (match.swapped ? game.away_team : game.home_team)
         : match.game.possessionSide === "away"
           ? (match.swapped ? game.home_team : game.away_team)
           : null;
-      return [{
+      if (match.game.completed) {
+        await finalizeGame(supabase, game as Game, homeScore, awayScore);
+        resultsUpdated = true;
+      }
+      games.push({
         id: game.id,
-        live_home_score: match.swapped ? match.game.awayScore : match.game.homeScore,
-        live_away_score: match.swapped ? match.game.homeScore : match.game.awayScore,
+        final_home_score: match.game.completed ? homeScore : null,
+        final_away_score: match.game.completed ? awayScore : null,
+        live_home_score: homeScore,
+        live_away_score: awayScore,
         live_status: match.game.statusDetail,
         live_state: match.game.statusState,
         live_completed: match.game.completed,
         live_possession_team: possessionTeam,
         live_situation: match.game.situationText
-      }];
-    });
+      });
+    }
 
-    return NextResponse.json({ ok: true, games }, { headers: NO_STORE_HEADERS });
+    return NextResponse.json({ ok: true, games, resultsUpdated }, { headers: NO_STORE_HEADERS });
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Could not load live scores." },

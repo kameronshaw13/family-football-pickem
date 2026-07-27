@@ -15,6 +15,7 @@ export type Game = {
   current_spread_team: string | null;
   current_spread: number | null;
   current_bookmaker: string | null;
+  spread_freeze_time?: string;
   lock_time: string;
   is_locked: boolean;
   final_home_score: number | null;

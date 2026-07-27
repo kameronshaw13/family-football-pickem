@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { settleWeekIfReady } from "@/lib/autoSettlement";
 import { fetchEspnSchedule, findEspnScheduleMatch } from "@/lib/espnSchedule";
 import { finalizeGame } from "@/lib/finalizeGame";
+import { lockDuePicks } from "@/lib/lockDuePicks";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import type { Game, League } from "@/lib/types";
 
@@ -15,6 +16,7 @@ export async function GET(req: NextRequest) {
     if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) return unauthorized();
 
     const supabase = getSupabaseAdmin();
+    const lockResult = await lockDuePicks(supabase);
     const now = new Date();
     const oldestRelevantKickoff = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString();
     const { data, error } = await supabase
@@ -59,6 +61,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       gamesChecked: games.length,
+      ...lockResult,
       gamesFinalized,
       picksGraded,
       sideBetsGraded,
