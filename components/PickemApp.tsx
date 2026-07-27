@@ -15,7 +15,7 @@ type PicksView = "board" | "sideBets";
 type CardView = "mine" | "group";
 type StandingsView = "standings" | "bank";
 type BetView = "new" | "received" | "sent";
-type GameStatusFilter = "OPEN" | "UPCOMING" | "LIVE" | "FINAL";
+type GameStatusFilter = "OPEN" | "LOCKED" | "FINAL";
 type LeagueFilter = "CFB" | "NFL" | "DOGS";
 type DogValueFilter = "ALL" | "1" | "2" | "3";
 type GameOutcome = "win" | "loss" | "push";
@@ -270,12 +270,11 @@ function isFinalGame(game: Game) {
 }
 function boardStatusForGame(game: Game, now: number, weekIsOpen: boolean): GameStatusFilter {
   if (isFinalGame(game)) return "FINAL";
-  if (new Date(game.commence_time).getTime() <= now) return "LIVE";
-  const locked = game.is_locked || new Date(game.lock_time).getTime() <= now;
-  return locked || !weekIsOpen ? "UPCOMING" : "OPEN";
+  const locked = game.is_locked || new Date(game.lock_time).getTime() <= now || new Date(game.commence_time).getTime() <= now;
+  return locked || !weekIsOpen ? "LOCKED" : "OPEN";
 }
 function defaultBoardStatus(games: Game[], now: number, weekIsOpen: boolean): GameStatusFilter {
-  const statuses: GameStatusFilter[] = ["OPEN", "LIVE", "UPCOMING", "FINAL"];
+  const statuses: GameStatusFilter[] = ["OPEN", "LOCKED", "FINAL"];
   return statuses.find((status) => games.some((game) => !hasChargers(game) && boardStatusForGame(game, now, weekIsOpen) === status)) || "OPEN";
 }
 function livePeriodStatus(game: Game) {
@@ -1052,7 +1051,7 @@ export default function PickemApp() {
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: `Side Bets${pendingOfferCount ? ` (${pendingOfferCount})` : ""}` }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
           <div className="view-select-row board-filter-row">
-            <div className="compact-select status-select"><select aria-label="Choose game status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as GameStatusFilter); setStatusFilterTouched(true); }}>{(["OPEN", "UPCOMING", "LIVE", "FINAL"] as GameStatusFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
+            <div className="compact-select status-select"><select aria-label="Choose game status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as GameStatusFilter); setStatusFilterTouched(true); }}>{(["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
             <div className="compact-select league-select"><select aria-label="Choose league" value={leagueFilter} onChange={(event) => setLeagueFilter(event.target.value as LeagueFilter)}>{(["CFB", "NFL", "DOGS"] as LeagueFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
             {leagueFilter === "CFB" && <div className="compact-select context-select"><select aria-label="Filter college games by subdivision or conference" value={conferenceFilter} onChange={(event) => setConferenceFilter(event.target.value)}><option value="ALL">ALL CONF.</option><option value="FBS">FBS</option><option value="FCS">FCS</option>{conferenceOptions.map((conference) => <option key={conference} value={conference}>{conference}</option>)}</select><ChevronDown size={15} /></div>}
             {leagueFilter === "DOGS" && <div className="compact-select context-select"><select aria-label="Filter dogs by win value" value={dogValueFilter} onChange={(event) => setDogValueFilter(event.target.value as DogValueFilter)}><option value="ALL">ALL DOGS</option>{(["1", "2", "3"] as const).map((value) => <option key={value} value={value}>+{value}W</option>)}</select><ChevronDown size={15} /></div>}
@@ -1132,7 +1131,7 @@ export default function PickemApp() {
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} />
           </div>
           <div className="subsection bank-section"><div className="bank-section-heading"><h3>Side bet ledger</h3></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
-          {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setStatusFilter("UPCOMING"); setStatusFilterTouched(true); setLeagueFilter("CFB"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview board states</strong><small>See upcoming, live, and final games</small></span><ChevronRight size={17} /></button>}
+          {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setStatusFilter("LOCKED"); setStatusFilterTouched(true); setLeagueFilter("CFB"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview board states</strong><small>See locked, live, and final games</small></span><ChevronRight size={17} /></button>}
         </>}
       </section>}
 
@@ -1146,7 +1145,7 @@ export default function PickemApp() {
           <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each.</li><li>Tied first splits $20.</li><li>A three-way tie pays $0.</li><li>Payments post automatically after all three cards are final.</li></ul></RuleItem>
           <RuleItem icon={Trophy} title="Perfect week"><ul><li>Available only during five-game weeks.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
           <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines freeze 2 hours before kickoff.</li><li>Tue-Fri picks close 1 hour before kickoff.</li><li>Sat-Mon lines freeze Friday at 6 PM CT.</li><li>Sat-Mon picks close Friday at 7 PM CT.</li></ul></RuleItem>
-          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each player may have 3 accepted bets per week.</li><li>Offers must be accepted before kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
+          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each player may have 3 accepted bets per week.</li><li>Lines follow league updates and freeze on the same schedule.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
         </div>
       </section>}
     </main>
@@ -1296,7 +1295,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, accepte
     {view === "new" && <div className="bet-composer">
       <div className="section-title"><Send size={19} /><div><h2>Make an offer</h2></div></div>
       {limitReached && <div className="empty-state">You have reached the {MAX_ACCEPTED_SIDE_BETS_PER_WEEK} side bet limit for this week.</div>}
-      {openGames.length === 0 && <div className="empty-state">No games with an open spread are available.</div>}
+      {openGames.length === 0 && <div className="empty-state">No games with a spread are available before kickoff.</div>}
       {!limitReached && selectedGame && <div className="offer-flow">
         <section className="offer-block offer-game-amount">
           <label><span className="field-label">Game</span><select id="side-bet-game" aria-label="Side bet game" className="input" value={selectedGame.id} onChange={(event) => setGame(event.target.value)}>
@@ -1316,10 +1315,10 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, accepte
           </div>
         </section>
 
-        <section className="offer-block offer-fields">
+        <section className="offer-block offer-recipient-block">
           <fieldset><legend className="field-label">Send to</legend><div className="recipient-grid">{otherPlayers.map((profile) => {
             const recipientFull = (acceptedCounts[profile.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK;
-            return <label key={profile.id} className={`${recipients.includes(profile.id) ? "checked" : ""} ${recipientFull ? "disabled" : ""}`.trim()}><input type="checkbox" disabled={recipientFull} checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}{recipientFull ? " · 3/3" : ""}</span></label>;
+            return <label key={profile.id} className={`${recipients.includes(profile.id) ? "checked" : ""} ${recipientFull ? "disabled" : ""}`.trim()}><input type="checkbox" disabled={recipientFull} checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}</span><small>{recipientFull ? "3/3 bets" : recipients.includes(profile.id) ? "Selected" : "Available"}</small></label>;
           })}</div></fieldset>
         </section>
 
@@ -1327,7 +1326,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, accepte
           <div><span>You keep</span><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} {spreadText(creatorSpread)}</strong></div>
           <div><span>They get</span><strong>{displayTeamName(selectedGame, offeredTeam)} {spreadText(creatorSpread == null ? null : -creatorSpread)}</strong></div>
         </div></div>
-        <button className="btn accent full" disabled={saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={createBet}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
+        <div className="offer-submit-row"><button className="btn accent full" disabled={saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={createBet}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button></div>
       </div>}
     </div>}
 
