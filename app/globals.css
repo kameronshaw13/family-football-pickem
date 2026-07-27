@@ -114,7 +114,6 @@ p { margin: 0; }
 .game-day-marker { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); color: var(--ink); }
 .game-day-marker > b { flex: 0 0 auto; padding: 5px 8px; color: #fff; background: var(--graphite); box-shadow: inset 0 -2px 0 var(--blue); font-family: var(--font-display); font-size: 10px; font-weight: 900; }
 .game-day-marker strong { flex: 0 0 auto; font-family: var(--font-display); font-size: 11px; font-weight: 800; }
-.game-day-marker span { width: 100%; height: 1px; background: var(--line-strong); }
 .game-list { display: grid; overflow: hidden; gap: 0; border-block: 1px solid var(--line-strong); background: var(--panel); }
 .game-card { overflow: hidden; border: 0; border-bottom: 1px solid var(--line-strong); border-radius: 0; background: var(--panel); content-visibility: auto; contain-intrinsic-block-size: 153px; }
 .game-card:last-child { border-bottom: 0; }
@@ -260,12 +259,14 @@ p { margin: 0; }
 .money-input input { width: 100%; padding: 9px 10px 9px 4px; border: 0; outline: 0; background: transparent; }
 fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 fieldset .field-label { padding: 0; }
-.recipient-grid { display: grid; margin-inline: calc(var(--page-gutter) * -1); border-top: 1px solid var(--line); }
-.recipient-grid label { display: grid; min-height: 49px; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 8px var(--page-gutter); border-bottom: 1px solid var(--line); background: var(--panel); font-family: var(--font-display); font-size: 14px; font-weight: 700; }
+.recipient-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-inline: calc(var(--page-gutter) * -1); border-block: 1px solid var(--line); }
+.recipient-grid label { display: grid; min-width: 0; min-height: 49px; grid-template-columns: 16px minmax(0, 1fr) auto; align-items: center; gap: 5px; padding: 8px; border-right: 1px solid var(--line); background: var(--panel); font-family: var(--font-display); font-size: 13px; font-weight: 700; }
+.recipient-grid label:last-child { border-right: 0; }
+.recipient-grid label > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recipient-grid label.checked { background: var(--blue-soft); box-shadow: inset 4px 0 0 var(--blue); }
 .recipient-grid label.disabled { color: var(--muted); background: var(--surface-muted); }
 .recipient-grid input { accent-color: var(--blue-dark); }
-.recipient-grid small { color: var(--muted); font-family: var(--font-body); font-size: 10px; font-weight: 700; }
+.recipient-grid small { color: var(--muted); font-family: var(--font-body); font-size: 9px; font-weight: 700; white-space: nowrap; }
 .offer-review { border-bottom: 1px solid var(--line); background: var(--panel); }
 .offer-review-head { display: flex; min-height: 34px; align-items: center; justify-content: space-between; padding: 7px var(--page-gutter); color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
 .offer-review-head strong { color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; }
