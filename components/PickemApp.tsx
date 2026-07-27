@@ -259,17 +259,6 @@ function gameDayShort(iso: string) {
 function lockText(iso: string) {
   return `${weekdayAbbreviation(iso)} ${timeText(iso)}`;
 }
-function spreadFreezeTime(game: Game) {
-  if (game.spread_freeze_time) return new Date(game.spread_freeze_time);
-  return new Date(new Date(game.lock_time).getTime() - 60 * 60 * 1000);
-}
-function gameDeadlineText(game: Game, now: number) {
-  const freezeTime = spreadFreezeTime(game);
-  const lineStatus = freezeTime.getTime() <= now
-    ? "Line locked"
-    : `Line locks ${lockText(freezeTime.toISOString())}`;
-  return `${lineStatus} · Closes ${lockText(game.lock_time)}`;
-}
 function spreadForTeam(game: Game, team: string) {
   return spreadText(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
 }
@@ -714,14 +703,6 @@ export default function PickemApp() {
       document.removeEventListener("visibilitychange", refreshOnResume);
     };
   }, [hasActiveGames, week]);
-  useEffect(() => {
-    if (!data || refreshing || week == null) return;
-    const crossedDeadline = data.games.some((game) =>
-      !game.is_locked && new Date(game.lock_time).getTime() <= clock
-    );
-    if (crossedDeadline) void load(week);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clock, data, refreshing, week]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 3200);
@@ -1549,7 +1530,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
   return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
     <div className="game-head compact-game-head">
       <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status">{livePeriodStatus(game)}</span> : <span className="game-time">{timeText(game.commence_time)}</span>}</div>
-      {statusFilter === "OPEN" ? <div className="kick">{gameDeadlineText(game, now)}</div> : gameIsLive && liveSituation && <div className="game-live-situation">{liveSituation}</div>}
+      {statusFilter === "OPEN" ? <div className="kick">Closes {lockText(game.lock_time)}</div> : gameIsLive && liveSituation && <div className="game-live-situation">{liveSituation}</div>}
     </div>
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>

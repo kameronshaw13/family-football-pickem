@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { findEspnLogo, normalizeEspnLogoUrl } from "@/lib/espnLogos";
 import { fetchEspnSchedule, findEspnScheduleMatch, resolveEspnCommenceTime } from "@/lib/espnSchedule";
-import { getFootballWeek, getGameLockTime, getPickWeekOpenTime, getSpreadFreezeTime } from "@/lib/lockRules";
-import { lockDuePicks } from "@/lib/lockDuePicks";
+import { getFootballWeek, getGameLockTime, getPickWeekOpenTime } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
 import { getProfileFromToken } from "@/lib/authServer";
 import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
@@ -26,7 +25,6 @@ export async function GET(req: NextRequest) {
     if (!profile) return NextResponse.json({ ok: false, error }, { status: 401 });
 
     const supabase = getSupabaseAdmin();
-    await lockDuePicks(supabase);
     const now = new Date().toISOString();
     const requestedWeek = req.nextUrl.searchParams.get("week");
 
@@ -89,7 +87,6 @@ export async function GET(req: NextRequest) {
         ...game,
         home_logo_url: normalizeEspnLogoUrl(game.home_logo_url),
         away_logo_url: normalizeEspnLogoUrl(game.away_logo_url),
-        spread_freeze_time: getSpreadFreezeTime(game.commence_time).toISOString(),
         lock_time: lockTime,
         is_locked: requestTime >= new Date(lockTime)
       };
