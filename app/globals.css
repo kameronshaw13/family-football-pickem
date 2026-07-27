@@ -260,7 +260,7 @@ p { margin: 0; }
 fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 fieldset .field-label { padding: 0; }
 .recipient-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-inline: calc(var(--page-gutter) * -1); border-block: 1px solid var(--line); }
-.recipient-grid label { display: grid; min-width: 0; min-height: 49px; grid-template-columns: 16px minmax(0, 1fr) auto; align-items: center; gap: 5px; padding: 8px; border-right: 1px solid var(--line); background: var(--panel); font-family: var(--font-display); font-size: 13px; font-weight: 700; }
+.recipient-grid label { display: grid; min-width: 0; min-height: 49px; grid-template-columns: 16px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 8px; border-right: 1px solid var(--line); background: var(--panel); font-family: var(--font-display); font-size: 13px; font-weight: 700; }
 .recipient-grid label:last-child { border-right: 0; }
 .recipient-grid label > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recipient-grid label.checked { background: var(--blue-soft); box-shadow: inset 4px 0 0 var(--blue); }
@@ -365,8 +365,6 @@ fieldset .field-label { padding: 0; }
 .bank-section { margin-top: var(--space-5); }
 .bank-section-heading { min-height: 26px; padding: 0 2px; }
 .bank-section-heading h3 { margin: 0; }
-.bank-results-heading { min-height: 42px; padding: 2px 2px 8px; }
-.bank-results-heading h3 { color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .bank-week-results { border-block: 1px solid var(--line); background: var(--panel); }
 .bank-player-result + .bank-player-result { border-top: 1px solid var(--line); }
 .bank-player-result > summary { display: grid; min-height: 58px; grid-template-columns: minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 8px 10px; list-style: none; cursor: pointer; background: var(--panel); }

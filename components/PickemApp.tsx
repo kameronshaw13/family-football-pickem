@@ -219,8 +219,6 @@ function openText(iso: string) {
     weekday: "long",
     month: "long",
     day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
     timeZone: "America/Chicago"
   }).format(new Date(iso));
 }
@@ -1047,7 +1045,7 @@ export default function PickemApp() {
       {previewActive && <div className="test-mode-banner"><span><FlaskConical size={16} /><span><strong>Board state preview</strong><small>No real picks or bank balances are changed</small></span></span><button type="button" onClick={() => { setTestWeekActive(false); setStatusFilter(defaultBoardStatus(data.games, clock, !data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock)); setStatusFilterTouched(false); }}><X size={16} /> Exit</button></div>}
 
       {tab === "picks" && <section className="panel picks-panel">
-        {!previewActive && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens on {openText(data.weekOpenTime)} CT.</div>}
+        {!previewActive && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens on {openText(data.weekOpenTime)}.</div>}
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: `Side Bets${pendingOfferCount ? ` (${pendingOfferCount})` : ""}` }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
           <div className="view-select-row board-filter-row">
@@ -1124,8 +1122,8 @@ export default function PickemApp() {
             {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
           </div>
           <div className="subsection bank-section">
-            <div className="bank-section-heading standings-heading-row bank-results-heading">
-              <h3>{previewActive ? "Test Weekly Results" : "Weekly Results"}</h3>
+            <div className="standings-heading-row">
+              <h2>{previewActive ? "Test Weekly Results" : "Weekly Results"}</h2>
               {previewActive ? <span className="test-standings-label">Week 3</span> : <label><select aria-label="Select Bank results week" value={selectedBankWeek} disabled={bankWeekLoading} onChange={(event) => void loadBankWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select>{bankWeekLoading ? <LoaderCircle className="bank-week-spinner" size={14} /> : <ChevronDown size={14} />}</label>}
             </div>
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} />
