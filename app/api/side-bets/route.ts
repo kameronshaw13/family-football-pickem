@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
-import { acceptedSideBetCounts, closeOpenOffersForCappedPlayer, getAcceptedSideBetCounts, MAX_ACCEPTED_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
+import { closeOpenOffersForCappedPlayer, getAcceptedSideBetCounts, getSideBetSlotCounts, MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT, sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
@@ -53,9 +53,7 @@ async function sideBetSnapshot(supabase: any, profileId: string, week: number) {
       bet.accepted_by === profileId ||
       bet.targets?.some((target: any) => target.recipient_id === profileId)
     ),
-    sideBetAcceptedCounts: acceptedSideBetCounts(
-      allSideBets.filter((bet: any) => bet.week === week && ["accepted", "settled"].includes(bet.status))
-    )
+    sideBetSlotCounts: sideBetSlotCounts(allSideBets.filter((bet: any) => bet.week === week))
   };
 }
 
@@ -90,15 +88,13 @@ export async function POST(req: NextRequest) {
       if (recipientError) return NextResponse.json({ ok: false, error: recipientError.message }, { status: 500 });
       if (!recipientIds.length || recipients?.length !== recipientIds.length) return NextResponse.json({ ok: false, error: "Choose one or both of the other players." }, { status: 400 });
 
-      const acceptedCounts = await getAcceptedSideBetCounts(supabase, game.week, [auth.profile.id, ...recipientIds]);
-      if ((acceptedCounts[auth.profile.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK) {
-        await closeOpenOffersForCappedPlayer(supabase, auth.profile.id, game.week, nowIso);
-        return NextResponse.json({ ok: false, error: `You already have ${MAX_ACCEPTED_SIDE_BETS_PER_WEEK} accepted side bets this week.` }, { status: 409 });
+      const slotCounts = await getSideBetSlotCounts(supabase, game.week, [auth.profile.id, ...recipientIds]);
+      if ((slotCounts[auth.profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK) {
+        return NextResponse.json({ ok: false, error: `You already have ${MAX_SIDE_BETS_PER_WEEK} accepted or pending side bets this week.` }, { status: 409 });
       }
-      const fullRecipient = recipients?.find((recipient) => (acceptedCounts[recipient.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK);
+      const fullRecipient = recipients?.find((recipient) => (slotCounts[recipient.id] || 0) >= MAX_SIDE_BETS_PER_WEEK);
       if (fullRecipient) {
-        await closeOpenOffersForCappedPlayer(supabase, fullRecipient.id, game.week, nowIso);
-        return NextResponse.json({ ok: false, error: `${fullRecipient.display_name} already has ${MAX_ACCEPTED_SIDE_BETS_PER_WEEK} accepted side bets this week.` }, { status: 409 });
+        return NextResponse.json({ ok: false, error: `${fullRecipient.display_name} already has ${MAX_SIDE_BETS_PER_WEEK} accepted or pending side bets this week.` }, { status: 409 });
       }
 
       const offeredTeam = body.creatorTeam === game.home_team ? game.away_team : game.home_team;
@@ -121,6 +117,13 @@ export async function POST(req: NextRequest) {
       if (targetError) {
         await supabase.from("side_bets").delete().eq("id", sideBet.id);
         return NextResponse.json({ ok: false, error: targetError.message }, { status: 500 });
+      }
+      const updatedSlotCounts = await getSideBetSlotCounts(supabase, game.week, [auth.profile.id, ...recipientIds]);
+      const overLimit = [auth.profile.id, ...recipientIds].some((playerId) => (updatedSlotCounts[playerId] || 0) > MAX_SIDE_BETS_PER_WEEK);
+      if (overLimit) {
+        await supabase.from("side_bet_targets").delete().eq("side_bet_id", sideBet.id);
+        await supabase.from("side_bets").delete().eq("id", sideBet.id);
+        return NextResponse.json({ ok: false, error: "A player reached the weekly side bet limit before this offer was completed." }, { status: 409 });
       }
       return successResponse(supabase, auth.profile.id, body.viewWeek ?? game.week, { sideBet });
     }
@@ -172,13 +175,11 @@ export async function POST(req: NextRequest) {
       return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week);
     }
 
-    const acceptedCounts = await getAcceptedSideBetCounts(supabase, sideBet.week, [auth.profile.id, sideBet.creator_id]);
-    if ((acceptedCounts[auth.profile.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK) {
-      await closeOpenOffersForCappedPlayer(supabase, auth.profile.id, sideBet.week, nowIso);
-      return NextResponse.json({ ok: false, error: `You already have ${MAX_ACCEPTED_SIDE_BETS_PER_WEEK} accepted side bets this week.` }, { status: 409 });
+    const otherSlotCounts = await getSideBetSlotCounts(supabase, sideBet.week, [auth.profile.id, sideBet.creator_id], sideBet.id);
+    if ((otherSlotCounts[auth.profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK) {
+      return NextResponse.json({ ok: false, error: `You already have ${MAX_SIDE_BETS_PER_WEEK} other accepted or pending side bets this week.` }, { status: 409 });
     }
-    if ((acceptedCounts[sideBet.creator_id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK) {
-      await closeOpenOffersForCappedPlayer(supabase, sideBet.creator_id, sideBet.week, nowIso);
+    if ((otherSlotCounts[sideBet.creator_id] || 0) >= MAX_SIDE_BETS_PER_WEEK) {
       return NextResponse.json({ ok: false, error: "The sender has already reached the weekly side bet limit." }, { status: 409 });
     }
 
@@ -194,10 +195,10 @@ export async function POST(req: NextRequest) {
     await supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("response", "pending");
     await supabase.from("side_bet_targets").update({ response: "accepted", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id);
     const updatedCounts = await getAcceptedSideBetCounts(supabase, sideBet.week, [auth.profile.id, sideBet.creator_id]);
-    if ((updatedCounts[auth.profile.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK) {
+    if ((updatedCounts[auth.profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK) {
       await closeOpenOffersForCappedPlayer(supabase, auth.profile.id, sideBet.week, nowIso);
     }
-    if ((updatedCounts[sideBet.creator_id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK) {
+    if ((updatedCounts[sideBet.creator_id] || 0) >= MAX_SIDE_BETS_PER_WEEK) {
       await closeOpenOffersForCappedPlayer(supabase, sideBet.creator_id, sideBet.week, nowIso);
     }
     return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week, { sideBet: accepted });

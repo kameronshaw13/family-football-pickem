@@ -6,7 +6,7 @@ import { getFootballWeek, getGameLockTime, getPickWeekOpenTime } from "@/lib/loc
 import { getWeekRule } from "@/lib/weekRules";
 import { getProfileFromToken } from "@/lib/authServer";
 import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
-import { acceptedSideBetCounts, closeOpenOffersForCappedPlayer, MAX_ACCEPTED_SIDE_BETS_PER_WEEK } from "@/lib/sideBetLimits";
+import { acceptedSideBetCounts, closeOpenOffersForCappedPlayer, MAX_SIDE_BETS_PER_WEEK, sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { computeWeeklyStandings } from "@/lib/weeklyBank";
 
 const SCHEDULE_SOURCE_ROLLOUT = new Date("2026-07-23T03:25:00.000Z");
@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
       (profiles || []).map((player: any) => player.id)
     );
     const cappedPlayerIds = Object.entries(initialAcceptedCounts)
-      .filter(([, count]) => count >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK)
+      .filter(([, count]) => count >= MAX_SIDE_BETS_PER_WEEK)
       .map(([playerId]) => playerId);
     const cappedPlayerSet = new Set(cappedPlayerIds);
     const cappedOffersNeedCleanup = reconciledSideBets.some((bet: any) =>
@@ -209,8 +209,8 @@ export async function GET(req: NextRequest) {
     const sideBets = reconciledSideBets.filter((bet: any) =>
       bet.creator_id === profile.id || bet.accepted_by === profile.id || bet.targets?.some((target: any) => target.recipient_id === profile.id)
     ).map((bet: any) => expiredIds.includes(bet.id) ? { ...bet, status: "expired" } : bet);
-    const sideBetAcceptedCounts = acceptedSideBetCounts(
-      reconciledSideBets.filter((bet: any) => bet.week === week && ["accepted", "settled"].includes(bet.status)),
+    const sideBetSlotCountsByPlayer = sideBetSlotCounts(
+      reconciledSideBets.filter((bet: any) => bet.week === week && !expiredIds.includes(bet.id)),
       (profiles || []).map((player: any) => player.id)
     );
 
@@ -233,7 +233,7 @@ export async function GET(req: NextRequest) {
       bankSettings: bankSettings || { id: 1, winner_amount: 20, loser_amount: 10 },
       bankEntries: bankEntries || [],
       sideBets,
-      sideBetAcceptedCounts,
+      sideBetSlotCounts: sideBetSlotCountsByPlayer,
       sideBetBankTotals,
       week,
       weekRule: getWeekRule(week),

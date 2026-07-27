@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
-import { MAX_ACCEPTED_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
+import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
@@ -53,7 +53,7 @@ type AppData = {
   bankSettings: BankSettings;
   bankEntries: BankEntry[];
   sideBets: SideBet[];
-  sideBetAcceptedCounts: Record<string, number>;
+  sideBetSlotCounts: Record<string, number>;
   sideBetBankTotals: Record<string, number>;
   week: number;
   weekRule: WeekRule;
@@ -815,7 +815,7 @@ export default function PickemApp() {
             ...bet,
             game: current.games.find((game) => game.id === bet.game_id) || bet.game
           })),
-          sideBetAcceptedCounts: payload.sideBetAcceptedCounts || current.sideBetAcceptedCounts
+          sideBetSlotCounts: payload.sideBetSlotCounts || current.sideBetSlotCounts
         } : current);
       } else {
         await load(week);
@@ -996,11 +996,11 @@ export default function PickemApp() {
       notify(`Side bets are capped at $${MAX_SIDE_BET_AMOUNT}.`, "error");
       return;
     }
-    if ((data?.sideBetAcceptedCounts?.[currentUser.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK) {
-      notify(`You already have ${MAX_ACCEPTED_SIDE_BETS_PER_WEEK} accepted side bets this week.`, "error");
+    if ((data?.sideBetSlotCounts?.[currentUser.id] || 0) >= MAX_SIDE_BETS_PER_WEEK) {
+      notify(`You already have ${MAX_SIDE_BETS_PER_WEEK} accepted or pending side bets this week.`, "error");
       return;
     }
-    const fullRecipient = profiles.find((profile) => betRecipients.includes(profile.id) && (data?.sideBetAcceptedCounts?.[profile.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK);
+    const fullRecipient = profiles.find((profile) => betRecipients.includes(profile.id) && (data?.sideBetSlotCounts?.[profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK);
     if (fullRecipient) {
       notify(`${fullRecipient.display_name} has reached the weekly side bet limit.`, "error");
       return;
@@ -1070,7 +1070,7 @@ export default function PickemApp() {
           currentUser={currentUser}
           profiles={profiles}
           sideBets={sideBets}
-          acceptedCounts={data.sideBetAcceptedCounts || {}}
+          slotCounts={data.sideBetSlotCounts || {}}
           openGames={openBetGames}
           selectedGame={selectedBetGame}
           selectedCreatorTeam={selectedCreatorTeam}
@@ -1145,7 +1145,7 @@ export default function PickemApp() {
           <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each.</li><li>Tied first splits $20.</li><li>A three-way tie pays $0.</li><li>Payments post automatically after all three cards are final.</li></ul></RuleItem>
           <RuleItem icon={Trophy} title="Perfect week"><ul><li>Available only during five-game weeks.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
           <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines freeze 2 hours before kickoff.</li><li>Tue-Fri picks close 1 hour before kickoff.</li><li>Sat-Mon lines freeze Friday at 6 PM CT.</li><li>Sat-Mon picks close Friday at 7 PM CT.</li></ul></RuleItem>
-          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each player may have 3 accepted bets per week.</li><li>Lines follow league updates and freeze on the same schedule.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
+          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each player may have 3 bets per week.</li><li>Accepted and pending offers count toward the limit.</li><li>Tue-Fri lines freeze 2 hours before kickoff.</li><li>Sat-Mon lines freeze Friday at 6 PM CT.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
         </div>
       </section>}
     </main>
@@ -1252,13 +1252,13 @@ function LoadingShell() {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, acceptedCounts, openGames, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, setGame, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, openGames, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, setGame, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
   profiles: Profile[];
   sideBets: SideBet[];
-  acceptedCounts: Record<string, number>;
+  slotCounts: Record<string, number>;
   openGames: Game[];
   selectedGame?: Game;
   selectedCreatorTeam: string;
@@ -1280,8 +1280,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, accepte
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
   const creatorSpread = selectedGame ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
-  const acceptedCount = acceptedCounts[currentUser.id] || 0;
-  const limitReached = acceptedCount >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK;
+  const slotCount = slotCounts[currentUser.id] || 0;
+  const limitReached = slotCount >= MAX_SIDE_BETS_PER_WEEK;
 
   async function acceptConfirmedBet() {
     if (!confirmingBetId) return;
@@ -1294,7 +1294,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, accepte
 
     {view === "new" && <div className="bet-composer">
       <div className="section-title"><Send size={19} /><div><h2>Make an offer</h2></div></div>
-      {limitReached && <div className="empty-state">You have reached the {MAX_ACCEPTED_SIDE_BETS_PER_WEEK} side bet limit for this week.</div>}
+      {limitReached && <div className="empty-state">Your {MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.</div>}
       {openGames.length === 0 && <div className="empty-state">No games with a spread are available before kickoff.</div>}
       {!limitReached && selectedGame && <div className="offer-flow">
         <section className="offer-block offer-game-amount">
@@ -1317,7 +1317,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, accepte
 
         <section className="offer-block offer-recipient-block">
           <fieldset><legend className="field-label">Send to</legend><div className="recipient-grid">{otherPlayers.map((profile) => {
-            const recipientFull = (acceptedCounts[profile.id] || 0) >= MAX_ACCEPTED_SIDE_BETS_PER_WEEK;
+            const recipientFull = (slotCounts[profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK;
             return <label key={profile.id} className={`${recipients.includes(profile.id) ? "checked" : ""} ${recipientFull ? "disabled" : ""}`.trim()}><input type="checkbox" disabled={recipientFull} checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}</span><small>{recipientFull ? "3/3 bets" : recipients.includes(profile.id) ? "Selected" : "Available"}</small></label>;
           })}</div></fieldset>
         </section>
