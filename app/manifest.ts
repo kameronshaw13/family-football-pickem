@@ -7,6 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Private family football pick'em app.",
     start_url: "/",
     display: "standalone",
+    orientation: "portrait-primary",
     background_color: "#eef0ed",
     theme_color: "#20282d",
     icons: [

@@ -47,7 +47,7 @@
 }
 
 * { box-sizing: border-box; }
-html { min-height: 100%; background: var(--canvas); scrollbar-width: none; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html { min-height: 100%; background: var(--canvas); scrollbar-width: none; -webkit-text-size-adjust: none; text-size-adjust: none; }
 body { position: relative; margin: 0; min-height: 100%; color: var(--ink); background: var(--canvas); font-family: var(--font-display); font-size: 16px; letter-spacing: 0; scrollbar-width: none; overscroll-behavior-y: none; }
 html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; }
 body::before { position: fixed; inset: -100vh 0 auto; z-index: -1; height: 100vh; background: var(--graphite); content: ""; }
@@ -328,7 +328,7 @@ fieldset .field-label { padding: 0; }
 .leaderboard { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
 .leaderboard-labels, .leaderboard-row { display: grid; grid-template-columns: 48px minmax(94px, 1fr) repeat(3, 32px) 62px; align-items: center; }
 .leaderboard-labels { min-height: 34px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
-.leaderboard-row { min-height: 58px; padding: 8px 11px; border-top: 1px solid var(--line); }
+.leaderboard-row { min-height: 58px; padding: 8px 11px; border-top: 1px solid var(--line); background: var(--panel); }
 .leaderboard-labels > span, .leaderboard-row > span, .leaderboard-row > strong, .leaderboard-player { display: flex; height: 100%; align-items: center; justify-content: center; line-height: 1.2; text-align: center; }
 .leaderboard-labels span:nth-child(2), .leaderboard-player { justify-content: flex-start; text-align: left; }
 .leaderboard-rank { color: var(--muted); font-family: var(--font-display); font-size: 14px; font-weight: 900; line-height: 1; }
@@ -337,7 +337,7 @@ fieldset .field-label { padding: 0; }
 .leaderboard-rank.rank-3, .bank-result-rank.rank-3 { color: var(--rank-bronze); }
 .leaderboard-player { min-width: 0; }
 .leaderboard-player strong { display: block; overflow: hidden; font-size: 15px; line-height: 1.2; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
-.leaderboard-stat { color: var(--ink); font-family: var(--font-display); font-size: 13px; font-variant-numeric: tabular-nums; text-align: center; }
+.leaderboard-stat { color: var(--ink); font-family: var(--font-display); font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; }
 .leaderboard-pct { font-family: var(--font-display); font-size: 15px; font-variant-numeric: tabular-nums; text-align: center; }
 .weekly-standings { margin-top: var(--space-5); }
 .standings-heading-row { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 2px 2px 8px; }
@@ -351,10 +351,10 @@ fieldset .field-label { padding: 0; }
 .bank-summary-head, .money-card { display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; padding-inline: 14px; }
 .bank-summary-head { min-height: 34px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
 .bank-summary-head span:last-child { text-align: right; }
-.money-card { min-height: 58px; padding-block: 12px; border-bottom: 1px solid var(--line); }
+.money-card { min-height: 58px; padding-block: 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .money-card:last-child { border-bottom: 0; }
 .money-card span { color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; }
-.money-card strong { font-family: var(--font-display); font-size: 20px; font-variant-numeric: tabular-nums; }
+.money-card strong { font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .money-pos { color: var(--green); }
 .money-neg { color: var(--red); }
 .money-neutral { color: var(--ink); }
