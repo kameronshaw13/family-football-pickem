@@ -47,7 +47,7 @@
 }
 
 * { box-sizing: border-box; }
-html { min-height: 100%; background: var(--canvas); scrollbar-width: none; }
+html { min-height: 100%; background: var(--canvas); scrollbar-width: none; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { position: relative; margin: 0; min-height: 100%; color: var(--ink); background: var(--canvas); font-family: var(--font-display); font-size: 16px; letter-spacing: 0; scrollbar-width: none; overscroll-behavior-y: none; }
 html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; }
 body::before { position: fixed; inset: -100vh 0 auto; z-index: -1; height: 100vh; background: var(--graphite); content: ""; }
@@ -105,8 +105,7 @@ p { margin: 0; }
 .section-title p { margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 600; }
 
 .view-select-row { display: flex; justify-content: flex-start; gap: var(--space-2); margin-bottom: var(--space-3); }
-.view-select-row.board-filter-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.view-select-row.board-filter-row.has-context-filter { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.view-select-row.board-filter-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .view-select-row.board-filter-row .compact-select { width: 100%; min-width: 0; }
 .compact-select { position: relative; display: inline-flex; min-width: 120px; min-height: 34px; align-items: center; border: 1px solid var(--line-strong); border-bottom: 3px solid var(--blue); background: var(--panel); }
 .compact-select select { appearance: none; width: 100%; padding: 6px 27px 5px 8px; border: 0; color: var(--ink); background: transparent; font-family: var(--font-display); font-size: 12px; font-weight: 800; outline: none; text-transform: uppercase; }

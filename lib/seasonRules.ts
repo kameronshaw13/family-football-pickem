@@ -1,8 +1,10 @@
 import { toZonedTime } from "date-fns-tz";
 import type { Game } from "@/lib/types";
 import { APP_TIMEZONE } from "@/lib/lockRules";
+import { isDivisionOneCfbMatchup } from "@/lib/cfbConferences";
 
-type SeasonGame = Pick<Game, "league" | "commence_time" | "home_team" | "away_team">;
+type SeasonGame = Pick<Game, "league" | "commence_time" | "home_team" | "away_team"> &
+  Partial<Pick<Game, "home_logo_url" | "away_logo_url">>;
 
 export function isChargersTeam(team: string) {
   return /(^|\s)chargers$/i.test(team.trim());
@@ -38,5 +40,7 @@ export function isCfbRegularSeason(game: Pick<SeasonGame, "commence_time" | "hom
 }
 
 export function isEligibleRegularSeasonGame(game: SeasonGame) {
-  return game.league === "CFB" ? isCfbRegularSeason(game) : isNflRegularSeason(game.commence_time);
+  return game.league === "CFB"
+    ? isCfbRegularSeason(game) && isDivisionOneCfbMatchup(game)
+    : isNflRegularSeason(game.commence_time);
 }

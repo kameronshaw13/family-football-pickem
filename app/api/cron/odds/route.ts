@@ -93,7 +93,9 @@ async function refreshOdds() {
           league: sport.league,
           commence_time: officialGame.commenceTime,
           home_team: officialGame.homeTeam,
-          away_team: officialGame.awayTeam
+          away_team: officialGame.awayTeam,
+          home_logo_url: scheduleMatch.game.homeTeam.logoUrl,
+          away_logo_url: scheduleMatch.game.awayTeam.logoUrl
         }) ? [officialGame] : [];
       });
       let spreadsUpdated = 0;

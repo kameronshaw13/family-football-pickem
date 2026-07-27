@@ -8,7 +8,7 @@ import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTe
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
 import { hasChargers, isChargersTeam } from "@/lib/seasonRules";
-import { cfbConferenceForLogo } from "@/lib/cfbConferences";
+import { cfbConferenceForLogo, cfbSubdivisionForLogo } from "@/lib/cfbConferences";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -312,6 +312,14 @@ function gameConferences(game: Game) {
     cfbConferenceForLogo(game.away_logo_url),
     cfbConferenceForLogo(game.home_logo_url)
   ].filter((conference): conference is string => Boolean(conference))));
+}
+
+function gameCfbFilterValues(game: Game) {
+  return Array.from(new Set([
+    ...gameConferences(game),
+    cfbSubdivisionForLogo(game.away_logo_url),
+    cfbSubdivisionForLogo(game.home_logo_url)
+  ].filter((value): value is string => Boolean(value))));
 }
 function logoForTeam(game: Game, team: string) {
   return team === game.home_team ? game.home_logo_url : game.away_logo_url;
@@ -889,7 +897,7 @@ export default function PickemApp() {
     if (hasChargers(g)) return false;
     if (boardStatusForGame(g, clock, weekIsOpen) !== statusFilter) return false;
     if (leagueFilter === "CFB") {
-      return g.league === "CFB" && (conferenceFilter === "ALL" || gameConferences(g).includes(conferenceFilter));
+      return g.league === "CFB" && (conferenceFilter === "ALL" || gameCfbFilterValues(g).includes(conferenceFilter));
     }
     if (leagueFilter === "NFL") return g.league === "NFL";
     const dogValue = Math.max(...[g.away_team, g.home_team].map((team) =>
@@ -1039,13 +1047,13 @@ export default function PickemApp() {
         {!previewActive && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens for picks on {openText(data.weekOpenTime)} CT.</div>}
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: `Side Bets${pendingOfferCount ? ` (${pendingOfferCount})` : ""}` }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
-          <div className={`view-select-row board-filter-row ${leagueFilter !== "NFL" ? "has-context-filter" : ""}`}>
-            <div className="compact-select status-select"><select aria-label="Choose game status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as GameStatusFilter); setStatusFilterTouched(true); }}>{(["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
+          <div className="view-select-row board-filter-row">
+            <div className="compact-select status-select"><select aria-label="Choose game status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as GameStatusFilter); setStatusFilterTouched(true); }}>{(["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => <option key={option} value={option}>{option === "LOCKED" ? "CLOSED" : option}</option>)}</select><ChevronDown size={15} /></div>
             <div className="compact-select league-select"><select aria-label="Choose league" value={leagueFilter} onChange={(event) => setLeagueFilter(event.target.value as LeagueFilter)}>{(["CFB", "NFL", "DOGS"] as LeagueFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
-            {leagueFilter === "CFB" && <div className="compact-select context-select"><select aria-label="Filter college games by conference" value={conferenceFilter} onChange={(event) => setConferenceFilter(event.target.value)}><option value="ALL">ALL CONF.</option>{conferenceOptions.map((conference) => <option key={conference} value={conference}>{conference}</option>)}</select><ChevronDown size={15} /></div>}
+            {leagueFilter === "CFB" && <div className="compact-select context-select"><select aria-label="Filter college games by subdivision or conference" value={conferenceFilter} onChange={(event) => setConferenceFilter(event.target.value)}><option value="ALL">ALL CONF.</option><option value="FBS">FBS</option><option value="FCS">FCS</option>{conferenceOptions.map((conference) => <option key={conference} value={conference}>{conference}</option>)}</select><ChevronDown size={15} /></div>}
             {leagueFilter === "DOGS" && <div className="compact-select context-select"><select aria-label="Filter dogs by win value" value={dogValueFilter} onChange={(event) => setDogValueFilter(event.target.value as DogValueFilter)}><option value="ALL">ALL DOGS</option>{(["1", "2", "3"] as const).map((value) => <option key={value} value={value}>+{value}W</option>)}</select><ChevronDown size={15} /></div>}
           </div>
-          {filteredGames.length === 0 && <div className="empty-state">No {statusFilter.toLowerCase()} {leagueFilter === "DOGS" ? "dog" : leagueFilter} games.</div>}
+          {filteredGames.length === 0 && <div className="empty-state">No {statusFilter === "LOCKED" ? "closed" : statusFilter.toLowerCase()} {leagueFilter === "DOGS" ? "dog" : leagueFilter} games.</div>}
           <div className="game-days">
             {gameGroups.map((group) => <div className={`game-day-group ${statusFilter === "FINAL" ? "past-day-group" : ""}`} key={group.key}>
               <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong><span /></div>
@@ -1099,15 +1107,15 @@ export default function PickemApp() {
       {tab === "standings" && <section className="panel standings-panel">
         <SectionTabs items={[{ id: "standings", label: "Standings" }, { id: "bank", label: "Bank" }]} value={standingsView} onChange={(value) => setStandingsView(value as StandingsView)} />
         {standingsView === "standings" && <>
-          <div className="scoreboard-heading heading-with-icon"><Trophy size={19} /><h2>Season standings</h2></div>
+          <div className="scoreboard-heading heading-with-icon"><Trophy size={19} /><h2>Season Standings</h2></div>
           <Leaderboard rows={seasonStandings} />
           <div className="subsection weekly-standings">
-            <div className="standings-heading-row"><h2>Weekly standings</h2>{previewActive ? <span className="test-standings-label">Test Week</span> : <label><select aria-label="Select standings week" value={selectedStandingsWeek} onChange={(event) => setStandingsWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select><ChevronDown size={14} /></label>}</div>
+            <div className="standings-heading-row"><h2>Weekly Standings</h2>{previewActive ? <span className="test-standings-label">Test Week</span> : <label><select aria-label="Select standings week" value={selectedStandingsWeek} onChange={(event) => setStandingsWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select><ChevronDown size={14} /></label>}</div>
             <Leaderboard rows={weeklyStandings} />
           </div>
         </>}
         {standingsView === "bank" && <>
-          <div className="scoreboard-heading heading-with-icon"><Landmark size={19} /><h2>Bank balances</h2></div>
+          <div className="scoreboard-heading heading-with-icon"><Landmark size={19} /><h2>Bank Balances</h2></div>
           <div className="bank-summary-grid">
             <div className="bank-summary-head"><span>Player</span><span>Balance</span></div>
             {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
@@ -1120,7 +1128,7 @@ export default function PickemApp() {
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} />
           </div>
           <div className="subsection bank-section"><div className="bank-section-heading"><h3>Side bet ledger</h3></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
-          {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setStatusFilter("LOCKED"); setStatusFilterTouched(true); setLeagueFilter("CFB"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview board states</strong><small>See locked upcoming, live, and final games</small></span><ChevronRight size={17} /></button>}
+          {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setStatusFilter("LOCKED"); setStatusFilterTouched(true); setLeagueFilter("CFB"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview board states</strong><small>See closed upcoming, live, and final games</small></span><ChevronRight size={17} /></button>}
         </>}
       </section>}
 
@@ -1527,7 +1535,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.away_team)}
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
-        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.away_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{awayScore}</span><PossessionIcon game={game} team={game.away_team} /></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
+        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.away_team)}</span><span className="team-name-separator" aria-hidden="true">•</span><span className="team-inline-score">{awayScore}</span><PossessionIcon game={game} team={game.away_team} /></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
         {showScoreValues ? <span className="team-result-line">{awayResultLine && <span className="team-spread team-result-spread">{awayResultLine}</span>}</span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span></span>}
       </button>
 
@@ -1538,7 +1546,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.home_team)}
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
-        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.home_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{homeScore}</span><PossessionIcon game={game} team={game.home_team} /></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
+        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.home_team)}</span><span className="team-name-separator" aria-hidden="true">•</span><span className="team-inline-score">{homeScore}</span><PossessionIcon game={game} team={game.home_team} /></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
         {showScoreValues ? <span className="team-result-line">{homeResultLine && <span className="team-spread team-result-spread">{homeResultLine}</span>}</span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span></span>}
       </button>
     </div>
