@@ -1,0 +1,157 @@
+/* Phase 1, pass 2: hierarchy and mobile interaction polish. */
+
+/* Give each major screen a calmer vertical rhythm. */
+.panel { padding-bottom: 8px; }
+.pick-section, .subsection, .weekly-standings, .bank-section { margin-top: 28px; }
+.pick-section h3, .subsection h3, .bank-results-heading h3 {
+  margin-bottom: 10px;
+  color: #596873;
+  font-size: 11px;
+  letter-spacing: .055em;
+}
+
+/* Make the three board filters read as a single intentional control group. */
+.view-select-row.board-filter-row {
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid rgba(187,178,164,.68);
+  border-radius: 12px;
+  background: rgba(255,253,248,.58);
+  box-shadow: 0 4px 14px rgba(25,37,45,.035);
+}
+.view-select-row.board-filter-row .compact-select {
+  border: 0;
+  border-radius: 8px;
+  box-shadow: none;
+  background: rgba(255,255,255,.66);
+}
+.view-select-row.board-filter-row .compact-select:focus-within {
+  box-shadow: 0 0 0 2px rgba(110,169,202,.22);
+}
+
+/* Game cards: clearer matchup structure and more confident selected state. */
+.game-head {
+  border-bottom-color: rgba(216,210,198,.85);
+  color: #43535e;
+}
+.game-time, .game-final-status, .game-live-status, .game-live-situation, .kick {
+  font-size: 11px;
+  letter-spacing: .01em;
+}
+.stacked-matchup .team-row:first-child::after {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  bottom: -10px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: #6e777b;
+  background: var(--panel);
+  font-size: 11px;
+}
+.team-row.picked-side .team-name,
+.team-row.picked-side .team-spread { color: #164c6c; }
+.team-row.picked-side .team-logo { transform: scale(1.04); }
+.team-logo { transition: transform .16s ease, opacity .16s ease, filter .16s ease; }
+
+/* Pick card and group views should feel related to game cards. */
+.pick-card,
+.visible-pick,
+.group-empty-picks,
+.card-empty-picks {
+  background: rgba(255,253,248,.78);
+}
+.pick-card,
+.visible-pick {
+  min-height: 68px;
+  padding-block: 10px;
+}
+.pick-title,
+.visible-pick-copy strong { letter-spacing: -.01em; }
+.pick-meta,
+.visible-pick p { margin-top: 4px; }
+.group-card h3 {
+  margin-top: 22px;
+  margin-bottom: 9px;
+  letter-spacing: .045em;
+}
+.group-card:first-child h3 { margin-top: 5px; }
+
+/* Standings: emphasize rank without making the table noisy. */
+.leaderboard-labels {
+  letter-spacing: .055em;
+  color: #59656c;
+}
+.leaderboard-row { transition: background-color .15s ease, transform .15s ease; }
+.leaderboard-row:nth-child(2) {
+  box-shadow: inset 4px 0 0 var(--gold);
+}
+.leaderboard-row:nth-child(3) { box-shadow: inset 4px 0 0 #8b959c; }
+.leaderboard-row:nth-child(4) { box-shadow: inset 4px 0 0 #a56e46; }
+.leaderboard-rank.rank-1 {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(180deg, #d9b34a, #a97c18);
+  box-shadow: 0 4px 10px rgba(169,124,24,.24);
+}
+.leaderboard-player strong { letter-spacing: -.012em; }
+.standings-heading-row { margin-top: 4px; }
+.standings-heading-row label {
+  min-height: 35px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,253,248,.78);
+}
+
+/* Bank and side-bet views: stronger information hierarchy. */
+.bank-summary-head,
+.offer-review-head {
+  letter-spacing: .05em;
+}
+.money-card strong,
+.bank-result-amount,
+.side-bet-offer-amount { letter-spacing: -.015em; }
+.side-bet-card {
+  padding-block: 13px;
+  border-left-width: 4px;
+  background: rgba(255,253,248,.78);
+}
+.side-bet-card + .side-bet-card { border-top: 1px solid var(--line); }
+.side-bet-offer-copy > strong { letter-spacing: -.01em; }
+.status-mark.open { border: 1px solid rgba(56,120,157,.16); }
+
+/* Rules and utility states. */
+.rule-item summary strong { letter-spacing: -.008em; }
+.rule-copy { color: #34444f; }
+.empty-state, .loading-card, .notice-card, .error-card {
+  line-height: 1.5;
+}
+
+/* More intentional touch feedback throughout the phone UI. */
+button, select, input { touch-action: manipulation; }
+.icon-btn:active,
+.compact-select:active { transform: scale(.98); }
+.primary-nav button.active .nav-icon {
+  filter: drop-shadow(0 3px 7px rgba(110,169,202,.28));
+}
+
+@media (hover: hover) {
+  .leaderboard-row:hover { background: #faf7f0; }
+}
+
+@media (max-width: 520px) {
+  .section-title h2, .scoreboard-heading h2 { font-size: 21px; }
+  .view-select-row.board-filter-row { gap: 4px; padding: 3px; }
+  .compact-select select { padding-left: 7px; font-size: 10px; }
+  .game-days { gap: 25px; }
+  .game-card { border-radius: 11px; }
+  .game-head { min-height: 40px; }
+  .pick-card, .visible-pick { min-height: 66px; }
+  .leaderboard-row { min-height: 62px; }
+  .leaderboard-player strong, .leaderboard-stat, .leaderboard-pct { font-size: 14px; }
+  .leaderboard-rank.rank-1 { width: 26px; height: 26px; }
+}
