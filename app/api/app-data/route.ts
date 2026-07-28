@@ -5,7 +5,7 @@ import { fetchEspnSchedule, findEspnScheduleMatch, resolveEspnCommenceTime } fro
 import { getFootballWeek, getGameLockTime, getPickWeekOpenTime } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
 import { getProfileFromToken } from "@/lib/authServer";
-import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
+import { hasChargers, isEligibleSeasonGame } from "@/lib/seasonRules";
 import { acceptedSideBetCounts, closeOpenOffersForCappedPlayer, MAX_SIDE_BETS_PER_WEEK, sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { computeWeeklyStandings } from "@/lib/weeklyBank";
 
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     if (gameError) return NextResponse.json({ ok: false, error: gameError.message }, { status: 500 });
     const requestTime = new Date();
     const spreadGames = (rawGames || []).filter((game) =>
-      isEligibleRegularSeasonGame(game) &&
+      isEligibleSeasonGame(game) &&
       !hasChargers(game) &&
       game.current_spread_team != null &&
       game.current_spread != null
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
     const gameById = new Map(allGames.map((game) => [game.id, game]));
 
     const openGames = allGames.filter((g) => new Date(g.commence_time).getTime() >= Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const defaultWeek = openGames[0]?.week ?? allGames?.[0]?.week ?? 0;
+    const defaultWeek = openGames[0]?.week ?? allGames[allGames.length - 1]?.week ?? 0;
     const week = requestedWeek != null ? Number(requestedWeek) : defaultWeek;
     const games = allGames.filter((g) => g.week === week);
     const weekOpen = getPickWeekOpenTime(week, games.map((g) => g.commence_time));
@@ -193,7 +193,7 @@ export async function GET(req: NextRequest) {
     const normalizedPicks = (picks || []).map((pick: any) => ({ ...pick, game: gameById.get(pick.game_id) || pick.game }));
     const visiblePicks = normalizedPicks.filter((pick: any) => {
       const game = pick.game;
-      if (!game || !isEligibleRegularSeasonGame(game) || hasChargers(game)) return false;
+      if (!game || !isEligibleSeasonGame(game) || hasChargers(game)) return false;
       if (pick.user_id === profile.id) return true;
       return new Date(game.lock_time).toISOString() <= now;
     });

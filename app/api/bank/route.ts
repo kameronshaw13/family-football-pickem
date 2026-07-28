@@ -4,7 +4,7 @@ import { settleWeekIfReady } from "@/lib/autoSettlement";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { normalizeEspnLogoUrl } from "@/lib/espnLogos";
 import { getGameLockTime } from "@/lib/lockRules";
-import { hasChargers, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
+import { hasChargers, isEligibleSeasonGame } from "@/lib/seasonRules";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 const saveSettingsSchema = z.object({ action: z.literal("saveSettings"), winnerAmount: z.number(), loserAmount: z.number() });
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     const requestTime = new Date();
     const uniqueGames = new Map<string, any>();
     for (const game of rawGames || []) {
-      if (!isEligibleRegularSeasonGame(game) || hasChargers(game) || game.current_spread_team == null || game.current_spread == null) continue;
+      if (!isEligibleSeasonGame(game) || hasChargers(game) || game.current_spread_team == null || game.current_spread == null) continue;
       const lockTime = getGameLockTime(game.commence_time).toISOString();
       const normalized = {
         ...game,
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     const picks = (rawPicks || []).flatMap((pick: any) => {
       const selectedGame = gameById.get(pick.game_id);
       const fallbackGame = pick.game;
-      const game = selectedGame || (fallbackGame && isEligibleRegularSeasonGame(fallbackGame) && !hasChargers(fallbackGame) ? {
+      const game = selectedGame || (fallbackGame && isEligibleSeasonGame(fallbackGame) && !hasChargers(fallbackGame) ? {
         ...fallbackGame,
         home_logo_url: normalizeEspnLogoUrl(fallbackGame.home_logo_url),
         away_logo_url: normalizeEspnLogoUrl(fallbackGame.away_logo_url),

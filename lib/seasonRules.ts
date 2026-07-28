@@ -1,7 +1,7 @@
-import { toZonedTime } from "date-fns-tz";
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import type { Game } from "@/lib/types";
-import { APP_TIMEZONE } from "@/lib/lockRules";
-import { isDivisionOneCfbMatchup } from "@/lib/cfbConferences";
+import { APP_TIMEZONE, getFootballWeek } from "@/lib/lockRules";
+import { isFbsTeamGame } from "@/lib/cfbConferences";
 
 type SeasonGame = Pick<Game, "league" | "commence_time" | "home_team" | "away_team"> &
   Partial<Pick<Game, "home_logo_url" | "away_logo_url">>;
@@ -23,24 +23,50 @@ function nflKickoff(year: number) {
   return kickoff;
 }
 
+function footballSeasonYear(local: Date) {
+  return local.getMonth() >= 6 ? local.getFullYear() : local.getFullYear() - 1;
+}
+
+function nflRegularSeasonEndLocal(seasonYear: number) {
+  const firstSunday = nflKickoff(seasonYear);
+  while (firstSunday.getDay() !== 0) firstSunday.setDate(firstSunday.getDate() + 1);
+  const finalSunday = new Date(firstSunday);
+  finalSunday.setDate(finalSunday.getDate() + 17 * 7);
+  const end = new Date(finalSunday);
+  end.setDate(end.getDate() + 1);
+  end.setHours(0, 0, 0, 0);
+  return end;
+}
+
+export function footballSeasonYearAt(date: Date, timezone = APP_TIMEZONE) {
+  return footballSeasonYear(toZonedTime(date, timezone));
+}
+
+export function nflRegularSeasonEnd(seasonYear: number, timezone = APP_TIMEZONE) {
+  return fromZonedTime(nflRegularSeasonEndLocal(seasonYear), timezone);
+}
+
+export function finalPickemWeek(seasonYear: number, timezone = APP_TIMEZONE) {
+  const finalInstant = new Date(nflRegularSeasonEnd(seasonYear, timezone).getTime() - 1);
+  return getFootballWeek(finalInstant.toISOString(), timezone);
+}
+
 export function isNflRegularSeason(commenceTime: string, timezone = APP_TIMEZONE) {
   const local = toZonedTime(new Date(commenceTime), timezone);
-  const seasonYear = local.getMonth() >= 6 ? local.getFullYear() : local.getFullYear() - 1;
+  const seasonYear = footballSeasonYear(local);
   const kickoff = nflKickoff(seasonYear);
-  const end = new Date(kickoff);
-  end.setDate(end.getDate() + 18 * 7);
-  return local >= kickoff && local < end;
+  return local >= kickoff && local < nflRegularSeasonEndLocal(seasonYear);
 }
 
-export function isCfbRegularSeason(game: Pick<SeasonGame, "commence_time" | "home_team" | "away_team">, timezone = APP_TIMEZONE) {
+export function isCfbPickemSeason(game: Pick<SeasonGame, "commence_time" | "home_team" | "away_team">, timezone = APP_TIMEZONE) {
   const local = toZonedTime(new Date(game.commence_time), timezone);
-  const month = local.getMonth();
-  if (month >= 7 && month <= 10) return true;
-  return month === 11 && local.getDate() <= 8;
+  const seasonYear = footballSeasonYear(local);
+  const seasonStart = new Date(seasonYear, 7, 1, 0, 0, 0, 0);
+  return local >= seasonStart && local < nflRegularSeasonEndLocal(seasonYear);
 }
 
-export function isEligibleRegularSeasonGame(game: SeasonGame) {
+export function isEligibleSeasonGame(game: SeasonGame) {
   return game.league === "CFB"
-    ? isCfbRegularSeason(game) && isDivisionOneCfbMatchup(game)
+    ? isCfbPickemSeason(game) && isFbsTeamGame(game)
     : isNflRegularSeason(game.commence_time);
 }

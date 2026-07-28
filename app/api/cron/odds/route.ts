@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { findEspnLogo, fetchEspnLogoMap } from "@/lib/espnLogos";
 import { fetchEspnSchedule, findEspnScheduleMatch, resolveEspnCommenceTime } from "@/lib/espnSchedule";
 import { canRefreshSpread, getFootballWeek, getGameLockTime, getSpreadFreezeTime } from "@/lib/lockRules";
-import { isEligibleRegularSeasonGame } from "@/lib/seasonRules";
+import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 const SPORTS = [
@@ -89,7 +89,7 @@ async function refreshOdds() {
           homeTeam: officialHomeName,
           awayTeam: officialAwayName
         };
-        return isEligibleRegularSeasonGame({
+        return isEligibleSeasonGame({
           league: sport.league,
           commence_time: officialGame.commenceTime,
           home_team: officialGame.homeTeam,

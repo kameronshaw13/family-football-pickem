@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromToken } from "@/lib/authServer";
 import { getGameLockTime, getPickWeekOpenTime } from "@/lib/lockRules";
-import { hasChargers, isChargersTeam, isEligibleRegularSeasonGame } from "@/lib/seasonRules";
+import { hasChargers, isChargersTeam, isEligibleSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam, underdogWinValue } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { getWeekRule } from "@/lib/weekRules";
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       return { ...game, lock_time: lockTime, is_locked: now >= new Date(lockTime) };
     };
     const weekGames = (rawWeekGames || []).filter((game) =>
-      isEligibleRegularSeasonGame(game) &&
+      isEligibleSeasonGame(game) &&
       !hasChargers(game) &&
       game.current_spread_team != null &&
       game.current_spread != null

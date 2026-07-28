@@ -7,9 +7,6 @@ export function getWeekRule(week: number): WeekRule {
   if (week === 2) {
     return { week, label: "Week 2", phase: "college", regularTotal: 5, cfbMinimum: 5, nflMinimum: 0, underdogTotal: 1, perfectBonus: true };
   }
-  if (week >= 16) {
-    return { week, label: `Week ${week}`, phase: "nfl", regularTotal: 2, cfbMinimum: 0, nflMinimum: 2, underdogTotal: 1, perfectBonus: false };
-  }
   return { week, label: `Week ${week}`, phase: "mixed", regularTotal: 5, cfbMinimum: 1, nflMinimum: 1, underdogTotal: 1, perfectBonus: true };
 }
 

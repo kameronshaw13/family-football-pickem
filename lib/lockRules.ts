@@ -55,12 +55,12 @@ export function canRefreshSpread(commenceTimeIso: string, now = new Date(), time
 }
 
 export function getFootballWeek(dateIso: string, timezone = APP_TIMEZONE): number {
-  // Week 0 covers college games before the main Week 1 Saturday.
-  // Week 1 starts around Aug 25; everything before that is Week 0.
   const local = toZonedTime(new Date(dateIso), timezone);
-  const seasonStart = new Date(local.getFullYear(), 7, 25, 0, 0, 0, 0);
+  const seasonYear = local.getMonth() >= 6 ? local.getFullYear() : local.getFullYear() - 1;
+  const seasonStart = new Date(seasonYear, 7, 24, 0, 0, 0, 0);
+  while (seasonStart.getDay() !== 2) seasonStart.setDate(seasonStart.getDate() + 1);
   const diff = local.getTime() - seasonStart.getTime();
-  return Math.max(0, Math.ceil(diff / (7 * 24 * 60 * 60 * 1000)));
+  return diff < 0 ? 0 : Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
 
 export function getWeekOpenTimeFromCommenceTimes(commenceTimes: string[], timezone = APP_TIMEZONE): Date | null {
@@ -69,15 +69,12 @@ export function getWeekOpenTimeFromCommenceTimes(commenceTimes: string[], timezo
     .map((iso) => toZonedTime(new Date(iso), timezone))
     .sort((a, b) => a.getTime() - b.getTime())[0];
 
-  // Picks for a week open Monday at 12:00 AM local time of that football week.
-  const mondayLocal = setDay(earliest, 1, { weekStartsOn: 1 });
-  mondayLocal.setHours(0, 0, 0, 0);
+  const tuesdayLocal = new Date(earliest);
+  const daysSinceTuesday = (tuesdayLocal.getDay() - 2 + 7) % 7;
+  tuesdayLocal.setDate(tuesdayLocal.getDate() - daysSinceTuesday);
+  tuesdayLocal.setHours(0, 0, 0, 0);
 
-  if (mondayLocal.getTime() > earliest.getTime()) {
-    mondayLocal.setDate(mondayLocal.getDate() - 7);
-  }
-
-  return fromZonedTime(mondayLocal, timezone);
+  return fromZonedTime(tuesdayLocal, timezone);
 }
 
 export function getPickWeekOpenTime(week: number, commenceTimes: string[], timezone = APP_TIMEZONE): Date | null {

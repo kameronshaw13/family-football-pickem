@@ -8,7 +8,7 @@ import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTe
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
 import { hasChargers, isChargersTeam } from "@/lib/seasonRules";
-import { cfbConferenceForLogo, cfbSubdivisionForLogo } from "@/lib/cfbConferences";
+import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, POWER_CONFERENCES } from "@/lib/cfbConferences";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -311,13 +311,6 @@ function gameConferences(game: Game) {
   ].filter((conference): conference is string => Boolean(conference))));
 }
 
-function gameCfbFilterValues(game: Game) {
-  return Array.from(new Set([
-    ...gameConferences(game),
-    cfbSubdivisionForLogo(game.away_logo_url),
-    cfbSubdivisionForLogo(game.home_logo_url)
-  ].filter((value): value is string => Boolean(value))));
-}
 function logoForTeam(game: Game, team: string) {
   return team === game.home_team ? game.home_logo_url : game.away_logo_url;
 }
@@ -887,15 +880,11 @@ export default function PickemApp() {
     setStagedPicks(matchesSaved ? null : nextCard);
   }
 
-  const conferenceOptions = Array.from(new Set(viewedGames
-    .filter((game) => game.league === "CFB" && !hasChargers(game))
-    .flatMap(gameConferences)))
-    .sort((a, b) => a.localeCompare(b));
   const filteredGames = viewedGames.filter((g) => {
     if (hasChargers(g)) return false;
     if (boardStatusForGame(g, clock, weekIsOpen) !== statusFilter) return false;
     if (leagueFilter === "CFB") {
-      return g.league === "CFB" && (conferenceFilter === "ALL" || gameCfbFilterValues(g).includes(conferenceFilter));
+      return g.league === "CFB" && (conferenceFilter === "ALL" || gameConferences(g).includes(conferenceFilter));
     }
     if (leagueFilter === "NFL") return g.league === "NFL";
     const dogValue = Math.max(...[g.away_team, g.home_team].map((team) =>
@@ -1048,7 +1037,7 @@ export default function PickemApp() {
           <div className="view-select-row board-filter-row">
             <div className="compact-select status-select"><select aria-label="Choose game status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as GameStatusFilter); setStatusFilterTouched(true); }}>{(["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
             <div className="compact-select league-select"><select aria-label="Choose league" value={leagueFilter} onChange={(event) => setLeagueFilter(event.target.value as LeagueFilter)}>{(["CFB", "NFL", "DOGS"] as LeagueFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
-            {leagueFilter === "CFB" && <div className="compact-select context-select"><select aria-label="Filter college games by subdivision or conference" value={conferenceFilter} onChange={(event) => setConferenceFilter(event.target.value)}><option value="ALL">ALL CONF.</option><option value="FBS">FBS</option><option value="FCS">FCS</option>{conferenceOptions.map((conference) => <option key={conference} value={conference}>{conference}</option>)}</select><ChevronDown size={15} /></div>}
+            {leagueFilter === "CFB" && <div className="compact-select context-select"><select aria-label="Filter college games by FBS conference" value={conferenceFilter} onChange={(event) => setConferenceFilter(event.target.value)}><option value="ALL">ALL CONF.</option><optgroup label="Power 5">{POWER_CONFERENCES.map((conference) => <option key={conference} value={conference}>{conference}</option>)}</optgroup><optgroup label="Group of 5">{GROUP_CONFERENCES.map((conference) => <option key={conference} value={conference}>{conference}</option>)}</optgroup><option value={FBS_INDEPENDENTS_CONFERENCE}>INDEPENDENTS</option></select><ChevronDown size={15} /></div>}
             {leagueFilter === "DOGS" && <div className="compact-select context-select"><select aria-label="Filter dogs by win value" value={dogValueFilter} onChange={(event) => setDogValueFilter(event.target.value as DogValueFilter)}><option value="ALL">ALL DOGS</option>{(["1", "2", "3"] as const).map((value) => <option key={value} value={value}>+{value}W</option>)}</select><ChevronDown size={15} /></div>}
           </div>
           {filteredGames.length === 0 && <div className="empty-state">No {statusFilter.toLowerCase()} {leagueFilter === "DOGS" ? "dog" : leagueFilter} games.</div>}
@@ -1118,7 +1107,7 @@ export default function PickemApp() {
             <div className="bank-summary-head"><span>Player</span><span>Balance</span></div>
             {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
           </div>
-          <div className="subsection bank-section">
+          <div className="subsection bank-section bank-week-section">
             <div className="standings-heading-row">
               <h2>{previewActive ? "Test Weekly Results" : "Weekly Results"}</h2>
               {previewActive ? <span className="test-standings-label">Week 3</span> : <label><select aria-label="Select Bank results week" value={selectedBankWeek} disabled={bankWeekLoading} onChange={(event) => void loadBankWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select>{bankWeekLoading ? <LoaderCircle className="bank-week-spinner" size={14} /> : <ChevronDown size={14} />}</label>}
@@ -1133,10 +1122,10 @@ export default function PickemApp() {
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
-          <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Mixed weeks: 5 picks with at least 1 CFB and 1 NFL + dog.</li><li>After CFB: 2 NFL picks + dog.</li></ul></RuleItem>
-          <RuleItem icon={Shield} title="Eligible games"><ul><li>Regular-season games only.</li><li>Bowls, CFP, and NFL playoffs are excluded.</li><li>Every Chargers game is excluded.</li></ul></RuleItem>
+          <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Weeks 3 through NFL Week 18: 5 picks with at least 1 CFB and 1 NFL + dog.</li></ul></RuleItem>
+          <RuleItem icon={Shield} title="Eligible games"><ul><li>CFB conference championships, bowls, and CFP games are included through NFL Week 18.</li><li>CFB games must include at least one FBS team.</li><li>NFL playoff games are excluded.</li><li>Every Chargers game is excluded.</li></ul></RuleItem>
           <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5 = +1W.</li><li>+10 to +19.5 = +2W.</li><li>+20 or more = +3W.</li><li>The dog must win outright.</li><li>A missed dog does not add a loss.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season winner receives $300.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>After NFL Week 18, the season winner receives $300.</li><li>The other two players each pay $150.</li></ul></RuleItem>
           <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each.</li><li>Tied first splits $20.</li><li>A three-way tie pays $0.</li><li>Payments post automatically after all three cards are final.</li></ul></RuleItem>
           <RuleItem icon={Trophy} title="Perfect week"><ul><li>Available only during five-game weeks.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
           <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Tue-Fri picks close at kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Sat-Mon picks close Friday at 8 PM CT.</li></ul></RuleItem>

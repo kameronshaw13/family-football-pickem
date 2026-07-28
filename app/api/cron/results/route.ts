@@ -3,6 +3,7 @@ import { settleWeekIfReady } from "@/lib/autoSettlement";
 import { fetchEspnSchedule, findEspnScheduleMatch } from "@/lib/espnSchedule";
 import { finalizeGame } from "@/lib/finalizeGame";
 import { lockDuePicks } from "@/lib/lockDuePicks";
+import { settleSeasonIfReady } from "@/lib/seasonSettlement";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import type { Game, League } from "@/lib/types";
 
@@ -57,6 +58,7 @@ export async function GET(req: NextRequest) {
       const settlement = await settleWeekIfReady(supabase, week);
       if (settlement.settled) weeksSettled.add(week);
     }
+    const seasonSettlement = await settleSeasonIfReady(supabase, now);
 
     return NextResponse.json({
       ok: true,
@@ -65,7 +67,9 @@ export async function GET(req: NextRequest) {
       gamesFinalized,
       picksGraded,
       sideBetsGraded,
-      weeksSettled: Array.from(weeksSettled)
+      weeksSettled: Array.from(weeksSettled),
+      seasonSettled: seasonSettlement.settled,
+      seasonSettlementReason: seasonSettlement.reason || null
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });

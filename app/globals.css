@@ -213,8 +213,8 @@ p { margin: 0; }
 .pick-row-actions .badge.pick-result-win, .pick-row-actions .badge.pick-result-loss, .pick-row-actions .badge.pick-result-push, .visible-pick-actions .badge.pick-result-win, .visible-pick-actions .badge.pick-result-loss, .visible-pick-actions .badge.pick-result-push { min-width: 26px; min-height: 26px; font-size: 12px; }
 .icon-btn { display: grid; width: 29px; height: 29px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: transparent; }
 .icon-btn svg { display: block; transform: translateX(-.25px); }
-.pick-title, .visible-pick-copy strong { display: block; overflow: hidden; font-size: 15px; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-.pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
+.pick-title, .visible-pick-copy strong { display: block; overflow: hidden; font-size: 14px; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; }
 .visible-pick { display: grid; min-height: 62px; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; margin: 0; padding: 7px var(--page-gutter); border-top: 1px solid var(--line); }
 .visible-pick:last-child { border-bottom: 1px solid var(--line); }
 .pick-meta, .visible-pick-copy p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -342,7 +342,7 @@ fieldset .field-label { padding: 0; }
 .leaderboard-pct { color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; }
 .leaderboard-pct.pct-positive { color: var(--green); }
 .leaderboard-pct.pct-negative { color: var(--red); }
-.weekly-standings { margin-top: var(--space-5); }
+.weekly-standings { margin-top: var(--space-4); }
 .standings-heading-row { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 2px 2px 8px; }
 .standings-heading-row h2 { margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 800; line-height: 1.2; }
 .standings-heading-row label { position: relative; display: flex; width: var(--week-select-width); flex: 0 0 var(--week-select-width); align-items: center; border-bottom: 2px solid var(--line-strong); color: var(--muted); }
@@ -362,6 +362,7 @@ fieldset .field-label { padding: 0; }
 .money-neg { color: var(--red); }
 .money-neutral { color: var(--ink); }
 .bank-section { margin-top: var(--space-5); }
+.bank-week-section { margin-top: var(--space-4); }
 .bank-section-heading { min-height: 26px; padding: 0 2px; }
 .bank-section-heading h3 { margin: 0; }
 .bank-week-results { border-block: 1px solid var(--line); background: var(--panel); }
@@ -381,8 +382,8 @@ fieldset .field-label { padding: 0; }
 .bank-game-result:last-child { border-bottom: 0; }
 .bank-game-result .team-logo { width: 34px; height: 34px; }
 .bank-game-result > div { min-width: 0; }
-.bank-game-result > div strong { display: block; overflow: hidden; font-size: 15px; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-.bank-game-result p { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.bank-game-result > div strong { display: block; overflow: hidden; font-size: 14px; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.bank-game-result p { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .test-week-launch { display: grid; width: calc(100% + (var(--page-gutter) * 2)); min-height: 54px; grid-template-columns: 24px minmax(0, 1fr) 18px; align-items: center; gap: 9px; margin: var(--space-4) calc(var(--page-gutter) * -1) 0; padding: 8px var(--page-gutter); border: 0; border-block: 1px solid var(--line); color: var(--ink); background: var(--surface-soft); text-align: left; }
 .test-week-launch > svg:first-child { color: var(--blue-dark); }
 .test-week-launch > svg:last-child { color: var(--muted); }

@@ -26,8 +26,14 @@ const TEAM_IDS_BY_CONFERENCE: Record<string, readonly string[]> = {
   UAC: ["2000", "2046", "2110", "2198", "2453", "2627", "2698", "110242"]
 };
 
-const FBS_CONFERENCES = new Set([
-  "AMERICAN", "ACC", "BIG 12", "BIG TEN", "CUSA", "IND", "MAC", "MWC", "PAC-12", "SEC", "SUN BELT"
+export const POWER_CONFERENCES = ["ACC", "BIG 12", "BIG TEN", "PAC-12", "SEC"] as const;
+export const GROUP_CONFERENCES = ["AMERICAN", "CUSA", "MAC", "MWC", "SUN BELT"] as const;
+export const FBS_INDEPENDENTS_CONFERENCE = "IND";
+
+const FBS_CONFERENCES = new Set<string>([
+  ...POWER_CONFERENCES,
+  ...GROUP_CONFERENCES,
+  FBS_INDEPENDENTS_CONFERENCE
 ]);
 
 const CONFERENCE_BY_TEAM_ID = new Map(
@@ -61,5 +67,20 @@ export function isDivisionOneCfbMatchup(game: {
   return game.league !== "CFB" || Boolean(
     cfbSubdivisionForLogo(game.home_logo_url) &&
     cfbSubdivisionForLogo(game.away_logo_url)
+  );
+}
+
+export function isFbsTeamGame(game: {
+  league: string;
+  home_logo_url?: string | null;
+  away_logo_url?: string | null;
+}) {
+  if (game.league !== "CFB") return true;
+  const homeSubdivision = cfbSubdivisionForLogo(game.home_logo_url);
+  const awaySubdivision = cfbSubdivisionForLogo(game.away_logo_url);
+  return Boolean(
+    homeSubdivision &&
+    awaySubdivision &&
+    (homeSubdivision === "FBS" || awaySubdivision === "FBS")
   );
 }

@@ -8,9 +8,10 @@ Ready-mode private family football pick'em app.
 - Each user claims their username once and creates their own password.
 - Week 1: three CFB spread picks plus one dog.
 - Week 2: five CFB spread picks plus one dog.
-- Mixed regular season: five spread picks with at least one CFB and one NFL pick, plus one dog.
-- After CFB ends: two NFL spread picks plus one dog through the end of the NFL regular season.
-- Bowl games, the CFP, and NFL playoff games are excluded.
+- Weeks 3 through NFL Week 18: five spread picks with at least one CFB and one NFL pick, plus one dog.
+- CFB conference championships, bowls, and CFP games are included through NFL Week 18.
+- CFB games must include at least one FBS team; FCS-vs-FCS games are excluded.
+- NFL playoff games are excluded.
 - Los Angeles Chargers games are excluded entirely.
 - One underdog pick per week.
 - Underdog bonus wins:
@@ -26,6 +27,7 @@ Ready-mode private family football pick'em app.
 - Picks stay hidden from the group until the game closes.
 - Pushes do not count against win percentage.
 - Season and weekly standings use win percentage first, then total wins.
+- After NFL Week 18, the season winner receives $300 and the other two players each pay $150.
 - Weekly bank payouts are $20 from last and $10 from second to first.
 - Tied last-place players pay $15 each. Tied winners split the $20 last-place payment.
 - A 5-0 or better winning record with no losses doubles weekly payments only on five-pick weeks.
