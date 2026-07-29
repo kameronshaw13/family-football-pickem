@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import MenuSelect from "@/components/MenuSelect";
 
 const users = [
   { username: "kameron", label: "Kameron" },
@@ -55,9 +56,7 @@ export default function LoginPage() {
 
       <form onSubmit={submit}>
         <label>Name</label>
-        <select className="input" value={username} onChange={(e) => setUsername(e.target.value)}>
-          {users.map((u) => <option key={u.username} value={u.username}>{u.label}</option>)}
-        </select>
+        <MenuSelect ariaLabel="Name" className="input field-menu-select login-name-select" value={username} sections={[{ options: users.map((user) => ({ value: user.username, label: user.label })) }]} onChange={setUsername} />
         <label>Password</label>
         <input className="input" type="password" placeholder={mode === "create" ? "Create password" : "Password"} value={password} onChange={(e) => setPassword(e.target.value)} />
         <button className="btn gold full" disabled={loading || password.length < 6}>{loading ? "Working…" : mode === "create" ? "Create account" : "Sign in"}</button>

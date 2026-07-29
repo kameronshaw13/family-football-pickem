@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
@@ -9,6 +9,7 @@ import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
 import { hasChargers, isChargersTeam } from "@/lib/seasonRules";
 import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, POWER_CONFERENCES } from "@/lib/cfbConferences";
+import MenuSelect from "@/components/MenuSelect";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -1007,9 +1008,14 @@ export default function PickemApp() {
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
-          {previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><div className="week-select-wrap"><select aria-label="Select week" value={data.week} disabled={refreshing} onChange={(e) => { setStagedPicks(null); load(Number(e.target.value)); }} className="week-select">
-            {availableWeeks.map((w) => <option key={w} value={w}>{w === 0 ? "Week 0" : `Week ${w}`}</option>)}
-          </select><ChevronDown size={14} /></div></div>}
+          {previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><MenuSelect
+            ariaLabel="Select week"
+            className="week-select-wrap header-menu-select"
+            value={String(data.week)}
+            disabled={refreshing}
+            sections={[{ options: availableWeeks.map((w) => ({ value: String(w), label: w === 0 ? "Week 0" : `Week ${w}` })) }]}
+            onChange={(nextWeek) => { setStagedPicks(null); void load(Number(nextWeek)); }}
+          /></div>}
         </div>
       </div>
     </header>
@@ -1029,10 +1035,10 @@ export default function PickemApp() {
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: `Side Bets${pendingOfferCount ? ` (${pendingOfferCount})` : ""}` }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
           <div className="view-select-row board-filter-row">
-            <div className="compact-select status-select"><select aria-label="Choose game status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as GameStatusFilter); setStatusFilterTouched(true); }}>{(["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
-            <div className="compact-select league-select"><select aria-label="Choose league" value={leagueFilter} onChange={(event) => setLeagueFilter(event.target.value as LeagueFilter)}>{(["CFB", "NFL", "DOGS"] as LeagueFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
+            <MenuSelect ariaLabel="Choose game status" className="compact-select status-select" value={statusFilter} sections={[{ options: (["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => { setStatusFilter(value as GameStatusFilter); setStatusFilterTouched(true); }} />
+            <MenuSelect ariaLabel="Choose league" className="compact-select league-select" value={leagueFilter} sections={[{ options: (["CFB", "NFL", "DOGS"] as LeagueFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => setLeagueFilter(value as LeagueFilter)} />
             {leagueFilter === "CFB" && <ConferenceFilter value={conferenceFilter} onChange={setConferenceFilter} />}
-            {leagueFilter === "DOGS" && <div className="compact-select context-select"><select aria-label="Filter dogs by win value" value={dogValueFilter} onChange={(event) => setDogValueFilter(event.target.value as DogValueFilter)}><option value="ALL">ALL DOGS</option>{(["1", "2", "3"] as const).map((value) => <option key={value} value={value}>+{value}W</option>)}</select><ChevronDown size={15} /></div>}
+            {leagueFilter === "DOGS" && <MenuSelect ariaLabel="Filter dogs by win value" className="compact-select context-select" value={dogValueFilter} sections={[{ options: [{ value: "ALL", label: "ALL DOGS" }, ...(["1", "2", "3"] as const).map((value) => ({ value, label: `+${value}W` }))] }]} onChange={(value) => setDogValueFilter(value as DogValueFilter)} />}
           </div>
           {filteredGames.length === 0 && <div className="empty-state">No {statusFilter.toLowerCase()} {leagueFilter === "DOGS" ? "dog" : leagueFilter} games.</div>}
           <div className="game-days">
@@ -1091,7 +1097,7 @@ export default function PickemApp() {
           <div className="scoreboard-heading heading-with-icon"><Trophy size={19} /><h2>Season Standings</h2></div>
           <Leaderboard rows={seasonStandings} />
           <div className="subsection weekly-standings">
-            <div className="standings-heading-row"><h2>Weekly Standings</h2>{previewActive ? <span className="test-standings-label">Test Week</span> : <label><select aria-label="Select standings week" value={selectedStandingsWeek} onChange={(event) => setStandingsWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select><ChevronDown size={14} /></label>}</div>
+            <div className="standings-heading-row"><h2>Weekly Standings</h2>{previewActive ? <span className="test-standings-label">Test Week</span> : <MenuSelect ariaLabel="Select standings week" className="standings-menu-select" value={String(selectedStandingsWeek)} sections={[{ options: standingsWeeks.map((standingWeek) => ({ value: String(standingWeek), label: standingWeek === 0 ? "Week 0" : `Week ${standingWeek}` })) }]} onChange={(value) => setStandingsWeek(Number(value))} />}</div>
             <Leaderboard rows={weeklyStandings} />
           </div>
         </>}
@@ -1104,7 +1110,7 @@ export default function PickemApp() {
           <div className="subsection bank-section bank-week-section">
             <div className="standings-heading-row">
               <h2>{previewActive ? "Test Weekly Results" : "Weekly Results"}</h2>
-              {previewActive ? <span className="test-standings-label">Week 3</span> : <label><select aria-label="Select Bank results week" value={selectedBankWeek} disabled={bankWeekLoading} onChange={(event) => void loadBankWeek(Number(event.target.value))}>{standingsWeeks.map((standingWeek) => <option key={standingWeek} value={standingWeek}>{standingWeek === 0 ? "Week 0" : `Week ${standingWeek}`}</option>)}</select>{bankWeekLoading ? <LoaderCircle className="bank-week-spinner" size={14} /> : <ChevronDown size={14} />}</label>}
+              {previewActive ? <span className="test-standings-label">Week 3</span> : <MenuSelect ariaLabel="Select Bank results week" className="standings-menu-select" value={String(selectedBankWeek)} disabled={bankWeekLoading} loading={bankWeekLoading} sections={[{ options: standingsWeeks.map((standingWeek) => ({ value: String(standingWeek), label: standingWeek === 0 ? "Week 0" : `Week ${standingWeek}` })) }]} onChange={(value) => void loadBankWeek(Number(value))} />}
             </div>
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} />
           </div>
@@ -1116,12 +1122,12 @@ export default function PickemApp() {
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
-          <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Weeks 3–20<span className="rule-subline">— 5 picks with at least 1 CFB and 1 NFL + dog.</span></li></ul></RuleItem>
-          <RuleItem icon={Shield} title="Eligible games"><ul><li>No Chargers games.</li><li>College football games must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
+          <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Weeks 3 to 20: 5 picks with at least 1 CFB and 1 NFL + dog.</li></ul></RuleItem>
+          <RuleItem icon={Shield} title="Eligible games"><ul><li>All Chargers games are excluded.</li><li>College football games must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
           <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5 = +1W.</li><li>+10 to +19.5 = +2W.</li><li>+20 or more = +3W.</li><li>The dog must win outright.</li><li>A missed dog does not add a loss.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season ends Sunday, Jan. 10, after the final regular-season NFL games.</li><li>The season winner receives $300.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season ends Sunday, Jan. 10, after the final regular-season NFL games.</li><li>The season winner receives $300 in the bank.</li><li>The other two players each have $150 deducted from their bank.</li></ul></RuleItem>
           <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each to first.</li><li>Tied first splits $20 from last.</li><li>A three-way tie pays $0.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Perfect week"><ul><li>Inactive during the 3-game Week 1 card.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Perfect week"><ul><li>Will not be applied during Week 1.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
           <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Tue-Fri picks close at kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Sat-Mon picks close Friday at 8 PM CT.</li></ul></RuleItem>
           <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each person gets 3 side bets per week.</li><li>Accepted and pending offers count toward the limit.</li><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
         </div>
@@ -1141,71 +1147,18 @@ function SectionTabs({ items, value, onChange }: { items: Array<{ id: string; la
 }
 
 function ConferenceFilter({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const label = value === "ALL"
-    ? "ALL CONF."
-    : value === FBS_INDEPENDENTS_CONFERENCE
-      ? "INDEPENDENTS"
-      : value;
-
-  useEffect(() => {
-    if (!open) return;
-
-    function closeOnOutsideTouch(event: PointerEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-
-    document.addEventListener("pointerdown", closeOnOutsideTouch);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideTouch);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [open]);
-
-  function choose(nextValue: string) {
-    onChange(nextValue);
-    setOpen(false);
-  }
-
-  function option(optionValue: string, optionLabel = optionValue) {
-    return <button
-      type="button"
-      className={`custom-select-option ${value === optionValue ? "selected" : ""}`}
-      role="option"
-      aria-selected={value === optionValue}
-      key={optionValue}
-      onClick={() => choose(optionValue)}
-    >
-      {optionLabel}
-    </button>;
-  }
-
-  return <div className={`compact-select context-select custom-select ${open ? "open" : ""}`} ref={rootRef}>
-    <button
-      type="button"
-      className="custom-select-trigger"
-      aria-label="Filter college games by FBS conference"
-      aria-haspopup="listbox"
-      aria-expanded={open}
-      onClick={() => setOpen((current) => !current)}
-    >
-      {label}
-    </button>
-    <ChevronDown size={15} />
-    {open && <div className="custom-select-menu" role="listbox" aria-label="FBS conferences">
-      {option("ALL", "ALL CONF.")}
-      <span className="custom-select-group-label">Power 5</span>
-      {POWER_CONFERENCES.map((conference) => option(conference))}
-      <span className="custom-select-group-label">Group of 5</span>
-      {GROUP_CONFERENCES.map((conference) => option(conference))}
-      {option(FBS_INDEPENDENTS_CONFERENCE, "INDEPENDENTS")}
-    </div>}
-  </div>;
+  return <MenuSelect
+    ariaLabel="Filter college games by FBS conference"
+    className="compact-select context-select"
+    value={value}
+    sections={[
+      { options: [{ value: "ALL", label: "ALL CONF." }] },
+      { label: "Power 5", options: POWER_CONFERENCES.map((conference) => ({ value: conference, label: conference })) },
+      { label: "Group of 5", options: GROUP_CONFERENCES.map((conference) => ({ value: conference, label: conference })) },
+      { options: [{ value: FBS_INDEPENDENTS_CONFERENCE, label: "INDEPENDENTS" }] }
+    ]}
+    onChange={onChange}
+  />;
 }
 
 function RankNumber({ rank, className }: { rank: number; className: string }) {
@@ -1336,7 +1289,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   }
 
   return <div className="side-bet-center">
-    <div className="view-select-row"><div className="compact-select"><select aria-label="Choose side bet view" value={view} onChange={(event) => setView(event.target.value as BetView)}><option value="received">For You</option><option value="sent">Sent</option><option value="new">Make Offer</option></select><ChevronDown size={15} /></div></div>
+    <div className="view-select-row"><MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "received", label: "For You" }, { value: "sent", label: "Sent" }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => setView(value as BetView)} /></div>
 
     {view === "new" && <div className="bet-composer">
       <div className="section-title"><Send size={19} /><div><h2>Make an offer</h2></div></div>
@@ -1344,9 +1297,13 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
       {openGames.length === 0 && <div className="empty-state">No games with a spread are available before kickoff.</div>}
       {!limitReached && selectedGame && <div className="offer-flow">
         <section className="offer-block offer-game-amount">
-          <label><span className="field-label">Game</span><select id="side-bet-game" aria-label="Side bet game" className="input" value={selectedGame.id} onChange={(event) => setGame(event.target.value)}>
-              {openGames.map((game) => <option key={game.id} value={game.id}>{dt(game.commence_time)} · {displayTeamName(game, game.away_team)} at {displayTeamName(game, game.home_team)}</option>)}
-            </select></label>
+          <label><span className="field-label">Game</span><MenuSelect
+            ariaLabel="Side bet game"
+            className="input field-menu-select game-menu-select"
+            value={selectedGame.id}
+            sections={[{ options: openGames.map((game) => ({ value: game.id, label: `${dt(game.commence_time)} · ${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` })) }]}
+            onChange={setGame}
+          /></label>
           <label><span className="field-label">Amount</span><div className="money-input"><b>$</b><input aria-label="Side bet amount" type="number" inputMode="decimal" min="1" max={MAX_SIDE_BET_AMOUNT} step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></div></label>
         </section>
 
