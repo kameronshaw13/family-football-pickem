@@ -5,12 +5,13 @@ export function normalizeSpreadForSelectedTeam(selectedTeam: string, spreadTeam:
 
 export function formatSpread(team: string | null, spread: number | null) {
   if (spread == null || !team) return "No line";
-  const value = spread > 0 ? `+${spread}` : `${spread}`;
+  const value = spread === 0 ? "PK" : spread > 0 ? `+${spread}` : `${spread}`;
   return `${team} ${value}`;
 }
 
 export function spreadText(spread: number | null) {
   if (spread == null) return "No line";
+  if (spread === 0) return "PK";
   return spread > 0 ? `+${spread}` : `${spread}`;
 }
 

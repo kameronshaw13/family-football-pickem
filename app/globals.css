@@ -108,7 +108,7 @@ p { margin: 0; }
 .view-select-row.board-filter-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .view-select-row.board-filter-row .compact-select { width: 100%; min-width: 0; }
 .compact-select { position: relative; display: inline-flex; min-width: 120px; min-height: 34px; align-items: center; border: 1px solid var(--line-strong); border-bottom: 3px solid var(--blue); background: var(--panel); }
-.compact-select select { appearance: none; width: 100%; padding: 6px 27px 5px 8px; border: 0; color: var(--ink); background: transparent; font-family: var(--font-display); font-size: 12px; font-weight: 800; outline: none; text-transform: uppercase; }
+.compact-select select { appearance: none; width: 100%; padding: 6px 27px 5px 8px; border: 0; color: var(--ink); background: transparent; box-shadow: none; font-family: var(--font-display); font-size: 12px; font-weight: 800; outline: none; text-transform: uppercase; -webkit-tap-highlight-color: transparent; }
 .compact-select svg { position: absolute; right: 1px; color: var(--blue-dark); pointer-events: none; }
 .game-days { display: grid; gap: var(--space-4); }
 .game-day-marker { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); color: var(--ink); }

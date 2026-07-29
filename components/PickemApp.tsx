@@ -1122,14 +1122,14 @@ export default function PickemApp() {
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
-          <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Weeks 3 through NFL Week 18: 5 picks with at least 1 CFB and 1 NFL + dog.</li></ul></RuleItem>
-          <RuleItem icon={Shield} title="Eligible games"><ul><li>CFB conference championships, bowls, and CFP games are included through NFL Week 18.</li><li>CFB games must include at least one FBS team.</li><li>NFL playoff games are excluded.</li><li>Every Chargers game is excluded.</li></ul></RuleItem>
+          <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Weeks 3 through 20: 5 picks with at least 1 CFB and 1 NFL + dog.</li></ul></RuleItem>
+          <RuleItem icon={Shield} title="Eligible games"><ul><li>No Chargers games.</li><li>College football games must include at least one FBS team.</li></ul></RuleItem>
           <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5 = +1W.</li><li>+10 to +19.5 = +2W.</li><li>+20 or more = +3W.</li><li>The dog must win outright.</li><li>A missed dog does not add a loss.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>After NFL Week 18, the season winner receives $300.</li><li>The other two players each pay $150.</li></ul></RuleItem>
-          <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each.</li><li>Tied first splits $20.</li><li>A three-way tie pays $0.</li><li>Payments post automatically after all three cards are final.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Perfect week"><ul><li>Available only during five-game weeks.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season ends Sunday, Jan. 10, after the final regular-season NFL games.</li><li>The season winner receives $300.</li></ul></RuleItem>
+          <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each to first.</li><li>Tied first splits $20 from last.</li><li>A three-way tie pays $0.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Perfect week"><ul><li>Not active during Week 1&apos;s 3-game card.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
           <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Tue-Fri picks close at kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Sat-Mon picks close Friday at 8 PM CT.</li></ul></RuleItem>
-          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each player may have 3 bets per week.</li><li>Accepted and pending offers count toward the limit.</li><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
+          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each person gets 3 side bets per week.</li><li>Accepted and pending offers count toward the limit.</li><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
         </div>
       </section>}
     </main>
