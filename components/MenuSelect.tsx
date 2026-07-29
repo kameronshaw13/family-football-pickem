@@ -6,6 +6,7 @@ import { ChevronDown, LoaderCircle } from "lucide-react";
 export type MenuSelectOption = {
   value: string;
   label: string;
+  selectedLabel?: string;
 };
 
 export type MenuSelectSection = {
@@ -57,8 +58,8 @@ export default function MenuSelect({
   }, [disabled]);
 
   function choose(nextValue: string) {
-    onChange(nextValue);
     setOpen(false);
+    onChange(nextValue);
   }
 
   return <div className={`custom-select ${className} ${open ? "open" : ""} ${disabled ? "disabled" : ""}`} ref={rootRef}>
@@ -71,7 +72,7 @@ export default function MenuSelect({
       disabled={disabled}
       onClick={() => setOpen((current) => !current)}
     >
-      {selected?.label || value}
+      {selected?.selectedLabel || selected?.label || value}
     </button>
     {loading
       ? <LoaderCircle className="custom-select-spinner" size={14} />

@@ -212,6 +212,14 @@ function weekdayAbbreviation(iso: string) {
 function dt(iso: string) {
   return `${weekdayAbbreviation(iso)} ${timeText(iso)}`;
 }
+function shortDateText(iso: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "America/Chicago"
+  }).format(new Date(iso));
+}
 function openText(iso: string) {
   return new Intl.DateTimeFormat("en-US", {
     weekday: "long",
@@ -1297,14 +1305,27 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
       {openGames.length === 0 && <div className="empty-state">No games with a spread are available before kickoff.</div>}
       {!limitReached && selectedGame && <div className="offer-flow">
         <section className="offer-block offer-game-amount">
-          <label><span className="field-label">Game</span><MenuSelect
+          <div className="offer-field"><span className="field-label">Game</span><MenuSelect
             ariaLabel="Side bet game"
             className="input field-menu-select game-menu-select"
             value={selectedGame.id}
-            sections={[{ options: openGames.map((game) => ({ value: game.id, label: `${dt(game.commence_time)} · ${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` })) }]}
+            sections={[{ options: openGames.map((game) => {
+              const matchup = `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`;
+              return {
+                value: game.id,
+                label: `${matchup} · ${shortDateText(game.commence_time)} · ${timeText(game.commence_time)}`,
+                selectedLabel: `${matchup} · ${dt(game.commence_time)}`
+              };
+            }) }]}
             onChange={setGame}
-          /></label>
-          <label><span className="field-label">Amount</span><div className="money-input"><b>$</b><input aria-label="Side bet amount" type="number" inputMode="decimal" min="1" max={MAX_SIDE_BET_AMOUNT} step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></div></label>
+          /></div>
+          <div className="offer-field"><span className="field-label">Amount</span><MenuSelect
+            ariaLabel="Side bet amount"
+            className="input field-menu-select amount-menu-select"
+            value={amount}
+            sections={[{ options: ["20", "15", "10", "5"].map((value) => ({ value, label: `$${value}` })) }]}
+            onChange={setAmount}
+          /></div>
         </section>
 
         <section className="offer-block offer-side-block">

@@ -252,11 +252,12 @@ p { margin: 0; }
 .bet-composer .input:focus { border: 0; border-bottom: 2px solid var(--blue); box-shadow: none; }
 .field-menu-select { padding: 0; }
 .bet-composer .field-menu-select { overflow: visible; }
-.field-menu-select .custom-select-trigger { min-height: 41px; padding: 9px 30px 9px 10px; font-size: 16px; font-weight: 600; text-transform: none; }
-.field-menu-select > svg { position: absolute; right: 8px; color: var(--blue-dark); pointer-events: none; }
+.field-menu-select .custom-select-trigger { min-height: 41px; padding: 9px 30px 9px 10px; font-size: 14px; font-weight: 600; text-transform: none; }
+.field-menu-select > svg { position: absolute; top: 50%; right: 8px; color: var(--blue-dark); transform: translateY(-50%); pointer-events: none; }
+.field-menu-select.open > .custom-select-chevron { transform: translateY(-50%) rotate(180deg); }
 .field-menu-select .custom-select-option { text-transform: none; }
 .offer-game-amount { display: grid; grid-template-columns: minmax(0, 1fr) 82px; align-items: end; gap: 12px; }
-.offer-game-amount > label { min-width: 0; }
+.offer-game-amount > .offer-field { min-width: 0; }
 .offer-game-amount .money-input b { padding-left: 4px; }
 .offer-game-amount .money-input input { padding-inline: 3px; font-variant-numeric: tabular-nums; }
 .offer-side-block { padding-bottom: 0; }
