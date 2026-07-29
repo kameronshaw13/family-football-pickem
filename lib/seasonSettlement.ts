@@ -43,19 +43,25 @@ export async function settleSeasonIfReady(
   }
 
   const standings = computeWeeklyStandings(profiles || [], seasonPicks);
-  if (standings.length !== 3 || standings[0].rank === standings[1].rank) {
-    return { settled: false, reason: "Season standings are tied for first.", seasonYear };
+  if (
+    standings.length !== 3 ||
+    standings[0].rank === standings[1].rank ||
+    standings[1].rank === standings[2].rank
+  ) {
+    return { settled: false, reason: "Season standings have an unresolved tie.", seasonYear };
   }
 
   const winner = standings[0];
   const entryWeek = SEASON_ENTRY_OFFSET + seasonYear;
-  const entries = standings.map((row) => ({
+  const entries = standings.map((row, index) => ({
     week: entryWeek,
     user_id: row.user_id,
-    amount: row.user_id === winner.user_id ? 300 : -150,
-    note: row.user_id === winner.user_id
+    amount: index === 0 ? 300 : index === 1 ? -100 : -200,
+    note: index === 0
       ? `${seasonYear} season champion`
-      : `${seasonYear} season entry`
+      : index === 1
+        ? `${seasonYear} season second place`
+        : `${seasonYear} season last place`
   }));
 
   const { error } = await supabase
