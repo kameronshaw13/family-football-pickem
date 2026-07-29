@@ -107,7 +107,8 @@ p { margin: 0; }
 .view-select-row { display: flex; justify-content: flex-start; gap: var(--space-2); margin-bottom: var(--space-3); }
 .view-select-row.board-filter-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .view-select-row.board-filter-row .compact-select { width: 100%; min-width: 0; }
-.compact-select { position: relative; display: inline-flex; min-width: 120px; min-height: 34px; align-items: center; border: 1px solid var(--line-strong); border-bottom: 3px solid var(--blue); background: var(--panel); }
+.compact-select { position: relative; display: inline-flex; min-width: 120px; min-height: 34px; align-items: center; border: 0; border-bottom: 2px solid var(--line-strong); background: transparent; }
+.compact-select.open { border-bottom-color: var(--blue); }
 .compact-select select { appearance: none; width: 100%; padding: 6px 27px 5px 8px; border: 0; color: var(--ink); background: transparent; box-shadow: none; font-family: var(--font-display); font-size: 12px; font-weight: 800; outline: none; text-transform: uppercase; -webkit-tap-highlight-color: transparent; }
 .compact-select svg { position: absolute; right: 1px; color: var(--blue-dark); pointer-events: none; }
 .custom-select { position: relative; overflow: visible; }
@@ -122,7 +123,7 @@ p { margin: 0; }
 .custom-select-menu > .custom-select-section:first-child > .custom-select-option:first-child { border-top: 0; }
 .custom-select-option.selected { color: var(--blue-dark); background: var(--blue-soft); }
 .custom-select-option:active { background: var(--hover); }
-.custom-select-group-label { display: flex; min-height: 38px; align-items: center; padding: 7px 10px; border-top: 1px solid var(--line-strong); color: var(--muted); background: var(--surface-soft); font-size: 10px; font-weight: 800; text-align: left; text-transform: uppercase; }
+.custom-select-group-label { display: flex; min-height: 28px; align-items: center; padding: 4px 10px; border-top: 1px solid var(--line-strong); color: var(--muted); background: var(--surface-soft); font-size: 10px; font-weight: 800; line-height: 1.1; text-align: left; text-transform: uppercase; }
 .game-days { display: grid; gap: var(--space-4); }
 .game-day-marker { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); color: var(--ink); }
 .game-day-marker > b { flex: 0 0 auto; padding: 5px 8px; color: #fff; background: var(--graphite); box-shadow: inset 0 -2px 0 var(--blue); font-family: var(--font-display); font-size: 10px; font-weight: 900; }
@@ -232,7 +233,7 @@ p { margin: 0; }
 .visible-pick { display: grid; min-height: 62px; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; margin: 0; padding: 7px var(--page-gutter); border-top: 1px solid var(--line); }
 .visible-pick:last-child { border-bottom: 1px solid var(--line); }
 .pick-meta, .visible-pick-copy p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dog-tag { color: var(--red); font-size: inherit; }
+.dog-tag { color: var(--red); font-size: 1em; font-weight: inherit; line-height: inherit; }
 .actions { display: flex; gap: 8px; margin-top: 11px; }
 .btn { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 6px; padding: 8px 13px; border: 1px solid transparent; border-radius: 5px; color: #fff; background: var(--graphite-light); font-size: 12px; font-weight: 800; }
 .btn.accent, .btn.gold { background: var(--blue-dark); }

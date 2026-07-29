@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, LoaderCircle } from "lucide-react";
 
 export type MenuSelectOption = {
@@ -32,26 +32,7 @@ export default function MenuSelect({
   loading?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
   const selected = sections.flatMap((section) => section.options).find((option) => option.value === value);
-
-  useEffect(() => {
-    if (!open) return;
-
-    function closeOnOutsideTouch(event: PointerEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-
-    document.addEventListener("pointerdown", closeOnOutsideTouch);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideTouch);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [open]);
 
   useEffect(() => {
     if (disabled) setOpen(false);
@@ -62,7 +43,7 @@ export default function MenuSelect({
     onChange(nextValue);
   }
 
-  return <div className={`custom-select ${className} ${open ? "open" : ""} ${disabled ? "disabled" : ""}`} ref={rootRef}>
+  return <div className={`custom-select ${className} ${open ? "open" : ""} ${disabled ? "disabled" : ""}`}>
     <button
       type="button"
       className="custom-select-trigger"
