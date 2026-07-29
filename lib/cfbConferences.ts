@@ -26,8 +26,8 @@ const TEAM_IDS_BY_CONFERENCE: Record<string, readonly string[]> = {
   UAC: ["2000", "2046", "2110", "2198", "2453", "2627", "2698", "110242"]
 };
 
-export const POWER_CONFERENCES = ["ACC", "BIG 12", "BIG TEN", "PAC-12", "SEC"] as const;
-export const GROUP_CONFERENCES = ["AMERICAN", "CUSA", "MAC", "MWC", "SUN BELT"] as const;
+export const POWER_CONFERENCES = ["ACC", "BIG 12", "BIG TEN", "SEC"] as const;
+export const GROUP_CONFERENCES = ["AMERICAN", "CUSA", "MAC", "MWC", "PAC-12", "SUN BELT"] as const;
 export const FBS_INDEPENDENTS_CONFERENCE = "IND";
 
 const FBS_CONFERENCES = new Set<string>([

@@ -1133,7 +1133,7 @@ export default function PickemApp() {
           <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Weeks 3 to 20: 5 picks with at least 1 CFB and 1 NFL + dog.</li></ul></RuleItem>
           <RuleItem icon={Shield} title="Eligible games"><ul><li>All Chargers games are excluded.</li><li>College football games must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
           <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5 = +1W.</li><li>+10 to +19.5 = +2W.</li><li>+20 or more = +3W.</li><li>The dog must win outright.</li><li>A missed dog does not add a loss.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Standings"><ul><li>The season ends Sunday, Jan. 10, after the final regular-season NFL games.</li><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season winner receives $300 in their bank.</li><li>The other two players each have $150 deducted from their bank.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Standings"><ul><li>The season ends Sunday, Jan. 10, after the final regular-season NFL games.</li><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season winner receives $300 in the bank.</li><li>The other two players each have $150 deducted from the bank.</li></ul></RuleItem>
           <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each to first.</li><li>Tied first splits $20 from last.</li><li>A three-way tie pays $0.</li></ul></RuleItem>
           <RuleItem icon={Trophy} title="Perfect week"><ul><li>Will not be applied during Week 1.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
           <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Tue-Fri picks close at kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Sat-Mon picks close Friday at 8 PM CT.</li></ul></RuleItem>
@@ -1161,8 +1161,8 @@ function ConferenceFilter({ value, onChange }: { value: string; onChange: (value
     value={value}
     sections={[
       { options: [{ value: "ALL", label: "ALL CONF." }] },
-      { label: "Power 5", options: POWER_CONFERENCES.map((conference) => ({ value: conference, label: conference })) },
-      { label: "Group of 5", options: GROUP_CONFERENCES.map((conference) => ({ value: conference, label: conference })) },
+      { label: "Power 4", options: POWER_CONFERENCES.map((conference) => ({ value: conference, label: conference })) },
+      { label: "Group of 6", options: GROUP_CONFERENCES.map((conference) => ({ value: conference, label: conference })) },
       { options: [{ value: FBS_INDEPENDENTS_CONFERENCE, label: "INDEPENDENTS" }] }
     ]}
     onChange={onChange}
@@ -1289,6 +1289,22 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
   const slotCount = slotCounts[currentUser.id] || 0;
   const limitReached = slotCount >= MAX_SIDE_BETS_PER_WEEK;
+  const sideBetGamesByDay = new Map<string, Game[]>();
+  for (const game of openGames) {
+    const dayKey = gameDayKey(game.commence_time);
+    sideBetGamesByDay.set(dayKey, [...(sideBetGamesByDay.get(dayKey) || []), game]);
+  }
+  const sideBetGameSections = Array.from(sideBetGamesByDay.values()).map((dayGames) => ({
+    label: shortDateText(dayGames[0].commence_time),
+    options: dayGames.map((game) => {
+      const matchup = `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`;
+      return {
+        value: game.id,
+        label: `${matchup} · ${timeText(game.commence_time)}`,
+        selectedLabel: `${matchup} · ${dt(game.commence_time)}`
+      };
+    })
+  }));
 
   async function acceptConfirmedBet() {
     if (!confirmingBetId) return;
@@ -1309,14 +1325,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
             ariaLabel="Side bet game"
             className="input field-menu-select game-menu-select"
             value={selectedGame.id}
-            sections={[{ options: openGames.map((game) => {
-              const matchup = `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`;
-              return {
-                value: game.id,
-                label: `${matchup} · ${shortDateText(game.commence_time)} · ${timeText(game.commence_time)}`,
-                selectedLabel: `${matchup} · ${dt(game.commence_time)}`
-              };
-            }) }]}
+            sections={sideBetGameSections}
             onChange={setGame}
           /></div>
           <div className="offer-field"><span className="field-label">Amount</span><MenuSelect
