@@ -212,10 +212,10 @@ function weekdayAbbreviation(iso: string) {
 function dt(iso: string) {
   return `${weekdayAbbreviation(iso)} ${timeText(iso)}`;
 }
-function shortDateText(iso: string) {
+function fullDateText(iso: string) {
   return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
+    weekday: "long",
+    month: "long",
     day: "numeric",
     timeZone: "America/Chicago"
   }).format(new Date(iso));
@@ -1295,7 +1295,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     sideBetGamesByDay.set(dayKey, [...(sideBetGamesByDay.get(dayKey) || []), game]);
   }
   const sideBetGameSections = Array.from(sideBetGamesByDay.values()).map((dayGames) => ({
-    label: shortDateText(dayGames[0].commence_time),
+    label: fullDateText(dayGames[0].commence_time),
     options: dayGames.map((game) => {
       const matchup = `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`;
       return {
