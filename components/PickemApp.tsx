@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
@@ -211,9 +211,6 @@ function weekdayAbbreviation(iso: string) {
 function dt(iso: string) {
   return `${weekdayAbbreviation(iso)} ${timeText(iso)}`;
 }
-function closeText(iso: string) {
-  return dt(iso);
-}
 function openText(iso: string) {
   return new Intl.DateTimeFormat("en-US", {
     weekday: "long",
@@ -221,9 +218,6 @@ function openText(iso: string) {
     day: "numeric",
     timeZone: "America/Chicago"
   }).format(new Date(iso));
-}
-function cardLockText(iso: string) {
-  return closeText(iso).replace(",", "");
 }
 function cardGameStateText(game: Game, locked: boolean) {
   if (game.final_away_score != null && game.final_home_score != null) {
@@ -233,14 +227,14 @@ function cardGameStateText(game: Game, locked: boolean) {
     return `Final ${game.live_away_score}-${game.live_home_score}`;
   }
   if (locked) {
-    if (new Date(game.commence_time) > new Date()) return `Starts ${dt(game.commence_time)}`;
+    if (new Date(game.commence_time) > new Date()) return dt(game.commence_time);
     if (game.live_state === "in" && game.live_away_score != null && game.live_home_score != null) {
       return `${game.live_away_score}-${game.live_home_score} · ${liveGameStatus(game)}`;
     }
     if (game.live_status) return liveGameStatus(game);
     return "Score updating";
   }
-  return `locks ${cardLockText(game.lock_time)}`;
+  return dt(game.commence_time);
 }
 function timeText(iso: string) {
   return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
@@ -1037,7 +1031,7 @@ export default function PickemApp() {
           <div className="view-select-row board-filter-row">
             <div className="compact-select status-select"><select aria-label="Choose game status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as GameStatusFilter); setStatusFilterTouched(true); }}>{(["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
             <div className="compact-select league-select"><select aria-label="Choose league" value={leagueFilter} onChange={(event) => setLeagueFilter(event.target.value as LeagueFilter)}>{(["CFB", "NFL", "DOGS"] as LeagueFilter[]).map((option) => <option key={option} value={option}>{option}</option>)}</select><ChevronDown size={15} /></div>
-            {leagueFilter === "CFB" && <div className="compact-select context-select"><select aria-label="Filter college games by FBS conference" value={conferenceFilter} onChange={(event) => setConferenceFilter(event.target.value)}><option value="ALL">ALL CONF.</option><optgroup label="Power 5">{POWER_CONFERENCES.map((conference) => <option key={conference} value={conference}>{conference}</option>)}</optgroup><optgroup label="Group of 5">{GROUP_CONFERENCES.map((conference) => <option key={conference} value={conference}>{conference}</option>)}</optgroup><option value={FBS_INDEPENDENTS_CONFERENCE}>INDEPENDENTS</option></select><ChevronDown size={15} /></div>}
+            {leagueFilter === "CFB" && <ConferenceFilter value={conferenceFilter} onChange={setConferenceFilter} />}
             {leagueFilter === "DOGS" && <div className="compact-select context-select"><select aria-label="Filter dogs by win value" value={dogValueFilter} onChange={(event) => setDogValueFilter(event.target.value as DogValueFilter)}><option value="ALL">ALL DOGS</option>{(["1", "2", "3"] as const).map((value) => <option key={value} value={value}>+{value}W</option>)}</select><ChevronDown size={15} /></div>}
           </div>
           {filteredGames.length === 0 && <div className="empty-state">No {statusFilter.toLowerCase()} {leagueFilter === "DOGS" ? "dog" : leagueFilter} games.</div>}
@@ -1122,12 +1116,12 @@ export default function PickemApp() {
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
-          <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Weeks 3 through 20: 5 picks with at least 1 CFB and 1 NFL + dog.</li></ul></RuleItem>
-          <RuleItem icon={Shield} title="Eligible games"><ul><li>No Chargers games.</li><li>College football games must include at least one FBS team.</li></ul></RuleItem>
+          <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Weeks 3–20<span className="rule-subline">— 5 picks with at least 1 CFB and 1 NFL + dog.</span></li></ul></RuleItem>
+          <RuleItem icon={Shield} title="Eligible games"><ul><li>No Chargers games.</li><li>College football games must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
           <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5 = +1W.</li><li>+10 to +19.5 = +2W.</li><li>+20 or more = +3W.</li><li>The dog must win outright.</li><li>A missed dog does not add a loss.</li></ul></RuleItem>
           <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season ends Sunday, Jan. 10, after the final regular-season NFL games.</li><li>The season winner receives $300.</li></ul></RuleItem>
           <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each to first.</li><li>Tied first splits $20 from last.</li><li>A three-way tie pays $0.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Perfect week"><ul><li>Not active during Week 1&apos;s 3-game card.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Perfect week"><ul><li>Inactive during the 3-game Week 1 card.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
           <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Tue-Fri picks close at kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Sat-Mon picks close Friday at 8 PM CT.</li></ul></RuleItem>
           <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each person gets 3 side bets per week.</li><li>Accepted and pending offers count toward the limit.</li><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
         </div>
@@ -1144,6 +1138,74 @@ export default function PickemApp() {
 
 function SectionTabs({ items, value, onChange }: { items: Array<{ id: string; label: string }>; value: string; onChange: (value: string) => void }) {
   return <div className="section-tabs">{items.map((item) => <button key={item.id} className={value === item.id ? "active" : ""} onClick={() => onChange(item.id)}>{item.label}</button>)}</div>;
+}
+
+function ConferenceFilter({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const label = value === "ALL"
+    ? "ALL CONF."
+    : value === FBS_INDEPENDENTS_CONFERENCE
+      ? "INDEPENDENTS"
+      : value;
+
+  useEffect(() => {
+    if (!open) return;
+
+    function closeOnOutsideTouch(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsideTouch);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideTouch);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  function choose(nextValue: string) {
+    onChange(nextValue);
+    setOpen(false);
+  }
+
+  function option(optionValue: string, optionLabel = optionValue) {
+    return <button
+      type="button"
+      className={`custom-select-option ${value === optionValue ? "selected" : ""}`}
+      role="option"
+      aria-selected={value === optionValue}
+      key={optionValue}
+      onClick={() => choose(optionValue)}
+    >
+      {optionLabel}
+    </button>;
+  }
+
+  return <div className={`compact-select context-select custom-select ${open ? "open" : ""}`} ref={rootRef}>
+    <button
+      type="button"
+      className="custom-select-trigger"
+      aria-label="Filter college games by FBS conference"
+      aria-haspopup="listbox"
+      aria-expanded={open}
+      onClick={() => setOpen((current) => !current)}
+    >
+      {label}
+    </button>
+    <ChevronDown size={15} />
+    {open && <div className="custom-select-menu" role="listbox" aria-label="FBS conferences">
+      {option("ALL", "ALL CONF.")}
+      <span className="custom-select-group-label">Power 5</span>
+      {POWER_CONFERENCES.map((conference) => option(conference))}
+      <span className="custom-select-group-label">Group of 5</span>
+      {GROUP_CONFERENCES.map((conference) => option(conference))}
+      {option(FBS_INDEPENDENTS_CONFERENCE, "INDEPENDENTS")}
+    </div>}
+  </div>;
 }
 
 function RankNumber({ rank, className }: { rank: number; className: string }) {
@@ -1586,7 +1648,7 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const gameState = game ? cardGameStateText(game, locked) : "game status unavailable";
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span></>}</p><p className="pick-meta">{matchupText} · {gameState}</p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !locked && <span className="badge open">editable</span>}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span></>}</p><p className="pick-meta">{matchupText} · {gameState}</p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
@@ -1599,5 +1661,5 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
   const matchup = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable";
   const gameState = game ? cardGameStateText(game, locked) : "game status unavailable";
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span></>}</strong><p>{matchup} · {gameState}</p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : !locked && <span className="badge open">editable</span>}</div></div>;
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span></>}</strong><p>{matchup} · {gameState}</p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
 }
