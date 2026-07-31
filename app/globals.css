@@ -388,20 +388,22 @@ fieldset .field-label { padding: 0; }
 .bank-section { margin-top: var(--space-5); }
 .bank-week-section { margin-top: var(--space-4); }
 .bank-week-results { border-block: 1px solid var(--line); background: var(--panel); }
-.bank-results-labels { display: grid; min-height: 34px; grid-template-columns: 28px minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
-.bank-results-labels span { text-align: center; }
-.bank-results-labels span:nth-child(2) { text-align: left; }
+.bank-results-labels { display: grid; min-height: 34px; grid-template-columns: minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
+.bank-results-identity-labels { display: grid; height: 100%; min-width: 0; grid-template-columns: 48px minmax(94px, 1fr); align-items: center; }
+.bank-results-identity-labels > span { text-align: center; }
+.bank-results-identity-labels > span:nth-child(2) { text-align: left; }
+.bank-results-labels > span:nth-child(2), .bank-results-labels > span:nth-child(3) { text-align: right; }
 .bank-results-labels + .bank-player-result, .bank-player-result + .bank-player-result { border-top: 1px solid var(--line); }
 .bank-player-result > summary { display: grid; min-height: 58px; grid-template-columns: minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 8px 11px; list-style: none; cursor: pointer; background: var(--panel); }
 .bank-player-result > summary::-webkit-details-marker { display: none; }
-.bank-player-identity { display: grid; min-width: 0; grid-template-columns: 28px minmax(0, 1fr); align-items: baseline; gap: 8px; }
+.bank-player-identity { display: grid; min-width: 0; grid-template-columns: 48px minmax(94px, 1fr); align-items: center; }
 .bank-player-identity > strong { overflow: hidden; color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .bank-player-result > summary > svg { color: var(--muted); transition: transform .18s ease; }
 .bank-player-result[open] > summary { border-bottom: 1px solid var(--line-strong); }
 .bank-player-result[open] > summary > svg { transform: rotate(180deg); }
-.bank-result-rank { display: block; align-self: baseline; color: var(--muted); font-family: var(--font-display); font-size: 13px; font-weight: 900; line-height: 1.2; text-align: center; }
-.bank-result-record { min-width: 48px; font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap; }
-.bank-result-amount { font-family: var(--font-display); font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap; }
+.bank-result-rank { display: block; align-self: center; color: var(--muted); font-family: var(--font-display); font-size: 13px; font-weight: 900; line-height: 1.2; text-align: center; }
+.bank-result-record { min-width: 48px; font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.bank-result-amount { font-family: var(--font-display); font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-player-result > .muted { margin: 0; padding: 11px 12px; background: var(--panel); }
 .bank-game-result { display: grid; min-height: 62px; grid-template-columns: 38px minmax(0, 1fr) 26px; align-items: center; gap: 10px; padding: 7px var(--page-gutter); border-bottom: 1px solid var(--line); background: var(--panel); }
 .bank-game-result:last-child { border-bottom: 0; }
@@ -504,5 +506,6 @@ fieldset .field-label { padding: 0; }
   .card-progress-count { max-width: none; text-align: left; }
   .bet-line-summary > span:last-child { text-align: left; }
   .leaderboard-labels, .leaderboard-row { grid-template-columns: 42px minmax(82px, 1fr) repeat(3, 28px) 58px; }
+  .bank-results-identity-labels, .bank-player-identity { grid-template-columns: 42px minmax(82px, 1fr); }
   .floating-review, .sticky-card-save { right: 9px; left: 9px; }
 }

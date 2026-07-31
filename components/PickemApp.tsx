@@ -1184,7 +1184,7 @@ function RankNumber({ rank, className }: { rank: number; className: string }) {
 
 function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null> }) {
   return <div className="bank-week-results">
-    <div className="bank-results-labels"><span>Rank</span><span>Player</span><span>Balance</span><span>Record</span><span aria-hidden="true" /></div>
+    <div className="bank-results-labels"><span className="bank-results-identity-labels"><span>Rank</span><span>Player</span></span><span>Balance</span><span>Record</span><span aria-hidden="true" /></div>
     {rows.map((row, index) => {
     const playerPicks = picks
       .filter((pick) => pick.user_id === row.user_id)
