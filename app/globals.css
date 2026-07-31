@@ -385,11 +385,12 @@ fieldset .field-label { padding: 0; }
 .money-neutral { color: var(--ink); }
 .bank-section { margin-top: var(--space-5); }
 .bank-week-section { margin-top: var(--space-4); }
-.bank-section-heading { min-height: 26px; padding: 0 2px; }
-.bank-section-heading h3 { margin: 0; }
 .bank-week-results { border-block: 1px solid var(--line); background: var(--panel); }
-.bank-player-result + .bank-player-result { border-top: 1px solid var(--line); }
-.bank-player-result > summary { display: grid; min-height: 58px; grid-template-columns: minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 8px 10px; list-style: none; cursor: pointer; background: var(--panel); }
+.bank-results-labels { display: grid; min-height: 34px; grid-template-columns: 28px minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
+.bank-results-labels span:first-child { text-align: center; }
+.bank-results-labels span:nth-child(3), .bank-results-labels span:nth-child(4) { text-align: right; }
+.bank-results-labels + .bank-player-result, .bank-player-result + .bank-player-result { border-top: 1px solid var(--line); }
+.bank-player-result > summary { display: grid; min-height: 58px; grid-template-columns: minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 8px 11px; list-style: none; cursor: pointer; background: var(--panel); }
 .bank-player-result > summary::-webkit-details-marker { display: none; }
 .bank-player-identity { display: grid; min-width: 0; grid-template-columns: 28px minmax(0, 1fr); align-items: baseline; gap: 8px; }
 .bank-player-identity > strong { overflow: hidden; color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }

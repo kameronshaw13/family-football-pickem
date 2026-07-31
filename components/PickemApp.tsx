@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
@@ -1122,7 +1122,7 @@ export default function PickemApp() {
             </div>
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} />
           </div>
-          <div className="subsection bank-section"><div className="bank-section-heading"><h3>Side bet ledger</h3></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
+          <div className="subsection bank-section"><div className="standings-heading-row"><h2>Side Bet Ledger</h2></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
           {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setStatusFilter("LOCKED"); setStatusFilterTouched(true); setLeagueFilter("CFB"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview board states</strong><small>See locked, live, and final games</small></span><ChevronRight size={17} /></button>}
         </>}
       </section>}
@@ -1130,10 +1130,11 @@ export default function PickemApp() {
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
+          <RuleItem icon={CalendarDays} title="Season schedule"><ul><li>The season is 20 weeks long.</li><li>The season starts with two CFB-only weeks before NFL games are added, and ends Sunday, Jan. 10, after the final regular-season NFL games.</li><li>Each week starts on Tuesday and ends on Monday.</li></ul></RuleItem>
           <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Weeks 3 to 20: 5 picks with at least 1 CFB and 1 NFL + dog.</li></ul></RuleItem>
           <RuleItem icon={Shield} title="Eligible games"><ul><li>All Chargers games are excluded.</li><li>College football games must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
           <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5 = +1W.</li><li>+10 to +19.5 = +2W.</li><li>+20 or more = +3W.</li><li>The dog must win outright.</li><li>A missed dog does not add a loss.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Standings"><ul><li>The season ends Sunday, Jan. 10, after the final regular-season NFL games.</li><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season winner receives $300 in the bank.</li><li>Second place has $100 deducted from the bank.</li><li>Last place has $200 deducted from the bank.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season winner receives $300 in the bank.</li><li>Second place has $100 deducted from the bank.</li><li>Last place has $200 deducted from the bank.</li></ul></RuleItem>
           <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each to first.</li><li>Tied first splits $20 from last.</li><li>A three-way tie pays $0.</li></ul></RuleItem>
           <RuleItem icon={Trophy} title="Perfect week"><ul><li>Will not be applied during Week 1.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
           <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Tue-Fri picks close at kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Sat-Mon picks close Friday at 8 PM CT.</li></ul></RuleItem>
@@ -1175,7 +1176,9 @@ function RankNumber({ rank, className }: { rank: number; className: string }) {
 }
 
 function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null> }) {
-  return <div className="bank-week-results">{rows.map((row, index) => {
+  return <div className="bank-week-results">
+    <div className="bank-results-labels"><span>Rank</span><span>Player</span><span>Balance</span><span>Record</span><span aria-hidden="true" /></div>
+    {rows.map((row, index) => {
     const playerPicks = picks
       .filter((pick) => pick.user_id === row.user_id)
       .sort((a, b) => {
