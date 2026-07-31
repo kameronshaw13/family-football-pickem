@@ -120,12 +120,13 @@ p { margin: 0; }
 .custom-select-spinner { animation: spin .8s linear infinite; }
 .custom-select-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; display: grid; width: 100%; min-width: 0; max-height: min(360px, 48dvh); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line-strong); background: var(--panel); box-shadow: none; -webkit-overflow-scrolling: touch; }
 .custom-select-section { display: contents; }
-.custom-select-option { width: 100%; min-height: 38px; padding: 8px 10px; border: 0; border-top: 1px solid var(--line); color: var(--ink); background: var(--panel); font-family: var(--font-display); font-size: 12px; font-weight: 750; text-align: left; text-transform: uppercase; touch-action: manipulation; }
+.custom-select-option { display: flex; width: 100%; height: 38px; min-height: 38px; align-items: center; padding: 8px 10px; border: 0; border-top: 1px solid var(--line); color: var(--ink); background: var(--panel); font-family: var(--font-display); font-size: 12px; font-weight: 750; line-height: 1.2; text-align: left; text-transform: uppercase; touch-action: manipulation; }
 .custom-select-menu > .custom-select-section:first-child > .custom-select-option:first-child { border-top: 0; }
 .custom-select-option.selected { color: var(--blue-dark); background: var(--blue-soft); }
 .custom-select-option:active { background: var(--hover); }
-.custom-select-group-label { display: flex; min-height: 28px; align-items: center; padding: 4px 10px; border-top: 1px solid var(--line-strong); color: var(--ink); background: var(--surface-soft); font-size: 10px; font-weight: 800; line-height: 1.1; text-align: left; text-transform: uppercase; }
+.custom-select-group-label { display: flex; min-height: 28px; align-items: center; padding: 4px 10px; border-top: 1px solid var(--line-strong); color: var(--muted); background: var(--surface-soft); font-size: 10px; font-weight: 800; line-height: 1.1; text-align: left; text-transform: uppercase; }
 .game-menu-select .custom-select-section:first-child .custom-select-group-label { border-top: 0; }
+.game-menu-select .custom-select-option { height: 52px; min-height: 52px; }
 .game-days { display: grid; gap: var(--space-4); }
 .game-day-marker { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); color: var(--ink); }
 .game-day-marker > b { flex: 0 0 auto; padding: 5px 8px; color: #fff; background: var(--graphite); box-shadow: inset 0 -2px 0 var(--blue); font-family: var(--font-display); font-size: 10px; font-weight: 900; }
@@ -351,8 +352,8 @@ fieldset .field-label { padding: 0; }
 .heading-with-icon > svg { display: block; flex: 0 0 auto; align-self: center; color: var(--blue-dark); }
 .leaderboard { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
 .leaderboard-labels, .leaderboard-row { display: grid; grid-template-columns: 48px minmax(94px, 1fr) repeat(3, 32px) 62px; align-items: center; }
-.leaderboard-labels { min-height: 34px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
-.leaderboard-row { min-height: 58px; padding: 8px 11px; border-top: 1px solid var(--line); background: var(--panel); }
+.leaderboard-labels { height: 34px; min-height: 34px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
+.leaderboard-row { height: 58px; min-height: 58px; padding: 8px 11px; border-top: 1px solid var(--line); background: var(--panel); }
 .leaderboard-labels > span, .leaderboard-row > span, .leaderboard-row > strong, .leaderboard-player { display: flex; height: 100%; align-items: center; justify-content: center; line-height: 1.2; text-align: center; }
 .leaderboard-labels span:nth-child(2), .leaderboard-player { justify-content: flex-start; text-align: left; }
 .leaderboard-rank { color: var(--muted); font-family: var(--font-display); font-size: 14px; font-weight: 900; line-height: 1; }
@@ -388,13 +389,13 @@ fieldset .field-label { padding: 0; }
 .bank-section { margin-top: var(--space-5); }
 .bank-week-section { margin-top: var(--space-4); }
 .bank-week-results { border-block: 1px solid var(--line); background: var(--panel); }
-.bank-results-labels { display: grid; min-height: 34px; grid-template-columns: minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
+.bank-results-labels { display: grid; height: 34px; min-height: 34px; grid-template-columns: minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 0 11px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .bank-results-identity-labels { display: grid; height: 100%; min-width: 0; grid-template-columns: 48px minmax(94px, 1fr); align-items: center; }
 .bank-results-identity-labels > span { text-align: center; }
 .bank-results-identity-labels > span:nth-child(2) { text-align: left; }
 .bank-results-labels > span:nth-child(2), .bank-results-labels > span:nth-child(3) { text-align: right; }
-.bank-results-labels + .bank-player-result, .bank-player-result + .bank-player-result { border-top: 1px solid var(--line); }
-.bank-player-result > summary { display: grid; min-height: 58px; grid-template-columns: minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 8px 11px; list-style: none; cursor: pointer; background: var(--panel); }
+.bank-results-labels + .bank-player-result > summary, .bank-player-result + .bank-player-result > summary { border-top: 1px solid var(--line); }
+.bank-player-result > summary { display: grid; height: 58px; min-height: 58px; grid-template-columns: minmax(0, 1fr) 58px auto 18px; align-items: center; gap: 8px; padding: 8px 11px; list-style: none; cursor: pointer; background: var(--panel); }
 .bank-player-result > summary::-webkit-details-marker { display: none; }
 .bank-player-identity { display: grid; min-width: 0; grid-template-columns: 48px minmax(94px, 1fr); align-items: center; }
 .bank-player-identity > strong { overflow: hidden; color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }

@@ -1328,10 +1328,9 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
     {view === "new" && <div className="bet-composer">
       <div className="section-title"><Send size={19} /><div><h2>Make an offer</h2></div></div>
-      {!weekIsOpen && <div className="notice-card">Side bet offers open Tuesday at 8:00 AM.</div>}
-      {weekIsOpen && limitReached && <div className="empty-state">Your {MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.</div>}
-      {weekIsOpen && openGames.length === 0 && <div className="empty-state">No games with a spread are available before kickoff.</div>}
-      {weekIsOpen && !limitReached && selectedGame && <div className="offer-flow">
+      {limitReached && <div className="empty-state">Your {MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.</div>}
+      {!limitReached && openGames.length === 0 && <div className="empty-state">No games with a spread are available before kickoff.</div>}
+      {!limitReached && selectedGame && <div className="offer-flow">
         <section className="offer-block offer-game-amount">
           <div className="offer-field"><span className="field-label">Game</span><MenuSelect
             ariaLabel="Side bet game"
@@ -1371,7 +1370,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
           <div><span>You keep</span><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} {spreadText(creatorSpread)}</strong></div>
           <div><span>They get</span><strong>{displayTeamName(selectedGame, offeredTeam)} {spreadText(creatorSpread == null ? null : -creatorSpread)}</strong></div>
         </div></div>
-        <div className="offer-submit-row"><button className="btn accent full" disabled={saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={createBet}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button></div>
+        <div className="offer-submit-row"><button className="btn accent full" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={createBet}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button></div>
       </div>}
     </div>}
 
