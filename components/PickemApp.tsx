@@ -75,11 +75,11 @@ const NFL_NICKNAMES = [
 // These are mascot/nickname suffixes that should not show for college teams.
 // The app keeps the school/location name only: "Ohio State Buckeyes" -> "Ohio State".
 const COLLEGE_NICKNAME_SUFFIXES = [
-  "Rainbow Warriors", "Rainbow Wahine", "Blue Raiders", "Blue Hens", "Blue Hose", "Blue Devils", "Bluejays", "Green Wave", "Mean Green", "Red Wolves", "Red Raiders", "RedHawks", "Redhawks", "Black Knights", "Golden Hurricane", "Golden Flashes", "Golden Gophers", "Golden Bears", "Golden Eagles", "Golden Knights", "Golden Lions", "Golden Panthers", "Golden Rams", "Golden Grizzlies", "Ragin Cajuns", "Ragin' Cajuns", "Thundering Herd", "Fighting Irish", "Fighting Illini", "Fighting Hawks", "Fighting Camels", "Fighting Blue Hens", "Midshipmen", "Gamecocks", "Mountaineers", "Commodores", "Scarlet Knights", "Yellow Jackets", "Boilermakers", "Nittany Lions", "Tar Heels", "Cardinal", "Sun Devils", "Demon Deacons", "Crimson Tide", "Horned Frogs", "Chanticleers", "Sycamores", "Governors", "Privateers", "Keydets", "Paladins", "Terriers", "Hatters", "Musketeers", "Ramblers", "Explorers", "Billikens", "Jackrabbits", "Leathernecks", "Roadrunners", "Lumberjacks", "Longhorns", "Sooners", "Cyclones", "Buffaloes", "Hurricanes", "Seminoles", "Volunteers", "Razorbacks", "Wolf Pack", "Wolfpack", "Jayhawks", "Buckeyes", "Wolverines", "Badgers", "Hawkeyes", "Hoosiers", "Terrapins", "Cornhuskers", "Flames", "Monarchs", "Miners", "Blazers", "Lobos", "Aztecs", "Bulls", "Zips", "Bobcats", "Rockets", "Chippewas", "Gaels", "Mocs", "Lancers", "Camels", "Seawolves", "Highlanders", "Retrievers", "Pioneers", "Broncs", "Jaspers", "Peacocks", "Salukis", "Flyers", "Penguins", "Vandals", "Mavericks", "Phoenix", "Bison", "Bisons", "Catamounts", "Minutemen", "Jaguars", "Coyotes", "Panthers", "Lions", "Tigers", "Wildcats", "Bulldogs", "Eagles", "Hawks", "Falcons", "Bears", "Bruins", "Rams", "Aggies", "Spartans", "Trojans", "Cardinals", "Pirates", "Knights", "Warriors", "Raiders", "Rebels", "Mustangs", "Owls", "Cougars", "Huskies", "Bearcats", "Bearkats", "Cowboys", "Cowgirls", "Utes", "Ducks", "Beavers", "Hokies", "Cavaliers", "Gators", "Gauchos", "Anteaters", "Matadors", "Titans", "Tritons", "Lopes", "Antelopes", "Vaqueros", "Vaqueras", "Lumberjills", "Colonels", "Racers", "Norfolk", "Dukes", "Dukes", "Dragons", "Quakers", "Big Red", "Crimson", "Bantams", "Engineers", "Statesmen", "Dutchmen", "Saints", "Saint Mary's", "Friars", "Friars", "Friars", "Vikings", "Ospreys", "Eagles", "Skyhawks", "Bucs", "Buccaneers", "Mocs", "Golden Eagles", "Hilltoppers", "Hilltoppers", "Hillcats", "Lions", "Lancers", "Patriots", "Minutewomen", "Greyhounds", "Greyhounds", "Mules", "Gorillas", "Grit", "Reivers", "Tars", "Royals"
+  "Rainbow Warriors", "Rainbow Wahine", "Blue Raiders", "Blue Hens", "Blue Hose", "Blue Devils", "Bluejays", "Green Wave", "Mean Green", "Red Wolves", "Red Raiders", "RedHawks", "Redhawks", "Black Knights", "Golden Hurricane", "Golden Flashes", "Golden Gophers", "Golden Bears", "Golden Eagles", "Golden Knights", "Golden Lions", "Golden Panthers", "Golden Rams", "Golden Grizzlies", "Ragin Cajuns", "Ragin' Cajuns", "Thundering Herd", "Fighting Irish", "Fighting Illini", "Fighting Hawks", "Fighting Camels", "Fighting Blue Hens", "Midshipmen", "Gamecocks", "Mountaineers", "Commodores", "Scarlet Knights", "Yellow Jackets", "Boilermakers", "Nittany Lions", "Tar Heels", "Cardinal", "Sun Devils", "Demon Deacons", "Crimson Tide", "Horned Frogs", "Chanticleers", "Sycamores", "Governors", "Privateers", "Keydets", "Paladins", "Terriers", "Hatters", "Musketeers", "Ramblers", "Explorers", "Billikens", "Jackrabbits", "Leathernecks", "Roadrunners", "Lumberjacks", "Longhorns", "Sooners", "Cyclones", "Buffaloes", "Hurricanes", "Seminoles", "Volunteers", "Razorbacks", "Wolf Pack", "Wolfpack", "Jayhawks", "Buckeyes", "Wolverines", "Badgers", "Hawkeyes", "Hoosiers", "Terrapins", "Cornhuskers", "Flames", "Monarchs", "Miners", "Blazers", "Lobos", "Aztecs", "Bulls", "Zips", "Bobcats", "Rockets", "Chippewas", "Gaels", "Mocs", "Lancers", "Camels", "Seawolves", "Highlanders", "Retrievers", "Pioneers", "Broncs", "Jaspers", "Peacocks", "Salukis", "Flyers", "Penguins", "Vandals", "Mavericks", "Phoenix", "Bison", "Bisons", "Catamounts", "Minutemen", "Jaguars", "Coyotes", "Panthers", "Lions", "Tigers", "Wildcats", "Bulldogs", "Eagles", "Hawks", "Falcons", "Bears", "Bruins", "Rams", "Aggies", "Spartans", "Trojans", "Cardinals", "Pirates", "Knights", "Warriors", "Raiders", "Rebels", "Mustangs", "Owls", "Cougars", "Huskies", "Bearcats", "Bearkats", "Cowboys", "Cowgirls", "Utes", "Ducks", "Beavers", "Hokies", "Cavaliers", "Gators", "Gauchos", "Anteaters", "Matadors", "Titans", "Tritons", "Lopes", "Antelopes", "Vaqueros", "Vaqueras", "Lumberjills", "Colonels", "Racers", "Norfolk", "Dukes", "Dukes", "Dragons", "Quakers", "Big Red", "Crimson", "Bantams", "Engineers", "Statesmen", "Dutchmen", "Saints", "Saint Mary's", "Friars", "Friars", "Friars", "Vikings", "Ospreys", "Eagles", "Skyhawks", "Bucs", "Buccaneers", "Mocs", "Golden Eagles", "Hilltoppers", "Hilltoppers", "Hillcats", "Lions", "Lancers", "Patriots", "Minutewomen", "Greyhounds", "Greyhounds", "Mules", "Gorillas", "Grit", "Reivers", "Tars", "Royals", "Lakers", "Orange"
 ].sort((a, b) => b.length - a.length);
 
 const COLLEGE_KEEP_LAST_WORDS = new Set([
-  "State", "Tech", "A&M", "International", "Southern", "Northern", "Eastern", "Western", "Central", "Atlantic", "Pacific", "Carolina", "Florida", "Georgia", "Texas", "Washington", "Mississippi", "Arizona", "Alabama", "Louisiana", "California", "Colorado", "Dakota", "Mexico", "England", "Orleans", "Monroe", "Lafayette", "Vegas", "Jose", "Diego", "Angeles", "Louis", "Francisco", "Forest", "Green", "Bowling", "Army", "Navy", "Air", "Force", "Notre", "Dame", "Ole", "Miss", "BYU", "TCU", "UAB", "UTEP", "UTSA", "UCF", "USF", "UCLA", "USC", "SMU", "UNLV", "UNM", "LSU", "NC", "Appalachian", "Liberty", "Temple", "Rice", "Duke", "Tulane", "Rutgers", "Purdue", "Stanford", "Syracuse", "Clemson", "Auburn", "Memphis", "Hawaii"
+  "State", "Tech", "A&M", "International", "Southern", "Northern", "Eastern", "Western", "Central", "Atlantic", "Pacific", "Carolina", "Florida", "Georgia", "Texas", "Washington", "Mississippi", "Arizona", "Alabama", "Louisiana", "California", "Colorado", "Dakota", "Mexico", "England", "Orleans", "Monroe", "Lafayette", "Vegas", "Jose", "Diego", "Angeles", "Louis", "Francisco", "Forest", "Green", "Bowling", "Army", "Navy", "Air", "Force", "Notre", "Dame", "Ole", "Miss", "BYU", "TCU", "UAB", "UTEP", "UTSA", "UCF", "USF", "UCLA", "USC", "SMU", "UNLV", "UNM", "LSU", "NC", "Appalachian", "Liberty", "Temple", "Rice", "Duke", "Tulane", "Rutgers", "Purdue", "Stanford", "Syracuse", "Clemson", "Auburn", "Memphis", "Hawaii", "Valley", "Bluff"
 ]);
 
 const COLLEGE_MANUAL_DISPLAY: Record<string, string> = {
@@ -225,6 +225,8 @@ function openText(iso: string) {
     weekday: "long",
     month: "long",
     day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
     timeZone: "America/Chicago"
   }).format(new Date(iso));
 }
@@ -978,6 +980,10 @@ export default function PickemApp() {
   }
 
   async function createSideBet() {
+    if (!weekIsOpen) {
+      notify("Side bet offers open Tuesday at 8:00 AM.", "error");
+      return;
+    }
     if (!selectedBetGame || !selectedCreatorTeam || !betRecipients.length) return;
     if (Number(betAmount) > MAX_SIDE_BET_AMOUNT) {
       notify(`Side bets are capped at $${MAX_SIDE_BET_AMOUNT}.`, "error");
@@ -1021,6 +1027,7 @@ export default function PickemApp() {
             className="week-select-wrap header-menu-select"
             value={String(data.week)}
             disabled={refreshing}
+            hint={!weekIsOpen ? "Opens Tue 8:00 AM" : undefined}
             sections={[{ options: availableWeeks.map((w) => ({ value: String(w), label: w === 0 ? "Week 0" : `Week ${w}` })) }]}
             onChange={(nextWeek) => { setStagedPicks(null); void load(Number(nextWeek)); }}
           /></div>}
@@ -1063,6 +1070,7 @@ export default function PickemApp() {
           profiles={profiles}
           sideBets={sideBets}
           slotCounts={data.sideBetSlotCounts || {}}
+          weekIsOpen={weekIsOpen}
           openGames={openBetGames}
           selectedGame={selectedBetGame}
           selectedCreatorTeam={selectedCreatorTeam}
@@ -1130,15 +1138,15 @@ export default function PickemApp() {
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
-          <RuleItem icon={CalendarDays} title="Season schedule"><ul><li>The season is 20 weeks long.</li><li>The season starts with two CFB-only weeks before NFL games are added, and ends Sunday, Jan. 10, after the final regular-season NFL games.</li><li>Each week starts on Tuesday and ends on Monday.</li></ul></RuleItem>
+          <RuleItem icon={CalendarDays} title="Season schedule"><ul><li>The season is 20 weeks long.</li><li>The season starts with two CFB-only weeks before NFL games start and ends on the Monday following the final regular-season NFL Sunday.</li><li>Each week starts on Tuesday and ends on Monday.</li></ul></RuleItem>
           <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Weeks 3 to 20: 5 picks with at least 1 CFB and 1 NFL + dog.</li></ul></RuleItem>
           <RuleItem icon={Shield} title="Eligible games"><ul><li>All Chargers games are excluded.</li><li>College football games must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
           <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5 = +1W.</li><li>+10 to +19.5 = +2W.</li><li>+20 or more = +3W.</li><li>The dog must win outright.</li><li>A missed dog does not add a loss.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season winner receives $300 in the bank.</li><li>Second place has $100 deducted from the bank.</li><li>Last place has $200 deducted from the bank.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season winner wins $300.</li><li>Second place loses $100.</li><li>Last place loses $200.</li></ul></RuleItem>
           <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each to first.</li><li>Tied first splits $20 from last.</li><li>A three-way tie pays $0.</li></ul></RuleItem>
           <RuleItem icon={Trophy} title="Perfect week"><ul><li>Will not be applied during Week 1.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
           <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Tue-Fri picks close at kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Sat-Mon picks close Friday at 8 PM CT.</li></ul></RuleItem>
-          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each person gets 3 side bets per week.</li><li>Accepted and pending offers count toward the limit.</li><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
+          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each person gets 3 side bets per week.</li><li>Accepted and pending offers count toward the limit.</li><li>Offers open with the week on Tuesday at 8:00 AM CT.</li><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
         </div>
       </section>}
     </main>
@@ -1262,13 +1270,14 @@ function LoadingShell() {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, openGames, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, setGame, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, weekIsOpen, openGames, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, setGame, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
   profiles: Profile[];
   sideBets: SideBet[];
   slotCounts: Record<string, number>;
+  weekIsOpen: boolean;
   openGames: Game[];
   selectedGame?: Game;
   selectedCreatorTeam: string;
@@ -1320,9 +1329,10 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
     {view === "new" && <div className="bet-composer">
       <div className="section-title"><Send size={19} /><div><h2>Make an offer</h2></div></div>
-      {limitReached && <div className="empty-state">Your {MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.</div>}
-      {openGames.length === 0 && <div className="empty-state">No games with a spread are available before kickoff.</div>}
-      {!limitReached && selectedGame && <div className="offer-flow">
+      {!weekIsOpen && <div className="notice-card">Side bet offers open Tuesday at 8:00 AM.</div>}
+      {weekIsOpen && limitReached && <div className="empty-state">Your {MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.</div>}
+      {weekIsOpen && openGames.length === 0 && <div className="empty-state">No games with a spread are available before kickoff.</div>}
+      {weekIsOpen && !limitReached && selectedGame && <div className="offer-flow">
         <section className="offer-block offer-game-amount">
           <div className="offer-field"><span className="field-label">Game</span><MenuSelect
             ariaLabel="Side bet game"
@@ -1366,8 +1376,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
       </div>}
     </div>}
 
-    {view === "received" && <SideBetList bets={received} mode="received" currentUser={currentUser} empty="No offers sent to you yet." saving={saving} savingBetId={savingBetId} canAccept={!limitReached} requestAccept={setConfirmingBetId} respond={respond} />}
-    {view === "sent" && <SideBetList bets={sent} mode="sent" currentUser={currentUser} empty="You have not sent any offers yet." saving={saving} savingBetId={savingBetId} canAccept={!limitReached} requestAccept={setConfirmingBetId} respond={respond} />}
+    {view === "received" && <SideBetList bets={received} mode="received" currentUser={currentUser} empty="No offers sent to you yet." saving={saving} savingBetId={savingBetId} canAccept={weekIsOpen && !limitReached} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
+    {view === "sent" && <SideBetList bets={sent} mode="sent" currentUser={currentUser} empty="You have not sent any offers yet." saving={saving} savingBetId={savingBetId} canAccept={!limitReached} acceptDisabledText="Limit reached" requestAccept={setConfirmingBetId} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop">
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title">
@@ -1384,12 +1394,12 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   </div>;
 }
 
-function SideBetList({ bets, mode, currentUser, empty, saving, savingBetId, canAccept, requestAccept, respond }: { bets: SideBet[]; mode: "received" | "sent"; currentUser: Profile; empty: string; saving: boolean; savingBetId: string | null; canAccept: boolean; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
+function SideBetList({ bets, mode, currentUser, empty, saving, savingBetId, canAccept, acceptDisabledText, requestAccept, respond }: { bets: SideBet[]; mode: "received" | "sent"; currentUser: Profile; empty: string; saving: boolean; savingBetId: string | null; canAccept: boolean; acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
   const sorted = [...bets].sort((a, b) => Number(b.status === "open") - Number(a.status === "open") || new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  return <div className="side-bet-list">{!sorted.length && <div className="empty-state">{empty}</div>}{sorted.map((bet) => <SideBetCard key={bet.id} bet={bet} mode={mode} currentUser={currentUser} saving={saving} working={savingBetId === bet.id} canAccept={canAccept} requestAccept={requestAccept} respond={respond} />)}</div>;
+  return <div className="side-bet-list">{!sorted.length && <div className="empty-state">{empty}</div>}{sorted.map((bet) => <SideBetCard key={bet.id} bet={bet} mode={mode} currentUser={currentUser} saving={saving} working={savingBetId === bet.id} canAccept={canAccept} acceptDisabledText={acceptDisabledText} requestAccept={requestAccept} respond={respond} />)}</div>;
 }
 
-function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, requestAccept, respond }: { bet: SideBet; mode: "received" | "sent"; currentUser: Profile; saving: boolean; working: boolean; canAccept: boolean; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
+function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, acceptDisabledText, requestAccept, respond }: { bet: SideBet; mode: "received" | "sent"; currentUser: Profile; saving: boolean; working: boolean; canAccept: boolean; acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
   const game = bet.game;
   const creatorName = bet.creator?.display_name || "A player";
   const target = bet.targets?.find((row) => row.recipient_id === currentUser.id);
@@ -1438,7 +1448,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, reque
       <div className="side-bet-offer-copy"><strong>{matchupText}</strong><p>{actionFirst ? <><span className={`side-bet-response ${responseTone}`}>{responseAction}</span> {responseName}</> : <>{responseName} <span className={`side-bet-response ${responseTone}`}>{responseAction}</span></>} {offeredSideName} {spreadText(offeredSideSpread)}{game ? ` · ${dt(game.commence_time)}` : ""}</p></div>
       <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}>{amountDisplay.text}</strong>
     </div>
-    {mode === "received" && offerOpen && <div className="actions"><button className={`btn accept ${working ? "working" : ""}`} disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : "Limit reached"}</button><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
+    {mode === "received" && offerOpen && <div className="actions"><button className={`btn accept ${working ? "working" : ""}`} disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : acceptDisabledText}</button><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
     {mode === "sent" && bet.status === "open" && <div className="actions"><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("cancel", bet.id)}><X size={15} /> Cancel offer</button></div>}
     {canClearOffer && <div className="actions clear-offer-actions"><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("clear", bet.id)}><Trash2 size={14} /> Clear</button></div>}
   </article>;

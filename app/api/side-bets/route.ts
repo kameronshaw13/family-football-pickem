@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromRequest } from "@/lib/authServer";
+import { getPickWeekOpenTime } from "@/lib/lockRules";
 import { hasChargers, isEligibleSeasonGame } from "@/lib/seasonRules";
 import { closeOpenOffersForCappedPlayer, getAcceptedSideBetCounts, getSideBetSlotCounts, MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT, sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
@@ -20,6 +21,18 @@ const declineSchema = z.object({ action: z.literal("decline"), sideBetId: z.stri
 const cancelSchema = z.object({ action: z.literal("cancel"), sideBetId: z.string().uuid(), viewWeek });
 const clearSchema = z.object({ action: z.literal("clear"), sideBetId: z.string().uuid(), viewWeek });
 const bodySchema = z.discriminatedUnion("action", [createSchema, acceptSchema, declineSchema, cancelSchema, clearSchema]);
+
+function weekOpenError(openTime: Date) {
+  const openText = openTime.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/Chicago"
+  });
+  return `Side bet offers open on ${openText}.`;
+}
 
 async function sideBetSnapshot(supabase: any, profileId: string, week: number) {
   const { data, error } = await supabase
@@ -77,6 +90,8 @@ export async function POST(req: NextRequest) {
       if (gameError || !game) return NextResponse.json({ ok: false, error: "Game not found." }, { status: 404 });
       if (!isEligibleSeasonGame(game)) return NextResponse.json({ ok: false, error: "This game is not eligible for side bets." }, { status: 409 });
       if (hasChargers(game)) return NextResponse.json({ ok: false, error: "Chargers games are not available for side bets." }, { status: 409 });
+      const weekOpen = getPickWeekOpenTime(game.week, [game.commence_time]);
+      if (weekOpen && now < weekOpen) return NextResponse.json({ ok: false, error: weekOpenError(weekOpen) }, { status: 409 });
       if (new Date(game.commence_time) <= now) return NextResponse.json({ ok: false, error: "Side bets must be offered before kickoff." }, { status: 409 });
       if (![game.away_team, game.home_team].includes(body.creatorTeam)) return NextResponse.json({ ok: false, error: "Choose one of the two teams in this game." }, { status: 400 });
 
@@ -173,6 +188,11 @@ export async function POST(req: NextRequest) {
       const { count } = await supabase.from("side_bet_targets").select("recipient_id", { count: "exact", head: true }).eq("side_bet_id", sideBet.id).eq("response", "pending");
       if (!count) await supabase.from("side_bets").update({ status: "declined", updated_at: nowIso }).eq("id", sideBet.id).eq("status", "open");
       return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week);
+    }
+
+    const weekOpen = getPickWeekOpenTime(sideBet.week, [sideBet.game.commence_time]);
+    if (weekOpen && now < weekOpen) {
+      return NextResponse.json({ ok: false, error: weekOpenError(weekOpen) }, { status: 409 });
     }
 
     const otherSlotCounts = await getSideBetSlotCounts(supabase, sideBet.week, [auth.profile.id, sideBet.creator_id], sideBet.id);

@@ -72,14 +72,12 @@ export function getWeekOpenTimeFromCommenceTimes(commenceTimes: string[], timezo
   const tuesdayLocal = new Date(earliest);
   const daysSinceTuesday = (tuesdayLocal.getDay() - 2 + 7) % 7;
   tuesdayLocal.setDate(tuesdayLocal.getDate() - daysSinceTuesday);
-  tuesdayLocal.setHours(0, 0, 0, 0);
+  tuesdayLocal.setHours(8, 0, 0, 0);
 
   return fromZonedTime(tuesdayLocal, timezone);
 }
 
-export function getPickWeekOpenTime(week: number, commenceTimes: string[], timezone = APP_TIMEZONE): Date | null {
-  // Week 1 is intentionally available early so the league can review and save its opening cards.
-  if (week === 1) return null;
+export function getPickWeekOpenTime(_week: number, commenceTimes: string[], timezone = APP_TIMEZONE): Date | null {
   return getWeekOpenTimeFromCommenceTimes(commenceTimes, timezone);
 }
 

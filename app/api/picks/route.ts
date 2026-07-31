@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     const weekOpen = getPickWeekOpenTime(body.week, weekGames.map((game) => game.commence_time));
     if (weekOpen && now < weekOpen) {
-      const openDate = weekOpen.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/Chicago" });
+      const openDate = weekOpen.toLocaleString("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
       return NextResponse.json({ ok: false, error: `This week opens on ${openDate}.` }, { status: 409 });
     }
 
