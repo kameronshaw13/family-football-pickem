@@ -1027,7 +1027,6 @@ export default function PickemApp() {
             className="week-select-wrap header-menu-select"
             value={String(data.week)}
             disabled={refreshing}
-            hint={!weekIsOpen ? "Opens Tue 8:00 AM" : undefined}
             sections={[{ options: availableWeeks.map((w) => ({ value: String(w), label: w === 0 ? "Week 0" : `Week ${w}` })) }]}
             onChange={(nextWeek) => { setStagedPicks(null); void load(Number(nextWeek)); }}
           /></div>}

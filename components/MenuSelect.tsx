@@ -21,8 +21,7 @@ export default function MenuSelect({
   ariaLabel,
   className = "",
   disabled = false,
-  loading = false,
-  hint
+  loading = false
 }: {
   value: string;
   sections: MenuSelectSection[];
@@ -31,7 +30,6 @@ export default function MenuSelect({
   className?: string;
   disabled?: boolean;
   loading?: boolean;
-  hint?: string;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -65,7 +63,7 @@ export default function MenuSelect({
     onChange(nextValue);
   }
 
-  return <div className={`custom-select ${className} ${open ? "open" : ""} ${disabled ? "disabled" : ""} ${hint ? "has-hint" : ""}`} ref={rootRef}>
+  return <div className={`custom-select ${className} ${open ? "open" : ""} ${disabled ? "disabled" : ""}`} ref={rootRef}>
     <button
       type="button"
       className="custom-select-trigger"
@@ -75,7 +73,7 @@ export default function MenuSelect({
       disabled={disabled}
       onClick={() => setOpen((current) => !current)}
     >
-      {hint ? <><span>{selectedText}</span><small>{hint}</small></> : selectedText}
+      {selectedText}
     </button>
     {loading
       ? <LoaderCircle className="custom-select-spinner" size={14} />
