@@ -1,6 +1,7 @@
 import "./globals.css";
 import "./spatial-layout.css";
 import type { Metadata, Viewport } from "next";
+import PortraitLock from "@/components/PortraitLock";
 
 export const metadata: Metadata = {
   title: "Family Football Pick'em",
@@ -22,13 +23,15 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
   themeColor: "#20282d"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="light">
-      <body>{children}</body>
+      <body><PortraitLock />{children}</body>
     </html>
   );
 }
