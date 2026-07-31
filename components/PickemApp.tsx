@@ -1138,7 +1138,7 @@ export default function PickemApp() {
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
-          <RuleItem icon={CalendarDays} title="Season schedule"><ul><li>The season is 20 weeks long.</li><li>The season starts with two CFB-only weeks before NFL games start and ends on the Monday following the final regular-season NFL Sunday.</li><li>Each week starts on Tuesday and ends on Monday.</li></ul></RuleItem>
+          <RuleItem icon={CalendarDays} title="Season schedule"><ul><li>The season is 20 weeks long.</li><li>The season starts with two CFB-only weeks before NFL games start and ends on Sunday, Jan. 10, after the final regular-season NFL games.</li><li>Each week starts on Tuesday and ends on the following Monday.</li></ul></RuleItem>
           <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Weeks 3 to 20: 5 picks with at least 1 CFB and 1 NFL + dog.</li></ul></RuleItem>
           <RuleItem icon={Shield} title="Eligible games"><ul><li>All Chargers games are excluded.</li><li>College football games must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
           <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5 = +1W.</li><li>+10 to +19.5 = +2W.</li><li>+20 or more = +3W.</li><li>The dog must win outright.</li><li>A missed dog does not add a loss.</li></ul></RuleItem>

@@ -77,7 +77,9 @@ export function getWeekOpenTimeFromCommenceTimes(commenceTimes: string[], timezo
   return fromZonedTime(tuesdayLocal, timezone);
 }
 
-export function getPickWeekOpenTime(_week: number, commenceTimes: string[], timezone = APP_TIMEZONE): Date | null {
+export function getPickWeekOpenTime(week: number, commenceTimes: string[], timezone = APP_TIMEZONE): Date | null {
+  // Keep Week 1 open for preseason testing while later weeks follow the normal schedule.
+  if (week === 1) return null;
   return getWeekOpenTimeFromCommenceTimes(commenceTimes, timezone);
 }
 
