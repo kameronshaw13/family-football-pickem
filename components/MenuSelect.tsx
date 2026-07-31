@@ -71,7 +71,14 @@ export default function MenuSelect({
       aria-haspopup="listbox"
       aria-expanded={open}
       disabled={disabled}
-      onClick={() => setOpen((current) => !current)}
+      onPointerDown={(event) => {
+        if (!event.isPrimary || event.button !== 0) return;
+        event.preventDefault();
+        setOpen((current) => !current);
+      }}
+      onClick={(event) => {
+        if (event.detail === 0) setOpen((current) => !current);
+      }}
     >
       {selectedText}
     </button>

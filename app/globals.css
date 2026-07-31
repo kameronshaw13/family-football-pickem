@@ -126,7 +126,7 @@ p { margin: 0; }
 .custom-select-option:active { background: var(--hover); }
 .custom-select-group-label { display: flex; min-height: 28px; align-items: center; padding: 4px 10px; border-top: 1px solid var(--line-strong); color: var(--muted); background: var(--surface-soft); font-size: 10px; font-weight: 800; line-height: 1.1; text-align: left; text-transform: uppercase; }
 .game-menu-select .custom-select-section:first-child .custom-select-group-label { border-top: 0; }
-.game-menu-select .custom-select-option { height: 52px; min-height: 52px; }
+.game-menu-select .custom-select-option { height: auto; min-height: 38px; }
 .game-days { display: grid; gap: var(--space-4); }
 .game-day-marker { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); color: var(--ink); }
 .game-day-marker > b { flex: 0 0 auto; padding: 5px 8px; color: #fff; background: var(--graphite); box-shadow: inset 0 -2px 0 var(--blue); font-family: var(--font-display); font-size: 10px; font-weight: 900; }
@@ -256,6 +256,7 @@ p { margin: 0; }
 .bet-composer .input:focus { border: 0; border-bottom: 2px solid var(--blue); box-shadow: none; }
 .field-menu-select { padding: 0; }
 .bet-composer .field-menu-select { overflow: visible; }
+.field-menu-select.open { border-bottom-color: var(--blue); }
 .field-menu-select .custom-select-trigger { min-height: 41px; padding: 9px 30px 9px 10px; font-size: 14px; font-weight: 600; text-transform: none; }
 .field-menu-select > svg { position: absolute; top: 50%; right: 8px; color: var(--blue-dark); transform: translateY(-50%); pointer-events: none; }
 .field-menu-select.open > .custom-select-chevron { transform: translateY(-50%) rotate(180deg); }
