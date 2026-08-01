@@ -1129,7 +1129,7 @@ export default function PickemApp() {
             </div>
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} />
           </div>
-          <div className="subsection bank-section"><div className="standings-heading-row"><h2>Side Bet Ledger</h2></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
+          <div className="subsection bank-section bank-week-section"><div className="standings-heading-row"><h2>Side Bet Ledger</h2></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
           {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setStatusFilter("LOCKED"); setStatusFilterTouched(true); setLeagueFilter("CFB"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview board states</strong><small>See locked, live, and final games</small></span><ChevronRight size={17} /></button>}
         </>}
       </section>}
@@ -1184,8 +1184,8 @@ function RankNumber({ rank, className }: { rank: number; className: string }) {
 
 function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null> }) {
   return <div className="bank-week-results">
-    <div className="bank-results-labels"><span className="bank-results-identity-labels"><span>Rank</span><span>Player</span></span><span>Balance</span><span>Record</span><span aria-hidden="true" /></div>
-    {rows.map((row, index) => {
+    <div className="bank-results-labels"><span>Player</span><span>Balance</span><span>Record</span><span aria-hidden="true" /></div>
+    {rows.map((row) => {
     const playerPicks = picks
       .filter((pick) => pick.user_id === row.user_id)
       .sort((a, b) => {
@@ -1196,9 +1196,8 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
         return new Date(gameA?.commence_time || 0).getTime() - new Date(gameB?.commence_time || 0).getTime();
       });
     const amount = amounts[row.user_id];
-    const rank = row.rank || index + 1;
     return <details className="bank-player-result" key={row.user_id}>
-      <summary><span className="bank-player-identity"><RankNumber rank={rank} className="bank-result-rank" /><strong>{row.display_name}</strong></span><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><ChevronDown size={16} /></summary>
+      <summary><strong className="bank-result-player">{row.display_name}</strong><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><ChevronDown size={16} /></summary>
       {!playerPicks.length && <p className="muted">No visible picks yet.</p>}
       {playerPicks.map((pick) => {
         const game = games.find((item) => item.id === pick.game_id) || pick.game;
