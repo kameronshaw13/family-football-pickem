@@ -270,14 +270,15 @@ p { margin: 0; }
 .offer-game-amount { display: grid; grid-template-columns: minmax(0, 1fr) 82px; align-items: end; column-gap: 12px; row-gap: 0; padding-top: 0; }
 .offer-game-amount > .offer-field { min-width: 0; }
 .offer-section-heading { display: flex; height: 28px; min-height: 28px; align-items: center; padding: 0 8px; color: var(--muted); background: var(--surface-soft); font-size: 10px; font-weight: 800; line-height: 1; text-transform: uppercase; }
-.offer-game-amount-heading { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) 82px; column-gap: 12px; margin-inline: calc(var(--page-gutter) * -1); padding-inline: var(--page-gutter); }
+.offer-game-amount-heading { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) 82px; column-gap: 12px; margin-inline: calc(var(--page-gutter) * -1); padding-inline: var(--page-gutter); border-bottom: 1px solid var(--line); }
 .offer-game-amount-heading > span { display: flex; height: 100%; align-items: center; }
 .offer-game-amount .money-input b { padding-left: 4px; }
 .offer-game-amount .money-input input { padding-inline: 3px; font-variant-numeric: tabular-nums; }
 .offer-side-block, .offer-recipient-block { padding-top: 0; padding-bottom: 0; }
 .offer-side-block > .offer-section-heading, .offer-recipient-block > .offer-section-heading { margin-inline: calc(var(--page-gutter) * -1); padding-inline: var(--page-gutter); }
 .offer-team-select { overflow: hidden; margin-inline: calc(var(--page-gutter) * -1); border-top: 1px solid var(--line); background: var(--panel); }
-.offer-team-select .team-logo { padding: 2px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1px var(--line); }
+.offer-recipient-block { border-bottom: 0; }
+.offer-recipient-block .recipient-grid { border-bottom: 0; }
 .money-input { display: flex; min-height: 43px; align-items: center; border: 0; border-bottom: 2px solid var(--line-strong); border-radius: 0; background: transparent; }
 .money-input:focus-within { border-color: var(--blue); box-shadow: none; }
 .money-input b { padding-left: 10px; color: var(--blue-dark); }
@@ -293,7 +294,7 @@ fieldset .field-label { padding: 0; }
 .recipient-grid input { width: 16px; height: 16px; margin: 0; accent-color: var(--blue-dark); }
 .recipient-grid small { color: var(--muted); font-family: var(--font-body); font-size: 9px; font-weight: 700; text-align: right; white-space: nowrap; }
 .offer-review { border-bottom: 1px solid var(--line); background: var(--panel); }
-.offer-review-head { justify-content: space-between; padding-inline: var(--page-gutter); }
+.offer-review-head { justify-content: space-between; padding-inline: var(--page-gutter); border-block: 1px solid var(--line); }
 .offer-review-head strong { color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; }
 .bet-preview { display: grid; grid-template-columns: 1fr; color: var(--ink); background: var(--panel); }
 .bet-preview > div { display: grid; min-height: 48px; grid-template-columns: 82px minmax(0, 1fr); align-items: center; gap: 12px; padding: 9px var(--page-gutter); border-bottom: 1px solid var(--line); }
