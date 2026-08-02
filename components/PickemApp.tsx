@@ -1315,7 +1315,6 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
   const slotCount = slotCounts[currentUser.id] || 0;
   const limitReached = slotCount >= MAX_SIDE_BETS_PER_WEEK;
-  const availableSlots = Math.max(0, MAX_SIDE_BETS_PER_WEEK - slotCount);
   const filteredOpenGames = openGames.filter((game) => game.league === gameLeague && (gameLeague === "NFL" || gameConference === "ALL" || gameConferences(game).includes(gameConference)));
   const sideBetGamesByDay = new Map<string, Game[]>();
   for (const game of filteredOpenGames) {
@@ -1344,31 +1343,30 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     <div className="view-select-row"><MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "received", label: "For You" }, { value: "sent", label: "Sent" }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => setView(value as BetView)} /></div>
 
     {view === "new" && <div className="bet-composer">
-      <div className="section-title side-bet-compose-title"><Send size={19} /><div><h2>Make an offer</h2><p>{availableSlots} of {MAX_SIDE_BETS_PER_WEEK} side bet slots available</p></div></div>
+      <div className="section-title side-bet-compose-title"><Send size={19} /><h2>Make Offer</h2></div>
       {limitReached && <div className="empty-state">Your {MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.</div>}
       {!limitReached && openGames.length === 0 && <div className="empty-state">No games with a spread are available before kickoff.</div>}
       {!limitReached && openGames.length > 0 && <div className="offer-flow">
         <section className="offer-block offer-filter-block">
-          <div className="offer-filter-heading"><div><strong>Find a matchup</strong><small>Choose a league, then narrow the game list.</small></div><span>{filteredOpenGames.length} {filteredOpenGames.length === 1 ? "game" : "games"}</span></div>
           <div className={`offer-filter-grid ${gameLeague === "NFL" ? "single" : ""}`}>
-            <div className="offer-field"><span className="field-label">League</span><MenuSelect
+            <MenuSelect
               ariaLabel="Filter side bet games by league"
               className="input field-menu-select offer-filter-select"
               value={gameLeague}
               sections={[{ options: [{ value: "CFB", label: "CFB" }, { value: "NFL", label: "NFL" }] }]}
               onChange={(value) => setGameLeague(value as SideBetLeagueFilter)}
-            /></div>
-            {gameLeague === "CFB" && <div className="offer-field"><span className="field-label">Conference</span><MenuSelect
+            />
+            {gameLeague === "CFB" && <MenuSelect
               ariaLabel="Filter side bet games by conference"
               className="input field-menu-select offer-filter-select"
               value={gameConference}
               sections={conferenceFilterSections("All conferences")}
               onChange={setGameConference}
-            /></div>}
+            />}
           </div>
         </section>
 
-        {filteredOpenGames.length === 0 && <div className="offer-filter-empty">No {gameConference !== "ALL" && gameLeague === "CFB" ? `${gameConference} ` : ""}{gameLeague} games with a spread are currently available.</div>}
+        {filteredOpenGames.length === 0 && <div className="offer-filter-empty">No available games.</div>}
         {selectedGame && <>
         <section className="offer-block offer-game-amount">
           <div className="offer-field"><span className="field-label">Game</span><MenuSelect

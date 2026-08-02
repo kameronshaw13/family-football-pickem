@@ -118,7 +118,7 @@ p { margin: 0; }
 .custom-select.disabled { opacity: .72; }
 .custom-select.open > .custom-select-chevron { transform: rotate(180deg); }
 .custom-select-spinner { animation: spin .8s linear infinite; }
-.custom-select-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; display: grid; width: 100%; min-width: 0; max-height: min(360px, 48svh); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line-strong); border-bottom-color: var(--line); background: var(--panel); box-shadow: none; -webkit-overflow-scrolling: touch; }
+.custom-select-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; display: grid; width: 100%; min-width: 0; max-height: min(360px, 48svh); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line-strong); background: var(--panel); box-shadow: none; -webkit-overflow-scrolling: touch; }
 .custom-select-section { display: contents; }
 .custom-select-option { display: flex; width: 100%; height: 38px; min-height: 38px; align-items: center; padding: 8px 10px; border: 0; border-top: 1px solid var(--line); color: var(--ink); background: var(--panel); font-family: var(--font-display); font-size: 12px; font-weight: 750; line-height: 1.2; text-align: left; text-transform: uppercase; touch-action: manipulation; }
 .custom-select-menu > .custom-select-section:first-child > .custom-select-option:first-child { border-top: 0; }
@@ -247,20 +247,14 @@ p { margin: 0; }
 
 .bet-composer { padding: 2px 0 8px; }
 .bet-composer > .section-title { margin-bottom: var(--space-3); }
-.side-bet-compose-title p { color: var(--blue-dark); font-size: 11px; font-weight: 800; }
 .offer-flow { display: grid; margin-inline: calc(var(--page-gutter) * -1); border-block: 1px solid var(--line); background: var(--panel); }
 .offer-block { min-width: 0; padding: var(--space-3) var(--page-gutter); border: 0; border-bottom: 1px solid var(--line); background: var(--panel); }
-.offer-filter-block { padding-block: 12px; background: var(--surface-muted); }
-.offer-filter-heading { display: flex; min-height: 34px; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.offer-filter-heading > div { min-width: 0; }
-.offer-filter-heading strong { display: block; color: var(--ink); font-size: 15px; font-weight: 900; line-height: 1.2; }
-.offer-filter-heading small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; font-weight: 650; line-height: 1.3; }
-.offer-filter-heading > span { flex: 0 0 auto; padding: 4px 7px; color: var(--blue-dark); background: var(--blue-soft); font-size: 10px; font-weight: 900; text-transform: uppercase; }
-.offer-filter-grid { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: end; gap: 12px; margin-top: 10px; }
+.offer-filter-block { padding-block: 10px; background: var(--surface-muted); }
+.offer-filter-grid { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: end; gap: 12px; }
 .offer-filter-grid.single { grid-template-columns: 120px; }
-.offer-filter-grid .field-label { margin-top: 0; }
 .offer-filter-select { background: var(--panel); }
-.offer-filter-empty { padding: 18px var(--page-gutter); border-bottom: 1px solid var(--line); color: var(--muted); background: var(--panel); font-size: 12px; font-weight: 700; line-height: 1.4; text-align: center; }
+.offer-filter-select .custom-select-trigger { font-size: 13px; font-weight: 800; }
+.offer-filter-empty { padding: 14px var(--page-gutter); border-bottom: 1px solid var(--line); color: var(--muted); background: var(--panel); font-size: 12px; font-weight: 700; line-height: 1.4; text-align: center; }
 .field-label { display: block; margin: 2px 0 var(--space-2); color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .input { width: 100%; min-height: 43px; padding: 9px 10px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--ink); background: var(--panel); outline: none; }
 .input:focus, .money-input:focus-within { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(79, 137, 173, .13); }
@@ -278,16 +272,13 @@ p { margin: 0; }
 .offer-game-amount .money-input b { padding-left: 4px; }
 .offer-game-amount .money-input input { padding-inline: 3px; font-variant-numeric: tabular-nums; }
 .offer-side-block { padding-bottom: 0; }
-.offer-team-select { display: grid; grid-template-columns: 1fr; overflow: hidden; margin-inline: calc(var(--page-gutter) * -1); border-top: 1px solid var(--line); background: var(--panel); }
-.offer-team-select button { display: grid; grid-template-columns: 38px minmax(0, 1fr) 68px; min-width: 0; min-height: 60px; align-items: center; gap: var(--space-3); padding: 10px 14px; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; transition: background-color .15s ease, box-shadow .15s ease; }
-.offer-team-select button:first-child { --matchup-marker-x: 31px; position: relative; border-bottom: 0; }
-.offer-team-select button:first-child::before { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: linear-gradient(to right, var(--line) 0, var(--line) calc(var(--matchup-marker-x) - 7px), transparent calc(var(--matchup-marker-x) - 7px), transparent calc(var(--matchup-marker-x) + 7px), var(--line) calc(var(--matchup-marker-x) + 7px), var(--line) 100%); content: ""; pointer-events: none; }
-.offer-team-select button:first-child::after { position: absolute; z-index: 2; bottom: -7px; left: var(--matchup-marker-x); display: grid; width: 16px; height: 16px; transform: translateX(-50%); place-items: center; color: var(--muted); background: transparent; content: "@"; font-family: var(--font-display); font-size: 12px; font-weight: 900; line-height: 1; pointer-events: none; }
-.offer-team-select button:last-child { border-bottom: 0; }
-.offer-team-select button.active { background: var(--blue-soft); box-shadow: inset 4px 0 0 var(--blue); }
-.offer-team-select .team-logo { width: 34px; height: 34px; }
-.offer-team-name { min-width: 0; font-size: 15px; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
-.offer-team-line { display: flex; width: 100%; align-items: center; justify-content: flex-end; color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; text-align: right; }
+.offer-team-select { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; margin-inline: calc(var(--page-gutter) * -1); border-top: 1px solid var(--line); background: var(--panel); }
+.offer-team-select button { display: grid; min-width: 0; min-height: 76px; grid-template-columns: 34px minmax(0, 1fr); grid-template-rows: auto auto; align-items: center; gap: 2px 8px; padding: 10px; border: 0; border-right: 1px solid var(--line); background: transparent; text-align: left; transition: background-color .15s ease, box-shadow .15s ease; }
+.offer-team-select button:last-child { border-right: 0; }
+.offer-team-select button.active { background: var(--blue-soft); box-shadow: inset 0 -3px 0 var(--blue); }
+.offer-team-select .team-logo { width: 32px; height: 32px; grid-row: 1 / 3; }
+.offer-team-name { min-width: 0; font-size: 14px; font-weight: 750; line-height: 1.15; overflow-wrap: anywhere; }
+.offer-team-line { display: flex; width: 100%; align-items: center; justify-content: flex-start; color: var(--ink); font-family: var(--font-display); font-size: 13px; font-weight: 800; text-align: left; }
 .offer-recipient-block { padding-bottom: 0; }
 .money-input { display: flex; min-height: 43px; align-items: center; border: 0; border-bottom: 2px solid var(--line-strong); border-radius: 0; background: transparent; }
 .money-input:focus-within { border-color: var(--blue); box-shadow: none; }
@@ -411,6 +402,7 @@ fieldset .field-label { padding: 0; }
 .bank-player-result > summary:active { background: var(--panel); }
 .bank-player-result > summary::marker { content: ""; }
 .bank-player-result > summary::-webkit-details-marker { display: none; }
+.bank-player-result[open] > summary + * { box-shadow: inset 0 1px 0 var(--line); }
 .bank-result-player { min-width: 0; overflow: hidden; color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; line-height: 1.2; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 .bank-player-result > summary > svg { color: var(--muted); transition: transform .18s ease; }
 .bank-player-result[open] > summary > svg { transform: rotate(180deg); }
@@ -509,11 +501,10 @@ fieldset .field-label { padding: 0; }
   .team-name { font-size: 15px; }
   .team-name-separator, .team-inline-score { font-size: 15px; }
   .team-spread { font-size: 15px; }
-  .offer-team-select button { grid-template-columns: 34px minmax(0, 1fr) 64px; gap: var(--space-2); padding: 10px 12px; }
-  .offer-team-select button:first-child { --matchup-marker-x: 28px; }
-  .offer-team-select .team-logo { width: 31px; height: 31px; }
-  .offer-team-name { font-size: 15px; }
-  .offer-team-line { font-size: 14px; }
+  .offer-team-select button { grid-template-columns: 31px minmax(0, 1fr); gap: 2px 7px; padding: 9px; }
+  .offer-team-select .team-logo { width: 29px; height: 29px; }
+  .offer-team-name { font-size: 13px; }
+  .offer-team-line { font-size: 12px; }
   .card-progress-copy, .bet-line-summary { align-items: flex-start; flex-direction: column; }
   .card-progress-count { max-width: none; text-align: left; }
   .bet-line-summary > span:last-child { text-align: left; }
