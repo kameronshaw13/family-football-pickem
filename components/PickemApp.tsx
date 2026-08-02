@@ -1336,8 +1336,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   }
 
   return <div className="side-bet-center">
-    <div className={`view-select-row side-bet-filter-row ${view === "new" ? `make-offer ${gameLeague.toLowerCase()}` : ""}`.trim()}>
-      <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "received", label: "For You" }, { value: "new", label: "Make Offer" }, { value: "sent", label: "Sent" }] }]} onChange={(value) => setView(value as BetView)} />
+    <div className={`view-select-row side-bet-filter-row ${view === "new" ? "make-offer" : ""}`.trim()}>
+      <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "received", label: "For You" }, { value: "sent", label: "Sent" }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => setView(value as BetView)} />
       {view === "new" && <MenuSelect
         ariaLabel="Filter side bet games by league"
         className="compact-select"
@@ -1355,7 +1355,6 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     </div>
 
     {view === "new" && <div className="bet-composer">
-      <div className="section-title"><Send size={19} /><div><h2>Make an offer</h2></div></div>
       {limitReached && <div className="empty-state">Your {MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.</div>}
       {!limitReached && openGames.length === 0 && <div className="empty-state">No games with a spread are available before kickoff.</div>}
       {!limitReached && openGames.length > 0 && filteredOpenGames.length === 0 && <div className="empty-state">No available games.</div>}
@@ -1378,7 +1377,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         </section>
 
         <section className="offer-block offer-side-block">
-          <span className="field-label">Your side</span>
+          <div className="field-label offer-block-label">Your side</div>
           <div className="offer-team-select">
             {[selectedGame.away_team, selectedGame.home_team].map((team) => <button type="button" key={team} className={selectedCreatorTeam === team ? "active" : ""} onClick={() => setCreatorTeam(team)}>
               <TeamLogo url={logoForTeam(selectedGame, team)} name={team} />
@@ -1389,7 +1388,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         </section>
 
         <section className="offer-block offer-recipient-block">
-          <fieldset><legend className="field-label">Send to</legend><div className="recipient-grid">{otherPlayers.map((profile) => {
+          <div className="field-label offer-block-label">Send to</div>
+          <fieldset aria-label="Send to"><div className="recipient-grid">{otherPlayers.map((profile) => {
             const recipientFull = (slotCounts[profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK;
             return <label key={profile.id} className={`${recipients.includes(profile.id) ? "checked" : ""} ${recipientFull ? "disabled" : ""}`.trim()}><input type="checkbox" disabled={recipientFull} checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}</span><small>{recipientFull ? "Unavailable" : recipients.includes(profile.id) ? "Selected" : "Available"}</small></label>;
           })}</div></fieldset>
