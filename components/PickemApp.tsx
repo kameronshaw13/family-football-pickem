@@ -1391,7 +1391,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
     {view === "new" && selectedGame && selectedCreatorTeam && !slipExpanded && <button className="side-bet-slip-bar" type="button" aria-expanded="false" onClick={() => setSlipExpanded(true)}>
       <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
-      <span className="side-bet-slip-copy"><small>Bet slip · tap to finish</small><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} {spreadText(creatorSpread)}</strong></span>
+      <span className="side-bet-slip-copy"><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} {spreadText(creatorSpread)}</strong></span>
       <span className="side-bet-slip-open"><b>{stakeMoney(Number(amount || 0))}</b><ChevronUp size={17} /></span>
     </button>}
 
@@ -1399,23 +1399,23 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
       <button className="side-bet-slip-backdrop" type="button" aria-label="Collapse bet slip" onClick={() => setSlipExpanded(false)} />
       <section className="side-bet-slip-sheet" role="dialog" aria-modal="true" aria-labelledby="side-bet-slip-title">
         <div className="side-bet-slip-sheet-head">
-          <div className="side-bet-slip-title"><span>Bet slip</span><h2 id="side-bet-slip-title">{displayTeamName(selectedGame, selectedGame.away_team)} at {displayTeamName(selectedGame, selectedGame.home_team)}</h2><p>{fullDateText(selectedGame.commence_time)} · {timeText(selectedGame.commence_time)}</p></div>
+          <div className="side-bet-slip-title"><h2 id="side-bet-slip-title">{displayTeamName(selectedGame, selectedGame.away_team)} at {displayTeamName(selectedGame, selectedGame.home_team)}</h2><p>{fullDateText(selectedGame.commence_time)} · {timeText(selectedGame.commence_time)}</p></div>
           <div className="side-bet-slip-head-actions"><button type="button" className="slip-icon-btn" aria-label="Clear bet slip" onClick={clearSlip}><X size={17} /></button><button type="button" className="slip-icon-btn" aria-label="Collapse bet slip" onClick={() => setSlipExpanded(false)}><ChevronDown size={18} /></button></div>
         </div>
 
-        <div className="side-bet-slip-selection">
+        <div className="team-row picked-side side-bet-slip-selection">
           <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
-          <span><small>Your side</small><strong>{displayTeamName(selectedGame, selectedCreatorTeam)}</strong></span>
-          <b>{spreadText(creatorSpread)}</b>
+          <span className="team-name">{displayTeamName(selectedGame, selectedCreatorTeam)}</span>
+          <span className="team-spread">{spreadText(creatorSpread)}</span>
         </div>
 
         <section className="side-bet-slip-section">
-          <div className="side-bet-slip-section-head"><span>Amount</span><strong>{stakeMoney(Number(amount || 0))}</strong></div>
+          <div className="side-bet-slip-section-head"><span>Amount</span></div>
           <div className="side-bet-amount-grid">{["20", "15", "10", "5"].map((value) => <button type="button" key={value} className={amount === value ? "active" : ""} aria-pressed={amount === value} onClick={() => setAmount(value)}>${value}</button>)}</div>
         </section>
 
         <section className="side-bet-slip-section">
-          <div className="side-bet-slip-section-head"><span>Send to</span><strong>{recipients.length ? `${recipients.length} selected` : "Choose player"}</strong></div>
+          <div className="side-bet-slip-section-head"><span>Send to</span></div>
           <fieldset aria-label="Send side bet to"><div className="side-bet-recipient-grid">{otherPlayers.map((profile) => {
             const recipientFull = (slotCounts[profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK;
             return <label key={profile.id} className={`${recipients.includes(profile.id) ? "checked" : ""} ${recipientFull ? "disabled" : ""}`.trim()}><input type="checkbox" disabled={recipientFull} checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}</span><small>{recipientFull ? "Unavailable" : recipients.includes(profile.id) ? "Selected" : "Available"}</small></label>;
