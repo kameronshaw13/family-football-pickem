@@ -1360,7 +1360,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
               ariaLabel="Filter side bet games by conference"
               className="input field-menu-select offer-filter-select"
               value={gameConference}
-              sections={conferenceFilterSections("All conferences")}
+              sections={conferenceFilterSections("All Conferences")}
               onChange={setGameConference}
             />}
           </div>
@@ -1387,11 +1387,11 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
         <section className="offer-block offer-side-block">
           <span className="field-label">Your side</span>
-          <div className="offer-team-select">
-            {[selectedGame.away_team, selectedGame.home_team].map((team) => <button type="button" key={team} className={selectedCreatorTeam === team ? "active" : ""} onClick={() => setCreatorTeam(team)}>
+          <div className="offer-team-select stacked-matchup" role="group" aria-label={`${displayTeamName(selectedGame, selectedGame.away_team)} at ${displayTeamName(selectedGame, selectedGame.home_team)}`}>
+            {[selectedGame.away_team, selectedGame.home_team].map((team) => <button type="button" key={team} className={`team-row selectable ${selectedCreatorTeam === team ? "picked-side" : ""}`.trim()} onClick={() => setCreatorTeam(team)}>
               <TeamLogo url={logoForTeam(selectedGame, team)} name={team} />
-              <span className="offer-team-name">{displayTeamName(selectedGame, team)}</span>
-              <span className="offer-team-line"><strong>{spreadForTeam(selectedGame, team)}</strong></span>
+              <span className="team-name">{displayTeamName(selectedGame, team)}</span>
+              <span className="team-spread"><span>{spreadForTeam(selectedGame, team)}</span></span>
             </button>)}
           </div>
         </section>
