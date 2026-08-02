@@ -1331,7 +1331,44 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     if (view !== "new" || !selectedGame || !selectedCreatorTeam) setSlipExpanded(false);
   }, [view, selectedGame, selectedCreatorTeam]);
 
+  useEffect(() => {
+    if (!slipExpanded) return;
+    const scrollPosition = window.scrollY;
+    const bodyStyle = document.body.style;
+    const rootStyle = document.documentElement.style;
+    const previousBody = {
+      position: bodyStyle.position,
+      top: bodyStyle.top,
+      right: bodyStyle.right,
+      left: bodyStyle.left,
+      width: bodyStyle.width,
+      overflow: bodyStyle.overflow
+    };
+    const previousRootOverflow = rootStyle.overflow;
+    bodyStyle.position = "fixed";
+    bodyStyle.top = `-${scrollPosition}px`;
+    bodyStyle.right = "0";
+    bodyStyle.left = "0";
+    bodyStyle.width = "100%";
+    bodyStyle.overflow = "hidden";
+    rootStyle.overflow = "hidden";
+    return () => {
+      bodyStyle.position = previousBody.position;
+      bodyStyle.top = previousBody.top;
+      bodyStyle.right = previousBody.right;
+      bodyStyle.left = previousBody.left;
+      bodyStyle.width = previousBody.width;
+      bodyStyle.overflow = previousBody.overflow;
+      rootStyle.overflow = previousRootOverflow;
+      window.scrollTo(0, scrollPosition);
+    };
+  }, [slipExpanded]);
+
   function selectSide(game: Game, team: string) {
+    if (selectedGame?.id === game.id && selectedCreatorTeam === team) {
+      clearSlip();
+      return;
+    }
     setGame(game.id);
     setCreatorTeam(team);
     setSlipExpanded(false);
@@ -1392,7 +1429,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     {view === "new" && selectedGame && selectedCreatorTeam && !slipExpanded && <button className="side-bet-slip-bar" type="button" aria-expanded="false" onClick={() => setSlipExpanded(true)}>
       <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
       <span className="side-bet-slip-copy"><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} {spreadText(creatorSpread)}</strong></span>
-      <span className="side-bet-slip-open"><b>{stakeMoney(Number(amount || 0))}</b><ChevronUp size={17} /></span>
+      <span className="side-bet-slip-open"><ChevronUp size={17} /></span>
     </button>}
 
     {view === "new" && selectedGame && selectedCreatorTeam && slipExpanded && <>
@@ -1400,7 +1437,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
       <section className="side-bet-slip-sheet" role="dialog" aria-modal="true" aria-labelledby="side-bet-slip-title">
         <div className="side-bet-slip-sheet-head">
           <div className="side-bet-slip-title"><h2 id="side-bet-slip-title">{displayTeamName(selectedGame, selectedGame.away_team)} at {displayTeamName(selectedGame, selectedGame.home_team)}</h2><p>{fullDateText(selectedGame.commence_time)} · {timeText(selectedGame.commence_time)}</p></div>
-          <div className="side-bet-slip-head-actions"><button type="button" className="slip-icon-btn" aria-label="Clear bet slip" onClick={clearSlip}><X size={17} /></button><button type="button" className="slip-icon-btn" aria-label="Collapse bet slip" onClick={() => setSlipExpanded(false)}><ChevronDown size={18} /></button></div>
+          <div className="side-bet-slip-head-actions"><button type="button" className="slip-icon-btn slip-clear-btn" aria-label="Clear bet slip" onClick={clearSlip}><X size={17} /></button><button type="button" className="slip-icon-btn" aria-label="Collapse bet slip" onClick={() => setSlipExpanded(false)}><ChevronDown size={18} /></button></div>
         </div>
 
         <div className="team-row picked-side side-bet-slip-selection">
