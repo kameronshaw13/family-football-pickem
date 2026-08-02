@@ -267,7 +267,7 @@ p { margin: 0; }
 .field-menu-select > svg { position: absolute; top: 50%; right: 8px; color: var(--blue-dark); transform: translateY(-50%); pointer-events: none; }
 .field-menu-select.open > .custom-select-chevron { transform: translateY(-50%) rotate(180deg); }
 .field-menu-select .custom-select-option { text-transform: none; }
-.offer-game-amount { display: grid; grid-template-columns: minmax(0, 1fr) 82px; align-items: end; column-gap: 12px; row-gap: 0; padding-top: 0; }
+.offer-game-amount { display: grid; grid-template-columns: minmax(0, 1fr) 82px; align-items: end; column-gap: 12px; row-gap: 8px; padding-top: 0; }
 .offer-game-amount > .offer-field { min-width: 0; }
 .offer-section-heading { display: flex; height: 28px; min-height: 28px; align-items: center; padding: 0 8px; color: var(--muted); background: var(--surface-soft); font-size: 10px; font-weight: 800; line-height: 1; text-transform: uppercase; }
 .offer-game-amount-heading { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) 82px; column-gap: 12px; margin-inline: calc(var(--page-gutter) * -1); padding-inline: var(--page-gutter); border-bottom: 1px solid var(--line); }
@@ -380,7 +380,7 @@ fieldset .field-label { padding: 0; }
 .test-standings-label { color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .bank-summary-grid { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
 .bank-summary-head, .money-card { display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; padding-inline: 15px 17px; }
-.bank-summary-head { min-height: 34px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.bank-summary-head { min-height: 34px; border-bottom: 1px solid var(--line); color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
 .bank-summary-head span:last-child { text-align: right; }
 .money-card { min-height: 58px; padding-block: 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .money-card:last-child { border-bottom: 0; }

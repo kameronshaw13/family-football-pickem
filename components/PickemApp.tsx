@@ -139,6 +139,14 @@ const COLLEGE_MANUAL_DISPLAY: Record<string, string> = {
   "usc trojans": "USC"
 };
 
+const CENTRAL_WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/Chicago" });
+const CENTRAL_FULL_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/Chicago" });
+const CENTRAL_OPEN_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
+const CENTRAL_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
+const CENTRAL_DAY_KEY_FORMATTER = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "America/Chicago" });
+const CENTRAL_DAY_LABEL_FORMATTER = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "America/Chicago" });
+const CENTRAL_WEEKDAY_LONG_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" });
+
 function normalizeNameKey(value: string) {
   return value
     .normalize("NFD")
@@ -208,28 +216,16 @@ function dogLineText(game: Game, team: string) {
 }
 
 function weekdayAbbreviation(iso: string) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/Chicago" }).format(new Date(iso)).slice(0, 3).toUpperCase();
+  return CENTRAL_WEEKDAY_SHORT_FORMATTER.format(new Date(iso)).slice(0, 3).toUpperCase();
 }
 function dt(iso: string) {
   return `${weekdayAbbreviation(iso)} ${timeText(iso)}`;
 }
 function fullDateText(iso: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    timeZone: "America/Chicago"
-  }).format(new Date(iso));
+  return CENTRAL_FULL_DATE_FORMATTER.format(new Date(iso));
 }
 function openText(iso: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "America/Chicago"
-  }).format(new Date(iso));
+  return CENTRAL_OPEN_DATE_FORMATTER.format(new Date(iso));
 }
 function cardGameStateText(game: Game, locked: boolean) {
   if (game.final_away_score != null && game.final_home_score != null) {
@@ -249,16 +245,16 @@ function cardGameStateText(game: Game, locked: boolean) {
   return dt(game.commence_time);
 }
 function timeText(iso: string) {
-  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
+  return CENTRAL_TIME_FORMATTER.format(new Date(iso));
 }
 function gameDayKey(iso: string) {
-  return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "America/Chicago" }).format(new Date(iso));
+  return CENTRAL_DAY_KEY_FORMATTER.format(new Date(iso));
 }
 function gameDayLabel(iso: string) {
-  return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
+  return CENTRAL_DAY_LABEL_FORMATTER.format(new Date(iso)).toUpperCase();
 }
 function gameDayShort(iso: string) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" }).format(new Date(iso)).toUpperCase();
+  return CENTRAL_WEEKDAY_LONG_FORMATTER.format(new Date(iso)).toUpperCase();
 }
 function spreadForTeam(game: Game, team: string) {
   return spreadText(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
@@ -831,7 +827,7 @@ export default function PickemApp() {
 
   const { currentUser, games, picks, profiles, standings, availableWeeks, bankEntries } = data;
   const liveSideBets = data.sideBets || [];
-  const testWeek = profiles.length === 3 ? buildTestWeek(profiles) : null;
+  const testWeek = testWeekActive && profiles.length === 3 ? buildTestWeek(profiles) : null;
   const previewActive = Boolean(testWeekActive && testWeek);
   const sideBets = previewActive ? testWeek!.sideBets : liveSideBets;
   const viewedSideBetBankTotals = previewActive ? testWeek!.sideBetBankTotals : data.sideBetBankTotals;
@@ -1022,7 +1018,7 @@ export default function PickemApp() {
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" width={800} height={96} />
+          <img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" width={800} height={96} decoding="async" fetchPriority="high" />
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
@@ -1038,7 +1034,7 @@ export default function PickemApp() {
       </div>
     </header>
 
-    <nav className="primary-nav">
+    <nav className="primary-nav" aria-label="Main navigation">
       <div className="primary-nav-inner">
         {primaryNav.map((item) => <button key={item.id} aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><span className="nav-icon"><item.icon size={19} />{item.id === "picks" && pendingOfferCount > 0 && <b>{pendingOfferCount}</b>}</span><span>{item.label}</span></button>)}
       </div>
@@ -1268,7 +1264,7 @@ function LoadingShell() {
   return <div className="app-shell loading-shell">
     <header className="scoreboard-header">
       <div className="scoreboard-main">
-        <div className="brand-lockup"><img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" width={800} height={96} /></div>
+        <div className="brand-lockup"><img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" width={800} height={96} decoding="async" fetchPriority="high" /></div>
       </div>
     </header>
     <nav className="primary-nav" aria-label="Main navigation">

@@ -45,7 +45,7 @@ export default function LoginPage() {
 
   return <main className="app-shell login-screen">
     <section className="login-card">
-      <div className="login-brand"><img className="login-logo" src="/header-wordmark.png" alt="Shaw Family Pick'em" width={800} height={96} /></div>
+      <div className="login-brand"><img className="login-logo" src="/header-wordmark.png" alt="Shaw Family Pick'em" width={800} height={96} decoding="async" fetchPriority="high" /></div>
       <h1>{mode === "create" ? "Create your account" : "Sign in"}</h1>
       <p>{mode === "create" ? "Choose your name and create a private password. After this, use that password to get back in." : "Use your name and the password you created."}</p>
 
