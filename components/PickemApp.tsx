@@ -1369,14 +1369,14 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         {filteredOpenGames.length === 0 && <div className="offer-filter-empty">No available games.</div>}
         {selectedGame && <>
         <section className="offer-block offer-game-amount">
-          <div className="offer-field"><span className="field-label">Game</span><MenuSelect
+          <div className="offer-field"><div className="offer-section-heading">Game</div><MenuSelect
             ariaLabel="Side bet game"
             className="input field-menu-select game-menu-select"
             value={selectedGame.id}
             sections={sideBetGameSections}
             onChange={setGame}
           /></div>
-          <div className="offer-field"><span className="field-label">Amount</span><MenuSelect
+          <div className="offer-field"><div className="offer-section-heading">Amount</div><MenuSelect
             ariaLabel="Side bet amount"
             className="input field-menu-select amount-menu-select"
             value={amount}
@@ -1386,7 +1386,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         </section>
 
         <section className="offer-block offer-side-block">
-          <span className="field-label">Your side</span>
+          <div className="offer-section-heading">Your side</div>
           <div className="offer-team-select stacked-matchup" role="group" aria-label={`${displayTeamName(selectedGame, selectedGame.away_team)} at ${displayTeamName(selectedGame, selectedGame.home_team)}`}>
             {[selectedGame.away_team, selectedGame.home_team].map((team) => <button type="button" key={team} className={`team-row selectable ${selectedCreatorTeam === team ? "picked-side" : ""}`.trim()} onClick={() => setCreatorTeam(team)}>
               <TeamLogo url={logoForTeam(selectedGame, team)} name={team} />
@@ -1397,7 +1397,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         </section>
 
         <section className="offer-block offer-recipient-block">
-          <fieldset><legend className="field-label">Send to</legend><div className="recipient-grid">{otherPlayers.map((profile) => {
+          <div className="offer-section-heading">Send to</div>
+          <fieldset aria-label="Send to"><div className="recipient-grid">{otherPlayers.map((profile) => {
             const recipientFull = (slotCounts[profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK;
             return <label key={profile.id} className={`${recipients.includes(profile.id) ? "checked" : ""} ${recipientFull ? "disabled" : ""}`.trim()}><input type="checkbox" disabled={recipientFull} checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}</span><small>{recipientFull ? "Unavailable" : recipients.includes(profile.id) ? "Selected" : "Available"}</small></label>;
           })}</div></fieldset>

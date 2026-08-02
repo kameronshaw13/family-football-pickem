@@ -260,6 +260,7 @@ p { margin: 0; }
 .input { width: 100%; min-height: 43px; padding: 9px 10px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--ink); background: var(--panel); outline: none; }
 .input:focus, .money-input:focus-within { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(79, 137, 173, .13); }
 .bet-composer .input { overflow: hidden; border: 0; border-bottom: 2px solid var(--line-strong); border-radius: 0; background: transparent; text-overflow: ellipsis; }
+.bet-composer .offer-filter-select { background: var(--panel); }
 .bet-composer .input:focus { border: 0; border-bottom: 2px solid var(--blue); box-shadow: none; }
 .field-menu-select { padding: 0; }
 .bet-composer .field-menu-select { overflow: visible; }
@@ -270,11 +271,14 @@ p { margin: 0; }
 .field-menu-select .custom-select-option { text-transform: none; }
 .offer-game-amount { display: grid; grid-template-columns: minmax(0, 1fr) 82px; align-items: end; gap: 12px; }
 .offer-game-amount > .offer-field { min-width: 0; }
+.offer-section-heading { display: flex; height: 28px; min-height: 28px; align-items: center; padding: 0 8px; color: var(--muted); background: var(--surface-soft); font-size: 10px; font-weight: 800; line-height: 1; text-transform: uppercase; }
+.offer-game-amount .offer-section-heading { margin-bottom: 6px; }
 .offer-game-amount .money-input b { padding-left: 4px; }
 .offer-game-amount .money-input input { padding-inline: 3px; font-variant-numeric: tabular-nums; }
-.offer-side-block { padding-bottom: 0; }
+.offer-side-block, .offer-recipient-block { padding-top: 0; padding-bottom: 0; }
+.offer-side-block > .offer-section-heading, .offer-recipient-block > .offer-section-heading { margin-inline: calc(var(--page-gutter) * -1); padding-inline: var(--page-gutter); }
 .offer-team-select { overflow: hidden; margin-inline: calc(var(--page-gutter) * -1); border-top: 1px solid var(--line); background: var(--panel); }
-.offer-recipient-block { padding-bottom: 0; }
+.offer-team-select .team-logo { padding: 2px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1px var(--line); }
 .money-input { display: flex; min-height: 43px; align-items: center; border: 0; border-bottom: 2px solid var(--line-strong); border-radius: 0; background: transparent; }
 .money-input:focus-within { border-color: var(--blue); box-shadow: none; }
 .money-input b { padding-left: 10px; color: var(--blue-dark); }
