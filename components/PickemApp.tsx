@@ -16,6 +16,7 @@ type PicksView = "board" | "sideBets";
 type CardView = "mine" | "group";
 type StandingsView = "standings" | "bank";
 type BetView = "new" | "received" | "sent";
+type SideBetLeagueFilter = "CFB" | "NFL";
 type GameStatusFilter = "OPEN" | "LOCKED" | "FINAL";
 type LeagueFilter = "CFB" | "NFL" | "DOGS";
 type DogValueFilter = "ALL" | "1" | "2" | "3";
@@ -587,6 +588,8 @@ export default function PickemApp() {
   const [betCreatorTeam, setBetCreatorTeam] = useState("");
   const [betAmount, setBetAmount] = useState("20");
   const [betRecipients, setBetRecipients] = useState<string[]>([]);
+  const [betLeagueFilter, setBetLeagueFilter] = useState<SideBetLeagueFilter>("CFB");
+  const [betConferenceFilter, setBetConferenceFilter] = useState("ALL");
   const [toast, setToast] = useState<Toast>(null);
   const [testWeekActive, setTestWeekActive] = useState(false);
   const hasActiveGames = Boolean(data?.games.some((game) => {
@@ -874,7 +877,8 @@ export default function PickemApp() {
     total: viewedBankEntries.filter((entry) => entry.user_id === profile.id).reduce((sum, entry) => sum + Number(entry.amount || 0), 0) + Number(viewedSideBetBankTotals?.[profile.id] || 0)
   })).sort((a, b) => b.total - a.total);
   const openBetGames = games.filter((game) => !hasChargers(game) && new Date(game.commence_time) > new Date() && game.current_spread != null && game.current_spread_team);
-  const selectedBetGame = openBetGames.find((game) => game.id === betGameId) || openBetGames[0];
+  const filteredBetGames = openBetGames.filter((game) => game.league === betLeagueFilter && (betLeagueFilter === "NFL" || betConferenceFilter === "ALL" || gameConferences(game).includes(betConferenceFilter)));
+  const selectedBetGame = filteredBetGames.find((game) => game.id === betGameId) || filteredBetGames[0];
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : selectedBetGame?.away_team || "";
 
   function stageCard(nextCard: Pick[]) {
@@ -1071,6 +1075,8 @@ export default function PickemApp() {
           slotCounts={data.sideBetSlotCounts || {}}
           weekIsOpen={weekIsOpen}
           openGames={openBetGames}
+          gameLeague={betLeagueFilter}
+          gameConference={betConferenceFilter}
           selectedGame={selectedBetGame}
           selectedCreatorTeam={selectedCreatorTeam}
           amount={betAmount}
@@ -1078,6 +1084,8 @@ export default function PickemApp() {
           saving={savingBet}
           savingBetId={savingBetId}
           setGame={(gameId) => { setBetGameId(gameId); setBetCreatorTeam(""); }}
+          setGameLeague={(nextLeague) => { setBetLeagueFilter(nextLeague); setBetConferenceFilter("ALL"); setBetGameId(""); setBetCreatorTeam(""); }}
+          setGameConference={(nextConference) => { setBetConferenceFilter(nextConference); setBetGameId(""); setBetCreatorTeam(""); }}
           setCreatorTeam={setBetCreatorTeam}
           setAmount={setBetAmount}
           toggleRecipient={toggleBetRecipient}
@@ -1162,17 +1170,21 @@ function SectionTabs({ items, value, onChange }: { items: Array<{ id: string; la
   return <div className="section-tabs">{items.map((item) => <button key={item.id} className={value === item.id ? "active" : ""} onClick={() => onChange(item.id)}>{item.label}</button>)}</div>;
 }
 
+function conferenceFilterSections(allLabel: string) {
+  return [
+    { options: [{ value: "ALL", label: allLabel }] },
+    { label: "Power 4", options: POWER_CONFERENCES.map((conference) => ({ value: conference, label: conference })) },
+    { label: "Group of 6", options: GROUP_CONFERENCES.map((conference) => ({ value: conference, label: conference })) },
+    { options: [{ value: FBS_INDEPENDENTS_CONFERENCE, label: "INDEPENDENTS" }] }
+  ];
+}
+
 function ConferenceFilter({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return <MenuSelect
     ariaLabel="Filter college games by FBS conference"
     className="compact-select context-select"
     value={value}
-    sections={[
-      { options: [{ value: "ALL", label: "ALL CONF." }] },
-      { label: "Power 4", options: POWER_CONFERENCES.map((conference) => ({ value: conference, label: conference })) },
-      { label: "Group of 6", options: GROUP_CONFERENCES.map((conference) => ({ value: conference, label: conference })) },
-      { options: [{ value: FBS_INDEPENDENTS_CONFERENCE, label: "INDEPENDENTS" }] }
-    ]}
+    sections={conferenceFilterSections("ALL CONF.")}
     onChange={onChange}
   />;
 }
@@ -1268,7 +1280,7 @@ function LoadingShell() {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, weekIsOpen, openGames, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, setGame, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
@@ -1277,6 +1289,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   slotCounts: Record<string, number>;
   weekIsOpen: boolean;
   openGames: Game[];
+  gameLeague: SideBetLeagueFilter;
+  gameConference: string;
   selectedGame?: Game;
   selectedCreatorTeam: string;
   amount: string;
@@ -1284,6 +1298,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   saving: boolean;
   savingBetId: string | null;
   setGame: (value: string) => void;
+  setGameLeague: (value: SideBetLeagueFilter) => void;
+  setGameConference: (value: string) => void;
   setCreatorTeam: (value: string) => void;
   setAmount: (value: string) => void;
   toggleRecipient: (value: string) => void;
@@ -1299,8 +1315,10 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
   const slotCount = slotCounts[currentUser.id] || 0;
   const limitReached = slotCount >= MAX_SIDE_BETS_PER_WEEK;
+  const availableSlots = Math.max(0, MAX_SIDE_BETS_PER_WEEK - slotCount);
+  const filteredOpenGames = openGames.filter((game) => game.league === gameLeague && (gameLeague === "NFL" || gameConference === "ALL" || gameConferences(game).includes(gameConference)));
   const sideBetGamesByDay = new Map<string, Game[]>();
-  for (const game of openGames) {
+  for (const game of filteredOpenGames) {
     const dayKey = gameDayKey(game.commence_time);
     sideBetGamesByDay.set(dayKey, [...(sideBetGamesByDay.get(dayKey) || []), game]);
   }
@@ -1326,10 +1344,32 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     <div className="view-select-row"><MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "received", label: "For You" }, { value: "sent", label: "Sent" }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => setView(value as BetView)} /></div>
 
     {view === "new" && <div className="bet-composer">
-      <div className="section-title"><Send size={19} /><div><h2>Make an offer</h2></div></div>
+      <div className="section-title side-bet-compose-title"><Send size={19} /><div><h2>Make an offer</h2><p>{availableSlots} of {MAX_SIDE_BETS_PER_WEEK} side bet slots available</p></div></div>
       {limitReached && <div className="empty-state">Your {MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.</div>}
       {!limitReached && openGames.length === 0 && <div className="empty-state">No games with a spread are available before kickoff.</div>}
-      {!limitReached && selectedGame && <div className="offer-flow">
+      {!limitReached && openGames.length > 0 && <div className="offer-flow">
+        <section className="offer-block offer-filter-block">
+          <div className="offer-filter-heading"><div><strong>Find a matchup</strong><small>Choose a league, then narrow the game list.</small></div><span>{filteredOpenGames.length} {filteredOpenGames.length === 1 ? "game" : "games"}</span></div>
+          <div className={`offer-filter-grid ${gameLeague === "NFL" ? "single" : ""}`}>
+            <div className="offer-field"><span className="field-label">League</span><MenuSelect
+              ariaLabel="Filter side bet games by league"
+              className="input field-menu-select offer-filter-select"
+              value={gameLeague}
+              sections={[{ options: [{ value: "CFB", label: "CFB" }, { value: "NFL", label: "NFL" }] }]}
+              onChange={(value) => setGameLeague(value as SideBetLeagueFilter)}
+            /></div>
+            {gameLeague === "CFB" && <div className="offer-field"><span className="field-label">Conference</span><MenuSelect
+              ariaLabel="Filter side bet games by conference"
+              className="input field-menu-select offer-filter-select"
+              value={gameConference}
+              sections={conferenceFilterSections("All conferences")}
+              onChange={setGameConference}
+            /></div>}
+          </div>
+        </section>
+
+        {filteredOpenGames.length === 0 && <div className="offer-filter-empty">No {gameConference !== "ALL" && gameLeague === "CFB" ? `${gameConference} ` : ""}{gameLeague} games with a spread are currently available.</div>}
+        {selectedGame && <>
         <section className="offer-block offer-game-amount">
           <div className="offer-field"><span className="field-label">Game</span><MenuSelect
             ariaLabel="Side bet game"
@@ -1370,6 +1410,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
           <div><span>They get</span><strong>{displayTeamName(selectedGame, offeredTeam)} {spreadText(creatorSpread == null ? null : -creatorSpread)}</strong></div>
         </div></div>
         <div className="offer-submit-row"><button className="btn accent full" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={createBet}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button></div>
+        </>}
       </div>}
     </div>}
 

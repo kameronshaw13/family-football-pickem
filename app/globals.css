@@ -118,7 +118,7 @@ p { margin: 0; }
 .custom-select.disabled { opacity: .72; }
 .custom-select.open > .custom-select-chevron { transform: rotate(180deg); }
 .custom-select-spinner { animation: spin .8s linear infinite; }
-.custom-select-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; display: grid; width: 100%; min-width: 0; max-height: min(360px, 48svh); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line-strong); background: var(--panel); box-shadow: none; -webkit-overflow-scrolling: touch; }
+.custom-select-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; display: grid; width: 100%; min-width: 0; max-height: min(360px, 48svh); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line-strong); border-bottom-color: var(--line); background: var(--panel); box-shadow: none; -webkit-overflow-scrolling: touch; }
 .custom-select-section { display: contents; }
 .custom-select-option { display: flex; width: 100%; height: 38px; min-height: 38px; align-items: center; padding: 8px 10px; border: 0; border-top: 1px solid var(--line); color: var(--ink); background: var(--panel); font-family: var(--font-display); font-size: 12px; font-weight: 750; line-height: 1.2; text-align: left; text-transform: uppercase; touch-action: manipulation; }
 .custom-select-menu > .custom-select-section:first-child > .custom-select-option:first-child { border-top: 0; }
@@ -247,8 +247,20 @@ p { margin: 0; }
 
 .bet-composer { padding: 2px 0 8px; }
 .bet-composer > .section-title { margin-bottom: var(--space-3); }
+.side-bet-compose-title p { color: var(--blue-dark); font-size: 11px; font-weight: 800; }
 .offer-flow { display: grid; margin-inline: calc(var(--page-gutter) * -1); border-block: 1px solid var(--line); background: var(--panel); }
 .offer-block { min-width: 0; padding: var(--space-3) var(--page-gutter); border: 0; border-bottom: 1px solid var(--line); background: var(--panel); }
+.offer-filter-block { padding-block: 12px; background: var(--surface-muted); }
+.offer-filter-heading { display: flex; min-height: 34px; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.offer-filter-heading > div { min-width: 0; }
+.offer-filter-heading strong { display: block; color: var(--ink); font-size: 15px; font-weight: 900; line-height: 1.2; }
+.offer-filter-heading small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; font-weight: 650; line-height: 1.3; }
+.offer-filter-heading > span { flex: 0 0 auto; padding: 4px 7px; color: var(--blue-dark); background: var(--blue-soft); font-size: 10px; font-weight: 900; text-transform: uppercase; }
+.offer-filter-grid { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: end; gap: 12px; margin-top: 10px; }
+.offer-filter-grid.single { grid-template-columns: 120px; }
+.offer-filter-grid .field-label { margin-top: 0; }
+.offer-filter-select { background: var(--panel); }
+.offer-filter-empty { padding: 18px var(--page-gutter); border-bottom: 1px solid var(--line); color: var(--muted); background: var(--panel); font-size: 12px; font-weight: 700; line-height: 1.4; text-align: center; }
 .field-label { display: block; margin: 2px 0 var(--space-2); color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .input { width: 100%; min-height: 43px; padding: 9px 10px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--ink); background: var(--panel); outline: none; }
 .input:focus, .money-input:focus-within { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(79, 137, 173, .13); }
@@ -377,7 +389,7 @@ fieldset .field-label { padding: 0; }
 .bank-week-spinner { animation: spin .8s linear infinite; }
 .test-standings-label { color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .bank-summary-grid { overflow: hidden; border-block: 1px solid var(--line); background: transparent; }
-.bank-summary-head, .money-card { display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; padding-inline: 14px 18px; }
+.bank-summary-head, .money-card { display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; padding-inline: 14px 17px; }
 .bank-summary-head { min-height: 34px; color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
 .bank-summary-head span:last-child { text-align: right; }
 .money-card { min-height: 58px; padding-block: 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
@@ -397,10 +409,10 @@ fieldset .field-label { padding: 0; }
 .bank-results-labels + .bank-player-result > summary, .bank-player-result + .bank-player-result > summary { border-top: 1px solid var(--line); }
 .bank-player-result > summary { display: grid; height: 58px; min-height: 58px; grid-template-columns: minmax(0, 1fr) 58px 48px 18px; align-items: center; gap: 8px; padding: 8px 11px 8px 14px; list-style: none; cursor: pointer; outline: 0; background: var(--panel); -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
 .bank-player-result > summary:active { background: var(--panel); }
+.bank-player-result > summary::marker { content: ""; }
 .bank-player-result > summary::-webkit-details-marker { display: none; }
 .bank-result-player { min-width: 0; overflow: hidden; color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; line-height: 1.2; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 .bank-player-result > summary > svg { color: var(--muted); transition: transform .18s ease; }
-.bank-player-result[open] > summary { box-shadow: inset 0 -1px 0 var(--line-strong); }
 .bank-player-result[open] > summary > svg { transform: rotate(180deg); }
 .bank-result-record { width: 48px; min-width: 48px; transform: translateX(1px); font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-result-amount { font-family: var(--font-display); font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
