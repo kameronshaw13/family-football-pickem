@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays, Check, ChevronDown, ChevronRight, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
@@ -874,8 +874,8 @@ export default function PickemApp() {
   })).sort((a, b) => b.total - a.total);
   const openBetGames = games.filter((game) => !hasChargers(game) && new Date(game.commence_time) > new Date() && game.current_spread != null && game.current_spread_team);
   const filteredBetGames = openBetGames.filter((game) => game.league === betLeagueFilter && (betLeagueFilter === "NFL" || betConferenceFilter === "ALL" || gameConferences(game).includes(betConferenceFilter)));
-  const selectedBetGame = filteredBetGames.find((game) => game.id === betGameId) || filteredBetGames[0];
-  const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : selectedBetGame?.away_team || "";
+  const selectedBetGame = filteredBetGames.find((game) => game.id === betGameId);
+  const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : "";
 
   function stageCard(nextCard: Pick[]) {
     const matchesSaved = nextCard.length === myPicks.length && nextCard.every((nextPick) => {
@@ -979,32 +979,35 @@ export default function PickemApp() {
     setBetRecipients((current) => current.includes(profileId) ? current.filter((id) => id !== profileId) : [...current, profileId]);
   }
 
-  async function createSideBet() {
+  async function createSideBet(): Promise<boolean> {
     if (!weekIsOpen) {
       notify("Side bet offers open Tuesday at 8:00 AM.", "error");
-      return;
+      return false;
     }
-    if (!selectedBetGame || !selectedCreatorTeam || !betRecipients.length) return;
+    if (!selectedBetGame || !selectedCreatorTeam || !betRecipients.length) return false;
     if (Number(betAmount) > MAX_SIDE_BET_AMOUNT) {
       notify(`Side bets are capped at $${MAX_SIDE_BET_AMOUNT}.`, "error");
-      return;
+      return false;
     }
     if ((data?.sideBetSlotCounts?.[currentUser.id] || 0) >= MAX_SIDE_BETS_PER_WEEK) {
       notify(`You already have ${MAX_SIDE_BETS_PER_WEEK} accepted or pending side bets this week.`, "error");
-      return;
+      return false;
     }
     const fullRecipient = profiles.find((profile) => betRecipients.includes(profile.id) && (data?.sideBetSlotCounts?.[profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK);
     if (fullRecipient) {
       notify(`${fullRecipient.display_name} has reached the weekly side bet limit.`, "error");
-      return;
+      return false;
     }
     const ok = await postSideBet({ action: "create", gameId: selectedBetGame.id, creatorTeam: selectedCreatorTeam, amount: Number(betAmount), recipientIds: betRecipients });
     if (ok) {
+      setBetGameId("");
+      setBetCreatorTeam("");
       setBetRecipients([]);
       setBetAmount("20");
       setBetView("sent");
       notify("Side bet offer sent.", "success");
     }
+    return ok;
   }
 
   const primaryNav: Array<{ id: Tab; label: string; icon: typeof Trophy }> = [
@@ -1299,35 +1302,51 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   setCreatorTeam: (value: string) => void;
   setAmount: (value: string) => void;
   toggleRecipient: (value: string) => void;
-  createBet: () => void;
+  createBet: () => Promise<boolean>;
   respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean>;
 }) {
   const [confirmingBetId, setConfirmingBetId] = useState<string | null>(null);
+  const [slipExpanded, setSlipExpanded] = useState(false);
   const received = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
   const sent = sideBets.filter((bet) => bet.creator_id === currentUser.id);
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
-  const creatorSpread = selectedGame ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
+  const creatorSpread = selectedGame && selectedCreatorTeam ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
   const slotCount = slotCounts[currentUser.id] || 0;
   const limitReached = slotCount >= MAX_SIDE_BETS_PER_WEEK;
-  const filteredOpenGames = openGames.filter((game) => game.league === gameLeague && (gameLeague === "NFL" || gameConference === "ALL" || gameConferences(game).includes(gameConference)));
-  const sideBetGamesByDay = new Map<string, Game[]>();
-  for (const game of filteredOpenGames) {
-    const dayKey = gameDayKey(game.commence_time);
-    sideBetGamesByDay.set(dayKey, [...(sideBetGamesByDay.get(dayKey) || []), game]);
+  const filteredOpenGames = openGames
+    .filter((game) => game.league === gameLeague && (gameLeague === "NFL" || gameConference === "ALL" || gameConferences(game).includes(gameConference)))
+    .sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
+  const sideBetGameGroups = filteredOpenGames.reduce<Array<{ key: string; label: string; shortDay: string; games: Game[] }>>((groups, game) => {
+    const key = gameDayKey(game.commence_time);
+    const existingGroup = groups[groups.length - 1];
+    if (existingGroup?.key === key) existingGroup.games.push(game);
+    else groups.push({ key, label: gameDayLabel(game.commence_time), shortDay: gameDayShort(game.commence_time), games: [game] });
+    return groups;
+  }, []);
+  const hasSlip = Boolean(selectedGame && selectedCreatorTeam);
+
+  useEffect(() => {
+    if (view !== "new" || !selectedGame || !selectedCreatorTeam) setSlipExpanded(false);
+  }, [view, selectedGame, selectedCreatorTeam]);
+
+  function selectSide(game: Game, team: string) {
+    setGame(game.id);
+    setCreatorTeam(team);
+    setSlipExpanded(false);
   }
-  const sideBetGameSections = Array.from(sideBetGamesByDay.values()).map((dayGames) => ({
-    label: fullDateText(dayGames[0].commence_time),
-    options: dayGames.map((game) => {
-      const matchup = `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`;
-      return {
-        value: game.id,
-        label: `${matchup} · ${timeText(game.commence_time)}`,
-        selectedLabel: `${matchup} · ${dt(game.commence_time)}`
-      };
-    })
-  }));
+
+  function clearSlip() {
+    setSlipExpanded(false);
+    setGame("");
+    setCreatorTeam("");
+  }
+
+  async function sendOffer() {
+    const sentOffer = await createBet();
+    if (sentOffer) setSlipExpanded(false);
+  }
 
   async function acceptConfirmedBet() {
     if (!confirmingBetId) return;
@@ -1335,73 +1354,81 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     if (accepted) setConfirmingBetId(null);
   }
 
-  return <div className="side-bet-center">
+  return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
     <div className={`view-select-row side-bet-filter-row ${view === "new" ? "make-offer" : ""}`.trim()}>
-      <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "received", label: "For You" }, { value: "sent", label: "Sent" }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => setView(value as BetView)} />
+      <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "received", label: "For You" }, { value: "sent", label: "Sent" }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => { setSlipExpanded(false); setView(value as BetView); }} />
       {view === "new" && <MenuSelect
         ariaLabel="Filter side bet games by league"
         className="compact-select"
         value={gameLeague}
         sections={[{ options: [{ value: "CFB", label: "CFB" }, { value: "NFL", label: "NFL" }] }]}
-        onChange={(value) => setGameLeague(value as SideBetLeagueFilter)}
+        onChange={(value) => { setSlipExpanded(false); setGameLeague(value as SideBetLeagueFilter); }}
       />}
       {view === "new" && gameLeague === "CFB" && <MenuSelect
         ariaLabel="Filter side bet games by conference"
         className="compact-select context-select"
         value={gameConference}
         sections={conferenceFilterSections("ALL CONF.")}
-        onChange={setGameConference}
+        onChange={(value) => { setSlipExpanded(false); setGameConference(value); }}
       />}
     </div>
 
-    {view === "new" && <div className="bet-composer">
+    {view === "new" && <div className="side-bet-sportsbook-board">
       {limitReached && <div className="empty-state">Your {MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.</div>}
       {!limitReached && openGames.length === 0 && <div className="empty-state">No games with a spread are available before kickoff.</div>}
       {!limitReached && openGames.length > 0 && filteredOpenGames.length === 0 && <div className="empty-state">No available games.</div>}
-      {!limitReached && selectedGame && <div className="offer-flow">
-        <section className="offer-block offer-game-amount">
-          <div className="offer-field"><span className="field-label">Game</span><MenuSelect
-            ariaLabel="Side bet game"
-            className="input field-menu-select game-menu-select"
-            value={selectedGame.id}
-            sections={sideBetGameSections}
-            onChange={setGame}
-          /></div>
-          <div className="offer-field"><span className="field-label">Amount</span><MenuSelect
-            ariaLabel="Side bet amount"
-            className="input field-menu-select amount-menu-select"
-            value={amount}
-            sections={[{ options: ["20", "15", "10", "5"].map((value) => ({ value, label: `$${value}` })) }]}
-            onChange={setAmount}
-          /></div>
+      {!limitReached && filteredOpenGames.length > 0 && <div className="game-days side-bet-game-days">{sideBetGameGroups.map((group) => <section key={group.key} className="game-day-section">
+        <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong></div>
+        <div className="game-list">{group.games.map((game) => <SideBetGameCard
+          key={game.id}
+          game={game}
+          selectedTeam={selectedGame?.id === game.id ? selectedCreatorTeam : ""}
+          disabled={!weekIsOpen}
+          onSelect={selectSide}
+        />)}</div>
+      </section>)}</div>}
+    </div>}
+
+    {view === "new" && selectedGame && selectedCreatorTeam && !slipExpanded && <button className="side-bet-slip-bar" type="button" aria-expanded="false" onClick={() => setSlipExpanded(true)}>
+      <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
+      <span className="side-bet-slip-copy"><small>Bet slip · tap to finish</small><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} {spreadText(creatorSpread)}</strong></span>
+      <span className="side-bet-slip-open"><b>{stakeMoney(Number(amount || 0))}</b><ChevronUp size={17} /></span>
+    </button>}
+
+    {view === "new" && selectedGame && selectedCreatorTeam && slipExpanded && <>
+      <button className="side-bet-slip-backdrop" type="button" aria-label="Collapse bet slip" onClick={() => setSlipExpanded(false)} />
+      <section className="side-bet-slip-sheet" role="dialog" aria-modal="true" aria-labelledby="side-bet-slip-title">
+        <div className="side-bet-slip-sheet-head">
+          <div className="side-bet-slip-title"><span>Bet slip</span><h2 id="side-bet-slip-title">{displayTeamName(selectedGame, selectedGame.away_team)} at {displayTeamName(selectedGame, selectedGame.home_team)}</h2><p>{fullDateText(selectedGame.commence_time)} · {timeText(selectedGame.commence_time)}</p></div>
+          <div className="side-bet-slip-head-actions"><button type="button" className="slip-icon-btn" aria-label="Clear bet slip" onClick={clearSlip}><X size={17} /></button><button type="button" className="slip-icon-btn" aria-label="Collapse bet slip" onClick={() => setSlipExpanded(false)}><ChevronDown size={18} /></button></div>
+        </div>
+
+        <div className="side-bet-slip-selection">
+          <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
+          <span><small>Your side</small><strong>{displayTeamName(selectedGame, selectedCreatorTeam)}</strong></span>
+          <b>{spreadText(creatorSpread)}</b>
+        </div>
+
+        <section className="side-bet-slip-section">
+          <div className="side-bet-slip-section-head"><span>Amount</span><strong>{stakeMoney(Number(amount || 0))}</strong></div>
+          <div className="side-bet-amount-grid">{["20", "15", "10", "5"].map((value) => <button type="button" key={value} className={amount === value ? "active" : ""} aria-pressed={amount === value} onClick={() => setAmount(value)}>${value}</button>)}</div>
         </section>
 
-        <section className="offer-block offer-side-block">
-          <div className="field-label offer-block-label">Your side</div>
-          <div className="offer-team-select">
-            {[selectedGame.away_team, selectedGame.home_team].map((team) => <button type="button" key={team} className={selectedCreatorTeam === team ? "active" : ""} onClick={() => setCreatorTeam(team)}>
-              <TeamLogo url={logoForTeam(selectedGame, team)} name={team} />
-              <span className="offer-team-name">{displayTeamName(selectedGame, team)}</span>
-              <span className="offer-team-line"><strong>{spreadForTeam(selectedGame, team)}</strong></span>
-            </button>)}
-          </div>
-        </section>
-
-        <section className="offer-block offer-recipient-block">
-          <div className="field-label offer-block-label">Send to</div>
-          <fieldset aria-label="Send to"><div className="recipient-grid">{otherPlayers.map((profile) => {
+        <section className="side-bet-slip-section">
+          <div className="side-bet-slip-section-head"><span>Send to</span><strong>{recipients.length ? `${recipients.length} selected` : "Choose player"}</strong></div>
+          <fieldset aria-label="Send side bet to"><div className="side-bet-recipient-grid">{otherPlayers.map((profile) => {
             const recipientFull = (slotCounts[profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK;
             return <label key={profile.id} className={`${recipients.includes(profile.id) ? "checked" : ""} ${recipientFull ? "disabled" : ""}`.trim()}><input type="checkbox" disabled={recipientFull} checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}</span><small>{recipientFull ? "Unavailable" : recipients.includes(profile.id) ? "Selected" : "Available"}</small></label>;
           })}</div></fieldset>
         </section>
 
-        <div className="offer-review"><div className="offer-review-head"><span>Offer summary</span><strong>{stakeMoney(Number(amount || 0))}</strong></div><div className="bet-preview">
+        <div className="side-bet-slip-summary">
           <div><span>You keep</span><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} {spreadText(creatorSpread)}</strong></div>
           <div><span>They get</span><strong>{displayTeamName(selectedGame, offeredTeam)} {spreadText(creatorSpread == null ? null : -creatorSpread)}</strong></div>
-        </div></div>
-        <div className="offer-submit-row"><button className="btn accent full" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={createBet}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button></div>
-      </div>}
-    </div>}
+        </div>
+        <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
+      </section>
+    </>}
 
     {view === "received" && <SideBetList bets={received} mode="received" currentUser={currentUser} empty="No offers sent to you yet." saving={saving} savingBetId={savingBetId} canAccept={weekIsOpen && !limitReached} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
     {view === "sent" && <SideBetList bets={sent} mode="sent" currentUser={currentUser} empty="You have not sent any offers yet." saving={saving} savingBetId={savingBetId} canAccept={!limitReached} acceptDisabledText="Limit reached" requestAccept={setConfirmingBetId} respond={respond} />}
@@ -1419,6 +1446,26 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
       </section>
     </div>}
   </div>;
+}
+
+function SideBetGameCard({ game, selectedTeam, disabled, onSelect }: { game: Game; selectedTeam: string; disabled: boolean; onSelect: (game: Game, team: string) => void }) {
+  return <article className={`game-card matchup-card side-bet-game-card ${disabled ? "closed" : ""} ${selectedTeam ? "selected" : ""}`.trim()}>
+    <div className="game-head compact-game-head"><div className="game-time-group"><span className="game-time">{timeText(game.commence_time)}</span></div></div>
+    <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
+      {[game.away_team, game.home_team].map((team) => <button
+        type="button"
+        key={team}
+        className={`team-row ${team === game.away_team ? "away-row" : "home-row"} ${disabled ? "" : "selectable"} ${selectedTeam === team ? "picked-side" : ""}`.trim()}
+        disabled={disabled}
+        aria-pressed={selectedTeam === team}
+        onClick={() => onSelect(game, team)}
+      >
+        <TeamLogo url={logoForTeam(game, team)} name={team} />
+        <span className="team-name">{displayTeamName(game, team)}</span>
+        <span className="team-spread">{spreadForTeam(game, team)}</span>
+      </button>)}
+    </div>
+  </article>;
 }
 
 function SideBetList({ bets, mode, currentUser, empty, saving, savingBetId, canAccept, acceptDisabledText, requestAccept, respond }: { bets: SideBet[]; mode: "received" | "sent"; currentUser: Profile; empty: string; saving: boolean; savingBetId: string | null; canAccept: boolean; acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
