@@ -1351,14 +1351,14 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
           <div className={`offer-filter-grid ${gameLeague === "NFL" ? "single" : ""}`}>
             <MenuSelect
               ariaLabel="Filter side bet games by league"
-              className="input field-menu-select offer-filter-select"
+              className="compact-select offer-filter-select"
               value={gameLeague}
               sections={[{ options: [{ value: "CFB", label: "CFB" }, { value: "NFL", label: "NFL" }] }]}
               onChange={(value) => setGameLeague(value as SideBetLeagueFilter)}
             />
             {gameLeague === "CFB" && <MenuSelect
               ariaLabel="Filter side bet games by conference"
-              className="input field-menu-select offer-filter-select"
+              className="compact-select offer-filter-select"
               value={gameConference}
               sections={conferenceFilterSections("All Conferences")}
               onChange={setGameConference}
@@ -1369,14 +1369,15 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         {filteredOpenGames.length === 0 && <div className="offer-filter-empty">No available games.</div>}
         {selectedGame && <>
         <section className="offer-block offer-game-amount">
-          <div className="offer-field"><div className="offer-section-heading">Game</div><MenuSelect
+          <div className="offer-section-heading offer-game-amount-heading"><span>Game</span><span>Amount</span></div>
+          <div className="offer-field"><MenuSelect
             ariaLabel="Side bet game"
             className="input field-menu-select game-menu-select"
             value={selectedGame.id}
             sections={sideBetGameSections}
             onChange={setGame}
           /></div>
-          <div className="offer-field"><div className="offer-section-heading">Amount</div><MenuSelect
+          <div className="offer-field"><MenuSelect
             ariaLabel="Side bet amount"
             className="input field-menu-select amount-menu-select"
             value={amount}
@@ -1404,7 +1405,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
           })}</div></fieldset>
         </section>
 
-        <div className="offer-review"><div className="offer-review-head"><span>Offer summary</span><strong>{stakeMoney(Number(amount || 0))}</strong></div><div className="bet-preview">
+        <div className="offer-review"><div className="offer-section-heading offer-review-head"><span>Offer summary</span><strong>{stakeMoney(Number(amount || 0))}</strong></div><div className="bet-preview">
           <div><span>You keep</span><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} {spreadText(creatorSpread)}</strong></div>
           <div><span>They get</span><strong>{displayTeamName(selectedGame, offeredTeam)} {spreadText(creatorSpread == null ? null : -creatorSpread)}</strong></div>
         </div></div>
