@@ -1411,9 +1411,9 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     </div>
 
     {view === "new" && <div className="side-bet-sportsbook-board">
-      {limitReached && <div className="empty-state">Your {MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.</div>}
-      {!limitReached && openGames.length === 0 && <div className="empty-state">No games with a spread are available before kickoff.</div>}
-      {!limitReached && openGames.length > 0 && filteredOpenGames.length === 0 && <div className="empty-state">No available games.</div>}
+      {limitReached && <div className="empty-state side-bet-empty-state">Your {MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.</div>}
+      {!limitReached && openGames.length === 0 && <div className="empty-state side-bet-empty-state">No games with a spread are available before kickoff.</div>}
+      {!limitReached && openGames.length > 0 && filteredOpenGames.length === 0 && <div className="empty-state side-bet-empty-state">No available games.</div>}
       {!limitReached && filteredOpenGames.length > 0 && <div className="game-days side-bet-game-days">{sideBetGameGroups.map((group) => <section key={group.key} className="game-day-section">
         <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong></div>
         <div className="game-list">{group.games.map((game) => <SideBetGameCard
@@ -1437,7 +1437,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
       <section className="side-bet-slip-sheet" role="dialog" aria-modal="true" aria-labelledby="side-bet-slip-title">
         <div className="side-bet-slip-sheet-head">
           <div className="side-bet-slip-title"><h2 id="side-bet-slip-title">{displayTeamName(selectedGame, selectedGame.away_team)} at {displayTeamName(selectedGame, selectedGame.home_team)}</h2><p>{fullDateText(selectedGame.commence_time)} · {timeText(selectedGame.commence_time)}</p></div>
-          <div className="side-bet-slip-head-actions"><button type="button" className="slip-icon-btn slip-clear-btn" aria-label="Clear bet slip" onClick={clearSlip}><X size={17} /></button><button type="button" className="slip-icon-btn" aria-label="Collapse bet slip" onClick={() => setSlipExpanded(false)}><ChevronDown size={18} /></button></div>
+          <div className="side-bet-slip-head-actions"><button type="button" className="slip-icon-btn" aria-label="Clear bet slip" onClick={clearSlip}><X size={18} /></button><button type="button" className="slip-icon-btn" aria-label="Collapse bet slip" onClick={() => setSlipExpanded(false)}><ChevronDown size={18} /></button></div>
         </div>
 
         <div className="team-row picked-side side-bet-slip-selection">
