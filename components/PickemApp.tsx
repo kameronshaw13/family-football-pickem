@@ -1433,16 +1433,17 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     </button>}
 
     {view === "new" && selectedGame && selectedCreatorTeam && slipExpanded && <>
-      <button className="side-bet-slip-backdrop" type="button" aria-label="Collapse bet slip" onClick={() => setSlipExpanded(false)} />
+      <button className="side-bet-slip-backdrop" type="button" aria-label="Collapse bet slip" onPointerDown={() => setSlipExpanded(false)} onClick={() => setSlipExpanded(false)} />
       <section className="side-bet-slip-sheet" role="dialog" aria-modal="true" aria-labelledby="side-bet-slip-title">
         <div className="side-bet-slip-sheet-head">
           <div className="side-bet-slip-title"><h2 id="side-bet-slip-title">{displayTeamName(selectedGame, selectedGame.away_team)} at {displayTeamName(selectedGame, selectedGame.home_team)}</h2><p>{fullDateText(selectedGame.commence_time)} · {timeText(selectedGame.commence_time)}</p></div>
+          <div className="side-bet-slip-head-actions"><button type="button" className="slip-icon-btn" aria-label="Collapse bet slip" onClick={() => setSlipExpanded(false)}><ChevronDown size={18} /></button></div>
         </div>
 
         <div className="team-row picked-side side-bet-slip-selection">
           <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
           <span className="side-bet-slip-team-choice"><span className="team-name">{displayTeamName(selectedGame, selectedCreatorTeam)}</span><span className="team-spread">{spreadText(creatorSpread)}</span></span>
-          <button type="button" className="slip-icon-btn side-bet-selection-collapse" aria-label="Collapse bet slip" onClick={() => setSlipExpanded(false)}><ChevronDown size={18} /></button>
+          <button type="button" className="slip-icon-btn side-bet-selection-clear" aria-label="Clear selected team" onClick={clearSlip}><X size={18} /></button>
         </div>
 
         <section className="side-bet-slip-section">
