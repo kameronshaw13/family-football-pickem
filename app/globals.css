@@ -274,21 +274,20 @@ fieldset .field-label { padding: 0; }
 .side-bet-slip-copy { display: flex; min-width: 0; align-items: center; }
 .side-bet-slip-copy strong { overflow: hidden; font-size: 13px; font-weight: 800; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .side-bet-slip-open { display: flex; width: 22px; align-items: center; justify-content: flex-end; color: var(--blue-dark); }
-.side-bet-slip-backdrop { position: fixed; inset: 0 0 calc(var(--nav-height) + env(safe-area-inset-bottom)); z-index: 32; padding: 0; border: 0; background: transparent; touch-action: none; }
 .side-bet-slip-sheet { position: fixed; right: 0; bottom: calc(var(--nav-height) + env(safe-area-inset-bottom)); left: 0; z-index: 34; max-height: min(590px, calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom) - 15px)); overflow-y: auto; overscroll-behavior: contain; border: 0; border-top: 1px solid #4c5a61; border-bottom: 1px solid #4c5a61; border-radius: 0; background: linear-gradient(to bottom, var(--graphite) 0 61px, var(--panel) 61px 100%); box-shadow: 0 -14px 36px rgba(20, 33, 43, .24); scrollbar-width: none; touch-action: pan-y; animation: side-bet-sheet-up .18s ease-out; -webkit-overflow-scrolling: touch; }
 .side-bet-slip-sheet::-webkit-scrollbar { display: none; width: 0; }
-.side-bet-slip-sheet-head { position: sticky; top: 0; z-index: 2; display: flex; min-height: 61px; align-items: center; justify-content: space-between; gap: 10px; padding: 9px max(12px, calc((100vw - 736px) / 2 + 12px)); border-bottom: 1px solid #59676e; color: #fff; background: var(--graphite); }
+.side-bet-slip-sheet-head { position: sticky; top: 0; z-index: 2; display: flex; min-height: 61px; align-items: center; padding: 9px max(12px, calc((100vw - 736px) / 2 + 12px)); border-bottom: 1px solid #59676e; color: #fff; background: var(--graphite); cursor: grab; touch-action: none; user-select: none; }
+.side-bet-slip-sheet-head:active { cursor: grabbing; }
 .side-bet-slip-title { min-width: 0; flex: 1 1 auto; }
 .side-bet-slip-title h2 { margin: 0; overflow: hidden; font-size: 14px; font-weight: 800; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
 .side-bet-slip-title p { margin-top: 3px; overflow: hidden; color: #c8d4da; font-size: 10px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
-.side-bet-slip-head-actions { display: flex; flex: 0 0 auto; align-items: center; }
 .slip-icon-btn { display: grid; width: 32px; height: 32px; place-items: center; padding: 0; border: 1px solid rgba(255, 255, 255, .2); border-radius: 4px; color: #fff; background: transparent; }
 .slip-icon-btn svg { display: block; width: 18px; height: 18px; margin: 0; }
 .side-bet-slip-selection { min-height: var(--data-row-height); cursor: default; }
 .side-bet-slip-team-choice { display: flex; min-width: 0; align-items: baseline; gap: 6px; }
-.side-bet-slip-team-choice .team-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-bet-slip-team-choice .team-name { overflow: hidden; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .side-bet-slip-team-choice .team-spread { width: auto; flex: 0 0 auto; justify-content: flex-start; }
-.side-bet-selection-clear { justify-self: end; border-color: var(--line-strong); color: var(--blue-dark); background: rgba(255, 255, 255, .38); }
+.side-bet-selection-clear { justify-self: end; border-color: #d6aaa6; color: var(--red); background: var(--red-soft); }
 .side-bet-slip-section { border-bottom: 1px solid var(--line-strong); }
 .side-bet-slip-section-head { display: flex; height: 30px; align-items: center; gap: 10px; padding: 0 var(--pick-content-inset); border-bottom: 1px solid var(--line); color: var(--muted); background: var(--surface-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
 .side-bet-amount-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }

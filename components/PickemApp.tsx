@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { CalendarDays, Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
@@ -1307,6 +1307,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 }) {
   const [confirmingBetId, setConfirmingBetId] = useState<string | null>(null);
   const [slipExpanded, setSlipExpanded] = useState(false);
+  const slipSheetRef = useRef<HTMLElement>(null);
+  const slipSwipeStartY = useRef<number | null>(null);
   const received = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
   const sent = sideBets.filter((bet) => bet.creator_id === currentUser.id);
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
@@ -1333,35 +1335,13 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
   useEffect(() => {
     if (!slipExpanded) return;
-    const scrollPosition = window.scrollY;
-    const bodyStyle = document.body.style;
-    const rootStyle = document.documentElement.style;
-    const previousBody = {
-      position: bodyStyle.position,
-      top: bodyStyle.top,
-      right: bodyStyle.right,
-      left: bodyStyle.left,
-      width: bodyStyle.width,
-      overflow: bodyStyle.overflow
-    };
-    const previousRootOverflow = rootStyle.overflow;
-    bodyStyle.position = "fixed";
-    bodyStyle.top = `-${scrollPosition}px`;
-    bodyStyle.right = "0";
-    bodyStyle.left = "0";
-    bodyStyle.width = "100%";
-    bodyStyle.overflow = "hidden";
-    rootStyle.overflow = "hidden";
-    return () => {
-      bodyStyle.position = previousBody.position;
-      bodyStyle.top = previousBody.top;
-      bodyStyle.right = previousBody.right;
-      bodyStyle.left = previousBody.left;
-      bodyStyle.width = previousBody.width;
-      bodyStyle.overflow = previousBody.overflow;
-      rootStyle.overflow = previousRootOverflow;
-      window.scrollTo(0, scrollPosition);
-    };
+    function collapseOnOutsidePointer(event: PointerEvent) {
+      const target = event.target;
+      if (target instanceof Node && slipSheetRef.current?.contains(target)) return;
+      setSlipExpanded(false);
+    }
+    document.addEventListener("pointerdown", collapseOnOutsidePointer, true);
+    return () => document.removeEventListener("pointerdown", collapseOnOutsidePointer, true);
   }, [slipExpanded]);
 
   function selectSide(game: Game, team: string) {
@@ -1378,6 +1358,25 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     setSlipExpanded(false);
     setGame("");
     setCreatorTeam("");
+  }
+
+  function beginSlipSwipe(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    slipSwipeStartY.current = event.clientY;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function continueSlipSwipe(event: ReactPointerEvent<HTMLDivElement>) {
+    if (slipSwipeStartY.current == null) return;
+    if (event.clientY - slipSwipeStartY.current >= 44) {
+      slipSwipeStartY.current = null;
+      setSlipExpanded(false);
+    }
+  }
+
+  function endSlipSwipe(event: ReactPointerEvent<HTMLDivElement>) {
+    slipSwipeStartY.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   }
 
   async function sendOffer() {
@@ -1432,15 +1431,12 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
       <span className="side-bet-slip-open"><ChevronUp size={17} /></span>
     </button>}
 
-    {view === "new" && selectedGame && selectedCreatorTeam && slipExpanded && <>
-      <button className="side-bet-slip-backdrop" type="button" aria-label="Collapse bet slip" onPointerDown={() => setSlipExpanded(false)} onClick={() => setSlipExpanded(false)} />
-      <section className="side-bet-slip-sheet" role="dialog" aria-modal="true" aria-labelledby="side-bet-slip-title">
-        <div className="side-bet-slip-sheet-head">
+    {view === "new" && selectedGame && selectedCreatorTeam && slipExpanded && <section ref={slipSheetRef} className="side-bet-slip-sheet" role="dialog" aria-labelledby="side-bet-slip-title">
+        <div className="side-bet-slip-sheet-head" onPointerDown={beginSlipSwipe} onPointerMove={continueSlipSwipe} onPointerUp={endSlipSwipe} onPointerCancel={endSlipSwipe}>
           <div className="side-bet-slip-title"><h2 id="side-bet-slip-title">{displayTeamName(selectedGame, selectedGame.away_team)} at {displayTeamName(selectedGame, selectedGame.home_team)}</h2><p>{fullDateText(selectedGame.commence_time)} · {timeText(selectedGame.commence_time)}</p></div>
-          <div className="side-bet-slip-head-actions"><button type="button" className="slip-icon-btn" aria-label="Collapse bet slip" onClick={() => setSlipExpanded(false)}><ChevronDown size={18} /></button></div>
         </div>
 
-        <div className="team-row picked-side side-bet-slip-selection">
+        <div className="team-row side-bet-slip-selection">
           <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
           <span className="side-bet-slip-team-choice"><span className="team-name">{displayTeamName(selectedGame, selectedCreatorTeam)}</span><span className="team-spread">{spreadText(creatorSpread)}</span></span>
           <button type="button" className="slip-icon-btn side-bet-selection-clear" aria-label="Clear selected team" onClick={clearSlip}><X size={18} /></button>
@@ -1464,8 +1460,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
           <div><span>They get</span><strong>{displayTeamName(selectedGame, offeredTeam)} {spreadText(creatorSpread == null ? null : -creatorSpread)}</strong></div>
         </div>
         <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
-      </section>
-    </>}
+      </section>}
 
     {view === "received" && <SideBetList bets={received} mode="received" currentUser={currentUser} empty="No offers sent to you yet." saving={saving} savingBetId={savingBetId} canAccept={weekIsOpen && !limitReached} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
     {view === "sent" && <SideBetList bets={sent} mode="sent" currentUser={currentUser} empty="You have not sent any offers yet." saving={saving} savingBetId={savingBetId} canAccept={!limitReached} acceptDisabledText="Limit reached" requestAccept={setConfirmingBetId} respond={respond} />}
