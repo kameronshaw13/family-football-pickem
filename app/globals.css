@@ -195,12 +195,12 @@ p { margin: 0; }
 .team-logo { width: 34px; height: 34px; object-fit: contain; }
 .team-logo.fallback { display: grid; place-items: center; border-radius: 3px; color: var(--muted); background: var(--surface-muted); font-size: 11px; font-weight: 800; }
 
-.floating-review { position: fixed; right: 0; bottom: calc(var(--nav-height) + env(safe-area-inset-bottom)); left: 0; z-index: 30; display: flex; min-height: 57px; align-items: center; justify-content: space-between; gap: 12px; padding: 10px max(14px, calc((100vw - 736px) / 2 + 14px)); border: 1px solid rgba(255, 255, 255, .12); border-radius: 0; color: #fff; background: var(--graphite); box-shadow: 0 12px 28px rgba(20, 33, 43, .24); text-align: left; }
+.floating-review { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 10px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 30; display: flex; min-height: 57px; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 14px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 7px; color: #fff; background: var(--graphite); box-shadow: 0 12px 28px rgba(20, 33, 43, .24); text-align: left; }
 .floating-review > span { display: grid; gap: 2px; }
 .floating-review b { font-size: 12px; }
 .floating-review small { color: #becbd2; font-size: 10px; font-weight: 600; }
 .floating-review > strong { display: flex; flex: 0 0 auto; align-items: center; gap: 4px; color: #d7e8f2; font-size: 12px; }
-.sticky-card-save { position: fixed; right: 0; bottom: calc(var(--nav-height) + env(safe-area-inset-bottom)); left: 0; z-index: 31; display: flex; min-height: 52px; align-items: center; justify-content: center; gap: var(--space-2); border: 0; border-radius: 0; color: #fff; background: var(--blue-dark); box-shadow: 0 12px 28px rgba(20, 33, 43, .24); font-size: 12px; font-weight: 800; transition: background-color .15s ease, opacity .15s ease; }
+.sticky-card-save { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 10px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 31; display: flex; min-height: 52px; align-items: center; justify-content: center; gap: var(--space-2); border: 0; border-radius: 7px; color: #fff; background: var(--blue-dark); box-shadow: 0 12px 28px rgba(20, 33, 43, .24); font-size: 12px; font-weight: 800; transition: background-color .15s ease, opacity .15s ease; }
 .sticky-card-save:disabled { opacity: .72; }
 .toast { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 12px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 60; display: flex; min-height: 48px; align-items: center; gap: 9px; padding: 11px 13px; border-radius: 6px; color: #fff; background: var(--graphite); box-shadow: 0 12px 30px rgba(20, 33, 43, .25); font-size: 12px; font-weight: 700; }
 .toast.success { background: var(--green); }
@@ -241,7 +241,7 @@ p { margin: 0; }
 .visible-pick-actions { display: flex; min-width: 26px; align-items: center; justify-content: flex-end; gap: 5px; }
 .pick-row-actions .badge.pick-result-win, .pick-row-actions .badge.pick-result-loss, .pick-row-actions .badge.pick-result-push, .pick-row-actions .badge.pick-status-locked, .visible-pick-actions .badge.pick-result-win, .visible-pick-actions .badge.pick-result-loss, .visible-pick-actions .badge.pick-result-push, .visible-pick-actions .badge.pick-status-locked { min-width: 26px; min-height: 26px; font-size: 12px; }
 .badge.pick-status-locked { width: 26px; height: 26px; padding: 0; border: 1px solid var(--line-strong); border-radius: 1px; color: var(--muted); background: var(--surface-muted); }
-.icon-btn { display: grid; width: 29px; height: 29px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: transparent; }
+.icon-btn { display: grid; width: 30px; height: 30px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: transparent; }
 .icon-btn svg { display: block; width: 16px; height: 16px; margin: 0; }
 .pick-row-actions .icon-btn { border-color: #d6aaa6; color: var(--red); background: var(--red-soft); }
 .pick-title, .visible-pick-copy strong { display: block; overflow: hidden; font-size: 14px; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
@@ -521,5 +521,5 @@ fieldset .field-label { padding: 0; }
   .card-progress-count { max-width: none; text-align: left; }
   .bet-line-summary > span:last-child { text-align: left; }
   .leaderboard-labels, .leaderboard-row { grid-template-columns: 42px minmax(82px, 1fr) repeat(3, 28px) 58px; }
-  .toast { right: 9px; left: 9px; }
+  .floating-review, .sticky-card-save, .toast { right: 9px; left: 9px; }
 }
