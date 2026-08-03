@@ -264,29 +264,32 @@ p { margin: 0; }
 .field-menu-select .custom-select-option { text-transform: none; }
 fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 fieldset .field-label { padding: 0; }
-.side-bet-center.has-bet-slip { padding-bottom: 76px; }
+.side-bet-center.has-bet-slip { padding-bottom: 66px; }
 .side-bet-sportsbook-board { padding-bottom: var(--space-2); }
 .side-bet-empty-state { width: auto; margin-inline: calc(var(--page-gutter) * -1); padding-left: var(--pick-content-inset); text-align: left; }
 .side-bet-game-card .game-head { background: var(--surface-soft); }
 .side-bet-game-card.closed .team-row { color: var(--muted); background: var(--canvas-muted); }
-.side-bet-slip-bar { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 9px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 34; display: grid; min-height: 60px; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 11px; border: 1px solid #c7c0b1; border-radius: 7px; color: var(--ink); background: #f4efe4; box-shadow: 0 12px 30px rgba(20, 33, 43, .24); text-align: left; }
+.side-bet-slip-bar { position: fixed; right: 0; bottom: calc(var(--nav-height) + env(safe-area-inset-bottom)); left: 0; z-index: 34; display: grid; min-height: 60px; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px max(12px, calc((100vw - 736px) / 2 + 12px)); border: 0; border-top: 1px solid #c7c0b1; border-bottom: 1px solid #9fa8a5; border-radius: 0; color: var(--ink); background: #f4efe4; box-shadow: 0 -8px 22px rgba(20, 33, 43, .15); text-align: left; }
 .side-bet-slip-bar .team-logo { width: 34px; height: 34px; }
 .side-bet-slip-copy { display: flex; min-width: 0; align-items: center; }
 .side-bet-slip-copy strong { overflow: hidden; font-size: 13px; font-weight: 800; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .side-bet-slip-open { display: flex; width: 22px; align-items: center; justify-content: flex-end; color: var(--blue-dark); }
-.side-bet-slip-backdrop { position: fixed; inset: 0 0 calc(var(--nav-height) + env(safe-area-inset-bottom)); z-index: 32; padding: 0; border: 0; background: rgba(20, 33, 43, .55); backdrop-filter: blur(2px); touch-action: none; }
-.side-bet-slip-sheet { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 9px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 34; max-height: min(590px, calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom) - 24px)); overflow-y: auto; overscroll-behavior: contain; border: 1px solid #4c5a61; border-radius: 8px; background: linear-gradient(to bottom, var(--graphite) 0 61px, var(--panel) 61px 100%); box-shadow: 0 22px 52px rgba(20, 33, 43, .38); scrollbar-width: none; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+.side-bet-slip-backdrop { position: fixed; inset: 0 0 calc(var(--nav-height) + env(safe-area-inset-bottom)); z-index: 32; padding: 0; border: 0; background: transparent; touch-action: none; }
+.side-bet-slip-sheet { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 9px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 34; max-height: min(590px, calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom) - 24px)); overflow-y: auto; overscroll-behavior: contain; border: 1px solid #4c5a61; border-radius: 8px; background: linear-gradient(to bottom, var(--graphite) 0 61px, var(--panel) 61px 100%); box-shadow: 0 22px 52px rgba(20, 33, 43, .32); scrollbar-width: none; touch-action: pan-y; animation: side-bet-sheet-up .18s ease-out; -webkit-overflow-scrolling: touch; }
 .side-bet-slip-sheet::-webkit-scrollbar { display: none; width: 0; }
-.side-bet-slip-sheet-head { position: sticky; top: 0; z-index: 2; display: grid; min-height: 61px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 9px 10px 9px 13px; border-bottom: 1px solid #4c5a61; color: #fff; background: var(--graphite); }
+.side-bet-slip-sheet-head { position: sticky; top: 0; z-index: 2; display: flex; min-height: 61px; align-items: center; padding: 9px 13px; border-bottom: 1px solid #59676e; color: #fff; background: var(--graphite); }
 .side-bet-slip-title { min-width: 0; }
 .side-bet-slip-title h2 { margin: 0; overflow: hidden; font-size: 14px; font-weight: 800; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
 .side-bet-slip-title p { margin-top: 3px; overflow: hidden; color: #c8d4da; font-size: 10px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
-.side-bet-slip-head-actions { display: flex; align-items: center; gap: 5px; }
 .slip-icon-btn { display: grid; width: 32px; height: 32px; place-items: center; padding: 0; border: 1px solid rgba(255, 255, 255, .2); border-radius: 4px; color: #fff; background: transparent; }
 .slip-icon-btn svg { display: block; width: 18px; height: 18px; margin: 0; }
 .side-bet-slip-selection { min-height: var(--data-row-height); cursor: default; }
+.side-bet-slip-team-choice { display: flex; min-width: 0; align-items: baseline; gap: 6px; }
+.side-bet-slip-team-choice .team-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-bet-slip-team-choice .team-spread { width: auto; flex: 0 0 auto; justify-content: flex-start; }
+.side-bet-selection-collapse { justify-self: end; border-color: var(--line-strong); color: var(--blue-dark); background: rgba(255, 255, 255, .38); }
 .side-bet-slip-section { border-bottom: 1px solid var(--line-strong); }
-.side-bet-slip-section-head { display: flex; height: 30px; align-items: center; gap: 10px; padding: 0 var(--pick-content-inset); color: var(--muted); background: var(--surface-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.side-bet-slip-section-head { display: flex; height: 30px; align-items: center; gap: 10px; padding: 0 var(--pick-content-inset); border-bottom: 1px solid var(--line); color: var(--muted); background: var(--surface-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
 .side-bet-amount-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .side-bet-amount-grid button { min-height: 43px; padding: 6px; border: 0; border-right: 1px solid var(--line); color: var(--ink); background: var(--panel); font-size: 14px; font-weight: 850; font-variant-numeric: tabular-nums; letter-spacing: .2px; }
 .side-bet-amount-grid button:last-child { border-right: 0; }
@@ -462,6 +465,7 @@ fieldset .field-label { padding: 0; }
 .initial-loading { position: fixed; inset: calc(env(safe-area-inset-top) + var(--header-height)) 0 calc(env(safe-area-inset-bottom) + var(--nav-height)); display: grid; place-items: center; color: var(--blue-dark); background: var(--canvas); }
 .initial-loading svg { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes side-bet-sheet-up { from { opacity: .65; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 
 .login-screen { display: grid; min-height: 100vh; min-height: 100dvh; place-items: start center; padding: max(40px, env(safe-area-inset-top)) 14px 40px; background: var(--graphite); }
 .login-card { width: min(420px, 100%); margin-top: 18px; padding: 22px; border-top: 4px solid var(--blue); border-radius: 6px; background: var(--panel); box-shadow: 0 20px 50px rgba(4, 14, 29, .3); }
@@ -502,7 +506,7 @@ fieldset .field-label { padding: 0; }
   .team-name { font-size: 15px; }
   .team-name-separator, .team-inline-score { font-size: 15px; }
   .team-spread { font-size: 15px; }
-  .side-bet-slip-bar, .side-bet-slip-sheet { right: 9px; left: 9px; }
+  .side-bet-slip-sheet { right: 9px; left: 9px; }
   .side-bet-slip-sheet { max-height: min(590px, calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom) - 20px)); }
   .card-progress-copy, .bet-line-summary { align-items: flex-start; flex-direction: column; }
   .card-progress-count { max-width: none; text-align: left; }
