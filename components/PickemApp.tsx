@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { CalendarDays, Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
@@ -1307,8 +1307,11 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 }) {
   const [confirmingBetId, setConfirmingBetId] = useState<string | null>(null);
   const [slipExpanded, setSlipExpanded] = useState(false);
+  const [slipClosing, setSlipClosing] = useState(false);
   const slipSheetRef = useRef<HTMLElement>(null);
   const slipSwipeStartY = useRef<number | null>(null);
+  const slipCloseTimer = useRef<number | null>(null);
+  const slipClosingRef = useRef(false);
   const received = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
   const sent = sideBets.filter((bet) => bet.creator_id === currentUser.id);
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
@@ -1329,20 +1332,44 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   }, []);
   const hasSlip = Boolean(selectedGame && selectedCreatorTeam);
 
+  const collapseSlip = useCallback(() => {
+    if (!slipExpanded || slipClosingRef.current) return;
+    slipClosingRef.current = true;
+    setSlipClosing(true);
+    slipCloseTimer.current = window.setTimeout(() => {
+      slipCloseTimer.current = null;
+      slipClosingRef.current = false;
+      setSlipClosing(false);
+      setSlipExpanded(false);
+    }, 180);
+  }, [slipExpanded]);
+
   useEffect(() => {
     if (view !== "new" || !selectedGame || !selectedCreatorTeam) setSlipExpanded(false);
   }, [view, selectedGame, selectedCreatorTeam]);
+
+  useEffect(() => () => {
+    if (slipCloseTimer.current != null) window.clearTimeout(slipCloseTimer.current);
+  }, []);
+
+  useEffect(() => {
+    if (slipExpanded) return;
+    if (slipCloseTimer.current != null) window.clearTimeout(slipCloseTimer.current);
+    slipCloseTimer.current = null;
+    slipClosingRef.current = false;
+    setSlipClosing(false);
+  }, [slipExpanded]);
 
   useEffect(() => {
     if (!slipExpanded) return;
     function collapseOnOutsidePointer(event: PointerEvent) {
       const target = event.target;
       if (target instanceof Node && slipSheetRef.current?.contains(target)) return;
-      setSlipExpanded(false);
+      collapseSlip();
     }
     document.addEventListener("pointerdown", collapseOnOutsidePointer, true);
     return () => document.removeEventListener("pointerdown", collapseOnOutsidePointer, true);
-  }, [slipExpanded]);
+  }, [collapseSlip, slipExpanded]);
 
   function selectSide(game: Game, team: string) {
     if (selectedGame?.id === game.id && selectedCreatorTeam === team) {
@@ -1351,7 +1378,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     }
     setGame(game.id);
     setCreatorTeam(team);
-    setSlipExpanded(false);
+    if (slipExpanded) collapseSlip();
+    else setSlipExpanded(false);
   }
 
   function clearSlip() {
@@ -1370,7 +1398,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     if (slipSwipeStartY.current == null) return;
     if (event.clientY - slipSwipeStartY.current >= 44) {
       slipSwipeStartY.current = null;
-      setSlipExpanded(false);
+      collapseSlip();
     }
   }
 
@@ -1427,13 +1455,14 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
     {view === "new" && selectedGame && selectedCreatorTeam && !slipExpanded && <button className="side-bet-slip-bar" type="button" aria-expanded="false" onClick={() => setSlipExpanded(true)}>
       <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
-      <span className="side-bet-slip-copy"><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} {spreadText(creatorSpread)}</strong></span>
+      <span className="side-bet-slip-copy"><span className="team-name">{displayTeamName(selectedGame, selectedCreatorTeam)}</span><span className="team-spread">{spreadText(creatorSpread)}</span></span>
       <span className="side-bet-slip-open"><ChevronUp size={17} /></span>
     </button>}
 
-    {view === "new" && selectedGame && selectedCreatorTeam && slipExpanded && <section ref={slipSheetRef} className="side-bet-slip-sheet" role="dialog" aria-labelledby="side-bet-slip-title">
+    {view === "new" && selectedGame && selectedCreatorTeam && slipExpanded && <section ref={slipSheetRef} className={`side-bet-slip-sheet ${slipClosing ? "closing" : ""}`.trim()} role="dialog" aria-labelledby="side-bet-slip-title">
         <div className="side-bet-slip-sheet-head" onPointerDown={beginSlipSwipe} onPointerMove={continueSlipSwipe} onPointerUp={endSlipSwipe} onPointerCancel={endSlipSwipe}>
           <div className="side-bet-slip-title"><h2 id="side-bet-slip-title">{displayTeamName(selectedGame, selectedGame.away_team)} at {displayTeamName(selectedGame, selectedGame.home_team)}</h2><p>{fullDateText(selectedGame.commence_time)} · {timeText(selectedGame.commence_time)}</p></div>
+          <button type="button" className="slip-icon-btn side-bet-header-collapse" aria-label="Collapse bet slip" onPointerDown={(event) => event.stopPropagation()} onClick={collapseSlip}><ChevronDown size={18} /></button>
         </div>
 
         <div className="team-row side-bet-slip-selection">
