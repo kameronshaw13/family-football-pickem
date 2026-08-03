@@ -1156,12 +1156,12 @@ export default function PickemApp() {
         </div>
       </section>}
     </main>
-    {tab === "picks" && stagedPicks !== null && <button className="floating-review" onClick={() => { setTab("card"); setCardView("mine"); }}>
+    {tab === "picks" && picksView === "board" && stagedPicks !== null && <button className="floating-review" onClick={() => { setTab("card"); setCardView("mine"); }}>
       <span><b>Unsaved picks</b><small>Review your card before games lock</small></span>
       <strong>Review & save <ChevronRight size={17} /></strong>
     </button>}
     {tab === "card" && cardView === "mine" && !previewActive && stagedPicks !== null && <button className="sticky-card-save" disabled={savingPicks} onClick={() => savePicks(cardPicks)}><Save size={17} /> {savingPicks ? "Saving picks…" : "Save picks"}</button>}
-    {toast && <div className={`toast ${toast.tone}`} role="status" aria-live="polite">{toast.tone === "success" && <CircleCheckBig size={18} />}{toast.tone === "error" && <X size={18} />}<span>{toast.message}</span></div>}
+    {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span>{toast.message}</span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={17} /></button></div>}
   </div>;
 }
 
