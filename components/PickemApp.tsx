@@ -69,6 +69,15 @@ type BankWeekData = {
   weeklyStandingsByWeek?: Record<string, Standing[]>;
 };
 
+type AppDataCacheEntry = {
+  cachedAt: number;
+  payload: AppData;
+};
+
+const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
+const APP_DATA_CACHE_MAX_AGE = 10 * 60 * 1000;
+const TEAM_DISPLAY_NAME_CACHE = new Map<string, string>();
+
 const NFL_NICKNAMES = [
   "49ers", "Bears", "Bengals", "Bills", "Broncos", "Browns", "Buccaneers", "Cardinals", "Chargers", "Chiefs", "Colts", "Commanders", "Cowboys", "Dolphins", "Eagles", "Falcons", "Giants", "Jaguars", "Jets", "Lions", "Packers", "Panthers", "Patriots", "Raiders", "Rams", "Ravens", "Saints", "Seahawks", "Steelers", "Texans", "Titans", "Vikings"
 ];
@@ -159,6 +168,11 @@ function normalizeNameKey(value: string) {
     .trim();
 }
 
+const COLLEGE_NICKNAME_SUFFIX_MATCHES = COLLEGE_NICKNAME_SUFFIXES.map((suffix) => ({
+  suffix,
+  key: normalizeNameKey(suffix)
+}));
+
 function stripCollegeNickname(rawTeam: string) {
   const manual = COLLEGE_MANUAL_DISPLAY[normalizeNameKey(rawTeam)];
   if (manual) return manual;
@@ -173,10 +187,9 @@ function stripCollegeNickname(rawTeam: string) {
   while (changed) {
     changed = false;
     const cleanedKey = normalizeNameKey(cleaned);
-    for (const suffix of COLLEGE_NICKNAME_SUFFIXES) {
-      const suffixKey = normalizeNameKey(suffix);
-      if (cleanedKey.endsWith(` ${suffixKey}`)) {
-        cleaned = cleaned.slice(0, Math.max(0, cleaned.length - suffix.length)).trim();
+    for (const suffix of COLLEGE_NICKNAME_SUFFIX_MATCHES) {
+      if (cleanedKey.endsWith(` ${suffix.key}`)) {
+        cleaned = cleaned.slice(0, Math.max(0, cleaned.length - suffix.suffix.length)).trim();
         changed = true;
         break;
       }
@@ -202,11 +215,19 @@ function stripCollegeNickname(rawTeam: string) {
 }
 
 function displayTeamName(game: Game, team: string) {
+  const cacheKey = `${game.league}:${team}`;
+  const cached = TEAM_DISPLAY_NAME_CACHE.get(cacheKey);
+  if (cached) return cached;
+
+  let displayName: string;
   if (game.league === "NFL") {
     const match = NFL_NICKNAMES.find((nickname) => team.toLowerCase().endsWith(nickname.toLowerCase()));
-    return match || team.split(/\s+/).slice(-1)[0] || team;
+    displayName = match || team.split(/\s+/).slice(-1)[0] || team;
+  } else {
+    displayName = stripCollegeNickname(team);
   }
-  return stripCollegeNickname(team);
+  TEAM_DISPLAY_NAME_CACHE.set(cacheKey, displayName);
+  return displayName;
 }
 
 function dogLineText(game: Game, team: string) {
@@ -307,10 +328,44 @@ function teamDogValue(game: Game, team: string) {
 }
 
 function gameConferences(game: Game) {
-  return Array.from(new Set([
-    cfbConferenceForLogo(game.away_logo_url),
-    cfbConferenceForLogo(game.home_logo_url)
-  ].filter((conference): conference is string => Boolean(conference))));
+  const awayConference = cfbConferenceForLogo(game.away_logo_url);
+  const homeConference = cfbConferenceForLogo(game.home_logo_url);
+  if (!awayConference) return homeConference ? [homeConference] : [];
+  return homeConference && homeConference !== awayConference
+    ? [awayConference, homeConference]
+    : [awayConference];
+}
+
+function appDataCacheKey(week: number | null) {
+  return `${APP_DATA_CACHE_PREFIX}:${week == null ? "default" : week}`;
+}
+
+function readCachedAppData(week: number | null) {
+  const key = appDataCacheKey(week);
+  try {
+    const stored = window.sessionStorage.getItem(key);
+    if (!stored) return null;
+    const entry = JSON.parse(stored) as AppDataCacheEntry;
+    const storedProfile = JSON.parse(window.localStorage.getItem("pickem_profile") || "null") as Profile | null;
+    if (!entry?.payload?.currentUser || !storedProfile || entry.payload.currentUser.id !== storedProfile.id || Date.now() - entry.cachedAt > APP_DATA_CACHE_MAX_AGE) {
+      window.sessionStorage.removeItem(key);
+      return null;
+    }
+    return entry.payload;
+  } catch {
+    window.sessionStorage.removeItem(key);
+    return null;
+  }
+}
+
+function writeCachedAppData(week: number | null, payload: AppData) {
+  window.setTimeout(() => {
+    try {
+      window.sessionStorage.setItem(appDataCacheKey(week), JSON.stringify({ cachedAt: Date.now(), payload } satisfies AppDataCacheEntry));
+    } catch {
+      // The app still works normally if private browsing or storage limits block this cache.
+    }
+  }, 0);
 }
 
 function logoForTeam(game: Game, team: string) {
@@ -599,38 +654,59 @@ export default function PickemApp() {
 
   async function load(nextWeek = week) {
     const isInitialLoad = data === null;
-    if (isInitialLoad) setLoading(true);
-    else setRefreshing(true);
-    setMessage("");
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) {
       window.location.href = "/login";
       return;
     }
-    const url = new URL("/api/app-data", window.location.origin);
-    if (nextWeek != null) url.searchParams.set("week", String(nextWeek));
-    const response = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
-    const payload = await response.json();
-    if (!response.ok) {
-      if (response.status === 401) {
-        window.localStorage.removeItem("pickem_session_token");
-        window.localStorage.removeItem("pickem_profile");
-        window.location.replace("/login");
+    const cachedPayload = isInitialLoad ? readCachedAppData(nextWeek) : null;
+    if (cachedPayload) {
+      const cachedAt = Date.now();
+      const cachedWeekIsOpen = !cachedPayload.weekOpenTime || new Date(cachedPayload.weekOpenTime).getTime() <= cachedAt;
+      setData(cachedPayload);
+      setWeek(cachedPayload.week);
+      setStatusFilter(defaultBoardStatus(cachedPayload.games || [], cachedAt, cachedWeekIsOpen));
+      setStatusFilterTouched(false);
+      setLoading(false);
+      setRefreshing(true);
+    } else if (isInitialLoad) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
+    setMessage("");
+
+    try {
+      const url = new URL("/api/app-data", window.location.origin);
+      if (nextWeek != null) url.searchParams.set("week", String(nextWeek));
+      const response = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.sessionStorage.removeItem(appDataCacheKey(nextWeek));
+          window.localStorage.removeItem("pickem_session_token");
+          window.localStorage.removeItem("pickem_profile");
+          window.location.replace("/login");
+          return;
+        }
+        setMessage(payload.error || "Could not load app data.");
         return;
       }
-      setMessage(payload.error || "Could not load app data.");
+      const loadedAt = Date.now();
+      const loadedWeekIsOpen = !payload.weekOpenTime || new Date(payload.weekOpenTime).getTime() <= loadedAt;
+      setData(payload);
+      setWeek(payload.week);
+      if (!cachedPayload) {
+        setStatusFilter(defaultBoardStatus(payload.games || [], loadedAt, loadedWeekIsOpen));
+        setStatusFilterTouched(false);
+      }
+      writeCachedAppData(nextWeek, payload);
+    } catch {
+      if (!cachedPayload) setMessage("Could not load app data.");
+    } finally {
       setLoading(false);
       setRefreshing(false);
-      return;
     }
-    const loadedAt = Date.now();
-    const loadedWeekIsOpen = !payload.weekOpenTime || new Date(payload.weekOpenTime).getTime() <= loadedAt;
-    setData(payload);
-    setWeek(payload.week);
-    setStatusFilter(defaultBoardStatus(payload.games || [], loadedAt, loadedWeekIsOpen));
-    setStatusFilterTouched(false);
-    setLoading(false);
-    setRefreshing(false);
   }
 
   useEffect(() => { load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
@@ -836,43 +912,51 @@ export default function PickemApp() {
   const viewedWeek = previewActive ? 3 : data.week;
   const viewedBankEntries = previewActive ? testWeek!.bankEntries : bankEntries;
   const rule = previewActive ? getWeekRule(3) : data.weekRule || getWeekRule(data.week);
+  const boardActive = tab === "picks" && picksView === "board";
+  const sideBetsActive = tab === "picks" && picksView === "sideBets";
+  const standingsActive = tab === "standings" && standingsView === "standings";
+  const bankActive = tab === "standings" && standingsView === "bank";
   const myPicks = viewedPicks.filter((p) => p.user_id === currentUser.id && p.week === viewedWeek);
   const cardPicks = previewActive ? myPicks : stagedPicks ?? myPicks;
-  const cardIsLocked = cardPicks.length > 0 && cardPicks.every((pick) => {
+  const cardIsLocked = tab === "card" && cardView === "mine" && cardPicks.length > 0 && cardPicks.every((pick) => {
     const game = viewedGames.find((item) => item.id === pick.game_id) || pick.game;
     return pick.status === "locked" || Boolean(game && isClosed(game));
   });
   const myRegular = cardPicks.filter((p) => p.pick_type === "regular");
   const myUnderdog = cardPicks.find((p) => p.pick_type === "underdog");
   const regularCounts = countRegularByLeague(cardPicks, viewedGames);
-  const seasonStandings = previewActive ? testWeek!.standings : completeSeasonStandings(profiles, standings);
+  const seasonStandings = standingsActive ? (previewActive ? testWeek!.standings : completeSeasonStandings(profiles, standings)) : [];
   const selectedStandingsWeek = standingsWeek ?? data.week;
-  const weeklyStandings = previewActive
+  const weeklyStandings = !standingsActive
+    ? []
+    : previewActive
     ? testWeek!.standings
     : data.weeklyStandingsByWeek?.[String(selectedStandingsWeek)] || (selectedStandingsWeek === data.week ? computeWeeklyStandings(profiles, picks) : computeWeeklyStandings(profiles, []));
   const selectedBankWeek = bankWeek ?? data.week;
-  const selectedBankData = selectedBankWeek === data.week ? data : bankWeekData?.week === selectedBankWeek ? bankWeekData : null;
+  const selectedBankData = !bankActive ? null : selectedBankWeek === data.week ? data : bankWeekData?.week === selectedBankWeek ? bankWeekData : null;
   const bankResultWeek = previewActive ? 3 : selectedBankWeek;
   const bankResultGames = previewActive ? testWeek!.games : selectedBankData?.games || [];
   const bankResultPicks = previewActive ? testWeek!.picks : selectedBankData?.picks || [];
-  const bankWeekStandings = previewActive
+  const bankWeekStandings = !bankActive
+    ? []
+    : previewActive
     ? testWeek!.standings
     : selectedBankData?.weeklyStandingsByWeek?.[String(bankResultWeek)] || computeWeeklyStandings(profiles, bankResultPicks);
-  const bankWeekAmounts = Object.fromEntries(profiles.map((profile) => {
+  const bankWeekAmounts = bankActive ? Object.fromEntries(profiles.map((profile) => {
     const entries = viewedBankEntries.filter((entry) => entry.week === bankResultWeek && entry.user_id === profile.id);
     return [profile.id, entries.length ? entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : null];
-  }));
-  const standingsWeeks = availableWeeks.filter((availableWeek) => availableWeek <= data.week).sort((a, b) => b - a);
+  })) : {};
+  const standingsWeeks = tab === "standings" ? availableWeeks.filter((availableWeek) => availableWeek <= data.week).sort((a, b) => b - a) : [];
   const weekIsOpen = !previewActive && (!data.weekOpenTime || new Date(data.weekOpenTime) <= new Date());
-  const leagueCardsHidden = viewedGames.some((game) => !isClosed(game));
+  const leagueCardsHidden = tab === "card" && cardView === "group" && viewedGames.some((game) => !isClosed(game));
   const incomingOffers = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
   const pendingOfferCount = incomingOffers.filter((bet) => bet.status === "open" && bet.targets?.some((target) => target.recipient_id === currentUser.id && target.response === "pending")).length;
-  const bankTotals = profiles.map((profile) => ({
+  const bankTotals = bankActive ? profiles.map((profile) => ({
     id: profile.id,
     display_name: profile.display_name,
     total: viewedBankEntries.filter((entry) => entry.user_id === profile.id).reduce((sum, entry) => sum + Number(entry.amount || 0), 0) + Number(viewedSideBetBankTotals?.[profile.id] || 0)
-  })).sort((a, b) => b.total - a.total);
-  const openBetGames = games.filter((game) => !hasChargers(game) && new Date(game.commence_time) > new Date() && game.current_spread != null && game.current_spread_team);
+  })).sort((a, b) => b.total - a.total) : [];
+  const openBetGames = sideBetsActive ? games.filter((game) => !hasChargers(game) && new Date(game.commence_time) > new Date() && game.current_spread != null && game.current_spread_team) : [];
   const filteredBetGames = openBetGames.filter((game) => game.league === betLeagueFilter && (betLeagueFilter === "NFL" || betConferenceFilter === "ALL" || gameConferences(game).includes(betConferenceFilter)));
   const selectedBetGame = filteredBetGames.find((game) => game.id === betGameId);
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : "";
@@ -885,7 +969,7 @@ export default function PickemApp() {
     setStagedPicks(matchesSaved ? null : nextCard);
   }
 
-  const filteredGames = viewedGames.filter((g) => {
+  const filteredGames = boardActive ? viewedGames.filter((g) => {
     if (hasChargers(g)) return false;
     if (boardStatusForGame(g, clock, weekIsOpen) !== statusFilter) return false;
     if (leagueFilter === "CFB") {
@@ -896,7 +980,7 @@ export default function PickemApp() {
       isChargersTeam(team) ? 0 : teamDogValue(g, team)
     ));
     return dogValue > 0 && (dogValueFilter === "ALL" || dogValue === Number(dogValueFilter));
-  }).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
+  }).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime()) : [];
   const gameGroups = filteredGames.reduce<Array<{ key: string; label: string; shortDay: string; games: Game[] }>>((groups, game) => {
     const key = gameDayKey(game.commence_time);
     const existingGroup = groups[groups.length - 1];
@@ -1156,11 +1240,11 @@ export default function PickemApp() {
         </div>
       </section>}
     </main>
-    {tab === "picks" && picksView === "board" && stagedPicks !== null && <button className="floating-review" onClick={() => { setTab("card"); setCardView("mine"); }}>
+    {tab === "picks" && picksView === "board" && stagedPicks !== null && !toast && <button className="floating-review" onClick={() => { setTab("card"); setCardView("mine"); }}>
       <span><b>Unsaved picks</b><small>Review your card before games lock</small></span>
       <strong>Review & save <ChevronRight size={17} /></strong>
     </button>}
-    {tab === "card" && cardView === "mine" && !previewActive && stagedPicks !== null && <button className="sticky-card-save" disabled={savingPicks} onClick={() => savePicks(cardPicks)}><Save size={17} /> {savingPicks ? "Saving picks…" : "Save picks"}</button>}
+    {tab === "card" && cardView === "mine" && !previewActive && stagedPicks !== null && !toast && <button className="sticky-card-save" disabled={savingPicks} onClick={() => savePicks(cardPicks)}><Save size={17} /> {savingPicks ? "Saving picks…" : "Save picks"}</button>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span>{toast.message}</span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={17} /></button></div>}
   </div>;
 }

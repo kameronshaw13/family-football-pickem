@@ -28,6 +28,28 @@ export async function GET(req: NextRequest) {
     const now = new Date().toISOString();
     const requestedWeek = req.nextUrl.searchParams.get("week");
 
+    // Start independent reads immediately so authentication and game reconciliation
+    // do not leave the rest of the dashboard data waiting in a serial queue.
+    const profilesPromise = Promise.resolve(
+      supabase.from("profiles").select("id,username,display_name,is_admin").order("display_name", { ascending: true })
+    );
+    const allLockedPicksPromise = Promise.resolve(
+      supabase
+        .from("picks")
+        .select("user_id,week,pick_type,status,result,underdog_win_value")
+        .eq("status", "locked")
+    );
+    const bankSettingsPromise = Promise.resolve(
+      supabase.from("bank_settings").select("*").eq("id", 1).maybeSingle()
+    );
+    const bankEntriesPromise = Promise.resolve(
+      supabase
+        .from("bank_entries")
+        .select("*, profile:profiles(display_name)")
+        .order("week", { ascending: false })
+        .order("created_at", { ascending: false })
+    );
+
     const { data: rawGames, error: gameError } = await supabase.from("games").select("*").order("commence_time", { ascending: true });
     if (gameError) return NextResponse.json({ ok: false, error: gameError.message }, { status: 500 });
     const requestTime = new Date();
@@ -120,21 +142,14 @@ export async function GET(req: NextRequest) {
       bankEntriesResult,
       sideBetsResult
     ] = await Promise.all([
-      supabase.from("profiles").select("id,username,display_name,is_admin").order("display_name", { ascending: true }),
+      profilesPromise,
       supabase
         .from("picks")
         .select("*, game:games(*), profile:profiles(id,username,display_name,is_admin)")
         .eq("week", week),
-      supabase
-        .from("picks")
-        .select("user_id,week,pick_type,status,result,underdog_win_value")
-        .eq("status", "locked"),
-      supabase.from("bank_settings").select("*").eq("id", 1).maybeSingle(),
-      supabase
-        .from("bank_entries")
-        .select("*, profile:profiles(display_name)")
-        .order("week", { ascending: false })
-        .order("created_at", { ascending: false }),
+      allLockedPicksPromise,
+      bankSettingsPromise,
+      bankEntriesPromise,
       supabase
         .from("side_bets")
         .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
@@ -184,9 +199,16 @@ export async function GET(req: NextRequest) {
     }
 
     const standingsWeeks = Array.from(new Set(allGames.map((game) => Number(game.week))));
+    const lockedPicksByWeek = new Map<number, any[]>();
+    for (const pick of allLockedPicks || []) {
+      const pickWeek = Number(pick.week);
+      const weekPicks = lockedPicksByWeek.get(pickWeek);
+      if (weekPicks) weekPicks.push(pick);
+      else lockedPicksByWeek.set(pickWeek, [pick]);
+    }
     const weeklyStandingsByWeek = Object.fromEntries(standingsWeeks.map((standingWeek) => [
       String(standingWeek),
-      computeWeeklyStandings(profiles || [], (allLockedPicks || []).filter((pick) => Number(pick.week) === standingWeek) as any)
+      computeWeeklyStandings(profiles || [], lockedPicksByWeek.get(standingWeek) || [])
     ]));
     const standings = computeWeeklyStandings(profiles || [], (allLockedPicks || []) as any);
 
@@ -201,16 +223,19 @@ export async function GET(req: NextRequest) {
     const expiredIds = reconciledSideBets
       .filter((bet: any) => bet.status === "open" && bet.game && new Date(bet.game.commence_time) <= new Date())
       .map((bet: any) => bet.id);
+    const expiredIdSet = new Set(expiredIds);
     if (expiredIds.length) {
-      await supabase.from("side_bets").update({ status: "expired", updated_at: now }).in("id", expiredIds).eq("status", "open");
-      await supabase.from("side_bet_targets").update({ response: "closed", responded_at: now }).in("side_bet_id", expiredIds).eq("response", "pending");
+      await Promise.all([
+        supabase.from("side_bets").update({ status: "expired", updated_at: now }).in("id", expiredIds).eq("status", "open"),
+        supabase.from("side_bet_targets").update({ response: "closed", responded_at: now }).in("side_bet_id", expiredIds).eq("response", "pending")
+      ]);
     }
 
     const sideBets = reconciledSideBets.filter((bet: any) =>
       bet.creator_id === profile.id || bet.accepted_by === profile.id || bet.targets?.some((target: any) => target.recipient_id === profile.id)
-    ).map((bet: any) => expiredIds.includes(bet.id) ? { ...bet, status: "expired" } : bet);
+    ).map((bet: any) => expiredIdSet.has(bet.id) ? { ...bet, status: "expired" } : bet);
     const sideBetSlotCountsByPlayer = sideBetSlotCounts(
-      reconciledSideBets.filter((bet: any) => bet.week === week && !expiredIds.includes(bet.id)),
+      reconciledSideBets.filter((bet: any) => bet.week === week && !expiredIdSet.has(bet.id)),
       (profiles || []).map((player: any) => player.id)
     );
 
