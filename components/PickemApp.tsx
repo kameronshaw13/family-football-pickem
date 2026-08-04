@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import { CalendarRange, Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, ClipboardCheck, Dog, EyeOff, FlaskConical, HandCoins, Handshake, Landmark, LoaderCircle, LockKeyhole, Save, Send, Shield, ShieldCheck, Sparkles, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { BookOpenCheck, CalendarRange, Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, ClipboardCheck, Dog, EyeOff, FlaskConical, HandCoins, Handshake, Landmark, LoaderCircle, LockKeyhole, Save, Send, Shield, ShieldCheck, Sparkles, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
@@ -1171,7 +1171,7 @@ export default function PickemApp() {
             {leagueFilter === "CFB" && <ConferenceFilter value={conferenceFilter} onChange={setConferenceFilter} />}
             {leagueFilter === "DOGS" && <MenuSelect ariaLabel="Filter dogs by win value" className="compact-select context-select" value={dogValueFilter} sections={[{ options: [{ value: "ALL", label: "ALL DOGS" }, ...(["1", "2", "3"] as const).map((value) => ({ value, label: `+${value}W` }))] }]} onChange={(value) => setDogValueFilter(value as DogValueFilter)} />}
           </div>
-          {filteredGames.length === 0 && <div className="empty-state">No {statusFilter.toLowerCase()} {leagueFilter === "DOGS" ? "dog" : leagueFilter} games.</div>}
+          {filteredGames.length === 0 && <div className="empty-state board-empty-state">No {statusFilter.toLowerCase()} {leagueFilter === "DOGS" ? "dog" : leagueFilter} games.</div>}
           <div className="game-days">
             {gameGroups.map((group) => <div className={`game-day-group ${statusFilter === "FINAL" ? "past-day-group" : ""}`} key={group.key}>
               <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong></div>
@@ -1256,7 +1256,7 @@ export default function PickemApp() {
       </section>}
 
       {tab === "rules" && <section className="panel rules-panel">
-        <div className="section-title"><Shield size={19} /><div><h2>League rules</h2></div></div>
+        <div className="section-title"><BookOpenCheck size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
           <RuleItem icon={CalendarRange} title="Season schedule"><ul><li><NumericText text="The season runs for 20 weeks." /></li><li><NumericText text="It begins with two CFB-only weeks before NFL games start and ends Sunday, Jan. 10, after the final NFL regular-season games." /></li><li>Each week runs from Tuesday through the following Monday.</li></ul></RuleItem>
           <RuleItem icon={ClipboardCheck} title="Weekly card"><ul><li><NumericText text="Week 1: 3 CFB picks plus 1 dog." /></li><li><NumericText text="Week 2: 5 CFB picks plus 1 dog." /></li><li><NumericText text="Weeks 3–20: 5 picks, including at least 1 CFB and 1 NFL pick, plus 1 dog." /></li></ul></RuleItem>
