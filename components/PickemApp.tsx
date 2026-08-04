@@ -1228,15 +1228,15 @@ export default function PickemApp() {
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
-          <RuleItem icon={CalendarDays} title="Season schedule"><ul><li>The season is 20 weeks long.</li><li>The season starts with two CFB-only weeks before NFL games start and ends on Sunday, Jan. 10, after the final regular-season NFL games.</li><li>Each week starts on Tuesday and ends on the following Monday.</li></ul></RuleItem>
-          <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks + dog.</li><li>Week 2: 5 CFB picks + dog.</li><li>Weeks 3 to 20: 5 picks with at least 1 CFB and 1 NFL + dog.</li></ul></RuleItem>
-          <RuleItem icon={Shield} title="Eligible games"><ul><li>All Chargers games are excluded.</li><li>College football games must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
-          <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5 = +1W.</li><li>+10 to +19.5 = +2W.</li><li>+20 or more = +3W.</li><li>The dog must win outright.</li><li>A missed dog does not add a loss.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings use win percentage.</li><li>Equal percentages are broken by total wins.</li><li>The season winner wins $300.</li><li>Second place loses $100.</li><li>Last place loses $200.</li></ul></RuleItem>
-          <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last pays $20 to first.</li><li>Second pays $10 to first.</li><li>Tied last pays $15 each to first.</li><li>Tied first splits $20 from last.</li><li>A three-way tie pays $0.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Perfect week"><ul><li>Will not be applied during Week 1.</li><li>A perfect card doubles all weekly payments.</li></ul></RuleItem>
-          <RuleItem icon={Lock} title="Pick locks"><ul><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Tue-Fri picks close at kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Sat-Mon picks close Friday at 8 PM CT.</li></ul></RuleItem>
-          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>$20 maximum per bet.</li><li>Each person gets 3 side bets per week.</li><li>Accepted and pending offers count toward the limit.</li><li>Offers open with the week on Tuesday at 8:00 AM CT.</li><li>Tue-Fri lines freeze 1 hour before kickoff.</li><li>Sat-Mon lines freeze Friday at 7 PM CT.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets go directly into the bank.</li></ul></RuleItem>
+          <RuleItem icon={CalendarDays} title="Season schedule"><ul><li>The season runs for 20 weeks.</li><li>It begins with two CFB-only weeks before NFL games start and ends Sunday, Jan. 10, after the final NFL regular-season games.</li><li>Each week runs from Tuesday through the following Monday.</li></ul></RuleItem>
+          <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks plus 1 dog.</li><li>Week 2: 5 CFB picks plus 1 dog.</li><li>Weeks 3–20: 5 picks, including at least 1 CFB and 1 NFL pick, plus 1 dog.</li></ul></RuleItem>
+          <RuleItem icon={Shield} title="Eligible games"><ul><li>Chargers games are ineligible.</li><li>Each CFB game must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
+          <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5: +1 win.</li><li>+10 to +19.5: +2 wins.</li><li>+20 or more: +3 wins.</li><li>The dog must win outright.</li><li>A losing dog does not add a loss.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings are ranked by win percentage.</li><li>Win-percentage ties are broken by total wins.</li><li>The season winner wins $300.</li><li>Second place loses $100.</li><li>Last place loses $200.</li></ul></RuleItem>
+          <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last place pays first place $20.</li><li>Second place pays first place $10.</li><li>If last place is tied, each tied player pays first place $15.</li><li>If first place is tied, the tied players split $20 from last place.</li><li>A three-way tie has no payment.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Perfect week"><ul><li>Does not apply in Week 1.</li><li>A perfect card doubles every weekly payment.</li></ul></RuleItem>
+          <RuleItem icon={Lock} title="Pick locks"><ul><li>Tuesday–Friday lines freeze 1 hour before kickoff.</li><li>Tuesday–Friday picks lock at kickoff.</li><li>Saturday–Monday lines freeze Friday at 7:00 PM CT.</li><li>Saturday–Monday picks lock Friday at 8:00 PM CT.</li></ul></RuleItem>
+          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>Maximum: $20 per bet.</li><li>Each player has 3 side-bet slots per week.</li><li>Accepted and pending offers count toward the 3-bet limit.</li><li>Offers open Tuesday at 8:00 AM CT with the new week.</li><li>Tuesday–Friday lines freeze 1 hour before kickoff.</li><li>Saturday–Monday lines freeze Friday at 7:00 PM CT.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets post directly to the bank.</li></ul></RuleItem>
         </div>
       </section>}
     </main>
@@ -1279,7 +1279,7 @@ function RankNumber({ rank, className }: { rank: number; className: string }) {
 
 function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null> }) {
   return <div className="bank-week-results">
-    <div className="bank-results-labels"><span>Player</span><span>Record</span><span>Balance</span><span aria-hidden="true" /></div>
+    <div className="bank-results-labels"><span>Player</span><span>Balance</span><span>Record</span><span aria-hidden="true" /></div>
     {rows.map((row) => {
     const playerPicks = picks
       .filter((pick) => pick.user_id === row.user_id)
@@ -1292,7 +1292,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
       });
     const amount = amounts[row.user_id];
     return <details className="bank-player-result" key={row.user_id}>
-      <summary><strong className="bank-result-player">{row.display_name}</strong><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><ChevronDown size={16} /></summary>
+      <summary><strong className="bank-result-player">{row.display_name}</strong><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><ChevronDown size={16} /></summary>
       {!playerPicks.length && <p className="muted">No visible picks yet.</p>}
       {playerPicks.map((pick) => {
         const game = games.find((item) => item.id === pick.game_id) || pick.game;
