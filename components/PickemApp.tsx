@@ -1245,7 +1245,7 @@ export default function PickemApp() {
       <strong>Review & save <ChevronRight size={17} /></strong>
     </button>}
     {tab === "card" && cardView === "mine" && !previewActive && stagedPicks !== null && !toast && <button className="sticky-card-save" disabled={savingPicks} onClick={() => savePicks(cardPicks)}><Save size={17} /> {savingPicks ? "Saving picks…" : "Save picks"}</button>}
-    {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span>{toast.message}</span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={17} /></button></div>}
+    {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span>{toast.message}</span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
   </div>;
 }
 
@@ -1279,7 +1279,7 @@ function RankNumber({ rank, className }: { rank: number; className: string }) {
 
 function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null> }) {
   return <div className="bank-week-results">
-    <div className="bank-results-labels"><span>Player</span><span>Balance</span><span>Record</span><span aria-hidden="true" /></div>
+    <div className="bank-results-labels"><span>Player</span><span>Record</span><span>Balance</span><span aria-hidden="true" /></div>
     {rows.map((row) => {
     const playerPicks = picks
       .filter((pick) => pick.user_id === row.user_id)
@@ -1292,7 +1292,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
       });
     const amount = amounts[row.user_id];
     return <details className="bank-player-result" key={row.user_id}>
-      <summary><strong className="bank-result-player">{row.display_name}</strong><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><ChevronDown size={16} /></summary>
+      <summary><strong className="bank-result-player">{row.display_name}</strong><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><ChevronDown size={16} /></summary>
       {!playerPicks.length && <p className="muted">No visible picks yet.</p>}
       {playerPicks.map((pick) => {
         const game = games.find((item) => item.id === pick.game_id) || pick.game;
@@ -1316,7 +1316,7 @@ function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {
   }
 
   return <div className="leaderboard">
-    <div className="leaderboard-labels"><span>Rank</span><span>Player</span><span>W</span><span>L</span><span>P</span><span>Win %</span></div>
+    <div className="leaderboard-labels"><span>Place</span><span>Player</span><span>W</span><span>L</span><span>P</span><span>Win %</span></div>
     {rows.map((row, index) => {
       const rank = rankFor(index);
       const hasResults = row.wins + row.losses + row.pushes > 0;

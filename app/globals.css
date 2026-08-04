@@ -205,8 +205,8 @@ p { margin: 0; }
 .toast.error { background: #9f403c; }
 .toast > span { min-width: 0; flex: 1 1 auto; }
 .toast-status-icon { flex: 0 0 auto; }
-.toast-close { display: grid; width: 28px; height: 28px; flex: 0 0 28px; place-items: center; padding: 0; border: 1px solid rgba(255, 255, 255, .3); border-radius: 4px; color: #fff; background: rgba(0, 0, 0, .08); }
-.toast-close svg { display: block; width: 17px; height: 17px; margin: 0; }
+.toast-close { display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; padding: 0; border: 1px solid rgba(255, 255, 255, .3); border-radius: 4px; color: #fff; background: rgba(0, 0, 0, .08); }
+.toast-close svg { display: block; width: 16px; height: 16px; margin: 0; }
 
 .card-progress { margin-bottom: var(--space-4); padding: var(--space-3); border-block: 1px solid var(--line); border-left: 3px solid var(--line-strong); background: var(--saved); }
 .card-progress.complete { border-left-color: var(--green); }
@@ -373,7 +373,7 @@ fieldset .field-label { padding: 0; }
 .leaderboard-row:last-child { border-bottom: 0; }
 .leaderboard-labels > span, .leaderboard-row > span, .leaderboard-row > strong, .leaderboard-player { display: flex; height: 100%; align-items: center; justify-content: center; line-height: 1.2; text-align: center; }
 .leaderboard-labels span:nth-child(2), .leaderboard-player { justify-content: flex-start; text-align: left; }
-.leaderboard-rank { color: var(--muted); font-family: var(--font-display); font-size: 14px; font-weight: 900; line-height: 1; }
+.leaderboard-rank { color: var(--muted); font-family: var(--font-display); font-size: 14px; font-weight: 800; line-height: 1.2; }
 .leaderboard-rank.rank-1 { color: var(--rank-gold); }
 .leaderboard-rank.rank-2 { color: var(--rank-silver); }
 .leaderboard-rank.rank-3 { color: var(--rank-bronze); }
@@ -405,12 +405,12 @@ fieldset .field-label { padding: 0; }
 .money-neutral { color: var(--ink); }
 .bank-section { margin-top: var(--space-4); }
 .bank-week-results { border-block: 1px solid var(--line); background: var(--panel); }
-.bank-results-labels { display: grid; height: var(--data-header-height); min-height: var(--data-header-height); grid-template-columns: minmax(0, 1fr) 58px 48px 18px; align-items: center; gap: 8px; padding: 0 11px 0 var(--bank-content-inset); border-bottom: 1px solid var(--line); color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
+.bank-results-labels { display: grid; height: var(--data-header-height); min-height: var(--data-header-height); grid-template-columns: minmax(0, 1fr) 48px 58px 18px; align-items: center; gap: 8px; padding: 0 11px 0 var(--bank-content-inset); border-bottom: 1px solid var(--line); color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .bank-results-labels > span:first-child { text-align: left; }
 .bank-results-labels > span:nth-child(2), .bank-results-labels > span:nth-child(3) { display: flex; height: 100%; align-items: center; justify-content: flex-end; text-align: right; }
 .bank-player-result { position: relative; }
 .bank-player-result:not(:last-child)::after { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--line); content: ""; pointer-events: none; }
-.bank-player-result > summary { display: grid; height: var(--data-row-height); min-height: var(--data-row-height); grid-template-columns: minmax(0, 1fr) 58px 48px 18px; align-items: center; gap: 8px; padding: 8px 11px 8px var(--bank-content-inset); border-bottom: 1px solid transparent; list-style: none; cursor: pointer; outline: 0; background: var(--panel); -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
+.bank-player-result > summary { display: grid; height: var(--data-row-height); min-height: var(--data-row-height); grid-template-columns: minmax(0, 1fr) 48px 58px 18px; align-items: center; gap: 8px; padding: 8px 11px 8px var(--bank-content-inset); border-bottom: 1px solid transparent; list-style: none; cursor: pointer; outline: 0; background: var(--panel); -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
 .bank-player-result > summary:active { background: var(--panel); }
 .bank-player-result > summary::marker { content: ""; }
 .bank-player-result > summary::-webkit-details-marker { display: none; }
