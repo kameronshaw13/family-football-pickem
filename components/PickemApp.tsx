@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { CalendarDays, Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Lock, Save, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
@@ -397,6 +397,36 @@ function sideBetAmountForUser(bet: SideBet, userId: string) {
 }
 function pctText(value: number) {
   return `${(Number(value || 0) * 100).toFixed(1)}%`;
+}
+
+function NumericText({ text }: { text: string | number }) {
+  const value = String(text);
+  const pattern = /([+-]?\$?)(\d+)(?:\.(\d+))?([%W])?/g;
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  let match = pattern.exec(value);
+
+  while (match) {
+    if (match.index > cursor) parts.push(value.slice(cursor, match.index));
+    const [token, prefix, whole, fraction, suffix] = match;
+    parts.push(
+      <span className="numeric-token" key={`${match.index}-${token}`}>
+        {prefix && <span className="numeric-prefix">{prefix}</span>}
+        {whole}
+        {fraction != null && <><span className="numeric-decimal">.</span>{fraction}</>}
+        {suffix}
+      </span>
+    );
+    cursor = match.index + token.length;
+    match = pattern.exec(value);
+  }
+
+  if (cursor < value.length) parts.push(value.slice(cursor));
+  return <>{parts}</>;
+}
+
+function RecordText({ wins, losses, pushes }: { wins: number; losses: number; pushes: number }) {
+  return <>{wins}<span className="numeric-separator">-</span>{losses}<span className="numeric-separator">-</span>{pushes}</>;
 }
 
 function completeSeasonStandings(profiles: Profile[], rows: Standing[]) {
@@ -1211,7 +1241,7 @@ export default function PickemApp() {
           <div className="scoreboard-heading heading-with-icon"><Landmark size={19} /><h2>Bank Balances</h2></div>
           <div className="bank-summary-grid">
             <div className="bank-summary-head"><span>Player</span><span>Balance</span></div>
-            {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}>{money(row.total)}</strong></div>)}
+            {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}><NumericText text={money(row.total)} /></strong></div>)}
           </div>
           <div className="subsection bank-section bank-week-section">
             <div className="standings-heading-row">
@@ -1292,7 +1322,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
       });
     const amount = amounts[row.user_id];
     return <details className="bank-player-result" key={row.user_id}>
-      <summary><strong className="bank-result-player">{row.display_name}</strong><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : money(amount)}</span><span className="bank-result-record">{row.wins}-{row.losses}-{row.pushes}</span><ChevronDown size={16} /></summary>
+      <summary><strong className="bank-result-player">{row.display_name}</strong><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : <NumericText text={money(amount)} />}</span><span className="bank-result-record"><RecordText wins={row.wins} losses={row.losses} pushes={row.pushes} /></span><ChevronDown size={16} /></summary>
       {!playerPicks.length && <p className="muted">No visible picks yet.</p>}
       {playerPicks.map((pick) => {
         const game = games.find((item) => item.id === pick.game_id) || pick.game;
@@ -1300,7 +1330,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
         const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
-          <div><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span></>}</strong><p>{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)} · ${cardGameStateText(game, true)}` : "Matchup unavailable"}</p></div>
+          <div><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} <NumericText text={spreadText(displayedSpread)} /> {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</strong><p>{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)} · ${cardGameStateText(game, true)}` : "Matchup unavailable"}</p></div>
           <span className={`test-result ${pick.result}`}>{resultLabel}</span>
         </div>;
       })}
@@ -1327,7 +1357,7 @@ function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {
         <span className="leaderboard-stat">{row.wins}</span>
         <span className="leaderboard-stat">{row.losses}</span>
         <span className="leaderboard-stat">{row.pushes}</span>
-        <strong className={`leaderboard-pct ${pctTone}`}>{pctText(row.win_pct)}</strong>
+        <strong className={`leaderboard-pct ${pctTone}`}><NumericText text={pctText(row.win_pct)} /></strong>
       </div>;
     })}
   </div>;
@@ -1539,7 +1569,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
     {view === "new" && selectedGame && selectedCreatorTeam && !slipExpanded && <button className="side-bet-slip-bar" type="button" aria-expanded="false" onClick={() => setSlipExpanded(true)}>
       <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
-      <span className="side-bet-slip-copy"><span className="team-name">{displayTeamName(selectedGame, selectedCreatorTeam)}</span><span className="team-spread">{spreadText(creatorSpread)}</span></span>
+      <span className="side-bet-slip-copy"><span className="team-name">{displayTeamName(selectedGame, selectedCreatorTeam)}</span><span className="team-spread"><NumericText text={spreadText(creatorSpread)} /></span></span>
       <span className="side-bet-slip-open"><ChevronUp size={17} /></span>
     </button>}
 
@@ -1551,13 +1581,13 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
         <div className="team-row side-bet-slip-selection">
           <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
-          <span className="side-bet-slip-team-choice"><span className="team-name">{displayTeamName(selectedGame, selectedCreatorTeam)}</span><span className="team-spread">{spreadText(creatorSpread)}</span></span>
+          <span className="side-bet-slip-team-choice"><span className="team-name">{displayTeamName(selectedGame, selectedCreatorTeam)}</span><span className="team-spread"><NumericText text={spreadText(creatorSpread)} /></span></span>
           <button type="button" className="slip-icon-btn side-bet-selection-clear" aria-label="Clear selected team" onClick={clearSlip}><X size={18} /></button>
         </div>
 
         <section className="side-bet-slip-section">
           <div className="side-bet-slip-section-head"><span>Amount</span></div>
-          <div className="side-bet-amount-grid">{["20", "15", "10", "5"].map((value) => <button type="button" key={value} className={amount === value ? "active" : ""} aria-pressed={amount === value} onClick={() => setAmount(value)}>${value}</button>)}</div>
+          <div className="side-bet-amount-grid">{["20", "15", "10", "5"].map((value) => <button type="button" key={value} className={amount === value ? "active" : ""} aria-pressed={amount === value} onClick={() => setAmount(value)}><NumericText text={`$${value}`} /></button>)}</div>
         </section>
 
         <section className="side-bet-slip-section">
@@ -1569,8 +1599,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         </section>
 
         <div className="side-bet-slip-summary">
-          <div><span>You keep</span><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} {spreadText(creatorSpread)}</strong></div>
-          <div><span>They get</span><strong>{displayTeamName(selectedGame, offeredTeam)} {spreadText(creatorSpread == null ? null : -creatorSpread)}</strong></div>
+          <div><span>You keep</span><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} <NumericText text={spreadText(creatorSpread)} /></strong></div>
+          <div><span>They get</span><strong>{displayTeamName(selectedGame, offeredTeam)} <NumericText text={spreadText(creatorSpread == null ? null : -creatorSpread)} /></strong></div>
         </div>
         <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
       </section>}
@@ -1581,10 +1611,10 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     {confirmingBet && <div className="confirmation-backdrop">
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title">
         <div className="confirmation-icon"><CircleDollarSign size={22} /></div>
-        <div className="confirmation-heading"><span>Review side bet</span><h2 id="accept-bet-title">Accept {stakeMoney(Number(confirmingBet.amount))} bet?</h2></div>
+        <div className="confirmation-heading"><span>Review side bet</span><h2 id="accept-bet-title">Accept <NumericText text={stakeMoney(Number(confirmingBet.amount))} /> bet?</h2></div>
         <div className="confirmation-matchup">
-          <div><span>You take</span><strong>{confirmingBet.game ? displayTeamName(confirmingBet.game, confirmingBet.offered_team) : confirmingBet.offered_team} {spreadText(Number(confirmingBet.offered_spread))}</strong></div>
-          <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? displayTeamName(confirmingBet.game, confirmingBet.creator_team) : confirmingBet.creator_team} {spreadText(Number(confirmingBet.creator_spread))}</strong></div>
+          <div><span>You take</span><strong>{confirmingBet.game ? displayTeamName(confirmingBet.game, confirmingBet.offered_team) : confirmingBet.offered_team} <NumericText text={spreadText(Number(confirmingBet.offered_spread))} /></strong></div>
+          <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? displayTeamName(confirmingBet.game, confirmingBet.creator_team) : confirmingBet.creator_team} <NumericText text={spreadText(Number(confirmingBet.creator_spread))} /></strong></div>
         </div>
         {confirmingBet.game && <p className="confirmation-kickoff">{dt(confirmingBet.game.commence_time)}</p>}
         <div className="confirmation-actions"><button className="btn secondary" disabled={saving} onClick={() => setConfirmingBetId(null)}>Cancel</button><button className="btn accept" disabled={saving} onClick={acceptConfirmedBet}><Check size={16} /> {saving ? "Accepting…" : "Accept bet"}</button></div>
@@ -1607,7 +1637,7 @@ function SideBetGameCard({ game, selectedTeam, disabled, onSelect }: { game: Gam
       >
         <TeamLogo url={logoForTeam(game, team)} name={team} />
         <span className="team-name">{displayTeamName(game, team)}</span>
-        <span className="team-spread">{spreadForTeam(game, team)}</span>
+        <span className="team-spread"><NumericText text={spreadForTeam(game, team)} /></span>
       </button>)}
     </div>
   </article>;
@@ -1664,8 +1694,8 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""}`}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, creatorSideTeam) : null} name={creatorSideTeam} />
-      <div className="side-bet-offer-copy"><strong>{matchupText}</strong><p>{actionFirst ? <><span className={`side-bet-response ${responseTone}`}>{responseAction}</span> {responseName}</> : <>{responseName} <span className={`side-bet-response ${responseTone}`}>{responseAction}</span></>} {offeredSideName} {spreadText(offeredSideSpread)}{game ? ` · ${dt(game.commence_time)}` : ""}</p></div>
-      <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}>{amountDisplay.text}</strong>
+      <div className="side-bet-offer-copy"><strong><NumericText text={matchupText} /></strong><p>{actionFirst ? <><span className={`side-bet-response ${responseTone}`}>{responseAction}</span> {responseName}</> : <>{responseName} <span className={`side-bet-response ${responseTone}`}>{responseAction}</span></>} {offeredSideName} <NumericText text={spreadText(offeredSideSpread)} />{game ? ` · ${dt(game.commence_time)}` : ""}</p></div>
+      <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
     </div>
     {mode === "received" && offerOpen && <div className="actions"><button className={`btn accept ${working ? "working" : ""}`} disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : acceptDisabledText}</button><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
     {mode === "sent" && bet.status === "open" && <div className="actions"><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("cancel", bet.id)}><X size={15} /> Cancel offer</button></div>}
@@ -1687,8 +1717,8 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
   return <div className="ledger-row side-bet-ledger-row">
     {bet.result === "push" ? <span className="tie-icon" role="img" aria-label="Tie">👔</span> : <TeamLogo url={game && coveredTeam ? logoForTeam(game, coveredTeam) : null} name={coveredTeam || "Winner"} />}
-    <div><strong>{otherName} vs {favoriteName} {spreadText(favoriteSpread)}</strong><p>{creatorName} vs {acceptorName} · {winnerName ? `${winnerName} Wins` : "Push"}</p></div>
-    <strong className={amountDisplay.tone}>{amountDisplay.text}</strong>
+    <div><strong>{otherName} vs {favoriteName} <NumericText text={spreadText(favoriteSpread)} /></strong><p>{creatorName} vs {acceptorName} · {winnerName ? `${winnerName} Wins` : "Push"}</p></div>
+    <strong className={amountDisplay.tone}><NumericText text={amountDisplay.text} /></strong>
   </div>;
 }
 
@@ -1806,7 +1836,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
         {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.away_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{awayScore}</span><PossessionIcon game={game} team={game.away_team} /></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
-        {showScoreValues ? <span className="team-result-line">{awayResultLine && <span className="team-spread team-result-spread">{awayResultLine}</span>}</span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : sideLine(game.away_team)}</span></span>}
+        {showScoreValues ? <span className="team-result-line">{awayResultLine && <span className="team-spread team-result-spread"><NumericText text={awayResultLine} /></span>}</span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : <NumericText text={sideLine(game.away_team)} />}</span></span>}
       </button>
 
       <button
@@ -1817,7 +1847,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
         {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.home_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{homeScore}</span><PossessionIcon game={game} team={game.home_team} /></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
-        {showScoreValues ? <span className="team-result-line">{homeResultLine && <span className="team-spread team-result-spread">{homeResultLine}</span>}</span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : sideLine(game.home_team)}</span></span>}
+        {showScoreValues ? <span className="team-result-line">{homeResultLine && <span className="team-spread team-result-spread"><NumericText text={homeResultLine} /></span>}</span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
       </button>
     </div>
   </article>;
@@ -1867,7 +1897,7 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const gameState = game ? cardGameStateText(game, locked) : "game status unavailable";
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span></>}</p><p className="pick-meta">{matchupText} · {gameState}</p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} <NumericText text={spreadText(displayedSpread)} /> {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</p><p className="pick-meta">{matchupText} · {gameState}</p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
@@ -1880,5 +1910,5 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
   const matchup = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable";
   const gameState = game ? cardGameStateText(game, locked) : "game status unavailable";
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} {spreadText(displayedSpread)} {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog +{pick.underdog_win_value || "?"}W</span></>}</strong><p>{matchup} · {gameState}</p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} <NumericText text={spreadText(displayedSpread)} /> {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</strong><p>{matchup} · {gameState}</p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
 }
