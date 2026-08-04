@@ -401,32 +401,32 @@ function pctText(value: number) {
 
 function NumericText({ text }: { text: string | number }) {
   const value = String(text);
-  const pattern = /([+-]?\$?)(\d+)(?:\.(\d+))?([%W])?/g;
-  const parts: ReactNode[] = [];
-  let cursor = 0;
-  let match = pattern.exec(value);
+  const characters = Array.from(value);
+  const isDigit = (character?: string) => Boolean(character && /\d/.test(character));
+  const parts: ReactNode[] = characters.map((character, index) => {
+    const previousIsDigit = isDigit(characters[index - 1]);
+    const nextIsDigit = isDigit(characters[index + 1]);
 
-  while (match) {
-    if (match.index > cursor) parts.push(value.slice(cursor, match.index));
-    const [token, prefix, whole, fraction, suffix] = match;
-    parts.push(
-      <span className="numeric-token" key={`${match.index}-${token}`}>
-        {prefix && <span className="numeric-prefix">{prefix}</span>}
-        {whole}
-        {fraction != null && <><span className="numeric-decimal">.</span>{fraction}</>}
-        {suffix}
-      </span>
-    );
-    cursor = match.index + token.length;
-    match = pattern.exec(value);
-  }
+    if (character === "." && previousIsDigit && nextIsDigit) {
+      return <span className="numeric-decimal" key={index}>{character}</span>;
+    }
+    if ([":", "/", "-", "–", ","].includes(character) && previousIsDigit && nextIsDigit) {
+      return <span className="numeric-separator" key={index}>{character}</span>;
+    }
+    if (["+", "-", "$"].includes(character) && nextIsDigit) {
+      return <span className="numeric-prefix" key={index}>{character}</span>;
+    }
+    if (["%", ":"].includes(character) && previousIsDigit) {
+      return <span className="numeric-suffix" key={index}>{character}</span>;
+    }
+    return character;
+  });
 
-  if (cursor < value.length) parts.push(value.slice(cursor));
-  return <>{parts}</>;
+  return <span className="numeric-token">{parts}</span>;
 }
 
 function RecordText({ wins, losses, pushes }: { wins: number; losses: number; pushes: number }) {
-  return <>{wins}<span className="numeric-separator">-</span>{losses}<span className="numeric-separator">-</span>{pushes}</>;
+  return <NumericText text={`${wins}-${losses}-${pushes}`} />;
 }
 
 function completeSeasonStandings(profiles: Profile[], rows: Standing[]) {
@@ -1162,7 +1162,7 @@ export default function PickemApp() {
       {previewActive && <div className="test-mode-banner"><span><FlaskConical size={16} /><span><strong>Board state preview</strong><small>No real picks or bank balances are changed</small></span></span><button type="button" onClick={() => { setTestWeekActive(false); setStatusFilter(defaultBoardStatus(data.games, clock, !data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock)); setStatusFilterTouched(false); }}><X size={16} /> Exit</button></div>}
 
       {tab === "picks" && <section className="panel picks-panel">
-        {!previewActive && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens on {openText(data.weekOpenTime)}.</div>}
+        {!previewActive && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens on <NumericText text={openText(data.weekOpenTime)} />.</div>}
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: `Side Bets${pendingOfferCount ? ` (${pendingOfferCount})` : ""}` }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
           <div className="view-select-row board-filter-row">
@@ -1258,15 +1258,15 @@ export default function PickemApp() {
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><Shield size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
-          <RuleItem icon={CalendarDays} title="Season schedule"><ul><li>The season runs for 20 weeks.</li><li>It begins with two CFB-only weeks before NFL games start and ends Sunday, Jan. 10, after the final NFL regular-season games.</li><li>Each week runs from Tuesday through the following Monday.</li></ul></RuleItem>
-          <RuleItem icon={WalletCards} title="Weekly card"><ul><li>Week 1: 3 CFB picks plus 1 dog.</li><li>Week 2: 5 CFB picks plus 1 dog.</li><li>Weeks 3–20: 5 picks, including at least 1 CFB and 1 NFL pick, plus 1 dog.</li></ul></RuleItem>
+          <RuleItem icon={CalendarDays} title="Season schedule"><ul><li><NumericText text="The season runs for 20 weeks." /></li><li><NumericText text="It begins with two CFB-only weeks before NFL games start and ends Sunday, Jan. 10, after the final NFL regular-season games." /></li><li>Each week runs from Tuesday through the following Monday.</li></ul></RuleItem>
+          <RuleItem icon={WalletCards} title="Weekly card"><ul><li><NumericText text="Week 1: 3 CFB picks plus 1 dog." /></li><li><NumericText text="Week 2: 5 CFB picks plus 1 dog." /></li><li><NumericText text="Weeks 3–20: 5 picks, including at least 1 CFB and 1 NFL pick, plus 1 dog." /></li></ul></RuleItem>
           <RuleItem icon={Shield} title="Eligible games"><ul><li>Chargers games are ineligible.</li><li>Each CFB game must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
-          <RuleItem icon={Zap} title="Underdog"><ul><li>+7 to +9.5: +1 win.</li><li>+10 to +19.5: +2 wins.</li><li>+20 or more: +3 wins.</li><li>The dog must win outright.</li><li>A losing dog does not add a loss.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings are ranked by win percentage.</li><li>Win-percentage ties are broken by total wins.</li><li>The season winner wins $300.</li><li>Second place loses $100.</li><li>Last place loses $200.</li></ul></RuleItem>
-          <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li>Last place pays first place $20.</li><li>Second place pays first place $10.</li><li>If last place is tied, each tied player pays first place $15.</li><li>If first place is tied, the tied players split $20 from last place.</li><li>A three-way tie has no payment.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Perfect week"><ul><li>Does not apply in Week 1.</li><li>A perfect card doubles every weekly payment.</li></ul></RuleItem>
-          <RuleItem icon={Lock} title="Pick locks"><ul><li>Tuesday–Friday lines freeze 1 hour before kickoff.</li><li>Tuesday–Friday picks lock at kickoff.</li><li>Saturday–Monday lines freeze Friday at 7:00 PM CT.</li><li>Saturday–Monday picks lock Friday at 8:00 PM CT.</li></ul></RuleItem>
-          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li>Maximum: $20 per bet.</li><li>Each player has 3 side-bet slots per week.</li><li>Accepted and pending offers count toward the 3-bet limit.</li><li>Offers open Tuesday at 8:00 AM CT with the new week.</li><li>Tuesday–Friday lines freeze 1 hour before kickoff.</li><li>Saturday–Monday lines freeze Friday at 7:00 PM CT.</li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets post directly to the bank.</li></ul></RuleItem>
+          <RuleItem icon={Zap} title="Underdog"><ul><li><NumericText text="+7 to +9.5: +1 win." /></li><li><NumericText text="+10 to +19.5: +2 wins." /></li><li><NumericText text="+20 or more: +3 wins." /></li><li>The dog must win outright.</li><li>A losing dog does not add a loss.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings are ranked by win percentage.</li><li>Win-percentage ties are broken by total wins.</li><li><NumericText text="The season winner wins $300." /></li><li><NumericText text="Second place loses $100." /></li><li><NumericText text="Last place loses $200." /></li></ul></RuleItem>
+          <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li><NumericText text="Last place pays first place $20." /></li><li><NumericText text="Second place pays first place $10." /></li><li><NumericText text="If last place is tied, each tied player pays first place $15." /></li><li><NumericText text="If first place is tied, the tied players split $20 from last place." /></li><li>A three-way tie has no payment.</li></ul></RuleItem>
+          <RuleItem icon={Trophy} title="Perfect week"><ul><li><NumericText text="Does not apply in Week 1." /></li><li>A perfect card doubles every weekly payment.</li></ul></RuleItem>
+          <RuleItem icon={Lock} title="Pick locks"><ul><li><NumericText text="Tuesday–Friday lines freeze 1 hour before kickoff." /></li><li>Tuesday–Friday picks lock at kickoff.</li><li><NumericText text="Saturday–Monday lines freeze Friday at 7:00 PM CT." /></li><li><NumericText text="Saturday–Monday picks lock Friday at 8:00 PM CT." /></li></ul></RuleItem>
+          <RuleItem icon={Send} title="Side bets"><ul><li>Spread bets only.</li><li><NumericText text="Maximum: $20 per bet." /></li><li><NumericText text="Each player has 3 side-bet slots per week." /></li><li><NumericText text="Accepted and pending offers count toward the 3-bet limit." /></li><li><NumericText text="Offers open Tuesday at 8:00 AM CT with the new week." /></li><li><NumericText text="Tuesday–Friday lines freeze 1 hour before kickoff." /></li><li><NumericText text="Saturday–Monday lines freeze Friday at 7:00 PM CT." /></li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets post directly to the bank.</li></ul></RuleItem>
         </div>
       </section>}
     </main>
@@ -1275,7 +1275,7 @@ export default function PickemApp() {
       <strong>Review & save <ChevronRight size={17} /></strong>
     </button>}
     {tab === "card" && cardView === "mine" && !previewActive && stagedPicks !== null && !toast && <button className="sticky-card-save" disabled={savingPicks} onClick={() => savePicks(cardPicks)}><Save size={17} /> {savingPicks ? "Saving picks…" : "Save picks"}</button>}
-    {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span>{toast.message}</span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
+    {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span><NumericText text={toast.message} /></span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
   </div>;
 }
 
@@ -1330,7 +1330,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
         const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
-          <div><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} <NumericText text={spreadText(displayedSpread)} /> {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</strong><p>{game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)} · ${cardGameStateText(game, true)}` : "Matchup unavailable"}</p></div>
+          <div><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} <NumericText text={spreadText(displayedSpread)} /> {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</strong><p>{game ? <NumericText text={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)} · ${cardGameStateText(game, true)}`} /> : "Matchup unavailable"}</p></div>
           <span className={`test-result ${pick.result}`}>{resultLabel}</span>
         </div>;
       })}
@@ -1575,7 +1575,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
     {view === "new" && selectedGame && selectedCreatorTeam && slipExpanded && <section ref={slipSheetRef} className={`side-bet-slip-sheet ${slipClosing ? "closing" : ""}`.trim()} role="dialog" aria-labelledby="side-bet-slip-title">
         <div className="side-bet-slip-sheet-head" onPointerDown={beginSlipSwipe} onPointerMove={continueSlipSwipe} onPointerUp={endSlipSwipe} onPointerCancel={endSlipSwipe}>
-          <div className="side-bet-slip-title"><h2 id="side-bet-slip-title">{displayTeamName(selectedGame, selectedGame.away_team)} at {displayTeamName(selectedGame, selectedGame.home_team)}</h2><p>{fullDateText(selectedGame.commence_time)} · {timeText(selectedGame.commence_time)}</p></div>
+          <div className="side-bet-slip-title"><h2 id="side-bet-slip-title">{displayTeamName(selectedGame, selectedGame.away_team)} at {displayTeamName(selectedGame, selectedGame.home_team)}</h2><p><NumericText text={`${fullDateText(selectedGame.commence_time)} · ${timeText(selectedGame.commence_time)}`} /></p></div>
           <button type="button" className="slip-icon-btn side-bet-header-collapse" aria-label="Collapse bet slip" onPointerDown={(event) => event.stopPropagation()} onClick={collapseSlip}><ChevronDown size={18} /></button>
         </div>
 
@@ -1616,7 +1616,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
           <div><span>You take</span><strong>{confirmingBet.game ? displayTeamName(confirmingBet.game, confirmingBet.offered_team) : confirmingBet.offered_team} <NumericText text={spreadText(Number(confirmingBet.offered_spread))} /></strong></div>
           <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? displayTeamName(confirmingBet.game, confirmingBet.creator_team) : confirmingBet.creator_team} <NumericText text={spreadText(Number(confirmingBet.creator_spread))} /></strong></div>
         </div>
-        {confirmingBet.game && <p className="confirmation-kickoff">{dt(confirmingBet.game.commence_time)}</p>}
+        {confirmingBet.game && <p className="confirmation-kickoff"><NumericText text={dt(confirmingBet.game.commence_time)} /></p>}
         <div className="confirmation-actions"><button className="btn secondary" disabled={saving} onClick={() => setConfirmingBetId(null)}>Cancel</button><button className="btn accept" disabled={saving} onClick={acceptConfirmedBet}><Check size={16} /> {saving ? "Accepting…" : "Accept bet"}</button></div>
       </section>
     </div>}
@@ -1625,7 +1625,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
 function SideBetGameCard({ game, selectedTeam, disabled, onSelect }: { game: Game; selectedTeam: string; disabled: boolean; onSelect: (game: Game, team: string) => void }) {
   return <article className={`game-card matchup-card side-bet-game-card ${disabled ? "closed" : ""} ${selectedTeam ? "selected" : ""}`.trim()}>
-    <div className="game-head compact-game-head"><div className="game-time-group"><span className="game-time">{timeText(game.commence_time)}</span></div></div>
+    <div className="game-head compact-game-head"><div className="game-time-group"><span className="game-time"><NumericText text={timeText(game.commence_time)} /></span></div></div>
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
       {[game.away_team, game.home_team].map((team) => <button
         type="button"
@@ -1694,10 +1694,10 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""}`}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, creatorSideTeam) : null} name={creatorSideTeam} />
-      <div className="side-bet-offer-copy"><strong><NumericText text={matchupText} /></strong><p>{actionFirst ? <><span className={`side-bet-response ${responseTone}`}>{responseAction}</span> {responseName}</> : <>{responseName} <span className={`side-bet-response ${responseTone}`}>{responseAction}</span></>} {offeredSideName} <NumericText text={spreadText(offeredSideSpread)} />{game ? ` · ${dt(game.commence_time)}` : ""}</p></div>
+      <div className="side-bet-offer-copy"><strong><NumericText text={matchupText} /></strong><p>{actionFirst ? <><span className={`side-bet-response ${responseTone}`}>{responseAction}</span> {responseName}</> : <>{responseName} <span className={`side-bet-response ${responseTone}`}>{responseAction}</span></>} {offeredSideName} <NumericText text={spreadText(offeredSideSpread)} />{game && <> · <NumericText text={dt(game.commence_time)} /></>}</p></div>
       <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
     </div>
-    {mode === "received" && offerOpen && <div className="actions"><button className={`btn accept ${working ? "working" : ""}`} disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : acceptDisabledText}</button><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
+    {mode === "received" && offerOpen && <div className="actions"><button className={`btn accept ${working ? "working" : ""}`} disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : <NumericText text={acceptDisabledText} />}</button><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
     {mode === "sent" && bet.status === "open" && <div className="actions"><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("cancel", bet.id)}><X size={15} /> Cancel offer</button></div>}
     {canClearOffer && <div className="actions clear-offer-actions"><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("clear", bet.id)}><Trash2 size={14} /> Clear</button></div>}
   </article>;
@@ -1823,8 +1823,8 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
 
   return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
     <div className="game-head compact-game-head">
-      <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status">{livePeriodStatus(game)}</span> : <span className="game-time">{timeText(game.commence_time)}</span>}</div>
-      {statusFilter !== "OPEN" && gameIsLive && liveSituation && <div className="game-live-situation">{liveSituation}</div>}
+      <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status"><NumericText text={livePeriodStatus(game)} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}</div>
+      {statusFilter !== "OPEN" && gameIsLive && liveSituation && <div className="game-live-situation"><NumericText text={liveSituation} /></div>}
     </div>
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
@@ -1881,7 +1881,7 @@ function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts:
         <strong>{ok ? "Card complete" : "Build your card"}</strong>
         <span className={`card-progress-state ${dirty ? "unsaved" : "saved"}`}>{!dirty && <CircleCheckBig size={14} />}{dirty ? "Unsaved changes" : "Picks saved"}</span>
       </div>
-      <span className="card-progress-count">{countText}</span>
+      <span className="card-progress-count"><NumericText text={countText} /></span>
     </div>
     <div className="progress-track" aria-hidden="true"><span style={{ width: `${progress}%` }} /></div>
   </div>;
@@ -1897,7 +1897,7 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const gameState = game ? cardGameStateText(game, locked) : "game status unavailable";
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} <NumericText text={spreadText(displayedSpread)} /> {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</p><p className="pick-meta">{matchupText} · {gameState}</p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} <NumericText text={spreadText(displayedSpread)} /> {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</p><p className="pick-meta">{matchupText} · <NumericText text={gameState} /></p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
@@ -1910,5 +1910,5 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
   const matchup = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable";
   const gameState = game ? cardGameStateText(game, locked) : "game status unavailable";
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} <NumericText text={spreadText(displayedSpread)} /> {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</strong><p>{matchup} · {gameState}</p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} <NumericText text={spreadText(displayedSpread)} /> {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</strong><p>{matchup} · <NumericText text={gameState} /></p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
 }
