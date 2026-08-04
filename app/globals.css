@@ -401,7 +401,7 @@ fieldset .field-label { padding: 0; }
 .money-card { height: var(--data-row-height); min-height: var(--data-row-height); padding-block: 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .money-card:last-child { border-bottom: 0; }
 .money-card > span { min-width: 0; overflow: hidden; color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-.money-card strong { font-family: var(--font-display); font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.money-card strong { font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .money-pos { color: var(--green); }
 .money-neg { color: var(--red); }
 .money-neutral { color: var(--ink); }
