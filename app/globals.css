@@ -82,8 +82,11 @@ p { margin: 0; }
 .primary-nav button { position: relative; display: flex; min-width: 0; height: 100%; flex-direction: column; align-items: center; justify-content: flex-start; gap: var(--space-1); padding: 10px 3px 6px; border: 0; color: #9ba6ab; background: transparent; font-size: 12px; font-weight: 700; line-height: 1; transition: color .15s ease, background-color .15s ease; }
 .primary-nav button svg { width: 21px; height: 21px; }
 .primary-nav button.active { color: #fff; background: transparent; font-weight: 700; }
-.primary-nav button.active .nav-icon { color: #fff; filter: none; transform: translateY(-1px) scale(1.1); }
-.primary-nav button.active svg { fill: currentColor; stroke: currentColor; stroke-width: 2; }
+.primary-nav button.active .nav-icon { color: #fff; filter: none; transform: none; }
+.primary-nav button.active svg { fill: #fff; stroke: #fff; stroke-width: 2; }
+.primary-nav button.active .nav-icon-card svg path { fill: none; stroke: #9ba6ab; }
+.primary-nav button.active .nav-icon-standings svg path { fill: none; stroke: #fff; }
+.primary-nav button.active .nav-icon-standings svg path:last-child { fill: #fff; }
 .nav-icon { position: relative; display: grid; place-items: center; transition: color .15s ease, filter .15s ease, transform .15s ease; }
 .primary-nav button b { position: absolute; top: -6px; right: -9px; display: grid; min-width: 16px; height: 16px; place-items: center; padding: 0 4px; border: 2px solid var(--panel); border-radius: 8px; color: #fff; background: var(--red); font-size: 8px; font-variant-numeric: tabular-nums; }
 
@@ -188,7 +191,7 @@ p { margin: 0; }
 .team-spread { display: inline-flex; width: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .team-result-line { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: flex-end; }
 .team-result-spread { color: inherit; }
-.team-live-probability { display: inline-flex; height: 17px; flex: 0 0 auto; align-self: center; align-items: center; justify-content: center; margin-left: 8px; font-family: inherit; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 17px; vertical-align: middle; white-space: nowrap; }
+.team-live-probability { display: inline-flex; flex: 0 0 auto; align-self: center; align-items: center; justify-content: center; margin-left: 8px; font-family: inherit; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; vertical-align: middle; white-space: nowrap; }
 .possession-icon { display: inline-flex; width: 17px; height: 11px; flex: 0 0 17px; align-items: center; margin-left: 5px; color: #8a512f; vertical-align: -1px; }
 .possession-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .team-inline-score { flex: 0 0 auto; margin-left: 5px; color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -236,6 +239,7 @@ p { margin: 0; }
 .pick-copy, .visible-pick-copy { min-width: 0; }
 .pick-row-actions { display: flex; min-width: 26px; flex: 0 0 auto; align-items: center; justify-content: flex-end; gap: 7px; }
 .visible-pick-actions { display: flex; min-width: 26px; align-items: center; justify-content: flex-end; gap: 5px; }
+.pick-row-actions.live-empty, .visible-pick-actions.live-empty { min-width: 0; }
 .pick-row-actions .badge.pick-result-win, .pick-row-actions .badge.pick-result-loss, .pick-row-actions .badge.pick-result-push, .pick-row-actions .badge.pick-status-locked, .visible-pick-actions .badge.pick-result-win, .visible-pick-actions .badge.pick-result-loss, .visible-pick-actions .badge.pick-result-push, .visible-pick-actions .badge.pick-status-locked { min-width: 26px; min-height: 26px; font-size: 12px; }
 .badge.pick-status-locked { width: 26px; height: 26px; padding: 0; border: 1px solid var(--line-strong); border-radius: 1px; color: var(--muted); background: var(--surface-muted); }
 .icon-btn { display: grid; width: 30px; height: 30px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: transparent; }
@@ -244,6 +248,7 @@ p { margin: 0; }
 .pick-title, .visible-pick-copy strong { display: flex; min-width: 0; align-items: center; gap: 4px; overflow: hidden; font-size: 14px; font-weight: 800; line-height: 1.25; white-space: nowrap; }
 .pick-title-team { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pick-title-market { display: inline-flex; flex: 0 0 auto; align-items: center; white-space: nowrap; }
+.pick-title-market .team-live-probability, .bank-game-pick-title .team-live-probability { position: relative; top: -1px; }
 .dog-separator { margin-inline: 4px; }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; }
 .visible-pick { display: grid; min-height: var(--pick-card-row-height); grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; margin: 0; padding: 7px var(--pick-content-inset); border-top: 1px solid var(--line); }
@@ -422,7 +427,7 @@ fieldset .field-label { padding: 0; }
 .bank-result-record { display: flex; width: 48px; min-width: 48px; height: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-result-amount { display: flex; height: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-player-result > .muted { margin: 0; padding: 11px 12px; background: var(--panel); }
-.bank-game-result { display: grid; min-height: 62px; grid-template-columns: 38px minmax(0, 1fr) 26px; align-items: center; gap: 10px; padding: 7px var(--page-gutter); border-bottom: 1px solid var(--line); background: var(--panel); }
+.bank-game-result { display: grid; min-height: 62px; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; padding: 7px var(--page-gutter); border-bottom: 1px solid var(--line); background: var(--panel); }
 .bank-game-result:last-child { border-bottom: 0; }
 .bank-game-result .team-logo { width: 34px; height: 34px; }
 .bank-game-result > div { min-width: 0; }

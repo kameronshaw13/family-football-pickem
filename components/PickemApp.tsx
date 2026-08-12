@@ -263,7 +263,7 @@ function cardLivePeriodStatus(game: Game) {
   const clock = detail.match(/\b\d{1,2}:\d{2}\b/)?.[0];
   if (/\bOT\b/i.test(detail)) return clock ? `OT · ${clock}` : "OT";
   const quarter = detail.match(/\b(1st|2nd|3rd|4th)\b/i)?.[1];
-  return quarter ? clock ? `${quarter} · ${clock}` : quarter : "Live";
+  return quarter ? clock ? `${quarter} Qtr · ${clock}` : `${quarter} Qtr` : "Live";
 }
 function cardGameStateText(game: Game, locked: boolean) {
   if (game.final_away_score != null && game.final_home_score != null) {
@@ -1460,7 +1460,7 @@ export default function PickemApp() {
 
     <nav className="primary-nav" aria-label="Main navigation">
       <div className="primary-nav-inner">
-        {primaryNav.map((item) => <button key={item.id} aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><span className="nav-icon"><item.icon size={19} />{item.id === "picks" && pendingOfferCount > 0 && <b>{pendingOfferCount}</b>}</span><span>{item.label}</span></button>)}
+        {primaryNav.map((item) => <button key={item.id} aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><span className={`nav-icon nav-icon-${item.id}`}><item.icon size={19} />{item.id === "picks" && pendingOfferCount > 0 && <b>{pendingOfferCount}</b>}</span><span>{item.label}</span></button>)}
       </div>
     </nav>
 
@@ -1636,7 +1636,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
           <div><strong className="bank-game-pick-title"><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} /><LiveProbability chance={liveChance} title={liveChanceTitle} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</span></strong><p>{game ? <NumericText text={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)} · ${cardGameStateText(game, true)}`} /> : "Matchup unavailable"}</p></div>
-          <span className={`test-result ${pick.result}`}>{resultLabel}</span>
+          {pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : game?.live_state !== "in" ? <span className="test-result pending">—</span> : null}
         </div>;
       })}
     </details>;
@@ -2221,7 +2221,7 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const liveChanceTitle = pick.pick_type === "underdog" ? "Live win probability" : "Estimated cover probability";
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title"><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} /><LiveProbability chance={liveChance} title={liveChanceTitle} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</span></p><p className="pick-meta"><NumericText text={metaText} /></p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title"><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} /><LiveProbability chance={liveChance} title={liveChanceTitle} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</span></p><p className="pick-meta"><NumericText text={metaText} /></p></div><div className={`pick-row-actions ${game?.live_state === "in" && !graded ? "live-empty" : ""}`}>{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : game?.live_state !== "in" && locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
@@ -2237,5 +2237,5 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const metaText = `${matchup} · ${gameState}`;
   const liveChance = selectedLiveChance(game, pick, displayedSpread);
   const liveChanceTitle = pick.pick_type === "underdog" ? "Live win probability" : "Estimated cover probability";
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} /><LiveProbability chance={liveChance} title={liveChanceTitle} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</span></strong><p><NumericText text={metaText} /></p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} /><LiveProbability chance={liveChance} title={liveChanceTitle} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</span></strong><p><NumericText text={metaText} /></p></div><div className={`visible-pick-actions ${game?.live_state === "in" && !graded ? "live-empty" : ""}`}>{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : game?.live_state !== "in" && locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
 }
