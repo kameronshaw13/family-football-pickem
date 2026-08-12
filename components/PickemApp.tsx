@@ -37,6 +37,10 @@ type LiveScoreUpdate = {
   live_down?: number | null;
   live_distance?: number | null;
   live_yards_to_goal?: number | null;
+  live_home_timeouts?: number | null;
+  live_away_timeouts?: number | null;
+  live_home_win_probability?: number | null;
+  live_away_win_probability?: number | null;
 };
 type TestPickRow = {
   id: string;
@@ -367,9 +371,53 @@ function livePeriodAndClock(game: Game) {
   };
 }
 
+function liveModelStrategy(game: Game) {
+  const { quarter, clockSeconds } = livePeriodAndClock(game);
+  const homeScore = game.live_home_score;
+  const awayScore = game.live_away_score;
+  if (quarter !== 4 || clockSeconds == null || clockSeconds > 8 * 60 || homeScore == null || awayScore == null || !game.live_possession_team) {
+    return { possessionScoringFactor: 1, remainingStrengthFactor: 1, volatilityFactor: 1, canDrainClock: false };
+  }
+
+  const possessionIsHome = game.live_possession_team === game.home_team;
+  const possessionMargin = possessionIsHome ? homeScore - awayScore : awayScore - homeScore;
+  const opponentTimeouts = possessionIsHome ? game.live_away_timeouts : game.live_home_timeouts;
+  const down = game.live_down ?? 1;
+  const clockIntervals = Math.max(0, 3 - down);
+  const drainableIntervals = Math.max(0, clockIntervals - (opponentTimeouts ?? 3));
+  const canDrainClock = possessionMargin > 0 && clockSeconds <= drainableIntervals * 38 + 5;
+  if (canDrainClock) {
+    return { possessionScoringFactor: 0.05, remainingStrengthFactor: 0.05, volatilityFactor: 0.28, canDrainClock: true };
+  }
+
+  const lateFactor = 1 - clockSeconds / (8 * 60);
+  if (possessionMargin > 0) {
+    const leadFactor = Math.min(1, possessionMargin / 16);
+    const conservativeFactor = Math.min(0.58, 0.12 + lateFactor * leadFactor * 0.52);
+    return {
+      possessionScoringFactor: 1 - conservativeFactor,
+      remainingStrengthFactor: 1 - conservativeFactor * 0.52,
+      volatilityFactor: 1 - conservativeFactor * 0.38,
+      canDrainClock: false
+    };
+  }
+
+  if (possessionMargin < 0) {
+    const urgency = lateFactor * Math.min(1, Math.abs(possessionMargin) / 14);
+    return {
+      possessionScoringFactor: 1,
+      remainingStrengthFactor: 1,
+      volatilityFactor: 1 + urgency * 0.12,
+      canDrainClock: false
+    };
+  }
+
+  return { possessionScoringFactor: 1, remainingStrengthFactor: 1, volatilityFactor: 1, canDrainClock: false };
+}
+
 function expectedPossessionPoints(game: Game) {
   const yardsToGoal = game.live_yards_to_goal;
-  if (yardsToGoal == null) return game.live_red_zone ? 2.25 : 0.65;
+  if (yardsToGoal == null) return (game.live_red_zone ? 2.25 : 0.65) * liveModelStrategy(game).possessionScoringFactor;
 
   const clampedYardsToGoal = Math.max(1, Math.min(99, yardsToGoal));
   const fieldProgress = (100 - clampedYardsToGoal) / 100;
@@ -398,7 +446,14 @@ function expectedPossessionPoints(game: Game) {
     expectedPoints *= Math.max(0.05, Math.min(1, clockSeconds / secondsNeeded));
   }
 
-  return Math.max(-0.75, Math.min(6.4, expectedPoints));
+  return Math.max(-0.75, Math.min(6.4, expectedPoints)) * liveModelStrategy(game).possessionScoringFactor;
+}
+
+function liveProbabilityVolatility(game: Game, remaining: number) {
+  const strategy = liveModelStrategy(game);
+  const leagueBase = game.league === "CFB" ? 16.5 : 13.86;
+  const minimum = strategy.canDrainClock ? 0.45 : game.league === "CFB" ? 1.8 : 1.5;
+  return Math.max(minimum, leagueBase * Math.sqrt(remaining) * strategy.volatilityFactor);
 }
 
 function estimatedCoverChance(game: Game, team: string, spread: number | null) {
@@ -408,10 +463,33 @@ function estimatedCoverChance(game: Game, team: string, spread: number | null) {
   const remaining = liveRemainingFraction(game);
   const possessionDirection = game.live_possession_team === team ? 1 : game.live_possession_team ? -1 : 0;
   const possessionValue = possessionDirection * expectedPossessionPoints(game);
-  const expectedFinalMargin = teamScore - opponentScore + remaining * -spread + possessionValue;
+  const expectedFinalMargin = teamScore - opponentScore + remaining * -spread * liveModelStrategy(game).remainingStrengthFactor + possessionValue;
   const atsMean = expectedFinalMargin + spread;
-  const remainingVolatility = Math.max(1.5, 13.86 * Math.sqrt(remaining));
+  const remainingVolatility = liveProbabilityVolatility(game, remaining);
   return Math.max(1, Math.min(99, Math.round(normalCdf(atsMean / remainingVolatility) * 100)));
+}
+
+function espnWinChance(game: Game, team: string) {
+  const probability = team === game.home_team ? game.live_home_win_probability : game.live_away_win_probability;
+  return probability == null ? null : Math.max(0, Math.min(100, Math.round(probability * 100)));
+}
+
+function estimatedWinChance(game: Game, team: string) {
+  if (game.live_away_score == null || game.live_home_score == null || game.live_state !== "in") return null;
+  const spread = normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread);
+  if (spread == null) return null;
+  const teamScore = team === game.home_team ? game.live_home_score : game.live_away_score;
+  const opponentScore = team === game.home_team ? game.live_away_score : game.live_home_score;
+  const remaining = liveRemainingFraction(game);
+  const possessionDirection = game.live_possession_team === team ? 1 : game.live_possession_team ? -1 : 0;
+  const expectedFinalMargin = teamScore - opponentScore +
+    remaining * -spread * liveModelStrategy(game).remainingStrengthFactor +
+    possessionDirection * expectedPossessionPoints(game);
+  return Math.max(1, Math.min(99, Math.round(normalCdf(expectedFinalMargin / liveProbabilityVolatility(game, remaining)) * 100)));
+}
+
+function liveWinChance(game: Game, team: string) {
+  return espnWinChance(game, team) ?? estimatedWinChance(game, team);
 }
 
 function liveOutcome(game: Game, team: string, spread: number, outright = false): GameOutcome | null {
@@ -476,15 +554,18 @@ function buildLiveAlert(current: AppData, nextGames: Game[]): NonNullable<Toast>
     }
 
     if (scoreChanged(previous, next) && previousOutcome && nextOutcome && previousOutcome !== nextOutcome) {
-      const movement = nextOutcome === "win" ? "moved into covering" : nextOutcome === "push" ? "moved to a push" : "fell behind the spread";
-      return { message: `${label} ${movement}. Estimated cover chance: ${estimatedCoverChance(next, team, spread) ?? "–"}%.`, tone: nextOutcome === "win" ? "success" : "info" };
+      const movement = outright
+        ? nextOutcome === "win" ? "moved into a winning position" : nextOutcome === "push" ? "is tied" : "fell behind"
+        : nextOutcome === "win" ? "moved into covering" : nextOutcome === "push" ? "moved to a push" : "fell behind the spread";
+      const nextChance = outright ? liveWinChance(next, team) : estimatedCoverChance(next, team, spread);
+      return { message: `${label} ${movement}. ${outright ? "Win" : "Estimated cover"} chance: ${nextChance ?? "–"}%.`, tone: nextOutcome === "win" ? "success" : "info" };
     }
 
-    const previousChance = estimatedCoverChance(previous, team, spread);
-    const nextChance = estimatedCoverChance(next, team, spread);
+    const previousChance = outright ? liveWinChance(previous, team) : estimatedCoverChance(previous, team, spread);
+    const nextChance = outright ? liveWinChance(next, team) : estimatedCoverChance(next, team, spread);
     if (previousChance != null && nextChance != null && Math.abs(nextChance - previousChance) >= 15) {
       return {
-        message: `Big swing: ${label}'s estimated cover chance ${nextChance > previousChance ? "rose" : "fell"} to ${nextChance}%.`,
+        message: `Big swing: ${label}'s ${outright ? "win" : "estimated cover"} chance ${nextChance > previousChance ? "rose" : "fell"} to ${nextChance}%.`,
         tone: nextChance > previousChance ? "success" : "info"
       };
     }
@@ -2003,8 +2084,12 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
   const showScoreValues = hasScore && (gameIsLive || gameIsFinal);
   const awayResultLine = showScoreValues ? resultLine(game.away_team) : null;
   const homeResultLine = showScoreValues ? resultLine(game.home_team) : null;
-  const awayCoverChance = gameIsLive ? estimatedCoverChance(game, game.away_team, resultSpread(game.away_team)) : null;
-  const homeCoverChance = gameIsLive ? estimatedCoverChance(game, game.home_team, resultSpread(game.home_team)) : null;
+  const awayEspnWinChance = dogView ? espnWinChance(game, game.away_team) : null;
+  const homeEspnWinChance = dogView ? espnWinChance(game, game.home_team) : null;
+  const awayLiveChance = gameIsLive ? dogView ? awayEspnWinChance ?? estimatedWinChance(game, game.away_team) : estimatedCoverChance(game, game.away_team, resultSpread(game.away_team)) : null;
+  const homeLiveChance = gameIsLive ? dogView ? homeEspnWinChance ?? estimatedWinChance(game, game.home_team) : estimatedCoverChance(game, game.home_team, resultSpread(game.home_team)) : null;
+  const awayChanceTitle = dogView && awayEspnWinChance != null ? "ESPN live win probability" : dogView ? "Estimated win probability" : "Estimated cover probability";
+  const homeChanceTitle = dogView && homeEspnWinChance != null ? "ESPN live win probability" : dogView ? "Estimated win probability" : "Estimated cover probability";
   const liveSituation = gameIsLive ? liveSituationStatus(game) : "";
 
   return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${!weekIsOpen && !gameIsLive && !gameIsFinal ? "locked-out" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
@@ -2022,7 +2107,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
         {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.away_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{awayScore}</span><PossessionIcon game={game} team={game.away_team} /></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
-        {showScoreValues ? <span className="team-result-line"><span className="team-live-result">{awayResultLine && <span className="team-spread team-result-spread"><NumericText text={awayResultLine} /></span>}{awayCoverChance != null && <small className="team-cover-probability" title="Estimated cover probability">Est. <NumericText text={`${awayCoverChance}%`} /></small>}</span></span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : <NumericText text={sideLine(game.away_team)} />}</span></span>}
+        {showScoreValues ? <span className="team-result-line"><span className="team-live-result">{awayResultLine && <span className="team-spread team-result-spread"><NumericText text={awayResultLine} /></span>}{awayLiveChance != null && <small className="team-cover-probability" title={awayChanceTitle}>{dogView ? <>{awayEspnWinChance == null && "Est. "}<NumericText text={`${awayLiveChance}%`} /> win</> : <>Est. <NumericText text={`${awayLiveChance}%`} /></>}</small>}</span></span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : <NumericText text={sideLine(game.away_team)} />}</span></span>}
       </button>
 
       <button
@@ -2033,7 +2118,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
         {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.home_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{homeScore}</span><PossessionIcon game={game} team={game.home_team} /></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
-        {showScoreValues ? <span className="team-result-line"><span className="team-live-result">{homeResultLine && <span className="team-spread team-result-spread"><NumericText text={homeResultLine} /></span>}{homeCoverChance != null && <small className="team-cover-probability" title="Estimated cover probability">Est. <NumericText text={`${homeCoverChance}%`} /></small>}</span></span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
+        {showScoreValues ? <span className="team-result-line"><span className="team-live-result">{homeResultLine && <span className="team-spread team-result-spread"><NumericText text={homeResultLine} /></span>}{homeLiveChance != null && <small className="team-cover-probability" title={homeChanceTitle}>{dogView ? <>{homeEspnWinChance == null && "Est. "}<NumericText text={`${homeLiveChance}%`} /> win</> : <>Est. <NumericText text={`${homeLiveChance}%`} /></>}</small>}</span></span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
       </button>
     </div>
   </article>;

@@ -30,6 +30,10 @@ export type Game = {
   live_down?: number | null;
   live_distance?: number | null;
   live_yards_to_goal?: number | null;
+  live_home_timeouts?: number | null;
+  live_away_timeouts?: number | null;
+  live_home_win_probability?: number | null;
+  live_away_win_probability?: number | null;
   created_at?: string;
   updated_at?: string;
 };

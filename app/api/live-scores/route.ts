@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
-import { fetchEspnSchedule, findEspnScheduleMatch } from "@/lib/espnSchedule";
+import { fetchEspnSchedule, fetchEspnWinProbability, findEspnScheduleMatch } from "@/lib/espnSchedule";
 import { finalizeGame } from "@/lib/finalizeGame";
 import { lockDuePicks } from "@/lib/lockDuePicks";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
@@ -70,9 +70,26 @@ export async function GET(req: NextRequest) {
     let resultsUpdated = false;
     await lockDuePicks(supabase);
 
-    for (const game of candidates) {
+    const matchedCandidates = candidates.flatMap((game) => {
       const match = findEspnScheduleMatch(game, schedules.get(game.league) || []);
-      if (!match || match.game.homeScore == null || match.game.awayScore == null) continue;
+      return match ? [{ game, match }] : [];
+    });
+    const candidateIds = matchedCandidates.map(({ game }) => game.id);
+    const { data: dogPicks } = candidateIds.length
+      ? await supabase.from("picks").select("game_id").eq("week", week).eq("pick_type", "underdog").in("game_id", candidateIds)
+      : { data: [] };
+    const dogGameIds = new Set((dogPicks || []).map((pick) => pick.game_id));
+    const winProbabilities = new Map<string, Awaited<ReturnType<typeof fetchEspnWinProbability>>>();
+    await Promise.all(matchedCandidates.filter(({ game }) => dogGameIds.has(game.id)).map(async ({ game, match }) => {
+      try {
+        winProbabilities.set(game.id, await fetchEspnWinProbability(game.league, match.game.id, 10));
+      } catch {
+        winProbabilities.set(game.id, null);
+      }
+    }));
+
+    for (const { game, match } of matchedCandidates) {
+      if (match.game.homeScore == null || match.game.awayScore == null) continue;
       const homeScore = match.swapped ? match.game.awayScore : match.game.homeScore;
       const awayScore = match.swapped ? match.game.homeScore : match.game.awayScore;
       const possessionTeam = match.game.possessionSide === "home"
@@ -80,6 +97,11 @@ export async function GET(req: NextRequest) {
         : match.game.possessionSide === "away"
           ? (match.swapped ? game.home_team : game.away_team)
           : null;
+      const homeTimeouts = match.swapped ? match.game.awayTimeouts : match.game.homeTimeouts;
+      const awayTimeouts = match.swapped ? match.game.homeTimeouts : match.game.awayTimeouts;
+      const winProbability = winProbabilities.get(game.id);
+      const homeWinProbability = winProbability ? (match.swapped ? winProbability.away : winProbability.home) : null;
+      const awayWinProbability = winProbability ? (match.swapped ? winProbability.home : winProbability.away) : null;
       if (match.game.completed) {
         await finalizeGame(supabase, game as Game, homeScore, awayScore);
         resultsUpdated = true;
@@ -98,7 +120,11 @@ export async function GET(req: NextRequest) {
         live_red_zone: match.game.redZone,
         live_down: match.game.down,
         live_distance: match.game.distance,
-        live_yards_to_goal: match.game.yardsToGoal
+        live_yards_to_goal: match.game.yardsToGoal,
+        live_home_timeouts: homeTimeouts,
+        live_away_timeouts: awayTimeouts,
+        live_home_win_probability: homeWinProbability,
+        live_away_win_probability: awayWinProbability
       });
     }
 

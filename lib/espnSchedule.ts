@@ -24,6 +24,8 @@ export type EspnScheduleGame = {
   down: number | null;
   distance: number | null;
   yardsToGoal: number | null;
+  homeTimeouts: number | null;
+  awayTimeouts: number | null;
   homeTeam: EspnTeam;
   awayTeam: EspnTeam;
 };
@@ -31,6 +33,12 @@ export type EspnScheduleGame = {
 export type EspnScheduleMatch = {
   game: EspnScheduleGame;
   swapped: boolean;
+};
+
+export type EspnWinProbability = {
+  home: number;
+  away: number;
+  tie: number;
 };
 
 type Matchup = {
@@ -96,6 +104,7 @@ function scoreFromCompetitor(competitor: any) {
 }
 
 function finiteSituationNumber(value: unknown) {
+  if (value == null || value === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -131,6 +140,31 @@ function compactDate(date: Date) {
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
   const day = String(date.getUTCDate()).padStart(2, "0");
   return `${year}${month}${day}`;
+}
+
+export async function fetchEspnWinProbability(league: "NFL" | "CFB", eventId: string, freshness: boolean | number = 10): Promise<EspnWinProbability | null> {
+  const sportPath = league === "NFL" ? "nfl" : "college-football";
+  const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/summary`);
+  url.searchParams.set("event", eventId);
+  const response = await fetch(url.toString(), freshness === true
+    ? { cache: "no-store" }
+    : { next: { revalidate: typeof freshness === "number" ? freshness : 10 } });
+  if (!response.ok) return null;
+  const payload = await response.json();
+  const probabilities = Array.isArray(payload?.winprobability) ? payload.winprobability : [];
+  for (let index = probabilities.length - 1; index >= 0; index -= 1) {
+    const home = Number(probabilities[index]?.homeWinPercentage);
+    const tie = Number(probabilities[index]?.tiePercentage || 0);
+    if (!Number.isFinite(home) || !Number.isFinite(tie)) continue;
+    const clampedHome = Math.max(0, Math.min(1, home));
+    const clampedTie = Math.max(0, Math.min(1 - clampedHome, tie));
+    return {
+      home: clampedHome,
+      away: Math.max(0, 1 - clampedHome - clampedTie),
+      tie: clampedTie
+    };
+  }
+  return null;
 }
 
 export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string[], freshness: boolean | number = false) {
@@ -187,6 +221,8 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
       down,
       distance,
       yardsToGoal,
+      homeTimeouts: finiteSituationNumber(situation?.homeTimeouts),
+      awayTimeouts: finiteSituationNumber(situation?.awayTimeouts),
       homeTeam: teamFromCompetitor(home),
       awayTeam: teamFromCompetitor(away)
     }];
