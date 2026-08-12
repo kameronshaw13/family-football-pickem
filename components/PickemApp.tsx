@@ -267,7 +267,7 @@ function cardGameStateText(game: Game, locked: boolean) {
   if (locked) {
     if (new Date(game.commence_time) > new Date()) return dt(game.commence_time);
     if (game.live_state === "in" && game.live_away_score != null && game.live_home_score != null) {
-      return `${game.live_away_score}-${game.live_home_score} · ${liveGameStatus(game)}`;
+      return `${game.live_away_score}-${game.live_home_score} · ${livePeriodStatus(game)}`;
     }
     if (game.live_status) return liveGameStatus(game);
     return "Score updating";
@@ -724,8 +724,9 @@ function buildTestWeek(profiles: Profile[], currentUserId: string) {
       away_logo_url: "https://a.espncdn.com/i/teamlogos/ncaa/500/23.png", home_logo_url: "https://a.espncdn.com/i/teamlogos/ncaa/500/278.png",
       current_spread_team: "Fresno State Bulldogs", current_spread: -10.5, current_bookmaker: "Test line",
       lock_time: previewTime(-180), is_locked: true, final_away_score: null, final_home_score: null,
-      live_away_score: 13, live_home_score: 17, live_status: "3rd 8:42", live_state: "in", live_completed: false,
-      live_possession_team: "Fresno State Bulldogs", live_situation: "2nd & 7 at SJSU 42"
+      live_away_score: 13, live_home_score: 34, live_status: "4th 4:12", live_state: "in", live_completed: false,
+      live_possession_team: "Fresno State Bulldogs", live_situation: "2nd & 5 at SJSU 22",
+      live_down: 2, live_distance: 5, live_yards_to_goal: 22, live_away_timeouts: 2, live_home_timeouts: 3
     },
     {
       id: "test-giants-eagles", week: 3, league: "NFL", commence_time: previewTime(-80),
@@ -733,8 +734,9 @@ function buildTestWeek(profiles: Profile[], currentUserId: string) {
       away_logo_url: "https://a.espncdn.com/i/teamlogos/nfl/500/19.png", home_logo_url: "https://a.espncdn.com/i/teamlogos/nfl/500/21.png",
       current_spread_team: "Philadelphia Eagles", current_spread: -8.5, current_bookmaker: "Test line",
       lock_time: previewTime(-180), is_locked: true, final_away_score: null, final_home_score: null,
-      live_away_score: 10, live_home_score: 17, live_status: "3rd 5:16", live_state: "in", live_completed: false,
-      live_possession_team: "New York Giants", live_situation: "3rd & 4 at PHI 36"
+      live_away_score: 13, live_home_score: 24, live_status: "4th 9:16", live_state: "in", live_completed: false,
+      live_possession_team: "New York Giants", live_situation: "3rd & 7 at NYG 42",
+      live_down: 3, live_distance: 7, live_yards_to_goal: 58, live_away_timeouts: 3, live_home_timeouts: 2
     },
     {
       id: "test-iowa-rutgers", week: 3, league: "CFB", commence_time: "2026-09-12T00:00:00.000Z",
@@ -2197,9 +2199,10 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
     const matchupText = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable";
     const gameState = game ? cardGameStateText(game, locked) : "game status unavailable";
+    const metaText = game?.live_state === "in" && game.live_away_score != null && game.live_home_score != null ? gameState : `${matchupText} · ${gameState}`;
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} <NumericText text={spreadText(displayedSpread)} /> {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</p><p className="pick-meta">{matchupText} · <NumericText text={gameState} /></p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} <NumericText text={spreadText(displayedSpread)} /> {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</p><p className="pick-meta"><NumericText text={metaText} /></p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
@@ -2212,5 +2215,6 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
   const matchup = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable";
   const gameState = game ? cardGameStateText(game, locked) : "game status unavailable";
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}{game && <PossessionIcon game={game} team={pick.selected_team} />} <NumericText text={spreadText(displayedSpread)} /> {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</strong><p>{matchup} · <NumericText text={gameState} /></p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
+  const metaText = game?.live_state === "in" && game.live_away_score != null && game.live_home_score != null ? gameState : `${matchup} · ${gameState}`;
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? displayTeamName(game, pick.selected_team) : pick.selected_team} <NumericText text={spreadText(displayedSpread)} /> {pick.pick_type === "underdog" && <> · <span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</strong><p><NumericText text={metaText} /></p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
 }
