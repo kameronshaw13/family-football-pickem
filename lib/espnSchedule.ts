@@ -20,6 +20,7 @@ export type EspnScheduleGame = {
   statusState: string | null;
   possessionSide: "home" | "away" | null;
   situationText: string | null;
+  redZone: boolean;
   homeTeam: EspnTeam;
   awayTeam: EspnTeam;
 };
@@ -141,6 +142,7 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
       statusState: competition?.status?.type?.state || null,
       possessionSide,
       situationText: competition?.situation?.downDistanceText || competition?.situation?.shortDownDistanceText || null,
+      redZone: Boolean(competition?.situation?.isRedZone),
       homeTeam: teamFromCompetitor(home),
       awayTeam: teamFromCompetitor(away)
     }];

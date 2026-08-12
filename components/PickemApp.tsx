@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import { CalendarRange, Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, ClipboardCheck, Dog, EyeOff, FlaskConical, Handshake, Landmark, LoaderCircle, LockKeyhole, Save, Scale, Send, Shield, ShieldCheck, Sparkles, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { CalendarRange, Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, ClipboardCheck, ClipboardList, Dog, EyeOff, FlaskConical, Handshake, Landmark, LoaderCircle, LockKeyhole, Send, Shield, ShieldCheck, Sparkles, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
@@ -33,6 +33,7 @@ type LiveScoreUpdate = {
   live_completed?: boolean;
   live_possession_team?: string | null;
   live_situation?: string | null;
+  live_red_zone?: boolean;
 };
 type TestPickRow = {
   id: string;
@@ -318,10 +319,126 @@ function livePeriodStatus(game: Game) {
 function liveSituationStatus(game: Game) {
   return (game.live_situation?.trim() || "").replace(/\s+at\s+/i, " · ");
 }
+
+function LiveSituationText({ game }: { game: Game }) {
+  const situation = game.live_situation?.trim() || "";
+  const match = situation.match(/^(.*?)\s+at\s+(.+)$/i);
+  if (!match) return <NumericText text={situation} />;
+  return <><NumericText text={match[1]} /> · <span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={match[2]} /></span></>;
+}
 function liveGameStatus(game: Game) {
   const status = livePeriodStatus(game);
   const situation = liveSituationStatus(game);
   return situation && status !== "Halftime" ? `${status} · ${situation}` : status;
+}
+
+function liveRemainingFraction(game: Game) {
+  const detail = game.live_status?.trim() || "";
+  if (/halftime/i.test(detail)) return 0.5;
+  if (/\bOT\b/i.test(detail)) return 0.035;
+  const quarterText = detail.match(/\b(1st|2nd|3rd|4th)\b/i)?.[1]?.toLowerCase();
+  const quarter = quarterText ? { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 }[quarterText] : null;
+  if (!quarter) return 0.5;
+  const clock = detail.match(/\b(\d{1,2}):(\d{2})\b/);
+  const secondsInQuarter = clock ? Number(clock[1]) * 60 + Number(clock[2]) : 0;
+  const remainingSeconds = (4 - quarter) * 15 * 60 + secondsInQuarter;
+  return Math.max(0, Math.min(1, remainingSeconds / (4 * 15 * 60)));
+}
+
+function normalCdf(value: number) {
+  const absolute = Math.abs(value);
+  const t = 1 / (1 + 0.2316419 * absolute);
+  const density = 0.3989423 * Math.exp(-absolute * absolute / 2);
+  const probability = 1 - density * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return value >= 0 ? probability : 1 - probability;
+}
+
+function estimatedCoverChance(game: Game, team: string, spread: number | null) {
+  if (spread == null || game.live_away_score == null || game.live_home_score == null || game.live_state !== "in") return null;
+  const teamScore = team === game.home_team ? game.live_home_score : game.live_away_score;
+  const opponentScore = team === game.home_team ? game.live_away_score : game.live_home_score;
+  const remaining = liveRemainingFraction(game);
+  const possessionDirection = game.live_possession_team === team ? 1 : game.live_possession_team ? -1 : 0;
+  const possessionValue = possessionDirection * (game.live_red_zone ? 2.25 : 0.65);
+  const expectedFinalMargin = teamScore - opponentScore + remaining * -spread + possessionValue;
+  const atsMean = expectedFinalMargin + spread;
+  const remainingVolatility = Math.max(1.5, 13.86 * Math.sqrt(remaining));
+  return Math.max(1, Math.min(99, Math.round(normalCdf(atsMean / remainingVolatility) * 100)));
+}
+
+function liveOutcome(game: Game, team: string, spread: number, outright = false): GameOutcome | null {
+  const homeScore = game.live_home_score ?? game.final_home_score;
+  const awayScore = game.live_away_score ?? game.final_away_score;
+  if (homeScore == null || awayScore == null) return null;
+  return outright
+    ? gradeUnderdogOutright(team, game.home_team, game.away_team, homeScore, awayScore)
+    : gradeAgainstSpread(team, game.home_team, game.away_team, homeScore, awayScore, spread);
+}
+
+function scoreChanged(previous: Game, next: Game) {
+  return previous.live_home_score !== next.live_home_score || previous.live_away_score !== next.live_away_score;
+}
+
+function finalScoreText(game: Game) {
+  const awayScore = game.final_away_score ?? game.live_away_score;
+  const homeScore = game.final_home_score ?? game.live_home_score;
+  return `${displayTeamName(game, game.away_team)} ${awayScore ?? "–"}, ${displayTeamName(game, game.home_team)} ${homeScore ?? "–"}`;
+}
+
+function outcomeLabel(outcome: GameOutcome, outright: boolean) {
+  if (outcome === "push") return "pushed";
+  if (outright) return outcome === "win" ? "won outright" : "lost";
+  return outcome === "win" ? "covered" : "did not cover";
+}
+
+function buildLiveAlert(current: AppData, nextGames: Game[]): NonNullable<Toast> | null {
+  const nextById = new Map(nextGames.map((game) => [game.id, game]));
+  const currentUserId = current.currentUser.id;
+  const relevantPicks = current.picks.filter((pick) => pick.user_id === currentUserId && pick.week === current.week);
+  const relevantBets = current.sideBets.filter((bet) => bet.status === "accepted" && (bet.creator_id === currentUserId || bet.accepted_by === currentUserId));
+
+  for (const previous of current.games) {
+    const next = nextById.get(previous.id);
+    if (!next || (!scoreChanged(previous, next) && previous.live_red_zone === next.live_red_zone && previous.live_possession_team === next.live_possession_team && isFinalGame(previous) === isFinalGame(next))) continue;
+
+    const pick = relevantPicks.find((item) => item.game_id === next.id);
+    const bet = relevantBets.find((item) => item.game_id === next.id);
+    const team = pick?.selected_team || (bet?.creator_id === currentUserId ? bet.creator_team : bet?.offered_team);
+    const spread = pick
+      ? pick.locked_spread ?? normalizeSpreadForSelectedTeam(pick.selected_team, next.current_spread_team, next.current_spread)
+      : bet
+      ? Number(bet.creator_id === currentUserId ? bet.creator_spread : bet.offered_spread)
+      : null;
+    if (!team || spread == null) continue;
+
+    const outright = pick?.pick_type === "underdog";
+    const previousOutcome = liveOutcome(previous, team, spread, outright);
+    const nextOutcome = liveOutcome(next, team, spread, outright);
+    const label = displayTeamName(next, team);
+
+    if (!isFinalGame(previous) && isFinalGame(next) && nextOutcome) {
+      return {
+        message: `${pick ? "Pick" : "Side bet"} final: ${finalScoreText(next)}. ${label} ${outcomeLabel(nextOutcome, outright)}.`,
+        tone: nextOutcome === "win" ? "success" : nextOutcome === "loss" ? "error" : "info"
+      };
+    }
+
+    if (scoreChanged(previous, next) && previousOutcome && nextOutcome && previousOutcome !== nextOutcome) {
+      const movement = nextOutcome === "win" ? "moved into covering" : nextOutcome === "push" ? "moved to a push" : "fell behind the spread";
+      return { message: `${label} ${movement}. Estimated cover chance: ${estimatedCoverChance(next, team, spread) ?? "–"}%.`, tone: nextOutcome === "win" ? "success" : "info" };
+    }
+
+    const previousChance = estimatedCoverChance(previous, team, spread);
+    const nextChance = estimatedCoverChance(next, team, spread);
+    if (previousChance != null && nextChance != null && Math.abs(nextChance - previousChance) >= 15) {
+      return {
+        message: `Big swing: ${label}'s estimated cover chance ${nextChance > previousChance ? "rose" : "fell"} to ${nextChance}%.`,
+        tone: nextChance > previousChance ? "success" : "info"
+      };
+    }
+  }
+
+  return null;
 }
 function teamDogValue(game: Game, team: string) {
   return underdogWinValue(normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread));
@@ -400,33 +517,18 @@ function pctText(value: number) {
 }
 
 function NumericText({ text }: { text: string | number }) {
-  const value = String(text);
-  const characters = Array.from(value);
-  const isDigit = (character?: string) => Boolean(character && /\d/.test(character));
-  const parts: ReactNode[] = characters.map((character, index) => {
-    const previousIsDigit = isDigit(characters[index - 1]);
-    const nextIsDigit = isDigit(characters[index + 1]);
-
-    if (character === "." && previousIsDigit && nextIsDigit) {
-      return <span className="numeric-decimal" key={index}>{character}</span>;
-    }
-    if ([":", "/", "-", "–", ","].includes(character) && previousIsDigit && nextIsDigit) {
-      return <span className="numeric-separator" key={index}>{character}</span>;
-    }
-    if (["-", "$"].includes(character) && nextIsDigit) {
-      return <span className="numeric-prefix" key={index}>{character}</span>;
-    }
-    if (["%", ":"].includes(character) && previousIsDigit) {
-      return <span className="numeric-suffix" key={index}>{character}</span>;
-    }
-    return character;
-  });
-
-  return <span className="numeric-token">{parts}</span>;
+  return <span className="numeric-token">{text}</span>;
 }
 
 function RecordText({ wins, losses, pushes }: { wins: number; losses: number; pushes: number }) {
   return <NumericText text={`${wins}-${losses}-${pushes}`} />;
+}
+
+function pickCardSignature(card: Pick[]) {
+  return card
+    .map((pick) => `${pick.game_id}:${pick.selected_team}:${pick.pick_type}`)
+    .sort()
+    .join("|");
 }
 
 function completeSeasonStandings(profiles: Profile[], rows: Standing[]) {
@@ -673,6 +775,8 @@ export default function PickemApp() {
   const [betConferenceFilter, setBetConferenceFilter] = useState("ALL");
   const [toast, setToast] = useState<Toast>(null);
   const [testWeekActive, setTestWeekActive] = useState(false);
+  const autosaveBlockedSignatureRef = useRef<string | null>(null);
+  const dataRef = useRef<AppData | null>(null);
   const hasActiveGames = Boolean(data?.games.some((game) => {
     const start = new Date(game.commence_time).getTime();
     return game.final_home_score == null &&
@@ -693,6 +797,7 @@ export default function PickemApp() {
     if (cachedPayload) {
       const cachedAt = Date.now();
       const cachedWeekIsOpen = !cachedPayload.weekOpenTime || new Date(cachedPayload.weekOpenTime).getTime() <= cachedAt;
+      dataRef.current = cachedPayload;
       setData(cachedPayload);
       setWeek(cachedPayload.week);
       setStatusFilter(defaultBoardStatus(cachedPayload.games || [], cachedAt, cachedWeekIsOpen));
@@ -724,6 +829,7 @@ export default function PickemApp() {
       }
       const loadedAt = Date.now();
       const loadedWeekIsOpen = !payload.weekOpenTime || new Date(payload.weekOpenTime).getTime() <= loadedAt;
+      dataRef.current = payload;
       setData(payload);
       setWeek(payload.week);
       if (!cachedPayload) {
@@ -740,6 +846,7 @@ export default function PickemApp() {
   }
 
   useEffect(() => { load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { dataRef.current = data; }, [data]);
   useEffect(() => {
     if (week == null) return;
     setStandingsWeek(week);
@@ -773,13 +880,17 @@ export default function PickemApp() {
         const payload = await response.json() as { games?: LiveScoreUpdate[]; resultsUpdated?: boolean };
         if (cancelled || !payload.games?.length) return;
         const scoresById = new Map(payload.games.map((game) => [game.id, game]));
-        setData((current) => current ? {
-          ...current,
-          games: current.games.map((game) => {
-            const score = scoresById.get(game.id);
-            return score ? { ...game, ...score } : game;
-          })
-        } : current);
+        const current = dataRef.current;
+        if (!current) return;
+        const nextGames = current.games.map((game) => {
+          const score = scoresById.get(game.id);
+          return score ? { ...game, ...score } : game;
+        });
+        const alert = buildLiveAlert(current, nextGames);
+        const nextData = { ...current, games: nextGames };
+        dataRef.current = nextData;
+        setData(nextData);
+        if (alert) setToast(alert);
         if (payload.resultsUpdated) void load(week);
       } catch {
         // Keep the last known score visible through brief network interruptions.
@@ -805,6 +916,15 @@ export default function PickemApp() {
     const timer = window.setTimeout(() => setToast(null), 3200);
     return () => window.clearTimeout(timer);
   }, [toast]);
+  useEffect(() => {
+    if (!data || !stagedPicks || savingPicks || testWeekActive) return;
+    const signature = pickCardSignature(stagedPicks);
+    if (autosaveBlockedSignatureRef.current === signature) return;
+    const timer = window.setTimeout(() => void savePicks(stagedPicks, true), 450);
+    return () => window.clearTimeout(timer);
+    // savePicks intentionally runs only after staged card changes settle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.week, savingPicks, stagedPicks, testWeekActive]);
 
   function notify(message: string, tone: NonNullable<Toast>["tone"] = "info") {
     setToast({ message, tone });
@@ -848,7 +968,8 @@ export default function PickemApp() {
     }
   }
 
-  async function savePicks(card: Pick[]) {
+  async function savePicks(card: Pick[], autosave = false) {
+    const submittedSignature = pickCardSignature(card);
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) {
       window.location.href = "/login";
@@ -863,27 +984,37 @@ export default function PickemApp() {
       });
       const payload = await response.json();
       if (!response.ok) {
+        if (autosave) autosaveBlockedSignatureRef.current = submittedSignature;
         notify(payload.error || "Picks could not be saved.", "error");
         return false;
       }
+      const savedPicks = (payload.picks || []).map((pick: Pick) => ({
+        ...pick,
+        game: data?.games.find((game) => game.id === pick.game_id) || pick.game
+      }));
+      const savedSignature = pickCardSignature(savedPicks);
       setData((current) => {
         if (!current) return current;
-        const savedPicks = (payload.picks || []).map((pick: Pick) => ({
+        const currentSavedPicks = (payload.picks || []).map((pick: Pick) => ({
           ...pick,
           game: current.games.find((game) => game.id === pick.game_id) || pick.game
         }));
-        return {
+        const nextData = {
           ...current,
           picks: [
             ...current.picks.filter((pick) => !(pick.user_id === current.currentUser.id && pick.week === current.week)),
-            ...savedPicks
+            ...currentSavedPicks
           ]
         };
+        dataRef.current = nextData;
+        return nextData;
       });
-      setStagedPicks(null);
-      notify("Picks saved. They remain editable until each game locks.", "success");
+      autosaveBlockedSignatureRef.current = null;
+      setStagedPicks((current) => current && pickCardSignature(current) === savedSignature ? null : current);
+      if (!autosave) notify("Picks saved. They remain editable until each game locks.", "success");
       return true;
     } catch {
+      if (autosave) autosaveBlockedSignatureRef.current = submittedSignature;
       notify("Picks could not be saved.", "error");
       return false;
     } finally {
@@ -907,14 +1038,19 @@ export default function PickemApp() {
         return false;
       }
       if (Array.isArray(payload.sideBets)) {
-        setData((current) => current ? {
-          ...current,
-          sideBets: payload.sideBets.map((bet: SideBet) => ({
-            ...bet,
-            game: current.games.find((game) => game.id === bet.game_id) || bet.game
-          })),
-          sideBetSlotCounts: payload.sideBetSlotCounts || current.sideBetSlotCounts
-        } : current);
+        setData((current) => {
+          if (!current) return current;
+          const nextData = {
+            ...current,
+            sideBets: payload.sideBets.map((bet: SideBet) => ({
+              ...bet,
+              game: current.games.find((game) => game.id === bet.game_id) || bet.game
+            })),
+            sideBetSlotCounts: payload.sideBetSlotCounts || current.sideBetSlotCounts
+          };
+          dataRef.current = nextData;
+          return nextData;
+        });
       } else {
         await load(week);
       }
@@ -996,6 +1132,7 @@ export default function PickemApp() {
       const savedPick = myPicks.find((pick) => pick.game_id === nextPick.game_id);
       return savedPick?.selected_team === nextPick.selected_team && savedPick.pick_type === nextPick.pick_type;
     });
+    autosaveBlockedSignatureRef.current = null;
     setStagedPicks(matchesSaved ? null : nextCard);
   }
 
@@ -1210,7 +1347,7 @@ export default function PickemApp() {
       {tab === "card" && <section className="panel card-panel">
         <SectionTabs items={[{ id: "mine", label: "My Card" }, { id: "group", label: "League Cards" }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
         {cardView === "mine" && <>
-          {!cardIsLocked && <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />}
+          {!cardIsLocked && <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} saving={savingPicks} />}
           <PickList picks={myUnderdog ? [...myRegular, myUnderdog] : myRegular} games={viewedGames} title="Picks" removePick={removePick} />
         </>}
         {cardView === "group" && <div className="group-list">
@@ -1256,7 +1393,7 @@ export default function PickemApp() {
       </section>}
 
       {tab === "rules" && <section className="panel rules-panel">
-        <div className="section-title"><Scale size={19} /><div><h2>League rules</h2></div></div>
+        <div className="section-title"><ClipboardList size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
           <RuleItem icon={CalendarRange} title="Season schedule"><ul><li><NumericText text="The season runs for 20 weeks." /></li><li><NumericText text="It begins with two CFB-only weeks before NFL games start and ends Sunday, Jan. 10, after the final NFL regular-season games." /></li><li>Each week runs from Tuesday through the following Monday.</li></ul></RuleItem>
           <RuleItem icon={ClipboardCheck} title="Weekly card"><ul><li><NumericText text="Week 1: 3 CFB picks plus 1 dog." /></li><li><NumericText text="Week 2: 5 CFB picks plus 1 dog." /></li><li><NumericText text="Weeks 3–20: 5 picks, including at least 1 CFB and 1 NFL pick, plus 1 dog." /></li></ul></RuleItem>
@@ -1270,11 +1407,6 @@ export default function PickemApp() {
         </div>
       </section>}
     </main>
-    {tab === "picks" && picksView === "board" && stagedPicks !== null && !toast && <button className="floating-review" onClick={() => { setTab("card"); setCardView("mine"); }}>
-      <span><b>Unsaved picks</b><small>Review your card before games lock</small></span>
-      <strong>Review & save <ChevronRight size={17} /></strong>
-    </button>}
-    {tab === "card" && cardView === "mine" && !previewActive && stagedPicks !== null && !toast && <button className="sticky-card-save" disabled={savingPicks} onClick={() => savePicks(cardPicks)}><Save size={17} /> {savingPicks ? "Saving picks…" : "Save picks"}</button>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span><NumericText text={toast.message} /></span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
   </div>;
 }
@@ -1819,12 +1951,14 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
   const showScoreValues = hasScore && (gameIsLive || gameIsFinal);
   const awayResultLine = showScoreValues ? resultLine(game.away_team) : null;
   const homeResultLine = showScoreValues ? resultLine(game.home_team) : null;
+  const awayCoverChance = gameIsLive ? estimatedCoverChance(game, game.away_team, resultSpread(game.away_team)) : null;
+  const homeCoverChance = gameIsLive ? estimatedCoverChance(game, game.home_team, resultSpread(game.home_team)) : null;
   const liveSituation = gameIsLive ? liveSituationStatus(game) : "";
 
-  return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${closed && !gameIsLive && !gameIsFinal ? "locked-out" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
+  return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${!weekIsOpen && !gameIsLive && !gameIsFinal ? "locked-out" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
     <div className="game-head compact-game-head">
       <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status"><NumericText text={livePeriodStatus(game)} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}</div>
-      {statusFilter !== "OPEN" && gameIsLive && liveSituation && <div className="game-live-situation"><NumericText text={liveSituation} /></div>}
+      {statusFilter !== "OPEN" && gameIsLive && liveSituation && <div className="game-live-situation"><LiveSituationText game={game} /></div>}
     </div>
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
@@ -1836,7 +1970,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
         {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.away_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{awayScore}</span><PossessionIcon game={game} team={game.away_team} /></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
-        {showScoreValues ? <span className="team-result-line">{awayResultLine && <span className="team-spread team-result-spread"><NumericText text={awayResultLine} /></span>}</span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : <NumericText text={sideLine(game.away_team)} />}</span></span>}
+        {showScoreValues ? <span className="team-result-line"><span className="team-live-result">{awayResultLine && <span className="team-spread team-result-spread"><NumericText text={awayResultLine} /></span>}{awayCoverChance != null && <small className="team-cover-probability" title="Estimated cover probability">Est. <NumericText text={`${awayCoverChance}%`} /></small>}</span></span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : <NumericText text={sideLine(game.away_team)} />}</span></span>}
       </button>
 
       <button
@@ -1847,7 +1981,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
         {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.home_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{homeScore}</span><PossessionIcon game={game} team={game.home_team} /></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
-        {showScoreValues ? <span className="team-result-line">{homeResultLine && <span className="team-spread team-result-spread"><NumericText text={homeResultLine} /></span>}</span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
+        {showScoreValues ? <span className="team-result-line"><span className="team-live-result">{homeResultLine && <span className="team-spread team-result-spread"><NumericText text={homeResultLine} /></span>}{homeCoverChance != null && <small className="team-cover-probability" title="Estimated cover probability">Est. <NumericText text={`${homeCoverChance}%`} /></small>}</span></span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
       </button>
     </div>
   </article>;
@@ -1868,7 +2002,7 @@ function PossessionIcon({ game, team }: { game: Game; team: string }) {
   </span>;
 }
 
-function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number }; hasDog: boolean; dirty: boolean }) {
+function CardProgress({ rule, counts, hasDog, dirty, saving }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number }; hasDog: boolean; dirty: boolean; saving: boolean }) {
   const ok = counts.total === rule.regularTotal && counts.cfb >= rule.cfbMinimum && counts.nfl >= rule.nflMinimum && hasDog;
   const completeSlots = Math.min(counts.total + Number(hasDog), rule.regularTotal + 1);
   const progress = completeSlots / (rule.regularTotal + 1) * 100;
@@ -1879,7 +2013,7 @@ function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts:
     <div className="card-progress-copy">
       <div className="card-progress-heading">
         <strong>{ok ? "Card complete" : "Build your card"}</strong>
-        <span className={`card-progress-state ${dirty ? "unsaved" : "saved"}`}>{!dirty && <CircleCheckBig size={14} />}{dirty ? "Unsaved changes" : "Picks saved"}</span>
+        <span className={`card-progress-state ${dirty ? "unsaved" : "saved"}`}>{!dirty && <CircleCheckBig size={14} />}{dirty ? saving ? "Saving…" : "Saving automatically…" : "Saved automatically"}</span>
       </div>
       <span className="card-progress-count"><NumericText text={countText} /></span>
     </div>

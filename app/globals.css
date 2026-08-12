@@ -141,7 +141,6 @@ p { margin: 0; }
 .game-list { display: grid; overflow: hidden; gap: 0; border-block: 1px solid var(--line-strong); background: var(--panel); }
 .game-card { overflow: hidden; border: 0; border-bottom: 1px solid var(--line-strong); border-radius: 0; background: var(--panel); content-visibility: auto; contain-intrinsic-block-size: 150px; }
 .game-card:last-child { border-bottom: 0; }
-.game-card.closed { background: var(--canvas-muted); }
 .game-head { display: flex; height: var(--data-header-height); min-height: var(--data-header-height); align-items: center; justify-content: space-between; gap: 10px; padding: 0 var(--pick-content-inset); border-bottom: 1px solid var(--line); background: var(--surface-soft); }
 .badges, .game-time-group { display: flex; align-items: center; gap: 6px; }
 .badge, .status-mark { display: inline-flex; align-items: center; justify-content: center; padding: 3px 5px; border-radius: 1px; color: var(--muted); background: var(--surface-muted); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
@@ -155,6 +154,7 @@ p { margin: 0; }
 .game-time, .game-final-status, .game-live-status, .game-live-situation { color: var(--ink); font-size: 11.5px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .game-time, .game-final-status { text-transform: uppercase; }
 .game-live-situation { min-width: 0; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.red-zone-field { color: var(--red); }
 .stacked-matchup { display: grid; }
 .team-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) 68px; min-height: var(--data-row-height); width: 100%; align-items: center; gap: var(--space-3); padding: 10px var(--pick-content-inset); border: 0; border-bottom: 1px solid var(--line); color: var(--ink); background: var(--panel); text-align: left; cursor: pointer; transition: background-color .15s ease, box-shadow .15s ease; opacity: 1 !important; }
 .stacked-matchup .team-row:first-child { --matchup-marker-x: 31px; position: relative; border-bottom: 0; }
@@ -188,6 +188,9 @@ p { margin: 0; }
 .team-spread { display: inline-flex; width: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .team-result-line { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: flex-end; }
 .team-result-spread { color: inherit; }
+.team-live-result { display: grid; min-width: 0; justify-items: end; gap: 2px; }
+.team-live-result .team-spread { width: auto; }
+.team-cover-probability { color: var(--muted); font-size: 8px; font-weight: 800; line-height: 1; text-align: right; text-transform: uppercase; white-space: nowrap; }
 .possession-icon { display: inline-flex; width: 17px; height: 11px; flex: 0 0 17px; align-items: center; margin-left: 5px; color: #8a512f; vertical-align: -1px; }
 .possession-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .team-inline-score { flex: 0 0 auto; margin-left: 5px; color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -195,13 +198,6 @@ p { margin: 0; }
 .team-logo { width: 34px; height: 34px; object-fit: contain; }
 .team-logo.fallback { display: grid; place-items: center; border-radius: 3px; color: var(--muted); background: var(--surface-muted); font-size: 11px; font-weight: 800; }
 
-.floating-review { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 10px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 30; display: flex; min-height: 57px; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 14px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 7px; color: #fff; background: var(--graphite); box-shadow: 0 12px 28px rgba(20, 33, 43, .24); text-align: left; }
-.floating-review > span { display: grid; gap: 2px; }
-.floating-review b { font-size: 12px; }
-.floating-review small { color: #becbd2; font-size: 10px; font-weight: 600; }
-.floating-review > strong { display: flex; flex: 0 0 auto; align-items: center; gap: 4px; color: #d7e8f2; font-size: 12px; }
-.sticky-card-save { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 10px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 31; display: flex; min-height: 57px; align-items: center; justify-content: center; gap: var(--space-2); border: 0; border-radius: 7px; color: #fff; background: var(--blue-dark); box-shadow: 0 12px 28px rgba(20, 33, 43, .24); font-size: 12px; font-weight: 800; transition: background-color .15s ease, opacity .15s ease; }
-.sticky-card-save:disabled { opacity: .72; }
 .toast { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 10px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 60; display: flex; min-height: 57px; align-items: center; gap: 9px; padding: 10px 12px 10px 14px; border-radius: 7px; color: #fff; background: var(--graphite); box-shadow: 0 12px 30px rgba(20, 33, 43, .25); font-size: 12px; font-weight: 700; }
 .toast.success { background: var(--green); }
 .toast.error { background: #9f403c; }
@@ -274,7 +270,7 @@ fieldset .field-label { padding: 0; }
 .board-empty-state, .side-bet-empty-state { width: auto; margin-inline: calc(var(--page-gutter) * -1); padding-left: var(--pick-content-inset); text-align: left; }
 .side-bet-game-card .game-head { background: var(--surface-soft); }
 .game-card.locked-out .team-row, .side-bet-game-card.closed .team-row { color: var(--muted); background: var(--canvas-muted); }
-.side-bet-slip-bar { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 9px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 34; display: grid; min-height: 60px; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 11px; border: 1px solid #c7c0b1; border-radius: 7px; color: var(--ink); background: #f8f5ed; box-shadow: 0 12px 30px rgba(20, 33, 43, .24); text-align: left; }
+.side-bet-slip-bar { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 9px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 34; display: grid; min-height: 60px; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 11px; border: 1px solid #c7c0b1; border-radius: 7px; color: var(--ink); background: #fbf9f4; box-shadow: 0 12px 30px rgba(20, 33, 43, .24); text-align: left; }
 .side-bet-slip-bar .team-logo { width: 34px; height: 34px; }
 .side-bet-slip-copy { display: flex; min-width: 0; align-items: baseline; gap: 6px; }
 .side-bet-slip-copy .team-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -452,10 +448,6 @@ fieldset .field-label { padding: 0; }
 .side-bet-ledger-row > div p { text-transform: none; }
 .side-bet-ledger-row > strong:last-child { justify-self: end; font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
 .numeric-token { font-variant-numeric: tabular-nums; }
-.numeric-prefix { display: inline-block; margin-right: .2px; }
-.numeric-decimal { display: inline-block; margin-inline: .2px; }
-.numeric-separator { display: inline-block; margin-inline: .2px; }
-.numeric-suffix { display: inline-block; margin-left: .2px; }
 .ledger-list > .muted { display: flex; min-height: var(--data-row-height); align-items: center; margin: 0; padding: 13px var(--bank-content-inset); background: var(--panel); }
 
 .rules-panel { display: grid; }
@@ -528,5 +520,5 @@ fieldset .field-label { padding: 0; }
   .card-progress-count { max-width: none; text-align: left; }
   .bet-line-summary > span:last-child { text-align: left; }
   .leaderboard-labels, .leaderboard-row { grid-template-columns: 42px minmax(82px, 1fr) repeat(3, 28px) 58px; }
-  .floating-review, .sticky-card-save, .toast { right: 9px; left: 9px; }
+  .toast { right: 9px; left: 9px; }
 }

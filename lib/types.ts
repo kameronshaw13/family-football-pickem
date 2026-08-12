@@ -26,6 +26,7 @@ export type Game = {
   live_completed?: boolean;
   live_possession_team?: string | null;
   live_situation?: string | null;
+  live_red_zone?: boolean;
   created_at?: string;
   updated_at?: string;
 };
