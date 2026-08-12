@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, ClipboardList, EyeOff, FlaskConical, Landmark, LoaderCircle, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, Landmark, LoaderCircle, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
@@ -1495,7 +1495,7 @@ export default function PickemApp() {
       {tab === "card" && <section className="panel card-panel">
         <SectionTabs items={[{ id: "mine", label: "My Card" }, { id: "group", label: "League Cards" }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
         {cardView === "mine" && <>
-          {!cardIsLocked && <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} saving={savingPicks} />}
+          {!cardIsLocked && <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />}
           <PickList picks={myUnderdog ? [...myRegular, myUnderdog] : myRegular} games={viewedGames} title="Picks" removePick={removePick} />
         </>}
         {cardView === "group" && <div className="group-list">
@@ -1541,7 +1541,7 @@ export default function PickemApp() {
       </section>}
 
       {tab === "rules" && <section className="panel rules-panel">
-        <div className="section-title"><ClipboardList size={19} /><div><h2>League rules</h2></div></div>
+        <div className="section-title"><div><h2>League rules</h2></div></div>
         <div className="rules-list">
           <RuleItem title="Season schedule"><ul><li><NumericText text="The season runs for 20 weeks." /></li><li><NumericText text="It begins with two CFB-only weeks before NFL games start and ends Sunday, Jan. 10, after the final NFL regular-season games." /></li><li>Each week runs from Tuesday through the following Monday.</li></ul></RuleItem>
           <RuleItem title="Weekly card"><ul><li><NumericText text="Week 1: 3 CFB picks plus 1 dog." /></li><li><NumericText text="Week 2: 5 CFB picks plus 1 dog." /></li><li><NumericText text="Weeks 3–20: 5 picks, including at least 1 CFB and 1 NFL pick, plus 1 dog." /></li></ul></RuleItem>
@@ -1555,7 +1555,7 @@ export default function PickemApp() {
         </div>
       </section>}
     </main>
-    {!previewActive && stagedPicks !== null && autosaveBlockedSignatureRef.current !== pickCardSignature(stagedPicks) && !toast && <div className="autosave-toast" role="status" aria-live="polite"><LoaderCircle size={18} /><span>{savingPicks ? "Saving picks…" : "Autosaving picks…"}</span></div>}
+    {!previewActive && stagedPicks !== null && autosaveBlockedSignatureRef.current !== pickCardSignature(stagedPicks) && !toast && <div className="autosave-toast" role="status" aria-live="polite"><LoaderCircle size={18} /><span>Saving…</span></div>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span><NumericText text={toast.message} /></span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
   </div>;
 }
@@ -2165,7 +2165,7 @@ function PossessionIcon({ game, team }: { game: Game; team: string }) {
   </span>;
 }
 
-function CardProgress({ rule, counts, hasDog, dirty, saving }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number }; hasDog: boolean; dirty: boolean; saving: boolean }) {
+function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number }; hasDog: boolean; dirty: boolean }) {
   const ok = counts.total === rule.regularTotal && counts.cfb >= rule.cfbMinimum && counts.nfl >= rule.nflMinimum && hasDog;
   const completeSlots = Math.min(counts.total + Number(hasDog), rule.regularTotal + 1);
   const progress = completeSlots / (rule.regularTotal + 1) * 100;
@@ -2176,7 +2176,7 @@ function CardProgress({ rule, counts, hasDog, dirty, saving }: { rule: WeekRule;
     <div className="card-progress-copy">
       <div className="card-progress-heading">
         <strong>{ok ? "Card complete" : "Build your card"}</strong>
-        <span className={`card-progress-state ${dirty ? "unsaved" : "saved"}`}>{!dirty && <CircleCheckBig size={14} />}{dirty ? saving ? "Saving…" : "Saving automatically…" : "Saved automatically"}</span>
+        <span className={`card-progress-state ${dirty ? "unsaved" : "saved"}`}>{!dirty && <CircleCheckBig size={14} />}{dirty ? "Saving…" : "Picks saved"}</span>
       </div>
       <span className="card-progress-count"><NumericText text={countText} /></span>
     </div>

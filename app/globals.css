@@ -462,8 +462,8 @@ fieldset .field-label { padding: 0; }
 .rule-item summary strong { display: flex; min-height: 30px; align-items: center; font-family: var(--font-display); font-size: 14px; line-height: 1.2; }
 .rule-chevron { align-self: center; color: var(--muted); transition: transform .18s ease; }
 .rule-item[open] .rule-chevron { transform: rotate(180deg); }
-.rule-item summary { padding-inline: var(--page-gutter); }
-.rule-copy { padding: 0 calc(var(--page-gutter) + 31px) 14px var(--page-gutter); color: var(--ink); font-size: 13px; font-weight: 600; line-height: 1.5; text-wrap: pretty; }
+.rule-item summary { padding-right: var(--page-gutter); padding-left: calc(var(--page-gutter) + 43px); }
+.rule-copy { padding: 0 calc(var(--page-gutter) + 31px) 14px calc(var(--page-gutter) + 43px); color: var(--ink); font-size: 13px; font-weight: 600; line-height: 1.5; text-wrap: pretty; }
 .rule-copy ul { display: grid; gap: 5px; margin: 0; padding-left: 18px; }
 .rule-copy li { padding-left: 2px; }
 .small, .muted { color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
