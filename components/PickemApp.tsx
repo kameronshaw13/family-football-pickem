@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import { CalendarRange, Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, ClipboardCheck, ClipboardList, Dog, EyeOff, FlaskConical, Handshake, Landmark, LoaderCircle, LockKeyhole, Send, Shield, ShieldCheck, Sparkles, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, ClipboardList, EyeOff, FlaskConical, Landmark, LoaderCircle, Send, Shield, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
@@ -10,6 +10,7 @@ import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBan
 import { hasChargers, isChargersTeam } from "@/lib/seasonRules";
 import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, POWER_CONFERENCES } from "@/lib/cfbConferences";
 import MenuSelect from "@/components/MenuSelect";
+import NumericText from "@/components/NumericText";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -492,6 +493,24 @@ function liveWinChance(game: Game, team: string) {
   return espnWinChance(game, team) ?? estimatedWinChance(game, team);
 }
 
+function liveProbabilityColor(chance: number) {
+  const neutral = [108, 120, 124];
+  const endpoint = chance >= 50 ? [31, 126, 78] : [159, 64, 60];
+  const intensity = Math.min(1, Math.abs(chance - 50) / 50);
+  const channels = neutral.map((value, index) => Math.round(value + (endpoint[index] - value) * intensity));
+  return `rgb(${channels.join(", ")})`;
+}
+
+function LiveProbability({ chance, title }: { chance: number | null; title: string }) {
+  if (chance == null) return null;
+  return <small
+    className="team-live-probability"
+    style={{ color: liveProbabilityColor(chance) }}
+    title={title}
+    aria-label={`${title}: ${chance}%`}
+  ><NumericText text={`${chance}%`} /></small>;
+}
+
 function liveOutcome(game: Game, team: string, spread: number, outright = false): GameOutcome | null {
   const homeScore = game.live_home_score ?? game.final_home_score;
   const awayScore = game.live_away_score ?? game.final_away_score;
@@ -647,24 +666,6 @@ function sideBetAmountForUser(bet: SideBet, userId: string) {
 }
 function pctText(value: number) {
   return `${(Number(value || 0) * 100).toFixed(1)}%`;
-}
-
-function NumericText({ text }: { text: string | number }) {
-  const characters = Array.from(String(text));
-  const isDigit = (character?: string) => Boolean(character && /\d/.test(character));
-  const isNumericSymbol = (character: string) => !isDigit(character) && !/\s/.test(character) && character.toUpperCase() === character.toLowerCase();
-  const parts: ReactNode[] = characters.map((character, index) => {
-    if (!isNumericSymbol(character)) return character;
-    const followsNumber = isDigit(characters[index - 1]);
-    const precedesNumber = isDigit(characters[index + 1]);
-    if (!followsNumber && !precedesNumber) return character;
-    return <span
-      className={`numeric-symbol ${followsNumber ? "numeric-symbol-after" : ""} ${precedesNumber ? "numeric-symbol-before" : ""}`}
-      key={index}
-    >{character}</span>;
-  });
-
-  return <span className="numeric-token">{parts}</span>;
 }
 
 function RecordText({ wins, losses, pushes }: { wins: number; losses: number; pushes: number }) {
@@ -1442,7 +1443,7 @@ export default function PickemApp() {
     </nav>
 
     <main className="container">
-      {message && <div className="error-card">{message}</div>}
+      {message && <div className="error-card"><NumericText text={message} /></div>}
       {previewActive && <div className="test-mode-banner"><span><FlaskConical size={16} /><span><strong>Board state preview</strong><small>No real picks or bank balances are changed</small></span></span><button type="button" onClick={() => { setTestWeekActive(false); setStatusFilter(defaultBoardStatus(data.games, clock, !data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock)); setStatusFilterTouched(false); }}><X size={16} /> Exit</button></div>}
 
       {tab === "picks" && <section className="panel picks-panel">
@@ -1542,24 +1543,25 @@ export default function PickemApp() {
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><ClipboardList size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
-          <RuleItem icon={CalendarRange} title="Season schedule"><ul><li><NumericText text="The season runs for 20 weeks." /></li><li><NumericText text="It begins with two CFB-only weeks before NFL games start and ends Sunday, Jan. 10, after the final NFL regular-season games." /></li><li>Each week runs from Tuesday through the following Monday.</li></ul></RuleItem>
-          <RuleItem icon={ClipboardCheck} title="Weekly card"><ul><li><NumericText text="Week 1: 3 CFB picks plus 1 dog." /></li><li><NumericText text="Week 2: 5 CFB picks plus 1 dog." /></li><li><NumericText text="Weeks 3–20: 5 picks, including at least 1 CFB and 1 NFL pick, plus 1 dog." /></li></ul></RuleItem>
-          <RuleItem icon={ShieldCheck} title="Eligible games"><ul><li>Chargers games are ineligible.</li><li>Each CFB game must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
-          <RuleItem icon={Dog} title="Underdog"><ul><li><NumericText text="+7 to +9.5: +1 win." /></li><li><NumericText text="+10 to +19.5: +2 wins." /></li><li><NumericText text="+20 or more: +3 wins." /></li><li>The dog must win outright.</li><li>A losing dog does not add a loss.</li></ul></RuleItem>
-          <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings are ranked by win percentage.</li><li>Win-percentage ties are broken by total wins.</li><li><NumericText text="The season winner wins $300." /></li><li><NumericText text="Second place loses $100." /></li><li><NumericText text="Last place loses $200." /></li></ul></RuleItem>
-          <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li><NumericText text="Last place pays first place $20." /></li><li><NumericText text="Second place pays first place $10." /></li><li><NumericText text="If last place is tied, each tied player pays first place $15." /></li><li><NumericText text="If first place is tied, the tied players split $20 from last place." /></li><li>A three-way tie has no payment.</li></ul></RuleItem>
-          <RuleItem icon={Sparkles} title="Perfect week"><ul><li><NumericText text="Does not apply in Week 1." /></li><li>A perfect card doubles every weekly payment.</li></ul></RuleItem>
-          <RuleItem icon={LockKeyhole} title="Pick locks"><ul><li><NumericText text="Tuesday–Friday lines freeze 1 hour before kickoff." /></li><li>Tuesday–Friday picks lock at kickoff.</li><li><NumericText text="Saturday–Monday lines freeze Friday at 7:00 PM CT." /></li><li><NumericText text="Saturday–Monday picks lock Friday at 8:00 PM CT." /></li></ul></RuleItem>
-          <RuleItem icon={Handshake} title="Side bets"><ul><li>Spread bets only.</li><li><NumericText text="Maximum: $20 per bet." /></li><li><NumericText text="Each player has 3 side-bet slots per week." /></li><li><NumericText text="Accepted and pending offers count toward the 3-bet limit." /></li><li><NumericText text="Offers open Tuesday at 8:00 AM CT with the new week." /></li><li><NumericText text="Tuesday–Friday lines freeze 1 hour before kickoff." /></li><li><NumericText text="Saturday–Monday lines freeze Friday at 7:00 PM CT." /></li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets post directly to the bank.</li></ul></RuleItem>
+          <RuleItem title="Season schedule"><ul><li><NumericText text="The season runs for 20 weeks." /></li><li><NumericText text="It begins with two CFB-only weeks before NFL games start and ends Sunday, Jan. 10, after the final NFL regular-season games." /></li><li>Each week runs from Tuesday through the following Monday.</li></ul></RuleItem>
+          <RuleItem title="Weekly card"><ul><li><NumericText text="Week 1: 3 CFB picks plus 1 dog." /></li><li><NumericText text="Week 2: 5 CFB picks plus 1 dog." /></li><li><NumericText text="Weeks 3–20: 5 picks, including at least 1 CFB and 1 NFL pick, plus 1 dog." /></li></ul></RuleItem>
+          <RuleItem title="Eligible games"><ul><li>Chargers games are ineligible.</li><li>Each CFB game must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
+          <RuleItem title="Underdog"><ul><li><NumericText text="+7 to +9.5: +1 win." /></li><li><NumericText text="+10 to +19.5: +2 wins." /></li><li><NumericText text="+20 or more: +3 wins." /></li><li>The dog must win outright.</li><li>A losing dog does not add a loss.</li></ul></RuleItem>
+          <RuleItem title="Standings"><ul><li>Season and weekly standings are ranked by win percentage.</li><li>Win-percentage ties are broken by total wins.</li><li><NumericText text="The season winner wins $300." /></li><li><NumericText text="Second place loses $100." /></li><li><NumericText text="Last place loses $200." /></li></ul></RuleItem>
+          <RuleItem title="Weekly bank"><ul><li><NumericText text="Last place pays first place $20." /></li><li><NumericText text="Second place pays first place $10." /></li><li><NumericText text="If last place is tied, each tied player pays first place $15." /></li><li><NumericText text="If first place is tied, the tied players split $20 from last place." /></li><li>A three-way tie has no payment.</li></ul></RuleItem>
+          <RuleItem title="Perfect week"><ul><li><NumericText text="Does not apply in Week 1." /></li><li>A perfect card doubles every weekly payment.</li></ul></RuleItem>
+          <RuleItem title="Pick locks"><ul><li><NumericText text="Tuesday–Friday lines freeze 1 hour before kickoff." /></li><li>Tuesday–Friday picks lock at kickoff.</li><li><NumericText text="Saturday–Monday lines freeze Friday at 7:00 PM CT." /></li><li><NumericText text="Saturday–Monday picks lock Friday at 8:00 PM CT." /></li></ul></RuleItem>
+          <RuleItem title="Side bets"><ul><li>Spread bets only.</li><li><NumericText text="Maximum: $20 per bet." /></li><li><NumericText text="Each player has 3 side-bet slots per week." /></li><li><NumericText text="Accepted and pending offers count toward the 3-bet limit." /></li><li><NumericText text="Offers open Tuesday at 8:00 AM CT with the new week." /></li><li><NumericText text="Tuesday–Friday lines freeze 1 hour before kickoff." /></li><li><NumericText text="Saturday–Monday lines freeze Friday at 7:00 PM CT." /></li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets post directly to the bank.</li></ul></RuleItem>
         </div>
       </section>}
     </main>
+    {!previewActive && stagedPicks !== null && autosaveBlockedSignatureRef.current !== pickCardSignature(stagedPicks) && !toast && <div className="autosave-toast" role="status" aria-live="polite"><LoaderCircle size={18} /><span>{savingPicks ? "Saving picks…" : "Autosaving picks…"}</span></div>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span><NumericText text={toast.message} /></span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
   </div>;
 }
 
 function SectionTabs({ items, value, onChange }: { items: Array<{ id: string; label: string }>; value: string; onChange: (value: string) => void }) {
-  return <div className="section-tabs">{items.map((item) => <button key={item.id} className={value === item.id ? "active" : ""} onClick={() => onChange(item.id)}>{item.label}</button>)}</div>;
+  return <div className="section-tabs">{items.map((item) => <button key={item.id} className={value === item.id ? "active" : ""} onClick={() => onChange(item.id)}><NumericText text={item.label} /></button>)}</div>;
 }
 
 function conferenceFilterSections(allLabel: string) {
@@ -1642,9 +1644,9 @@ function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {
   </div>;
 }
 
-function RuleItem({ icon: Icon, title, children }: { icon: typeof Trophy; title: string; children: React.ReactNode }) {
+function RuleItem({ title, children }: { title: string; children: React.ReactNode }) {
   return <details className="rule-item">
-    <summary><span className="rule-icon"><Icon size={19} /></span><strong>{title}</strong><ChevronDown className="rule-chevron" size={17} /></summary>
+    <summary><strong>{title}</strong><ChevronDown className="rule-chevron" size={17} /></summary>
     <div className="rule-copy">{children}</div>
   </details>;
 }
@@ -1831,7 +1833,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     </div>
 
     {view === "new" && <div className="side-bet-sportsbook-board">
-      {limitReached && <div className="empty-state side-bet-empty-state">Your {MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.</div>}
+      {limitReached && <div className="empty-state side-bet-empty-state"><NumericText text={`Your ${MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.`} /></div>}
       {!limitReached && openGames.length === 0 && <div className="empty-state side-bet-empty-state">No games with a spread are available before kickoff.</div>}
       {!limitReached && openGames.length > 0 && filteredOpenGames.length === 0 && <div className="empty-state side-bet-empty-state">No available games.</div>}
       {!limitReached && filteredOpenGames.length > 0 && <div className="game-days side-bet-game-days">{sideBetGameGroups.map((group) => <section key={group.key} className="game-day-section">
@@ -2100,8 +2102,18 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
   const homeResultLine = showScoreValues ? resultLine(game.home_team) : null;
   const awayEspnWinChance = dogView ? espnWinChance(game, game.away_team) : null;
   const homeEspnWinChance = dogView ? espnWinChance(game, game.home_team) : null;
-  const awayLiveChance = gameIsLive ? dogView ? awayEspnWinChance ?? estimatedWinChance(game, game.away_team) : estimatedCoverChance(game, game.away_team, resultSpread(game.away_team)) : null;
-  const homeLiveChance = gameIsLive ? dogView ? homeEspnWinChance ?? estimatedWinChance(game, game.home_team) : estimatedCoverChance(game, game.home_team, resultSpread(game.home_team)) : null;
+  const awayEstimatedCoverChance = gameIsLive && !dogView ? estimatedCoverChance(game, game.away_team, resultSpread(game.away_team)) : null;
+  const homeEstimatedCoverChance = gameIsLive && !dogView && awayEstimatedCoverChance == null ? estimatedCoverChance(game, game.home_team, resultSpread(game.home_team)) : null;
+  const awayLiveChance = gameIsLive
+    ? dogView
+      ? awayEspnWinChance ?? estimatedWinChance(game, game.away_team)
+      : awayEstimatedCoverChance ?? (homeEstimatedCoverChance == null ? null : 100 - homeEstimatedCoverChance)
+    : null;
+  const homeLiveChance = gameIsLive
+    ? dogView
+      ? homeEspnWinChance ?? estimatedWinChance(game, game.home_team)
+      : awayLiveChance == null ? homeEstimatedCoverChance : 100 - awayLiveChance
+    : null;
   const awayChanceTitle = dogView && awayEspnWinChance != null ? "ESPN live win probability" : dogView ? "Estimated win probability" : "Estimated cover probability";
   const homeChanceTitle = dogView && homeEspnWinChance != null ? "ESPN live win probability" : dogView ? "Estimated win probability" : "Estimated cover probability";
   const liveSituation = gameIsLive ? liveSituationStatus(game) : "";
@@ -2120,8 +2132,8 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.away_team)}
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
-        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.away_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{awayScore}</span><PossessionIcon game={game} team={game.away_team} /></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
-        {showScoreValues ? <span className="team-result-line"><span className="team-live-result">{awayResultLine && <span className="team-spread team-result-spread"><NumericText text={awayResultLine} /></span>}{awayLiveChance != null && <small className="team-cover-probability" title={awayChanceTitle}>{dogView ? <>{awayEspnWinChance == null && "Est. "}<NumericText text={`${awayLiveChance}%`} /> win</> : <>Est. <NumericText text={`${awayLiveChance}%`} /></>}</small>}</span></span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : <NumericText text={sideLine(game.away_team)} />}</span></span>}
+        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.away_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{awayScore}</span><PossessionIcon game={game} team={game.away_team} /><LiveProbability chance={awayLiveChance} title={awayChanceTitle} /></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
+        {showScoreValues ? <span className="team-result-line">{awayResultLine && <span className="team-spread team-result-spread"><NumericText text={awayResultLine} /></span>}</span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : <NumericText text={sideLine(game.away_team)} />}</span></span>}
       </button>
 
       <button
@@ -2131,8 +2143,8 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.home_team)}
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
-        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.home_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{homeScore}</span><PossessionIcon game={game} team={game.home_team} /></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
-        {showScoreValues ? <span className="team-result-line"><span className="team-live-result">{homeResultLine && <span className="team-spread team-result-spread"><NumericText text={homeResultLine} /></span>}{homeLiveChance != null && <small className="team-cover-probability" title={homeChanceTitle}>{dogView ? <>{homeEspnWinChance == null && "Est. "}<NumericText text={`${homeLiveChance}%`} /> win</> : <>Est. <NumericText text={`${homeLiveChance}%`} /></>}</small>}</span></span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
+        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.home_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{homeScore}</span><PossessionIcon game={game} team={game.home_team} /><LiveProbability chance={homeLiveChance} title={homeChanceTitle} /></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
+        {showScoreValues ? <span className="team-result-line">{homeResultLine && <span className="team-spread team-result-spread"><NumericText text={homeResultLine} /></span>}</span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
       </button>
     </div>
   </article>;

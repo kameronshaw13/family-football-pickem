@@ -188,9 +188,7 @@ p { margin: 0; }
 .team-spread { display: inline-flex; width: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .team-result-line { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: flex-end; }
 .team-result-spread { color: inherit; }
-.team-live-result { display: grid; min-width: 0; justify-items: end; gap: 2px; }
-.team-live-result .team-spread { width: auto; }
-.team-cover-probability { color: var(--muted); font-size: 8px; font-weight: 800; line-height: 1; text-align: right; text-transform: uppercase; white-space: nowrap; }
+.team-live-probability { flex: 0 0 auto; margin-left: 5px; font-family: var(--font-display); font-size: 10px; font-weight: 850; font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; }
 .possession-icon { display: inline-flex; width: 17px; height: 11px; flex: 0 0 17px; align-items: center; margin-left: 5px; color: #8a512f; vertical-align: -1px; }
 .possession-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .team-inline-score { flex: 0 0 auto; margin-left: 5px; color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -198,6 +196,8 @@ p { margin: 0; }
 .team-logo { width: 34px; height: 34px; object-fit: contain; }
 .team-logo.fallback { display: grid; place-items: center; border-radius: 3px; color: var(--muted); background: var(--surface-muted); font-size: 11px; font-weight: 800; }
 
+.autosave-toast { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 10px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 59; display: flex; min-height: 57px; align-items: center; gap: 9px; padding: 10px 14px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 7px; color: #fff; background: var(--graphite); box-shadow: 0 12px 28px rgba(20, 33, 43, .24); font-size: 12px; font-weight: 800; pointer-events: none; }
+.autosave-toast svg { flex: 0 0 auto; animation: spin .8s linear infinite; }
 .toast { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 10px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 60; display: flex; min-height: 57px; align-items: center; gap: 9px; padding: 10px 12px 10px 14px; border-radius: 7px; color: #fff; background: var(--graphite); box-shadow: 0 12px 30px rgba(20, 33, 43, .25); font-size: 12px; font-weight: 700; }
 .toast.success { background: var(--green); }
 .toast.error { background: #9f403c; }
@@ -456,15 +456,14 @@ fieldset .field-label { padding: 0; }
 .rules-panel { display: grid; }
 .rules-list { overflow: hidden; border-top: 1px solid var(--line-strong); }
 .rule-item { border-bottom: 1px solid var(--line-strong); }
-.rule-item summary { display: grid; grid-template-columns: 34px minmax(0, 1fr) 22px; min-height: 55px; align-items: center; gap: 9px; padding: 6px 0; list-style: none; cursor: pointer; outline: 0; background: transparent; -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
+.rule-item summary { display: grid; grid-template-columns: minmax(0, 1fr) 22px; min-height: 55px; align-items: center; gap: 9px; padding: 6px 0; list-style: none; cursor: pointer; outline: 0; background: transparent; -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
 .rule-item summary:active { background: transparent; }
 .rule-item summary::-webkit-details-marker { display: none; }
-.rule-icon { display: grid; width: 30px; height: 30px; align-self: center; place-items: center; color: var(--blue-dark); }
 .rule-item summary strong { display: flex; min-height: 30px; align-items: center; font-family: var(--font-display); font-size: 14px; line-height: 1.2; }
 .rule-chevron { align-self: center; color: var(--muted); transition: transform .18s ease; }
 .rule-item[open] .rule-chevron { transform: rotate(180deg); }
 .rule-item summary { padding-inline: var(--page-gutter); }
-.rule-copy { padding: 0 calc(var(--page-gutter) + 31px) 14px calc(var(--page-gutter) + 43px); color: var(--ink); font-size: 13px; font-weight: 600; line-height: 1.5; text-wrap: pretty; }
+.rule-copy { padding: 0 calc(var(--page-gutter) + 31px) 14px var(--page-gutter); color: var(--ink); font-size: 13px; font-weight: 600; line-height: 1.5; text-wrap: pretty; }
 .rule-copy ul { display: grid; gap: 5px; margin: 0; padding-left: 18px; }
 .rule-copy li { padding-left: 2px; }
 .small, .muted { color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
@@ -523,5 +522,5 @@ fieldset .field-label { padding: 0; }
   .card-progress-count { max-width: none; text-align: left; }
   .bet-line-summary > span:last-child { text-align: left; }
   .leaderboard-labels, .leaderboard-row { grid-template-columns: 42px minmax(82px, 1fr) repeat(3, 28px) 58px; }
-  .toast { right: 9px; left: 9px; }
+  .autosave-toast, .toast { right: 9px; left: 9px; }
 }

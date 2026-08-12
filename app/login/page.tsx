@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import MenuSelect from "@/components/MenuSelect";
+import NumericText from "@/components/NumericText";
 
 const users = [
   { username: "kameron", label: "Kameron" },
@@ -62,7 +63,7 @@ export default function LoginPage() {
         <button className="btn gold full" disabled={loading || password.length < 6}>{loading ? "Working…" : mode === "create" ? "Create account" : "Sign in"}</button>
       </form>
 
-      {message && <p className="login-message">{message}</p>}
+      {message && <p className="login-message"><NumericText text={message} /></p>}
       <div className="username-list"><strong>Names:</strong> Kameron · Mike · Quentin</div>
     </section>
   </main>;

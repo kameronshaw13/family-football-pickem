@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, LoaderCircle } from "lucide-react";
+import NumericText from "@/components/NumericText";
 
 export type MenuSelectOption = {
   value: string;
@@ -80,14 +81,14 @@ export default function MenuSelect({
         if (event.detail === 0) setOpen((current) => !current);
       }}
     >
-      {selectedText}
+      <NumericText text={selectedText} />
     </button>
     {loading
       ? <LoaderCircle className="custom-select-spinner" size={14} />
       : <ChevronDown className="custom-select-chevron" size={15} />}
     {open && <div className="custom-select-menu" role="listbox" aria-label={ariaLabel}>
       {sections.map((section, sectionIndex) => <div className="custom-select-section" key={section.label || sectionIndex}>
-        {section.label && <span className="custom-select-group-label">{section.label}</span>}
+        {section.label && <span className="custom-select-group-label"><NumericText text={section.label} /></span>}
         {section.options.map((option) => <button
           type="button"
           className={`custom-select-option ${value === option.value ? "selected" : ""}`}
@@ -96,7 +97,7 @@ export default function MenuSelect({
           key={option.value}
           onClick={() => choose(option.value)}
         >
-          {option.label}
+          <NumericText text={option.label} />
         </button>)}
       </div>)}
     </div>}
