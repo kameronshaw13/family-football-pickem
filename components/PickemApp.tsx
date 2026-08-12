@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import { CalendarRange, Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, ClipboardCheck, Dog, EyeOff, FlaskConical, HandCoins, Handshake, Landmark, LoaderCircle, LockKeyhole, Save, ScrollText, Send, Shield, ShieldCheck, Sparkles, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
+import { CalendarRange, Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, ClipboardCheck, Dog, EyeOff, FlaskConical, Handshake, Landmark, LoaderCircle, LockKeyhole, Save, Scale, Send, Shield, ShieldCheck, Sparkles, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
@@ -413,7 +413,7 @@ function NumericText({ text }: { text: string | number }) {
     if ([":", "/", "-", "–", ","].includes(character) && previousIsDigit && nextIsDigit) {
       return <span className="numeric-separator" key={index}>{character}</span>;
     }
-    if (["+", "-", "$"].includes(character) && nextIsDigit) {
+    if (["-", "$"].includes(character) && nextIsDigit) {
       return <span className="numeric-prefix" key={index}>{character}</span>;
     }
     if (["%", ":"].includes(character) && previousIsDigit) {
@@ -1256,14 +1256,14 @@ export default function PickemApp() {
       </section>}
 
       {tab === "rules" && <section className="panel rules-panel">
-        <div className="section-title"><ScrollText size={19} /><div><h2>League rules</h2></div></div>
+        <div className="section-title"><Scale size={19} /><div><h2>League rules</h2></div></div>
         <div className="rules-list">
           <RuleItem icon={CalendarRange} title="Season schedule"><ul><li><NumericText text="The season runs for 20 weeks." /></li><li><NumericText text="It begins with two CFB-only weeks before NFL games start and ends Sunday, Jan. 10, after the final NFL regular-season games." /></li><li>Each week runs from Tuesday through the following Monday.</li></ul></RuleItem>
           <RuleItem icon={ClipboardCheck} title="Weekly card"><ul><li><NumericText text="Week 1: 3 CFB picks plus 1 dog." /></li><li><NumericText text="Week 2: 5 CFB picks plus 1 dog." /></li><li><NumericText text="Weeks 3–20: 5 picks, including at least 1 CFB and 1 NFL pick, plus 1 dog." /></li></ul></RuleItem>
           <RuleItem icon={ShieldCheck} title="Eligible games"><ul><li>Chargers games are ineligible.</li><li>Each CFB game must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
           <RuleItem icon={Dog} title="Underdog"><ul><li><NumericText text="+7 to +9.5: +1 win." /></li><li><NumericText text="+10 to +19.5: +2 wins." /></li><li><NumericText text="+20 or more: +3 wins." /></li><li>The dog must win outright.</li><li>A losing dog does not add a loss.</li></ul></RuleItem>
           <RuleItem icon={Trophy} title="Standings"><ul><li>Season and weekly standings are ranked by win percentage.</li><li>Win-percentage ties are broken by total wins.</li><li><NumericText text="The season winner wins $300." /></li><li><NumericText text="Second place loses $100." /></li><li><NumericText text="Last place loses $200." /></li></ul></RuleItem>
-          <RuleItem icon={HandCoins} title="Weekly bank"><ul><li><NumericText text="Last place pays first place $20." /></li><li><NumericText text="Second place pays first place $10." /></li><li><NumericText text="If last place is tied, each tied player pays first place $15." /></li><li><NumericText text="If first place is tied, the tied players split $20 from last place." /></li><li>A three-way tie has no payment.</li></ul></RuleItem>
+          <RuleItem icon={CircleDollarSign} title="Weekly bank"><ul><li><NumericText text="Last place pays first place $20." /></li><li><NumericText text="Second place pays first place $10." /></li><li><NumericText text="If last place is tied, each tied player pays first place $15." /></li><li><NumericText text="If first place is tied, the tied players split $20 from last place." /></li><li>A three-way tie has no payment.</li></ul></RuleItem>
           <RuleItem icon={Sparkles} title="Perfect week"><ul><li><NumericText text="Does not apply in Week 1." /></li><li>A perfect card doubles every weekly payment.</li></ul></RuleItem>
           <RuleItem icon={LockKeyhole} title="Pick locks"><ul><li><NumericText text="Tuesday–Friday lines freeze 1 hour before kickoff." /></li><li>Tuesday–Friday picks lock at kickoff.</li><li><NumericText text="Saturday–Monday lines freeze Friday at 7:00 PM CT." /></li><li><NumericText text="Saturday–Monday picks lock Friday at 8:00 PM CT." /></li></ul></RuleItem>
           <RuleItem icon={Handshake} title="Side bets"><ul><li>Spread bets only.</li><li><NumericText text="Maximum: $20 per bet." /></li><li><NumericText text="Each player has 3 side-bet slots per week." /></li><li><NumericText text="Accepted and pending offers count toward the 3-bet limit." /></li><li><NumericText text="Offers open Tuesday at 8:00 AM CT with the new week." /></li><li><NumericText text="Tuesday–Friday lines freeze 1 hour before kickoff." /></li><li><NumericText text="Saturday–Monday lines freeze Friday at 7:00 PM CT." /></li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets post directly to the bank.</li></ul></RuleItem>
@@ -1821,7 +1821,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
   const homeResultLine = showScoreValues ? resultLine(game.home_team) : null;
   const liveSituation = gameIsLive ? liveSituationStatus(game) : "";
 
-  return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
+  return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${closed && !gameIsLive && !gameIsFinal ? "locked-out" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
     <div className="game-head compact-game-head">
       <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status"><NumericText text={livePeriodStatus(game)} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}</div>
       {statusFilter !== "OPEN" && gameIsLive && liveSituation && <div className="game-live-situation"><NumericText text={liveSituation} /></div>}
