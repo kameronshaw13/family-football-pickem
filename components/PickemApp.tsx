@@ -257,14 +257,6 @@ function fullDateText(iso: string) {
 function openText(iso: string) {
   return CENTRAL_OPEN_DATE_FORMATTER.format(new Date(iso));
 }
-function cardLivePeriodStatus(game: Game) {
-  const detail = game.live_status?.trim() || "";
-  if (/\bhalftime\b/i.test(detail)) return "Halftime";
-  const clock = detail.match(/\b\d{1,2}:\d{2}\b/)?.[0];
-  if (/\bOT\b/i.test(detail)) return clock ? `OT · ${clock}` : "OT";
-  const quarter = detail.match(/\b(1st|2nd|3rd|4th)\b/i)?.[1];
-  return quarter ? clock ? `${quarter} Qtr · ${clock}` : `${quarter} Qtr` : "Live";
-}
 function cardGameStateText(game: Game, locked: boolean) {
   if (game.final_away_score != null && game.final_home_score != null) {
     return `Final ${game.final_away_score}-${game.final_home_score}`;
@@ -275,7 +267,7 @@ function cardGameStateText(game: Game, locked: boolean) {
   if (locked) {
     if (new Date(game.commence_time) > new Date()) return dt(game.commence_time);
     if (game.live_state === "in" && game.live_away_score != null && game.live_home_score != null) {
-      return `${game.live_away_score}-${game.live_home_score} · ${cardLivePeriodStatus(game)}`;
+      return `${game.live_away_score}-${game.live_home_score}`;
     }
     if (game.live_status) return liveGameStatus(game);
     return "Score updating";
@@ -1627,7 +1619,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
           <div><strong className="bank-game-pick-title"><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong><p>{game ? <NumericText text={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)} · ${cardGameStateText(game, true)}`} /> : "Matchup unavailable"}</p></div>
-          {pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : game?.live_state === "in" ? <LivePickBadge /> : <span className="test-result pending">—</span>}
+          {pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : game?.live_state === "in" ? <LivePickStatus game={game} /> : <span className="test-result pending">—</span>}
         </div>;
       })}
     </details>;
@@ -2199,8 +2191,12 @@ function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts:
   </div>;
 }
 
-function LivePickBadge() {
-  return <span className="badge pick-status-live" aria-label="Live" title="Live"><span aria-hidden="true" /></span>;
+function LivePickStatus({ game }: { game: Game }) {
+  const detail = game.live_status?.trim() || "";
+  const clock = detail.match(/\b\d{1,2}:\d{2}\b/)?.[0] || "";
+  const quarter = detail.match(/\b(1st|2nd|3rd|4th)\b/i)?.[1];
+  const period = /\bhalftime\b/i.test(detail) ? "Halftime" : /\bOT\b/i.test(detail) ? "OT" : quarter ? `${quarter} Qtr` : "Live";
+  return <span className="pick-status-live" aria-label={[period, clock].filter(Boolean).join(", ")}><strong>{period}</strong>{clock && <small><NumericText text={clock} /></small>}</span>;
 }
 
 function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: Game[]; title: string; removePick: (p: Pick) => void }) {
@@ -2214,7 +2210,7 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const metaText = `${matchupText} · ${gameState}`;
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title"><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p><p className="pick-meta"><NumericText text={metaText} /></p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : game?.live_state === "in" ? <LivePickBadge /> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title"><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p><p className="pick-meta"><NumericText text={metaText} /></p></div><div className="pick-row-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : game?.live_state === "in" ? <LivePickStatus game={game} /> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
@@ -2228,5 +2224,5 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const matchup = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Matchup unavailable";
   const gameState = game ? cardGameStateText(game, locked) : "game status unavailable";
   const metaText = `${matchup} · ${gameState}`;
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong><p><NumericText text={metaText} /></p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : game?.live_state === "in" ? <LivePickBadge /> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong><p><NumericText text={metaText} /></p></div><div className="visible-pick-actions">{graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : game?.live_state === "in" ? <LivePickStatus game={game} /> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
 }
