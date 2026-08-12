@@ -461,7 +461,8 @@ fieldset .field-label { padding: 0; }
 .rules-panel { display: grid; }
 .rules-list { overflow: hidden; border-top: 1px solid var(--line-strong); }
 .rule-item { border-bottom: 1px solid var(--line-strong); }
-.rule-item summary { display: grid; grid-template-columns: 34px minmax(0, 1fr) 22px; min-height: 55px; align-items: center; gap: 9px; padding: 6px 0; list-style: none; cursor: pointer; }
+.rule-item summary { display: grid; grid-template-columns: 34px minmax(0, 1fr) 22px; min-height: 55px; align-items: center; gap: 9px; padding: 6px 0; list-style: none; cursor: pointer; outline: 0; background: transparent; -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
+.rule-item summary:active { background: transparent; }
 .rule-item summary::-webkit-details-marker { display: none; }
 .rule-icon { display: grid; width: 30px; height: 30px; align-self: center; place-items: center; color: var(--blue-dark); }
 .rule-item summary strong { display: flex; min-height: 30px; align-items: center; font-family: var(--font-display); font-size: 14px; line-height: 1.2; }
