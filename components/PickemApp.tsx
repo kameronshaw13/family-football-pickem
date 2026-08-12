@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { CalendarRange, Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, ClipboardCheck, ClipboardList, Dog, EyeOff, FlaskConical, Handshake, Landmark, LoaderCircle, LockKeyhole, Send, Shield, ShieldCheck, Sparkles, Trash2, Trophy, WalletCards, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
@@ -650,7 +650,21 @@ function pctText(value: number) {
 }
 
 function NumericText({ text }: { text: string | number }) {
-  return <span className="numeric-token">{text}</span>;
+  const characters = Array.from(String(text));
+  const isDigit = (character?: string) => Boolean(character && /\d/.test(character));
+  const isNumericSymbol = (character: string) => !isDigit(character) && !/\s/.test(character) && character.toUpperCase() === character.toLowerCase();
+  const parts: ReactNode[] = characters.map((character, index) => {
+    if (!isNumericSymbol(character)) return character;
+    const followsNumber = isDigit(characters[index - 1]);
+    const precedesNumber = isDigit(characters[index + 1]);
+    if (!followsNumber && !precedesNumber) return character;
+    return <span
+      className={`numeric-symbol ${followsNumber ? "numeric-symbol-after" : ""} ${precedesNumber ? "numeric-symbol-before" : ""}`}
+      key={index}
+    >{character}</span>;
+  });
+
+  return <span className="numeric-token">{parts}</span>;
 }
 
 function RecordText({ wins, losses, pushes }: { wins: number; losses: number; pushes: number }) {
