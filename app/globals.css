@@ -81,8 +81,8 @@ p { margin: 0; }
 .primary-nav-inner { display: grid; height: var(--nav-height); grid-template-columns: repeat(4, 1fr); }
 .primary-nav button { position: relative; display: flex; min-width: 0; height: 100%; flex-direction: column; align-items: center; justify-content: flex-start; gap: var(--space-1); padding: 10px 3px 6px; border: 0; color: #9ba6ab; background: transparent; font-size: 12px; font-weight: 700; line-height: 1; transition: color .15s ease, background-color .15s ease; }
 .primary-nav button svg { width: 21px; height: 21px; }
-.primary-nav button.active { color: #f7fbfd; background: transparent; font-weight: 850; text-shadow: 0 0 7px rgba(255, 255, 255, .2); }
-.primary-nav button.active .nav-icon { color: #fff; filter: drop-shadow(0 0 5px rgba(255, 255, 255, .28)); transform: translateY(-1px) scale(1.08); }
+.primary-nav button.active { color: #fff; background: transparent; font-weight: 900; }
+.primary-nav button.active .nav-icon { color: #fff; filter: none; transform: translateY(-1px) scale(1.1); }
 .primary-nav button.active svg { stroke-width: 2.5; }
 .nav-icon { position: relative; display: grid; place-items: center; transition: color .15s ease, filter .15s ease, transform .15s ease; }
 .primary-nav button b { position: absolute; top: -6px; right: -9px; display: grid; min-width: 16px; height: 16px; place-items: center; padding: 0 4px; border: 2px solid var(--panel); border-radius: 8px; color: #fff; background: var(--red); font-size: 8px; font-variant-numeric: tabular-nums; }
@@ -244,6 +244,7 @@ p { margin: 0; }
 .pick-title, .visible-pick-copy strong { display: flex; min-width: 0; align-items: center; gap: 5px; overflow: hidden; font-size: 14px; font-weight: 800; line-height: 1.25; white-space: nowrap; }
 .pick-title-team { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pick-title-market { display: inline-flex; flex: 0 0 auto; align-items: center; white-space: nowrap; }
+.dog-separator { margin-inline: 6px; }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; }
 .visible-pick { display: grid; min-height: var(--pick-card-row-height); grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; margin: 0; padding: 7px var(--pick-content-inset); border-top: 1px solid var(--line); }
 .group-card .visible-pick:first-of-type { border-top-color: var(--line-strong); }
@@ -425,7 +426,8 @@ fieldset .field-label { padding: 0; }
 .bank-game-result:last-child { border-bottom: 0; }
 .bank-game-result .team-logo { width: 34px; height: 34px; }
 .bank-game-result > div { min-width: 0; }
-.bank-game-result > div strong { display: block; overflow: hidden; font-size: 14px; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.bank-game-result > div strong { overflow: hidden; font-size: 14px; font-weight: 800; line-height: 1.25; white-space: nowrap; }
+.bank-game-pick-title { display: flex; min-width: 0; align-items: center; gap: 5px; }
 .bank-game-result p { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .test-week-launch { display: grid; width: calc(100% + (var(--page-gutter) * 2)); min-height: 54px; grid-template-columns: 24px minmax(0, 1fr) 18px; align-items: center; gap: 9px; margin: var(--space-4) calc(var(--page-gutter) * -1) 0; padding: 8px var(--page-gutter); border: 0; border-block: 1px solid var(--line-strong); color: var(--ink); background: var(--surface-soft); text-align: left; }
 .test-week-launch > svg:first-child { color: var(--blue-dark); }
