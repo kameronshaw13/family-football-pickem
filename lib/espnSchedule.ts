@@ -21,6 +21,9 @@ export type EspnScheduleGame = {
   possessionSide: "home" | "away" | null;
   situationText: string | null;
   redZone: boolean;
+  down: number | null;
+  distance: number | null;
+  yardsToGoal: number | null;
   homeTeam: EspnTeam;
   awayTeam: EspnTeam;
 };
@@ -92,6 +95,37 @@ function scoreFromCompetitor(competitor: any) {
   return Number.isFinite(score) ? score : null;
 }
 
+function finiteSituationNumber(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function fieldPositionText(situation: any) {
+  const direct = String(situation?.possessionText || "").trim();
+  if (direct) return direct;
+  const detail = String(situation?.downDistanceText || situation?.shortDownDistanceText || "");
+  return detail.match(/\bat\s+(.+)$/i)?.[1]?.trim() || "";
+}
+
+function situationYardsToGoal(situation: any, possessionSide: "home" | "away" | null, home: any, away: any) {
+  const fieldPosition = fieldPositionText(situation);
+  if (!fieldPosition || !possessionSide) return null;
+  if (/^(?:50|midfield)$/i.test(fieldPosition)) return 50;
+
+  const match = fieldPosition.match(/^(.+?)\s+(\d{1,2})$/);
+  if (!match) return null;
+  const yardLine = Math.max(1, Math.min(49, Number(match[2])));
+  const possessionTeam = possessionSide === "home" ? home?.team : away?.team;
+  const opponentTeam = possessionSide === "home" ? away?.team : home?.team;
+  const fieldSide = normalize(match[1]);
+  const possessionAliases = [possessionTeam?.abbreviation, possessionTeam?.location, possessionTeam?.shortDisplayName].map(normalize);
+  const opponentAliases = [opponentTeam?.abbreviation, opponentTeam?.location, opponentTeam?.shortDisplayName].map(normalize);
+
+  if (possessionAliases.includes(fieldSide)) return 100 - yardLine;
+  if (opponentAliases.includes(fieldSide)) return yardLine;
+  return null;
+}
+
 function compactDate(date: Date) {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -131,6 +165,13 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
       : possessionId && possessionId === String(away?.team?.id)
         ? "away"
         : null;
+    const situation = competition?.situation;
+    const situationText = situation?.downDistanceText || situation?.shortDownDistanceText || null;
+    const yardsToGoal = situationYardsToGoal(situation, possessionSide, home, away);
+    const parsedDown = situationText?.match(/^(\d)(?:st|nd|rd|th)\b/i)?.[1];
+    const parsedDistance = situationText?.match(/&\s*(\d+)\b/i)?.[1];
+    const down = finiteSituationNumber(situation?.down ?? parsedDown);
+    const distance = finiteSituationNumber(situation?.distance ?? parsedDistance) ?? (/&\s*goal\b/i.test(situationText || "") ? yardsToGoal : null);
     return [{
       id: String(event.id),
       commenceTime,
@@ -141,8 +182,11 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
       statusDetail: competition?.status?.type?.shortDetail || competition?.status?.type?.detail || null,
       statusState: competition?.status?.type?.state || null,
       possessionSide,
-      situationText: competition?.situation?.downDistanceText || competition?.situation?.shortDownDistanceText || null,
-      redZone: Boolean(competition?.situation?.isRedZone),
+      situationText,
+      redZone: Boolean(situation?.isRedZone),
+      down,
+      distance,
+      yardsToGoal,
       homeTeam: teamFromCompetitor(home),
       awayTeam: teamFromCompetitor(away)
     }];

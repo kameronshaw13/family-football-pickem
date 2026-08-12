@@ -34,6 +34,9 @@ type LiveScoreUpdate = {
   live_possession_team?: string | null;
   live_situation?: string | null;
   live_red_zone?: boolean;
+  live_down?: number | null;
+  live_distance?: number | null;
+  live_yards_to_goal?: number | null;
 };
 type TestPickRow = {
   id: string;
@@ -353,13 +356,58 @@ function normalCdf(value: number) {
   return value >= 0 ? probability : 1 - probability;
 }
 
+function livePeriodAndClock(game: Game) {
+  const detail = game.live_status?.trim() || "";
+  const quarterText = detail.match(/\b(1st|2nd|3rd|4th)\b/i)?.[1]?.toLowerCase();
+  const quarter = quarterText ? { "1st": 1, "2nd": 2, "3rd": 3, "4th": 4 }[quarterText] : null;
+  const clock = detail.match(/\b(\d{1,2}):(\d{2})\b/);
+  return {
+    quarter,
+    clockSeconds: clock ? Number(clock[1]) * 60 + Number(clock[2]) : null
+  };
+}
+
+function expectedPossessionPoints(game: Game) {
+  const yardsToGoal = game.live_yards_to_goal;
+  if (yardsToGoal == null) return game.live_red_zone ? 2.25 : 0.65;
+
+  const clampedYardsToGoal = Math.max(1, Math.min(99, yardsToGoal));
+  const fieldProgress = (100 - clampedYardsToGoal) / 100;
+  let expectedPoints = 6.4 * fieldProgress * fieldProgress;
+  const down = game.live_down;
+  const distance = Math.max(0, game.live_distance ?? 10);
+  const excessDistance = Math.max(0, distance - 3);
+
+  if (down === 2) expectedPoints -= 0.08 + 0.025 * excessDistance;
+  if (down === 3) expectedPoints -= 0.22 + 0.07 * excessDistance;
+  if (down === 4) expectedPoints -= 0.45 + 0.09 * excessDistance;
+
+  if ((down === 3 || down === 4) && clampedYardsToGoal <= 43) {
+    const fieldGoalDistance = clampedYardsToGoal + 17;
+    const fieldGoalMakeChance = 1 / (1 + Math.exp((fieldGoalDistance - 52) / 5.5));
+    expectedPoints = Math.max(expectedPoints, 3 * fieldGoalMakeChance);
+  }
+
+  if (clampedYardsToGoal > 95) expectedPoints -= (clampedYardsToGoal - 95) * 0.12;
+
+  const { quarter, clockSeconds } = livePeriodAndClock(game);
+  if ((quarter === 2 || quarter === 4) && clockSeconds != null && clockSeconds < 60) {
+    const secondsNeeded = clampedYardsToGoal <= 35
+      ? 6
+      : Math.min(45, 12 + (clampedYardsToGoal - 35) * 0.65);
+    expectedPoints *= Math.max(0.05, Math.min(1, clockSeconds / secondsNeeded));
+  }
+
+  return Math.max(-0.75, Math.min(6.4, expectedPoints));
+}
+
 function estimatedCoverChance(game: Game, team: string, spread: number | null) {
   if (spread == null || game.live_away_score == null || game.live_home_score == null || game.live_state !== "in") return null;
   const teamScore = team === game.home_team ? game.live_home_score : game.live_away_score;
   const opponentScore = team === game.home_team ? game.live_away_score : game.live_home_score;
   const remaining = liveRemainingFraction(game);
   const possessionDirection = game.live_possession_team === team ? 1 : game.live_possession_team ? -1 : 0;
-  const possessionValue = possessionDirection * (game.live_red_zone ? 2.25 : 0.65);
+  const possessionValue = possessionDirection * expectedPossessionPoints(game);
   const expectedFinalMargin = teamScore - opponentScore + remaining * -spread + possessionValue;
   const atsMean = expectedFinalMargin + spread;
   const remainingVolatility = Math.max(1.5, 13.86 * Math.sqrt(remaining));
@@ -399,7 +447,11 @@ function buildLiveAlert(current: AppData, nextGames: Game[]): NonNullable<Toast>
 
   for (const previous of current.games) {
     const next = nextById.get(previous.id);
-    if (!next || (!scoreChanged(previous, next) && previous.live_red_zone === next.live_red_zone && previous.live_possession_team === next.live_possession_team && isFinalGame(previous) === isFinalGame(next))) continue;
+    const situationChanged = previous.live_situation !== next?.live_situation ||
+      previous.live_down !== next?.live_down ||
+      previous.live_distance !== next?.live_distance ||
+      previous.live_yards_to_goal !== next?.live_yards_to_goal;
+    if (!next || (!scoreChanged(previous, next) && !situationChanged && previous.live_red_zone === next.live_red_zone && previous.live_possession_team === next.live_possession_team && isFinalGame(previous) === isFinalGame(next))) continue;
 
     const pick = relevantPicks.find((item) => item.game_id === next.id);
     const bet = relevantBets.find((item) => item.game_id === next.id);

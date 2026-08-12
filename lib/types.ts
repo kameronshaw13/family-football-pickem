@@ -27,6 +27,9 @@ export type Game = {
   live_possession_team?: string | null;
   live_situation?: string | null;
   live_red_zone?: boolean;
+  live_down?: number | null;
+  live_distance?: number | null;
+  live_yards_to_goal?: number | null;
   created_at?: string;
   updated_at?: string;
 };

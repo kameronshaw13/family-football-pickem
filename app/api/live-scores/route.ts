@@ -95,7 +95,10 @@ export async function GET(req: NextRequest) {
         live_completed: match.game.completed,
         live_possession_team: possessionTeam,
         live_situation: match.game.situationText,
-        live_red_zone: match.game.redZone
+        live_red_zone: match.game.redZone,
+        live_down: match.game.down,
+        live_distance: match.game.distance,
+        live_yards_to_goal: match.game.yardsToGoal
       });
     }
 
