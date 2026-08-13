@@ -193,7 +193,7 @@ p { margin: 0; }
 .team-result-line { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: flex-end; }
 .team-result-spread { color: inherit; }
 .team-live-probability { display: inline-flex; flex: 0 0 auto; align-self: center; align-items: center; justify-content: center; margin-left: 8px; font-family: inherit; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; vertical-align: middle; white-space: nowrap; }
-.possession-icon { display: inline-flex; width: 17px; height: 11px; flex: 0 0 17px; align-items: center; margin-left: 5px; color: #8a512f; vertical-align: -1px; }
+.possession-icon { display: inline-flex; width: 17px; height: 12px; flex: 0 0 17px; align-self: center; align-items: center; margin-left: 5px; color: #8a512f; vertical-align: middle; }
 .possession-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .team-inline-score { flex: 0 0 auto; margin-left: 5px; color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .team-spread.unavailable { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: 0; text-transform: uppercase; white-space: normal; }
@@ -226,6 +226,7 @@ p { margin: 0; }
 .game-list, .card-progress, .group-list, .side-bet-list, .leaderboard, .bank-summary-grid, .bank-week-results, .ledger-list, .rules-list { margin-inline: calc(var(--page-gutter) * -1); }
 .pick-section, .subsection { margin-top: var(--space-4); }
 .pick-section h3, .subsection h3 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
+.pick-section h3 { margin-left: calc(var(--pick-content-inset) - var(--page-gutter)); }
 .pick-card { display: flex; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); align-items: center; margin: 0 calc(var(--page-gutter) * -1); padding: 7px var(--pick-content-inset); border: 0; border-bottom: 1px solid var(--line); background: transparent; }
 .pick-card:first-of-type { border-top: 1px solid var(--line-strong); }
 .pick-card:last-child { border-bottom-color: var(--line-strong); }
@@ -242,9 +243,15 @@ p { margin: 0; }
 .visible-pick-actions { display: flex; min-width: 26px; align-items: center; justify-content: flex-end; gap: 5px; }
 .pick-row-actions .badge.pick-result-win, .pick-row-actions .badge.pick-result-loss, .pick-row-actions .badge.pick-result-push, .pick-row-actions .badge.pick-status-locked, .visible-pick-actions .badge.pick-result-win, .visible-pick-actions .badge.pick-result-loss, .visible-pick-actions .badge.pick-result-push, .visible-pick-actions .badge.pick-status-locked { min-width: 26px; min-height: 26px; font-size: 12px; }
 .badge.pick-status-locked { width: 26px; height: 26px; padding: 0; border: 1px solid var(--line-strong); border-radius: 1px; color: var(--muted); background: var(--surface-muted); }
-.pick-status-live { display: grid; min-width: 76px; align-self: center; place-items: center; gap: 4px; color: var(--muted); font-family: var(--font-display); line-height: 1; text-align: center; white-space: nowrap; }
-.pick-status-live strong { font-size: 9px; font-weight: 800; line-height: 1; }
-.pick-status-live small { display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; line-height: 1; }
+.pick-score-bug { display: grid; min-width: 64px; align-self: center; align-content: center; justify-items: end; gap: 2px; color: var(--muted); font-family: var(--font-display); line-height: 1; white-space: nowrap; }
+.score-bug-team { display: grid; min-width: 40px; grid-template-columns: 13px 20px; align-items: center; justify-content: end; gap: 4px; }
+.pick-row-actions .pick-score-bug .team-logo, .visible-pick-actions .pick-score-bug .team-logo, .bank-game-result .pick-score-bug .team-logo { width: 13px; height: 13px; }
+.score-bug-score { color: var(--ink); font-size: 11px; font-weight: 900; text-align: right; }
+.score-bug-team.selected-win .score-bug-score { color: var(--green); }
+.score-bug-team.selected-loss .score-bug-score { color: var(--red); }
+.score-bug-team.selected-push .score-bug-score { color: var(--muted); }
+.score-bug-status, .score-bug-field { font-size: 8px; font-weight: 800; line-height: 1; text-align: right; }
+.score-bug-status { margin-top: 1px; }
 .icon-btn { display: grid; width: 30px; height: 30px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: transparent; }
 .icon-btn svg { display: block; width: 16px; height: 16px; margin: 0; }
 .pick-row-actions .icon-btn { border-color: #d6aaa6; color: var(--red); background: var(--red-soft); }
