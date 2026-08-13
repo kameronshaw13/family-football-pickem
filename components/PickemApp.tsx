@@ -493,24 +493,6 @@ function liveWinChance(game: Game, team: string) {
   return espnWinChance(game, team) ?? estimatedWinChance(game, team);
 }
 
-function liveProbabilityColor(chance: number) {
-  const neutral = [132, 117, 94];
-  const endpoint = chance >= 50 ? [13, 91, 61] : [142, 42, 39];
-  const intensity = Math.pow(Math.min(1, Math.abs(chance - 50) / 50), 0.65);
-  const channels = neutral.map((value, index) => Math.round(value + (endpoint[index] - value) * intensity));
-  return `rgb(${channels.join(", ")})`;
-}
-
-function LiveProbability({ chance, title }: { chance: number | null; title: string }) {
-  if (chance == null) return null;
-  return <small
-    className="team-live-probability"
-    style={{ color: liveProbabilityColor(chance) }}
-    title={title}
-    aria-label={`${title}: ${chance}%`}
-  ><NumericText text={`${chance}%`} /></small>;
-}
-
 function liveOutcome(game: Game, team: string, spread: number, outright = false): GameOutcome | null {
   const homeScore = game.live_home_score ?? game.final_home_score;
   const awayScore = game.live_away_score ?? game.final_away_score;
@@ -1618,7 +1600,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
         const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
-          <div><strong className="bank-game-pick-title"><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{game && !hasPickScoreBug(game) && <p><NumericText text={cardGameStateText(game, true)} /></p>}</div>
+          <div><strong className="bank-game-pick-title"><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{game && <p><NumericText text={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}${hasPickScoreBug(game) ? "" : ` · ${cardGameStateText(game, true)}`}`} /></p>}</div>
           {game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : <span className="test-result pending">—</span>}
         </div>;
       })}
@@ -2107,22 +2089,6 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
   const showScoreValues = hasScore && (gameIsLive || gameIsFinal);
   const awayResultLine = showScoreValues ? resultLine(game.away_team) : null;
   const homeResultLine = showScoreValues ? resultLine(game.home_team) : null;
-  const awayEspnWinChance = dogView ? espnWinChance(game, game.away_team) : null;
-  const homeEspnWinChance = dogView ? espnWinChance(game, game.home_team) : null;
-  const awayEstimatedCoverChance = gameIsLive && !dogView ? estimatedCoverChance(game, game.away_team, resultSpread(game.away_team)) : null;
-  const homeEstimatedCoverChance = gameIsLive && !dogView && awayEstimatedCoverChance == null ? estimatedCoverChance(game, game.home_team, resultSpread(game.home_team)) : null;
-  const awayLiveChance = gameIsLive
-    ? dogView
-      ? awayEspnWinChance ?? estimatedWinChance(game, game.away_team)
-      : awayEstimatedCoverChance ?? (homeEstimatedCoverChance == null ? null : 100 - homeEstimatedCoverChance)
-    : null;
-  const homeLiveChance = gameIsLive
-    ? dogView
-      ? homeEspnWinChance ?? estimatedWinChance(game, game.home_team)
-      : awayLiveChance == null ? homeEstimatedCoverChance : 100 - awayLiveChance
-    : null;
-  const awayChanceTitle = dogView && awayEspnWinChance != null ? "ESPN live win probability" : dogView ? "Estimated win probability" : "Estimated cover probability";
-  const homeChanceTitle = dogView && homeEspnWinChance != null ? "ESPN live win probability" : dogView ? "Estimated win probability" : "Estimated cover probability";
   const liveSituation = gameIsLive ? liveSituationStatus(game) : "";
 
   return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${!weekIsOpen && !gameIsLive && !gameIsFinal ? "locked-out" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
@@ -2139,7 +2105,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.away_team)}
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
-        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.away_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{awayScore}</span><PossessionIcon game={game} team={game.away_team} /><LiveProbability chance={awayLiveChance} title={awayChanceTitle} /></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
+        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.away_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{awayScore}</span><PossessionIcon game={game} team={game.away_team} /></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
         {showScoreValues ? <span className="team-result-line">{awayResultLine && <span className="team-spread team-result-spread"><NumericText text={awayResultLine} /></span>}</span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : <NumericText text={sideLine(game.away_team)} />}</span></span>}
       </button>
 
@@ -2150,7 +2116,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.home_team)}
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
-        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.home_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{homeScore}</span><PossessionIcon game={game} team={game.home_team} /><LiveProbability chance={homeLiveChance} title={homeChanceTitle} /></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
+        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.home_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{homeScore}</span><PossessionIcon game={game} team={game.home_team} /></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
         {showScoreValues ? <span className="team-result-line">{homeResultLine && <span className="team-spread team-result-spread"><NumericText text={homeResultLine} /></span>}</span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
       </button>
     </div>
@@ -2211,12 +2177,15 @@ function PickScoreBug({ game, pick, spread }: { game: Game; pick: Pick; spread: 
 
   const selectedOutcome = (team: string) => final && team === pick.selected_team && outcome ? ` selected-${outcome}` : "";
   const fieldPosition = !final ? game.live_situation?.match(/\s+at\s+(.+)$/i)?.[1]?.trim() || "" : "";
-  const status = final ? "Final" : livePeriodStatus(game);
+  const detail = game.live_status?.trim() || "";
+  const clock = detail.match(/\b\d{1,2}:\d{2}\b/)?.[0] || "";
+  const quarter = detail.match(/\b(1st|2nd|3rd|4th)\b/i)?.[1] || "";
+  const period = /\bhalftime\b/i.test(detail) ? "Halftime" : /\bOT\b/i.test(detail) ? "OT" : quarter || "Live";
+  const status = final ? "Final" : [period, clock].filter(Boolean).join(" · ");
   return <span className={`pick-score-bug ${final ? "final" : "live"}`} role="img" aria-label={`${displayTeamName(game, game.away_team)} ${awayScore}, ${displayTeamName(game, game.home_team)} ${homeScore}, ${status}${fieldPosition ? `, ${fieldPosition}` : ""}`}>
     <span className={`score-bug-team${selectedOutcome(game.away_team)}`}><TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} /><span className="score-bug-score"><NumericText text={awayScore} /></span></span>
     <span className={`score-bug-team${selectedOutcome(game.home_team)}`}><TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} /><span className="score-bug-score"><NumericText text={homeScore} /></span></span>
-    <span className="score-bug-status"><NumericText text={status} /></span>
-    {fieldPosition && <span className={`score-bug-field ${game.live_red_zone ? "red-zone-field" : ""}`}><NumericText text={fieldPosition} /></span>}
+    <span className="score-bug-meta"><NumericText text={status} />{fieldPosition && <><span aria-hidden="true"> · </span><span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={fieldPosition} /></span></>}</span>
   </span>;
 }
 
@@ -2226,7 +2195,8 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const locked = pick.status === "locked" || Boolean(game && isClosed(game));
     const graded = pick.result !== "pending";
     const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
-    const metaText = game && !hasPickScoreBug(game) ? cardGameStateText(game, locked) : game ? "" : "Game unavailable";
+    const matchupText = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Game unavailable";
+    const metaText = game && !hasPickScoreBug(game) ? `${matchupText} · ${cardGameStateText(game, locked)}` : matchupText;
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
       <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title"><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><NumericText text={metaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
@@ -2240,6 +2210,7 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const graded = pick.result !== "pending";
   const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
   const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
-  const metaText = game && !hasPickScoreBug(game) ? cardGameStateText(game, locked) : game ? "" : "Game unavailable";
+  const matchupText = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Game unavailable";
+  const metaText = game && !hasPickScoreBug(game) ? `${matchupText} · ${cardGameStateText(game, locked)}` : matchupText;
   return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{metaText && <p><NumericText text={metaText} /></p>}</div><div className="visible-pick-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
 }
