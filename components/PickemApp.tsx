@@ -2181,11 +2181,11 @@ function PickScoreBug({ game, pick, spread }: { game: Game; pick: Pick; spread: 
   const clock = detail.match(/\b\d{1,2}:\d{2}\b/)?.[0] || "";
   const quarter = detail.match(/\b(1st|2nd|3rd|4th)\b/i)?.[1] || "";
   const period = /\bhalftime\b/i.test(detail) ? "Halftime" : /\bOT\b/i.test(detail) ? "OT" : quarter || "Live";
-  const status = final ? "Final" : [period, clock].filter(Boolean).join(" · ");
-  return <span className={`pick-score-bug ${final ? "final" : "live"}`} role="img" aria-label={`${displayTeamName(game, game.away_team)} ${awayScore}, ${displayTeamName(game, game.home_team)} ${homeScore}, ${status}${fieldPosition ? `, ${fieldPosition}` : ""}`}>
+  const status = final ? "Final" : [period, clock, fieldPosition].filter(Boolean).join(", ");
+  return <span className={`pick-score-bug ${final ? "final" : "live"}`} role="img" aria-label={`${displayTeamName(game, game.away_team)} ${awayScore}, ${displayTeamName(game, game.home_team)} ${homeScore}, ${status}`}>
     <span className={`score-bug-team${selectedOutcome(game.away_team)}`}><TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} /><span className="score-bug-score"><NumericText text={awayScore} /></span></span>
     <span className={`score-bug-team${selectedOutcome(game.home_team)}`}><TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} /><span className="score-bug-score"><NumericText text={homeScore} /></span></span>
-    <span className="score-bug-meta"><NumericText text={status} />{fieldPosition && <><span aria-hidden="true"> · </span><span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={fieldPosition} /></span></>}</span>
+    <span className="score-bug-meta">{final ? <span>Final</span> : <><span><NumericText text={period} /></span>{clock && <span><NumericText text={clock} /></span>}{fieldPosition && <span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={fieldPosition} /></span>}</>}</span>
   </span>;
 }
 
