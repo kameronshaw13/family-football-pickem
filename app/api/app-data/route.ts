@@ -6,6 +6,7 @@ import { getFootballWeek, getGameLockTime, getPickWeekOpenTime } from "@/lib/loc
 import { getWeekRule } from "@/lib/weekRules";
 import { getProfileFromToken } from "@/lib/authServer";
 import { hasChargers, isEligibleSeasonGame } from "@/lib/seasonRules";
+import { resolveSideBetOfferNotifications } from "@/lib/notifications";
 import { acceptedSideBetCounts, closeOpenOffersForCappedPlayer, MAX_SIDE_BETS_PER_WEEK, sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { computeWeeklyStandings } from "@/lib/weeklyBank";
 
@@ -188,7 +189,9 @@ export async function GET(req: NextRequest) {
     );
     if (cappedOffersNeedCleanup) {
       for (const playerId of cappedPlayerIds) {
-        await closeOpenOffersForCappedPlayer(supabase, playerId, week, now);
+        const closedOffers = await closeOpenOffersForCappedPlayer(supabase, playerId, week, now);
+        await resolveSideBetOfferNotifications(supabase, closedOffers.outgoingIds);
+        await resolveSideBetOfferNotifications(supabase, closedOffers.incomingIds, playerId);
       }
       const { data: refreshedSideBets, error: refreshSideBetError } = await supabase
         .from("side_bets")
@@ -229,6 +232,7 @@ export async function GET(req: NextRequest) {
         supabase.from("side_bets").update({ status: "expired", updated_at: now }).in("id", expiredIds).eq("status", "open"),
         supabase.from("side_bet_targets").update({ response: "closed", responded_at: now }).in("side_bet_id", expiredIds).eq("response", "pending")
       ]);
+      await resolveSideBetOfferNotifications(supabase, expiredIds);
     }
 
     const sideBets = reconciledSideBets.filter((bet: any) =>

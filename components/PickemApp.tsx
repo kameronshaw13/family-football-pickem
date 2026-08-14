@@ -12,6 +12,7 @@ import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, P
 import MenuSelect from "@/components/MenuSelect";
 import NumericText from "@/components/NumericText";
 import NotificationBadge from "@/components/NotificationBadge";
+import PushNotificationControls from "@/components/PushNotificationControls";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -24,6 +25,9 @@ type LeagueFilter = "CFB" | "NFL" | "DOGS";
 type DogValueFilter = "ALL" | "1" | "2" | "3";
 type GameOutcome = "win" | "loss" | "push";
 type Toast = { message: string; tone: "success" | "error" | "info" } | null;
+type NotificationDestination = "side_bets_received" | "side_bets_sent" | "my_card" | "league_cards" | "side_bet_ledger";
+type NotificationCounts = Record<NotificationDestination, number> & { total: number };
+type BadgeNavigator = Navigator & { setAppBadge?: (contents?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
 type LiveScoreUpdate = {
   id: string;
   final_home_score?: number | null;
@@ -87,6 +91,7 @@ type AppDataCacheEntry = {
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
 const APP_DATA_CACHE_MAX_AGE = 10 * 60 * 1000;
 const TEAM_DISPLAY_NAME_CACHE = new Map<string, string>();
+const EMPTY_NOTIFICATION_COUNTS: NotificationCounts = { side_bets_received: 0, side_bets_sent: 0, my_card: 0, league_cards: 0, side_bet_ledger: 0, total: 0 };
 
 const NFL_NICKNAMES = [
   "49ers", "Bears", "Bengals", "Bills", "Broncos", "Browns", "Buccaneers", "Cardinals", "Chargers", "Chiefs", "Colts", "Commanders", "Cowboys", "Dolphins", "Eagles", "Falcons", "Giants", "Jaguars", "Jets", "Lions", "Packers", "Panthers", "Patriots", "Raiders", "Rams", "Ravens", "Saints", "Seahawks", "Steelers", "Texans", "Titans", "Vikings"
@@ -981,6 +986,7 @@ export default function PickemApp() {
   const [betConferenceFilter, setBetConferenceFilter] = useState("ALL");
   const [toast, setToast] = useState<Toast>(null);
   const [testWeekActive, setTestWeekActive] = useState(false);
+  const [notificationCounts, setNotificationCounts] = useState<NotificationCounts>(EMPTY_NOTIFICATION_COUNTS);
   const autosaveBlockedSignatureRef = useRef<string | null>(null);
   const dataRef = useRef<AppData | null>(null);
   const hasActiveGames = Boolean(data?.games.some((game) => {
@@ -991,6 +997,66 @@ export default function PickemApp() {
       start <= clock &&
       start >= clock - 12 * 60 * 60 * 1000;
   }));
+
+  const updateNotificationCounts = useCallback((next: Record<string, number>) => {
+    setNotificationCounts({
+      side_bets_received: Number(next.side_bets_received || 0),
+      side_bets_sent: Number(next.side_bets_sent || 0),
+      my_card: Number(next.my_card || 0),
+      league_cards: Number(next.league_cards || 0),
+      side_bet_ledger: Number(next.side_bet_ledger || 0),
+      total: Number(next.total || 0)
+    });
+  }, []);
+
+  const refreshNotificationCounts = useCallback(async () => {
+    const token = window.localStorage.getItem("pickem_session_token");
+    if (!token) return;
+    try {
+      const response = await fetch("/api/notifications", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+      if (!response.ok) return;
+      const payload = await response.json();
+      updateNotificationCounts(payload.counts || {});
+    } catch {
+      // Preserve the last known counts through brief network interruptions.
+    }
+  }, [updateNotificationCounts]);
+
+  const markNotificationsSeen = useCallback(async (destination: NotificationDestination) => {
+    const token = window.localStorage.getItem("pickem_session_token");
+    if (!token) return;
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "read", destination })
+      });
+      if (!response.ok) return;
+      const payload = await response.json();
+      updateNotificationCounts(payload.counts || {});
+    } catch {
+      // A later focus or polling refresh will retry the read state.
+    }
+  }, [updateNotificationCounts]);
+
+  const openNotificationDestination = useCallback((url: string) => {
+    const destination = new URL(url, window.location.origin).searchParams.get("notification") as NotificationDestination | null;
+    if (!destination) return;
+    if (destination === "side_bets_received" || destination === "side_bets_sent") {
+      setTab("picks");
+      setPicksView("sideBets");
+      setBetView(destination === "side_bets_received" ? "received" : "sent");
+    } else if (destination === "my_card" || destination === "league_cards") {
+      setTab("card");
+      setCardView(destination === "my_card" ? "mine" : "group");
+    } else if (destination === "side_bet_ledger") {
+      setTab("standings");
+      setStandingsView("bank");
+    }
+    const current = new URL(window.location.href);
+    current.searchParams.delete("notification");
+    window.history.replaceState({}, "", `${current.pathname}${current.search}${current.hash}`);
+  }, []);
 
   async function load(nextWeek = week) {
     const isInitialLoad = data === null;
@@ -1053,6 +1119,39 @@ export default function PickemApp() {
 
   useEffect(() => { load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   useEffect(() => { dataRef.current = data; }, [data]);
+  useEffect(() => {
+    void refreshNotificationCounts();
+    if ("serviceWorker" in navigator) void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => undefined);
+    openNotificationDestination(window.location.href);
+    const refresh = () => { if (document.visibilityState === "visible") void refreshNotificationCounts(); };
+    const receiveClick = (event: MessageEvent<{ type?: string; url?: string }>) => {
+      if (event.data?.type === "notification-click" && event.data.url) openNotificationDestination(event.data.url);
+    };
+    const timer = window.setInterval(refresh, 30_000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    navigator.serviceWorker?.addEventListener("message", receiveClick);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+      navigator.serviceWorker?.removeEventListener("message", receiveClick);
+    };
+  }, [openNotificationDestination, refreshNotificationCounts]);
+  useEffect(() => {
+    const badgeNavigator = navigator as BadgeNavigator;
+    if (notificationCounts.total > 0) void badgeNavigator.setAppBadge?.(notificationCounts.total);
+    else void badgeNavigator.clearAppBadge?.();
+  }, [notificationCounts.total]);
+  useEffect(() => {
+    if (!data || testWeekActive) return;
+    let destination: NotificationDestination | null = null;
+    if (tab === "picks" && picksView === "sideBets" && betView === "sent") destination = "side_bets_sent";
+    else if (tab === "card" && cardView === "mine") destination = "my_card";
+    else if (tab === "card" && cardView === "group") destination = "league_cards";
+    else if (tab === "standings" && standingsView === "bank") destination = "side_bet_ledger";
+    if (destination && notificationCounts[destination] > 0) void markNotificationsSeen(destination);
+  }, [betView, cardView, data, markNotificationsSeen, notificationCounts.league_cards, notificationCounts.my_card, notificationCounts.side_bet_ledger, notificationCounts.side_bets_sent, picksView, standingsView, tab, testWeekActive]);
   useEffect(() => {
     if (week == null) return;
     setStandingsWeek(week);
@@ -1260,6 +1359,7 @@ export default function PickemApp() {
       } else {
         await load(week);
       }
+      void refreshNotificationCounts();
       return true;
     } catch {
       notify("Side bet action failed.", "error");
@@ -1323,11 +1423,11 @@ export default function PickemApp() {
   const leagueCardsHidden = tab === "card" && cardView === "group" && viewedGames.some((game) => !isClosed(game));
   const incomingOffers = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
   const pendingOfferCount = incomingOffers.filter((bet) => bet.status === "open" && bet.targets?.some((target) => target.recipient_id === currentUser.id && target.response === "pending")).length;
-  const receivedNotificationCount = previewActive ? 1 : pendingOfferCount;
-  const sentNotificationCount = previewActive ? 1 : 0;
-  const myCardNotificationCount = previewActive ? 1 : 0;
-  const leagueCardsNotificationCount = previewActive ? 1 : 0;
-  const bankNotificationCount = previewActive ? 1 : 0;
+  const receivedNotificationCount = previewActive ? 1 : Math.max(pendingOfferCount, notificationCounts.side_bets_received);
+  const sentNotificationCount = previewActive ? 1 : notificationCounts.side_bets_sent;
+  const myCardNotificationCount = previewActive ? 1 : notificationCounts.my_card;
+  const leagueCardsNotificationCount = previewActive ? 1 : notificationCounts.league_cards;
+  const bankNotificationCount = previewActive ? 1 : notificationCounts.side_bet_ledger;
   const picksNotificationCount = receivedNotificationCount + sentNotificationCount;
   const cardNotificationCount = myCardNotificationCount + leagueCardsNotificationCount;
   const navNotificationCounts: Partial<Record<Tab, number>> = {
@@ -1613,6 +1713,7 @@ export default function PickemApp() {
 
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><div><h2>League Rules</h2></div></div>
+        <PushNotificationControls onCountsChanged={updateNotificationCounts} />
         <div className="rules-list">
           <RuleItem title="Season Schedule"><ul><li><NumericText text="The season runs for 20 weeks." /></li><li><NumericText text="It begins with two CFB-only weeks before NFL games start and ends Sunday, Jan. 10, after the final NFL regular-season games." /></li><li>Each week runs from Tuesday through the following Monday.</li></ul></RuleItem>
           <RuleItem title="Weekly Card"><ul><li><NumericText text="Week 1: 3 CFB picks plus 1 dog." /></li><li><NumericText text="Week 2: 5 CFB picks plus 1 dog." /></li><li><NumericText text="Weeks 3–20: 5 picks, including at least 1 CFB and 1 NFL pick, plus 1 dog." /></li></ul></RuleItem>

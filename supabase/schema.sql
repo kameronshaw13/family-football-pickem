@@ -158,6 +158,34 @@ create table if not exists side_bet_targets (
   constraint side_bet_targets_recipient_id_fkey foreign key (recipient_id) references profiles(id) on delete cascade
 );
 
+create table if not exists notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  type text not null check (type in ('side_bet_offer','side_bet_response','pick_final','league_pick_final','side_bet_final','big_play')),
+  destination text not null check (destination in ('side_bets_received','side_bets_sent','my_card','league_cards','side_bet_ledger')),
+  entity_id text not null,
+  dedupe_key text not null,
+  title text not null,
+  body text not null,
+  url text not null,
+  action_required boolean not null default false,
+  read_at timestamptz,
+  resolved_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (user_id, dedupe_key)
+);
+
+create table if not exists push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  user_agent text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists idx_games_week on games(week);
 create index if not exists idx_games_lock_time on games(lock_time);
 create index if not exists idx_picks_user_week on picks(user_id, week);
@@ -171,6 +199,9 @@ create index if not exists idx_side_bets_status on side_bets(status);
 create index if not exists idx_side_bets_accepted_by on side_bets(accepted_by);
 create index if not exists idx_side_bet_targets_recipient on side_bet_targets(recipient_id);
 create index if not exists idx_profile_sessions_profile on profile_sessions(profile_id);
+create index if not exists idx_notifications_user_active on notifications(user_id, resolved_at, read_at);
+create index if not exists idx_notifications_entity on notifications(type, entity_id);
+create index if not exists idx_push_subscriptions_user on push_subscriptions(user_id);
 
 alter table profiles enable row level security;
 alter table profile_sessions enable row level security;
@@ -181,6 +212,8 @@ alter table bank_settings enable row level security;
 alter table bank_entries enable row level security;
 alter table side_bets enable row level security;
 alter table side_bet_targets enable row level security;
+alter table notifications enable row level security;
+alter table push_subscriptions enable row level security;
 
 drop policy if exists "profiles visible to logged in users" on profiles;
 drop policy if exists "games visible to logged in users" on games;
@@ -234,6 +267,8 @@ grant all privileges on table bank_settings to service_role;
 grant all privileges on table bank_entries to service_role;
 grant all privileges on table side_bets to service_role;
 grant all privileges on table side_bet_targets to service_role;
+grant all privileges on table notifications to service_role;
+grant all privileges on table push_subscriptions to service_role;
 grant select on table standings to anon, authenticated, service_role;
 grant select on table games to anon, authenticated;
 grant select on table odds_snapshots to anon, authenticated;
@@ -242,5 +277,8 @@ grant select on table bank_settings to authenticated;
 grant select on table bank_entries to authenticated;
 grant select on table side_bets to authenticated;
 grant select on table side_bet_targets to authenticated;
+
+revoke all privileges on table notifications from anon, authenticated;
+revoke all privileges on table push_subscriptions from anon, authenticated;
 grant select, insert, update, delete on table picks to authenticated;
 grant usage, select on all sequences in schema public to anon, authenticated, service_role;

@@ -102,7 +102,7 @@ export async function closeOpenOffersForCappedPlayer(supabase: any, playerId: st
   }
 
   const candidateIncomingIds = Array.from(new Set((pendingTargets || []).map((target: { side_bet_id: string }) => target.side_bet_id)));
-  if (!candidateIncomingIds.length) return;
+  if (!candidateIncomingIds.length) return { outgoingIds, incomingIds: [] as string[] };
 
   const { data: incoming, error: incomingError } = await supabase
     .from("side_bets")
@@ -113,7 +113,7 @@ export async function closeOpenOffersForCappedPlayer(supabase: any, playerId: st
   if (incomingError) throw new Error(incomingError.message);
 
   const incomingIds = (incoming || []).map((bet: { id: string }) => bet.id);
-  if (!incomingIds.length) return;
+  if (!incomingIds.length) return { outgoingIds, incomingIds };
 
   const { error: declineError } = await supabase
     .from("side_bet_targets")
@@ -140,4 +140,5 @@ export async function closeOpenOffersForCappedPlayer(supabase: any, playerId: st
       if (sideBetError) throw new Error(sideBetError.message);
     }
   }
+  return { outgoingIds, incomingIds };
 }
