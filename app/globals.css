@@ -165,8 +165,7 @@ p { margin: 0; }
 .stacked-matchup .team-row:first-child::before { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: linear-gradient(to right, var(--line) 0, var(--line) calc(var(--matchup-marker-x) - 7px), transparent calc(var(--matchup-marker-x) - 7px), transparent calc(var(--matchup-marker-x) + 7px), var(--line) calc(var(--matchup-marker-x) + 7px), var(--line) 100%); content: ""; pointer-events: none; }
 .stacked-matchup .team-row:first-child::after { position: absolute; z-index: 2; bottom: -7px; left: var(--matchup-marker-x); display: grid; width: 16px; height: 16px; transform: translateX(-50%); place-items: center; color: var(--muted); background: transparent; content: "@"; font-family: var(--font-display); font-size: 12px; font-weight: 900; line-height: 1; pointer-events: none; }
 .game-card.filter-dogs .team-row, .game-card.dog-view .team-row { grid-template-columns: 38px minmax(0, 1fr) 98px; }
-.game-card.score-values .team-row { grid-template-columns: 38px minmax(0, 1fr) 78px; }
-.game-card.score-values.filter-dogs .team-row, .game-card.score-values.dog-view .team-row { grid-template-columns: 38px minmax(0, 1fr) 108px; }
+.game-card.score-values .team-row, .game-card.score-values.filter-dogs .team-row, .game-card.score-values.dog-view .team-row { grid-template-columns: 38px minmax(0, 1fr) 54px; }
 .team-row:last-child { border-bottom: 0; }
 .team-row:disabled { cursor: default; }
 .team-row.selectable:not(.picked-side):active { background: var(--hover); }
@@ -175,13 +174,9 @@ p { margin: 0; }
 .team-row.picked-loss { background: var(--red-soft); box-shadow: inset 4px 0 0 var(--red); }
 .team-row.picked-push { background: var(--push-soft); box-shadow: inset 4px 0 0 var(--gold); }
 .game-card.final-outcome .team-row.outcome-loss .team-name,
-.game-card.final-outcome .team-row.outcome-loss .team-result-spread,
+.game-card.final-outcome .team-row.outcome-loss .team-board-market,
 .game-card.final-outcome .team-row.outcome-loss .team-result-score { color: var(--muted); }
 .game-card.final-outcome .team-row.outcome-loss .team-logo { opacity: .55; filter: saturate(.5); }
-.game-card.final-outcome .team-row.outcome-push .team-name,
-.game-card.final-outcome .team-row.outcome-push .team-result-spread,
-.game-card.final-outcome .team-row.outcome-push .team-result-score { color: #334149; }
-.game-card.final-outcome .team-row.outcome-push .team-logo { opacity: .78; filter: saturate(.75); }
 .team-row.opponent-only { color: var(--muted); }
 .team-row.blocked-side { color: var(--muted); background: var(--canvas-muted); }
 .team-name-line { display: flex; min-width: 0; align-items: center; line-height: 1.2; }
@@ -192,9 +187,10 @@ p { margin: 0; }
 .responsive-text-value { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .team-name-line .responsive-text { flex: 1 1 auto; }
 .team-spread { display: inline-flex; width: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-.team-result-line { display: grid; width: 100%; min-width: 0; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 7px; }
-.team-result-score { color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: left; white-space: nowrap; }
-.team-result-spread { width: auto; min-width: 0; color: inherit; }
+.team-board-market { display: inline-flex; flex: 0 0 auto; align-items: center; margin-left: 7px; font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.team-result-line { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: flex-end; gap: 6px; }
+.team-result-line .possession-icon { margin-left: 0; transform: none; }
+.team-result-score { color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .possession-icon { display: inline-grid; width: 17px; height: 12px; flex: 0 0 17px; place-items: center; margin-left: 5px; color: #8a512f; line-height: 0; vertical-align: middle; }
 .possession-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .team-name-line .possession-icon { transform: translateY(-.5px); }
@@ -247,15 +243,17 @@ p { margin: 0; }
 .pick-row-actions .badge.pick-result-win, .pick-row-actions .badge.pick-result-loss, .pick-row-actions .badge.pick-result-push, .pick-row-actions .badge.pick-status-locked, .visible-pick-actions .badge.pick-result-win, .visible-pick-actions .badge.pick-result-loss, .visible-pick-actions .badge.pick-result-push, .visible-pick-actions .badge.pick-status-locked { min-width: 26px; min-height: 26px; font-size: 12px; }
 .badge.pick-status-locked { width: 26px; height: 26px; padding: 0; border: 1px solid var(--line-strong); border-radius: 1px; color: var(--muted); background: var(--surface-muted); }
 .pick-score-bug { display: grid; width: 112px; min-width: 112px; grid-template-columns: 27px 27px 48px; grid-template-rows: 44px; align-self: center; align-content: center; justify-content: end; gap: 5px; color: var(--muted); font-family: var(--font-display); line-height: 1; white-space: nowrap; }
-.score-bug-team { display: grid; width: 27px; height: 44px; grid-template-rows: 23px 15px; place-items: center; align-content: center; gap: 3px; }
+.score-bug-team { display: grid; width: 27px; height: 44px; grid-template-rows: 23px 15px; place-items: center; align-content: center; gap: 3px; border-radius: 3px; }
+.pick-score-bug.live .score-bug-team { grid-template-rows: 22px 12px 8px; gap: 1px; }
 .pick-row-actions .pick-score-bug .team-logo, .visible-pick-actions .pick-score-bug .team-logo, .bank-game-result .pick-score-bug .team-logo { width: 22px; height: 22px; }
 .score-bug-score { color: var(--ink); font-size: 13px; font-weight: 900; text-align: center; }
-.score-bug-team.selected-win .score-bug-score { color: var(--green); }
-.score-bug-team.selected-loss .score-bug-score { color: var(--red); }
-.score-bug-team.selected-push .score-bug-score { color: #4c595f; }
+.score-bug-team.selected-win { background: var(--win-soft); }
+.score-bug-team.selected-loss { background: var(--red-soft); }
+.score-bug-team.selected-push { background: var(--push-soft); }
+.pick-score-bug.live .score-bug-team .possession-icon { width: 11px; height: 7px; margin-left: 0; transform: none; }
 .score-bug-meta { display: grid; width: 48px; height: 44px; grid-template-rows: repeat(3, minmax(0, 1fr)); align-items: center; overflow: hidden; font-size: 10px; font-weight: 800; line-height: 1; text-align: center; }
 .score-bug-meta > span { display: flex; min-width: 0; align-items: center; justify-content: center; overflow: hidden; text-overflow: ellipsis; }
-.pick-score-bug.final .score-bug-meta { grid-template-rows: 1fr; font-size: 13px; }
+.pick-score-bug.final .score-bug-meta { grid-template-rows: 1fr; font-size: 12px; }
 .icon-btn { display: grid; width: 30px; height: 30px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: transparent; }
 .icon-btn svg { display: block; width: 16px; height: 16px; margin: 0; }
 .pick-row-actions .icon-btn { border-color: #d6aaa6; color: var(--red); background: var(--red-soft); }
@@ -537,10 +535,10 @@ fieldset .field-label { padding: 0; }
   .team-row { grid-template-columns: 34px minmax(0, 1fr) 64px; gap: var(--space-2); }
   .stacked-matchup .team-row:first-child { --matchup-marker-x: 28px; }
   .game-card.filter-dogs .team-row, .game-card.dog-view .team-row { grid-template-columns: 34px minmax(0, 1fr) 94px; }
-  .game-card.score-values .team-row { grid-template-columns: 34px minmax(0, 1fr) 74px; }
-  .game-card.score-values.filter-dogs .team-row, .game-card.score-values.dog-view .team-row { grid-template-columns: 34px minmax(0, 1fr) 104px; }
+  .game-card.score-values .team-row, .game-card.score-values.filter-dogs .team-row, .game-card.score-values.dog-view .team-row { grid-template-columns: 34px minmax(0, 1fr) 50px; }
   .team-logo { width: 31px; height: 31px; }
   .team-name { font-size: 15px; }
+  .team-board-market { font-size: 15px; }
   .team-result-score { font-size: 15px; }
   .team-spread { font-size: 15px; }
   .side-bet-slip-bar, .side-bet-slip-sheet { right: 9px; left: 9px; }
