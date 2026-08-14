@@ -187,8 +187,7 @@ p { margin: 0; }
 .game-card:not(.locked-out) .team-row:not(.outcome-loss):not(.opponent-only):not(.blocked-side) .team-board-market { color: var(--ink); -webkit-text-fill-color: var(--ink); }
 .team-name-line { display: flex; min-width: 0; align-items: center; gap: 7px; line-height: 1.2; }
 .team-name-line .team-name { min-width: 0; }
-.team-name { min-width: 0; font-family: var(--font-display); font-size: 16px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
-.game-card .team-name { font-weight: 800; }
+.team-name { min-width: 0; font-family: var(--font-display); font-size: 16px; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
 .responsive-text { position: relative; display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .responsive-text-measure { position: absolute; width: max-content; visibility: hidden; pointer-events: none; }
 .responsive-text-value { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -321,8 +320,8 @@ fieldset .field-label { padding: 0; }
 .side-bet-header-collapse { flex: 0 0 32px; }
 .side-bet-slip-selection { min-height: var(--data-row-height); cursor: default; }
 .side-bet-slip-team-choice { display: flex; min-width: 0; align-items: baseline; gap: 6px; }
-.side-bet-slip-team-choice .team-name { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.side-bet-slip-team-choice .team-spread { width: auto; flex: 0 0 auto; justify-content: flex-start; font-weight: 700; }
+.side-bet-slip-team-choice .team-name { overflow: hidden; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.side-bet-slip-team-choice .team-spread { width: auto; flex: 0 0 auto; justify-content: flex-start; font-weight: 800; }
 .side-bet-selection-clear { justify-self: end; border-color: #d6aaa6; color: var(--red); background: var(--red-soft); }
 .side-bet-slip-section { border-bottom: 1px solid var(--line-strong); }
 .side-bet-slip-section-head { display: flex; height: 30px; align-items: center; gap: 10px; padding: 0 var(--pick-content-inset); border-bottom: 1px solid var(--line); color: var(--muted); background: var(--surface-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
