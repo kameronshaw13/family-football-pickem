@@ -182,7 +182,7 @@ p { margin: 0; }
 .game-card.final-outcome .team-row.outcome-push .team-name,
 .game-card.final-outcome .team-row.outcome-push .team-name-separator,
 .game-card.final-outcome .team-row.outcome-push .team-result-spread,
-.game-card.final-outcome .team-row.outcome-push .team-inline-score { color: var(--ink); }
+.game-card.final-outcome .team-row.outcome-push .team-inline-score { color: #4c595f; }
 .team-row.opponent-only { color: var(--muted); }
 .team-row.blocked-side { color: var(--muted); background: var(--canvas-muted); }
 .team-name-line { display: flex; min-width: 0; align-items: center; line-height: 1.2; }
@@ -252,12 +252,14 @@ p { margin: 0; }
 .score-bug-team { display: grid; width: 27px; height: 44px; grid-template-rows: 23px 15px; place-items: center; align-content: center; gap: 3px; }
 .pick-row-actions .pick-score-bug .team-logo, .visible-pick-actions .pick-score-bug .team-logo, .bank-game-result .pick-score-bug .team-logo { width: 22px; height: 22px; }
 .score-bug-score { color: var(--ink); font-size: 13px; font-weight: 900; text-align: center; }
-.score-bug-team.selected-win .score-bug-score { color: var(--green); }
-.score-bug-team.selected-loss .score-bug-score { color: var(--red); }
-.score-bug-team.selected-push .score-bug-score { color: var(--muted); }
 .score-bug-meta { display: grid; width: 48px; height: 44px; grid-template-rows: repeat(3, minmax(0, 1fr)); align-items: center; overflow: hidden; font-size: 10px; font-weight: 800; line-height: 1; text-align: center; }
 .score-bug-meta > span { display: flex; min-width: 0; align-items: center; justify-content: center; overflow: hidden; text-overflow: ellipsis; }
-.pick-score-bug.final .score-bug-meta { grid-template-rows: 1fr; font-size: 13px; }
+.pick-score-bug.final .score-bug-meta { grid-template-rows: 15px 20px; align-content: center; gap: 2px; }
+.score-bug-final { font-size: 13px; }
+.score-bug-result { width: 20px; height: 20px; justify-self: center; border: 1px solid transparent; border-radius: 1px; color: #fff; font-size: 10px; font-weight: 900; }
+.score-bug-result-win { border-color: var(--green); background: var(--green); }
+.score-bug-result-loss { border-color: var(--red); background: var(--red); }
+.score-bug-result-push { border-color: var(--line-strong); color: var(--ink); background: var(--surface-muted); }
 .icon-btn { display: grid; width: 30px; height: 30px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: transparent; }
 .icon-btn svg { display: block; width: 16px; height: 16px; margin: 0; }
 .pick-row-actions .icon-btn { border-color: #d6aaa6; color: var(--red); background: var(--red-soft); }

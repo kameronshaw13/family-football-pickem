@@ -2243,7 +2243,6 @@ function PickScoreBug({ game, pick, spread }: { game: Game; pick: Pick; spread: 
       : spread == null ? null : gradeAgainstSpread(pick.selected_team, game.home_team, game.away_team, homeScore, awayScore, spread);
   }
 
-  const selectedOutcome = (team: string) => final && team === pick.selected_team && outcome ? ` selected-${outcome}` : "";
   const fieldPosition = !final ? game.live_situation?.match(/\s+at\s+(.+)$/i)?.[1]?.trim() || "" : "";
   const downAndDistance = !final ? game.live_situation?.match(/^(.*?)\s+at\s+/i)?.[1]?.trim() || "" : "";
   const detail = game.live_status?.trim() || "";
@@ -2251,11 +2250,12 @@ function PickScoreBug({ game, pick, spread }: { game: Game; pick: Pick; spread: 
   const quarter = detail.match(/\b(1st|2nd|3rd|4th)\b/i)?.[1] || "";
   const period = /\bhalftime\b/i.test(detail) ? "Halftime" : /\bOT\b/i.test(detail) ? "OT" : quarter || "Live";
   const periodAndClock = [period, clock].filter(Boolean).join(" · ");
-  const status = final ? "Final" : [periodAndClock, fieldPosition, downAndDistance].filter(Boolean).join(", ");
+  const resultLabel = outcome === "win" ? "W" : outcome === "loss" ? "L" : outcome === "push" ? "P" : null;
+  const status = final ? `Final${resultLabel ? `, ${resultLabel}` : ""}` : [periodAndClock, fieldPosition, downAndDistance].filter(Boolean).join(", ");
   return <span className={`pick-score-bug ${final ? "final" : "live"}`} role="img" aria-label={`${displayTeamName(game, game.away_team)} ${awayScore}, ${displayTeamName(game, game.home_team)} ${homeScore}, ${status}`}>
-    <span className={`score-bug-team${selectedOutcome(game.away_team)}`}><TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} /><span className="score-bug-score"><NumericText text={awayScore} /></span></span>
-    <span className={`score-bug-team${selectedOutcome(game.home_team)}`}><TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} /><span className="score-bug-score"><NumericText text={homeScore} /></span></span>
-    <span className="score-bug-meta">{final ? <span>Final</span> : <><span><NumericText text={periodAndClock} /></span><span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={fieldPosition || "—"} /></span><span><NumericText text={downAndDistance || "—"} /></span></>}</span>
+    <span className="score-bug-team"><TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} /><span className="score-bug-score"><NumericText text={awayScore} /></span></span>
+    <span className="score-bug-team"><TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} /><span className="score-bug-score"><NumericText text={homeScore} /></span></span>
+    <span className="score-bug-meta">{final ? <><span className="score-bug-final">Final</span>{outcome && resultLabel && <span className={`score-bug-result score-bug-result-${outcome}`}>{resultLabel}</span>}</> : <><span><NumericText text={periodAndClock} /></span><span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={fieldPosition || "—"} /></span><span><NumericText text={downAndDistance || "—"} /></span></>}</span>
   </span>;
 }
 
