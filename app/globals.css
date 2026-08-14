@@ -246,12 +246,11 @@ p { margin: 0; }
 .score-bug-team { position: relative; display: grid; width: 27px; height: 44px; grid-template-rows: 23px 15px; place-items: center; align-content: center; gap: 3px; }
 .pick-row-actions .pick-score-bug .team-logo, .visible-pick-actions .pick-score-bug .team-logo, .bank-game-result .pick-score-bug .team-logo { width: 22px; height: 22px; }
 .score-bug-score { color: var(--ink); font-size: 13px; font-weight: 900; text-align: center; }
-.pick-score-bug.live .score-bug-team .possession-icon { position: absolute; bottom: -8px; left: 50%; width: 11px; height: 7px; margin-left: 0; transform: translateX(-50%); }
-.pick-score-bug.live .score-bug-team .possession-icon svg path:last-child { stroke-width: .8; }
+.pick-score-bug.live .score-bug-team .possession-icon { position: absolute; bottom: -6px; left: 50%; width: 11px; height: 7px; margin-left: 0; transform: translateX(-50%); }
 .score-bug-meta { display: grid; width: 48px; height: 44px; grid-template-rows: repeat(3, minmax(0, 1fr)); align-items: center; overflow: hidden; font-size: 10px; font-weight: 800; line-height: 1; text-align: center; }
 .score-bug-meta > span { display: flex; min-width: 0; align-items: center; justify-content: center; overflow: hidden; text-overflow: ellipsis; }
 .pick-score-bug.final .score-bug-meta { grid-template-rows: 1fr; }
-.score-bug-result { width: 18px; height: 18px; justify-self: center; border: 1px solid transparent; border-radius: 1px; color: #fff; font-size: 9px; font-weight: 900; }
+.score-bug-result { width: 20px; height: 20px; justify-self: center; border: 1px solid transparent; border-radius: 1px; color: #fff; font-size: 10px; font-weight: 900; }
 .score-bug-result-win { border-color: var(--green); background: var(--green); }
 .score-bug-result-loss { border-color: var(--red); background: var(--red); }
 .score-bug-result-push, .score-bug-result-pending { border-color: var(--line-strong); color: var(--ink); background: var(--surface-muted); }

@@ -1668,7 +1668,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
         const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
-          <div><strong className="bank-game-pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</span></strong>{game && <p><ResponsiveText full={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}${hasPickScoreBug(game) ? "" : ` · ${cardGameStateText(game, true)}`}`} compact={`${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}${hasPickScoreBug(game) ? "" : ` · ${cardGameStateText(game, true)}`}`} /></p>}</div>
+          <div><strong className="bank-game-pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</span></strong>{game && <p><ResponsiveText full={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : "" : ` · ${cardGameStateText(game, true)}`}`} compact={`${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : "" : ` · ${cardGameStateText(game, true)}`}`} /></p>}</div>
           {game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : <span className="test-result pending">—</span>}
         </div>;
       })}
@@ -2200,8 +2200,7 @@ function PossessionIcon({ game, team }: { game: Game; team: string }) {
   if (game.live_state !== "in" || game.live_possession_team !== team) return null;
   return <span className="possession-icon" role="img" aria-label="Possession" title="Possession">
     <svg viewBox="0 0 24 14" aria-hidden="true" shapeRendering="geometricPrecision">
-      <path d="M1.5 7C4.1 3 7.6 1.4 12 1.4S19.9 3 22.5 7c-2.6 4-6.1 5.6-10.5 5.6S4.1 11 1.5 7Z" fill="currentColor" stroke="#62371f" strokeWidth=".9" vectorEffect="non-scaling-stroke" />
-      <path d="M8 7h8M10 5.7v2.6M12 5.7v2.6M14 5.7v2.6" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="1.15" vectorEffect="non-scaling-stroke" />
+      <path d="M1.25 7C4 2.7 7.45 1 12 1s8 1.7 10.75 6C20 11.3 16.55 13 12 13S4 11.3 1.25 7Z" fill="currentColor" />
     </svg>
   </span>;
 }
@@ -2267,8 +2266,9 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
     const matchupText = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Game unavailable";
     const compactMatchupText = game ? `${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}` : matchupText;
-    const metaText = game && !hasPickScoreBug(game) ? `${matchupText} · ${cardGameStateText(game, locked)}` : matchupText;
-    const compactMetaText = game && !hasPickScoreBug(game) ? `${compactMatchupText} · ${cardGameStateText(game, locked)}` : compactMatchupText;
+    const metaState = game ? hasPickScoreBug(game) ? isFinalGame(game) ? "Final" : "" : cardGameStateText(game, locked) : "";
+    const metaText = [matchupText, metaState].filter(Boolean).join(" · ");
+    const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
       <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
@@ -2284,7 +2284,8 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
   const matchupText = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Game unavailable";
   const compactMatchupText = game ? `${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}` : matchupText;
-  const metaText = game && !hasPickScoreBug(game) ? `${matchupText} · ${cardGameStateText(game, locked)}` : matchupText;
-  const compactMetaText = game && !hasPickScoreBug(game) ? `${compactMatchupText} · ${cardGameStateText(game, locked)}` : compactMatchupText;
+  const metaState = game ? hasPickScoreBug(game) ? isFinalGame(game) ? "Final" : "" : cardGameStateText(game, locked) : "";
+  const metaText = [matchupText, metaState].filter(Boolean).join(" · ");
+  const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");
   return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}</span></strong>{metaText && <p><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="visible-pick-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
 }
