@@ -189,7 +189,7 @@ p { margin: 0; }
 .team-spread { display: inline-flex; width: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .team-board-market { display: inline-flex; flex: 0 0 auto; align-items: center; font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .team-result-line { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: flex-end; gap: 6px; }
-.team-result-line .possession-icon { margin-left: 0; transform: none; }
+.team-result-line .possession-icon { margin-left: 0; transform: translateY(.5px); }
 .team-result-score { color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .possession-icon { display: inline-grid; width: 17px; height: 12px; flex: 0 0 17px; place-items: center; margin-left: 5px; color: #8a512f; line-height: 0; vertical-align: middle; }
 .possession-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
@@ -248,11 +248,11 @@ p { margin: 0; }
 .score-bug-score { color: var(--ink); font-size: 13px; font-weight: 900; text-align: center; }
 .score-bug-team.outcome-loss .team-logo { opacity: .55; filter: saturate(.5); }
 .score-bug-team.outcome-loss .score-bug-score { color: var(--muted); }
-.pick-score-bug.live .score-bug-team .possession-icon { position: absolute; bottom: -5px; left: 50%; width: 13px; height: 8px; margin-left: 0; transform: translateX(-50%); }
+.pick-score-bug.live .score-bug-team .possession-icon { position: absolute; bottom: -5.5px; left: 50%; width: 13px; height: 8px; margin-left: 0; transform: translateX(-50%); }
 .score-bug-meta { display: grid; width: 48px; height: 44px; grid-template-rows: repeat(3, minmax(0, 1fr)); align-items: center; overflow: hidden; font-size: 10px; font-weight: 800; line-height: 1; text-align: center; }
 .score-bug-meta > span { display: flex; min-width: 0; align-items: center; justify-content: center; overflow: hidden; text-overflow: ellipsis; }
 .pick-score-bug.final .score-bug-meta { grid-template-rows: 1fr; }
-.score-bug-result { width: 22px; height: 22px; justify-self: center; border: 1px solid var(--line-strong); border-radius: 2px; color: var(--muted); background: var(--surface-muted); font-size: 11px; font-weight: 900; }
+.score-bug-result { width: 24px; height: 24px; justify-self: center; border: 1px solid var(--line-strong); border-radius: 2px; color: var(--muted); background: var(--surface-muted); font-size: 12px; font-weight: 900; }
 .score-bug-result-win { border-color: #a6cdb9; color: var(--green); background: var(--green-soft); }
 .score-bug-result-loss { border-color: #ddb1ad; color: var(--red); background: var(--red-soft); }
 .score-bug-result-push, .score-bug-result-pending { border-color: var(--line-strong); color: var(--muted); background: var(--surface-muted); }
