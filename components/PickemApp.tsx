@@ -182,6 +182,22 @@ const COLLEGE_NICKNAME_SUFFIX_MATCHES = COLLEGE_NICKNAME_SUFFIXES.map((suffix) =
   key: normalizeNameKey(suffix)
 }));
 
+const TEAM_ABBREVIATIONS: Record<string, string> = {
+  "north dakota state": "NDSU",
+  "south dakota state": "SDSU",
+  "north carolina state": "NCSU",
+  "appalachian state": "App State",
+  "arkansas pine bluff": "UAPB",
+  "ut rio grande valley": "UTRGV",
+  "louisiana monroe": "ULM",
+  "middle tennessee": "MTSU",
+  "western kentucky": "WKU",
+  "northern illinois": "NIU",
+  "bowling green": "BGSU",
+  "florida international": "FIU",
+  "florida atlantic": "FAU"
+};
+
 function stripCollegeNickname(rawTeam: string) {
   const manual = COLLEGE_MANUAL_DISPLAY[normalizeNameKey(rawTeam)];
   if (manual) return manual;
@@ -237,6 +253,58 @@ function displayTeamName(game: Game, team: string) {
   }
   TEAM_DISPLAY_NAME_CACHE.set(cacheKey, displayName);
   return displayName;
+}
+
+function abbreviatedTeamName(game: Game, team: string) {
+  const fullName = displayTeamName(game, team);
+  const manual = TEAM_ABBREVIATIONS[normalizeNameKey(fullName)] || TEAM_ABBREVIATIONS[normalizeNameKey(team)];
+  if (manual) return manual;
+  if (fullName.length <= 8 || /^[A-Z0-9]+$/.test(fullName)) return fullName;
+
+  const words = fullName.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  const initials = words.map((word) => /^[A-Z0-9]{2,4}$/.test(word) ? word : word[0].toUpperCase()).join("");
+  const abbreviation = /\bState$/i.test(fullName) && !initials.endsWith("U") ? `${initials}U` : initials;
+  return abbreviation.length >= 2 && abbreviation.length <= 7 ? abbreviation : fullName;
+}
+
+function ResponsiveText({ full, compact, className = "" }: { full: string; compact: string; className?: string }) {
+  const hostRef = useRef<HTMLSpanElement>(null);
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const [useCompact, setUseCompact] = useState(false);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    const measure = measureRef.current;
+    if (!host || !measure || full === compact) {
+      setUseCompact(false);
+      return;
+    }
+
+    let active = true;
+    const update = () => {
+      if (!active) return;
+      setUseCompact(measure.getBoundingClientRect().width > host.clientWidth + 0.5);
+    };
+    update();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    observer?.observe(host);
+    void document.fonts?.ready.then(update);
+    window.addEventListener("resize", update);
+    return () => {
+      active = false;
+      observer?.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [compact, full]);
+
+  return <span ref={hostRef} className={`responsive-text ${className}`.trim()} aria-label={full} title={useCompact ? full : undefined}>
+    <span ref={measureRef} className="responsive-text-measure" aria-hidden="true">{full}</span>
+    <span className="responsive-text-value"><NumericText text={useCompact ? compact : full} /></span>
+  </span>;
+}
+
+function ResponsiveTeamName({ game, team, className = "" }: { game: Game; team: string; className?: string }) {
+  return <ResponsiveText full={displayTeamName(game, team)} compact={abbreviatedTeamName(game, team)} className={className} />;
 }
 
 function dogLineText(game: Game, team: string) {
@@ -1600,7 +1668,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
         const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
-          <div><strong className="bank-game-pick-title"><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{game && <p><NumericText text={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}${hasPickScoreBug(game) ? "" : ` · ${cardGameStateText(game, true)}`}`} /></p>}</div>
+          <div><strong className="bank-game-pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{game && <p><ResponsiveText full={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}${hasPickScoreBug(game) ? "" : ` · ${cardGameStateText(game, true)}`}`} compact={`${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}${hasPickScoreBug(game) ? "" : ` · ${cardGameStateText(game, true)}`}`} /></p>}</div>
           {game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : <span className="test-result pending">—</span>}
         </div>;
       })}
@@ -1839,19 +1907,19 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
     {view === "new" && selectedGame && selectedCreatorTeam && !slipExpanded && <button className="side-bet-slip-bar" type="button" aria-expanded="false" onClick={() => setSlipExpanded(true)}>
       <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
-      <span className="side-bet-slip-copy"><span className="team-name">{displayTeamName(selectedGame, selectedCreatorTeam)}</span><span className="team-spread"><NumericText text={spreadText(creatorSpread)} /></span></span>
+      <span className="side-bet-slip-copy"><ResponsiveTeamName game={selectedGame} team={selectedCreatorTeam} className="team-name" /><span className="team-spread"><NumericText text={spreadText(creatorSpread)} /></span></span>
       <span className="side-bet-slip-open"><ChevronUp size={17} /></span>
     </button>}
 
     {view === "new" && selectedGame && selectedCreatorTeam && slipExpanded && <section ref={slipSheetRef} className={`side-bet-slip-sheet ${slipClosing ? "closing" : ""}`.trim()} role="dialog" aria-labelledby="side-bet-slip-title">
         <div className="side-bet-slip-sheet-head" onPointerDown={beginSlipSwipe} onPointerMove={continueSlipSwipe} onPointerUp={endSlipSwipe} onPointerCancel={endSlipSwipe}>
-          <div className="side-bet-slip-title"><h2 id="side-bet-slip-title">{displayTeamName(selectedGame, selectedGame.away_team)} at {displayTeamName(selectedGame, selectedGame.home_team)}</h2><p><NumericText text={`${fullDateText(selectedGame.commence_time)} · ${timeText(selectedGame.commence_time)}`} /></p></div>
+          <div className="side-bet-slip-title"><h2 id="side-bet-slip-title"><ResponsiveText full={`${displayTeamName(selectedGame, selectedGame.away_team)} at ${displayTeamName(selectedGame, selectedGame.home_team)}`} compact={`${abbreviatedTeamName(selectedGame, selectedGame.away_team)} at ${abbreviatedTeamName(selectedGame, selectedGame.home_team)}`} /></h2><p><NumericText text={`${fullDateText(selectedGame.commence_time)} · ${timeText(selectedGame.commence_time)}`} /></p></div>
           <button type="button" className="slip-icon-btn side-bet-header-collapse" aria-label="Collapse bet slip" onPointerDown={(event) => event.stopPropagation()} onClick={collapseSlip}><ChevronDown size={18} /></button>
         </div>
 
         <div className="team-row side-bet-slip-selection">
           <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
-          <span className="side-bet-slip-team-choice"><span className="team-name">{displayTeamName(selectedGame, selectedCreatorTeam)}</span><span className="team-spread"><NumericText text={spreadText(creatorSpread)} /></span></span>
+          <span className="side-bet-slip-team-choice"><ResponsiveTeamName game={selectedGame} team={selectedCreatorTeam} className="team-name" /><span className="team-spread"><NumericText text={spreadText(creatorSpread)} /></span></span>
           <button type="button" className="slip-icon-btn side-bet-selection-clear" aria-label="Clear selected team" onClick={clearSlip}><X size={18} /></button>
         </div>
 
@@ -1869,8 +1937,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         </section>
 
         <div className="side-bet-slip-summary">
-          <div><span>You keep</span><strong>{displayTeamName(selectedGame, selectedCreatorTeam)} <NumericText text={spreadText(creatorSpread)} /></strong></div>
-          <div><span>They get</span><strong>{displayTeamName(selectedGame, offeredTeam)} <NumericText text={spreadText(creatorSpread == null ? null : -creatorSpread)} /></strong></div>
+          <div><span>You keep</span><strong><ResponsiveText full={`${displayTeamName(selectedGame, selectedCreatorTeam)} ${spreadText(creatorSpread)}`} compact={`${abbreviatedTeamName(selectedGame, selectedCreatorTeam)} ${spreadText(creatorSpread)}`} /></strong></div>
+          <div><span>They get</span><strong><ResponsiveText full={`${displayTeamName(selectedGame, offeredTeam)} ${spreadText(creatorSpread == null ? null : -creatorSpread)}`} compact={`${abbreviatedTeamName(selectedGame, offeredTeam)} ${spreadText(creatorSpread == null ? null : -creatorSpread)}`} /></strong></div>
         </div>
         <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
       </section>}
@@ -1883,8 +1951,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         <div className="confirmation-icon"><CircleDollarSign size={22} /></div>
         <div className="confirmation-heading"><span>Review side bet</span><h2 id="accept-bet-title">Accept <NumericText text={stakeMoney(Number(confirmingBet.amount))} /> bet?</h2></div>
         <div className="confirmation-matchup">
-          <div><span>You take</span><strong>{confirmingBet.game ? displayTeamName(confirmingBet.game, confirmingBet.offered_team) : confirmingBet.offered_team} <NumericText text={spreadText(Number(confirmingBet.offered_spread))} /></strong></div>
-          <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? displayTeamName(confirmingBet.game, confirmingBet.creator_team) : confirmingBet.creator_team} <NumericText text={spreadText(Number(confirmingBet.creator_spread))} /></strong></div>
+          <div><span>You take</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.offered_team)} ${spreadText(Number(confirmingBet.offered_spread))}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.offered_team)} ${spreadText(Number(confirmingBet.offered_spread))}`} /> : <>{confirmingBet.offered_team} <NumericText text={spreadText(Number(confirmingBet.offered_spread))} /></>}</strong></div>
+          <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.creator_team)} ${spreadText(Number(confirmingBet.creator_spread))}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.creator_team)} ${spreadText(Number(confirmingBet.creator_spread))}`} /> : <>{confirmingBet.creator_team} <NumericText text={spreadText(Number(confirmingBet.creator_spread))} /></>}</strong></div>
         </div>
         {confirmingBet.game && <p className="confirmation-kickoff"><NumericText text={dt(confirmingBet.game.commence_time)} /></p>}
         <div className="confirmation-actions"><button className="btn secondary" disabled={saving} onClick={() => setConfirmingBetId(null)}>Cancel</button><button className="btn accept" disabled={saving} onClick={acceptConfirmedBet}><Check size={16} /> {saving ? "Accepting…" : "Accept bet"}</button></div>
@@ -1906,7 +1974,7 @@ function SideBetGameCard({ game, selectedTeam, disabled, onSelect }: { game: Gam
         onClick={() => onSelect(game, team)}
       >
         <TeamLogo url={logoForTeam(game, team)} name={team} />
-        <span className="team-name">{displayTeamName(game, team)}</span>
+        <ResponsiveTeamName game={game} team={team} className="team-name" />
         <span className="team-spread"><NumericText text={spreadForTeam(game, team)} /></span>
       </button>)}
     </div>
@@ -2105,7 +2173,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.away_team)}
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
-        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.away_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{awayScore}</span><PossessionIcon game={game} team={game.away_team} /></span> : <span className="team-name">{displayTeamName(game, game.away_team)}</span>}
+        {showScoreValues ? <span className="team-name-line"><ResponsiveTeamName game={game} team={game.away_team} className="team-name" /><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{awayScore}</span><PossessionIcon game={game} team={game.away_team} /></span> : <ResponsiveTeamName game={game} team={game.away_team} className="team-name" />}
         {showScoreValues ? <span className="team-result-line">{awayResultLine && <span className="team-spread team-result-spread"><NumericText text={awayResultLine} /></span>}</span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : <NumericText text={sideLine(game.away_team)} />}</span></span>}
       </button>
 
@@ -2116,7 +2184,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
         onClick={() => choose(game.home_team)}
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
-        {showScoreValues ? <span className="team-name-line"><span className="team-name">{displayTeamName(game, game.home_team)}</span><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{homeScore}</span><PossessionIcon game={game} team={game.home_team} /></span> : <span className="team-name">{displayTeamName(game, game.home_team)}</span>}
+        {showScoreValues ? <span className="team-name-line"><ResponsiveTeamName game={game} team={game.home_team} className="team-name" /><span className="team-name-separator" aria-hidden="true">·</span><span className="team-inline-score">{homeScore}</span><PossessionIcon game={game} team={game.home_team} /></span> : <ResponsiveTeamName game={game} team={game.home_team} className="team-name" />}
         {showScoreValues ? <span className="team-result-line">{homeResultLine && <span className="team-spread team-result-spread"><NumericText text={homeResultLine} /></span>}</span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
       </button>
     </div>
@@ -2177,15 +2245,17 @@ function PickScoreBug({ game, pick, spread }: { game: Game; pick: Pick; spread: 
 
   const selectedOutcome = (team: string) => final && team === pick.selected_team && outcome ? ` selected-${outcome}` : "";
   const fieldPosition = !final ? game.live_situation?.match(/\s+at\s+(.+)$/i)?.[1]?.trim() || "" : "";
+  const downAndDistance = !final ? game.live_situation?.match(/^(.*?)\s+at\s+/i)?.[1]?.trim() || "" : "";
   const detail = game.live_status?.trim() || "";
   const clock = detail.match(/\b\d{1,2}:\d{2}\b/)?.[0] || "";
   const quarter = detail.match(/\b(1st|2nd|3rd|4th)\b/i)?.[1] || "";
   const period = /\bhalftime\b/i.test(detail) ? "Halftime" : /\bOT\b/i.test(detail) ? "OT" : quarter || "Live";
-  const status = final ? "Final" : [period, clock, fieldPosition].filter(Boolean).join(", ");
+  const periodAndClock = [period, clock].filter(Boolean).join(" · ");
+  const status = final ? "Final" : [periodAndClock, fieldPosition, downAndDistance].filter(Boolean).join(", ");
   return <span className={`pick-score-bug ${final ? "final" : "live"}`} role="img" aria-label={`${displayTeamName(game, game.away_team)} ${awayScore}, ${displayTeamName(game, game.home_team)} ${homeScore}, ${status}`}>
     <span className={`score-bug-team${selectedOutcome(game.away_team)}`}><TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} /><span className="score-bug-score"><NumericText text={awayScore} /></span></span>
     <span className={`score-bug-team${selectedOutcome(game.home_team)}`}><TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} /><span className="score-bug-score"><NumericText text={homeScore} /></span></span>
-    <span className="score-bug-meta">{final ? <span>Final</span> : <><span><NumericText text={period} /></span>{clock && <span><NumericText text={clock} /></span>}{fieldPosition && <span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={fieldPosition} /></span>}</>}</span>
+    <span className="score-bug-meta">{final ? <span>Final</span> : <><span><NumericText text={periodAndClock} /></span><span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={fieldPosition || "—"} /></span><span><NumericText text={downAndDistance || "—"} /></span></>}</span>
   </span>;
 }
 
@@ -2196,10 +2266,12 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const graded = pick.result !== "pending";
     const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
     const matchupText = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Game unavailable";
+    const compactMatchupText = game ? `${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}` : matchupText;
     const metaText = game && !hasPickScoreBug(game) ? `${matchupText} · ${cardGameStateText(game, locked)}` : matchupText;
+    const compactMetaText = game && !hasPickScoreBug(game) ? `${compactMatchupText} · ${cardGameStateText(game, locked)}` : compactMatchupText;
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title"><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><NumericText text={metaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
@@ -2211,6 +2283,8 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
   const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
   const matchupText = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Game unavailable";
+  const compactMatchupText = game ? `${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}` : matchupText;
   const metaText = game && !hasPickScoreBug(game) ? `${matchupText} · ${cardGameStateText(game, locked)}` : matchupText;
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong><span className="pick-title-team">{game ? displayTeamName(game, pick.selected_team) : pick.selected_team}</span><span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{metaText && <p><NumericText text={metaText} /></p>}</div><div className="visible-pick-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
+  const compactMetaText = game && !hasPickScoreBug(game) ? `${compactMatchupText} · ${cardGameStateText(game, locked)}` : compactMatchupText;
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{metaText && <p><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="visible-pick-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
 }
