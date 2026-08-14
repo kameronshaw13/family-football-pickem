@@ -182,6 +182,9 @@ p { margin: 0; }
 .game-card.status-open .team-row:not(.opponent-only):not(.blocked-side),
 .game-card.score-values:not(.final-outcome) .team-row:not(.opponent-only):not(.blocked-side),
 .game-card.final-outcome .team-row.outcome-win { color: var(--ink); -webkit-text-fill-color: var(--ink); }
+.game-card:not(.locked-out) .team-row:not(.outcome-loss):not(.opponent-only):not(.blocked-side) .team-name,
+.game-card:not(.locked-out) .team-row:not(.outcome-loss):not(.opponent-only):not(.blocked-side) .team-spread,
+.game-card:not(.locked-out) .team-row:not(.outcome-loss):not(.opponent-only):not(.blocked-side) .team-board-market { color: var(--ink); -webkit-text-fill-color: var(--ink); }
 .team-name-line { display: flex; min-width: 0; align-items: center; gap: 7px; line-height: 1.2; }
 .team-name-line .team-name { min-width: 0; }
 .team-name { min-width: 0; font-family: var(--font-display); font-size: 16px; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
@@ -229,9 +232,10 @@ p { margin: 0; }
 .pick-section, .subsection { margin-top: var(--space-4); }
 .pick-section h3, .subsection h3 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .pick-section h3 { margin-left: calc(var(--pick-content-inset) - var(--page-gutter) + 2px); }
-.pick-card { display: flex; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); align-items: center; margin: 0 calc(var(--page-gutter) * -1); padding: 7px var(--pick-content-inset); border: 0; border-bottom: 1px solid var(--line); background: transparent; }
-.pick-card:first-of-type { border-top: 1px solid var(--line-strong); }
-.pick-card:last-child { border-bottom-color: var(--line-strong); }
+.pick-card { position: relative; display: flex; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); align-items: center; margin: 0 calc(var(--page-gutter) * -1); padding: 7px var(--pick-content-inset); border: 0; background: transparent; }
+.pick-card::after { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--line); content: ""; pointer-events: none; }
+.pick-card:first-of-type::before { position: absolute; top: 0; right: 0; left: 0; height: 1px; background: var(--line-strong); content: ""; pointer-events: none; }
+.pick-card:last-child::after { background: var(--line-strong); }
 .group-list { display: grid; gap: 0; }
 .group-card { margin: 0; padding: 0; border: 0; background: transparent; }
 .group-card h3 { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-4) calc(var(--pick-content-inset) + 2px) var(--space-2); color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; }
@@ -266,9 +270,10 @@ p { margin: 0; }
 .pick-title-market { display: inline-flex; flex: 0 0 auto; align-items: center; white-space: nowrap; }
 .dog-separator { margin-inline: 4px; }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; }
-.visible-pick { display: grid; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; margin: 0; padding: 7px var(--pick-content-inset); border: 0; border-bottom: 1px solid var(--line); }
-.group-card .visible-pick:first-of-type { border-top: 1px solid var(--line-strong); }
-.visible-pick:last-child { border-bottom-color: var(--line-strong); }
+.visible-pick { position: relative; display: grid; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; margin: 0; padding: 7px var(--pick-content-inset); border: 0; }
+.visible-pick::after { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--line); content: ""; pointer-events: none; }
+.group-card .visible-pick:first-of-type::before { position: absolute; top: 0; right: 0; left: 0; height: 1px; background: var(--line-strong); content: ""; pointer-events: none; }
+.visible-pick:last-child::after { background: var(--line-strong); }
 .pick-meta, .visible-pick-copy p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dog-tag { color: var(--red); font-size: 1em; font-weight: inherit; font-variant-numeric: tabular-nums; line-height: inherit; }
 .actions { display: flex; gap: 8px; margin-top: 11px; }
@@ -444,8 +449,8 @@ fieldset .field-label { padding: 0; }
 .bank-result-record { display: flex; width: 48px; min-width: 48px; height: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-result-amount { display: flex; height: 100%; align-items: center; justify-content: flex-end; font-family: var(--font-display); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .bank-player-result > .muted { margin: 0; padding: 11px 12px; background: var(--panel); }
-.bank-game-result { display: grid; min-height: 62px; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; padding: 7px var(--page-gutter); border-bottom: 1px solid var(--line); background: var(--panel); }
-.bank-game-result:last-child { border-bottom: 0; }
+.bank-game-result { position: relative; display: grid; min-height: 62px; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; padding: 7px var(--page-gutter); background: var(--panel); }
+.bank-game-result:not(:last-child)::after { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--line); content: ""; pointer-events: none; }
 .bank-game-result .team-logo { width: 34px; height: 34px; }
 .bank-game-result > div { min-width: 0; }
 .bank-game-result > div strong { overflow: hidden; font-size: 14px; font-weight: 800; line-height: 1.25; white-space: nowrap; }
