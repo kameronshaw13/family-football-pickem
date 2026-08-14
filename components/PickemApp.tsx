@@ -11,6 +11,7 @@ import { hasChargers, isChargersTeam } from "@/lib/seasonRules";
 import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, POWER_CONFERENCES } from "@/lib/cfbConferences";
 import MenuSelect from "@/components/MenuSelect";
 import NumericText from "@/components/NumericText";
+import NotificationBadge from "@/components/NotificationBadge";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -1322,6 +1323,18 @@ export default function PickemApp() {
   const leagueCardsHidden = tab === "card" && cardView === "group" && viewedGames.some((game) => !isClosed(game));
   const incomingOffers = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
   const pendingOfferCount = incomingOffers.filter((bet) => bet.status === "open" && bet.targets?.some((target) => target.recipient_id === currentUser.id && target.response === "pending")).length;
+  const receivedNotificationCount = previewActive ? 1 : pendingOfferCount;
+  const sentNotificationCount = previewActive ? 1 : 0;
+  const myCardNotificationCount = previewActive ? 1 : 0;
+  const leagueCardsNotificationCount = previewActive ? 1 : 0;
+  const bankNotificationCount = previewActive ? 1 : 0;
+  const picksNotificationCount = receivedNotificationCount + sentNotificationCount;
+  const cardNotificationCount = myCardNotificationCount + leagueCardsNotificationCount;
+  const navNotificationCounts: Partial<Record<Tab, number>> = {
+    picks: picksNotificationCount,
+    card: cardNotificationCount,
+    standings: bankNotificationCount
+  };
   const bankTotals = bankActive ? profiles.map((profile) => ({
     id: profile.id,
     display_name: profile.display_name,
@@ -1495,7 +1508,7 @@ export default function PickemApp() {
 
     <nav className="primary-nav" aria-label="Main navigation">
       <div className="primary-nav-inner">
-        {primaryNav.map((item) => <button key={item.id} aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><span className={`nav-icon nav-icon-${item.id}`}><item.icon size={19} />{item.id === "picks" && pendingOfferCount > 0 && <b>{pendingOfferCount}</b>}</span><span>{item.label}</span></button>)}
+        {primaryNav.map((item) => <button key={item.id} aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><span className={`nav-icon nav-icon-${item.id}`}><item.icon size={19} /><NotificationBadge count={navNotificationCounts[item.id] || 0} className="nav-notification-badge" /></span><span>{item.label}</span></button>)}
       </div>
     </nav>
 
@@ -1505,7 +1518,7 @@ export default function PickemApp() {
 
       {tab === "picks" && <section className="panel picks-panel">
         {!previewActive && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens on <NumericText text={openText(data.weekOpenTime)} />.</div>}
-        <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: `Side Bets${pendingOfferCount ? ` (${pendingOfferCount})` : ""}` }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
+        <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: "Side Bets", badge: picksNotificationCount }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
           <div className="view-select-row board-filter-row">
             <MenuSelect ariaLabel="Choose game status" className="compact-select status-select" value={statusFilter} sections={[{ options: (["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => { setStatusFilter(value as GameStatusFilter); setStatusFilterTouched(true); }} />
@@ -1538,6 +1551,7 @@ export default function PickemApp() {
           recipients={betRecipients}
           saving={savingBet}
           savingBetId={savingBetId}
+          viewNotificationCounts={{ received: receivedNotificationCount, sent: sentNotificationCount }}
           setGame={(gameId) => { setBetGameId(gameId); setBetCreatorTeam(""); }}
           setGameLeague={(nextLeague) => { setBetLeagueFilter(nextLeague); setBetConferenceFilter("ALL"); setBetGameId(""); setBetCreatorTeam(""); }}
           setGameConference={(nextConference) => { setBetConferenceFilter(nextConference); setBetGameId(""); setBetCreatorTeam(""); }}
@@ -1550,7 +1564,7 @@ export default function PickemApp() {
       </section>}
 
       {tab === "card" && <section className="panel card-panel">
-        <SectionTabs items={[{ id: "mine", label: "My Card" }, { id: "group", label: "League Cards" }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
+        <SectionTabs items={[{ id: "mine", label: "My Card", badge: myCardNotificationCount }, { id: "group", label: "League Cards", badge: leagueCardsNotificationCount }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
         {cardView === "mine" && <>
           {!cardIsLocked && <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />}
           <PickList picks={myUnderdog ? [...myRegular, myUnderdog] : myRegular} games={viewedGames} title="Picks" removePick={removePick} />
@@ -1570,7 +1584,7 @@ export default function PickemApp() {
       </section>}
 
       {tab === "standings" && <section className="panel standings-panel">
-        <SectionTabs items={[{ id: "standings", label: "Standings" }, { id: "bank", label: "Bank" }]} value={standingsView} onChange={(value) => setStandingsView(value as StandingsView)} />
+        <SectionTabs items={[{ id: "standings", label: "Standings" }, { id: "bank", label: "Bank", badge: bankNotificationCount }]} value={standingsView} onChange={(value) => setStandingsView(value as StandingsView)} />
         {standingsView === "standings" && <>
           <div className="scoreboard-heading"><h2>Season Standings</h2></div>
           <Leaderboard rows={seasonStandings} />
@@ -1592,7 +1606,7 @@ export default function PickemApp() {
             </div>
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} />
           </div>
-          <div className="subsection bank-section bank-week-section"><div className="standings-heading-row"><h2>Side Bet Ledger</h2></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
+          <div className="subsection bank-section bank-week-section"><div className="standings-heading-row"><h2 className="heading-with-badge">Side Bet Ledger <NotificationBadge count={bankNotificationCount} /></h2></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
           {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setStatusFilter("LOCKED"); setStatusFilterTouched(true); setLeagueFilter("CFB"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview board states</strong><small>See locked, live, and final games</small></span><ChevronRight size={17} /></button>}
         </>}
       </section>}
@@ -1617,8 +1631,8 @@ export default function PickemApp() {
   </div>;
 }
 
-function SectionTabs({ items, value, onChange }: { items: Array<{ id: string; label: string }>; value: string; onChange: (value: string) => void }) {
-  return <div className="section-tabs">{items.map((item) => <button key={item.id} className={value === item.id ? "active" : ""} onClick={() => onChange(item.id)}><NumericText text={item.label} /></button>)}</div>;
+function SectionTabs({ items, value, onChange }: { items: Array<{ id: string; label: string; badge?: number }>; value: string; onChange: (value: string) => void }) {
+  return <div className="section-tabs">{items.map((item) => <button key={item.id} className={value === item.id ? "active" : ""} onClick={() => onChange(item.id)}><span className="section-tab-label"><NumericText text={item.label} /><NotificationBadge count={item.badge || 0} /></span></button>)}</div>;
 }
 
 function conferenceFilterSections(allLabel: string) {
@@ -1731,7 +1745,7 @@ function LoadingShell() {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, viewNotificationCounts, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
@@ -1748,6 +1762,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   recipients: string[];
   saving: boolean;
   savingBetId: string | null;
+  viewNotificationCounts: Partial<Record<BetView, number>>;
   setGame: (value: string) => void;
   setGameLeague: (value: SideBetLeagueFilter) => void;
   setGameConference: (value: string) => void;
@@ -1872,7 +1887,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
     <div className={`view-select-row side-bet-filter-row ${view === "new" ? "make-offer" : ""}`.trim()}>
-      <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "received", label: "For You" }, { value: "sent", label: "Sent" }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => { setSlipExpanded(false); setView(value as BetView); }} />
+      <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "received", label: "For You", badge: viewNotificationCounts.received }, { value: "sent", label: "Sent", badge: viewNotificationCounts.sent }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => { setSlipExpanded(false); setView(value as BetView); }} />
       {view === "new" && <MenuSelect
         ariaLabel="Filter side bet games by league"
         className="compact-select"

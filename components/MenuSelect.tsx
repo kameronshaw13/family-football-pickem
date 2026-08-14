@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, LoaderCircle } from "lucide-react";
 import NumericText from "@/components/NumericText";
+import NotificationBadge from "@/components/NotificationBadge";
 
 export type MenuSelectOption = {
   value: string;
   label: string;
   selectedLabel?: string;
+  badge?: number;
 };
 
 export type MenuSelectSection = {
@@ -81,7 +83,7 @@ export default function MenuSelect({
         if (event.detail === 0) setOpen((current) => !current);
       }}
     >
-      <NumericText text={selectedText} />
+      <span className="custom-select-label"><NumericText text={selectedText} /><NotificationBadge count={selected?.badge || 0} /></span>
     </button>
     {loading
       ? <LoaderCircle className="custom-select-spinner" size={14} />
@@ -97,7 +99,7 @@ export default function MenuSelect({
           key={option.value}
           onClick={() => choose(option.value)}
         >
-          <NumericText text={option.label} />
+          <span className="custom-select-label"><NumericText text={option.label} /><NotificationBadge count={option.badge || 0} /></span>
         </button>)}
       </div>)}
     </div>}
