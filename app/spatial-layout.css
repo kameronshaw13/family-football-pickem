@@ -38,7 +38,7 @@
 .nav-notification-badge {
   position: absolute;
   top: -5px;
-  right: -11.25px;
+  right: -11.4px;
   width: 17px;
   min-width: 17px;
   height: 17px;
@@ -94,5 +94,5 @@
 
 /* For You / Sent select badges need the numeral slightly higher inside the circle. */
 .custom-select-label > .notification-badge > .notification-badge-value {
-  transform: translateY(-1.25px);
+  transform: translateY(-1px);
 }
