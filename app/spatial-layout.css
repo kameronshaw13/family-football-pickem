@@ -38,7 +38,7 @@
 .nav-notification-badge {
   position: absolute;
   top: -5px;
-  right: -10.5px;
+  right: -10.75px;
   width: 17px;
   min-width: 17px;
   height: 17px;
@@ -83,6 +83,6 @@
 .custom-select-label > .notification-badge {
   position: absolute;
   top: 50%;
-  right: -1.5px;
+  right: -2px;
   transform: translateY(-50%);
 }
