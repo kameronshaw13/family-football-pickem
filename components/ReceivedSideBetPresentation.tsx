@@ -35,7 +35,7 @@ const CENTRAL_SIDE_BET_TIME = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Chicago"
 });
 const CENTRAL_SIDE_BET_DATE = new Intl.DateTimeFormat("en-US", {
-  weekday: "short",
+  weekday: "long",
   month: "short",
   day: "numeric",
   timeZone: "America/Chicago"
