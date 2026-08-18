@@ -48,6 +48,11 @@
   font-size: 11.33px;
 }
 
+/* The larger bottom badge needs its numeral optically lower inside the circle. */
+.nav-notification-badge > .notification-badge-value {
+  transform: translateY(0.25px);
+}
+
 /* Top page tabs stay centered whether a badge exists or not. */
 .section-tab-label,
 .heading-with-badge {
@@ -85,4 +90,9 @@
   top: 50%;
   right: -2.75px;
   transform: translateY(-50%);
+}
+
+/* For You / Sent select badges need the numeral slightly higher inside the circle. */
+.custom-select-label > .notification-badge > .notification-badge-value {
+  transform: translateY(-1.25px);
 }
