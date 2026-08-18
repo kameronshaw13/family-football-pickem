@@ -96,3 +96,35 @@
 .custom-select-label > .notification-badge > .notification-badge-value {
   transform: translateY(-1px);
 }
+
+/* Side-bet action labels/icons are optically centered inside their buttons. */
+.side-bet-card .actions .btn {
+  height: 36px;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  line-height: 1;
+  text-align: center;
+}
+
+.side-bet-card .actions .btn > svg {
+  display: block;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.side-bet-card .clear-offer-actions .btn {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 8px;
+}
+
+/* Test Week can show a safe incoming-offer visual without touching real side bets. */
+.side-bet-list.test-has-incoming-preview > .empty-state {
+  display: none;
+}
+
+.test-incoming-side-bet {
+  order: -1;
+}
