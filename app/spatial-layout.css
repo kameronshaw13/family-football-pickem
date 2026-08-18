@@ -243,15 +243,14 @@
 
 .confirmation-matchup > div.confirmation-team-row {
   display: grid;
-  grid-template-columns: max-content 34px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 34px max-content;
   align-items: center;
-  justify-content: start;
-  column-gap: 7px;
+  column-gap: 8px;
 }
 
 .confirmation-matchup > div > span {
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1;
   text-transform: none;
@@ -263,6 +262,7 @@
   width: 32px;
   height: 32px;
   object-fit: contain;
+  justify-self: end;
 }
 
 .confirmation-team-logo-fallback {
@@ -278,9 +278,10 @@
 
 .confirmation-matchup strong {
   min-width: 0;
+  max-width: 235px;
   overflow: hidden;
   color: var(--ink);
-  font-size: 15px;
+  font-size: 15.5px;
   font-weight: 800;
   line-height: 1.15;
   text-align: left;
@@ -298,7 +299,7 @@
   border-bottom: 1px solid var(--line-strong);
   color: var(--muted);
   background: var(--surface-muted);
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.2;
   text-align: center;
@@ -320,17 +321,18 @@
   align-items: center;
   justify-content: center;
   padding-block: 0;
+  font-size: 13.5px;
   line-height: 1;
 }
 
-/* The check is decorative; it does not participate in Accept Bet text centering. */
+/* Accept Bet stays centered; the check sits immediately to the left of the centered label. */
 .confirmation-actions .btn.accept {
   position: relative;
 }
 
 .confirmation-actions .btn.accept > svg {
   position: absolute;
-  left: 14px;
+  left: calc(50% - 54px);
   top: 50%;
   margin: 0;
   transform: translateY(-50%);
@@ -356,8 +358,8 @@
 
 @media (max-width: 420px) {
   .confirmation-matchup > div.confirmation-team-row {
-    grid-template-columns: max-content 32px minmax(0, 1fr);
-    column-gap: 6px;
+    grid-template-columns: minmax(0, 1fr) 32px max-content;
+    column-gap: 7px;
   }
 
   .confirmation-team-logo {
@@ -366,14 +368,19 @@
   }
 
   .confirmation-matchup > div > span {
-    font-size: 10px;
+    font-size: 11.5px;
   }
 
   .confirmation-matchup strong {
-    font-size: 14px;
+    max-width: 190px;
+    font-size: 15px;
   }
 
   .confirmation-kickoff {
-    font-size: 11px;
+    font-size: 12.5px;
+  }
+
+  .confirmation-actions .btn {
+    font-size: 13px;
   }
 }
