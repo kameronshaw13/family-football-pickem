@@ -93,7 +93,7 @@ export default function TestIncomingOfferPreview() {
               <strong>Virginia -10.5</strong>
             </div>
           </div>
-          <p className="confirmation-kickoff">Sat, Sep 12 · 2:30 PM · Virginia at NC State</p>
+          <p className="confirmation-kickoff">Saturday, Sep 12 · 2:30 PM · Virginia at NC State</p>
           <div className="confirmation-actions">
             <button className="btn secondary" type="button" onClick={() => setShowConfirmation(false)}>Cancel</button>
             <button className="btn accept" type="button" title="Test preview only" onClick={() => setShowConfirmation(false)}><Check size={16} /> Accept bet</button>
