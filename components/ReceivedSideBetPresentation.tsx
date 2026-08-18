@@ -219,7 +219,7 @@ function enhanceReviewModal(payload: AppDataPayload | null, betId: string | null
 
   const meta = sheet.querySelector<HTMLElement>(".confirmation-kickoff");
   if (meta) {
-    meta.textContent = `${CENTRAL_SIDE_BET_DATE.format(kickoff)} · ${CENTRAL_SIDE_BET_CLOCK.format(kickoff)} · ${awayDisplay} (Away) at ${homeDisplay} (Home)`;
+    meta.textContent = `${CENTRAL_SIDE_BET_DATE.format(kickoff)} · ${CENTRAL_SIDE_BET_CLOCK.format(kickoff)} · ${awayDisplay} at ${homeDisplay}`;
   }
 }
 
