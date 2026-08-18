@@ -34,6 +34,17 @@ const CENTRAL_SIDE_BET_TIME = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
   timeZone: "America/Chicago"
 });
+const CENTRAL_SIDE_BET_DATE = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  timeZone: "America/Chicago"
+});
+const CENTRAL_SIDE_BET_CLOCK = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "America/Chicago"
+});
 
 function spreadLabel(value: number | string) {
   const spread = Number(value);
@@ -75,14 +86,14 @@ function buildPerspectiveRow(card: HTMLElement, bet: ReceivedBet) {
   const [rawLeft = "", rawRight = ""] = originalTitle.split(" at ");
   const left = stripTrailingSpread(rawLeft);
   const right = stripTrailingSpread(rawRight);
+  const awayDisplay = left || bet.game.away_team;
+  const homeDisplay = right || bet.game.home_team;
   const offeredIsAway = bet.offered_team === bet.game.away_team;
   const offeredSpread = spreadLabel(bet.offered_spread);
-  const offeredName = offeredIsAway ? left : right;
-  const mainText = left && right
-    ? offeredIsAway
-      ? `${left} ${offeredSpread} at ${right}`
-      : `${left} at ${right} ${offeredSpread}`
-    : `${offeredName || bet.offered_team} ${offeredSpread}`;
+  const offeredName = offeredIsAway ? awayDisplay : homeDisplay;
+  const mainText = offeredIsAway
+    ? `${awayDisplay} ${offeredSpread} at ${homeDisplay}`
+    : `${awayDisplay} at ${homeDisplay} ${offeredSpread}`;
   const sender = bet.creator?.display_name?.trim() || "Opponent";
   const kickoff = CENTRAL_SIDE_BET_TIME.format(new Date(bet.game.commence_time));
   const logo = offeredIsAway ? bet.game.away_logo_url : bet.game.home_logo_url;
@@ -90,6 +101,8 @@ function buildPerspectiveRow(card: HTMLElement, bet: ReceivedBet) {
   const row = document.createElement("div");
   row.className = "side-bet-offer-row received-offer-perspective";
   row.dataset.sideBetId = bet.id;
+  row.dataset.awayName = awayDisplay;
+  row.dataset.homeName = homeDisplay;
 
   if (logo) {
     const img = document.createElement("img");
@@ -104,7 +117,7 @@ function buildPerspectiveRow(card: HTMLElement, bet: ReceivedBet) {
   } else {
     const fallback = document.createElement("div");
     fallback.className = "team-logo fallback";
-    fallback.textContent = (offeredName || bet.offered_team).slice(0, 1);
+    fallback.textContent = offeredName.slice(0, 1);
     row.appendChild(fallback);
   }
 
@@ -113,7 +126,7 @@ function buildPerspectiveRow(card: HTMLElement, bet: ReceivedBet) {
   const title = document.createElement("strong");
   title.textContent = mainText;
   const detail = document.createElement("p");
-  detail.textContent = `${sender} offered · ${offeredName || bet.offered_team} ${offeredSpread} · ${kickoff}`;
+  detail.textContent = `${sender} offered · ${offeredName} ${offeredSpread} · ${kickoff}`;
   copy.append(title, detail);
   row.appendChild(copy);
 
@@ -124,6 +137,90 @@ function buildPerspectiveRow(card: HTMLElement, bet: ReceivedBet) {
 
   card.insertBefore(row, originalRow);
   card.classList.add("received-offer-enhanced");
+}
+
+function addConfirmationLogo(row: HTMLElement, url: string | null | undefined, name: string) {
+  row.querySelector(":scope > .confirmation-team-logo")?.remove();
+  const strong = row.querySelector(":scope > strong");
+  if (!strong) return;
+
+  if (url) {
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = "";
+    img.className = "confirmation-team-logo";
+    img.width = 36;
+    img.height = 36;
+    img.loading = "eager";
+    img.decoding = "async";
+    row.insertBefore(img, strong);
+  } else {
+    const fallback = document.createElement("span");
+    fallback.className = "confirmation-team-logo confirmation-team-logo-fallback";
+    fallback.textContent = name.slice(0, 1);
+    row.insertBefore(fallback, strong);
+  }
+}
+
+function enhanceReviewModal(payload: AppDataPayload | null, betId: string | null) {
+  const sheet = document.querySelector<HTMLElement>(".confirmation-backdrop:not(.test-confirmation-backdrop) .confirmation-sheet");
+  if (!sheet || !payload || !betId) return;
+  const bet = payload.sideBets?.find((item) => item.id === betId);
+  if (!bet?.game) return;
+  if (sheet.dataset.sideBetId === bet.id && sheet.classList.contains("received-review-enhanced")) return;
+
+  const perspective = document.querySelector<HTMLElement>(`.received-offer-perspective[data-side-bet-id="${CSS.escape(bet.id)}"]`);
+  const awayDisplay = perspective?.dataset.awayName || bet.game.away_team;
+  const homeDisplay = perspective?.dataset.homeName || bet.game.home_team;
+  const offeredIsAway = bet.offered_team === bet.game.away_team;
+  const offeredDisplay = offeredIsAway ? awayDisplay : homeDisplay;
+  const creatorDisplay = offeredIsAway ? homeDisplay : awayDisplay;
+  const sender = bet.creator?.display_name?.trim() || "Opponent";
+  const kickoff = new Date(bet.game.commence_time);
+
+  sheet.dataset.sideBetId = bet.id;
+  sheet.classList.add("received-review-enhanced");
+
+  const heading = sheet.querySelector<HTMLElement>(".confirmation-heading");
+  const headingLabel = heading?.querySelector<HTMLElement>(":scope > span");
+  const headingTitle = heading?.querySelector<HTMLElement>(":scope > h2");
+  if (headingLabel) headingLabel.textContent = "";
+  if (headingTitle) headingTitle.textContent = "Review Bet";
+
+  sheet.querySelector(":scope > .confirmation-amount-row")?.remove();
+  if (heading) {
+    const amountRow = document.createElement("div");
+    amountRow.className = "confirmation-amount-row";
+    const amountLabel = document.createElement("span");
+    amountLabel.textContent = "Amount";
+    const amountValue = document.createElement("strong");
+    amountValue.textContent = moneyLabel(bet.amount);
+    amountRow.append(amountLabel, amountValue);
+    heading.insertAdjacentElement("afterend", amountRow);
+  }
+
+  const rows = Array.from(sheet.querySelectorAll<HTMLElement>(".confirmation-matchup > div"));
+  if (rows[0]) {
+    rows[0].classList.add("confirmation-team-row");
+    const label = rows[0].querySelector<HTMLElement>(":scope > span");
+    const value = rows[0].querySelector<HTMLElement>(":scope > strong");
+    if (label) label.textContent = "You get";
+    if (value) value.textContent = `${offeredDisplay} ${spreadLabel(bet.offered_spread)}`;
+    addConfirmationLogo(rows[0], offeredIsAway ? bet.game.away_logo_url : bet.game.home_logo_url, offeredDisplay);
+  }
+  if (rows[1]) {
+    rows[1].classList.add("confirmation-team-row");
+    const label = rows[1].querySelector<HTMLElement>(":scope > span");
+    const value = rows[1].querySelector<HTMLElement>(":scope > strong");
+    if (label) label.textContent = `${sender} gets`;
+    if (value) value.textContent = `${creatorDisplay} ${spreadLabel(bet.creator_spread)}`;
+    addConfirmationLogo(rows[1], offeredIsAway ? bet.game.home_logo_url : bet.game.away_logo_url, creatorDisplay);
+  }
+
+  const meta = sheet.querySelector<HTMLElement>(".confirmation-kickoff");
+  if (meta) {
+    meta.textContent = `${CENTRAL_SIDE_BET_DATE.format(kickoff)} · ${CENTRAL_SIDE_BET_CLOCK.format(kickoff)} · ${awayDisplay} (Away) at ${homeDisplay} (Home)`;
+  }
 }
 
 function applyEnhancements(payload: AppDataPayload | null) {
@@ -160,14 +257,17 @@ export default function ReceivedSideBetPresentation() {
     let loading = false;
     let lastLoaded = 0;
     let frame = 0;
+    let pendingReviewBetId: string | null = null;
 
     async function refresh(force = false) {
       if (!active || loading || !receivedViewIsActive()) {
         applyEnhancements(payload);
+        enhanceReviewModal(payload, pendingReviewBetId);
         return;
       }
       if (!force && payload && Date.now() - lastLoaded < 15_000) {
         applyEnhancements(payload);
+        enhanceReviewModal(payload, pendingReviewBetId);
         return;
       }
       const token = window.localStorage.getItem("pickem_session_token");
@@ -181,7 +281,10 @@ export default function ReceivedSideBetPresentation() {
         if (!response.ok) return;
         payload = await response.json() as AppDataPayload;
         lastLoaded = Date.now();
-        if (active) applyEnhancements(payload);
+        if (active) {
+          applyEnhancements(payload);
+          enhanceReviewModal(payload, pendingReviewBetId);
+        }
       } catch {
         // Presentation enhancement is non-critical; the underlying side-bet UI remains usable.
       } finally {
@@ -194,10 +297,23 @@ export default function ReceivedSideBetPresentation() {
       frame = window.requestAnimationFrame(() => void refresh());
     }
 
+    function rememberReviewBet(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const button = target.closest<HTMLButtonElement>(".side-bet-card.mode-received.open .actions .btn.accept");
+      if (!button) return;
+      const card = button.closest<HTMLElement>(".side-bet-card");
+      const perspective = card?.querySelector<HTMLElement>(":scope > .received-offer-perspective");
+      if (!perspective?.dataset.sideBetId) return;
+      pendingReviewBetId = perspective.dataset.sideBetId;
+      window.requestAnimationFrame(() => enhanceReviewModal(payload, pendingReviewBetId));
+    }
+
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, { subtree: true, childList: true, characterData: true });
     const onFocus = () => void refresh(true);
     window.addEventListener("focus", onFocus);
+    document.addEventListener("click", rememberReviewBet, true);
     void refresh(true);
 
     return () => {
@@ -205,6 +321,7 @@ export default function ReceivedSideBetPresentation() {
       window.cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("focus", onFocus);
+      document.removeEventListener("click", rememberReviewBet, true);
       clearEnhancements();
     };
   }, []);
