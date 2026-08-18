@@ -88,7 +88,7 @@
 .custom-select-label > .notification-badge {
   position: absolute;
   top: 50%;
-  right: -2.75px;
+  right: -3px;
   transform: translateY(-50%);
 }
 
