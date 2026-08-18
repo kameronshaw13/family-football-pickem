@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, CircleDollarSign, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 function findPreviewTarget() {
   if (!document.querySelector(".test-mode-banner")) return null;
@@ -62,8 +62,8 @@ export default function TestIncomingOfferPreview() {
             decoding="async"
           />
           <div className="side-bet-offer-copy">
-            <strong>Virginia at NC State -10.5</strong>
-            <p><span className="test-offer-sender">From Test Player</span> · You get Virginia +10.5 · Sat 2:30 PM</p>
+            <strong>Virginia at NC State +10.5</strong>
+            <p><span className="test-offer-sender">Test Player offered</span> · NC State +10.5 · Sat 2:30 PM</p>
           </div>
           <strong className="side-bet-offer-amount money-neutral">$20</strong>
         </div>
@@ -79,11 +79,11 @@ export default function TestIncomingOfferPreview() {
 
       {showConfirmation && <div className="confirmation-backdrop test-confirmation-backdrop" onClick={() => setShowConfirmation(false)}>
         <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="test-accept-bet-title" onClick={(event) => event.stopPropagation()}>
-          <div className="confirmation-icon"><CircleDollarSign size={22} /></div>
+          <div className="confirmation-icon" aria-hidden="true" />
           <div className="confirmation-heading"><span>Review side bet</span><h2 id="test-accept-bet-title">Accept $20 bet?</h2></div>
           <div className="confirmation-matchup">
-            <div><span>You take</span><strong>Virginia +10.5</strong></div>
-            <div><span>Test Player keeps</span><strong>NC State -10.5</strong></div>
+            <div><span>You take</span><strong>NC State +10.5</strong></div>
+            <div><span>Test Player keeps</span><strong>Virginia -10.5</strong></div>
           </div>
           <p className="confirmation-kickoff">Sat 2:30 PM</p>
           <div className="confirmation-actions">
