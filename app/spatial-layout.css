@@ -149,22 +149,24 @@
   text-transform: none;
 }
 
-/* Accept review now follows the same visual language as the side-bet send sheet. */
+/* Review Bet is a centered modal with the same scoreboard language as the rest of the app. */
 .confirmation-backdrop {
-  align-items: flex-end;
-  padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
-  background: rgba(20, 33, 43, .54);
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) 14px max(16px, env(safe-area-inset-bottom));
+  background: rgba(20, 33, 43, .56);
   backdrop-filter: blur(3px);
 }
 
 .confirmation-sheet {
-  width: min(520px, 100%);
-  overflow: hidden;
+  width: min(450px, 100%);
+  max-height: calc(100dvh - max(32px, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
+  overflow: auto;
   padding: 0;
   border: 1px solid #4c5a61;
   border-radius: 8px;
   background: var(--panel);
-  box-shadow: 0 22px 52px rgba(20, 33, 43, .32);
+  box-shadow: 0 24px 64px rgba(20, 33, 43, .38);
 }
 
 .confirmation-icon {
@@ -173,30 +175,54 @@
 
 .confirmation-heading {
   display: flex;
-  min-height: 61px;
-  flex-direction: column;
+  min-height: 58px;
+  align-items: center;
   justify-content: center;
   margin: 0;
-  padding: 9px var(--pick-content-inset);
+  padding: 10px var(--pick-content-inset);
   border-bottom: 1px solid #59676e;
   color: #fff;
   background: var(--graphite);
+  text-align: center;
 }
 
 .confirmation-heading > span {
-  color: #c8d4da;
-  font-size: 9px;
-  font-weight: 800;
-  line-height: 1.1;
-  text-transform: uppercase;
+  display: none;
 }
 
 .confirmation-heading h2 {
-  margin: 4px 0 0;
+  margin: 0;
   color: #fff;
-  font-size: 17px;
+  font-family: var(--font-display);
+  font-size: 18px;
   font-weight: 800;
   line-height: 1.15;
+}
+
+.confirmation-amount-row {
+  display: flex;
+  min-height: 45px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px var(--pick-content-inset);
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--surface-muted);
+}
+
+.confirmation-amount-row span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.confirmation-amount-row strong {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .confirmation-matchup {
@@ -206,13 +232,20 @@
 }
 
 .confirmation-matchup > div {
-  min-height: 52px;
-  padding: 7px var(--pick-content-inset);
+  min-height: 60px;
+  padding: 8px var(--pick-content-inset);
   border-bottom: 1px solid var(--line);
 }
 
 .confirmation-matchup > div:last-child {
   border-bottom: 1px solid var(--line-strong);
+}
+
+.confirmation-matchup > div.confirmation-team-row {
+  display: grid;
+  grid-template-columns: 74px 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
 }
 
 .confirmation-matchup > div > span {
@@ -222,24 +255,47 @@
   text-transform: uppercase;
 }
 
-.confirmation-matchup strong {
-  color: var(--ink);
-  font-size: 13px;
+.confirmation-team-logo {
+  display: block;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.confirmation-team-logo-fallback {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  background: var(--surface-muted);
+  font-family: var(--font-display);
+  font-size: 14px;
   font-weight: 800;
+}
+
+.confirmation-matchup strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
   text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .confirmation-kickoff {
-  min-height: 31px;
+  min-height: 40px;
   margin: 0;
-  padding: 8px var(--pick-content-inset);
+  padding: 9px var(--pick-content-inset);
   border-bottom: 1px solid var(--line-strong);
   color: var(--muted);
   background: var(--surface-muted);
   font-size: 10px;
   font-weight: 700;
-  line-height: 1.4;
-  text-align: right;
+  line-height: 1.45;
+  text-align: center;
 }
 
 .confirmation-actions {
@@ -277,4 +333,24 @@
 
 .test-confirmation-backdrop .confirmation-sheet {
   pointer-events: auto;
+}
+
+@media (max-width: 420px) {
+  .confirmation-matchup > div.confirmation-team-row {
+    grid-template-columns: 66px 34px minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .confirmation-team-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .confirmation-matchup strong {
+    font-size: 13px;
+  }
+
+  .confirmation-kickoff {
+    font-size: 9.5px;
+  }
 }
