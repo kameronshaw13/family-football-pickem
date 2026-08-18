@@ -38,7 +38,7 @@
 .nav-notification-badge {
   position: absolute;
   top: -5px;
-  right: -11.4px;
+  right: -11.5px;
   width: 17px;
   min-width: 17px;
   height: 17px;
@@ -88,8 +88,8 @@
 .custom-select-label > .notification-badge {
   position: absolute;
   top: 50%;
-  right: -3px;
-  transform: translateY(-50%);
+  right: -3.15px;
+  transform: translateY(calc(-50% + 0.1px));
 }
 
 /* For You / Sent select badges need the numeral slightly higher inside the circle. */
@@ -114,6 +114,13 @@
   margin: 0;
 }
 
+.side-bet-card.mode-received.open .actions .btn.secondary,
+.side-bet-card .actions .btn.side-bet-decline {
+  border-color: #d6aaa6;
+  color: var(--red);
+  background: var(--red-soft);
+}
+
 .side-bet-card .clear-offer-actions .btn {
   height: 32px;
   min-height: 32px;
@@ -127,4 +134,13 @@
 
 .test-incoming-side-bet {
   order: -1;
+}
+
+.test-offer-sender {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.test-confirmation-backdrop .confirmation-sheet {
+  pointer-events: auto;
 }
