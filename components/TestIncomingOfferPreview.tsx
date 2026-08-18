@@ -78,14 +78,22 @@ export default function TestIncomingOfferPreview() {
       </article>
 
       {showConfirmation && <div className="confirmation-backdrop test-confirmation-backdrop" onClick={() => setShowConfirmation(false)}>
-        <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="test-accept-bet-title" onClick={(event) => event.stopPropagation()}>
-          <div className="confirmation-icon" aria-hidden="true" />
-          <div className="confirmation-heading"><span>Review side bet</span><h2 id="test-accept-bet-title">Accept $20 bet?</h2></div>
+        <section className="confirmation-sheet received-review-enhanced" role="dialog" aria-modal="true" aria-labelledby="test-review-bet-title" onClick={(event) => event.stopPropagation()}>
+          <div className="confirmation-heading"><h2 id="test-review-bet-title">Review Bet</h2></div>
+          <div className="confirmation-amount-row"><span>Amount</span><strong>$20</strong></div>
           <div className="confirmation-matchup">
-            <div><span>You take</span><strong>NC State +10.5</strong></div>
-            <div><span>Test Player keeps</span><strong>Virginia -10.5</strong></div>
+            <div className="confirmation-team-row">
+              <span>You get</span>
+              <img src="https://a.espncdn.com/i/teamlogos/ncaa/500/152.png" alt="" className="confirmation-team-logo" width={36} height={36} />
+              <strong>NC State +10.5</strong>
+            </div>
+            <div className="confirmation-team-row">
+              <span>Test Player gets</span>
+              <img src="https://a.espncdn.com/i/teamlogos/ncaa/500/258.png" alt="" className="confirmation-team-logo" width={36} height={36} />
+              <strong>Virginia -10.5</strong>
+            </div>
           </div>
-          <p className="confirmation-kickoff">Sat 2:30 PM</p>
+          <p className="confirmation-kickoff">Sat, Sep 12 · 2:30 PM · Virginia (Away) at NC State (Home)</p>
           <div className="confirmation-actions">
             <button className="btn secondary" type="button" onClick={() => setShowConfirmation(false)}>Cancel</button>
             <button className="btn accept" type="button" title="Test preview only" onClick={() => setShowConfirmation(false)}><Check size={16} /> Accept bet</button>
