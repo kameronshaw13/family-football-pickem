@@ -38,7 +38,7 @@
 .nav-notification-badge {
   position: absolute;
   top: -5px;
-  right: -11.5px;
+  right: -11.4px;
   width: 17px;
   min-width: 17px;
   height: 17px;
@@ -50,7 +50,7 @@
 
 /* The larger bottom badge needs its numeral optically lower inside the circle. */
 .nav-notification-badge > .notification-badge-value {
-  transform: translateY(0.25px);
+  transform: translate(0.1px, 0.25px);
 }
 
 /* Top page tabs stay centered whether a badge exists or not. */
@@ -88,13 +88,13 @@
 .custom-select-label > .notification-badge {
   position: absolute;
   top: 50%;
-  right: -3.15px;
-  transform: translateY(calc(-50% + 0.1px));
+  right: -3px;
+  transform: translateY(-50%);
 }
 
-/* For You / Sent select badges need the numeral slightly higher inside the circle. */
+/* For You / Sent select badges need their numeral optically nudged inside the circle. */
 .custom-select-label > .notification-badge > .notification-badge-value {
-  transform: translateY(-1px);
+  transform: translate(0.15px, -0.9px);
 }
 
 /* Side-bet action labels/icons are optically centered inside their buttons. */
