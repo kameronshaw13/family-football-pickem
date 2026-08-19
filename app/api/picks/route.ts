@@ -87,6 +87,18 @@ export async function POST(req: NextRequest) {
     if (cfb > rule.regularTotal - rule.nflMinimum) return NextResponse.json({ ok: false, error: `This week requires ${rule.nflMinimum} NFL regular pick${rule.nflMinimum === 1 ? "" : "s"}.` }, { status: 409 });
     if (nfl > rule.regularTotal - rule.cfbMinimum) return NextResponse.json({ ok: false, error: `This week requires ${rule.cfbMinimum} CFB regular pick${rule.cfbMinimum === 1 ? "" : "s"}.` }, { status: 409 });
 
+    const confidenceMode = context.rules?.scoring?.mode === "confidence";
+    const submittedRegular = body.picks.filter((pick) => pick.pickType === "regular");
+    const confidenceByGame = new Map(submittedRegular.map((pick, index) => [pick.gameId, Math.max(1, rule.regularTotal - index)]));
+    if (confidenceMode) {
+      for (const locked of lockedPicks.filter((pick: any) => pick.pick_type === "regular")) {
+        const desired = confidenceByGame.get(locked.game_id);
+        if (desired != null && locked.confidence_points != null && Number(locked.confidence_points) !== desired) {
+          return NextResponse.json({ ok: false, error: "Confidence order is locked once a regular pick locks." }, { status: 409 });
+        }
+      }
+    }
+
     const editableIds = new Set(editable.map((pick) => pick.gameId));
     const draftsToDelete = existing.filter((pick: any) => pick.status === "draft" && !editableIds.has(pick.game_id)).map((pick: any) => pick.id);
     const existingDraftByGame = new Map(existing.filter((pick: any) => pick.status === "draft").map((pick: any) => [pick.game_id, pick]));
@@ -95,7 +107,15 @@ export async function POST(req: NextRequest) {
     for (const pick of editable) {
       const game: any = gameMap.get(pick.gameId);
       const selectedSpread = normalizeSpreadForSelectedTeam(pick.selectedTeam, game.current_spread_team, game.current_spread);
-      const saved = { selected_team: pick.selectedTeam, pick_type: pick.pickType, underdog_win_value: pick.pickType === "underdog" ? getGroupUnderdogBonus(context, selectedSpread) : null, status: "draft", result: "pending", updated_at: nowIso };
+      const saved = {
+        selected_team: pick.selectedTeam,
+        pick_type: pick.pickType,
+        underdog_win_value: pick.pickType === "underdog" ? getGroupUnderdogBonus(context, selectedSpread) : null,
+        confidence_points: confidenceMode && pick.pickType === "regular" ? confidenceByGame.get(pick.gameId) ?? null : null,
+        status: "draft",
+        result: "pending",
+        updated_at: nowIso
+      };
       const existingDraft: any = existingDraftByGame.get(pick.gameId);
       writes.push(existingDraft
         ? supabase.from("picks").update(saved).eq("id", existingDraft.id).eq("group_id", context.group.id).eq("status", "draft")
