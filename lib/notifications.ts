@@ -66,13 +66,16 @@ async function deliverPush(supabase: SupabaseClient, userId: string, payload: Om
   const config = pushConfiguration();
   if (!config.configured) return { sent: 0, configured: false };
 
-  const [{ data: subscriptions, error }, counts] = await Promise.all([
-    supabase.from("push_subscriptions").select("endpoint,p256dh,auth").eq("user_id", userId),
-    getNotificationCounts(supabase, userId)
-  ]);
+  // Most league members will not have every browser/device subscribed. Avoid the
+  // unread-count query entirely when there is nowhere to deliver a push.
+  const { data: subscriptions, error } = await supabase
+    .from("push_subscriptions")
+    .select("endpoint,p256dh,auth")
+    .eq("user_id", userId);
   if (error) throw new Error(error.message);
   if (!subscriptions?.length) return { sent: 0, configured: true };
 
+  const counts = await getNotificationCounts(supabase, userId);
   webPush.setVapidDetails(config.subject, config.publicKey, config.privateKey);
   let sent = 0;
   await Promise.all(subscriptions.map(async (row) => {
