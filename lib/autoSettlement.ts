@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
+import { computeGroupStandings, rankedPayoutSettlement, winnerTakeAllSettlement } from "@/lib/groupScoring";
+import { computeWeeklySettlement } from "@/lib/weeklyBank";
 import { getWeekRule } from "@/lib/weekRules";
 
 export type AutoSettlementResult = {
@@ -66,9 +67,33 @@ export async function settleWeekIfReady(supabase: SupabaseClient, week: number, 
     }
     if (!ready) continue;
 
-    const standings = computeWeeklyStandings(profiles, (picks || []) as any);
-    const settlement = computeWeeklySettlement(standings, rule.perfectBonus);
-    anyPerfect ||= settlement.perfect;
+    const standings = computeGroupStandings(profiles, (picks || []) as any, season.rules);
+    const bankRules = season.rules?.weeklyBank || {};
+    let settlement: { amounts: Map<string, number>; notes: Map<string, string>; perfect?: boolean };
+
+    if (bankRules.mode === "winner_take_all") {
+      const { data: moneyRow, error: moneyError } = await supabase.from("group_week_money")
+        .select("winner_take_all_amount")
+        .eq("group_id", season.group_id)
+        .eq("season_year", season.season_year)
+        .eq("week", week)
+        .maybeSingle();
+      if (moneyError) throw new Error(moneyError.message);
+      settlement = winnerTakeAllSettlement(standings, Number(moneyRow?.winner_take_all_amount || 0));
+    } else if (bankRules.mode === "friends_weekly") {
+      const payouts = standings.map((_, index) => {
+        if (index === 0) return Number(bankRules.winner ?? 20);
+        if (index === standings.length - 2) return Number(bankRules.fourth ?? -10);
+        if (index === standings.length - 1) return Number(bankRules.fifth ?? -10);
+        return 0;
+      });
+      settlement = rankedPayoutSettlement(standings, payouts, `Week ${week} payout`);
+    } else {
+      const shaw = computeWeeklySettlement(standings, rule.perfectBonus);
+      settlement = shaw;
+      anyPerfect ||= shaw.perfect;
+    }
+
     const entries = profiles.map((profile: any) => ({
       group_id: season.group_id,
       season_year: Number(season.season_year),
