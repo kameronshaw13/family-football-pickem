@@ -25,6 +25,28 @@ function seasonYearFrom(value?: string | null) {
   return date.getMonth() < 2 ? year - 1 : year;
 }
 
+function recordFor(picks: any[]) {
+  let wins = 0;
+  let losses = 0;
+  let pushes = 0;
+  for (const pick of picks) {
+    if (pick.result === "win") wins += 1;
+    else if (pick.result === "loss") losses += 1;
+    else if (pick.result === "push") pushes += 1;
+  }
+  return { wins, losses, pushes };
+}
+
+function dogBonusWins(pick: any) {
+  const stored = Number(pick?.underdog_win_value);
+  if (Number.isFinite(stored) && stored > 0) return stored;
+  const spread = Number(pick?.locked_spread);
+  if (spread >= 20) return 3;
+  if (spread >= 10) return 2;
+  if (spread >= 7) return 1;
+  return 0;
+}
+
 export async function GET(req: NextRequest) {
   const auth = await getProfileFromRequest(req);
   if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
@@ -71,6 +93,15 @@ export async function GET(req: NextRequest) {
       .filter((pick) => pick.result === "win" && Number(pick.locked_spread) > 0)
       .sort((a, b) => Number(b.locked_spread) - Number(a.locked_spread))[0] || null;
     const mostPickedTeam = mostCommon(playerPicks.map((pick) => pick.selected_team));
+    const favoriteTeamCompletedPicks = mostPickedTeam
+      ? playerPicks.filter((pick) => pick.selected_team === mostPickedTeam && pick.result !== "pending")
+      : [];
+    const mostPickedTeamRecord = mostPickedTeam ? recordFor(favoriteTeamCompletedPicks) : null;
+    const longestDogOpponent = longestDog?.game
+      ? longestDog.selected_team === longestDog.game.away_team
+        ? longestDog.game.home_team
+        : longestDog.game.away_team
+      : null;
 
     const settledSideBets = allSideBets.filter((bet) =>
       bet.status === "settled" &&
@@ -108,8 +139,14 @@ export async function GET(req: NextRequest) {
       },
       legacy: { titles: null, titlesTracked: false },
       signature: {
-        longestDog: longestDog ? { team: longestDog.selected_team, spread: Number(longestDog.locked_spread) } : null,
-        mostPickedTeam
+        longestDog: longestDog ? {
+          team: longestDog.selected_team,
+          spread: Number(longestDog.locked_spread),
+          opponent: longestDogOpponent,
+          bonusWins: dogBonusWins(longestDog)
+        } : null,
+        mostPickedTeam,
+        mostPickedTeamRecord
       },
       sideBets: {
         wins: sideBetWins,

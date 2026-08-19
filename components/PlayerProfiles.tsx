@@ -10,8 +10,9 @@ type ProfilePayload = {
   season: { wins: number; losses: number; pushes: number; winPct: number };
   legacy: { titles: number | null; titlesTracked: boolean };
   signature: {
-    longestDog: { team: string; spread: number } | null;
+    longestDog: { team: string; spread: number; opponent: string | null; bonusWins: number } | null;
     mostPickedTeam: string | null;
+    mostPickedTeamRecord: { wins: number; losses: number; pushes: number } | null;
   };
   sideBets: { wins: number; losses: number; pushes: number; net: number; netText: string };
 };
@@ -115,6 +116,13 @@ export default function PlayerProfiles() {
   const titleCount = profile?.legacy.titlesTracked ? profile.legacy.titles ?? 0 : "—";
   const periodHeading = period === "all" ? "All-Time Pick'em" : `${period} Season`;
   const sideBetHeading = period === "all" ? "All-Time Side Bets" : `${period} Side Bets`;
+  const favoriteRecord = profile?.signature.mostPickedTeamRecord
+    ? record(profile.signature.mostPickedTeamRecord.wins, profile.signature.mostPickedTeamRecord.losses, profile.signature.mostPickedTeamRecord.pushes)
+    : "";
+  const biggestDog = profile?.signature.longestDog;
+  const biggestDogText = biggestDog
+    ? `${biggestDog.team} ${spread(biggestDog.spread)}${biggestDog.opponent ? ` vs ${biggestDog.opponent}` : ""} · +${biggestDog.bonusWins}W`
+    : "—";
 
   function closeProfile() {
     setProfile(null);
@@ -158,8 +166,12 @@ export default function PlayerProfiles() {
               <strong>{titleCount}</strong>
             </div>
             <div className="player-profile-highlight-stack">
-              <div><span>Favorite Team Used</span><strong>{profile.signature.mostPickedTeam || "—"}</strong></div>
-              <div><span>Biggest Dog Won</span><strong>{profile.signature.longestDog ? `${profile.signature.longestDog.team} ${spread(profile.signature.longestDog.spread)}` : "—"}</strong></div>
+              <div>
+                <span>Favorite Team Used</span>
+                <strong>{profile.signature.mostPickedTeam || "—"}</strong>
+                {profile.signature.mostPickedTeam && favoriteRecord && <small>{favoriteRecord} record</small>}
+              </div>
+              <div><span>Biggest Dog Won</span><strong>{biggestDogText}</strong></div>
             </div>
           </section>
 

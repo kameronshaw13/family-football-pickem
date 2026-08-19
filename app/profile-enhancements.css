@@ -50,8 +50,8 @@ body:has(.confirmation-backdrop) {
   overflow: visible;
   border: 1px solid #4c5a61;
   border-radius: 8px;
-  background: var(--panel);
-  box-shadow: 0 20px 52px rgba(20, 33, 43, .34);
+  background: var(--graphite);
+  box-shadow: 0 18px 34px -16px rgba(20, 33, 43, .5);
 }
 
 .player-profile-head {
@@ -59,7 +59,7 @@ body:has(.confirmation-backdrop) {
   display: flex;
   min-height: 62px;
   align-items: center;
-  padding: 9px 148px 9px 14px;
+  padding: 9px 154px 9px 14px;
   border-bottom: 1px solid #59676e;
   border-radius: 8px 8px 0 0;
   color: #fff;
@@ -74,9 +74,9 @@ body:has(.confirmation-backdrop) {
   display: block;
   margin-bottom: 3px;
   color: #bdc9ce;
-  font-size: 7.5px;
+  font-size: 8.5px;
   font-weight: 800;
-  letter-spacing: .05em;
+  letter-spacing: .045em;
   line-height: 1;
   text-transform: uppercase;
 }
@@ -96,7 +96,7 @@ body:has(.confirmation-backdrop) {
 .profile-year-select {
   position: absolute;
   top: 50%;
-  right: 48px;
+  right: 58px;
   z-index: 8;
   transform: translateY(-50%);
 }
@@ -173,7 +173,7 @@ body:has(.confirmation-backdrop) {
   margin-top: 4px;
   color: var(--ink);
   font-family: var(--font-display);
-  font-size: 25px;
+  font-size: 22px;
   font-weight: 800;
   line-height: .95;
 }
@@ -188,7 +188,7 @@ body:has(.confirmation-backdrop) {
   margin-top: 4px;
   color: var(--ink);
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 800;
   line-height: 1;
 }
@@ -253,6 +253,15 @@ body:has(.confirmation-backdrop) {
   font-weight: 800;
   line-height: 1.2;
   text-overflow: ellipsis;
+}
+
+.player-profile-highlight-stack small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
 .player-profile-side-bets {
@@ -346,11 +355,12 @@ body:has(.confirmation-backdrop) {
 
 @media (max-width: 420px) {
   .player-profile-sheet { width: min(365px, 100%); }
-  .player-profile-head { min-height: 60px; padding-right: 144px; }
+  .player-profile-head { min-height: 60px; padding-right: 152px; }
   .player-profile-head h2 { font-size: 17px; }
-  .profile-year-select { right: 46px; }
+  .profile-year-select { right: 56px; }
   .player-profile-block { padding: 11px 12px 12px; }
   .player-profile-legacy-row { margin-inline: -12px; padding-inline: 12px; }
-  .player-profile-record-mark strong { font-size: 23px; }
+  .player-profile-record-mark strong { font-size: 21px; }
+  .player-profile-win-mark strong { font-size: 18.5px; }
   .player-profile-highlight-stack strong { font-size: 11.5px; }
 }
