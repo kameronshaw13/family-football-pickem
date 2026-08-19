@@ -3,7 +3,7 @@ import webPush, { WebPushError, type PushSubscription } from "web-push";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type NotificationDestination = "side_bets_received" | "side_bets_sent" | "my_card" | "league_cards" | "side_bet_ledger";
-export type NotificationType = "side_bet_offer" | "side_bet_response" | "pick_final" | "league_pick_final" | "side_bet_final" | "big_play";
+export type NotificationType = "side_bet_offer" | "side_bet_response" | "pick_final" | "league_pick_final" | "side_bet_final" | "big_play" | "dog_pick_adjustment";
 
 export type NotificationCounts = Record<NotificationDestination, number> & { total: number };
 
@@ -66,8 +66,6 @@ async function deliverPush(supabase: SupabaseClient, userId: string, payload: Om
   const config = pushConfiguration();
   if (!config.configured) return { sent: 0, configured: false };
 
-  // Most league members will not have every browser/device subscribed. Avoid the
-  // unread-count query entirely when there is nowhere to deliver a push.
   const { data: subscriptions, error } = await supabase
     .from("push_subscriptions")
     .select("endpoint,p256dh,auth")

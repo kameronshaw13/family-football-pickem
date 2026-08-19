@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { findEspnLogo, fetchEspnLogoMap } from "@/lib/espnLogos";
 import { fetchEspnSchedule, findEspnScheduleMatch, resolveEspnCommenceTime } from "@/lib/espnSchedule";
 import { canRefreshSpread, getFootballWeek, getGameLockTime, getSpreadFreezeTime } from "@/lib/lockRules";
+import { createNotificationSafely } from "@/lib/notifications";
 import { isEligibleSeasonGame } from "@/lib/seasonRules";
+import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 const SPORTS = [
@@ -57,6 +59,87 @@ function pickSpread(event: OddsEvent) {
   return { team: null, spread: null, bookmaker: null };
 }
 
+function winWord(value: number) {
+  return `${value} win${value === 1 ? "" : "s"}`;
+}
+
+async function reconcileDraftDogs(supabase: ReturnType<typeof getSupabaseAdmin>, spreadGames: any[], previousGames: Map<string, any>, changedAt: Date) {
+  if (!spreadGames.length) return { removed: 0, tierChanged: 0 };
+  const updatedById = new Map(spreadGames.map((game) => [game.id, game]));
+  const { data: draftDogs, error } = await supabase
+    .from("picks")
+    .select("id,user_id,game_id,selected_team,underdog_win_value")
+    .eq("status", "draft")
+    .eq("pick_type", "underdog")
+    .in("game_id", spreadGames.map((game) => game.id));
+  if (error) throw new Error(`Could not reconcile dog picks: ${error.message}`);
+
+  let removed = 0;
+  let tierChanged = 0;
+  const notifications: Promise<unknown>[] = [];
+
+  for (const pick of draftDogs || []) {
+    const game = updatedById.get(pick.game_id);
+    if (!game) continue;
+    const oldGame = previousGames.get(pick.game_id);
+    const oldSpread = oldGame ? normalizeSpreadForSelectedTeam(pick.selected_team, oldGame.current_spread_team, oldGame.current_spread) : null;
+    const newSpread = normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread);
+    const oldValue = Number(pick.underdog_win_value || underdogWinValue(oldSpread));
+    const newValue = underdogWinValue(newSpread);
+    if (newValue === oldValue) continue;
+
+    if (newValue === 0) {
+      const { data: deleted, error: deleteError } = await supabase
+        .from("picks")
+        .delete()
+        .eq("id", pick.id)
+        .eq("status", "draft")
+        .select("id")
+        .maybeSingle();
+      if (deleteError) throw new Error(`Could not remove invalid dog pick: ${deleteError.message}`);
+      if (!deleted) continue;
+      removed += 1;
+      notifications.push(createNotificationSafely(supabase, {
+        userId: pick.user_id,
+        type: "dog_pick_adjustment",
+        destination: "my_card",
+        entityId: pick.id,
+        dedupeKey: `dog-adjust:${pick.id}:${changedAt.getTime()}:${oldValue}:0`,
+        title: "Dog pick removed",
+        body: `${pick.selected_team} was removed as your dog: ${spreadText(oldSpread)} → ${spreadText(newSpread)}. Dogs must be +7 or higher.`,
+        url: "/?notification=my_card",
+        actionRequired: true
+      }));
+      continue;
+    }
+
+    const { data: updated, error: updateError } = await supabase
+      .from("picks")
+      .update({ underdog_win_value: newValue, updated_at: changedAt.toISOString() })
+      .eq("id", pick.id)
+      .eq("status", "draft")
+      .select("id")
+      .maybeSingle();
+    if (updateError) throw new Error(`Could not update dog pick value: ${updateError.message}`);
+    if (!updated) continue;
+    tierChanged += 1;
+    notifications.push(createNotificationSafely(supabase, {
+      userId: pick.user_id,
+      type: "dog_pick_adjustment",
+      destination: "my_card",
+      entityId: pick.id,
+      dedupeKey: `dog-adjust:${pick.id}:${changedAt.getTime()}:${oldValue}:${newValue}`,
+      title: "Dog value changed",
+      body: `${pick.selected_team} changed from +${winWord(oldValue)} to +${winWord(newValue)}: ${spreadText(oldSpread)} → ${spreadText(newSpread)}.`,
+      url: "/?notification=my_card",
+      actionRequired: true
+    }));
+  }
+
+  if (notifications.length) await Promise.all(notifications);
+  return { removed, tierChanged };
+}
+
 async function refreshOdds() {
   try {
     const oddsApiKey = process.env.ODDS_API_KEY;
@@ -65,9 +148,10 @@ async function refreshOdds() {
     const supabase = getSupabaseAdmin();
     const startedAt = Date.now();
     const now = new Date();
-    const { data: knownGames, error: knownGamesError } = await supabase.from("games").select("id");
+    const { data: knownGames, error: knownGamesError } = await supabase.from("games").select("id,current_spread_team,current_spread");
     if (knownGamesError) return NextResponse.json({ ok: false, error: "Could not read existing games.", details: knownGamesError.message }, { status: 500 });
     const knownGameIds = new Set((knownGames || []).map((game) => game.id));
+    const previousGames = new Map((knownGames || []).map((game) => [game.id, game]));
 
     const preparedSports = await Promise.all(SPORTS.map(async (sport): Promise<PreparedSport> => {
       const oddsUrl = new URL(`https://api.the-odds-api.com/v4/sports/${sport.key}/odds`);
@@ -192,6 +276,8 @@ async function refreshOdds() {
       }, { status: 500 });
     }
 
+    const dogAdjustments = await reconcileDraftDogs(supabase, spreadGames, previousGames, now);
+
     const snapshots = preparedSports.flatMap((result) => result.snapshots);
     if (snapshots.length) {
       const { error: snapshotError } = await supabase.from("odds_snapshots").insert(snapshots);
@@ -215,6 +301,7 @@ async function refreshOdds() {
     return NextResponse.json({
       ok: true,
       gamesUpdated: spreadGames.length,
+      dogAdjustments,
       creditsEstimated: SPORTS.length,
       durationMs: Date.now() - startedAt,
       sportResults
