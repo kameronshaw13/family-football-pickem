@@ -50,6 +50,7 @@ export type Pick = {
   locked_spread_team: string | null;
   locked_at: string | null;
   underdog_win_value: number | null;
+  confidence_points?: number | null;
   result: PickResult;
   created_at?: string;
   updated_at?: string;
@@ -71,6 +72,8 @@ export type Standing = {
   losses: number;
   pushes: number;
   win_pct: number;
+  rank?: number;
+  points?: number;
 };
 
 export type WeekRule = {
