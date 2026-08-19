@@ -138,12 +138,19 @@ export async function POST(req: NextRequest) {
 
     const editableIds = new Set(editablePicks.map((pick) => pick.gameId));
     const draftsToDelete = activeExisting.filter((pick: any) => pick.status === "draft" && !editableIds.has(pick.game_id)).map((pick: any) => pick.id);
+    const existingDraftByGame = new Map(activeExisting.filter((pick: any) => pick.status === "draft").map((pick: any) => [pick.game_id, pick]));
+
+    // Draft deletes and per-game writes are independent once validation is
+    // complete, so persist them together instead of making the phone wait for
+    // up to six sequential Supabase round trips.
+    const writeTasks: Array<Promise<{ error: any }>> = [];
     if (draftsToDelete.length) {
-      const { error: deleteError } = await supabase.from("picks").delete().in("id", draftsToDelete).eq("user_id", profile.id).eq("status", "draft");
-      if (deleteError) return NextResponse.json({ ok: false, error: deleteError.message }, { status: 500 });
+      writeTasks.push((async () => {
+        const { error } = await supabase.from("picks").delete().in("id", draftsToDelete).eq("user_id", profile.id).eq("status", "draft");
+        return { error };
+      })());
     }
 
-    const existingDraftByGame = new Map(activeExisting.filter((pick: any) => pick.status === "draft").map((pick: any) => [pick.game_id, pick]));
     for (const pick of editablePicks) {
       const game = gameMap.get(pick.gameId)!;
       const selectedSpread = normalizeSpreadForSelectedTeam(pick.selectedTeam, game.current_spread_team, game.current_spread);
@@ -157,12 +164,18 @@ export async function POST(req: NextRequest) {
         updated_at: nowIso
       };
       const existingDraft: any = existingDraftByGame.get(pick.gameId);
-      const query = existingDraft
-        ? supabase.from("picks").update(saved).eq("id", existingDraft.id).eq("status", "draft")
-        : supabase.from("picks").insert({ ...saved, user_id: profile.id, game_id: game.id, week: body.week });
-      const { error: saveError } = await query;
-      if (saveError) return NextResponse.json({ ok: false, error: saveError.message }, { status: 500 });
+      writeTasks.push((async () => {
+        const query = existingDraft
+          ? supabase.from("picks").update(saved).eq("id", existingDraft.id).eq("status", "draft")
+          : supabase.from("picks").insert({ ...saved, user_id: profile.id, game_id: game.id, week: body.week });
+        const { error } = await query;
+        return { error };
+      })());
     }
+
+    const writeResults = await Promise.all(writeTasks);
+    const writeFailure = writeResults.find((result) => result.error)?.error;
+    if (writeFailure) return NextResponse.json({ ok: false, error: writeFailure.message }, { status: 500 });
 
     const { data: savedPicks, error: savedError } = await supabase.from("picks").select("*, game:games(*)").eq("user_id", profile.id).eq("week", body.week);
     if (savedError) return NextResponse.json({ ok: false, error: savedError.message }, { status: 500 });
