@@ -126,7 +126,11 @@ function buildPerspectiveRow(card: HTMLElement, bet: ReceivedBet) {
   const title = document.createElement("strong");
   title.textContent = mainText;
   const detail = document.createElement("p");
-  detail.textContent = `${sender} offered · ${offeredName} ${offeredSpread} · ${kickoff}`;
+  detail.append(document.createTextNode(`${sender} `));
+  const offeredStatus = document.createElement("span");
+  offeredStatus.className = "side-bet-response pending";
+  offeredStatus.textContent = "offered";
+  detail.append(offeredStatus, document.createTextNode(` ${offeredName} ${offeredSpread} · ${kickoff}`));
   copy.append(title, detail);
   row.appendChild(copy);
 
