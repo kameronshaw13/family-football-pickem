@@ -39,7 +39,8 @@ type Preferences = {
   ledgerWeek?: number;
 };
 
-const STORAGE_KEY = "pickem_ui_preferences_v1";
+const STORAGE_KEY = "pickem_ui_preferences_v2";
+const LEGACY_STORAGE_KEY = "pickem_ui_preferences_v1";
 const WEEK_MENU_LABELS = new Set([
   "Select week",
   "Select standings week",
@@ -49,7 +50,7 @@ const WEEK_MENU_LABELS = new Set([
 
 function readPreferences(): Preferences {
   try {
-    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "{}") as Preferences;
+    return JSON.parse(window.sessionStorage.getItem(STORAGE_KEY) || "{}") as Preferences;
   } catch {
     return {};
   }
@@ -57,9 +58,17 @@ function readPreferences(): Preferences {
 
 function savePreferences(next: Preferences) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch {
     // Preferences are optional; the app remains fully usable without storage.
+  }
+}
+
+function clearLegacyPreferences() {
+  try {
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch {
+    // The legacy preference is non-critical and can be left behind if storage is unavailable.
   }
 }
 
@@ -296,6 +305,8 @@ export default function AppExperienceEnhancements() {
     let restored = false;
     let ledgerPayload: SideBetPayload | null = null;
     let ledgerLoading = false;
+
+    clearLegacyPreferences();
 
     async function refreshLedger(force = false) {
       if (!document.querySelector(".standings-panel") || ledgerLoading) return;
