@@ -84,10 +84,12 @@ async function reconcileDraftDogs(supabase: ReturnType<typeof getSupabaseAdmin>,
     const oldGame = previousGames.get(pick.game_id);
     const oldSpread = oldGame ? normalizeSpreadForSelectedTeam(pick.selected_team, oldGame.current_spread_team, oldGame.current_spread) : null;
     const newSpread = normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread);
-    const oldValue = Number(pick.underdog_win_value || underdogWinValue(oldSpread));
+    const oldValue = pick.underdog_win_value == null ? underdogWinValue(oldSpread) : Number(pick.underdog_win_value);
     const newValue = underdogWinValue(newSpread);
-    if (newValue === oldValue) continue;
 
+    // Eligibility is absolute. A stale draft dog at +6.5 (or a team that
+    // becomes the favorite) must be removed even if its stored bonus was
+    // already 0 before this reconciliation code existed.
     if (newValue === 0) {
       const { data: deleted, error: deleteError } = await supabase
         .from("picks")
@@ -99,6 +101,7 @@ async function reconcileDraftDogs(supabase: ReturnType<typeof getSupabaseAdmin>,
       if (deleteError) throw new Error(`Could not remove invalid dog pick: ${deleteError.message}`);
       if (!deleted) continue;
       removed += 1;
+      const sameLine = oldSpread != null && newSpread != null && Number(oldSpread) === Number(newSpread);
       notifications.push(createNotificationSafely(supabase, {
         userId: pick.user_id,
         type: "dog_pick_adjustment",
@@ -106,12 +109,16 @@ async function reconcileDraftDogs(supabase: ReturnType<typeof getSupabaseAdmin>,
         entityId: pick.id,
         dedupeKey: `dog-adjust:${pick.id}:${changedAt.getTime()}:${oldValue}:0`,
         title: "Dog pick removed",
-        body: `${pick.selected_team} was removed as your dog: ${spreadText(oldSpread)} → ${spreadText(newSpread)}. Dogs must be +7 or higher.`,
+        body: sameLine
+          ? `${pick.selected_team} was removed as your dog at ${spreadText(newSpread)}. Dogs must be +7 or higher.`
+          : `${pick.selected_team} was removed as your dog: ${spreadText(oldSpread)} → ${spreadText(newSpread)}. Dogs must be +7 or higher.`,
         url: "/?notification=my_card",
         actionRequired: true
       }));
       continue;
     }
+
+    if (newValue === oldValue) continue;
 
     const { data: updated, error: updateError } = await supabase
       .from("picks")

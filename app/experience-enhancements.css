@@ -1,0 +1,16 @@
+.card-panel .pick-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-panel .pick-section > h3 {
+  order: -1000;
+}
+
+.card-panel .pick-section > .card-empty-picks {
+  order: 0;
+}
+
+[data-ledger-filtered-list] {
+  display: contents;
+}
