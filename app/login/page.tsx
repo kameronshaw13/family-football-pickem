@@ -1,33 +1,69 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MenuSelect from "@/components/MenuSelect";
 import NumericText from "@/components/NumericText";
 
-const users = [
-  { username: "kameron", label: "Kameron" },
-  { username: "mike", label: "Mike" },
-  { username: "quentin", label: "Quentin" },
-  { username: "caleb", label: "Caleb" },
-  { username: "monte", label: "Monte" },
-  { username: "austin", label: "Austin" },
-  { username: "clayton", label: "Clayton" },
-  { username: "mason", label: "Mason" },
-  { username: "isaac", label: "Isaac" },
-  { username: "josh", label: "Josh" }
-];
+type AppSlug = "shaw-family" | "other-family" | "friends";
+
+const appConfig: Record<AppSlug, { name: string; home: string; users: Array<{ username: string; label: string }>; shaw?: boolean }> = {
+  "shaw-family": {
+    name: "Shaw Family Pick'em",
+    home: "/",
+    shaw: true,
+    users: [
+      { username: "kameron", label: "Kameron" },
+      { username: "mike", label: "Mike" },
+      { username: "quentin", label: "Quentin" }
+    ]
+  },
+  "other-family": {
+    name: "Other Family Pick'em",
+    home: "/other-family",
+    users: [
+      { username: "caleb", label: "Caleb" },
+      { username: "monte", label: "Monte" },
+      { username: "austin", label: "Austin" },
+      { username: "clayton", label: "Clayton" }
+    ]
+  },
+  friends: {
+    name: "Friends Pick'em",
+    home: "/friends",
+    users: [
+      { username: "kameron", label: "Kameron" },
+      { username: "caleb", label: "Caleb" },
+      { username: "mason", label: "Mason" },
+      { username: "isaac", label: "Isaac" },
+      { username: "josh", label: "Josh" }
+    ]
+  }
+};
+
+function groupFromCookie(): AppSlug {
+  const match = document.cookie.split(";").map((value) => value.trim()).find((value) => value.startsWith("pickem_group="));
+  const value = match ? decodeURIComponent(match.split("=").slice(1).join("=")) : "shaw-family";
+  return value === "friends" || value === "other-family" ? value : "shaw-family";
+}
 
 export default function LoginPage() {
+  const [groupSlug, setGroupSlug] = useState<AppSlug | null>(null);
   const [mode, setMode] = useState<"create" | "signin">("create");
-  const [username, setUsername] = useState("kameron");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const group = groupFromCookie();
+    setGroupSlug(group);
+    setUsername(appConfig[group].users[0].username);
     const token = window.localStorage.getItem("pickem_session_token");
-    if (token) window.location.href = "/";
+    if (token) window.location.replace(appConfig[group].home);
   }, []);
+
+  const config = useMemo(() => groupSlug ? appConfig[groupSlug] : null, [groupSlug]);
+  if (!config || !groupSlug) return <main className="app-shell login-screen"><section className="login-card"><div className="login-brand login-brand-generic"><span className="login-football" aria-hidden="true">🏈</span><strong>Football Pick'em</strong></div><p>Loading…</p></section></main>;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,7 +72,7 @@ export default function LoginPage() {
     const response = await fetch(mode === "create" ? "/api/auth/register" : "/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password, group: groupSlug })
     });
     const payload = await response.json();
     if (!response.ok) {
@@ -46,12 +82,14 @@ export default function LoginPage() {
     }
     window.localStorage.setItem("pickem_session_token", payload.token);
     window.localStorage.setItem("pickem_profile", JSON.stringify(payload.profile));
-    window.location.href = "/";
+    window.location.replace(config.home);
   }
 
-  return <main className="app-shell login-screen">
+  return <main className={`app-shell login-screen login-${groupSlug}`}>
     <section className="login-card">
-      <div className="login-brand login-brand-generic"><span className="login-football" aria-hidden="true">🏈</span><strong>Football Pick'em</strong></div>
+      {config.shaw
+        ? <div className="login-brand"><img className="login-brand-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" /></div>
+        : <div className="login-brand login-brand-generic"><span className="login-football" aria-hidden="true">🏈</span><strong>{config.name}</strong></div>}
       <h1>{mode === "create" ? "Create your account" : "Sign in"}</h1>
       <p>{mode === "create" ? "Choose your name and create a private password. After this, use that password to get back in." : "Use your name and the password you created."}</p>
       <div className="mode-toggle">
@@ -60,7 +98,7 @@ export default function LoginPage() {
       </div>
       <form onSubmit={submit}>
         <label>Name</label>
-        <MenuSelect ariaLabel="Name" className="input field-menu-select login-name-select" value={username} sections={[{ options: users.map((user) => ({ value: user.username, label: user.label })) }]} onChange={setUsername} />
+        <MenuSelect ariaLabel="Name" className="input field-menu-select login-name-select" value={username} sections={[{ options: config.users.map((user) => ({ value: user.username, label: user.label })) }]} onChange={setUsername} />
         <label>Password</label>
         <input className="input" type="password" placeholder={mode === "create" ? "Create password" : "Password"} value={password} onChange={(e) => setPassword(e.target.value)} />
         <button className="btn gold full" disabled={loading || password.length < 6}>{loading ? "Working…" : mode === "create" ? "Create account" : "Sign in"}</button>
