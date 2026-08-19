@@ -17,6 +17,12 @@ function mostCommon(values: string[]) {
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || null;
 }
 
+function outcomeValue(result: string) {
+  if (result === "win") return 2;
+  if (result === "push") return 1;
+  return 0;
+}
+
 export async function GET(req: NextRequest) {
   const auth = await getProfileFromRequest(req);
   if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
@@ -75,11 +81,9 @@ export async function GET(req: NextRequest) {
       byWeek.set(week, rows);
     }
     let weeklyWins = 0;
-    const completedWeeks: Array<{ week: number; standings: ReturnType<typeof computeWeeklyStandings> }> = [];
-    for (const [week, rows] of Array.from(byWeek.entries())) {
+    for (const [, rows] of Array.from(byWeek.entries())) {
       if (!rows.length || rows.some((pick) => pick.result === "pending")) continue;
       const weekStandings = computeWeeklyStandings(profiles, rows as any);
-      completedWeeks.push({ week, standings: weekStandings });
       const row = weekStandings.find((item) => item.user_id === player.id);
       if (row?.rank === 1) weeklyWins += 1;
     }
@@ -100,16 +104,26 @@ export async function GET(req: NextRequest) {
       sideBetNet += won ? Number(bet.amount) : -Number(bet.amount);
     }
 
+    const completedRegularPicks = allLocked.filter((pick) => pick.pick_type === "regular" && pick.result !== "pending");
+    const playerRegularPicks = completedRegularPicks.filter((pick) => pick.user_id === player.id);
+
     const headToHead = profiles.filter((opponent) => opponent.id !== player.id).map((opponent) => {
       let wins = 0;
       let losses = 0;
       let ties = 0;
-      for (const week of completedWeeks) {
-        const mine = week.standings.find((row) => row.user_id === player.id);
-        const theirs = week.standings.find((row) => row.user_id === opponent.id);
-        if (!mine || !theirs) continue;
-        if (mine.rank < theirs.rank) wins += 1;
-        else if (mine.rank > theirs.rank) losses += 1;
+      const opponentByGame = new Map(
+        completedRegularPicks
+          .filter((pick) => pick.user_id === opponent.id)
+          .map((pick) => [pick.game_id, pick] as const)
+      );
+
+      for (const mine of playerRegularPicks) {
+        const theirs = opponentByGame.get(mine.game_id);
+        if (!theirs || mine.selected_team === theirs.selected_team) continue;
+        const mineValue = outcomeValue(mine.result);
+        const theirValue = outcomeValue(theirs.result);
+        if (mineValue > theirValue) wins += 1;
+        else if (mineValue < theirValue) losses += 1;
         else ties += 1;
       }
 

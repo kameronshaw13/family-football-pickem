@@ -17,6 +17,7 @@ const WEEK_MENU_LABELS = new Set([
   "Select Bank results week",
   "Select side bet ledger week"
 ]);
+const MISSISSIPPI_VALLEY_PATTERN = /\bMississippi Valley State(?: Delta Devils| Delta)\b/g;
 
 function readPreferences(): Preferences {
   try {
@@ -129,6 +130,39 @@ function rememberClick(event: MouseEvent) {
   updatePreferences((prefs) => ({ ...prefs, menus: { ...(prefs.menus || {}), [ariaLabel]: label } }));
 }
 
+function correctTeamName(value: string) {
+  return value.replace(MISSISSIPPI_VALLEY_PATTERN, "Mississippi Valley State");
+}
+
+function correctElementAttributes(element: Element) {
+  for (const attribute of ["aria-label", "title"]) {
+    const current = element.getAttribute(attribute);
+    if (!current) continue;
+    const next = correctTeamName(current);
+    if (next !== current) element.setAttribute(attribute, next);
+  }
+}
+
+function correctTeamNames(root: Node) {
+  if (root.nodeType === Node.TEXT_NODE) {
+    const current = root.nodeValue || "";
+    const next = correctTeamName(current);
+    if (next !== current) root.nodeValue = next;
+    return;
+  }
+  if (!(root instanceof Element) && root !== document.body) return;
+  if (root instanceof Element) correctElementAttributes(root);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let text = walker.nextNode();
+  while (text) {
+    const current = text.nodeValue || "";
+    const next = correctTeamName(current);
+    if (next !== current) text.nodeValue = next;
+    text = walker.nextNode();
+  }
+  if (root instanceof Element) root.querySelectorAll("[aria-label], [title]").forEach(correctElementAttributes);
+}
+
 export default function AppExperienceEnhancements() {
   useEffect(() => {
     let active = true;
@@ -136,6 +170,7 @@ export default function AppExperienceEnhancements() {
     let restored = false;
 
     clearLegacyPreferences();
+    correctTeamNames(document.body);
 
     function scheduleRestore() {
       if (restored) return;
@@ -145,19 +180,42 @@ export default function AppExperienceEnhancements() {
         if (!document.querySelector(".app-shell:not(.loading-shell)")) return;
         restored = true;
         restorePreferences();
-        observer.disconnect();
+        restoreObserver.disconnect();
       });
     }
 
-    const observer = new MutationObserver(scheduleRestore);
-    observer.observe(document.body, { subtree: true, childList: true });
+    const restoreObserver = new MutationObserver(scheduleRestore);
+    restoreObserver.observe(document.body, { subtree: true, childList: true });
+
+    const teamObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "characterData") {
+          correctTeamNames(mutation.target);
+          continue;
+        }
+        if (mutation.type === "attributes" && mutation.target instanceof Element) {
+          correctElementAttributes(mutation.target);
+          continue;
+        }
+        mutation.addedNodes.forEach(correctTeamNames);
+      }
+    });
+    teamObserver.observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["aria-label", "title"]
+    });
+
     document.addEventListener("click", rememberClick, true);
     scheduleRestore();
 
     return () => {
       active = false;
       window.cancelAnimationFrame(frame);
-      observer.disconnect();
+      restoreObserver.disconnect();
+      teamObserver.disconnect();
       document.removeEventListener("click", rememberClick, true);
     };
   }, []);

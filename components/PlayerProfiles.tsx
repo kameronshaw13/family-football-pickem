@@ -111,7 +111,7 @@ export default function PlayerProfiles() {
       <section className="player-profile-sheet" role="dialog" aria-modal="true" aria-labelledby="player-profile-title">
         <header className="player-profile-head">
           <div><span>Player Profile</span><h2 id="player-profile-title">{profile.player.displayName}</h2></div>
-          <button type="button" aria-label="Close profile" onClick={() => setProfile(null)}><X size={19} /></button>
+          <button type="button" aria-label="Close profile" onClick={() => setProfile(null)}><X size={18} /></button>
         </header>
 
         <div className="player-profile-record">
@@ -140,8 +140,8 @@ export default function PlayerProfiles() {
         </section>
 
         <section className="player-profile-section player-profile-rivals">
-          <h3>Vs The League</h3>
-          <div className="player-rival-labels"><span>Opponent</span><span>Pick'em</span><span>Side Bets</span><span>$</span></div>
+          <h3>Head-to-Head</h3>
+          <div className="player-rival-labels"><span>Opponent</span><span>Opp. Picks</span><span>Side Bets</span><span>$</span></div>
           {profile.headToHead.map((row) => <div className="player-rival-row" key={row.opponent}>
             <strong>{row.opponent}</strong>
             <span>{row.pickem.wins}-{row.pickem.losses}-{row.pickem.ties}</span>

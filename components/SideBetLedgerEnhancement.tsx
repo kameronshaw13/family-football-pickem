@@ -143,6 +143,7 @@ export default function SideBetLedgerEnhancement() {
       }
 
       original.hidden = true;
+      original.style.setProperty("display", "none", "important");
       let controls = headingRow.querySelector<HTMLElement>("[data-ledger-week-controls]");
       if (!controls) {
         controls = document.createElement("div");
@@ -231,7 +232,7 @@ export default function SideBetLedgerEnhancement() {
 
   const list = createPortal(
     <div className="ledger-list enhanced-ledger-list">
-      {!settled.length && <p className="muted">No settled side bets this week.</p>}
+      {!settled.length && <p className="muted">No settled side bets.</p>}
       {settled.map((bet) => <LedgerRow key={bet.id} bet={bet} currentUserId={payload.currentUser?.id || ""} />)}
     </div>,
     targets.list
