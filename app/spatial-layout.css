@@ -358,6 +358,56 @@
   pointer-events: auto;
 }
 
+/* Optimistic side-bet feedback appears immediately while the real request finishes. */
+.optimistic-side-bet {
+  opacity: .82;
+}
+
+.optimistic-side-bet .side-bet-response.pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.optimistic-side-bet .side-bet-response.pending::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: optimistic-pulse 1s ease-in-out infinite;
+}
+
+@keyframes optimistic-pulse {
+  0%, 100% { opacity: .35; }
+  50% { opacity: 1; }
+}
+
+/* Side Bet Ledger keeps the same compact control language as the rest of Bank. */
+.ledger-week-controls {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.ledger-week-select {
+  height: 31px;
+  min-width: 84px;
+  padding: 0 26px 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  color: var(--ink);
+  background: var(--panel);
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.enhanced-ledger-list[hidden] {
+  display: none;
+}
+
 @media (max-width: 420px) {
   .confirmation-matchup > div.confirmation-team-row {
     grid-template-columns: minmax(0, 1fr) 32px max-content;
@@ -384,5 +434,10 @@
 
   .confirmation-actions .btn {
     font-size: 11.75px;
+  }
+
+  .ledger-week-select {
+    min-width: 78px;
+    font-size: 10px;
   }
 }
