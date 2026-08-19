@@ -77,8 +77,18 @@ async function sideBetSnapshot(supabase: any, profileId: string, week: number) {
   };
 }
 
-async function successResponse(supabase: any, profileId: string, week: number, extra: Record<string, unknown> = {}) {
-  const snapshot = await sideBetSnapshot(supabase, profileId, week);
+async function successResponse(
+  supabase: any,
+  profileId: string,
+  week: number,
+  extra: Record<string, unknown> = {},
+  concurrentTasks: Promise<unknown>[] = []
+) {
+  // The response snapshot and non-critical notification delivery are independent.
+  // Start them together so push delivery no longer sits in front of the UI refresh.
+  const snapshotPromise = sideBetSnapshot(supabase, profileId, week);
+  await Promise.all([snapshotPromise, ...concurrentTasks]);
+  const snapshot = await snapshotPromise;
   return NextResponse.json({ ok: true, ...extra, ...snapshot });
 }
 
@@ -93,8 +103,19 @@ export async function POST(req: NextRequest) {
     const nowIso = now.toISOString();
 
     if (body.action === "create") {
-      const { data: game, error: gameError } = await supabase.from("games").select("*").eq("id", body.gameId).single();
+      const recipientIds = Array.from(new Set(body.recipientIds)).filter((id) => id !== auth.profile.id);
+      if (!recipientIds.length) return NextResponse.json({ ok: false, error: "Choose one or both of the other players." }, { status: 400 });
+
+      // Game validation and recipient validation do not depend on each other.
+      const [gameResult, recipientResult] = await Promise.all([
+        supabase.from("games").select("*").eq("id", body.gameId).single(),
+        supabase.from("profiles").select("id,display_name").in("id", recipientIds)
+      ]);
+      const { data: game, error: gameError } = gameResult;
+      const { data: recipients, error: recipientError } = recipientResult;
       if (gameError || !game) return NextResponse.json({ ok: false, error: "Game not found." }, { status: 404 });
+      if (recipientError) return NextResponse.json({ ok: false, error: recipientError.message }, { status: 500 });
+      if (recipients?.length !== recipientIds.length) return NextResponse.json({ ok: false, error: "Choose one or both of the other players." }, { status: 400 });
       if (!isEligibleSeasonGame(game)) return NextResponse.json({ ok: false, error: "This game is not eligible for side bets." }, { status: 409 });
       if (hasChargers(game)) return NextResponse.json({ ok: false, error: "Chargers games are not available for side bets." }, { status: 409 });
       const weekOpen = getPickWeekOpenTime(game.week, [game.commence_time]);
@@ -104,11 +125,6 @@ export async function POST(req: NextRequest) {
 
       const creatorSpread = normalizeSpreadForSelectedTeam(body.creatorTeam, game.current_spread_team, game.current_spread);
       if (creatorSpread == null) return NextResponse.json({ ok: false, error: "This game does not have a spread available." }, { status: 409 });
-
-      const recipientIds = Array.from(new Set(body.recipientIds)).filter((id) => id !== auth.profile.id);
-      const { data: recipients, error: recipientError } = await supabase.from("profiles").select("id,display_name").in("id", recipientIds);
-      if (recipientError) return NextResponse.json({ ok: false, error: recipientError.message }, { status: 500 });
-      if (!recipientIds.length || recipients?.length !== recipientIds.length) return NextResponse.json({ ok: false, error: "Choose one or both of the other players." }, { status: 400 });
 
       const slotCounts = await getSideBetSlotCounts(supabase, game.week, [auth.profile.id, ...recipientIds]);
       if ((slotCounts[auth.profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK) {
@@ -147,7 +163,8 @@ export async function POST(req: NextRequest) {
         await supabase.from("side_bets").delete().eq("id", sideBet.id);
         return NextResponse.json({ ok: false, error: "A player reached the weekly side bet limit before this offer was completed." }, { status: 409 });
       }
-      await Promise.all(recipientIds.map((recipientId) => createNotificationSafely(supabase, {
+
+      const notificationTask = Promise.all(recipientIds.map((recipientId) => createNotificationSafely(supabase, {
         userId: recipientId,
         type: "side_bet_offer",
         destination: "side_bets_received",
@@ -158,7 +175,7 @@ export async function POST(req: NextRequest) {
         url: "/?notification=side_bets_received",
         actionRequired: true
       })));
-      return successResponse(supabase, auth.profile.id, body.viewWeek ?? game.week, { sideBet });
+      return successResponse(supabase, auth.profile.id, body.viewWeek ?? game.week, { sideBet }, [notificationTask]);
     }
 
     const { data: sideBet, error: sideBetError } = await supabase
@@ -189,26 +206,39 @@ export async function POST(req: NextRequest) {
       const { data: cancelled, error: cancelError } = await supabase.from("side_bets").update({ status: "cancelled", updated_at: nowIso }).eq("id", sideBet.id).eq("status", "open").select("id").maybeSingle();
       if (cancelError) return NextResponse.json({ ok: false, error: cancelError.message }, { status: 500 });
       if (!cancelled) return NextResponse.json({ ok: false, error: "This offer was accepted before it could be cancelled." }, { status: 409 });
-      await supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("response", "pending");
-      await resolveSideBetOfferNotifications(supabase, [sideBet.id]);
-      return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week);
+      const { error: closeTargetError } = await supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("response", "pending");
+      if (closeTargetError) return NextResponse.json({ ok: false, error: closeTargetError.message }, { status: 500 });
+      const resolveTask = resolveSideBetOfferNotifications(supabase, [sideBet.id]);
+      return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week, {}, [resolveTask]);
     }
 
     if (!target) return NextResponse.json({ ok: false, error: "This offer was not sent to you." }, { status: 403 });
     if (target.response !== "pending" || sideBet.status !== "open") return NextResponse.json({ ok: false, error: "This offer is no longer available." }, { status: 409 });
     if (!sideBet.game || new Date(sideBet.game.commence_time) <= now) {
-      await supabase.from("side_bets").update({ status: "expired", updated_at: nowIso }).eq("id", sideBet.id).eq("status", "open");
-      await supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("response", "pending");
+      const [{ error: expireError }, { error: closeTargetError }] = await Promise.all([
+        supabase.from("side_bets").update({ status: "expired", updated_at: nowIso }).eq("id", sideBet.id).eq("status", "open"),
+        supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("response", "pending")
+      ]);
+      if (expireError) return NextResponse.json({ ok: false, error: expireError.message }, { status: 500 });
+      if (closeTargetError) return NextResponse.json({ ok: false, error: closeTargetError.message }, { status: 500 });
       await resolveSideBetOfferNotifications(supabase, [sideBet.id]);
       return NextResponse.json({ ok: false, error: "Kickoff has passed. This offer expired." }, { status: 409 });
     }
 
     if (body.action === "decline") {
-      await supabase.from("side_bet_targets").update({ response: "declined", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id).eq("response", "pending");
-      await resolveSideBetOfferNotifications(supabase, [sideBet.id], auth.profile.id);
-      const { count } = await supabase.from("side_bet_targets").select("recipient_id", { count: "exact", head: true }).eq("side_bet_id", sideBet.id).eq("response", "pending");
-      if (!count) await supabase.from("side_bets").update({ status: "declined", updated_at: nowIso }).eq("id", sideBet.id).eq("status", "open");
-      await createNotificationSafely(supabase, {
+      const { error: declineError } = await supabase.from("side_bet_targets").update({ response: "declined", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id).eq("response", "pending");
+      if (declineError) return NextResponse.json({ ok: false, error: declineError.message }, { status: 500 });
+
+      const resolveTask = resolveSideBetOfferNotifications(supabase, [sideBet.id], auth.profile.id);
+      const pendingTask = supabase.from("side_bet_targets").select("recipient_id", { count: "exact", head: true }).eq("side_bet_id", sideBet.id).eq("response", "pending");
+      const [, pendingResult] = await Promise.all([resolveTask, pendingTask]);
+      if (pendingResult.error) return NextResponse.json({ ok: false, error: pendingResult.error.message }, { status: 500 });
+      if (!pendingResult.count) {
+        const { error: sideBetDeclineError } = await supabase.from("side_bets").update({ status: "declined", updated_at: nowIso }).eq("id", sideBet.id).eq("status", "open");
+        if (sideBetDeclineError) return NextResponse.json({ ok: false, error: sideBetDeclineError.message }, { status: 500 });
+      }
+
+      const notificationTask = createNotificationSafely(supabase, {
         userId: sideBet.creator_id,
         type: "side_bet_response",
         destination: "side_bets_sent",
@@ -218,7 +248,7 @@ export async function POST(req: NextRequest) {
         body: `$${Number(sideBet.amount)} · ${sideBet.creator_team} ${notificationSpread(Number(sideBet.creator_spread))}`,
         url: "/?notification=side_bets_sent"
       });
-      return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week);
+      return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week, {}, [notificationTask]);
     }
 
     const weekOpen = getPickWeekOpenTime(sideBet.week, [sideBet.game.commence_time]);
@@ -243,10 +273,15 @@ export async function POST(req: NextRequest) {
     if (acceptError) return NextResponse.json({ ok: false, error: acceptError.message }, { status: 500 });
     if (!accepted) return NextResponse.json({ ok: false, error: "Another player accepted this offer first." }, { status: 409 });
 
-    await supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("response", "pending");
-    await supabase.from("side_bet_targets").update({ response: "accepted", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id);
-    await resolveSideBetOfferNotifications(supabase, [sideBet.id]);
-    await createNotificationSafely(supabase, {
+    const [closeTargetsResult, acceptTargetResult] = await Promise.all([
+      supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("response", "pending"),
+      supabase.from("side_bet_targets").update({ response: "accepted", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id)
+    ]);
+    if (closeTargetsResult.error) return NextResponse.json({ ok: false, error: closeTargetsResult.error.message }, { status: 500 });
+    if (acceptTargetResult.error) return NextResponse.json({ ok: false, error: acceptTargetResult.error.message }, { status: 500 });
+
+    const resolveTask = resolveSideBetOfferNotifications(supabase, [sideBet.id]);
+    const notificationTask = createNotificationSafely(supabase, {
       userId: sideBet.creator_id,
       type: "side_bet_response",
       destination: "side_bets_sent",
@@ -257,17 +292,23 @@ export async function POST(req: NextRequest) {
       url: "/?notification=side_bets_sent"
     });
     const updatedCounts = await getAcceptedSideBetCounts(supabase, sideBet.week, [auth.profile.id, sideBet.creator_id]);
+    await resolveTask;
+
     if ((updatedCounts[auth.profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK) {
       const closedOffers = await closeOpenOffersForCappedPlayer(supabase, auth.profile.id, sideBet.week, nowIso);
-      await resolveSideBetOfferNotifications(supabase, closedOffers.outgoingIds);
-      await resolveSideBetOfferNotifications(supabase, closedOffers.incomingIds, auth.profile.id);
+      await Promise.all([
+        resolveSideBetOfferNotifications(supabase, closedOffers.outgoingIds),
+        resolveSideBetOfferNotifications(supabase, closedOffers.incomingIds, auth.profile.id)
+      ]);
     }
     if ((updatedCounts[sideBet.creator_id] || 0) >= MAX_SIDE_BETS_PER_WEEK) {
       const closedOffers = await closeOpenOffersForCappedPlayer(supabase, sideBet.creator_id, sideBet.week, nowIso);
-      await resolveSideBetOfferNotifications(supabase, closedOffers.outgoingIds);
-      await resolveSideBetOfferNotifications(supabase, closedOffers.incomingIds, sideBet.creator_id);
+      await Promise.all([
+        resolveSideBetOfferNotifications(supabase, closedOffers.outgoingIds),
+        resolveSideBetOfferNotifications(supabase, closedOffers.incomingIds, sideBet.creator_id)
+      ]);
     }
-    return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week, { sideBet: accepted });
+    return successResponse(supabase, auth.profile.id, body.viewWeek ?? sideBet.week, { sideBet: accepted }, [notificationTask]);
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
