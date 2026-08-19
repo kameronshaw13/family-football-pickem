@@ -1,6 +1,7 @@
 import "./globals.css";
 import "./spatial-layout.css";
 import type { Metadata, Viewport } from "next";
+import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import ReceivedSideBetPresentation from "@/components/ReceivedSideBetPresentation";
 import TestIncomingOfferPreview from "@/components/TestIncomingOfferPreview";
 
@@ -36,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/header-wordmark.png" as="image" type="image/png" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;500;600;700;800;900&display=swap" />
       </head>
-      <body>{children}<ReceivedSideBetPresentation /><TestIncomingOfferPreview /></body>
+      <body>{children}<AppExperienceEnhancements /><ReceivedSideBetPresentation /><TestIncomingOfferPreview /></body>
     </html>
   );
 }
