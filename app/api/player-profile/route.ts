@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
     }
     let weeklyWins = 0;
     const completedWeeks: Array<{ week: number; standings: ReturnType<typeof computeWeeklyStandings> }> = [];
-    for (const [week, rows] of byWeek) {
+    for (const [week, rows] of Array.from(byWeek.entries())) {
       if (!rows.length || rows.some((pick) => pick.result === "pending")) continue;
       const weekStandings = computeWeeklyStandings(profiles, rows as any);
       completedWeeks.push({ week, standings: weekStandings });
