@@ -2,35 +2,46 @@ import "./globals.css";
 import "./spatial-layout.css";
 import "./experience-enhancements.css";
 import "./profile-enhancements.css";
+import "./group-themes.css";
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
 import DogPickAdjustmentAlerts from "@/components/DogPickAdjustmentAlerts";
+import GroupExperience from "@/components/GroupExperience";
 import PlayerProfiles from "@/components/PlayerProfiles";
 import TestIncomingOfferPreview from "@/components/TestIncomingOfferPreview";
 
-export const metadata: Metadata = {
-  title: "Family Football Pick'em",
-  description: "Private record-based football pick'em app with hidden locked picks and spread snapshots.",
-  applicationName: "Family Pick'em",
-  appleWebApp: {
-    capable: true,
-    title: "Family Pick'em",
-    statusBarStyle: "black-translucent"
-  },
-  icons: {
-    icon: "/icon.png",
-    apple: "/apple-icon.png"
-  },
-  manifest: "/manifest.webmanifest"
-};
+function activeGroupSlug() {
+  return cookies().get("pickem_group")?.value || "shaw-family";
+}
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  themeColor: "#20282d"
-};
+function groupMetadata(slug: string) {
+  if (slug === "other-family") return { title: "Other Family Pick'em", appName: "Other Family", icon: "/football-icon.svg" };
+  if (slug === "friends") return { title: "Friends Pick'em", appName: "Friends Pick'em", icon: "/football-icon.svg" };
+  return { title: "Family Football Pick'em", appName: "Family Pick'em", icon: "/icon.png" };
+}
+
+export function generateMetadata(): Metadata {
+  const meta = groupMetadata(activeGroupSlug());
+  return {
+    title: meta.title,
+    description: "Private record-based football pick'em app with hidden locked picks and spread snapshots.",
+    applicationName: meta.appName,
+    appleWebApp: { capable: true, title: meta.appName, statusBarStyle: "black-translucent" },
+    icons: { icon: meta.icon, apple: meta.icon },
+    manifest: "/manifest.webmanifest"
+  };
+}
+
+export function generateViewport(): Viewport {
+  return {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    themeColor: activeGroupSlug() === "other-family" ? "#0b0b0b" : "#20282d"
+  };
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -41,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/header-wordmark.png" as="image" type="image/png" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;500;600;700;800;900&display=swap" />
       </head>
-      <body>{children}<AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /><TestIncomingOfferPreview /></body>
+      <body>{children}<AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /><TestIncomingOfferPreview /><GroupExperience /></body>
     </html>
   );
 }

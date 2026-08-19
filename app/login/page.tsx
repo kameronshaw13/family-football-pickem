@@ -7,7 +7,14 @@ import NumericText from "@/components/NumericText";
 const users = [
   { username: "kameron", label: "Kameron" },
   { username: "mike", label: "Mike" },
-  { username: "quentin", label: "Quentin" }
+  { username: "quentin", label: "Quentin" },
+  { username: "caleb", label: "Caleb" },
+  { username: "monte", label: "Monte" },
+  { username: "austin", label: "Austin" },
+  { username: "clayton", label: "Clayton" },
+  { username: "mason", label: "Mason" },
+  { username: "isaac", label: "Isaac" },
+  { username: "josh", label: "Josh" }
 ];
 
 export default function LoginPage() {
@@ -26,7 +33,6 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setMessage("");
-
     const response = await fetch(mode === "create" ? "/api/auth/register" : "/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -38,7 +44,6 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-
     window.localStorage.setItem("pickem_session_token", payload.token);
     window.localStorage.setItem("pickem_profile", JSON.stringify(payload.profile));
     window.location.href = "/";
@@ -46,15 +51,13 @@ export default function LoginPage() {
 
   return <main className="app-shell login-screen">
     <section className="login-card">
-      <div className="login-brand"><img className="login-logo" src="/header-wordmark.png" alt="Shaw Family Pick'em" width={800} height={96} decoding="async" fetchPriority="high" /></div>
+      <div className="login-brand login-brand-generic"><span className="login-football" aria-hidden="true">🏈</span><strong>Football Pick'em</strong></div>
       <h1>{mode === "create" ? "Create your account" : "Sign in"}</h1>
       <p>{mode === "create" ? "Choose your name and create a private password. After this, use that password to get back in." : "Use your name and the password you created."}</p>
-
       <div className="mode-toggle">
         <button type="button" className={mode === "create" ? "active" : ""} onClick={() => { setMode("create"); setMessage(""); }}>Create account</button>
         <button type="button" className={mode === "signin" ? "active" : ""} onClick={() => { setMode("signin"); setMessage(""); }}>Sign in</button>
       </div>
-
       <form onSubmit={submit}>
         <label>Name</label>
         <MenuSelect ariaLabel="Name" className="input field-menu-select login-name-select" value={username} sections={[{ options: users.map((user) => ({ value: user.username, label: user.label })) }]} onChange={setUsername} />
@@ -62,9 +65,7 @@ export default function LoginPage() {
         <input className="input" type="password" placeholder={mode === "create" ? "Create password" : "Password"} value={password} onChange={(e) => setPassword(e.target.value)} />
         <button className="btn gold full" disabled={loading || password.length < 6}>{loading ? "Working…" : mode === "create" ? "Create account" : "Sign in"}</button>
       </form>
-
       {message && <p className="login-message"><NumericText text={message} /></p>}
-      <div className="username-list"><strong>Names:</strong> Kameron · Mike · Quentin</div>
     </section>
   </main>;
 }

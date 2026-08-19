@@ -68,7 +68,7 @@ async function reconcileDraftDogs(supabase: ReturnType<typeof getSupabaseAdmin>,
   const updatedById = new Map(spreadGames.map((game) => [game.id, game]));
   const { data: draftDogs, error } = await supabase
     .from("picks")
-    .select("id,user_id,game_id,selected_team,underdog_win_value")
+    .select("id,user_id,group_id,game_id,selected_team,underdog_win_value")
     .eq("status", "draft")
     .eq("pick_type", "underdog")
     .in("game_id", spreadGames.map((game) => game.id));
@@ -87,9 +87,6 @@ async function reconcileDraftDogs(supabase: ReturnType<typeof getSupabaseAdmin>,
     const oldValue = pick.underdog_win_value == null ? underdogWinValue(oldSpread) : Number(pick.underdog_win_value);
     const newValue = underdogWinValue(newSpread);
 
-    // Eligibility is absolute. A stale draft dog at +6.5 (or a team that
-    // becomes the favorite) must be removed even if its stored bonus was
-    // already 0 before this reconciliation code existed.
     if (newValue === 0) {
       const { data: deleted, error: deleteError } = await supabase
         .from("picks")
@@ -103,6 +100,7 @@ async function reconcileDraftDogs(supabase: ReturnType<typeof getSupabaseAdmin>,
       removed += 1;
       const sameLine = oldSpread != null && newSpread != null && Number(oldSpread) === Number(newSpread);
       notifications.push(createNotificationSafely(supabase, {
+        groupId: pick.group_id,
         userId: pick.user_id,
         type: "dog_pick_adjustment",
         destination: "my_card",
@@ -112,7 +110,7 @@ async function reconcileDraftDogs(supabase: ReturnType<typeof getSupabaseAdmin>,
         body: sameLine
           ? `${pick.selected_team} was removed as your dog at ${spreadText(newSpread)}. Dogs must be +7 or higher.`
           : `${pick.selected_team} was removed as your dog: ${spreadText(oldSpread)} → ${spreadText(newSpread)}. Dogs must be +7 or higher.`,
-        url: "/?notification=my_card",
+        url: `/?group=${encodeURIComponent(pick.group_id)}&notification=my_card`,
         actionRequired: true
       }));
       continue;
@@ -131,6 +129,7 @@ async function reconcileDraftDogs(supabase: ReturnType<typeof getSupabaseAdmin>,
     if (!updated) continue;
     tierChanged += 1;
     notifications.push(createNotificationSafely(supabase, {
+      groupId: pick.group_id,
       userId: pick.user_id,
       type: "dog_pick_adjustment",
       destination: "my_card",
@@ -138,7 +137,7 @@ async function reconcileDraftDogs(supabase: ReturnType<typeof getSupabaseAdmin>,
       dedupeKey: `dog-adjust:${pick.id}:${changedAt.getTime()}:${oldValue}:${newValue}`,
       title: "Dog value changed",
       body: `${pick.selected_team} changed from +${winWord(oldValue)} to +${winWord(newValue)}: ${spreadText(oldSpread)} → ${spreadText(newSpread)}.`,
-      url: "/?notification=my_card",
+      url: `/?group=${encodeURIComponent(pick.group_id)}&notification=my_card`,
       actionRequired: true
     }));
   }

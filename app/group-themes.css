@@ -1,0 +1,121 @@
+/* Group-level branding sits on top of the shared Pick'em design system. */
+body.group-brand-mounted .brand-lockup > .header-wordmark {
+  display: none;
+}
+
+.group-brand {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+}
+
+.group-brand-trigger {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  height: 54px;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  color: #fff;
+  background: transparent;
+  text-align: left;
+}
+
+.group-brand-trigger:disabled { opacity: .7; }
+.group-brand-wordmark { width: min(236px, calc(100vw - 180px)); height: auto; max-height: 54px; object-fit: contain; object-position: left center; }
+.group-brand-football-icon { flex: 0 0 auto; font-size: 25px; line-height: 1; }
+.group-brand-label { min-width: 0; overflow: hidden; font-family: var(--font-display); font-size: 18px; font-weight: 900; line-height: 1; text-overflow: ellipsis; white-space: nowrap; }
+.group-brand-chevron { flex: 0 0 auto; color: rgba(255,255,255,.8); transition: transform .15s ease; }
+.group-brand-trigger[aria-expanded="true"] .group-brand-chevron { transform: rotate(180deg); }
+
+.group-brand-menu {
+  position: absolute;
+  top: calc(100% - 2px);
+  left: 0;
+  z-index: 90;
+  width: min(220px, calc(100vw - 28px));
+  border: 1px solid #59676e;
+  background: var(--graphite);
+  box-shadow: 0 10px 24px rgba(10,15,18,.22);
+}
+
+.group-brand-menu button {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-top: 1px solid rgba(255,255,255,.12);
+  color: #dce3e6;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+}
+.group-brand-menu button:first-child { border-top: 0; }
+.group-brand-menu button.active { color: #fff; background: var(--graphite-light); }
+
+.login-brand-generic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: var(--graphite);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 900;
+}
+.login-football { font-size: 28px; line-height: 1; }
+
+html[data-pickem-theme="missouri"] {
+  --graphite: #0b0b0b;
+  --graphite-light: #242424;
+  --blue: #f1b82d;
+  --blue-dark: #94700d;
+  --blue-soft: #f7ebbd;
+  --gold: #f1b82d;
+  --nav-surface: rgba(11, 11, 11, .985);
+  --hover: #f3ecd2;
+  --saved-dirty: #f3e7b7;
+  --rank-gold: #8b6500;
+}
+
+html[data-pickem-theme="missouri"] .scoreboard-header {
+  box-shadow: inset 0 -3px 0 #f1b82d;
+}
+
+html[data-pickem-theme="missouri"] .primary-nav button.active,
+html[data-pickem-theme="missouri"] .section-tabs button.active,
+html[data-pickem-theme="missouri"] .section-title > svg,
+html[data-pickem-theme="missouri"] .compact-select svg {
+  color: #f1b82d;
+}
+
+html[data-pickem-theme="missouri"] .primary-nav button.active svg {
+  fill: #f1b82d;
+  stroke: #f1b82d;
+}
+
+html[data-pickem-theme="missouri"] .section-tabs button.active,
+html[data-pickem-theme="missouri"] .compact-select.open,
+html[data-pickem-theme="missouri"] .custom-select.open {
+  border-bottom-color: #f1b82d;
+}
+
+html[data-pickem-theme="missouri"] .group-brand-menu {
+  border-color: #5a4b22;
+}
+
+@media (max-width: 420px) {
+  .group-brand-label { font-size: 16px; }
+  .group-brand-football-icon { font-size: 23px; }
+  .group-brand-wordmark { width: min(218px, calc(100vw - 176px)); }
+}

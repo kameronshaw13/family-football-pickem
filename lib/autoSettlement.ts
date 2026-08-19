@@ -6,49 +6,84 @@ export type AutoSettlementResult = {
   settled: boolean;
   reason?: string;
   perfect?: boolean;
-  entries?: Array<{ week: number; user_id: string; amount: number; note: string }>;
+  entries?: Array<{ group_id: string; season_year: number; week: number; user_id: string; amount: number; note: string }>;
+  groupsSettled?: string[];
 };
 
-export async function settleWeekIfReady(supabase: SupabaseClient, week: number): Promise<AutoSettlementResult> {
-  const { data: profiles, error: profilesError } = await supabase
-    .from("profiles")
-    .select("id,display_name")
-    .order("display_name", { ascending: true });
-  if (profilesError) throw new Error(profilesError.message);
-  if ((profiles || []).length !== 3) return { settled: false, reason: "The league must have exactly three players." };
+function configuredWeekRule(rules: any, week: number) {
+  const fallback = getWeekRule(week);
+  const pickRules = rules?.pickRules || {};
+  const configured = pickRules.weekOverrides?.[String(week)] || pickRules.default || {};
+  return {
+    ...fallback,
+    regularTotal: Number.isFinite(Number(configured.regularTotal)) ? Number(configured.regularTotal) : fallback.regularTotal,
+    underdogTotal: Number.isFinite(Number(configured.underdogTotal)) ? Number(configured.underdogTotal) : fallback.underdogTotal,
+    perfectBonus: typeof configured.perfectBonus === "boolean" ? configured.perfectBonus : fallback.perfectBonus
+  };
+}
 
-  const { data: picks, error: picksError } = await supabase
-    .from("picks")
-    .select("*")
-    .eq("week", week);
-  if (picksError) throw new Error(picksError.message);
+export async function settleWeekIfReady(supabase: SupabaseClient, week: number, groupId?: string): Promise<AutoSettlementResult> {
+  let seasonQuery = supabase.from("group_seasons").select("group_id,season_year,status,rules").eq("status", "active");
+  if (groupId) seasonQuery = seasonQuery.eq("group_id", groupId);
+  const { data: seasons, error: seasonError } = await seasonQuery;
+  if (seasonError) throw new Error(seasonError.message);
+  if (!seasons?.length) return { settled: false, reason: "No active Pick'em season is configured." };
 
-  const rule = getWeekRule(week);
-  for (const profile of profiles || []) {
-    const card = (picks || []).filter((pick) => pick.user_id === profile.id);
-    const regularCount = card.filter((pick) => pick.pick_type === "regular").length;
-    const dogCount = card.filter((pick) => pick.pick_type === "underdog").length;
-    if (regularCount !== rule.regularTotal || dogCount !== rule.underdogTotal) {
-      return { settled: false, reason: `${profile.display_name}'s card is incomplete.` };
+  const allEntries: Array<{ group_id: string; season_year: number; week: number; user_id: string; amount: number; note: string }> = [];
+  const groupsSettled: string[] = [];
+  let lastReason = "The week is not ready to settle.";
+  let anyPerfect = false;
+
+  for (const season of seasons) {
+    const [{ data: memberships, error: memberError }, { data: picks, error: picksError }] = await Promise.all([
+      supabase.from("group_members").select("profile:profiles(id,display_name)").eq("group_id", season.group_id).eq("status", "active"),
+      supabase.from("picks").select("*").eq("group_id", season.group_id).eq("season_year", season.season_year).eq("week", week)
+    ]);
+    if (memberError) throw new Error(memberError.message);
+    if (picksError) throw new Error(picksError.message);
+    const profiles = (memberships || []).flatMap((row: any) => {
+      const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
+      return profile ? [profile] : [];
+    });
+    if (profiles.length < 2) { lastReason = "The group needs at least two active players."; continue; }
+
+    const rule = configuredWeekRule(season.rules, week);
+    let ready = true;
+    for (const profile of profiles) {
+      const card = (picks || []).filter((pick: any) => pick.user_id === profile.id);
+      const regularCount = card.filter((pick: any) => pick.pick_type === "regular").length;
+      const dogCount = card.filter((pick: any) => pick.pick_type === "underdog").length;
+      if (regularCount !== rule.regularTotal || dogCount !== rule.underdogTotal) {
+        lastReason = `${profile.display_name}'s card is incomplete.`;
+        ready = false;
+        break;
+      }
+      if (card.some((pick: any) => pick.status !== "locked" || pick.result === "pending")) {
+        lastReason = "At least one card still has an unfinished game.";
+        ready = false;
+        break;
+      }
     }
-    if (card.some((pick) => pick.status !== "locked" || pick.result === "pending")) {
-      return { settled: false, reason: "At least one card still has an unfinished game." };
-    }
+    if (!ready) continue;
+
+    const standings = computeWeeklyStandings(profiles, (picks || []) as any);
+    const settlement = computeWeeklySettlement(standings, rule.perfectBonus);
+    anyPerfect ||= settlement.perfect;
+    const entries = profiles.map((profile: any) => ({
+      group_id: season.group_id,
+      season_year: Number(season.season_year),
+      week,
+      user_id: profile.id,
+      amount: settlement.amounts.get(profile.id) || 0,
+      note: settlement.notes.get(profile.id) || `Week ${week} settlement`
+    }));
+    const { error: upsertError } = await supabase.from("bank_entries").upsert(entries, { onConflict: "group_id,season_year,week,user_id" });
+    if (upsertError) throw new Error(upsertError.message);
+    allEntries.push(...entries);
+    groupsSettled.push(season.group_id);
   }
 
-  const standings = computeWeeklyStandings(profiles || [], picks || []);
-  const settlement = computeWeeklySettlement(standings, rule.perfectBonus);
-  const entries = (profiles || []).map((profile) => ({
-    week,
-    user_id: profile.id,
-    amount: settlement.amounts.get(profile.id) || 0,
-    note: settlement.notes.get(profile.id) || `Week ${week} settlement`
-  }));
-
-  const { error: upsertError } = await supabase
-    .from("bank_entries")
-    .upsert(entries, { onConflict: "week,user_id" });
-  if (upsertError) throw new Error(upsertError.message);
-
-  return { settled: true, perfect: settlement.perfect, entries };
+  return groupsSettled.length
+    ? { settled: true, perfect: anyPerfect, entries: allEntries, groupsSettled }
+    : { settled: false, reason: lastReason, groupsSettled: [] };
 }

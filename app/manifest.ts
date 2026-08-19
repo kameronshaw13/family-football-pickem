@@ -1,19 +1,30 @@
 import type { MetadataRoute } from "next";
+import { cookies } from "next/headers";
 
 export default function manifest(): MetadataRoute.Manifest {
+  const group = cookies().get("pickem_group")?.value || "shaw-family";
+  const otherFamily = group === "other-family";
+  const friends = group === "friends";
+  const footballIcon = otherFamily || friends;
+  const name = otherFamily ? "Other Family Pick'em" : friends ? "Friends Pick'em" : "Family Football Pick'em";
+  const shortName = otherFamily ? "Other Family" : friends ? "Friends Pick'em" : "Pick'em";
+  const icon = footballIcon ? "/football-icon.svg" : "/icon.png";
+
   return {
     id: "/",
-    name: "Family Football Pick'em",
-    short_name: "Pick'em",
-    description: "Private family football pick'em app.",
+    name,
+    short_name: shortName,
+    description: "Private football pick'em app.",
     start_url: "/",
     display: "standalone",
     orientation: "portrait-primary",
-    background_color: "#eef0ed",
-    theme_color: "#20282d",
-    icons: [
-      { src: "/icon.png", sizes: "any", type: "image/png" },
-      { src: "/apple-icon.png", sizes: "180x180", type: "image/png", purpose: "any" }
-    ]
+    background_color: otherFamily ? "#0b0b0b" : "#20282d",
+    theme_color: otherFamily ? "#0b0b0b" : "#20282d",
+    icons: footballIcon
+      ? [{ src: icon, sizes: "any", type: "image/svg+xml", purpose: "any" }]
+      : [
+          { src: "/icon.png", sizes: "any", type: "image/png" },
+          { src: "/apple-icon.png", sizes: "180x180", type: "image/png", purpose: "any" }
+        ]
   };
 }
