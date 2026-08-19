@@ -25,13 +25,10 @@ export default function TestIncomingOfferPreview() {
     const updateTarget = () => setTarget(findPreviewTarget());
     updateTarget();
 
+    // The preview only cares when the Test Week/Side Bet DOM is added or
+    // removed; live text and attribute changes do not need to wake it up.
     const observer = new MutationObserver(updateTarget);
-    observer.observe(document.body, {
-      subtree: true,
-      childList: true,
-      characterData: true,
-      attributes: true
-    });
+    observer.observe(document.body, { subtree: true, childList: true });
 
     return () => observer.disconnect();
   }, []);
