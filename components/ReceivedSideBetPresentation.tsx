@@ -313,8 +313,10 @@ export default function ReceivedSideBetPresentation() {
       window.requestAnimationFrame(() => enhanceReviewModal(payload, pendingReviewBetId));
     }
 
+    // Child additions/removals are enough to detect view/card/modal changes. Text
+    // updates from live scores no longer wake this global observer unnecessarily.
     const observer = new MutationObserver(schedule);
-    observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+    observer.observe(document.body, { subtree: true, childList: true });
     const onFocus = () => void refresh(true);
     window.addEventListener("focus", onFocus);
     document.addEventListener("click", rememberReviewBet, true);
