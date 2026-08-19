@@ -29,37 +29,17 @@ function spread(value: number) {
   return `${value > 0 ? "+" : ""}${value}`;
 }
 
-function makeSeasonNamesInteractive() {
-  const heading = Array.from(document.querySelectorAll<HTMLElement>(".standings-panel .scoreboard-heading h2"))
-    .find((node) => node.textContent?.trim() === "Season Standings");
-  const leaderboard = heading?.closest(".scoreboard-heading")?.nextElementSibling;
-  if (!(leaderboard instanceof HTMLElement) || !leaderboard.classList.contains("leaderboard")) return;
-  leaderboard.querySelectorAll<HTMLElement>(".leaderboard-player strong").forEach((name) => {
-    name.classList.add("player-profile-link");
-    name.setAttribute("role", "button");
-    name.setAttribute("tabindex", "0");
-    name.setAttribute("aria-label", `Open ${name.textContent?.trim() || "player"} profile`);
-  });
-}
-
 export default function PlayerProfiles() {
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
   const [loadingName, setLoadingName] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    let frame = 0;
-    const schedule = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(makeSeasonNamesInteractive);
-    };
-    const observer = new MutationObserver(schedule);
-    observer.observe(document.body, { subtree: true, childList: true });
-    schedule();
+    let active = true;
 
     async function open(name: string) {
       const token = window.localStorage.getItem("pickem_session_token");
-      if (!token) return;
+      if (!token || !name) return;
       setLoadingName(name);
       setError("");
       try {
@@ -69,37 +49,34 @@ export default function PlayerProfiles() {
         });
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || "Could not load player profile.");
-        setProfile(payload as ProfilePayload);
+        if (active) setProfile(payload as ProfilePayload);
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : "Could not load player profile.");
+        if (active) setError(cause instanceof Error ? cause.message : "Could not load player profile.");
       } finally {
-        setLoadingName("");
+        if (active) setLoadingName("");
       }
     }
 
-    function activate(event: Event) {
+    function activate(event: MouseEvent) {
       const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      const name = target.closest<HTMLElement>(".player-profile-link");
-      if (!name) return;
-      if (event instanceof KeyboardEvent && !["Enter", " "].includes(event.key)) return;
-      event.preventDefault();
-      void open(name.textContent?.trim() || "");
+      if (!(target instanceof Element)) return;
+      const button = target.closest<HTMLElement>(".player-profile-link[data-player-profile-name]");
+      const name = button?.dataset.playerProfileName || "";
+      if (name) void open(name);
     }
 
     document.addEventListener("click", activate);
-    document.addEventListener("keydown", activate);
     return () => {
-      window.cancelAnimationFrame(frame);
-      observer.disconnect();
+      active = false;
       document.removeEventListener("click", activate);
-      document.removeEventListener("keydown", activate);
     };
   }, []);
 
   useEffect(() => {
     if (!profile) return;
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setProfile(null); };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProfile(null);
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [profile]);
@@ -150,7 +127,7 @@ export default function PlayerProfiles() {
       <section className="player-profile-sheet" role="dialog" aria-modal="true" aria-labelledby="player-profile-title">
         <header className="player-profile-head">
           <div><span>Player Profile</span><h2 id="player-profile-title">{profile.player.displayName}</h2></div>
-          <button type="button" aria-label="Close profile" onClick={() => setProfile(null)}><X size={18} /></button>
+          <div className="pick-row-actions player-profile-close-wrap"><button type="button" className="icon-btn" aria-label="Close profile" onClick={() => setProfile(null)}><X size={16} /></button></div>
         </header>
 
         <div className="player-profile-record">
@@ -162,15 +139,16 @@ export default function PlayerProfiles() {
         <section className="player-profile-section">
           <h3>Career Marks</h3>
           <div className="player-profile-stat-grid">
-            <div><span>Shaw Pick'em Titles</span><strong>{profile.legacy.titlesTracked ? profile.legacy.titles : "—"}</strong><small>{profile.legacy.titlesTracked ? "" : "Historical titles can be added later"}</small></div>
+            <div><span>Shaw Pick'em Titles</span><strong>{profile.legacy.titlesTracked ? profile.legacy.titles : "—"}</strong></div>
             <div><span>Longest Dog Won</span><strong>{profile.signature.longestDog ? spread(profile.signature.longestDog.spread) : "—"}</strong><small>{profile.signature.longestDog?.team || "No dog win yet"}</small></div>
             <div><span>Most Picked Team</span><strong>{profile.signature.mostPickedTeam || "—"}</strong></div>
             <div><span>Best Pick Streak</span><strong>{profile.signature.bestPickStreak || "—"}</strong></div>
           </div>
+          {!profile.legacy.titlesTracked && <p className="player-profile-footnote">Historical titles can be added later.</p>}
         </section>
 
         <section className="player-profile-section">
-          <h3>Dogs & Side Bets</h3>
+          <h3>Dogs &amp; Side Bets</h3>
           <div className="player-profile-stat-grid compact">
             <div><span>Dog Record</span><strong>{record(profile.signature.dogRecord.wins, profile.signature.dogRecord.losses, profile.signature.dogRecord.pushes)}</strong></div>
             <div><span>Side Bet Record</span><strong>{record(profile.sideBets.wins, profile.sideBets.losses, profile.sideBets.pushes)}</strong></div>
