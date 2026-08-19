@@ -1,67 +1,25 @@
-/* Group-level branding sits on top of the shared Pick'em design system. */
-body.group-brand-mounted .brand-lockup > .header-wordmark {
+/* Route-specific branding for the two companion Pick'em apps. */
+.route-app.group-friends .brand-lockup > .header-wordmark,
+.route-app.group-other-family .brand-lockup > .header-wordmark {
   display: none;
 }
 
-.group-brand {
-  position: relative;
-  display: flex;
+.route-app.group-friends .brand-lockup::before,
+.route-app.group-other-family .brand-lockup::before {
+  display: inline-flex;
   min-width: 0;
-  max-width: 100%;
   align-items: center;
-}
-
-.group-brand-trigger {
-  display: flex;
-  min-width: 0;
-  max-width: 100%;
-  height: 54px;
-  align-items: center;
-  gap: 8px;
-  padding: 0;
-  border: 0;
+  gap: 9px;
   color: #fff;
-  background: transparent;
-  text-align: left;
-}
-
-.group-brand-trigger:disabled { opacity: .7; }
-.group-brand-wordmark { width: min(236px, calc(100vw - 180px)); height: auto; max-height: 54px; object-fit: contain; object-position: left center; }
-.group-brand-football-icon { flex: 0 0 auto; font-size: 25px; line-height: 1; }
-.group-brand-label { min-width: 0; overflow: hidden; font-family: var(--font-display); font-size: 18px; font-weight: 900; line-height: 1; text-overflow: ellipsis; white-space: nowrap; }
-.group-brand-chevron { flex: 0 0 auto; color: rgba(255,255,255,.8); transition: transform .15s ease; }
-.group-brand-trigger[aria-expanded="true"] .group-brand-chevron { transform: rotate(180deg); }
-
-.group-brand-menu {
-  position: absolute;
-  top: calc(100% - 2px);
-  left: 0;
-  z-index: 90;
-  width: min(220px, calc(100vw - 28px));
-  border: 1px solid #59676e;
-  background: var(--graphite);
-  box-shadow: 0 10px 24px rgba(10,15,18,.22);
-}
-
-.group-brand-menu button {
-  display: flex;
-  width: 100%;
-  min-height: 42px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 8px 10px;
-  border: 0;
-  border-top: 1px solid rgba(255,255,255,.12);
-  color: #dce3e6;
-  background: transparent;
   font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 800;
-  text-align: left;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
 }
-.group-brand-menu button:first-child { border-top: 0; }
-.group-brand-menu button.active { color: #fff; background: var(--graphite-light); }
+
+.route-app.group-friends .brand-lockup::before { content: "🏈  Friends Pick’em"; }
+.route-app.group-other-family .brand-lockup::before { content: "🏈  Other Family Pick’em"; }
 
 .login-brand-generic {
   display: flex;
@@ -74,8 +32,12 @@ body.group-brand-mounted .brand-lockup > .header-wordmark {
   font-weight: 900;
 }
 .login-football { font-size: 28px; line-height: 1; }
+.login-brand-wordmark { width: min(290px, 82vw); height: auto; object-fit: contain; }
 
-html[data-pickem-theme="missouri"] {
+/* Missouri-inspired black and gold theme. :has() also covers safe-area / overscroll background. */
+html:has(.route-app.group-other-family),
+body:has(.route-app.group-other-family),
+.route-app.group-other-family {
   --graphite: #0b0b0b;
   --graphite-light: #242424;
   --blue: #f1b82d;
@@ -86,36 +48,171 @@ html[data-pickem-theme="missouri"] {
   --hover: #f3ecd2;
   --saved-dirty: #f3e7b7;
   --rank-gold: #8b6500;
+  background: #0b0b0b;
 }
 
-html[data-pickem-theme="missouri"] .scoreboard-header {
+.route-app.group-other-family .scoreboard-header {
   box-shadow: inset 0 -3px 0 #f1b82d;
 }
-
-html[data-pickem-theme="missouri"] .primary-nav button.active,
-html[data-pickem-theme="missouri"] .section-tabs button.active,
-html[data-pickem-theme="missouri"] .section-title > svg,
-html[data-pickem-theme="missouri"] .compact-select svg {
+.route-app.group-other-family .primary-nav button.active,
+.route-app.group-other-family .section-tabs button.active,
+.route-app.group-other-family .section-title > svg,
+.route-app.group-other-family .compact-select svg {
   color: #f1b82d;
 }
-
-html[data-pickem-theme="missouri"] .primary-nav button.active svg {
+.route-app.group-other-family .primary-nav button.active svg {
   fill: #f1b82d;
   stroke: #f1b82d;
 }
-
-html[data-pickem-theme="missouri"] .section-tabs button.active,
-html[data-pickem-theme="missouri"] .compact-select.open,
-html[data-pickem-theme="missouri"] .custom-select.open {
+.route-app.group-other-family .section-tabs button.active,
+.route-app.group-other-family .compact-select.open,
+.route-app.group-other-family .custom-select.open {
   border-bottom-color: #f1b82d;
 }
-
-html[data-pickem-theme="missouri"] .group-brand-menu {
-  border-color: #5a4b22;
+.route-app.group-other-family .btn.accent,
+.route-app.group-other-family .btn.gold {
+  border-color: #b98b13;
+  background: #f1b82d;
+  color: #111;
 }
 
+/* Friends stays close to Shaw, with a slightly cooler blue accent and no Shaw wordmark. */
+.route-app.group-friends {
+  --blue: #82a9c0;
+  --blue-dark: #486b80;
+  --blue-soft: #e4edf2;
+  --gold: #c5a25d;
+}
+.route-app.group-friends .scoreboard-header {
+  box-shadow: inset 0 -2px 0 rgba(130, 169, 192, .78);
+}
+.route-app.group-friends .section-tabs button.active {
+  border-bottom-color: #82a9c0;
+}
+
+/* Confidence ordering */
+.confidence-order-card {
+  margin: 8px 0 12px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,.46);
+}
+.confidence-order-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 6px 7px;
+}
+.confidence-order-head strong {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.confidence-order-head small { color: var(--muted); font-size: 10.5px; }
+.confidence-order-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0,1fr) 64px;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-top: 1px solid var(--line);
+}
+.confidence-points-badge {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid #9c7410;
+  border-radius: 50%;
+  background: #f1b82d;
+  color: #111;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 900;
+}
+.confidence-order-team { min-width: 0; font-size: 13px; font-weight: 800; }
+.confidence-order-team small { display: block; margin-top: 2px; color: var(--muted); font-size: 10.5px; font-weight: 600; }
+.confidence-order-actions { display: flex; justify-content: flex-end; gap: 4px; }
+.confidence-order-actions button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--graphite);
+}
+.confidence-order-actions button:disabled { opacity: .28; }
+.confidence-order-locked { padding: 0 6px 8px; color: var(--muted); font-size: 10.5px; }
+
+/* Other Family configurable winner-take-all money */
+.group-money-controls {
+  margin: 0 0 14px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,.52);
+}
+.group-money-controls-head { padding: 9px 7px 6px; }
+.group-money-controls-head strong { font-family: var(--font-display); font-size: 12px; font-weight: 900; text-transform: uppercase; }
+.group-money-controls-head small { display: block; margin-top: 2px; color: var(--muted); font-size: 10.5px; }
+.group-money-grid { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); }
+.group-money-field { padding: 9px 8px; }
+.group-money-field + .group-money-field { border-left: 1px solid var(--line); }
+.group-money-field label,
+.group-money-field > span { display: block; margin-bottom: 4px; color: var(--muted); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.group-money-field strong { font-family: var(--font-display); font-size: 18px; }
+.group-money-input-wrap { display: flex; align-items: center; gap: 4px; }
+.group-money-input-wrap span { font-family: var(--font-display); font-size: 15px; font-weight: 900; }
+.group-money-input-wrap input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 4px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+}
+.group-money-save { padding: 0 8px 9px; }
+.group-money-save .btn { width: 100%; }
+
+.side-bet-manual-amount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 2px;
+}
+.side-bet-manual-amount span { font-family: var(--font-display); font-size: 18px; font-weight: 900; }
+.side-bet-manual-amount input {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 5px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+}
+
+.leaderboard.points-mode .leaderboard-labels,
+.leaderboard.points-mode .leaderboard-row {
+  grid-template-columns: 52px minmax(0,1fr) 88px;
+}
+.leaderboard-points { text-align: right; font-family: var(--font-display); font-size: 16px; font-weight: 900; }
+
 @media (max-width: 420px) {
-  .group-brand-label { font-size: 16px; }
-  .group-brand-football-icon { font-size: 23px; }
-  .group-brand-wordmark { width: min(218px, calc(100vw - 176px)); }
+  .route-app.group-friends .brand-lockup::before,
+  .route-app.group-other-family .brand-lockup::before { font-size: 16px; }
+  .group-money-grid { grid-template-columns: 1fr; }
+  .group-money-field + .group-money-field { border-left: 0; border-top: 1px solid var(--line); }
 }
