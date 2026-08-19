@@ -11,20 +11,40 @@
   border-radius: 2px;
 }
 
+html.player-profile-open,
+body.player-profile-open {
+  overscroll-behavior: none;
+}
+
 .player-profile-backdrop {
   position: fixed;
   inset: 0;
   z-index: 140;
   display: grid;
   place-items: center;
+  overflow: hidden;
   padding: max(18px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
   background: rgba(20, 33, 43, .58);
 }
 
+.player-profile-backdrop::before {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 1;
+  height: env(safe-area-inset-top);
+  background: var(--graphite);
+  content: "";
+  pointer-events: none;
+}
+
 .player-profile-sheet {
+  position: relative;
+  z-index: 2;
   width: min(440px, 100%);
   max-height: calc(100dvh - 44px);
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid #4c5a61;
   border-radius: 8px;
   background: var(--panel);
@@ -67,10 +87,17 @@
   height: 30px;
   flex: 0 0 auto;
   place-items: center;
+  padding: 0;
   border: 1px solid rgba(255,255,255,.24);
   border-radius: 5px;
   color: #fff;
   background: transparent;
+  line-height: 0;
+}
+
+.player-profile-head button svg {
+  display: block;
+  transform: translate(.35px, .25px);
 }
 
 .player-profile-record {

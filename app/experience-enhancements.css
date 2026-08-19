@@ -10,7 +10,3 @@
 .card-panel .pick-section > .card-empty-picks {
   order: 0;
 }
-
-[data-ledger-filtered-list] {
-  display: contents;
-}

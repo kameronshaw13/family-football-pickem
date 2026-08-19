@@ -104,6 +104,45 @@ export default function PlayerProfiles() {
     return () => window.removeEventListener("keydown", onKey);
   }, [profile]);
 
+  useEffect(() => {
+    if (!profile) return;
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const html = document.documentElement;
+    const previous = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+      htmlOverflow: html.style.overflow
+    };
+
+    html.classList.add("player-profile-open");
+    body.classList.add("player-profile-open");
+    html.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+
+    return () => {
+      html.classList.remove("player-profile-open");
+      body.classList.remove("player-profile-open");
+      html.style.overflow = previous.htmlOverflow;
+      body.style.position = previous.position;
+      body.style.top = previous.top;
+      body.style.left = previous.left;
+      body.style.right = previous.right;
+      body.style.width = previous.width;
+      body.style.overflow = previous.overflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [profile]);
+
   return <>
     {loadingName && <div className="profile-loading-toast" role="status">Loading {loadingName}…</div>}
     {error && <div className="profile-loading-toast profile-error-toast" role="alert">{error}</div>}
