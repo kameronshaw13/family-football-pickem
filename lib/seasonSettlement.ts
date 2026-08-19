@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { computeGroupStandings, rankedPayoutSettlement, winnerTakeAllSettlement } from "@/lib/groupScoring";
 import { finalPickemWeek, footballSeasonYearAt, nflRegularSeasonEnd } from "@/lib/seasonRules";
-import { computeWeeklyStandings } from "@/lib/weeklyBank";
 
 const SEASON_ENTRY_OFFSET = 1000;
 export type SeasonSettlementResult = { settled: boolean; reason?: string; seasonYear: number; winnerId?: string; groupsSettled?: string[] };
@@ -35,34 +35,75 @@ export async function settleSeasonIfReady(supabase: SupabaseClient, currentTime 
       lastReason = "At least one final-week pick is unfinished.";
       continue;
     }
-    const standings = computeWeeklyStandings(profiles, seasonPicks);
-    if (standings.length < 2 || standings[0].rank === standings[1].rank) {
-      lastReason = "Season standings have an unresolved first-place tie.";
-      continue;
+
+    const standings = computeGroupStandings(profiles, seasonPicks as any, season.rules);
+    const prizeRules = season.rules?.seasonPrizes || {};
+    const mode = prizeRules.mode || "shaw";
+    let settlement: { amounts: Map<string, number>; notes: Map<string, string> };
+
+    if (mode === "winner_take_all") {
+      const { data: moneyRow, error: moneyError } = await supabase.from("group_season_money")
+        .select("winner_take_all_amount")
+        .eq("group_id", season.group_id)
+        .eq("season_year", seasonYear)
+        .maybeSingle();
+      if (moneyError) throw new Error(moneyError.message);
+      settlement = winnerTakeAllSettlement(standings, Number(moneyRow?.winner_take_all_amount || 0));
+    } else if (mode === "friends_season") {
+      const payouts = standings.map((_, index) => {
+        if (index === 0) return Number(prizeRules.first ?? 150);
+        if (index === 1) return Number(prizeRules.second ?? 0);
+        if (index === 2) return Number(prizeRules.third ?? -50);
+        if (index === 3) return Number(prizeRules.fourth ?? -50);
+        return Number(prizeRules.fifth ?? -50);
+      });
+      settlement = rankedPayoutSettlement(standings, payouts, `${seasonYear} season payout`);
+    } else {
+      if (standings.length < 2 || standings[0].rank === standings[1].rank) {
+        lastReason = "Season standings have an unresolved first-place tie.";
+        continue;
+      }
+      const winner = standings[0];
+      const secondRank = standings.find((row) => row.rank > winner.rank)?.rank;
+      const second = secondRank == null ? null : standings.find((row) => row.rank === secondRank) || null;
+      const last = standings[standings.length - 1];
+      const lastTied = standings.filter((row) => row.rank === last.rank).length > 1;
+      if (!second || lastTied) {
+        lastReason = "Season prize positions have an unresolved tie.";
+        continue;
+      }
+      const firstAmount = Number(prizeRules.first ?? 300);
+      const secondAmount = Number(prizeRules.second ?? -100);
+      const lastAmount = Number(prizeRules.last ?? -200);
+      settlement = {
+        amounts: new Map(standings.map((row) => [row.user_id, row.user_id === winner.user_id ? firstAmount : row.user_id === second.user_id ? secondAmount : row.user_id === last.user_id ? lastAmount : 0])),
+        notes: new Map(standings.map((row) => [row.user_id, row.user_id === winner.user_id ? `${seasonYear} season champion` : row.user_id === second.user_id ? `${seasonYear} season second place` : row.user_id === last.user_id ? `${seasonYear} season last place` : `${seasonYear} season`]))
+      };
     }
-    const winner = standings[0];
-    const secondRank = standings.find((row) => row.rank > winner.rank)?.rank;
-    const second = secondRank == null ? null : standings.find((row) => row.rank === secondRank) || null;
-    const last = standings[standings.length - 1];
-    const lastTied = standings.filter((row) => row.rank === last.rank).length > 1;
-    if (!second || lastTied) {
-      lastReason = "Season prize positions have an unresolved tie.";
-      continue;
-    }
-    const prizes = season.rules?.seasonPrizes || {};
-    const firstAmount = Number(prizes.first ?? 300);
-    const secondAmount = Number(prizes.second ?? -100);
-    const lastAmount = Number(prizes.last ?? -200);
+
     const entryWeek = SEASON_ENTRY_OFFSET + seasonYear;
     const entries = standings.map((row) => ({
       group_id: season.group_id,
       season_year: seasonYear,
       week: entryWeek,
       user_id: row.user_id,
-      amount: row.user_id === winner.user_id ? firstAmount : row.user_id === second.user_id ? secondAmount : row.user_id === last.user_id ? lastAmount : 0,
-      note: row.user_id === winner.user_id ? `${seasonYear} season champion` : row.user_id === second.user_id ? `${seasonYear} season second place` : row.user_id === last.user_id ? `${seasonYear} season last place` : `${seasonYear} season`
+      amount: settlement.amounts.get(row.user_id) || 0,
+      note: settlement.notes.get(row.user_id) || `${seasonYear} season`
     }));
-    const results = standings.map((row) => ({ group_id: season.group_id, season_year: seasonYear, profile_id: row.user_id, final_rank: row.rank, wins: row.wins, losses: row.losses, pushes: row.pushes, is_champion: row.user_id === winner.user_id, finalized_at: new Date().toISOString(), updated_at: new Date().toISOString() }));
+    const firstRank = standings[0]?.rank;
+    const results = standings.map((row) => ({
+      group_id: season.group_id,
+      season_year: seasonYear,
+      profile_id: row.user_id,
+      final_rank: row.rank,
+      wins: row.wins,
+      losses: row.losses,
+      pushes: row.pushes,
+      points: row.points ?? null,
+      is_champion: row.rank === firstRank,
+      finalized_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }));
     const [bankWrite, resultWrite] = await Promise.all([
       supabase.from("bank_entries").upsert(entries, { onConflict: "group_id,season_year,week,user_id" }),
       supabase.from("group_season_results").upsert(results, { onConflict: "group_id,season_year,profile_id" })
@@ -70,7 +111,7 @@ export async function settleSeasonIfReady(supabase: SupabaseClient, currentTime 
     if (bankWrite.error) throw new Error(bankWrite.error.message);
     if (resultWrite.error) throw new Error(resultWrite.error.message);
     settledGroups.push(season.group_id);
-    firstWinnerId ||= winner.user_id;
+    firstWinnerId ||= standings[0]?.user_id;
   }
 
   return settledGroups.length ? { settled: true, seasonYear, winnerId: firstWinnerId, groupsSettled: settledGroups } : { settled: false, reason: lastReason, seasonYear, groupsSettled: [] };
