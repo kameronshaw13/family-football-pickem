@@ -63,7 +63,7 @@ export default function TestIncomingOfferPreview() {
           />
           <div className="side-bet-offer-copy">
             <strong>Virginia at NC State +10.5</strong>
-            <p><span className="test-offer-sender">Test Player offered</span> · NC State +10.5 · Sat 2:30 PM</p>
+            <p><span className="test-offer-sender">Test Player</span> <span className="side-bet-response pending">offered</span> NC State +10.5 · Sat 2:30 PM</p>
           </div>
           <strong className="side-bet-offer-amount money-neutral">$20</strong>
         </div>
