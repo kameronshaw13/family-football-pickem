@@ -65,10 +65,23 @@ export default function PlayerProfiles() {
       if (name) void open(name);
     }
 
+    function activateFromKeyboard(event: KeyboardEvent) {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const button = target.closest<HTMLElement>(".player-profile-link[data-player-profile-name]");
+      const name = button?.dataset.playerProfileName || "";
+      if (!name) return;
+      event.preventDefault();
+      void open(name);
+    }
+
     document.addEventListener("click", activate);
+    document.addEventListener("keydown", activateFromKeyboard);
     return () => {
       active = false;
       document.removeEventListener("click", activate);
+      document.removeEventListener("keydown", activateFromKeyboard);
     };
   }, []);
 
@@ -120,6 +133,10 @@ export default function PlayerProfiles() {
     };
   }, [profile]);
 
+  const seasonRecord = profile ? record(profile.season.wins, profile.season.losses, profile.season.pushes) : "";
+  const sideBetRecord = profile ? record(profile.sideBets.wins, profile.sideBets.losses, profile.sideBets.pushes) : "";
+  const titleCount = profile?.legacy.titlesTracked ? profile.legacy.titles ?? 0 : "—";
+
   return <>
     {loadingName && <div className="profile-loading-toast" role="status">Loading {loadingName}…</div>}
     {error && <div className="profile-loading-toast profile-error-toast" role="alert">{error}</div>}
@@ -130,41 +147,38 @@ export default function PlayerProfiles() {
           <div className="pick-row-actions player-profile-close-wrap"><button type="button" className="icon-btn" aria-label="Close profile" onClick={() => setProfile(null)}><X size={16} /></button></div>
         </header>
 
-        <div className="player-profile-record">
-          <div><span>Season</span><strong>{record(profile.season.wins, profile.season.losses, profile.season.pushes)}</strong></div>
-          <div><span>Win %</span><strong>{(profile.season.winPct * 100).toFixed(1)}%</strong></div>
-          <div><span>Weekly Wins</span><strong>{profile.season.weeklyWins}</strong></div>
+        <div className="player-profile-scoreboard">
+          <div className="player-profile-season-mark">
+            <span>Season Record</span>
+            <strong>{seasonRecord}</strong>
+            <small>{(profile.season.winPct * 100).toFixed(1)}% win rate</small>
+          </div>
+          <div className="player-profile-title-mark">
+            <span>Shaw Titles</span>
+            <strong>{titleCount}</strong>
+          </div>
         </div>
 
-        <section className="player-profile-section">
-          <h3>Career Marks</h3>
-          <div className="player-profile-stat-grid">
-            <div><span>Shaw Pick'em Titles</span><strong>{profile.legacy.titlesTracked ? profile.legacy.titles : "—"}</strong></div>
-            <div><span>Longest Dog Won</span><strong>{profile.signature.longestDog ? spread(profile.signature.longestDog.spread) : "—"}</strong><small>{profile.signature.longestDog?.team || "No dog win yet"}</small></div>
-            <div><span>Most Picked Team</span><strong>{profile.signature.mostPickedTeam || "—"}</strong></div>
-            <div><span>Best Pick Streak</span><strong>{profile.signature.bestPickStreak || "—"}</strong></div>
+        <section className="player-profile-highlights" aria-label="Player highlights">
+          <div className="player-profile-highlight-row">
+            <span>Favorite Team Used</span>
+            <strong>{profile.signature.mostPickedTeam || "—"}</strong>
           </div>
-          {!profile.legacy.titlesTracked && <p className="player-profile-footnote">Historical titles can be added later.</p>}
-        </section>
-
-        <section className="player-profile-section">
-          <h3>Dogs &amp; Side Bets</h3>
-          <div className="player-profile-stat-grid compact">
-            <div><span>Dog Record</span><strong>{record(profile.signature.dogRecord.wins, profile.signature.dogRecord.losses, profile.signature.dogRecord.pushes)}</strong></div>
-            <div><span>Side Bet Record</span><strong>{record(profile.sideBets.wins, profile.sideBets.losses, profile.sideBets.pushes)}</strong></div>
-            <div><span>Side Bet Net</span><strong className={profile.sideBets.net > 0 ? "money-pos" : profile.sideBets.net < 0 ? "money-neg" : ""}>{profile.sideBets.netText}</strong></div>
+          <div className="player-profile-highlight-row">
+            <span>Biggest Dog Won</span>
+            <strong>{profile.signature.longestDog ? `${profile.signature.longestDog.team} ${spread(profile.signature.longestDog.spread)}` : "—"}</strong>
           </div>
         </section>
 
-        <section className="player-profile-section player-profile-rivals">
-          <h3>Head-to-Head</h3>
-          <div className="player-rival-labels"><span>Opponent</span><span>Opp. Picks</span><span>Side Bets</span><span>$</span></div>
-          {profile.headToHead.map((row) => <div className="player-rival-row" key={row.opponent}>
-            <strong>{row.opponent}</strong>
-            <span>{row.pickem.wins}-{row.pickem.losses}-{row.pickem.ties}</span>
-            <span>{row.sideBets.wins}-{row.sideBets.losses}-{row.sideBets.pushes}</span>
-            <strong className={row.sideBets.net > 0 ? "money-pos" : row.sideBets.net < 0 ? "money-neg" : ""}>{row.sideBets.netText}</strong>
-          </div>)}
+        <section className="player-profile-side-bets" aria-label="Side bet summary">
+          <div>
+            <span>Side Bet Record</span>
+            <strong>{sideBetRecord}</strong>
+          </div>
+          <div>
+            <span>Season Side Bet $</span>
+            <strong className={profile.sideBets.net > 0 ? "money-pos" : profile.sideBets.net < 0 ? "money-neg" : ""}>{profile.sideBets.netText}</strong>
+          </div>
         </section>
       </section>
     </div>}
