@@ -137,10 +137,12 @@ export function getGroupUnderdogBonus(context: GroupContext, spread: number | nu
 
 export function getGroupSideBetSettings(context: GroupContext) {
   const settings = context.rules?.sideBets || {};
+  const maxAmount = settings.maxAmount == null ? Infinity : Number(settings.maxAmount);
+  const maxPerWeek = settings.maxPerWeek == null ? Infinity : Number(settings.maxPerWeek);
   return {
     enabled: settings.enabled !== false,
-    maxAmount: Number.isFinite(Number(settings.maxAmount)) ? Number(settings.maxAmount) : 20,
-    maxPerWeek: Number.isFinite(Number(settings.maxPerWeek)) ? Number(settings.maxPerWeek) : 3
+    maxAmount: Number.isFinite(maxAmount) ? maxAmount : Infinity,
+    maxPerWeek: Number.isFinite(maxPerWeek) ? maxPerWeek : Infinity
   };
 }
 
