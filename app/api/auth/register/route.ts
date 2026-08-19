@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createProfileSession } from "@/lib/authServer";
-import { findFamilyUser } from "@/lib/authUsers";
+import { findFamilyUser, normalizeAppSlug } from "@/lib/authUsers";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { hashPassword, makeSessionToken } from "@/lib/passwords";
 
-const schema = z.object({ username: z.string().min(2), password: z.string().min(6) });
+const schema = z.object({ username: z.string().min(2), password: z.string().min(6), group: z.string().optional() });
 
 function publicProfile(profile: any) {
   return { id: profile.id, username: profile.username, display_name: profile.display_name, is_admin: profile.is_admin };
@@ -14,10 +14,14 @@ function publicProfile(profile: any) {
 export async function POST(req: NextRequest) {
   try {
     const body = schema.parse(await req.json());
-    const allowed = findFamilyUser(body.username);
-    if (!allowed) return NextResponse.json({ ok: false, error: "That name is not on the pick'em list." }, { status: 403 });
+    const groupSlug = normalizeAppSlug(body.group);
+    const allowed = findFamilyUser(body.username, groupSlug);
+    if (!allowed) return NextResponse.json({ ok: false, error: "That name is not on this pick'em list." }, { status: 403 });
 
     const supabase = getSupabaseAdmin();
+    const { data: group, error: groupError } = await supabase.from("pickem_groups").select("id").eq("slug", groupSlug).maybeSingle();
+    if (groupError || !group) return NextResponse.json({ ok: false, error: "This Pick'em app is not configured." }, { status: 500 });
+
     const { data: existingByUsername, error: existingError } = await supabase
       .from("profiles")
       .select("id,password_hash")
@@ -53,9 +57,26 @@ export async function POST(req: NextRequest) {
     const { data: profile, error } = await query;
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
+    const { data: membership, error: membershipReadError } = await supabase
+      .from("group_members")
+      .select("group_id")
+      .eq("group_id", group.id)
+      .eq("profile_id", profile.id)
+      .maybeSingle();
+    if (membershipReadError) return NextResponse.json({ ok: false, error: membershipReadError.message }, { status: 500 });
+    if (!membership) {
+      const { error: membershipError } = await supabase.from("group_members").insert({
+        group_id: group.id,
+        profile_id: profile.id,
+        role: allowed.isAdmin ? "admin" : "member",
+        status: "active"
+      });
+      if (membershipError) return NextResponse.json({ ok: false, error: membershipError.message }, { status: 500 });
+    }
+
     const sessionError = await createProfileSession(profile.id, token);
     if (sessionError) return NextResponse.json({ ok: false, error: `Account created, but this device session could not be saved: ${sessionError.message}` }, { status: 500 });
-    return NextResponse.json({ ok: true, token, profile: publicProfile(profile) });
+    return NextResponse.json({ ok: true, token, profile: publicProfile(profile), group: groupSlug });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
