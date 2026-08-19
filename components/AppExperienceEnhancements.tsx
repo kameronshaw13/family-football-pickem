@@ -105,7 +105,6 @@ function currentPanelKey() {
 }
 
 function restorePreferences() {
-  // A notification deep-link is more important than a remembered destination.
   if (new URL(window.location.href).searchParams.has("notification")) return;
   const prefs = readPreferences();
   if (prefs.mainTab) clickByLabel(document, ".primary-nav button", prefs.mainTab);
@@ -113,13 +112,9 @@ function restorePreferences() {
   window.setTimeout(() => {
     const panelKey = currentPanelKey();
     const panel = document.querySelector<HTMLElement>("main.container > section.panel");
-    if (panelKey && panel && prefs.sectionTabs?.[panelKey]) {
-      clickByLabel(panel, ".section-tabs button", prefs.sectionTabs[panelKey]);
-    }
+    if (panelKey && panel && prefs.sectionTabs?.[panelKey]) clickByLabel(panel, ".section-tabs button", prefs.sectionTabs[panelKey]);
     window.setTimeout(() => {
-      for (const [ariaLabel, selectedText] of Object.entries(prefs.menus || {})) {
-        chooseMenu(ariaLabel, selectedText);
-      }
+      for (const [ariaLabel, selectedText] of Object.entries(prefs.menus || {})) chooseMenu(ariaLabel, selectedText);
     }, 0);
   }, 0);
 }
@@ -140,13 +135,7 @@ function rememberClick(event: MouseEvent) {
     const label = cleanLabel(sectionButton);
     const panel = sectionButton.closest<HTMLElement>("section.panel");
     if (!label || !panel) return;
-    const key = panel.classList.contains("picks-panel")
-      ? "picks"
-      : panel.classList.contains("card-panel")
-        ? "card"
-        : panel.classList.contains("standings-panel")
-          ? "standings"
-          : null;
+    const key = panel.classList.contains("picks-panel") ? "picks" : panel.classList.contains("card-panel") ? "card" : panel.classList.contains("standings-panel") ? "standings" : null;
     if (key) updatePreferences((prefs) => ({ ...prefs, sectionTabs: { ...(prefs.sectionTabs || {}), [key]: label } }));
     return;
   }
@@ -161,95 +150,22 @@ function rememberClick(event: MouseEvent) {
   updatePreferences((prefs) => ({ ...prefs, menus: { ...(prefs.menus || {}), [ariaLabel]: label } }));
 }
 
-function appendText(parent: Node, text: string) {
-  parent.appendChild(document.createTextNode(text));
-}
-
-function createOptimisticCard(selectedTeam: string, spread: string, amount: string, recipients: string) {
-  const card = document.createElement("article");
-  card.className = "side-bet-card mode-sent open optimistic-side-bet";
-
-  const row = document.createElement("div");
-  row.className = "side-bet-offer-row";
-  const logo = document.createElement("div");
-  logo.className = "team-logo fallback";
-  logo.textContent = selectedTeam.slice(0, 1);
-
-  const copy = document.createElement("div");
-  copy.className = "side-bet-offer-copy";
-  const title = document.createElement("strong");
-  title.textContent = `${selectedTeam} ${spread}`.trim();
-  const detail = document.createElement("p");
-  const pending = document.createElement("span");
-  pending.className = "side-bet-response pending";
-  pending.textContent = "Sending";
-  detail.appendChild(pending);
-  appendText(detail, ` to ${recipients}`);
-  copy.append(title, detail);
-
-  const amountNode = document.createElement("strong");
-  amountNode.className = "side-bet-offer-amount money-neutral";
-  amountNode.textContent = amount;
-  row.append(logo, copy, amountNode);
-  card.appendChild(row);
-  return card;
-}
-
-function optimisticOfferPreview(event: MouseEvent) {
-  const target = event.target;
-  if (!(target instanceof Element)) return;
-  const submit = target.closest<HTMLButtonElement>(".side-bet-slip-submit");
-  if (!submit || submit.disabled) return;
-  const sheet = submit.closest<HTMLElement>(".side-bet-slip-sheet");
-  if (!sheet) return;
-
-  const selectedTeam = sheet.querySelector<HTMLElement>(".side-bet-slip-selection .team-name")?.textContent?.trim() || "Selected team";
-  const spread = sheet.querySelector<HTMLElement>(".side-bet-slip-selection .team-spread")?.textContent?.trim() || "";
-  const amount = sheet.querySelector<HTMLButtonElement>(".side-bet-amount-grid button.active")?.textContent?.trim() || "$20";
-  const recipients = Array.from(sheet.querySelectorAll<HTMLInputElement>('.side-bet-recipient-grid input[type="checkbox"]:checked'))
-    .map((input) => input.closest("label")?.querySelector("span")?.textContent?.trim())
-    .filter((value): value is string => Boolean(value))
-    .join(" or ") || "recipient";
-
-  // Let the real React submit handler start first, then move the UI to Sent.
-  window.setTimeout(() => {
-    const trigger = document.querySelector<HTMLButtonElement>('button[aria-label="Choose side bet view"]');
-    if (!trigger) return;
-    trigger.click();
-    window.requestAnimationFrame(() => {
-      const root = trigger.closest(".custom-select");
-      if (root) clickByLabel(root, ".custom-select-option", "Sent");
-      window.requestAnimationFrame(() => {
-        const list = document.querySelector<HTMLElement>(".side-bet-center .side-bet-list");
-        if (!list || list.querySelector(".optimistic-side-bet")) return;
-        list.prepend(createOptimisticCard(selectedTeam, spread, amount, recipients));
-      });
-    });
-  }, 0);
-}
-
-function settleOptimisticCard() {
-  const optimistic = document.querySelector<HTMLElement>(".optimistic-side-bet");
-  if (!optimistic) return;
-  const toastText = document.querySelector<HTMLElement>(".toast")?.textContent || "";
-  if (/Side bet offer sent|Side bet action failed|could not|failed/i.test(toastText)) optimistic.remove();
-}
-
 function teamLogo(bet: LedgerBet, team: string) {
   if (!bet.game) return null;
   return team === bet.game.home_team ? bet.game.home_logo_url || null : bet.game.away_logo_url || null;
 }
 
 function spreadText(value: number | string) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return "";
-  if (n === 0) return "PK";
-  return `${n > 0 ? "+" : ""}${n}`;
+  const spread = Number(value);
+  if (!Number.isFinite(spread)) return "";
+  if (spread === 0) return "PK";
+  return `${spread > 0 ? "+" : ""}${spread}`;
 }
 
 function moneyText(value: number) {
   const sign = value > 0 ? "+" : value < 0 ? "-" : "";
-  return `${sign}$${Math.abs(value).toFixed(Number.isInteger(Math.abs(value)) ? 0 : 2)}`;
+  const absolute = Math.abs(value);
+  return `${sign}$${absolute.toFixed(Number.isInteger(absolute) ? 0 : 2)}`;
 }
 
 function createLedgerRow(bet: LedgerBet, currentUserId: string) {
@@ -261,9 +177,7 @@ function createLedgerRow(bet: LedgerBet, currentUserId: string) {
   const acceptorName = bet.accepted_by_profile?.display_name || "Opponent";
   const winnerName = bet.result === "creator_win" ? creatorName : bet.result === "acceptor_win" ? acceptorName : null;
   const stake = Number(bet.amount);
-  const userWon = bet.winner_id === currentUserId ||
-    (!bet.winner_id && bet.result === "creator_win" && bet.creator_id === currentUserId) ||
-    (!bet.winner_id && bet.result === "acceptor_win" && bet.accepted_by === currentUserId);
+  const userWon = bet.winner_id === currentUserId || (!bet.winner_id && bet.result === "creator_win" && bet.creator_id === currentUserId) || (!bet.winner_id && bet.result === "acceptor_win" && bet.accepted_by === currentUserId);
   const involved = bet.creator_id === currentUserId || bet.accepted_by === currentUserId;
   const amount = bet.result === "push" || !involved ? 0 : userWon ? stake : -stake;
 
@@ -309,7 +223,8 @@ function renderLedger(payload: SideBetPayload, selectedWeek: number) {
   const currentWeek = Number(payload.week ?? Math.max(...(payload.availableWeeks?.length ? payload.availableWeeks : [0])));
   const weeks = Array.from(new Set((payload.availableWeeks || [currentWeek]).filter((week) => week <= currentWeek))).sort((a, b) => b - a);
   const safeWeek = weeks.includes(selectedWeek) ? selectedWeek : currentWeek;
-  const renderKey = `${safeWeek}:${(payload.sideBets || []).filter((bet) => bet.status === "settled").map((bet) => `${bet.id}:${bet.status}:${bet.result}:${bet.winner_id || ""}`).join("|")}`;
+  const settled = (payload.sideBets || []).filter((bet) => bet.status === "settled" && Number(bet.week) === safeWeek);
+  const renderKey = `${safeWeek}:${settled.map((bet) => `${bet.id}:${bet.result}:${bet.winner_id || ""}`).join("|")}`;
   if (section.dataset.ledgerRenderKey === renderKey) return;
   section.dataset.ledgerRenderKey = renderKey;
 
@@ -320,6 +235,7 @@ function renderLedger(payload: SideBetPayload, selectedWeek: number) {
     section.querySelector<HTMLElement>(".standings-heading-row")?.appendChild(controls);
   }
   controls.replaceChildren();
+
   const select = document.createElement("select");
   select.className = "ledger-week-select";
   select.setAttribute("aria-label", "Select side bet ledger week");
@@ -348,7 +264,6 @@ function renderLedger(payload: SideBetPayload, selectedWeek: number) {
   }
   list.replaceChildren();
 
-  const settled = (payload.sideBets || []).filter((bet) => bet.status === "settled" && Number(bet.week) === safeWeek);
   if (!settled.length) {
     const empty = document.createElement("p");
     empty.className = "muted";
@@ -356,6 +271,7 @@ function renderLedger(payload: SideBetPayload, selectedWeek: number) {
     list.appendChild(empty);
     return;
   }
+
   for (const bet of settled) list.appendChild(createLedgerRow(bet, payload.currentUser?.id || ""));
 }
 
@@ -363,7 +279,10 @@ async function loadLedgerPayload() {
   const token = window.localStorage.getItem("pickem_session_token");
   if (!token) return null;
   try {
-    const response = await fetch("/api/app-data", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+    const response = await fetch("/api/app-data", {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store"
+    });
     return response.ok ? await response.json() as SideBetPayload : null;
   } catch {
     return null;
@@ -406,7 +325,6 @@ export default function AppExperienceEnhancements() {
           restored = true;
           restorePreferences();
         }
-        settleOptimisticCard();
         void refreshLedger();
       });
     }
@@ -415,7 +333,6 @@ export default function AppExperienceEnhancements() {
     observer.observe(document.body, { subtree: true, childList: true, characterData: true });
     const onFocus = () => void refreshLedger(true);
     document.addEventListener("click", rememberClick, true);
-    document.addEventListener("click", optimisticOfferPreview, true);
     window.addEventListener("focus", onFocus);
     schedule();
 
@@ -424,7 +341,6 @@ export default function AppExperienceEnhancements() {
       window.cancelAnimationFrame(frame);
       observer.disconnect();
       document.removeEventListener("click", rememberClick, true);
-      document.removeEventListener("click", optimisticOfferPreview, true);
       window.removeEventListener("focus", onFocus);
     };
   }, []);
