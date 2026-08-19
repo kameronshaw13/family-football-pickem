@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createProfileSession } from "@/lib/authServer";
+import { normalizeAppSlug } from "@/lib/authUsers";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { makeSessionToken, verifyPassword } from "@/lib/passwords";
 
-const schema = z.object({ username: z.string().min(2), password: z.string().min(6) });
+const schema = z.object({ username: z.string().min(2), password: z.string().min(6), group: z.string().optional() });
 
 function publicProfile(profile: any) {
   return { id: profile.id, username: profile.username, display_name: profile.display_name, is_admin: profile.is_admin };
@@ -14,6 +15,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = schema.parse(await req.json());
     const username = body.username.trim().toLowerCase();
+    const groupSlug = normalizeAppSlug(body.group);
     const supabase = getSupabaseAdmin();
 
     const { data: profile, error } = await supabase
@@ -25,11 +27,23 @@ export async function POST(req: NextRequest) {
     if (!profile?.password_hash) return NextResponse.json({ ok: false, error: "Account not created yet. Choose Create account first." }, { status: 404 });
     if (!verifyPassword(body.password, profile.password_hash)) return NextResponse.json({ ok: false, error: "Incorrect password." }, { status: 401 });
 
+    const { data: group, error: groupError } = await supabase.from("pickem_groups").select("id").eq("slug", groupSlug).maybeSingle();
+    if (groupError || !group) return NextResponse.json({ ok: false, error: "This Pick'em app is not configured." }, { status: 500 });
+    const { data: membership, error: membershipError } = await supabase
+      .from("group_members")
+      .select("status")
+      .eq("group_id", group.id)
+      .eq("profile_id", profile.id)
+      .eq("status", "active")
+      .maybeSingle();
+    if (membershipError) return NextResponse.json({ ok: false, error: membershipError.message }, { status: 500 });
+    if (!membership) return NextResponse.json({ ok: false, error: "Your account is not in this Pick'em app." }, { status: 403 });
+
     const token = makeSessionToken();
     const sessionError = await createProfileSession(profile.id, token);
     if (sessionError) return NextResponse.json({ ok: false, error: `Could not create this device session: ${sessionError.message}` }, { status: 500 });
 
-    return NextResponse.json({ ok: true, token, profile: publicProfile(profile) });
+    return NextResponse.json({ ok: true, token, profile: publicProfile(profile), group: groupSlug });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
