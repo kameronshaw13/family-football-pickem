@@ -17,10 +17,10 @@ function mostCommon(values: string[]) {
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || null;
 }
 
-function outcomeValue(result: string) {
-  if (result === "win") return 2;
-  if (result === "push") return 1;
-  return 0;
+function yearFrom(value?: string | null) {
+  if (!value) return null;
+  const year = new Date(value).getFullYear();
+  return Number.isFinite(year) ? year : null;
 }
 
 export async function GET(req: NextRequest) {
@@ -30,12 +30,15 @@ export async function GET(req: NextRequest) {
   try {
     const requestedName = req.nextUrl.searchParams.get("name")?.trim();
     if (!requestedName) return NextResponse.json({ ok: false, error: "Missing player name." }, { status: 400 });
+
+    const requestedYearText = req.nextUrl.searchParams.get("year")?.trim() || "all";
+    const requestedYear = /^\d{4}$/.test(requestedYearText) ? Number(requestedYearText) : null;
     const supabase = getSupabaseAdmin();
 
     const [profilesResult, picksResult, sideBetsResult] = await Promise.all([
       supabase.from("profiles").select("id,display_name").order("display_name", { ascending: true }),
       supabase.from("picks").select("*, game:games(id,commence_time,away_team,home_team)").order("created_at", { ascending: true }),
-      supabase.from("side_bets").select("id,creator_id,accepted_by,amount,status,result,winner_id,week")
+      supabase.from("side_bets").select("id,creator_id,accepted_by,amount,status,result,winner_id,week,created_at")
     ]);
     if (profilesResult.error) throw new Error(profilesResult.error.message);
     if (picksResult.error) throw new Error(picksResult.error.message);
@@ -45,50 +48,33 @@ export async function GET(req: NextRequest) {
     const player = profiles.find((profile) => profile.display_name.toLowerCase() === requestedName.toLowerCase());
     if (!player) return NextResponse.json({ ok: false, error: "Player not found." }, { status: 404 });
 
-    const allLocked = (picksResult.data || []).filter((pick) => pick.status === "locked");
-    const playerPicks = allLocked.filter((pick) => pick.user_id === player.id);
-    const standings = computeWeeklyStandings(profiles, allLocked as any);
+    const allPicks = picksResult.data || [];
+    const allLocked = allPicks.filter((pick) => pick.status === "locked");
+    const allSideBets = sideBetsResult.data || [];
+    const availableYears = Array.from(new Set([
+      ...allPicks.map((pick) => yearFrom(pick.game?.commence_time || pick.created_at)),
+      ...allSideBets.map((bet) => yearFrom(bet.created_at))
+    ].filter((year): year is number => year != null))).sort((a, b) => b - a);
+
+    const selectedYear = requestedYear && availableYears.includes(requestedYear) ? requestedYear : null;
+    const periodLocked = selectedYear == null
+      ? allLocked
+      : allLocked.filter((pick) => yearFrom(pick.game?.commence_time || pick.created_at) === selectedYear);
+    const playerPicks = periodLocked.filter((pick) => pick.user_id === player.id);
+    const standings = computeWeeklyStandings(profiles, periodLocked as any);
     const standing = standings.find((row) => row.user_id === player.id) || { wins: 0, losses: 0, pushes: 0, win_pct: 0 };
 
     const completedDogs = playerPicks.filter((pick) => pick.pick_type === "underdog" && pick.result !== "pending");
-    const dogWins = completedDogs.filter((pick) => pick.result === "win").length;
-    const dogLosses = completedDogs.filter((pick) => pick.result === "loss").length;
-    const dogPushes = completedDogs.filter((pick) => pick.result === "push").length;
     const longestDog = completedDogs
       .filter((pick) => pick.result === "win" && Number(pick.locked_spread) > 0)
       .sort((a, b) => Number(b.locked_spread) - Number(a.locked_spread))[0] || null;
-
     const mostPickedTeam = mostCommon(playerPicks.map((pick) => pick.selected_team));
-    const completedPicks = playerPicks
-      .filter((pick) => pick.result !== "pending")
-      .sort((a, b) => new Date(a.game?.commence_time || a.created_at).getTime() - new Date(b.game?.commence_time || b.created_at).getTime());
-    let bestStreak = 0;
-    let streak = 0;
-    for (const pick of completedPicks) {
-      if (pick.result === "win") {
-        streak += 1;
-        bestStreak = Math.max(bestStreak, streak);
-      } else if (pick.result === "loss") {
-        streak = 0;
-      }
-    }
 
-    const byWeek = new Map<number, any[]>();
-    for (const pick of allLocked) {
-      const week = Number(pick.week);
-      const rows = byWeek.get(week) || [];
-      rows.push(pick);
-      byWeek.set(week, rows);
-    }
-    let weeklyWins = 0;
-    for (const [, rows] of Array.from(byWeek.entries())) {
-      if (!rows.length || rows.some((pick) => pick.result === "pending")) continue;
-      const weekStandings = computeWeeklyStandings(profiles, rows as any);
-      const row = weekStandings.find((item) => item.user_id === player.id);
-      if (row?.rank === 1) weeklyWins += 1;
-    }
-
-    const settledSideBets = (sideBetsResult.data || []).filter((bet) => bet.status === "settled" && (bet.creator_id === player.id || bet.accepted_by === player.id));
+    const settledSideBets = allSideBets.filter((bet) =>
+      bet.status === "settled" &&
+      (bet.creator_id === player.id || bet.accepted_by === player.id) &&
+      (selectedYear == null || yearFrom(bet.created_at) === selectedYear)
+    );
     let sideBetWins = 0;
     let sideBetLosses = 0;
     let sideBetPushes = 0;
@@ -104,63 +90,32 @@ export async function GET(req: NextRequest) {
       sideBetNet += won ? Number(bet.amount) : -Number(bet.amount);
     }
 
-    const completedRegularPicks = allLocked.filter((pick) => pick.pick_type === "regular" && pick.result !== "pending");
-    const playerRegularPicks = completedRegularPicks.filter((pick) => pick.user_id === player.id);
-
-    const headToHead = profiles.filter((opponent) => opponent.id !== player.id).map((opponent) => {
-      let wins = 0;
-      let losses = 0;
-      let ties = 0;
-      const opponentByGame = new Map(
-        completedRegularPicks
-          .filter((pick) => pick.user_id === opponent.id)
-          .map((pick) => [pick.game_id, pick] as const)
-      );
-
-      for (const mine of playerRegularPicks) {
-        const theirs = opponentByGame.get(mine.game_id);
-        if (!theirs || mine.selected_team === theirs.selected_team) continue;
-        const mineValue = outcomeValue(mine.result);
-        const theirValue = outcomeValue(theirs.result);
-        if (mineValue > theirValue) wins += 1;
-        else if (mineValue < theirValue) losses += 1;
-        else ties += 1;
-      }
-
-      const versusBets = settledSideBets.filter((bet) =>
-        (bet.creator_id === player.id && bet.accepted_by === opponent.id) ||
-        (bet.creator_id === opponent.id && bet.accepted_by === player.id)
-      );
-      let betWins = 0;
-      let betLosses = 0;
-      let betPushes = 0;
-      let net = 0;
-      for (const bet of versusBets) {
-        if (bet.result === "push") {
-          betPushes += 1;
-          continue;
-        }
-        const won = bet.winner_id === player.id;
-        if (won) betWins += 1;
-        else betLosses += 1;
-        net += won ? Number(bet.amount) : -Number(bet.amount);
-      }
-      return { opponent: opponent.display_name, pickem: { wins, losses, ties }, sideBets: { wins: betWins, losses: betLosses, pushes: betPushes, net, netText: money(net) } };
-    });
-
     return NextResponse.json({
       ok: true,
       player: { id: player.id, displayName: player.display_name },
-      season: { wins: standing.wins, losses: standing.losses, pushes: standing.pushes, winPct: standing.win_pct, weeklyWins },
+      period: {
+        selected: selectedYear == null ? "all" : String(selectedYear),
+        label: selectedYear == null ? "All Time" : String(selectedYear),
+        availableYears
+      },
+      season: {
+        wins: standing.wins,
+        losses: standing.losses,
+        pushes: standing.pushes,
+        winPct: standing.win_pct
+      },
       legacy: { titles: null, titlesTracked: false },
       signature: {
         longestDog: longestDog ? { team: longestDog.selected_team, spread: Number(longestDog.locked_spread) } : null,
-        mostPickedTeam,
-        bestPickStreak: bestStreak,
-        dogRecord: { wins: dogWins, losses: dogLosses, pushes: dogPushes }
+        mostPickedTeam
       },
-      sideBets: { wins: sideBetWins, losses: sideBetLosses, pushes: sideBetPushes, net: sideBetNet, netText: money(sideBetNet) },
-      headToHead
+      sideBets: {
+        wins: sideBetWins,
+        losses: sideBetLosses,
+        pushes: sideBetPushes,
+        net: sideBetNet,
+        netText: money(sideBetNet)
+      }
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });

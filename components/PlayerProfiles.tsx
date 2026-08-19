@@ -2,23 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import MenuSelect from "@/components/MenuSelect";
 
 type ProfilePayload = {
   player: { id: string; displayName: string };
-  season: { wins: number; losses: number; pushes: number; winPct: number; weeklyWins: number };
+  period: { selected: string; label: string; availableYears: number[] };
+  season: { wins: number; losses: number; pushes: number; winPct: number };
   legacy: { titles: number | null; titlesTracked: boolean };
   signature: {
     longestDog: { team: string; spread: number } | null;
     mostPickedTeam: string | null;
-    bestPickStreak: number;
-    dogRecord: { wins: number; losses: number; pushes: number };
   };
   sideBets: { wins: number; losses: number; pushes: number; net: number; netText: string };
-  headToHead: Array<{
-    opponent: string;
-    pickem: { wins: number; losses: number; ties: number };
-    sideBets: { wins: number; losses: number; pushes: number; net: number; netText: string };
-  }>;
 };
 
 function record(wins: number, losses: number, pushes: number) {
@@ -31,38 +26,44 @@ function spread(value: number) {
 
 export default function PlayerProfiles() {
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
-  const [loadingName, setLoadingName] = useState("");
+  const [activeName, setActiveName] = useState("");
+  const [period, setPeriod] = useState("all");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    let active = true;
-
-    async function open(name: string) {
-      const token = window.localStorage.getItem("pickem_session_token");
-      if (!token || !name) return;
-      setLoadingName(name);
-      setError("");
-      try {
-        const response = await fetch(`/api/player-profile?name=${encodeURIComponent(name)}`, {
-          headers: { Authorization: `Bearer ${token}` },
-          cache: "no-store"
-        });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error || "Could not load player profile.");
-        if (active) setProfile(payload as ProfilePayload);
-      } catch (cause) {
-        if (active) setError(cause instanceof Error ? cause.message : "Could not load player profile.");
-      } finally {
-        if (active) setLoadingName("");
-      }
+  async function loadProfile(name: string, nextPeriod: string, initial = false) {
+    const token = window.localStorage.getItem("pickem_session_token");
+    if (!token || !name) return;
+    if (initial) setProfile(null);
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/player-profile?name=${encodeURIComponent(name)}&year=${encodeURIComponent(nextPeriod)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store"
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Could not load player profile.");
+      setProfile(payload as ProfilePayload);
+      setPeriod((payload as ProfilePayload).period.selected);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not load player profile.");
+      if (profile) setPeriod(profile.period.selected);
+    } finally {
+      setLoading(false);
     }
+  }
 
+  useEffect(() => {
     function activate(event: MouseEvent) {
       const target = event.target;
       if (!(target instanceof Element)) return;
       const button = target.closest<HTMLElement>(".player-profile-link[data-player-profile-name]");
       const name = button?.dataset.playerProfileName || "";
-      if (name) void open(name);
+      if (!name) return;
+      setActiveName(name);
+      setPeriod("all");
+      void loadProfile(name, "all", true);
     }
 
     function activateFromKeyboard(event: KeyboardEvent) {
@@ -73,13 +74,14 @@ export default function PlayerProfiles() {
       const name = button?.dataset.playerProfileName || "";
       if (!name) return;
       event.preventDefault();
-      void open(name);
+      setActiveName(name);
+      setPeriod("all");
+      void loadProfile(name, "all", true);
     }
 
     document.addEventListener("click", activate);
     document.addEventListener("keydown", activateFromKeyboard);
     return () => {
-      active = false;
       document.removeEventListener("click", activate);
       document.removeEventListener("keydown", activateFromKeyboard);
     };
@@ -88,98 +90,80 @@ export default function PlayerProfiles() {
   useEffect(() => {
     if (!profile) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setProfile(null);
+      if (event.key === "Escape") {
+        setProfile(null);
+        setActiveName("");
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [profile]);
 
-  useEffect(() => {
-    if (!profile) return;
-    const scrollY = window.scrollY;
-    const body = document.body;
-    const html = document.documentElement;
-    const previous = {
-      position: body.style.position,
-      top: body.style.top,
-      left: body.style.left,
-      right: body.style.right,
-      width: body.style.width,
-      overflow: body.style.overflow,
-      htmlOverflow: html.style.overflow
-    };
-
-    html.classList.add("player-profile-open");
-    body.classList.add("player-profile-open");
-    html.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.width = "100%";
-    body.style.overflow = "hidden";
-
-    return () => {
-      html.classList.remove("player-profile-open");
-      body.classList.remove("player-profile-open");
-      html.style.overflow = previous.htmlOverflow;
-      body.style.position = previous.position;
-      body.style.top = previous.top;
-      body.style.left = previous.left;
-      body.style.right = previous.right;
-      body.style.width = previous.width;
-      body.style.overflow = previous.overflow;
-      window.scrollTo(0, scrollY);
-    };
-  }, [profile]);
-
+  const periodOptions = profile
+    ? [{ value: "all", label: "All Time" }, ...profile.period.availableYears.map((year) => ({ value: String(year), label: String(year) }))]
+    : [{ value: "all", label: "All Time" }];
   const seasonRecord = profile ? record(profile.season.wins, profile.season.losses, profile.season.pushes) : "";
   const sideBetRecord = profile ? record(profile.sideBets.wins, profile.sideBets.losses, profile.sideBets.pushes) : "";
   const titleCount = profile?.legacy.titlesTracked ? profile.legacy.titles ?? 0 : "—";
+  const periodHeading = period === "all" ? "All-Time Pick'em" : `${period} Season`;
+  const sideBetHeading = period === "all" ? "All-Time Side Bets" : `${period} Side Bets`;
+
+  function closeProfile() {
+    setProfile(null);
+    setActiveName("");
+    setError("");
+  }
 
   return <>
-    {loadingName && <div className="profile-loading-toast" role="status">Loading {loadingName}…</div>}
+    {loading && !profile && activeName && <div className="profile-loading-toast" role="status">Loading {activeName}…</div>}
     {error && <div className="profile-loading-toast profile-error-toast" role="alert">{error}</div>}
-    {profile && <div className="player-profile-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setProfile(null); }}>
+    {profile && <div className="player-profile-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) closeProfile(); }}>
       <section className="player-profile-sheet" role="dialog" aria-modal="true" aria-labelledby="player-profile-title">
         <header className="player-profile-head">
-          <div><span>Player Profile</span><h2 id="player-profile-title">{profile.player.displayName}</h2></div>
-          <div className="pick-row-actions player-profile-close-wrap"><button type="button" className="icon-btn" aria-label="Close profile" onClick={() => setProfile(null)}><X size={16} /></button></div>
+          <div className="player-profile-head-copy"><span>Player Profile</span><h2 id="player-profile-title">{profile.player.displayName}</h2></div>
+          <MenuSelect
+            ariaLabel="Select profile year"
+            className="week-select-wrap header-menu-select profile-year-select"
+            value={period}
+            loading={loading}
+            sections={[{ options: periodOptions }]}
+            onChange={(value) => {
+              setPeriod(value);
+              void loadProfile(activeName, value);
+            }}
+          />
+          <div className="pick-row-actions player-profile-close-wrap"><button type="button" className="icon-btn" aria-label="Close profile" onClick={closeProfile}><X size={16} /></button></div>
         </header>
 
-        <div className="player-profile-scoreboard">
-          <div className="player-profile-season-mark">
-            <span>Season Record</span>
-            <strong>{seasonRecord}</strong>
-            <small>{(profile.season.winPct * 100).toFixed(1)}% win rate</small>
-          </div>
-          <div className="player-profile-title-mark">
-            <span>Shaw Titles</span>
-            <strong>{titleCount}</strong>
-          </div>
+        <div className="player-profile-content">
+          <section className="player-profile-block player-profile-performance">
+            <div className="player-profile-section-heading"><h3>{periodHeading}</h3></div>
+            <div className="player-profile-performance-row">
+              <div className="player-profile-record-mark"><span>Record</span><strong>{seasonRecord}</strong></div>
+              <div className="player-profile-win-mark"><span>Win Rate</span><strong>{(profile.season.winPct * 100).toFixed(1)}%</strong></div>
+            </div>
+          </section>
+
+          <section className="player-profile-block player-profile-highlights">
+            <div className="player-profile-section-heading"><h3>Pick'em Highlights</h3></div>
+            <div className="player-profile-legacy-row">
+              <div><span>Career Titles</span><small>Shaw Pick'em</small></div>
+              <strong>{titleCount}</strong>
+            </div>
+            <div className="player-profile-highlight-stack">
+              <div><span>Favorite Team Used</span><strong>{profile.signature.mostPickedTeam || "—"}</strong></div>
+              <div><span>Biggest Dog Won</span><strong>{profile.signature.longestDog ? `${profile.signature.longestDog.team} ${spread(profile.signature.longestDog.spread)}` : "—"}</strong></div>
+            </div>
+          </section>
+
+          <section className="player-profile-block player-profile-side-bets">
+            <div className="player-profile-section-heading"><h3>{sideBetHeading}</h3></div>
+            <div className="player-profile-side-bet-metrics">
+              <div><span>Record</span><strong>{sideBetRecord}</strong></div>
+              <div><span>Net $</span><strong className={profile.sideBets.net > 0 ? "money-pos" : profile.sideBets.net < 0 ? "money-neg" : ""}>{profile.sideBets.netText}</strong></div>
+            </div>
+          </section>
         </div>
-
-        <section className="player-profile-highlights" aria-label="Player highlights">
-          <div className="player-profile-highlight-row">
-            <span>Favorite Team Used</span>
-            <strong>{profile.signature.mostPickedTeam || "—"}</strong>
-          </div>
-          <div className="player-profile-highlight-row">
-            <span>Biggest Dog Won</span>
-            <strong>{profile.signature.longestDog ? `${profile.signature.longestDog.team} ${spread(profile.signature.longestDog.spread)}` : "—"}</strong>
-          </div>
-        </section>
-
-        <section className="player-profile-side-bets" aria-label="Side bet summary">
-          <div>
-            <span>Side Bet Record</span>
-            <strong>{sideBetRecord}</strong>
-          </div>
-          <div>
-            <span>Season Side Bet $</span>
-            <strong className={profile.sideBets.net > 0 ? "money-pos" : profile.sideBets.net < 0 ? "money-neg" : ""}>{profile.sideBets.netText}</strong>
-          </div>
-        </section>
       </section>
     </div>}
   </>;

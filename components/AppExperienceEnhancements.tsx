@@ -10,7 +10,7 @@ type Preferences = {
 
 const STORAGE_KEY = "pickem_ui_preferences_v2";
 const LEGACY_STORAGE_KEY = "pickem_ui_preferences_v1";
-const WEEK_MENU_LABELS = new Set(["Select week"]);
+const WEEK_MENU_LABELS = new Set(["Select week", "Select profile year"]);
 
 function readPreferences(): Preferences {
   try {
@@ -122,6 +122,13 @@ function rememberClick(event: MouseEvent) {
   updatePreferences((prefs) => ({ ...prefs, menus: { ...(prefs.menus || {}), [ariaLabel]: label } }));
 }
 
+function closeConfirmationOnBackdrop(event: PointerEvent) {
+  const target = event.target;
+  if (!(target instanceof Element) || !target.classList.contains("confirmation-backdrop")) return;
+  const cancel = target.querySelector<HTMLButtonElement>(".confirmation-actions .btn.secondary");
+  cancel?.click();
+}
+
 export default function AppExperienceEnhancements() {
   useEffect(() => {
     let active = true;
@@ -144,6 +151,7 @@ export default function AppExperienceEnhancements() {
     const restoreObserver = new MutationObserver(scheduleRestore);
     restoreObserver.observe(document.body, { subtree: true, childList: true });
     document.addEventListener("click", rememberClick, true);
+    document.addEventListener("pointerdown", closeConfirmationOnBackdrop, true);
     scheduleRestore();
 
     return () => {
@@ -151,6 +159,7 @@ export default function AppExperienceEnhancements() {
       window.cancelAnimationFrame(frame);
       restoreObserver.disconnect();
       document.removeEventListener("click", rememberClick, true);
+      document.removeEventListener("pointerdown", closeConfirmationOnBackdrop, true);
     };
   }, []);
 

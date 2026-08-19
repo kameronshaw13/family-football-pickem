@@ -7,6 +7,19 @@ body {
   background: var(--canvas);
 }
 
+html:has(.player-profile-backdrop),
+body:has(.player-profile-backdrop),
+html:has(.confirmation-backdrop),
+body:has(.confirmation-backdrop) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.confirmation-backdrop {
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
 .player-profile-link {
   cursor: pointer;
   text-decoration: underline;
@@ -20,12 +33,6 @@ body {
   border-radius: 2px;
 }
 
-html.player-profile-open,
-body.player-profile-open {
-  background: var(--graphite) !important;
-  overscroll-behavior: none;
-}
-
 .player-profile-backdrop {
   position: fixed;
   inset: 0;
@@ -34,24 +41,13 @@ body.player-profile-open {
   place-items: center;
   overflow: hidden;
   padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
-  background: rgba(20, 33, 43, .58);
-}
-
-.player-profile-backdrop::before {
-  position: fixed;
-  inset: 0 0 auto;
-  z-index: 3;
-  height: max(env(safe-area-inset-top), 1px);
-  background: var(--graphite);
-  content: "";
-  pointer-events: none;
+  background: transparent;
 }
 
 .player-profile-sheet {
   position: relative;
-  z-index: 2;
-  width: min(370px, 100%);
-  overflow: hidden;
+  width: min(390px, 100%);
+  overflow: visible;
   border: 1px solid #4c5a61;
   border-radius: 8px;
   background: var(--panel);
@@ -61,19 +57,22 @@ body.player-profile-open {
 .player-profile-head {
   position: relative;
   display: flex;
-  min-height: 58px;
+  min-height: 62px;
   align-items: center;
-  justify-content: flex-start;
-  padding: 9px 50px 9px 14px;
+  padding: 9px 148px 9px 14px;
   border-bottom: 1px solid #59676e;
+  border-radius: 8px 8px 0 0;
   color: #fff;
   background: var(--graphite);
-  text-align: left;
 }
 
-.player-profile-head span {
+.player-profile-head-copy {
+  min-width: 0;
+}
+
+.player-profile-head-copy > span {
   display: block;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
   color: #bdc9ce;
   font-size: 7.5px;
   font-weight: 800;
@@ -84,11 +83,26 @@ body.player-profile-open {
 
 .player-profile-head h2 {
   margin: 0;
+  overflow: hidden;
   color: #fff;
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 800;
   line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-year-select {
+  position: absolute;
+  top: 50%;
+  right: 48px;
+  z-index: 8;
+  transform: translateY(-50%);
+}
+
+.profile-year-select .custom-select-menu {
+  z-index: 150;
 }
 
 .player-profile-close-wrap {
@@ -99,35 +113,52 @@ body.player-profile-open {
   transform: translateY(-50%);
 }
 
-.player-profile-scoreboard {
-  display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(92px, .55fr);
-  min-height: 74px;
+.player-profile-content {
+  overflow: hidden;
+  border-radius: 0 0 8px 8px;
+  background: var(--panel);
+}
+
+.player-profile-block {
+  padding: 12px 14px 13px;
   border-bottom: 1px solid var(--line-strong);
+}
+
+.player-profile-block:last-child {
+  border-bottom: 0;
+}
+
+.player-profile-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.player-profile-section-heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .01em;
+}
+
+.player-profile-performance {
   background: var(--surface-muted);
 }
 
-.player-profile-scoreboard > div {
-  min-width: 0;
-  padding: 10px 12px;
+.player-profile-performance-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 22px;
 }
 
-.player-profile-season-mark {
-  border-right: 1px solid var(--line);
-  text-align: left;
-}
-
-.player-profile-title-mark {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: center;
-  text-align: right;
-}
-
-.player-profile-scoreboard span,
-.player-profile-highlight-row > span,
-.player-profile-side-bets span {
+.player-profile-performance-row span,
+.player-profile-highlight-stack span,
+.player-profile-legacy-row span,
+.player-profile-side-bet-metrics span {
   display: block;
   color: var(--muted);
   font-size: 8px;
@@ -137,90 +168,121 @@ body.player-profile-open {
   text-transform: uppercase;
 }
 
-.player-profile-scoreboard strong {
-  display: block;
-  margin-top: 3px;
-  color: var(--ink);
-  font-family: var(--font-display);
-  font-size: 19px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.player-profile-scoreboard small {
+.player-profile-record-mark strong {
   display: block;
   margin-top: 4px;
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1.1;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 800;
+  line-height: .95;
 }
 
-.player-profile-title-mark strong {
-  font-size: 23px;
+.player-profile-win-mark {
+  padding-bottom: 1px;
+  text-align: right;
+}
+
+.player-profile-win-mark strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .player-profile-highlights {
   background: var(--panel);
 }
 
-.player-profile-highlight-row {
-  display: grid;
-  grid-template-columns: 118px minmax(0, 1fr);
+.player-profile-legacy-row {
+  display: flex;
+  min-height: 43px;
   align-items: center;
-  gap: 12px;
-  min-height: 48px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--line);
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 -14px;
+  padding: 7px 14px;
+  border-block: 1px solid var(--line);
+  background: var(--surface-soft);
 }
 
-.player-profile-highlight-row > span {
-  text-align: left;
+.player-profile-legacy-row small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
-.player-profile-highlight-row strong {
+.player-profile-legacy-row > strong {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.player-profile-highlight-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+}
+
+.player-profile-highlight-stack > div {
   min-width: 0;
+  padding: 9px 10px 10px;
+}
+
+.player-profile-highlight-stack > div + div {
+  border-left: 1px solid var(--line);
+}
+
+.player-profile-highlight-stack strong {
+  display: block;
+  min-width: 0;
+  margin-top: 5px;
   overflow: hidden;
   color: var(--ink);
   font-size: 12px;
   font-weight: 800;
   line-height: 1.2;
-  text-align: left;
   text-overflow: ellipsis;
 }
 
 .player-profile-side-bets {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
   background: var(--surface-soft);
 }
 
-.player-profile-side-bets > div {
+.player-profile-side-bet-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.player-profile-side-bet-metrics > div {
   min-width: 0;
-  padding: 10px 12px 11px;
+  padding: 10px 8px 11px;
+  text-align: center;
 }
 
-.player-profile-side-bets > div:first-child {
-  border-right: 1px solid var(--line);
-  text-align: left;
+.player-profile-side-bet-metrics > div + div {
+  border-left: 1px solid var(--line);
 }
 
-.player-profile-side-bets > div:last-child {
-  text-align: right;
-}
-
-.player-profile-side-bets > div:last-child span,
-.player-profile-side-bets > div:last-child strong {
-  text-align: right;
-}
-
-.player-profile-side-bets strong {
+.player-profile-side-bet-metrics strong {
   display: block;
-  margin-top: 3px;
+  margin-top: 4px;
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
-  line-height: 1.05;
+  line-height: 1;
 }
 
 .profile-loading-toast,
@@ -283,13 +345,12 @@ body.player-profile-open {
 }
 
 @media (max-width: 420px) {
-  .player-profile-sheet { width: min(355px, 100%); }
-  .player-profile-head { min-height: 56px; }
-  .player-profile-head h2 { font-size: 17.5px; }
-  .player-profile-scoreboard { grid-template-columns: minmax(0, 1.35fr) minmax(88px, .65fr); }
-  .player-profile-scoreboard strong { font-size: 18px; }
-  .player-profile-title-mark strong { font-size: 22px; }
-  .player-profile-highlight-row { grid-template-columns: 112px minmax(0, 1fr); gap: 10px; }
-  .player-profile-highlight-row strong { font-size: 11.5px; }
-  .player-profile-side-bets strong { font-size: 14.5px; }
+  .player-profile-sheet { width: min(365px, 100%); }
+  .player-profile-head { min-height: 60px; padding-right: 144px; }
+  .player-profile-head h2 { font-size: 17px; }
+  .profile-year-select { right: 46px; }
+  .player-profile-block { padding: 11px 12px 12px; }
+  .player-profile-legacy-row { margin-inline: -12px; padding-inline: 12px; }
+  .player-profile-record-mark strong { font-size: 23px; }
+  .player-profile-highlight-stack strong { font-size: 11.5px; }
 }
