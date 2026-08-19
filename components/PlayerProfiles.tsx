@@ -24,10 +24,16 @@ function spread(value: number) {
   return `${value > 0 ? "+" : ""}${value}`;
 }
 
+function currentPickemSeason() {
+  const now = new Date();
+  const year = now.getFullYear();
+  return String(now.getMonth() < 2 ? year - 1 : year);
+}
+
 export default function PlayerProfiles() {
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
   const [activeName, setActiveName] = useState("");
-  const [period, setPeriod] = useState("all");
+  const [period, setPeriod] = useState(currentPickemSeason);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -61,9 +67,10 @@ export default function PlayerProfiles() {
       const button = target.closest<HTMLElement>(".player-profile-link[data-player-profile-name]");
       const name = button?.dataset.playerProfileName || "";
       if (!name) return;
+      const defaultPeriod = currentPickemSeason();
       setActiveName(name);
-      setPeriod("all");
-      void loadProfile(name, "all", true);
+      setPeriod(defaultPeriod);
+      void loadProfile(name, defaultPeriod, true);
     }
 
     function activateFromKeyboard(event: KeyboardEvent) {
@@ -74,9 +81,10 @@ export default function PlayerProfiles() {
       const name = button?.dataset.playerProfileName || "";
       if (!name) return;
       event.preventDefault();
+      const defaultPeriod = currentPickemSeason();
       setActiveName(name);
-      setPeriod("all");
-      void loadProfile(name, "all", true);
+      setPeriod(defaultPeriod);
+      void loadProfile(name, defaultPeriod, true);
     }
 
     document.addEventListener("click", activate);
@@ -115,7 +123,6 @@ export default function PlayerProfiles() {
   }
 
   return <>
-    {loading && !profile && activeName && <div className="profile-loading-toast" role="status">Loading {activeName}…</div>}
     {error && <div className="profile-loading-toast profile-error-toast" role="alert">{error}</div>}
     {profile && <div className="player-profile-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) closeProfile(); }}>
       <section className="player-profile-sheet" role="dialog" aria-modal="true" aria-labelledby="player-profile-title">

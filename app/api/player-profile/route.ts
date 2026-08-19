@@ -17,10 +17,12 @@ function mostCommon(values: string[]) {
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || null;
 }
 
-function yearFrom(value?: string | null) {
+function seasonYearFrom(value?: string | null) {
   if (!value) return null;
-  const year = new Date(value).getFullYear();
-  return Number.isFinite(year) ? year : null;
+  const date = new Date(value);
+  const year = date.getFullYear();
+  if (!Number.isFinite(year)) return null;
+  return date.getMonth() < 2 ? year - 1 : year;
 }
 
 export async function GET(req: NextRequest) {
@@ -52,14 +54,14 @@ export async function GET(req: NextRequest) {
     const allLocked = allPicks.filter((pick) => pick.status === "locked");
     const allSideBets = sideBetsResult.data || [];
     const availableYears = Array.from(new Set([
-      ...allPicks.map((pick) => yearFrom(pick.game?.commence_time || pick.created_at)),
-      ...allSideBets.map((bet) => yearFrom(bet.created_at))
+      ...allPicks.map((pick) => seasonYearFrom(pick.game?.commence_time || pick.created_at)),
+      ...allSideBets.map((bet) => seasonYearFrom(bet.created_at))
     ].filter((year): year is number => year != null))).sort((a, b) => b - a);
 
     const selectedYear = requestedYear && availableYears.includes(requestedYear) ? requestedYear : null;
     const periodLocked = selectedYear == null
       ? allLocked
-      : allLocked.filter((pick) => yearFrom(pick.game?.commence_time || pick.created_at) === selectedYear);
+      : allLocked.filter((pick) => seasonYearFrom(pick.game?.commence_time || pick.created_at) === selectedYear);
     const playerPicks = periodLocked.filter((pick) => pick.user_id === player.id);
     const standings = computeWeeklyStandings(profiles, periodLocked as any);
     const standing = standings.find((row) => row.user_id === player.id) || { wins: 0, losses: 0, pushes: 0, win_pct: 0 };
@@ -73,7 +75,7 @@ export async function GET(req: NextRequest) {
     const settledSideBets = allSideBets.filter((bet) =>
       bet.status === "settled" &&
       (bet.creator_id === player.id || bet.accepted_by === player.id) &&
-      (selectedYear == null || yearFrom(bet.created_at) === selectedYear)
+      (selectedYear == null || seasonYearFrom(bet.created_at) === selectedYear)
     );
     let sideBetWins = 0;
     let sideBetLosses = 0;
