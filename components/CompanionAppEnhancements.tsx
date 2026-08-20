@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, ChevronUp, Send } from "lucide-react";
 import GroupMoneyControls from "@/components/GroupMoneyControls";
@@ -9,6 +9,12 @@ import NumericText from "@/components/NumericText";
 type AppSlug = "other-family" | "friends";
 type Payload = any;
 const CACHE_PREFIX = "pickem_app_data_v1:";
+
+function selectedWeek() {
+  const trigger = document.querySelector<HTMLButtonElement>('button[aria-label="Select week"]');
+  const match = (trigger?.textContent || "").match(/Week\s+(\d+)/i);
+  return match ? Number(match[1]) : null;
+}
 
 function latestPayload(slug: AppSlug): Payload | null {
   try {
@@ -28,6 +34,7 @@ function latestPayload(slug: AppSlug): Payload | null {
 
 function cachePayload(payload: Payload) {
   try {
+    let updated = false;
     for (let index = 0; index < window.sessionStorage.length; index += 1) {
       const key = window.sessionStorage.key(index);
       if (!key?.startsWith(CACHE_PREFIX)) continue;
@@ -36,6 +43,13 @@ function cachePayload(payload: Payload) {
       parsed.payload = payload;
       parsed.cachedAt = Date.now();
       window.sessionStorage.setItem(key, JSON.stringify(parsed));
+      updated = true;
+    }
+    if (!updated && payload?.activeGroup?.slug) {
+      window.sessionStorage.setItem(
+        `${CACHE_PREFIX}companion:${payload.activeGroup.slug}:${Number(payload.week || 0)}`,
+        JSON.stringify({ cachedAt: Date.now(), payload })
+      );
     }
   } catch {
     // Session storage is only an optimization.
@@ -149,7 +163,8 @@ function rebuildPointsLeaderboard(leaderboard: HTMLElement, rows: any[]) {
 
   const domRows = Array.from(leaderboard.querySelectorAll<HTMLElement>(":scope > .leaderboard-row"));
   const byName = new Map(domRows.map((row) => [row.querySelector(".leaderboard-player strong")?.textContent?.trim().toLowerCase() || "", row]));
-  for (const [index, standing] of rows.entries()) {
+  for (let index = 0; index < rows.length; index += 1) {
+    const standing = rows[index];
     const row = byName.get(String(standing.display_name || "").trim().toLowerCase());
     if (!row) continue;
     row.querySelectorAll(":scope > .leaderboard-stat, :scope > .leaderboard-pct, :scope > .leaderboard-points").forEach((node) => node.remove());
@@ -411,6 +426,29 @@ export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
   const [sideBetHost, setSideBetHost] = useState<HTMLElement | null>(null);
   const [sideBetSheet, setSideBetSheet] = useState<HTMLElement | null>(null);
   const [rulesHost, setRulesHost] = useState<HTMLElement | null>(null);
+  const refreshingRef = useRef(false);
+
+  const refreshPayload = useCallback(async () => {
+    if (refreshingRef.current) return;
+    const token = window.localStorage.getItem("pickem_session_token");
+    if (!token) return;
+    refreshingRef.current = true;
+    try {
+      const url = new URL("/api/app-data", window.location.origin);
+      const week = selectedWeek();
+      if (week != null) url.searchParams.set("week", String(week));
+      const response = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+      if (!response.ok) return;
+      const next = await response.json();
+      if (next?.activeGroup?.slug !== slug) return;
+      cachePayload(next);
+      setPayload(next);
+    } catch {
+      // The base app remains usable if a companion refresh fails.
+    } finally {
+      refreshingRef.current = false;
+    }
+  }, [slug]);
 
   const apply = useCallback(() => {
     const nextPayload = latestPayload(slug);
@@ -457,18 +495,38 @@ export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
       }, delay);
       timers.add(timer);
     };
+    const scheduleRefresh = (delay: number) => {
+      const timer = window.setTimeout(() => {
+        timers.delete(timer);
+        if (active) void refreshPayload();
+      }, delay);
+      timers.add(timer);
+    };
     const burst = () => [0, 60, 180, 450, 900, 1500].forEach(schedule);
-    const initial = [0, 160, 500, 1000, 1800, 3000];
-    initial.forEach(schedule);
+    [0, 160, 500, 1000, 1800, 3000].forEach(schedule);
+    scheduleRefresh(550);
 
     const onClick = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (target.closest(".primary-nav button, .section-tabs button, .custom-select-option, .team-row.selectable, .side-bet-slip-bar, .side-bet-card .actions button, .confirmation-actions button, .confidence-move button")) burst();
+      const relevant = target.closest(".primary-nav button, .section-tabs button, .custom-select-option, .team-row.selectable, .pick-row-actions button, .side-bet-slip-bar, .side-bet-card .actions button, .confirmation-actions button, .confidence-move button");
+      if (!relevant) return;
+      burst();
+      scheduleRefresh(target.closest(".team-row.selectable, .pick-row-actions button") ? 700 : 220);
     };
-    const onRefresh = () => burst();
-    const onFocus = () => burst();
-    const onVisibility = () => { if (document.visibilityState === "visible") burst(); };
+    const onRefresh = () => {
+      burst();
+      scheduleRefresh(120);
+    };
+    const onFocus = () => {
+      burst();
+      scheduleRefresh(100);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState !== "visible") return;
+      burst();
+      scheduleRefresh(100);
+    };
     document.addEventListener("click", onClick, true);
     window.addEventListener("pickem:companion-refresh", onRefresh);
     window.addEventListener("focus", onFocus);
@@ -482,7 +540,7 @@ export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [apply]);
+  }, [apply, refreshPayload]);
 
   useEffect(() => {
     if (!payload) return;
