@@ -1,4 +1,4 @@
-/* Route-specific branding for the two companion Pick'em apps. */
+/* Route-specific branding and behavior for the two companion Pick'em apps. */
 .route-app.group-friends .brand-lockup > .header-wordmark,
 .route-app.group-other-family .brand-lockup > .header-wordmark {
   display: none;
@@ -9,7 +9,7 @@
   display: inline-flex;
   min-width: 0;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   color: #fff;
   font-family: var(--font-display);
   font-size: 18px;
@@ -34,24 +34,25 @@
 .login-football { font-size: 28px; line-height: 1; }
 .login-brand-wordmark { width: min(290px, 82vw); height: auto; object-fit: contain; }
 
-/* Missouri-inspired black and gold theme. :has() also covers safe-area / overscroll background. */
-html:has(.route-app.group-other-family),
+/* Missouri-inspired black/gold version. */
+html[data-pickem-theme="missouri"],
 body:has(.route-app.group-other-family),
 .route-app.group-other-family {
   --graphite: #0b0b0b;
   --graphite-light: #242424;
   --blue: #f1b82d;
-  --blue-dark: #94700d;
-  --blue-soft: #f7ebbd;
+  --blue-dark: #8b6810;
+  --blue-soft: #f7edc7;
   --gold: #f1b82d;
-  --nav-surface: rgba(11, 11, 11, .985);
-  --hover: #f3ecd2;
-  --saved-dirty: #f3e7b7;
+  --nav-surface: rgba(11, 11, 11, .99);
+  --hover: #f5efdc;
+  --saved-dirty: #f3e6ae;
   --rank-gold: #8b6500;
   background: #0b0b0b;
 }
 
 .route-app.group-other-family .scoreboard-header {
+  border-bottom-color: #f1b82d;
   box-shadow: inset 0 -3px 0 #f1b82d;
 }
 .route-app.group-other-family .primary-nav button.active,
@@ -71,72 +72,92 @@ body:has(.route-app.group-other-family),
 }
 .route-app.group-other-family .btn.accent,
 .route-app.group-other-family .btn.gold {
-  border-color: #b98b13;
+  border-color: #a67b10;
+  background: #f1b82d;
+  color: #111;
+}
+.route-app.group-other-family .notification-badge {
+  border-color: #0b0b0b;
   background: #f1b82d;
   color: #111;
 }
 
-/* Friends stays close to Shaw, with a slightly cooler blue accent and no Shaw wordmark. */
+/* Friends stays close to Shaw, but is visibly its own app. */
+html[data-pickem-theme="friends"],
 .route-app.group-friends {
-  --blue: #82a9c0;
-  --blue-dark: #486b80;
-  --blue-soft: #e4edf2;
-  --gold: #c5a25d;
+  --blue: #86afc6;
+  --blue-dark: #43677c;
+  --blue-soft: #e4eff4;
+  --gold: #c4a96c;
 }
 .route-app.group-friends .scoreboard-header {
-  box-shadow: inset 0 -2px 0 rgba(130, 169, 192, .78);
+  box-shadow: inset 0 -2px 0 rgba(134, 175, 198, .86);
 }
-.route-app.group-friends .section-tabs button.active {
-  border-bottom-color: #82a9c0;
+.route-app.group-friends .section-tabs button.active,
+.route-app.group-friends .compact-select.open,
+.route-app.group-friends .custom-select.open {
+  border-bottom-color: #86afc6;
+}
+.route-app.group-friends .primary-nav button.active svg {
+  fill: #86afc6;
+  stroke: #86afc6;
 }
 
-/* Confidence ordering */
-.confidence-order-card {
-  margin: 8px 0 12px;
+/* Confidence ordering lives directly inside My Card. */
+.confidence-order-panel {
+  margin: 5px 0 12px;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  background: rgba(255,255,255,.46);
+  background: rgba(255,255,255,.58);
 }
 .confidence-order-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 9px 6px 7px;
+  padding: 9px 7px 7px;
 }
+.confidence-order-head > div { min-width: 0; }
 .confidence-order-head strong {
+  display: block;
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
 }
-.confidence-order-head small { color: var(--muted); font-size: 10.5px; }
+.confidence-order-head small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.confidence-order-head > span { color: var(--muted); font-size: 10.5px; font-weight: 700; }
+.confidence-order-list { border-top: 1px solid var(--line); }
 .confidence-order-row {
   display: grid;
-  grid-template-columns: 34px minmax(0,1fr) 64px;
+  grid-template-columns: 54px minmax(0,1fr) 64px;
   min-height: 44px;
   align-items: center;
   gap: 8px;
-  padding: 5px 6px;
-  border-top: 1px solid var(--line);
+  padding: 5px 7px;
+  border-bottom: 1px solid var(--line);
 }
-.confidence-points-badge {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  border: 1px solid #9c7410;
-  border-radius: 50%;
-  background: #f1b82d;
-  color: #111;
+.confidence-order-row:last-child { border-bottom: 0; }
+.confidence-order-row > strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.confidence-value {
+  color: #6f5208;
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
 }
-.confidence-order-team { min-width: 0; font-size: 13px; font-weight: 800; }
-.confidence-order-team small { display: block; margin-top: 2px; color: var(--muted); font-size: 10.5px; font-weight: 600; }
-.confidence-order-actions { display: flex; justify-content: flex-end; gap: 4px; }
-.confidence-order-actions button {
+.confidence-move { display: flex; justify-content: flex-end; gap: 4px; }
+.confidence-move button {
   display: grid;
   width: 28px;
   height: 28px;
@@ -147,24 +168,74 @@ body:has(.route-app.group-other-family),
   background: var(--surface);
   color: var(--graphite);
 }
-.confidence-order-actions button:disabled { opacity: .28; }
-.confidence-order-locked { padding: 0 6px 8px; color: var(--muted); font-size: 10.5px; }
+.confidence-move button:disabled { opacity: .27; }
+.confidence-note,
+.confidence-error {
+  margin: 0;
+  padding: 0 7px 8px;
+  font-size: 10.5px;
+}
+.confidence-note { color: var(--muted); }
+.confidence-error { color: var(--red); }
+.confidence-card-chip {
+  margin-left: 3px;
+  color: #87640b;
+  font-size: .92em;
+  font-weight: 900;
+  white-space: nowrap;
+}
 
-/* Other Family configurable winner-take-all money */
-.group-money-controls {
+/* Confidence standings are intentionally simpler than record standings. */
+.leaderboard.points-mode .leaderboard-labels,
+.leaderboard.points-mode .leaderboard-row {
+  grid-template-columns: 54px minmax(0,1fr) 88px;
+}
+.leaderboard.points-mode .leaderboard-labels > :last-child { text-align: right; }
+.leaderboard-points {
+  text-align: right;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.route-app.group-other-family .bank-result-record {
+  font-family: var(--font-display);
+  font-weight: 900;
+}
+
+/* Other Family configurable winner-take-all money. */
+.group-money-controls,
+.friends-money-summary {
   margin: 0 0 14px;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  background: rgba(255,255,255,.52);
+  background: rgba(255,255,255,.58);
 }
-.group-money-controls-head { padding: 9px 7px 6px; }
-.group-money-controls-head strong { font-family: var(--font-display); font-size: 12px; font-weight: 900; text-transform: uppercase; }
-.group-money-controls-head small { display: block; margin-top: 2px; color: var(--muted); font-size: 10.5px; }
+.group-money-controls-head { padding: 9px 8px 7px; }
+.group-money-controls-head strong {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.group-money-controls-head small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10.5px;
+}
 .group-money-grid { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); }
 .group-money-field { padding: 9px 8px; }
 .group-money-field + .group-money-field { border-left: 1px solid var(--line); }
 .group-money-field label,
-.group-money-field > span { display: block; margin-bottom: 4px; color: var(--muted); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.group-money-field > span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
 .group-money-field strong { font-family: var(--font-display); font-size: 18px; }
 .group-money-input-wrap { display: flex; align-items: center; gap: 4px; }
 .group-money-input-wrap span { font-family: var(--font-display); font-size: 15px; font-weight: 900; }
@@ -180,39 +251,76 @@ body:has(.route-app.group-other-family),
   font: inherit;
   font-weight: 800;
 }
-.group-money-save { padding: 0 8px 9px; }
+.group-money-message { margin: 0; padding: 6px 8px 0; font-size: 10.5px; font-weight: 700; }
+.group-money-message.success { color: var(--green); }
+.group-money-message.error { color: var(--red); }
+.group-money-save { padding: 8px; }
 .group-money-save .btn { width: 100%; }
 
-.side-bet-manual-amount {
+.friends-money-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.friends-money-summary > div { padding: 9px 10px; }
+.friends-money-summary > div + div { border-left: 1px solid var(--line); }
+.friends-money-summary span,
+.friends-money-summary small { display: block; }
+.friends-money-summary span { color: var(--muted); font-size: 9.5px; font-weight: 850; text-transform: uppercase; }
+.friends-money-summary strong { display: block; margin-top: 2px; font-family: var(--font-display); font-size: 16px; }
+.friends-money-summary small { margin-top: 2px; color: var(--muted); font-size: 10px; }
+
+/* Companion side bets use a free-entry amount and no slot UI. */
+.route-app.group-friends .companion-hidden-control,
+.route-app.group-other-family .companion-hidden-control {
+  display: none !important;
+}
+.companion-side-bet-amount { padding: 2px 0 0; }
+.companion-side-bet-amount > label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+.companion-side-bet-input {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-height: 42px;
-  padding: 0 2px;
 }
-.side-bet-manual-amount span { font-family: var(--font-display); font-size: 18px; font-weight: 900; }
-.side-bet-manual-amount input {
+.companion-side-bet-input > span {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 900;
+}
+.companion-side-bet-input input {
   width: 100%;
   min-width: 0;
-  height: 38px;
+  height: 40px;
   padding: 5px 8px;
   border: 1px solid var(--line-strong);
   border-radius: 4px;
   background: var(--surface);
   color: var(--ink);
   font: inherit;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 850;
 }
+.companion-side-bet-hint,
+.companion-side-bet-error { display: block; margin-top: 4px; font-size: 10px; }
+.companion-side-bet-hint { color: var(--muted); }
+.companion-side-bet-error { color: var(--red); font-weight: 700; }
+.companion-side-bet-submit { width: 100%; margin-top: 8px; }
 
-.leaderboard.points-mode .leaderboard-labels,
-.leaderboard.points-mode .leaderboard-row {
-  grid-template-columns: 52px minmax(0,1fr) 88px;
-}
-.leaderboard-points { text-align: right; font-family: var(--font-display); font-size: 16px; font-weight: 900; }
+/* The base rules are hidden by the route component; this list replaces them. */
+.companion-rules-list { margin-top: 8px; }
 
 @media (max-width: 420px) {
   .route-app.group-friends .brand-lockup::before,
   .route-app.group-other-family .brand-lockup::before { font-size: 16px; }
-  .group-money-grid { grid-template-columns: 1fr; }
-  .group-money-field + .group-money-field { border-left: 0; border-top: 1px solid var(--line); }
+  .confidence-order-row { grid-template-columns: 50px minmax(0,1fr) 60px; }
+  .group-money-grid,
+  .friends-money-summary { grid-template-columns: 1fr; }
+  .group-money-field + .group-money-field,
+  .friends-money-summary > div + div { border-left: 0; border-top: 1px solid var(--line); }
 }
