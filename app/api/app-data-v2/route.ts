@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { normalizeEspnLogoUrl } from "@/lib/espnLogos";
-import { getGroupGameLockTime, getGroupWeekRule, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+import { getGroupGameLockTime, getGroupSideBetSettings, getGroupWeekRule, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { computeGroupStandings } from "@/lib/groupScoring";
 import { getPickWeekOpenTime } from "@/lib/lockRules";
 import { isEligibleSeasonGame } from "@/lib/seasonRules";
@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
     if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
     const supabase = getSupabaseAdmin();
     const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
+    const sideBetSettings = getGroupSideBetSettings(context);
     const now = new Date();
     const nowIso = now.toISOString();
     const requestedWeek = req.nextUrl.searchParams.get("week");
@@ -30,13 +31,23 @@ export async function GET(req: NextRequest) {
     ]);
     for (const result of [gamesResult, lockedResult, bankResult, sideBetResult, seasonMoneyResult]) if (result.error) throw new Error(result.error.message);
 
-    const normalizedGames = (gamesResult.data || []).filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game) && game.current_spread_team != null && game.current_spread != null).map((game: any) => {
-      const lockTime = getGroupGameLockTime(context, game.commence_time).toISOString();
-      return { ...game, home_logo_url: normalizeEspnLogoUrl(game.home_logo_url), away_logo_url: normalizeEspnLogoUrl(game.away_logo_url), lock_time: lockTime, is_locked: now >= new Date(lockTime) };
-    });
+    const normalizedGames = (gamesResult.data || [])
+      .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game) && game.current_spread_team != null && game.current_spread != null)
+      .map((game: any) => {
+        const lockTime = getGroupGameLockTime(context, game.commence_time).toISOString();
+        return {
+          ...game,
+          home_logo_url: normalizeEspnLogoUrl(game.home_logo_url),
+          away_logo_url: normalizeEspnLogoUrl(game.away_logo_url),
+          lock_time: lockTime,
+          is_locked: now >= new Date(lockTime)
+        };
+      });
     const unique = new Map<string, any>();
     for (const game of normalizedGames) {
-      const key = [game.league, game.week, game.away_team, game.home_team].map((value) => String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, " ")).join(":");
+      const key = [game.league, game.week, game.away_team, game.home_team]
+        .map((value) => String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, " "))
+        .join(":");
       const prior = unique.get(key);
       if (!prior || new Date(game.updated_at || 0) > new Date(prior.updated_at || 0)) unique.set(key, game);
     }
@@ -56,7 +67,9 @@ export async function GET(req: NextRequest) {
     if (weekMoneyResult.error) throw new Error(weekMoneyResult.error.message);
 
     let allSideBets = sideBetResult.data || [];
-    const expiredIds = allSideBets.filter((bet: any) => bet.status === "open" && bet.game && new Date(bet.game.commence_time) <= now).map((bet: any) => bet.id);
+    const expiredIds = allSideBets
+      .filter((bet: any) => bet.status === "open" && bet.game && new Date(bet.game.commence_time) <= now)
+      .map((bet: any) => bet.id);
     if (expiredIds.length) {
       await Promise.all([
         supabase.from("side_bets").update({ status: "expired", updated_at: nowIso }).eq("group_id", context.group.id).in("id", expiredIds).eq("status", "open"),
@@ -71,15 +84,21 @@ export async function GET(req: NextRequest) {
     for (const pick of lockedResult.data || []) {
       const pickWeek = Number(pick.week);
       const rows = lockedByWeek.get(pickWeek);
-      if (rows) rows.push(pick); else lockedByWeek.set(pickWeek, [pick]);
+      if (rows) rows.push(pick);
+      else lockedByWeek.set(pickWeek, [pick]);
     }
     const standingsWeeks = Array.from(new Set(allGames.map((game) => Number(game.week))));
-    const weeklyStandingsByWeek = Object.fromEntries(standingsWeeks.map((standingWeek) => [String(standingWeek), computeGroupStandings(profiles, lockedByWeek.get(standingWeek) || [], context.rules)]));
+    const weeklyStandingsByWeek = Object.fromEntries(
+      standingsWeeks.map((standingWeek) => [String(standingWeek), computeGroupStandings(profiles, lockedByWeek.get(standingWeek) || [], context.rules)])
+    );
     const standings = computeGroupStandings(profiles, (lockedResult.data || []) as any, context.rules);
     const normalizedPicks = (picksResult.data || []).map((pick: any) => ({ ...pick, game: gameById.get(pick.game_id) || pick.game }));
     const visiblePicks = normalizedPicks.filter((pick: any) => pick.game && (pick.user_id === auth.profile.id || new Date(pick.game.lock_time) <= now));
     const sideBets = allSideBets.filter((bet: any) => bet.creator_id === auth.profile.id || bet.accepted_by === auth.profile.id || bet.targets?.some((target: any) => target.recipient_id === auth.profile.id));
-    const sideBetSlotCountsByPlayer = sideBetSlotCounts(allSideBets.filter((bet: any) => Number(bet.week) === week), profiles.map((profile) => profile.id));
+    const rawSideBetSlotCounts = sideBetSlotCounts(allSideBets.filter((bet: any) => Number(bet.week) === week), profiles.map((profile) => profile.id));
+    const sideBetSlotCountsByPlayer = Number.isFinite(sideBetSettings.maxPerWeek)
+      ? rawSideBetSlotCounts
+      : Object.fromEntries(profiles.map((profile) => [profile.id, 0]));
     const sideBetBankTotals = Object.fromEntries(profiles.map((profile) => [profile.id, 0]));
     for (const bet of allSideBets) {
       if (bet.status !== "settled" || bet.result === "push" || !bet.accepted_by || !bet.winner_id) continue;
@@ -88,7 +107,9 @@ export async function GET(req: NextRequest) {
       sideBetBankTotals[loserId] = Number(sideBetBankTotals[loserId] || 0) - Number(bet.amount);
     }
     const weeklyBank = context.rules?.weeklyBank || {};
-    const moneyAdmin = context.group.slug === "other-family" ? context.members.find((member) => member.display_name.toLowerCase() === "caleb") || null : null;
+    const moneyAdmin = context.group.slug === "other-family"
+      ? context.members.find((member) => member.display_name.toLowerCase() === "caleb") || null
+      : null;
 
     return NextResponse.json({
       ok: true,
@@ -97,12 +118,22 @@ export async function GET(req: NextRequest) {
       activeGroup: context.group,
       seasonYear: context.seasonYear,
       groupRules: context.rules,
+      sideBetSettings: {
+        enabled: sideBetSettings.enabled,
+        maxAmount: Number.isFinite(sideBetSettings.maxAmount) ? sideBetSettings.maxAmount : null,
+        maxPerWeek: Number.isFinite(sideBetSettings.maxPerWeek) ? sideBetSettings.maxPerWeek : null,
+        manualAmount: context.rules?.sideBets?.amountEntry === "free"
+      },
       profiles,
       games,
       picks: visiblePicks,
       standings,
       weeklyStandingsByWeek,
-      bankSettings: { id: 1, winner_amount: Number(weeklyBank.lastPaysWinner ?? 20), loser_amount: Number(weeklyBank.secondPaysWinner ?? 10) },
+      bankSettings: {
+        id: 1,
+        winner_amount: Number(weeklyBank.lastPaysWinner ?? 20),
+        loser_amount: Number(weeklyBank.secondPaysWinner ?? 10)
+      },
       groupMoney: {
         weeklyAmount: Number(weekMoneyResult.data?.winner_take_all_amount || 0),
         seasonAmount: Number(seasonMoneyResult.data?.winner_take_all_amount || 0),

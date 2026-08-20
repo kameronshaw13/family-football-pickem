@@ -22,13 +22,17 @@ export async function POST(req: NextRequest) {
 
     const gamesResult = await supabase.from("games").select("*").eq("week", body.week);
     if (gamesResult.error) throw new Error(gamesResult.error.message);
-    const weekGames = (gamesResult.data || []).filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game) && game.current_spread_team != null && game.current_spread != null).map((game: any) => {
-      const lockTime = getGroupGameLockTime(context, game.commence_time).toISOString();
-      return { ...game, lock_time: lockTime, is_locked: now >= new Date(lockTime) };
-    });
+    const weekGames = (gamesResult.data || [])
+      .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game) && game.current_spread_team != null && game.current_spread != null)
+      .map((game: any) => {
+        const lockTime = getGroupGameLockTime(context, game.commence_time).toISOString();
+        return { ...game, lock_time: lockTime, is_locked: now >= new Date(lockTime) };
+      });
     const gameMap = new Map(weekGames.map((game: any) => [game.id, game]));
     const weekOpen = getPickWeekOpenTime(body.week, weekGames.map((game: any) => game.commence_time), context.group.timezone);
-    if (weekOpen && now < weekOpen) return NextResponse.json({ ok: false, error: `This week opens on ${weekOpen.toLocaleString("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: context.group.timezone })}.` }, { status: 409 });
+    if (weekOpen && now < weekOpen) {
+      return NextResponse.json({ ok: false, error: `This week opens on ${weekOpen.toLocaleString("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: context.group.timezone })}.` }, { status: 409 });
+    }
 
     const existingResult = await supabase.from("picks").select("*, game:games(*)").eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("user_id", auth.profile.id).eq("week", body.week);
     if (existingResult.error) throw new Error(existingResult.error.message);
@@ -42,7 +46,14 @@ export async function POST(req: NextRequest) {
       if (pick.status !== "draft" || !pick.game || (!pick.game.is_locked && new Date(pick.game.lock_time) > now)) continue;
       const lockedSpread = normalizeSpreadForSelectedTeam(pick.selected_team, pick.game.current_spread_team, pick.game.current_spread);
       const dogValue = pick.pick_type === "underdog" ? getGroupUnderdogBonus(context, lockedSpread) : null;
-      const lockResult = await supabase.from("picks").update({ status: "locked", locked_at: nowIso, locked_spread: lockedSpread, locked_spread_team: pick.selected_team, underdog_win_value: dogValue, updated_at: nowIso }).eq("id", pick.id).eq("group_id", context.group.id).eq("status", "draft");
+      const lockResult = await supabase.from("picks").update({
+        status: "locked",
+        locked_at: nowIso,
+        locked_spread: lockedSpread,
+        locked_spread_team: pick.selected_team,
+        underdog_win_value: dogValue,
+        updated_at: nowIso
+      }).eq("id", pick.id).eq("group_id", context.group.id).eq("status", "draft");
       if (lockResult.error) throw new Error(lockResult.error.message);
       pick.status = "locked";
       pick.locked_at = nowIso;
@@ -56,7 +67,9 @@ export async function POST(req: NextRequest) {
     if (new Set(submittedIds).size !== submittedIds.length) return NextResponse.json({ ok: false, error: "A game can only appear once on your card." }, { status: 400 });
     for (const locked of lockedPicks) {
       const submitted = body.picks.find((pick) => pick.gameId === locked.game_id);
-      if (submitted && (submitted.selectedTeam !== locked.selected_team || submitted.pickType !== locked.pick_type)) return NextResponse.json({ ok: false, error: `${locked.selected_team} is already locked and cannot be changed.` }, { status: 409 });
+      if (submitted && (submitted.selectedTeam !== locked.selected_team || submitted.pickType !== locked.pick_type)) {
+        return NextResponse.json({ ok: false, error: `${locked.selected_team} is already locked and cannot be changed.` }, { status: 409 });
+      }
     }
 
     const editable = body.picks.filter((pick) => !lockedByGame.has(pick.gameId));
@@ -88,14 +101,23 @@ export async function POST(req: NextRequest) {
     if (nfl > rule.regularTotal - rule.cfbMinimum) return NextResponse.json({ ok: false, error: `This week requires ${rule.cfbMinimum} CFB regular pick${rule.cfbMinimum === 1 ? "" : "s"}.` }, { status: 409 });
 
     const confidenceMode = context.rules?.scoring?.mode === "confidence";
-    const submittedRegular = body.picks.filter((pick) => pick.pickType === "regular");
-    const confidenceByGame = new Map(submittedRegular.map((pick, index) => [pick.gameId, Math.max(1, rule.regularTotal - index)]));
+    const existingByGame = new Map(existing.map((pick: any) => [pick.game_id, pick]));
+    const retainedConfidence = new Map<string, number>();
     if (confidenceMode) {
-      for (const locked of lockedPicks.filter((pick: any) => pick.pick_type === "regular")) {
-        const desired = confidenceByGame.get(locked.game_id);
-        if (desired != null && locked.confidence_points != null && Number(locked.confidence_points) !== desired) {
-          return NextResponse.json({ ok: false, error: "Confidence order is locked once a regular pick locks." }, { status: 409 });
-        }
+      for (const submitted of body.picks.filter((pick) => pick.pickType === "regular")) {
+        const prior: any = existingByGame.get(submitted.gameId);
+        const value = Number(prior?.confidence_points);
+        if (Number.isInteger(value) && value >= 1 && value <= rule.regularTotal) retainedConfidence.set(submitted.gameId, value);
+      }
+    }
+    const usedConfidence = new Set(retainedConfidence.values());
+    const availableConfidence = Array.from({ length: rule.regularTotal }, (_, index) => rule.regularTotal - index).filter((value) => !usedConfidence.has(value));
+    const confidenceByGame = new Map(retainedConfidence);
+    if (confidenceMode) {
+      for (const submitted of body.picks.filter((pick) => pick.pickType === "regular")) {
+        if (confidenceByGame.has(submitted.gameId)) continue;
+        const next = availableConfidence.shift();
+        if (next != null) confidenceByGame.set(submitted.gameId, next);
       }
     }
 
@@ -104,6 +126,7 @@ export async function POST(req: NextRequest) {
     const existingDraftByGame = new Map(existing.filter((pick: any) => pick.status === "draft").map((pick: any) => [pick.game_id, pick]));
     const writes: Array<PromiseLike<{ error: any }>> = [];
     if (draftsToDelete.length) writes.push(supabase.from("picks").delete().eq("group_id", context.group.id).eq("user_id", auth.profile.id).eq("status", "draft").in("id", draftsToDelete));
+
     for (const pick of editable) {
       const game: any = gameMap.get(pick.gameId);
       const selectedSpread = normalizeSpreadForSelectedTeam(pick.selectedTeam, game.current_spread_team, game.current_spread);
@@ -121,6 +144,7 @@ export async function POST(req: NextRequest) {
         ? supabase.from("picks").update(saved).eq("id", existingDraft.id).eq("group_id", context.group.id).eq("status", "draft")
         : supabase.from("picks").insert({ ...saved, group_id: context.group.id, season_year: context.seasonYear, user_id: auth.profile.id, game_id: game.id, week: body.week }));
     }
+
     const writeResults = await Promise.all(writes);
     const failed = writeResults.find((result: any) => result.error)?.error;
     if (failed) throw new Error(failed.message);
