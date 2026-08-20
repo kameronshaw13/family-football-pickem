@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: "Private Friends football pick'em.",
   applicationName: "Friends Pick'em",
   appleWebApp: { capable: true, title: "Friends Pick'em", statusBarStyle: "black-translucent" },
-  icons: { icon: "/football-icon.svg", apple: "/football-icon.svg" },
+  icons: { icon: "/friends-app-icon.png", apple: "/friends-app-icon.png" },
   manifest: "/friends/manifest.webmanifest"
 };
 

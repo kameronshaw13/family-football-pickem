@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createProfileSession } from "@/lib/authServer";
-import { normalizeAppSlug } from "@/lib/authUsers";
+import { findFamilyUser, normalizeAppSlug } from "@/lib/authUsers";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { makeSessionToken, verifyPassword } from "@/lib/passwords";
 
-const schema = z.object({ username: z.string().min(2), password: z.string().min(6), group: z.string().optional() });
+const schema = z.object({ username: z.string().min(2), password: z.string().optional(), group: z.string().optional() });
 
 function publicProfile(profile: any) {
   return { id: profile.id, username: profile.username, display_name: profile.display_name, is_admin: profile.is_admin };
@@ -14,18 +14,51 @@ function publicProfile(profile: any) {
 export async function POST(req: NextRequest) {
   try {
     const body = schema.parse(await req.json());
-    const username = body.username.trim().toLowerCase();
     const groupSlug = normalizeAppSlug(body.group);
+    const allowed = findFamilyUser(body.username, groupSlug);
+    if (!allowed) return NextResponse.json({ ok: false, error: "That name is not on this pick'em list." }, { status: 403 });
+
+    const username = allowed.username;
+    const passwordless = groupSlug === "other-family";
     const supabase = getSupabaseAdmin();
 
-    const { data: profile, error } = await supabase
+    let { data: profile, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("username", username)
       .maybeSingle();
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-    if (!profile?.password_hash) return NextResponse.json({ ok: false, error: "Account not created yet. Choose Create account first." }, { status: 404 });
-    if (!verifyPassword(body.password, profile.password_hash)) return NextResponse.json({ ok: false, error: "Incorrect password." }, { status: 401 });
+
+    if (!profile && passwordless) {
+      const seededResult = await supabase
+        .from("profiles")
+        .select("*")
+        .ilike("display_name", allowed.displayName)
+        .maybeSingle();
+      if (seededResult.error) return NextResponse.json({ ok: false, error: seededResult.error.message }, { status: 500 });
+      profile = seededResult.data;
+      if (profile && !profile.username) {
+        const claimed = await supabase
+          .from("profiles")
+          .update({ username, updated_at: new Date().toISOString() })
+          .eq("id", profile.id)
+          .select("*")
+          .single();
+        if (claimed.error) return NextResponse.json({ ok: false, error: claimed.error.message }, { status: 500 });
+        profile = claimed.data;
+      }
+    }
+
+    if (!profile) {
+      return NextResponse.json({ ok: false, error: passwordless ? "That Caleb Family roster spot is not available." : "Account not created yet. Choose Create account first." }, { status: 404 });
+    }
+
+    if (!passwordless) {
+      if (!profile.password_hash) return NextResponse.json({ ok: false, error: "Account not created yet. Choose Create account first." }, { status: 404 });
+      if (!body.password || body.password.length < 6 || !verifyPassword(body.password, profile.password_hash)) {
+        return NextResponse.json({ ok: false, error: "Incorrect password." }, { status: 401 });
+      }
+    }
 
     const { data: group, error: groupError } = await supabase.from("pickem_groups").select("id").eq("slug", groupSlug).maybeSingle();
     if (groupError || !group) return NextResponse.json({ ok: false, error: "This Pick'em app is not configured." }, { status: 500 });
