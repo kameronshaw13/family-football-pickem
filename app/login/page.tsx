@@ -64,6 +64,7 @@ export default function LoginPage() {
 
   const config = useMemo(() => groupSlug ? appConfig[groupSlug] : null, [groupSlug]);
   if (!config || !groupSlug) return <main className="app-shell login-screen"><section className="login-card"><div className="login-brand login-brand-generic"><span className="login-football" aria-hidden="true">🏈</span><strong>Football Pick'em</strong></div><p>Loading…</p></section></main>;
+  const homePath = config.home;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -82,7 +83,7 @@ export default function LoginPage() {
     }
     window.localStorage.setItem("pickem_session_token", payload.token);
     window.localStorage.setItem("pickem_profile", JSON.stringify(payload.profile));
-    window.location.replace(config.home);
+    window.location.replace(homePath);
   }
 
   return <main className={`app-shell login-screen login-${groupSlug}`}>
