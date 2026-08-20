@@ -76,6 +76,9 @@ export async function POST(req: NextRequest) {
     const nowIso = now.toISOString();
 
     if (body.action === "create") {
+      if (context.rules?.sideBets?.amountEntry === "fixed" && ![5, 10, 15, 20].includes(Number(body.amount))) {
+        return NextResponse.json({ ok: false, error: "Choose a side bet amount of $20, $15, $10, or $5." }, { status: 409 });
+      }
       if (Number.isFinite(settings.maxAmount) && Number(body.amount) > settings.maxAmount) {
         return NextResponse.json({ ok: false, error: `Side bets are capped at $${settings.maxAmount}.` }, { status: 409 });
       }

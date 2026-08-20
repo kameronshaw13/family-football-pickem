@@ -43,19 +43,23 @@ export async function settleSeasonIfReady(supabase: SupabaseClient, currentTime 
 
     if (mode === "winner_take_all") {
       const { data: moneyRow, error: moneyError } = await supabase.from("group_season_money")
-        .select("winner_take_all_amount")
+        .select("winner_take_all_amount,submitted_at")
         .eq("group_id", season.group_id)
         .eq("season_year", seasonYear)
         .maybeSingle();
       if (moneyError) throw new Error(moneyError.message);
+      if (!moneyRow?.submitted_at) {
+        lastReason = "The season winner-take-all pot has not been submitted.";
+        continue;
+      }
       settlement = winnerTakeAllSettlement(standings, Number(moneyRow?.winner_take_all_amount || 0));
     } else if (mode === "friends_season") {
       const payouts = standings.map((_, index) => {
         if (index === 0) return Number(prizeRules.first ?? 150);
-        if (index === 1) return Number(prizeRules.second ?? 0);
-        if (index === 2) return Number(prizeRules.third ?? -50);
-        if (index === 3) return Number(prizeRules.fourth ?? -50);
-        return Number(prizeRules.fifth ?? -50);
+        if (index === 1) return Number(prizeRules.second ?? 50);
+        if (index === 2) return Number(prizeRules.third ?? -30);
+        if (index === 3) return Number(prizeRules.fourth ?? -70);
+        return Number(prizeRules.fifth ?? -100);
       });
       settlement = rankedPayoutSettlement(standings, payouts, `${seasonYear} season payout`);
     } else {

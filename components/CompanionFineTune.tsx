@@ -15,10 +15,13 @@ const SHARED_SEASON = [
 ];
 
 const SHARED_ELIGIBLE = [
-  "Chargers games are ineligible.",
   "Each CFB game must include at least one FBS team.",
   "Conference title games, bowl games, and CFP games are eligible."
 ];
+
+function eligibleRules(slug: AppSlug) {
+  return slug === "other-family" ? SHARED_ELIGIBLE : ["Chargers games are ineligible.", ...SHARED_ELIGIBLE];
+}
 
 const SHARED_LOCKS = [
   "Tuesday–Friday lines freeze 1 hour before kickoff.",
@@ -48,7 +51,7 @@ function rulesFor(slug: AppSlug): RuleSection[] {
         "A winning regular spread pick earns its confidence value. A loss or push earns 0 confidence points.",
         "Confidence order locks when the first regular pick locks."
       ] },
-      { title: "Eligible Games", items: SHARED_ELIGIBLE },
+      { title: "Eligible Games", items: eligibleRules(slug) },
       { title: "Underdog", items: [
         "+7 to +9.5: +1 point.",
         "+10 to +19.5: +2 points.",
@@ -59,11 +62,14 @@ function rulesFor(slug: AppSlug): RuleSection[] {
       { title: "Standings", items: [
         "Season and weekly standings are ranked by total points.",
         "Points ties are broken by regular-pick wins, then fewer regular-pick losses, then pushes.",
-        "The season prize is winner-take-all using the season pot Caleb enters in the Bank tab.",
+        "The season prize is winner-take-all using the season pot Caleb submits once during Week 1.",
+        "The season pot locks immediately after submission.",
         "If first place remains tied, the tied winners split the season pot."
       ] },
       { title: "Weekly Bank", items: [
-        "Each week is winner-take-all using the Week pot Caleb enters in the Bank tab.",
+        "Each week is winner-take-all using the Week pot Caleb submits in the Bank tab.",
+        "The weekly pot locks immediately after submission.",
+        "Caleb must submit the weekly pot before selecting a Tuesday–Friday game.",
         "The weekly winner receives the configured pot and the remaining players split the contribution equally.",
         "If first place remains tied, the tied winners split the pot.",
         "If every player is tied, there is no payment."
@@ -71,7 +77,7 @@ function rulesFor(slug: AppSlug): RuleSection[] {
       { title: "Pick Locks", items: SHARED_LOCKS },
       { title: "Side Bets", items: [
         "Spread bets only.",
-        "Enter any positive dollar amount manually. There is no fixed dollar cap.",
+        "Side bets may be $20, $15, $10, or $5.",
         "There is no weekly side-bet count limit.",
         ...SHARED_SIDE_BET_TIMING
       ] }
@@ -86,7 +92,7 @@ function rulesFor(slug: AppSlug): RuleSection[] {
       "Weeks 3–20: 5 regular spread picks plus 1 dog.",
       "There is no required CFB/NFL mix. All 5 regular picks may be CFB, all NFL, or any combination."
     ] },
-    { title: "Eligible Games", items: SHARED_ELIGIBLE },
+    { title: "Eligible Games", items: eligibleRules(slug) },
     { title: "Underdog", items: [
       "+7 to +9.5: +1 win.",
       "+10 to +19.5: +2 wins.",
@@ -97,11 +103,11 @@ function rulesFor(slug: AppSlug): RuleSection[] {
     { title: "Standings", items: [
       "Season and weekly standings are ranked by win percentage.",
       "Win-percentage ties are broken by total wins.",
-      "Season payouts: 1st +$150, 2nd $0, 3rd -$50, 4th -$50, 5th -$50.",
+      "Season payouts: 1st +$150, 2nd +$50, 3rd -$30, 4th -$70, 5th -$100.",
       "If finishing positions remain tied after the normal tiebreakers, the payouts for the tied positions are shared evenly."
     ] },
     { title: "Weekly Bank", items: [
-      "Weekly payouts: 1st +$20, 2nd $0, 3rd $0, 4th -$10, 5th -$10.",
+      "Weekly payouts: 1st +$25, 2nd $0, 3rd $0, 4th -$10, 5th -$15.",
       "If weekly positions remain tied after the normal tiebreakers, the payouts for the tied positions are shared evenly."
     ] },
     { title: "Perfect Week", items: [
@@ -111,7 +117,7 @@ function rulesFor(slug: AppSlug): RuleSection[] {
     { title: "Pick Locks", items: SHARED_LOCKS },
     { title: "Side Bets", items: [
       "Spread bets only.",
-      "Enter any positive dollar amount manually. There is no fixed dollar cap.",
+      "Side bets may be $20, $15, $10, or $5.",
       "There is no weekly side-bet count limit.",
       ...SHARED_SIDE_BET_TIMING
     ] }

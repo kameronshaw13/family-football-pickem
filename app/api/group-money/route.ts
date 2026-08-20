@@ -5,9 +5,9 @@ import { requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupConte
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 const schema = z.object({
-  week: z.number().int().nonnegative(),
+  week: z.number().int().min(1).max(20),
   weeklyAmount: z.number().min(0).max(100000),
-  seasonAmount: z.number().min(0).max(100000)
+  seasonAmount: z.number().min(0).max(100000).optional()
 });
 
 export async function POST(req: NextRequest) {
@@ -21,29 +21,27 @@ export async function POST(req: NextRequest) {
     if (auth.profile.display_name.trim().toLowerCase() !== "caleb") return NextResponse.json({ ok: false, error: "Only Caleb can change these winner-take-all amounts." }, { status: 403 });
 
     const weeklyAmount = Math.round(body.weeklyAmount * 100) / 100;
-    const seasonAmount = Math.round(body.seasonAmount * 100) / 100;
-    const now = new Date().toISOString();
-    const [weekWrite, seasonWrite] = await Promise.all([
-      supabase.from("group_week_money").upsert({
-        group_id: context.group.id,
-        season_year: context.seasonYear,
-        week: body.week,
-        winner_take_all_amount: weeklyAmount,
-        updated_by: auth.profile.id,
-        updated_at: now
-      }, { onConflict: "group_id,season_year,week" }),
-      supabase.from("group_season_money").upsert({
-        group_id: context.group.id,
-        season_year: context.seasonYear,
-        winner_take_all_amount: seasonAmount,
-        updated_by: auth.profile.id,
-        updated_at: now
-      }, { onConflict: "group_id,season_year" })
-    ]);
-    if (weekWrite.error) throw new Error(weekWrite.error.message);
-    if (seasonWrite.error) throw new Error(seasonWrite.error.message);
-
-    return NextResponse.json({ ok: true, weeklyAmount, seasonAmount });
+    const seasonAmount = body.seasonAmount == null ? null : Math.round(body.seasonAmount * 100) / 100;
+    const { data, error } = await supabase.rpc("submit_group_money", {
+      p_group_id: context.group.id,
+      p_season_year: context.seasonYear,
+      p_week: body.week,
+      p_weekly_amount: weeklyAmount,
+      p_season_amount: seasonAmount,
+      p_updated_by: auth.profile.id
+    });
+    if (error) {
+      const status = /already submitted|only be submitted|submit the season pot/i.test(error.message) ? 409 : 500;
+      return NextResponse.json({ ok: false, error: error.message }, { status });
+    }
+    const result = Array.isArray(data) ? data[0] : data;
+    return NextResponse.json({
+      ok: true,
+      weeklyAmount: Number(result?.weekly_amount || 0),
+      seasonAmount: Number(result?.season_amount || 0),
+      weeklySubmitted: Boolean(result?.weekly_submitted),
+      seasonSubmitted: Boolean(result?.season_submitted)
+    });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }

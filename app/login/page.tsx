@@ -22,7 +22,7 @@ const appConfig: Record<AppSlug, AppConfig> = {
     name: "Caleb Family Pick'em",
     home: "/other-family",
     passwordless: true,
-    icon: "/caleb-family-icon.png",
+    icon: "/other-family-app-icon.png",
     users: [
       { username: "caleb", label: "Caleb" },
       { username: "monte", label: "Monte" },

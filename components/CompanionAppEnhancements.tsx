@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, ChevronUp, Send } from "lucide-react";
+import { GripVertical } from "lucide-react";
 import GroupMoneyControls from "@/components/GroupMoneyControls";
 import NumericText from "@/components/NumericText";
 
@@ -56,21 +56,6 @@ function cachePayload(payload: Payload) {
   }
 }
 
-function clearCurrentCache(slug: AppSlug) {
-  try {
-    const remove: string[] = [];
-    for (let index = 0; index < window.sessionStorage.length; index += 1) {
-      const key = window.sessionStorage.key(index);
-      if (!key?.startsWith(CACHE_PREFIX)) continue;
-      const parsed = JSON.parse(window.sessionStorage.getItem(key) || "null");
-      if (parsed?.payload?.activeGroup?.slug === slug) remove.push(key);
-    }
-    remove.forEach((key) => window.sessionStorage.removeItem(key));
-  } catch {
-    // A normal reload will still request fresh data.
-  }
-}
-
 function ensureHost(key: string, parent: Element | null, after?: Element | null) {
   if (!parent) return null;
   let host = parent.querySelector<HTMLElement>(`:scope > [data-companion-host="${key}"]`);
@@ -80,11 +65,6 @@ function ensureHost(key: string, parent: Element | null, after?: Element | null)
   if (after?.parentElement === parent) after.insertAdjacentElement("afterend", host);
   else parent.appendChild(host);
   return host;
-}
-
-function normalizeUrl(value: string | null | undefined) {
-  try { return new URL(value || "", window.location.origin).href; }
-  catch { return value || ""; }
 }
 
 function pointText(value: number) {
@@ -106,47 +86,6 @@ function replaceDogWinLabels() {
     }
     node = walker.nextNode();
   }
-}
-
-function gameForCard(payload: Payload, card: HTMLElement) {
-  const logo = card.querySelector<HTMLImageElement>("img.team-logo");
-  const src = normalizeUrl(logo?.src);
-  if (!src) return null;
-  return (payload.games || []).find((game: any) => [game.away_logo_url, game.home_logo_url].some((url: string) => normalizeUrl(url) === src)) || null;
-}
-
-function syncConfidencePickCards(payload: Payload) {
-  if (payload?.activeGroup?.slug !== "other-family") return;
-  const section = document.querySelector<HTMLElement>(".card-panel .pick-section");
-  if (!section) return;
-  const currentUserId = payload.currentUser?.id;
-  const week = Number(payload.week);
-  const picks = (payload.picks || []).filter((pick: any) => pick.user_id === currentUserId && Number(pick.week) === week);
-
-  section.querySelectorAll<HTMLElement>(":scope > .pick-card").forEach((card, index) => {
-    const game = gameForCard(payload, card);
-    const pick = game ? picks.find((item: any) => item.game_id === game.id) : null;
-    card.querySelector(".confidence-card-chip")?.remove();
-    if (!pick) {
-      card.style.order = String(100 + index);
-      return;
-    }
-    if (pick.pick_type === "underdog") {
-      card.style.order = "1000";
-      return;
-    }
-    const points = Number(pick.confidence_points || 0);
-    card.style.order = String(points > 0 ? 10 - points : 50 + index);
-    if (points > 0) {
-      const market = card.querySelector<HTMLElement>(".pick-title-market") || card.querySelector<HTMLElement>(".pick-card-copy");
-      if (market) {
-        const chip = document.createElement("span");
-        chip.className = "confidence-card-chip";
-        chip.textContent = `· ${pointText(points)}`;
-        market.append(chip);
-      }
-    }
-  });
 }
 
 function rebuildPointsLeaderboard(leaderboard: HTMLElement, rows: any[]) {
@@ -220,18 +159,6 @@ function hideBaseRules() {
   if (base) base.style.display = "none";
 }
 
-function prepareManualSideBetUi() {
-  const sheet = document.querySelector<HTMLElement>(".side-bet-slip-sheet");
-  if (!sheet) return { sheet: null, host: null };
-  const amountSection = Array.from(sheet.querySelectorAll<HTMLElement>(".side-bet-slip-section"))
-    .find((node) => node.querySelector(".side-bet-slip-section-head")?.textContent?.trim() === "Amount") || null;
-  if (!amountSection) return { sheet, host: null };
-  amountSection.querySelector<HTMLElement>(".side-bet-amount-grid")?.classList.add("companion-hidden-control");
-  sheet.querySelector<HTMLButtonElement>(".side-bet-slip-submit")?.classList.add("companion-hidden-control");
-  const head = amountSection.querySelector(".side-bet-slip-section-head");
-  return { sheet, host: ensureHost("manual-side-bet", amountSection, head) };
-}
-
 function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: (payload: Payload) => void }) {
   const currentUserId = payload.currentUser?.id;
   const week = Number(payload.week);
@@ -249,12 +176,20 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
   const [order, setOrder] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const orderRef = useRef(initial);
+  const dragRef = useRef<{ pointerId: number; gameId: string; initialIds: string[] } | null>(null);
   const locked = source.some((pick: any) => pick.status === "locked");
 
-  useEffect(() => setOrder(initial), [initial]);
+  useEffect(() => {
+    setOrder(initial);
+    orderRef.current = initial;
+  }, [initial]);
 
   async function persist(next: any[]) {
     setOrder(next);
+    orderRef.current = next;
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) return;
     setSaving(true);
@@ -268,6 +203,7 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
       const result = await response.json();
       if (!response.ok) {
         setOrder(initial);
+        orderRef.current = initial;
         setMessage(result.error || "Could not save confidence order.");
         return;
       }
@@ -283,6 +219,7 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
       window.dispatchEvent(new CustomEvent("pickem:companion-refresh"));
     } catch {
       setOrder(initial);
+      orderRef.current = initial;
       setMessage("Could not save confidence order.");
     } finally {
       setSaving(false);
@@ -297,22 +234,74 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
     void persist(next);
   }
 
+  function beginDrag(event: React.PointerEvent<HTMLButtonElement>, gameId: string) {
+    if (locked || saving) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = {
+      pointerId: event.pointerId,
+      gameId,
+      initialIds: orderRef.current.map((pick: any) => pick.game_id)
+    };
+    setDraggingId(gameId);
+  }
+
+  function updateDrag(event: React.PointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId || !listRef.current) return;
+    event.preventDefault();
+    const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>("[data-confidence-game-id]"));
+    const targetIndex = rows.findIndex((row) => event.clientY < row.getBoundingClientRect().top + row.offsetHeight / 2);
+    const current = orderRef.current;
+    const currentIndex = current.findIndex((pick: any) => pick.game_id === drag.gameId);
+    if (currentIndex < 0) return;
+    let nextIndex = targetIndex === -1 ? rows.length : targetIndex;
+    if (currentIndex < nextIndex) nextIndex -= 1;
+    if (nextIndex === currentIndex) return;
+    const next = [...current];
+    const [moved] = next.splice(currentIndex, 1);
+    next.splice(nextIndex, 0, moved);
+    orderRef.current = next;
+    setOrder(next);
+  }
+
+  function endDrag(event: React.PointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const next = orderRef.current;
+    const changed = drag.initialIds.some((gameId, index) => next[index]?.game_id !== gameId);
+    dragRef.current = null;
+    setDraggingId(null);
+    if (changed) void persist(next);
+  }
+
   if (!source.length) return null;
   return <section className="confidence-order-panel">
     <div className="confidence-order-head">
       <div><strong>Confidence Order</strong><small>Move picks here · 5 points is most confident</small></div>
       {saving && <span>Saving…</span>}
     </div>
-    <div className="confidence-order-list">
+    <div className="confidence-order-list" ref={listRef}>
       {order.map((pick: any, index) => {
         const points = Math.max(1, 5 - index);
-        return <div className="confidence-order-row" key={pick.game_id}>
+        return <div className={`confidence-order-row${draggingId === pick.game_id ? " dragging" : ""}`} data-confidence-game-id={pick.game_id} key={pick.game_id}>
           <span className="confidence-value"><NumericText text={pointText(points)} /></span>
           <strong>{pick.selected_team}</strong>
-          <div className="confidence-move">
-            <button type="button" aria-label={`Move ${pick.selected_team} up`} disabled={locked || saving || index === 0} onClick={() => move(index, -1)}><ChevronUp size={16} /></button>
-            <button type="button" aria-label={`Move ${pick.selected_team} down`} disabled={locked || saving || index === order.length - 1} onClick={() => move(index, 1)}><ChevronDown size={16} /></button>
-          </div>
+          <button
+            className="confidence-drag-handle"
+            type="button"
+            aria-label={`Drag ${pick.selected_team} to change confidence`}
+            disabled={locked || saving}
+            onPointerDown={(event) => beginDrag(event, pick.game_id)}
+            onPointerMove={updateDrag}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            onKeyDown={(event) => {
+              if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+              event.preventDefault();
+              move(index, event.key === "ArrowUp" ? -1 : 1);
+            }}
+          ><GripVertical size={18} /></button>
         </div>;
       })}
     </div>
@@ -321,111 +310,10 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
   </section>;
 }
 
-function ManualSideBet({ slug, payload, sheet }: { slug: AppSlug; payload: Payload; sheet: HTMLElement }) {
-  const [amount, setAmount] = useState("20");
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
-
-  async function send() {
-    const stake = Number(amount);
-    if (!Number.isFinite(stake) || stake <= 0) {
-      setMessage("Enter a side bet amount greater than $0.");
-      return;
-    }
-    const selectedImg = sheet.querySelector<HTMLImageElement>(".side-bet-slip-selection img");
-    const selectedSrc = normalizeUrl(selectedImg?.src);
-    const game = (payload.games || []).find((item: any) => [item.home_logo_url, item.away_logo_url].some((url: string) => normalizeUrl(url) === selectedSrc));
-    if (!game) {
-      setMessage("Could not identify the selected game. Close the slip and choose the team again.");
-      return;
-    }
-    const creatorTeam = normalizeUrl(game.home_logo_url) === selectedSrc ? game.home_team : game.away_team;
-    const checkedLabels = Array.from(sheet.querySelectorAll<HTMLLabelElement>(".side-bet-recipient-grid label"))
-      .filter((label) => label.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked);
-    const recipientIds = checkedLabels.flatMap((label) => {
-      const name = label.querySelector("span")?.textContent?.trim().toLowerCase();
-      const profile = (payload.profiles || []).find((item: any) => item.display_name?.trim().toLowerCase() === name);
-      return profile ? [profile.id] : [];
-    });
-    if (!recipientIds.length) {
-      setMessage("Choose at least one person to send the bet to.");
-      return;
-    }
-    const token = window.localStorage.getItem("pickem_session_token");
-    if (!token) return;
-    setSaving(true);
-    setMessage("");
-    try {
-      const response = await fetch("/api/side-bets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: "create", gameId: game.id, creatorTeam, amount: stake, recipientIds, viewWeek: payload.week })
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        setMessage(result.error || "Could not send the side bet.");
-        return;
-      }
-      clearCurrentCache(slug);
-      window.location.reload();
-    } catch {
-      setMessage("Could not send the side bet.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return <div className="companion-side-bet-amount">
-    <label htmlFor={`companion-side-bet-amount-${slug}`}>Amount</label>
-    <div className="companion-side-bet-input">
-      <span>$</span>
-      <input id={`companion-side-bet-amount-${slug}`} type="number" min="0.01" step="0.01" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} />
-    </div>
-    <small className="companion-side-bet-hint">Enter any amount.</small>
-    {message && <small className="companion-side-bet-error">{message}</small>}
-    <button className="btn accent companion-side-bet-submit" type="button" disabled={saving} onClick={() => void send()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
-  </div>;
-}
-
-function FriendsMoneySummary() {
-  return <section className="friends-money-summary">
-    <div><span>Weekly</span><strong>1st +$20</strong><small>4th -$10 · 5th -$10</small></div>
-    <div><span>Season</span><strong>1st +$150</strong><small>2nd $0 · 3rd–5th -$50</small></div>
-  </section>;
-}
-
-function CompanionRules({ slug }: { slug: AppSlug }) {
-  const other = slug === "other-family";
-  const sections = other ? [
-    ["Weekly Card", ["5 regular spread picks plus 1 underdog every week.", "Weeks 1–2 are college-only. Weeks 3–20 require at least 1 CFB and 1 NFL regular pick."]],
-    ["Confidence Points", ["Rank the 5 regular picks in My Card from 5 points (most confident) to 1 point.", "A winning spread pick earns its confidence points. A loss or push earns 0 confidence points.", "Confidence order locks when the first regular pick locks."]],
-    ["Underdog Bonus", ["The dog must win outright. +7 to +9.5 earns 1 extra point; +10 to +19.5 earns 2 extra points; +20 or more earns 3 extra points.", "A losing dog earns 0 points and does not subtract points."]],
-    ["Standings", ["Weekly and season standings are ranked by total points.", "If points are tied, regular-pick wins, losses, then pushes are used before an exact tie remains."]],
-    ["Money", ["Weekly and season prizes are winner-take-all.", "Caleb sets the current week's pot and the season pot in the Bank tab.", "If first place is tied, the tied winners split the winner-take-all pot."]],
-    ["Side Bets", ["Spread bets only. Enter any positive dollar amount manually.", "There is no weekly side-bet count limit and no fixed dollar cap.", "Offers may be sent or accepted until kickoff."]]
-  ] : [
-    ["Weekly Card", ["Week 1: 3 regular picks plus 1 dog. Week 2 onward: 5 regular picks plus 1 dog.", "There is no CFB/NFL minimum. All regular picks may be college, all NFL, or any mix."]],
-    ["Underdog", ["+7 to +9.5 = +1 win, +10 to +19.5 = +2 wins, +20 or more = +3 wins.", "The dog must win outright; a losing dog does not add a loss."]],
-    ["Season Money", ["1st: +$150. 2nd: $0. 3rd: -$50. 4th: -$50. 5th: -$50.", "The normal standings tiebreak sequence is used. If a finishing position remains tied, the tied positions share those payouts evenly."]],
-    ["Weekly Money", ["1st: +$20. 2nd: $0. 3rd: $0. 4th: -$10. 5th: -$10.", "The normal standings tiebreak sequence is used. If positions remain tied, those position payouts are shared evenly."]],
-    ["Side Bets", ["Spread bets only. Enter any positive dollar amount manually.", "There is no weekly side-bet count limit and no fixed dollar cap.", "Offers may be sent or accepted until kickoff."]]
-  ];
-  return <div className="companion-rules-list">
-    {sections.map(([title, items]: any) => <details className="rule-item" key={title}>
-      <summary><strong>{title}</strong><ChevronDown className="rule-chevron" size={17} /></summary>
-      <div className="rule-copy"><ul>{items.map((item: string) => <li key={item}><NumericText text={item} /></li>)}</ul></div>
-    </details>)}
-  </div>;
-}
-
 export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
   const [payload, setPayload] = useState<Payload | null>(null);
   const [confidenceHost, setConfidenceHost] = useState<HTMLElement | null>(null);
   const [moneyHost, setMoneyHost] = useState<HTMLElement | null>(null);
-  const [friendsMoneyHost, setFriendsMoneyHost] = useState<HTMLElement | null>(null);
-  const [sideBetHost, setSideBetHost] = useState<HTMLElement | null>(null);
-  const [sideBetSheet, setSideBetSheet] = useState<HTMLElement | null>(null);
-  const [rulesHost, setRulesHost] = useState<HTMLElement | null>(null);
   const refreshingRef = useRef(false);
 
   const refreshPayload = useCallback(async () => {
@@ -455,7 +343,6 @@ export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
     if (nextPayload) {
       setPayload(nextPayload);
       if (slug === "other-family") {
-        syncConfidencePickCards(nextPayload);
         syncConfidenceStandings(nextPayload);
         replaceDogWinLabels();
       }
@@ -471,18 +358,10 @@ export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
     const bankHeading = Array.from(bankPanel?.querySelectorAll<HTMLElement>(".scoreboard-heading") || [])
       .find((node) => node.textContent?.includes("Bank Balances")) || null;
     if (slug === "other-family") setMoneyHost(ensureHost("money", bankPanel, bankHeading));
-    else setFriendsMoneyHost(ensureHost("friends-money", bankPanel, bankHeading));
 
     const rulesPanel = document.querySelector<HTMLElement>(".rules-panel");
-    const ruleTitle = rulesPanel?.querySelector(".section-title") || null;
-    if (rulesPanel) {
-      hideBaseRules();
-      setRulesHost(ensureHost("rules", rulesPanel, ruleTitle));
-    }
+    if (rulesPanel) hideBaseRules();
 
-    const manual = prepareManualSideBetUi();
-    setSideBetSheet(manual.sheet);
-    setSideBetHost(manual.host);
   }, [slug]);
 
   useEffect(() => {
@@ -545,7 +424,6 @@ export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
   useEffect(() => {
     if (!payload) return;
     if (slug === "other-family") {
-      syncConfidencePickCards(payload);
       syncConfidenceStandings(payload);
       replaceDogWinLabels();
     }
@@ -558,10 +436,12 @@ export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
         week={Number(payload.week)}
         weeklyAmount={Number(payload.groupMoney.weeklyAmount || 0)}
         seasonAmount={Number(payload.groupMoney.seasonAmount || 0)}
+        weeklySubmitted={Boolean(payload.groupMoney.weeklySubmitted)}
+        seasonSubmitted={Boolean(payload.groupMoney.seasonSubmitted)}
         canEdit={Boolean(payload.groupMoney.canEdit)}
         managerName={payload.groupMoney.managerName || "Caleb"}
-        onSaved={(weeklyAmount, seasonAmount) => {
-          const updated = { ...payload, groupMoney: { ...payload.groupMoney, weeklyAmount, seasonAmount } };
+        onSaved={(weeklyAmount, seasonAmount, weeklySubmitted, seasonSubmitted) => {
+          const updated = { ...payload, groupMoney: { ...payload.groupMoney, weeklyAmount, seasonAmount, weeklySubmitted, seasonSubmitted } };
           cachePayload(updated);
           setPayload(updated);
         }}
@@ -569,8 +449,5 @@ export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
       />,
       moneyHost
     )}
-    {slug === "friends" && friendsMoneyHost && createPortal(<FriendsMoneySummary />, friendsMoneyHost)}
-    {payload && sideBetHost && sideBetSheet && createPortal(<ManualSideBet slug={slug} payload={payload} sheet={sideBetSheet} />, sideBetHost)}
-    {rulesHost && createPortal(<CompanionRules slug={slug} />, rulesHost)}
   </>;
 }

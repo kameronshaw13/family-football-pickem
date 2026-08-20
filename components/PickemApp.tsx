@@ -7,7 +7,6 @@ import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
-import { hasChargers, isChargersTeam } from "@/lib/seasonRules";
 import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, POWER_CONFERENCES } from "@/lib/cfbConferences";
 import MenuSelect from "@/components/MenuSelect";
 import NumericText from "@/components/NumericText";
@@ -75,6 +74,10 @@ type AppData = {
   weekRule: WeekRule;
   weekOpenTime: string | null;
   availableWeeks: number[];
+  activeGroup?: { id: string; slug: string; name?: string };
+  groupRules?: any;
+  sideBetSettings?: { enabled: boolean; maxAmount: number | null; maxPerWeek: number | null; manualAmount: boolean };
+  groupMoney?: { weeklyAmount: number; seasonAmount: number; weeklySubmitted: boolean; seasonSubmitted: boolean; canEdit: boolean; managerName: string | null };
 };
 type BankWeekData = {
   week: number;
@@ -319,6 +322,10 @@ function dogLineText(game: Game, team: string) {
   return `${spreadText(spread)} = +${value}W`;
 }
 
+function confidencePointText(value: number) {
+  return `${value} ${value === 1 ? "pt" : "pts"}`;
+}
+
 function weekdayAbbreviation(iso: string) {
   return CENTRAL_WEEKDAY_SHORT_FORMATTER.format(new Date(iso)).slice(0, 3);
 }
@@ -376,7 +383,7 @@ function boardStatusForGame(game: Game, now: number, weekIsOpen: boolean): GameS
 }
 function defaultBoardStatus(games: Game[], now: number, weekIsOpen: boolean): GameStatusFilter {
   const statuses: GameStatusFilter[] = ["OPEN", "LOCKED", "FINAL"];
-  return statuses.find((status) => games.some((game) => !hasChargers(game) && boardStatusForGame(game, now, weekIsOpen) === status)) || "OPEN";
+  return statuses.find((status) => games.some((game) => boardStatusForGame(game, now, weekIsOpen) === status)) || "OPEN";
 }
 function livePeriodStatus(game: Game) {
   const detail = game.live_status?.trim() || "";
@@ -1165,7 +1172,7 @@ export default function PickemApp() {
   useEffect(() => {
     if (!data || statusFilterTouched) return;
     const weekIsOpenNow = !data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock;
-    const hasCurrentStatus = data.games.some((game) => !hasChargers(game) && boardStatusForGame(game, clock, weekIsOpenNow) === statusFilter);
+    const hasCurrentStatus = data.games.some((game) => boardStatusForGame(game, clock, weekIsOpenNow) === statusFilter);
     if (!hasCurrentStatus) setStatusFilter(defaultBoardStatus(data.games, clock, weekIsOpenNow));
   }, [clock, data, statusFilter, statusFilterTouched]);
   useEffect(() => {
@@ -1394,7 +1401,7 @@ export default function PickemApp() {
     const game = viewedGames.find((item) => item.id === pick.game_id) || pick.game;
     return pick.status === "locked" || Boolean(game && isClosed(game));
   });
-  const myRegular = cardPicks.filter((p) => p.pick_type === "regular");
+  const myRegular = cardPicks.filter((p) => p.pick_type === "regular").sort((a, b) => Number(b.confidence_points || 0) - Number(a.confidence_points || 0));
   const myUnderdog = cardPicks.find((p) => p.pick_type === "underdog");
   const regularCounts = countRegularByLeague(cardPicks, viewedGames);
   const seasonStandings = standingsActive ? (previewActive ? testWeek!.standings : completeSeasonStandings(profiles, standings)) : [];
@@ -1440,7 +1447,7 @@ export default function PickemApp() {
     display_name: profile.display_name,
     total: viewedBankEntries.filter((entry) => entry.user_id === profile.id).reduce((sum, entry) => sum + Number(entry.amount || 0), 0) + Number(viewedSideBetBankTotals?.[profile.id] || 0)
   })).sort((a, b) => b.total - a.total) : [];
-  const openBetGames = sideBetsActive ? games.filter((game) => !hasChargers(game) && new Date(game.commence_time) > new Date() && game.current_spread != null && game.current_spread_team) : [];
+  const openBetGames = sideBetsActive ? games.filter((game) => new Date(game.commence_time) > new Date() && game.current_spread != null && game.current_spread_team) : [];
   const filteredBetGames = openBetGames.filter((game) => game.league === betLeagueFilter && (betLeagueFilter === "NFL" || betConferenceFilter === "ALL" || gameConferences(game).includes(betConferenceFilter)));
   const selectedBetGame = filteredBetGames.find((game) => game.id === betGameId);
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : "";
@@ -1455,15 +1462,12 @@ export default function PickemApp() {
   }
 
   const filteredGames = boardActive ? viewedGames.filter((g) => {
-    if (hasChargers(g)) return false;
     if (boardStatusForGame(g, clock, weekIsOpen) !== statusFilter) return false;
     if (leagueFilter === "CFB") {
       return g.league === "CFB" && (conferenceFilter === "ALL" || gameConferences(g).includes(conferenceFilter));
     }
     if (leagueFilter === "NFL") return g.league === "NFL";
-    const dogValue = Math.max(...[g.away_team, g.home_team].map((team) =>
-      isChargersTeam(team) ? 0 : teamDogValue(g, team)
-    ));
+    const dogValue = Math.max(...[g.away_team, g.home_team].map((team) => teamDogValue(g, team)));
     return dogValue > 0 && (dogValueFilter === "ALL" || dogValue === Number(dogValueFilter));
   }).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime()) : [];
   const gameGroups = filteredGames.reduce<Array<{ key: string; label: string; shortDay: string; games: Game[] }>>((groups, game) => {
@@ -1474,10 +1478,6 @@ export default function PickemApp() {
     return groups;
   }, []);
   function addPick(game: Game, team: string, pickType: PickType) {
-    if (hasChargers(game)) {
-      notify("Los Angeles Chargers games are not available in this league.", "error");
-      return;
-    }
     if (!game.current_spread_team || game.current_spread == null) {
       notify("This game cannot be picked until a spread is available.", "error");
       return;
@@ -1673,7 +1673,7 @@ export default function PickemApp() {
           {profiles.map((profile) => {
             const playerPicks = viewedPicks
               .filter((pick) => pick.user_id === profile.id)
-              .sort((a, b) => Number(a.pick_type === "underdog") - Number(b.pick_type === "underdog"));
+              .sort((a, b) => Number(a.pick_type === "underdog") - Number(b.pick_type === "underdog") || Number(b.confidence_points || 0) - Number(a.confidence_points || 0));
             return <div key={profile.id} className="group-card">
               <h3>{leagueCardsHidden && <EyeOff size={14} />} {profile.display_name}</h3>
               {playerPicks.length === 0 && <p className="muted group-empty-picks">No visible picks yet.</p>}
@@ -2215,7 +2215,6 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
   function sideIsSelectable(team: string) {
     if (statusFilter !== "OPEN") return false;
     if (closed) return false;
-    if (isChargersTeam(team)) return false;
     if (!game.current_spread_team || game.current_spread == null) return false;
     if (dogView) return teamDogValue(game, team) > 0;
     if (existingMatchesView && !canChangeExisting) return false;
@@ -2229,8 +2228,8 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
 
   const awaySelectable = sideIsSelectable(game.away_team);
   const homeSelectable = sideIsSelectable(game.home_team);
-  const awayBlocked = isChargersTeam(game.away_team);
-  const homeBlocked = isChargersTeam(game.home_team);
+  const awayBlocked = false;
+  const homeBlocked = false;
   const awayOpponentOnly = dogView && !hasScore && awayDogValue === 0;
   const homeOpponentOnly = dogView && !hasScore && homeDogValue === 0;
 
@@ -2393,7 +2392,7 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip">· <NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
@@ -2409,5 +2408,5 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const metaState = game ? hasPickScoreBug(game) ? isFinalGame(game) ? "Final" : "Live" : cardGameStateText(game, locked) : "";
   const metaText = [matchupText, metaState].filter(Boolean).join(" · ");
   const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{metaText && <p><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="visible-pick-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip">· <NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{metaText && <p><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="visible-pick-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
 }

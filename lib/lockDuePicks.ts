@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getUnderdogBonusForRules, isGameAllowedByRules } from "@/lib/groupContext";
 import { getGameLockTime } from "@/lib/lockRules";
-import { hasChargers, isChargersTeam } from "@/lib/seasonRules";
-import { normalizeSpreadForSelectedTeam, underdogWinValue } from "@/lib/spreads";
+import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 
 export type LockDuePicksResult = {
   gamesLocked: number;
@@ -19,7 +19,7 @@ export async function lockDuePicks(
   const horizon = new Date(currentTime.getTime() + LOCK_SCAN_HORIZON_MS).toISOString();
   const { data: games, error: gameError } = await supabase
     .from("games")
-    .select("id,commence_time,lock_time,home_team,away_team,current_spread_team,current_spread")
+    .select("id,league,commence_time,lock_time,home_team,away_team,current_spread_team,current_spread")
     .eq("is_locked", false)
     .lte("commence_time", horizon);
   if (gameError) throw new Error(gameError.message);
@@ -54,13 +54,21 @@ export async function lockDuePicks(
 
     const { data: draftPicks, error: pickError } = await supabase
       .from("picks")
-      .select("id,selected_team,pick_type")
+      .select("id,selected_team,pick_type,group_id,season_year")
       .eq("game_id", game.id)
       .eq("status", "draft");
     if (pickError) throw new Error(pickError.message);
 
+    const groupIds = Array.from(new Set((draftPicks || []).map((pick: any) => pick.group_id).filter(Boolean)));
+    const { data: seasons, error: seasonError } = groupIds.length
+      ? await supabase.from("group_seasons").select("group_id,season_year,rules").in("group_id", groupIds)
+      : { data: [], error: null };
+    if (seasonError) throw new Error(seasonError.message);
+    const rulesBySeason = new Map((seasons || []).map((season: any) => [`${season.group_id}:${season.season_year}`, season.rules || {}]));
+
     const pickResults = await Promise.all((draftPicks || []).map(async (pick) => {
-      if (hasChargers(game) || isChargersTeam(pick.selected_team)) {
+      const rules = rulesBySeason.get(`${pick.group_id}:${pick.season_year}`) || {};
+      if (!isGameAllowedByRules(rules, game)) {
         const { error } = await supabase
           .from("picks")
           .delete()
@@ -76,7 +84,7 @@ export async function lockDuePicks(
         game.current_spread
       );
       const dogValue = pick.pick_type === "underdog"
-        ? underdogWinValue(lockedSpread)
+        ? getUnderdogBonusForRules(rules, lockedSpread)
         : null;
       const { error } = await supabase
         .from("picks")

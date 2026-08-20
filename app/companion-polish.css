@@ -1,7 +1,4 @@
 /* Final companion-app polish: preserve Shaw layout while changing only league-specific content. */
-.route-app.group-other-family .brand-lockup::before {
-  content: "🏈  Caleb Family Pick’em";
-}
 
 .login-brand-generic {
   flex-direction: column;
@@ -22,47 +19,6 @@
 }
 .companion-full-rules {
   margin-top: 8px;
-}
-
-/* Keep the Shaw side-bet slip structure. Only the amount selector changes. */
-.companion-side-bet-amount {
-  display: grid;
-  min-height: 43px;
-  align-items: center;
-  padding: 0 var(--pick-content-inset);
-}
-.companion-side-bet-amount > label,
-.companion-side-bet-hint {
-  display: none !important;
-}
-.companion-side-bet-input {
-  width: 100%;
-  min-height: 43px;
-  gap: 7px;
-}
-.companion-side-bet-input > span {
-  font-size: 16px;
-}
-.companion-side-bet-input input {
-  height: 34px;
-  padding: 4px 7px;
-  border: 0;
-  border-bottom: 2px solid var(--line-strong);
-  border-radius: 0;
-  background: transparent;
-  font-size: 14px;
-  outline: 0;
-}
-.companion-side-bet-input input:focus {
-  border-bottom-color: var(--blue);
-}
-.companion-side-bet-error {
-  margin: -3px 0 6px 23px;
-}
-.companion-side-bet-submit {
-  width: calc(100% - (var(--pick-content-inset) * 2));
-  min-height: 43px;
-  margin: 10px var(--pick-content-inset) 11px;
 }
 
 @media (max-width: 420px) {

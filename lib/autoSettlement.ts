@@ -73,21 +73,28 @@ export async function settleWeekIfReady(supabase: SupabaseClient, week: number, 
 
     if (bankRules.mode === "winner_take_all") {
       const { data: moneyRow, error: moneyError } = await supabase.from("group_week_money")
-        .select("winner_take_all_amount")
+        .select("winner_take_all_amount,submitted_at")
         .eq("group_id", season.group_id)
         .eq("season_year", season.season_year)
         .eq("week", week)
         .maybeSingle();
       if (moneyError) throw new Error(moneyError.message);
+      if (!moneyRow?.submitted_at) {
+        lastReason = `The Week ${week} winner-take-all pot has not been submitted.`;
+        continue;
+      }
       settlement = winnerTakeAllSettlement(standings, Number(moneyRow?.winner_take_all_amount || 0));
     } else if (bankRules.mode === "friends_weekly") {
+      const perfect = rule.perfectBonus && standings[0]?.losses === 0 && standings[0]?.wins >= 5;
+      const multiplier = perfect ? 2 : 1;
       const payouts = standings.map((_, index) => {
-        if (index === 0) return Number(bankRules.winner ?? 20);
-        if (index === standings.length - 2) return Number(bankRules.fourth ?? -10);
-        if (index === standings.length - 1) return Number(bankRules.fifth ?? -10);
+        if (index === 0) return Number(bankRules.winner ?? 25) * multiplier;
+        if (index === standings.length - 2) return Number(bankRules.fourth ?? -10) * multiplier;
+        if (index === standings.length - 1) return Number(bankRules.fifth ?? -15) * multiplier;
         return 0;
       });
-      settlement = rankedPayoutSettlement(standings, payouts, `Week ${week} payout`);
+      settlement = { ...rankedPayoutSettlement(standings, payouts, `Week ${week} payout${perfect ? " · perfect week" : ""}`), perfect };
+      anyPerfect ||= perfect;
     } else {
       const shaw = computeWeeklySettlement(standings, rule.perfectBonus);
       settlement = shaw;

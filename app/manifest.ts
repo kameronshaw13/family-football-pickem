@@ -8,7 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
   const name = otherFamily ? "Caleb Family Pick'em" : friends ? "Friends Pick'em" : "Family Football Pick'em";
   const shortName = otherFamily ? "Caleb Family" : friends ? "Friends Pick'em" : "Pick'em";
   const startUrl = otherFamily ? "/other-family" : friends ? "/friends" : "/";
-  const companionIcon = otherFamily ? "/caleb-family-icon.png" : friends ? "/friends-app-icon.png" : null;
+  const companionIcon = otherFamily ? "/other-family-app-icon.png" : friends ? "/friends-app-icon.png" : null;
 
   return {
     id: startUrl,
@@ -19,10 +19,10 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: startUrl === "/" ? "/" : `${startUrl}/`,
     display: "standalone",
     orientation: "portrait-primary",
-    background_color: otherFamily ? "#0b0b0b" : "#20282d",
-    theme_color: otherFamily ? "#0b0b0b" : "#20282d",
+    background_color: "#20282d",
+    theme_color: "#20282d",
     icons: companionIcon
-      ? [{ src: companionIcon, sizes: "128x128", type: "image/png", purpose: "any" }]
+      ? [{ src: companionIcon, sizes: "512x512", type: "image/png", purpose: "any" }]
       : [
           { src: "/icon.png", sizes: "any", type: "image/png" },
           { src: "/apple-icon.png", sizes: "180x180", type: "image/png", purpose: "any" }

@@ -10,6 +10,11 @@ import { getSupabaseAdmin } from "@/lib/supabaseServer";
 const savedPickSchema = z.object({ gameId: z.string().min(1), selectedTeam: z.string().min(1), pickType: z.enum(["regular", "underdog"]) });
 const bodySchema = z.object({ action: z.literal("saveCard"), week: z.number().int().nonnegative(), picks: z.array(savedPickSchema).max(12) });
 
+function isMidweekGame(commenceTime: string, timeZone: string) {
+  const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone }).format(new Date(commenceTime));
+  return ["Tue", "Wed", "Thu", "Fri"].includes(weekday);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const auth = await getProfileFromRequest(req);
@@ -73,6 +78,24 @@ export async function POST(req: NextRequest) {
     }
 
     const editable = body.picks.filter((pick) => !lockedByGame.has(pick.gameId));
+    if (context.group.slug === "other-family" && auth.profile.display_name.trim().toLowerCase() === "caleb") {
+      const includesMidweekPick = editable.some((pick) => {
+        const game: any = gameMap.get(pick.gameId);
+        return game && isMidweekGame(game.commence_time, context.group.timezone);
+      });
+      if (includesMidweekPick) {
+        const { data: moneyRow, error: moneyError } = await supabase.from("group_week_money")
+          .select("submitted_at")
+          .eq("group_id", context.group.id)
+          .eq("season_year", context.seasonYear)
+          .eq("week", body.week)
+          .maybeSingle();
+        if (moneyError) throw new Error(moneyError.message);
+        if (!moneyRow?.submitted_at) {
+          return NextResponse.json({ ok: false, error: `Submit and lock the Week ${body.week} pot before selecting a Tuesday–Friday game.` }, { status: 409 });
+        }
+      }
+    }
     for (const pick of editable) {
       const game: any = gameMap.get(pick.gameId);
       if (!game) return NextResponse.json({ ok: false, error: "That game is not eligible in this Pick'em group." }, { status: 409 });

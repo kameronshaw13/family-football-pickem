@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       supabase.from("picks").select("user_id,week,pick_type,status,result,underdog_win_value,confidence_points").eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("status", "locked"),
       supabase.from("bank_entries").select("*, profile:profiles(display_name)").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("week", { ascending: false }).order("created_at", { ascending: false }),
       supabase.from("side_bets").select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("created_at", { ascending: false }),
-      supabase.from("group_season_money").select("winner_take_all_amount,updated_by,updated_at").eq("group_id", context.group.id).eq("season_year", context.seasonYear).maybeSingle()
+      supabase.from("group_season_money").select("winner_take_all_amount,updated_by,updated_at,submitted_at").eq("group_id", context.group.id).eq("season_year", context.seasonYear).maybeSingle()
     ]);
     for (const result of [gamesResult, lockedResult, bankResult, sideBetResult, seasonMoneyResult]) if (result.error) throw new Error(result.error.message);
 
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
 
     const [picksResult, weekMoneyResult] = await Promise.all([
       supabase.from("picks").select("*, game:games(*), profile:profiles(id,username,display_name,is_admin)").eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("week", week),
-      supabase.from("group_week_money").select("winner_take_all_amount,updated_by,updated_at").eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("week", week).maybeSingle()
+      supabase.from("group_week_money").select("winner_take_all_amount,updated_by,updated_at,submitted_at").eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("week", week).maybeSingle()
     ]);
     if (picksResult.error) throw new Error(picksResult.error.message);
     if (weekMoneyResult.error) throw new Error(weekMoneyResult.error.message);
@@ -137,6 +137,8 @@ export async function GET(req: NextRequest) {
       groupMoney: {
         weeklyAmount: Number(weekMoneyResult.data?.winner_take_all_amount || 0),
         seasonAmount: Number(seasonMoneyResult.data?.winner_take_all_amount || 0),
+        weeklySubmitted: Boolean(weekMoneyResult.data?.submitted_at),
+        seasonSubmitted: Boolean(seasonMoneyResult.data?.submitted_at),
         canEdit: Boolean(moneyAdmin && moneyAdmin.id === auth.profile.id),
         managerName: moneyAdmin?.display_name || null
       },

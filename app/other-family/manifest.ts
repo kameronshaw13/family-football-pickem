@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/other-family",
     scope: "/other-family",
     display: "standalone",
-    background_color: "#0b0b0b",
-    theme_color: "#0b0b0b",
-    icons: [{ src: "/caleb-family-icon.png", sizes: "128x128", type: "image/png" }]
+    background_color: "#20282d",
+    theme_color: "#20282d",
+    icons: [{ src: "/other-family-app-icon.png", sizes: "512x512", type: "image/png" }]
   };
 }

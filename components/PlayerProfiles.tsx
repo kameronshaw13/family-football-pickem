@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import MenuSelect from "@/components/MenuSelect";
 
 type ProfilePayload = {
+  group: { slug: string; titleLabel: string };
   player: { id: string; displayName: string };
   period: { selected: string; label: string; availableYears: number[] };
   season: { wins: number; losses: number; pushes: number; winPct: number };
@@ -162,7 +163,7 @@ export default function PlayerProfiles() {
           <section className="player-profile-block player-profile-highlights">
             <div className="player-profile-section-heading"><h3>Pick'em Highlights</h3></div>
             <div className="player-profile-legacy-row">
-              <div><span>Career Titles</span><small>Shaw Pick'em</small></div>
+              <div><span>Career Titles</span><small>{profile.group.titleLabel}</small></div>
               <strong>{titleCount}</strong>
             </div>
             <div className="player-profile-highlight-stack">

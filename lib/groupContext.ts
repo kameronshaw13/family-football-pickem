@@ -111,16 +111,24 @@ export function getGroupWeekRule(context: GroupContext, week: number): WeekRule 
 }
 
 export function isGameAllowedForGroup(context: GroupContext, game: Pick<Game, "league" | "home_team" | "away_team">) {
-  const leagues = Array.isArray(context.rules?.eligibleLeagues) ? context.rules.eligibleLeagues.map(String) : ["CFB", "NFL"];
+  return isGameAllowedByRules(context.rules, game);
+}
+
+export function isGameAllowedByRules(rules: Record<string, any> | null | undefined, game: Pick<Game, "league" | "home_team" | "away_team">) {
+  const leagues = Array.isArray(rules?.eligibleLeagues) ? rules.eligibleLeagues.map(String) : ["CFB", "NFL"];
   if (!leagues.includes(game.league)) return false;
-  const excluded = new Set((Array.isArray(context.rules?.excludedTeams) ? context.rules.excludedTeams : []).map(normalizeTeam));
+  const excluded = new Set((Array.isArray(rules?.excludedTeams) ? rules.excludedTeams : []).map(normalizeTeam));
   return !excluded.has(normalizeTeam(game.home_team)) && !excluded.has(normalizeTeam(game.away_team));
 }
 
 export function getGroupUnderdogBonus(context: GroupContext, spread: number | null | undefined) {
+  return getUnderdogBonusForRules(context.rules, spread);
+}
+
+export function getUnderdogBonusForRules(rules: Record<string, any> | null | undefined, spread: number | null | undefined) {
   const value = Number(spread);
   if (!Number.isFinite(value)) return 0;
-  const dog = context.rules?.underdog || {};
+  const dog = rules?.underdog || {};
   if (dog.enabled === false) return 0;
   const minimum = Number.isFinite(Number(dog.minimumSpread)) ? Number(dog.minimumSpread) : 7;
   if (value < minimum) return 0;
