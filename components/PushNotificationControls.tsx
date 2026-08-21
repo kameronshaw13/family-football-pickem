@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Bell, BellOff } from "lucide-react";
 import type { AppSlug } from "@/lib/rulePresentation";
+import { appWorkerScope } from "@/lib/appIdentity";
 
 type PushState = "checking" | "unsupported" | "needs-home-screen" | "not-configured" | "denied" | "disabled" | "enabled";
 
@@ -34,14 +35,8 @@ function isStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches || Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
 }
 
-function workerScope(appSlug: AppSlug) {
-  if (appSlug === "friends") return "/friends";
-  if (appSlug === "other-family") return "/caleb-family";
-  return "/";
-}
-
 async function appRegistration(appSlug: AppSlug) {
-  const wanted = workerScope(appSlug);
+  const wanted = appWorkerScope(appSlug);
   const wantedPath = wanted === "/" ? "/" : wanted.replace(/\/$/, "");
   const registrations = await navigator.serviceWorker.getRegistrations();
 

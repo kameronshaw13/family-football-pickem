@@ -10,7 +10,7 @@
 .rules-panel > .notification-settings {
   position: absolute;
   z-index: 3;
-  top: 4px;
+  top: 1px;
   right: var(--page-gutter);
   width: auto;
   min-height: 0;
@@ -28,6 +28,7 @@
 .rules-panel > .notification-settings .notification-settings-actions {
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 .rules-panel > .notification-settings .btn {
   min-height: 30px;
@@ -39,6 +40,8 @@
   gap: 5px;
   line-height: 1;
   font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .side-bet-offer-copy,
@@ -46,19 +49,7 @@
   min-width: 0;
 }
 .side-bet-offer-copy > strong {
-  position: relative;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: clip !important;
-}
-.side-bet-offer-copy > strong.side-bet-matchup-compact > * {
-  visibility: hidden;
-}
-.side-bet-offer-copy > strong.side-bet-matchup-compact::after {
-  content: attr(data-compact-matchup);
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: clip;
 }

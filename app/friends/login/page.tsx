@@ -20,8 +20,6 @@ export default function FriendsLoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    document.cookie = `pickem_group=friends; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`;
-    try { window.sessionStorage.setItem("pickem_route_app", "friends"); } catch {}
     const token = window.localStorage.getItem("pickem_session_token");
     if (token) window.location.replace("/friends");
   }, []);
@@ -43,7 +41,6 @@ export default function FriendsLoginPage() {
       }
       window.localStorage.setItem("pickem_session_token", payload.token);
       window.localStorage.setItem("pickem_profile", JSON.stringify(payload.profile));
-      document.cookie = `pickem_group=friends; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`;
       window.location.replace("/friends");
     } catch {
       setMessage("Could not continue.");

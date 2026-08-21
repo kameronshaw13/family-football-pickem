@@ -96,25 +96,6 @@ function closeConfirmationOnBackdrop(event: PointerEvent) {
   if (!(target instanceof Element) || !target.classList.contains("confirmation-backdrop")) return;
   target.querySelector<HTMLButtonElement>(".confirmation-actions .btn.secondary")?.click();
 }
-function appPath(pathname: string) {
-  if (pathname === "/friends" || pathname.startsWith("/friends/")) return "/friends";
-  if (pathname === "/caleb-family" || pathname.startsWith("/caleb-family/")) return "/caleb-family";
-  return "/";
-}
-function appSlug() {
-  const path = appPath(window.location.pathname);
-  return path === "/friends" ? "friends" : path === "/caleb-family" ? "other-family" : "shaw-family";
-}
-function workerScope() {
-  const path = appPath(window.location.pathname);
-  return path === "/friends" ? "/friends" : path === "/caleb-family" ? "/caleb-family" : "/";
-}
-function applicationServerKey(value: string) {
-  const padding = "=".repeat((4 - value.length % 4) % 4);
-  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = window.atob(base64);
-  return Uint8Array.from(Array.from(raw, (character) => character.charCodeAt(0)));
-}
 
 export default function AppExperienceEnhancements() {
   useEffect(() => {
@@ -122,64 +103,6 @@ export default function AppExperienceEnhancements() {
     let frame = 0;
     let restored = false;
     clearLegacyPreferences();
-
-    const originalFetch = window.fetch.bind(window);
-    window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === "string" ? new URL(input, window.location.origin) : input instanceof URL ? input : new URL(input.url, window.location.origin);
-      if (url.origin !== window.location.origin || !url.pathname.startsWith("/api/")) return originalFetch(input, init);
-      const headers = new Headers(input instanceof Request ? input.headers : init?.headers);
-      headers.set("x-pickem-group", appSlug());
-      return originalFetch(input, { ...init, headers });
-    }) as typeof window.fetch;
-
-    async function installCorrectWorker() {
-      if (!("serviceWorker" in navigator)) return null;
-      const wanted = workerScope();
-      const wantedPath = wanted === "/" ? "/" : wanted.replace(/\/$/, "");
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const registration of registrations) {
-        const scopePath = new URL(registration.scope).pathname.replace(/\/$/, "") || "/";
-        if (appSlug() !== "shaw-family" && scopePath === "/") await registration.unregister();
-        if (!["/", "/friends", "/caleb-family"].includes(scopePath)) await registration.unregister();
-      }
-      let registration = await navigator.serviceWorker.getRegistration(wanted);
-      const currentPath = registration ? new URL(registration.scope).pathname.replace(/\/$/, "") || "/" : "";
-      if (!registration || currentPath !== wantedPath) registration = await navigator.serviceWorker.register("/sw.js", { scope: wanted });
-      return registration;
-    }
-
-    async function syncPushSubscription() {
-      if (!("PushManager" in window) || !("Notification" in window) || Notification.permission !== "granted") return;
-      const token = window.localStorage.getItem("pickem_session_token");
-      if (!token) return;
-      const registration = await installCorrectWorker();
-      if (!registration) return;
-      const stateResponse = await originalFetch("/api/notifications", {
-        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug() },
-        cache: "no-store"
-      });
-      if (!stateResponse.ok) return;
-      const state = await stateResponse.json() as { publicKey?: string; configured?: boolean };
-      if (!state.configured || !state.publicKey) return;
-      let subscription = await registration.pushManager.getSubscription();
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: applicationServerKey(state.publicKey)
-        });
-      }
-      await originalFetch("/api/notifications", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "x-pickem-group": appSlug()
-        },
-        body: JSON.stringify({ action: "subscribe", subscription: subscription.toJSON(), userAgent: navigator.userAgent })
-      });
-    }
-
-    void installCorrectWorker().then(() => syncPushSubscription()).catch(() => undefined);
 
     function scheduleRestore() {
       if (restored) return;
@@ -200,7 +123,6 @@ export default function AppExperienceEnhancements() {
 
     return () => {
       active = false;
-      window.fetch = originalFetch;
       window.cancelAnimationFrame(frame);
       restoreObserver.disconnect();
       document.removeEventListener("click", rememberClick, true);
