@@ -1,3 +1,4 @@
+# Temporary self-removing workflow for the verified shared-app patch.
 name: Apply verified side-bet patch
 
 on:
