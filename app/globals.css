@@ -56,6 +56,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; }
 body::before { position: fixed; inset: -100vh 0 auto; z-index: -1; height: 100vh; background: var(--graphite); content: ""; }
 button, input, select { color: inherit; font: inherit; letter-spacing: 0; }
 button { -webkit-tap-highlight-color: transparent; }
+button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.primary-nav button:focus-visible { outline-color: #c5dbe7; }
 img { display: block; max-width: 100%; }
 p { margin: 0; }
 
