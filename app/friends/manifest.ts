@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Football Pick'em",
     description: "Private Friends football pick'em.",
     start_url: "/friends",
-    scope: "/friends/",
+    scope: "/friends",
     display: "standalone",
     orientation: "portrait-primary",
     background_color: "#20282d",
