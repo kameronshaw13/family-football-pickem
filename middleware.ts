@@ -8,12 +8,32 @@ function groupForPath(pathname: string, app: string | null) {
   return null;
 }
 
+function groupFromReferer(request: NextRequest) {
+  const explicit = request.headers.get("x-pickem-group");
+  if (["shaw-family", "other-family", "friends"].includes(explicit || "")) return explicit;
+  const referer = request.headers.get("referer");
+  if (!referer) return null;
+  try {
+    return groupForPath(new URL(referer).pathname, null);
+  } catch {
+    return null;
+  }
+}
+
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (pathname === "/other-family" || pathname.startsWith("/other-family/")) {
     const url = request.nextUrl.clone();
     url.pathname = pathname.replace(/^\/other-family/, "/caleb-family");
     return NextResponse.redirect(url, 308);
+  }
+
+  if (pathname.startsWith("/api/")) {
+    const group = groupFromReferer(request);
+    if (!group) return NextResponse.next();
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-pickem-group", group);
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   const group = groupForPath(pathname, request.nextUrl.searchParams.get("app"));
@@ -33,5 +53,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/friends/:path*", "/caleb-family/:path*", "/other-family/:path*", "/login"]
+  matcher: ["/api/:path*", "/", "/friends/:path*", "/caleb-family/:path*", "/other-family/:path*", "/login"]
 };
