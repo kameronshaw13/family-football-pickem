@@ -35,8 +35,8 @@ function isStandalone() {
 }
 
 function workerScope(appSlug: AppSlug) {
-  if (appSlug === "friends") return "/friends/";
-  if (appSlug === "other-family") return "/caleb-family/";
+  if (appSlug === "friends") return "/friends";
+  if (appSlug === "other-family") return "/caleb-family";
   return "/";
 }
 
