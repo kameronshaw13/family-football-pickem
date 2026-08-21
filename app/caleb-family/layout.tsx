@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   applicationName: "Family Pick'em",
   appleWebApp: { capable: true, title: "Family Pick'em", statusBarStyle: "black-translucent" },
   icons: { icon: "/other-family-app-icon.png", apple: "/other-family-app-icon.png" },
-  manifest: "/other-family/manifest.webmanifest"
+  manifest: "/caleb-family/manifest.webmanifest"
 };
 
 export const viewport: Viewport = {
@@ -16,6 +16,6 @@ export const viewport: Viewport = {
   themeColor: "#20282d"
 };
 
-export default function OtherFamilyLayout({ children }: { children: React.ReactNode }) {
+export default function CalebFamilyLayout({ children }: { children: React.ReactNode }) {
   return children;
 }
