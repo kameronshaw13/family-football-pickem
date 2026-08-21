@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - fix/app-identity-root-cause
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -83,6 +86,7 @@ jobs:
           npm run build
 
       - name: Remove one-time workflow and commit
+        if: github.event_name == 'pull_request'
         run: |
           rm .github/workflows/app-identity-root-fix.yml
           git config user.name "github-actions[bot]"
