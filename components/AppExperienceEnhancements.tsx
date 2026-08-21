@@ -109,6 +109,12 @@ function workerScope() {
   const path = appPath(window.location.pathname);
   return path === "/friends" ? "/friends" : path === "/caleb-family" ? "/caleb-family" : "/";
 }
+function applicationServerKey(value: string) {
+  const padding = "=".repeat((4 - value.length % 4) % 4);
+  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(base64);
+  return Uint8Array.from(Array.from(raw, (character) => character.charCodeAt(0)));
+}
 
 export default function AppExperienceEnhancements() {
   useEffect(() => {
@@ -127,19 +133,53 @@ export default function AppExperienceEnhancements() {
     }) as typeof window.fetch;
 
     async function installCorrectWorker() {
-      if (!("serviceWorker" in navigator)) return;
-      const wantedScope = new URL(workerScope(), window.location.origin).href;
+      if (!("serviceWorker" in navigator)) return null;
+      const wanted = workerScope();
+      const wantedPath = wanted === "/" ? "/" : wanted.replace(/\/$/, "");
       const registrations = await navigator.serviceWorker.getRegistrations();
       for (const registration of registrations) {
         const scopePath = new URL(registration.scope).pathname.replace(/\/$/, "") || "/";
-        const wantedPath = new URL(wantedScope).pathname.replace(/\/$/, "") || "/";
         if (appSlug() !== "shaw-family" && scopePath === "/") await registration.unregister();
-        if (scopePath !== "/" && scopePath !== "/friends" && scopePath !== "/caleb-family") await registration.unregister();
-        if (scopePath === wantedPath) continue;
+        if (!["/", "/friends", "/caleb-family"].includes(scopePath)) await registration.unregister();
       }
-      await navigator.serviceWorker.register("/sw.js", { scope: workerScope() });
+      let registration = await navigator.serviceWorker.getRegistration(wanted);
+      const currentPath = registration ? new URL(registration.scope).pathname.replace(/\/$/, "") || "/" : "";
+      if (!registration || currentPath !== wantedPath) registration = await navigator.serviceWorker.register("/sw.js", { scope: wanted });
+      return registration;
     }
-    void installCorrectWorker().catch(() => undefined);
+
+    async function syncPushSubscription() {
+      if (!("PushManager" in window) || !("Notification" in window) || Notification.permission !== "granted") return;
+      const token = window.localStorage.getItem("pickem_session_token");
+      if (!token) return;
+      const registration = await installCorrectWorker();
+      if (!registration) return;
+      const stateResponse = await originalFetch("/api/notifications", {
+        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug() },
+        cache: "no-store"
+      });
+      if (!stateResponse.ok) return;
+      const state = await stateResponse.json() as { publicKey?: string; configured?: boolean };
+      if (!state.configured || !state.publicKey) return;
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey(state.publicKey)
+        });
+      }
+      await originalFetch("/api/notifications", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "x-pickem-group": appSlug()
+        },
+        body: JSON.stringify({ action: "subscribe", subscription: subscription.toJSON(), userAgent: navigator.userAgent })
+      });
+    }
+
+    void installCorrectWorker().then(() => syncPushSubscription()).catch(() => undefined);
 
     function scheduleRestore() {
       if (restored) return;
