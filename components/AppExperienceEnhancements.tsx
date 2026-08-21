@@ -88,6 +88,7 @@ function appPath(pathname: string) {
   return "/";
 }
 function appSlug() { const path = appPath(window.location.pathname); return path === "/friends" ? "friends" : path === "/caleb-family" ? "other-family" : "shaw-family"; }
+function workerScope() { const path = appPath(window.location.pathname); return path === "/friends" ? "/friends" : path === "/caleb-family" ? "/caleb-family" : "/"; }
 
 export default function AppExperienceEnhancements() {
   useEffect(() => {
@@ -102,6 +103,10 @@ export default function AppExperienceEnhancements() {
       headers.set("x-pickem-group", appSlug());
       return originalFetch(input, { ...init, headers });
     }) as typeof window.fetch;
+
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker.register("/sw.js", { scope: workerScope() }).catch(() => undefined);
+    }
 
     function scheduleRestore() {
       if (restored) return;
