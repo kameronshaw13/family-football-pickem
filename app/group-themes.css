@@ -4,18 +4,30 @@
   display: none;
 }
 
-.route-app.group-friends .brand-lockup::before,
-.route-app.group-other-family .brand-lockup::before {
-  content: "Football Pick’em";
+.route-app.group-friends .brand-lockup,
+.route-app.group-other-family .brand-lockup {
   display: inline-flex;
   min-width: 0;
-  min-height: 32px;
+  min-height: 35px;
   align-items: center;
-  padding-left: 39px;
+  gap: 7px;
+}
+
+.route-app.group-friends .brand-lockup::before,
+.route-app.group-other-family .brand-lockup::before {
+  content: "";
+  width: 41px;
+  height: 35px;
+  flex: 0 0 41px;
+  background: url("/header-wordmark.png") left center / 292px 35px no-repeat;
+}
+
+.route-app.group-friends .brand-lockup::after,
+.route-app.group-other-family .brand-lockup::after {
+  content: "Football Pick’em";
   color: #fff;
-  background: url("/football-icon.svg") left center / 31px 31px no-repeat;
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 800;
   line-height: 1;
   white-space: nowrap;
@@ -36,7 +48,7 @@
 
 /* Confidence ordering lives directly inside My Card and uses Shaw styling. */
 .confidence-order-panel {
-  margin: 5px calc(var(--page-gutter) * -1) 12px;
+  margin: 5px calc(var(--page-gutter) * -1) 0;
   border-block: 1px solid var(--line);
   background: var(--panel);
 }
@@ -46,14 +58,14 @@
 .confidence-order-head small { display: block; margin-top: 2px; color: var(--muted); font-size: 10.5px; }
 .confidence-order-head > span { color: var(--muted); font-size: 10.5px; font-weight: 700; }
 .confidence-order-list { border-top: 1px solid var(--line); }
-.confidence-order-row { display: grid; min-height: 44px; grid-template-columns: 48px minmax(0, 1fr) 32px; align-items: center; gap: 8px; padding: 5px var(--pick-content-inset); border-bottom: 1px solid var(--line); }
+.confidence-order-row { display: grid; min-height: 44px; grid-template-columns: 48px minmax(0, 1fr) 64px; align-items: center; gap: 8px; padding: 5px var(--pick-content-inset); border-bottom: 1px solid var(--line); }
 .confidence-order-row:last-child { border-bottom: 0; }
 .confidence-order-row > strong { overflow: hidden; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .confidence-value { color: var(--blue-dark); font-family: var(--font-display); font-size: 11px; font-weight: 800; }
-.confidence-drag-handle { display: grid; width: 28px; height: 28px; justify-self: end; place-items: center; padding: 0; border: 0; color: var(--muted); background: transparent; cursor: grab; touch-action: none; }
-.confidence-drag-handle:active { cursor: grabbing; }
-.confidence-drag-handle:disabled { opacity: .27; }
-.confidence-order-row.dragging { background: var(--blue-soft); box-shadow: inset 4px 0 0 var(--blue); }
+.confidence-move { display: flex; justify-self: end; gap: 4px; }
+.confidence-move button { display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--ink); background: var(--panel); }
+.confidence-move button:disabled { color: var(--muted); background: var(--surface-muted); opacity: .42; }
+.confidence-order-row.locked { background: var(--surface-muted); }
 .confidence-note, .confidence-error { margin: 0; padding: 0 var(--pick-content-inset) 8px; font-size: 10.5px; }
 .confidence-note { color: var(--muted); }
 .confidence-error { color: var(--red); }
@@ -63,7 +75,7 @@
 .leaderboard.points-mode .leaderboard-labels,
 .leaderboard.points-mode .leaderboard-row { grid-template-columns: 54px minmax(0, 1fr) 88px; }
 .leaderboard.points-mode .leaderboard-labels > :last-child { text-align: right; }
-.leaderboard-points { text-align: right; font-family: var(--font-display); font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.leaderboard-points { text-align: right; font-family: var(--font-display); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .route-app.group-other-family .bank-result-record { font-family: var(--font-display); font-weight: 700; }
 
 /* Caleb's one-time winner-take-all entry uses full-width Shaw rows. */
@@ -72,7 +84,7 @@
 .group-money-controls-head { padding: 9px var(--pick-content-inset) 7px; }
 .group-money-controls-head strong { font-family: var(--font-display); font-size: 12px; font-weight: 800; text-transform: uppercase; }
 .group-money-controls-head small { display: block; margin-top: 2px; color: var(--muted); font-size: 10.5px; }
-.group-money-grid { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); }
+.group-money-grid { display: grid; grid-template-columns: 1fr 1fr; }
 .group-money-grid.single { grid-template-columns: 1fr; }
 .group-money-field { padding: 9px var(--pick-content-inset); }
 .group-money-field + .group-money-field { border-left: 1px solid var(--line); }
@@ -99,7 +111,7 @@
 .companion-rules-list { margin-top: 8px; }
 
 @media (max-width: 420px) {
-  .route-app.group-friends .brand-lockup::before,
-  .route-app.group-other-family .brand-lockup::before { font-size: 16px; }
-  .confidence-order-row { grid-template-columns: 48px minmax(0, 1fr) 32px; }
+  .route-app.group-friends .brand-lockup::after,
+  .route-app.group-other-family .brand-lockup::after { font-size: 18px; }
+  .confidence-order-row { grid-template-columns: 48px minmax(0, 1fr) 64px; }
 }

@@ -6,8 +6,8 @@ import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 const schema = z.object({
   week: z.number().int().min(1).max(20),
-  weeklyAmount: z.number().min(0).max(100000),
-  seasonAmount: z.number().min(0).max(100000).optional()
+  weeklyAmount: z.number().positive().max(100000),
+  seasonAmount: z.number().positive().max(100000).optional()
 });
 
 export async function POST(req: NextRequest) {

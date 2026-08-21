@@ -48,8 +48,8 @@ function rulesFor(slug: AppSlug): RuleSection[] {
       ] },
       { title: "Confidence Points", items: [
         "Rank the 5 regular picks in My Card from 5 points (most confident) down to 1 point.",
-        "A winning regular spread pick earns its confidence value. A loss or push earns 0 confidence points.",
-        "Confidence order locks when the first regular pick locks."
+        "A winning regular spread pick earns its confidence value. A push earns half its confidence value, and a loss earns 0 points.",
+        "When a game locks, it stays in its assigned point slot. Unlocked picks may still move among the remaining slots."
       ] },
       { title: "Eligible Games", items: eligibleRules(slug) },
       { title: "Underdog", items: [
@@ -64,6 +64,7 @@ function rulesFor(slug: AppSlug): RuleSection[] {
         "Points ties are broken by regular-pick wins, then fewer regular-pick losses, then pushes.",
         "The season prize is winner-take-all using the season pot Caleb submits once during Week 1.",
         "The season pot locks immediately after submission.",
+        "The winner receives the season pot, and all remaining players split the contribution equally.",
         "If first place remains tied, the tied winners split the season pot."
       ] },
       { title: "Weekly Bank", items: [
@@ -107,7 +108,7 @@ function rulesFor(slug: AppSlug): RuleSection[] {
       "If finishing positions remain tied after the normal tiebreakers, the payouts for the tied positions are shared evenly."
     ] },
     { title: "Weekly Bank", items: [
-      "Weekly payouts: 1st +$25, 2nd $0, 3rd $0, 4th -$10, 5th -$15.",
+      "Weekly payouts: 1st +$20, 2nd +$10, 3rd -$5, 4th -$10, 5th -$15.",
       "If weekly positions remain tied after the normal tiebreakers, the payouts for the tied positions are shared evenly."
     ] },
     { title: "Perfect Week", items: [

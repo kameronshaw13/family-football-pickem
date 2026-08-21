@@ -1,28 +1,10 @@
 begin;
 
-alter table public.group_week_money
-  add column if not exists submitted_at timestamptz;
-
-alter table public.group_season_money
-  add column if not exists submitted_at timestamptz;
-
-update public.pickem_groups
-set branding = coalesce(branding, '{}'::jsonb) || '{"theme":"shaw-retro","headerMode":"football","headerLabel":"Football Pick’em","icon":"football"}'::jsonb
-where slug in ('friends', 'other-family');
-
 update public.group_seasons as season
 set rules = jsonb_set(
-  jsonb_set(
-    jsonb_set(
-      season.rules,
-      '{sideBets}',
-      coalesce(season.rules -> 'sideBets', '{}'::jsonb) || '{"maxAmount":20,"maxPerWeek":null,"amountEntry":"fixed"}'::jsonb
-    ),
-    '{weeklyBank}',
-    coalesce(season.rules -> 'weeklyBank', '{}'::jsonb) || '{"first":20,"winner":20,"second":10,"third":-5,"fourth":-10,"fifth":-15,"tieRules":"position_average"}'::jsonb
-  ),
-  '{seasonPrizes}',
-  coalesce(season.rules -> 'seasonPrizes', '{}'::jsonb) || '{"first":150,"second":50,"third":-30,"fourth":-70,"fifth":-100,"tieRules":"position_average"}'::jsonb
+  season.rules,
+  '{weeklyBank}',
+  coalesce(season.rules -> 'weeklyBank', '{}'::jsonb) || '{"mode":"friends_weekly","first":20,"winner":20,"second":10,"third":-5,"fourth":-10,"fifth":-15,"tieRules":"position_average"}'::jsonb
 )
 from public.pickem_groups as pickem_group
 where pickem_group.id = season.group_id
@@ -31,17 +13,9 @@ where pickem_group.id = season.group_id
 
 update public.group_seasons as season
 set rules = jsonb_set(
-  jsonb_set(
-    jsonb_set(
-      season.rules,
-      '{sideBets}',
-      coalesce(season.rules -> 'sideBets', '{}'::jsonb) || '{"maxAmount":20,"maxPerWeek":null,"amountEntry":"fixed"}'::jsonb
-    ),
-    '{scoring}',
-    coalesce(season.rules -> 'scoring', '{}'::jsonb) || '{"mode":"confidence","pushMultiplier":0.5}'::jsonb
-  ),
-  '{excludedTeams}',
-  '[]'::jsonb
+  season.rules,
+  '{scoring}',
+  coalesce(season.rules -> 'scoring', '{}'::jsonb) || '{"mode":"confidence","pushMultiplier":0.5}'::jsonb
 )
 from public.pickem_groups as pickem_group
 where pickem_group.id = season.group_id

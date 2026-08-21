@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { GripVertical } from "lucide-react";
-import GroupMoneyControls from "@/components/GroupMoneyControls";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import NumericText from "@/components/NumericText";
 
 type AppSlug = "other-family" | "friends";
@@ -176,20 +175,14 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
   const [order, setOrder] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const listRef = useRef<HTMLDivElement | null>(null);
-  const orderRef = useRef(initial);
-  const dragRef = useRef<{ pointerId: number; gameId: string; initialIds: string[] } | null>(null);
-  const locked = source.some((pick: any) => pick.status === "locked");
+  const hasLockedPicks = source.some((pick: any) => pick.status === "locked");
 
   useEffect(() => {
     setOrder(initial);
-    orderRef.current = initial;
   }, [initial]);
 
   async function persist(next: any[]) {
     setOrder(next);
-    orderRef.current = next;
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) return;
     setSaving(true);
@@ -203,7 +196,6 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
       const result = await response.json();
       if (!response.ok) {
         setOrder(initial);
-        orderRef.current = initial;
         setMessage(result.error || "Could not save confidence order.");
         return;
       }
@@ -219,60 +211,25 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
       window.dispatchEvent(new CustomEvent("pickem:companion-refresh"));
     } catch {
       setOrder(initial);
-      orderRef.current = initial;
       setMessage("Could not save confidence order.");
     } finally {
       setSaving(false);
     }
   }
 
+  function targetIndex(index: number, direction: -1 | 1) {
+    if (order[index]?.status === "locked") return -1;
+    let target = index + direction;
+    while (target >= 0 && target < order.length && order[target]?.status === "locked") target += direction;
+    return target >= 0 && target < order.length ? target : -1;
+  }
+
   function move(index: number, direction: -1 | 1) {
-    const target = index + direction;
-    if (locked || saving || target < 0 || target >= order.length) return;
+    const target = targetIndex(index, direction);
+    if (saving || target < 0) return;
     const next = [...order];
     [next[index], next[target]] = [next[target], next[index]];
     void persist(next);
-  }
-
-  function beginDrag(event: React.PointerEvent<HTMLButtonElement>, gameId: string) {
-    if (locked || saving) return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = {
-      pointerId: event.pointerId,
-      gameId,
-      initialIds: orderRef.current.map((pick: any) => pick.game_id)
-    };
-    setDraggingId(gameId);
-  }
-
-  function updateDrag(event: React.PointerEvent<HTMLButtonElement>) {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId || !listRef.current) return;
-    event.preventDefault();
-    const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>("[data-confidence-game-id]"));
-    const targetIndex = rows.findIndex((row) => event.clientY < row.getBoundingClientRect().top + row.offsetHeight / 2);
-    const current = orderRef.current;
-    const currentIndex = current.findIndex((pick: any) => pick.game_id === drag.gameId);
-    if (currentIndex < 0) return;
-    let nextIndex = targetIndex === -1 ? rows.length : targetIndex;
-    if (currentIndex < nextIndex) nextIndex -= 1;
-    if (nextIndex === currentIndex) return;
-    const next = [...current];
-    const [moved] = next.splice(currentIndex, 1);
-    next.splice(nextIndex, 0, moved);
-    orderRef.current = next;
-    setOrder(next);
-  }
-
-  function endDrag(event: React.PointerEvent<HTMLButtonElement>) {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    const next = orderRef.current;
-    const changed = drag.initialIds.some((gameId, index) => next[index]?.game_id !== gameId);
-    dragRef.current = null;
-    setDraggingId(null);
-    if (changed) void persist(next);
   }
 
   if (!source.length) return null;
@@ -281,31 +238,21 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
       <div><strong>Confidence Order</strong><small>Move picks here · 5 points is most confident</small></div>
       {saving && <span>Saving…</span>}
     </div>
-    <div className="confidence-order-list" ref={listRef}>
+    <div className="confidence-order-list">
       {order.map((pick: any, index) => {
         const points = Math.max(1, 5 - index);
-        return <div className={`confidence-order-row${draggingId === pick.game_id ? " dragging" : ""}`} data-confidence-game-id={pick.game_id} key={pick.game_id}>
+        const pickLocked = pick.status === "locked";
+        return <div className={`confidence-order-row${pickLocked ? " locked" : ""}`} data-confidence-game-id={pick.game_id} key={pick.game_id}>
           <span className="confidence-value"><NumericText text={pointText(points)} /></span>
           <strong>{pick.selected_team}</strong>
-          <button
-            className="confidence-drag-handle"
-            type="button"
-            aria-label={`Drag ${pick.selected_team} to change confidence`}
-            disabled={locked || saving}
-            onPointerDown={(event) => beginDrag(event, pick.game_id)}
-            onPointerMove={updateDrag}
-            onPointerUp={endDrag}
-            onPointerCancel={endDrag}
-            onKeyDown={(event) => {
-              if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
-              event.preventDefault();
-              move(index, event.key === "ArrowUp" ? -1 : 1);
-            }}
-          ><GripVertical size={18} /></button>
+          <span className="confidence-move">
+            <button type="button" aria-label={`Move ${pick.selected_team} up`} disabled={saving || pickLocked || targetIndex(index, -1) < 0} onClick={() => move(index, -1)}><ChevronUp size={15} /></button>
+            <button type="button" aria-label={`Move ${pick.selected_team} down`} disabled={saving || pickLocked || targetIndex(index, 1) < 0} onClick={() => move(index, 1)}><ChevronDown size={15} /></button>
+          </span>
         </div>;
       })}
     </div>
-    {locked && <p className="confidence-note">Confidence order is locked because a regular pick has locked.</p>}
+    {hasLockedPicks && <p className="confidence-note">Locked games keep their assigned point slots.</p>}
     {message && <p className="confidence-error">{message}</p>}
   </section>;
 }
@@ -313,7 +260,6 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
 export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
   const [payload, setPayload] = useState<Payload | null>(null);
   const [confidenceHost, setConfidenceHost] = useState<HTMLElement | null>(null);
-  const [moneyHost, setMoneyHost] = useState<HTMLElement | null>(null);
   const refreshingRef = useRef(false);
 
   const refreshPayload = useCallback(async () => {
@@ -353,11 +299,6 @@ export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
       const pickTitle = pickSection?.querySelector(":scope > h3") || null;
       setConfidenceHost(ensureHost("confidence", pickSection, pickTitle));
     }
-
-    const bankPanel = document.querySelector<HTMLElement>(".standings-panel");
-    const bankHeading = Array.from(bankPanel?.querySelectorAll<HTMLElement>(".scoreboard-heading") || [])
-      .find((node) => node.textContent?.includes("Bank Balances")) || null;
-    if (slug === "other-family") setMoneyHost(ensureHost("money", bankPanel, bankHeading));
 
     const rulesPanel = document.querySelector<HTMLElement>(".rules-panel");
     if (rulesPanel) hideBaseRules();
@@ -431,23 +372,5 @@ export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
 
   return <>
     {slug === "other-family" && payload && confidenceHost && createPortal(<ConfidenceOrder payload={payload} onPayload={setPayload} />, confidenceHost)}
-    {slug === "other-family" && payload?.groupMoney && moneyHost && createPortal(
-      <GroupMoneyControls
-        week={Number(payload.week)}
-        weeklyAmount={Number(payload.groupMoney.weeklyAmount || 0)}
-        seasonAmount={Number(payload.groupMoney.seasonAmount || 0)}
-        weeklySubmitted={Boolean(payload.groupMoney.weeklySubmitted)}
-        seasonSubmitted={Boolean(payload.groupMoney.seasonSubmitted)}
-        canEdit={Boolean(payload.groupMoney.canEdit)}
-        managerName={payload.groupMoney.managerName || "Caleb"}
-        onSaved={(weeklyAmount, seasonAmount, weeklySubmitted, seasonSubmitted) => {
-          const updated = { ...payload, groupMoney: { ...payload.groupMoney, weeklyAmount, seasonAmount, weeklySubmitted, seasonSubmitted } };
-          cachePayload(updated);
-          setPayload(updated);
-        }}
-        onError={() => undefined}
-      />,
-      moneyHost
-    )}
   </>;
 }

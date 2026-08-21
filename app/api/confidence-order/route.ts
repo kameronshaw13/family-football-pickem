@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     if (context.rules?.scoring?.mode !== "confidence") return NextResponse.json({ ok: false, error: "Confidence ordering is not enabled in this app." }, { status: 409 });
 
     const { data: picks, error } = await supabase.from("picks")
-      .select("id,game_id,status,pick_type")
+      .select("id,game_id,status,pick_type,confidence_points")
       .eq("group_id", context.group.id)
       .eq("season_year", context.seasonYear)
       .eq("user_id", auth.profile.id)
@@ -26,11 +26,18 @@ export async function POST(req: NextRequest) {
       .eq("pick_type", "regular");
     if (error) throw new Error(error.message);
     const rows = picks || [];
-    if (rows.some((pick: any) => pick.status === "locked")) return NextResponse.json({ ok: false, error: "Confidence order locks when the first regular pick locks." }, { status: 409 });
     const existingIds = new Set(rows.map((pick: any) => pick.game_id));
     if (body.gameIds.length !== rows.length || body.gameIds.some((id) => !existingIds.has(id))) return NextResponse.json({ ok: false, error: "Your card changed. Refresh My Card and try again." }, { status: 409 });
+    const lockedMoved = rows.some((pick: any) => {
+      if (pick.status !== "locked") return false;
+      const points = Number(pick.confidence_points);
+      const assignedIndex = 5 - points;
+      return !Number.isInteger(points) || points < 1 || points > 5 || body.gameIds[assignedIndex] !== pick.game_id;
+    });
+    if (lockedMoved) return NextResponse.json({ ok: false, error: "Locked picks must remain in their assigned confidence slots." }, { status: 409 });
 
-    const writes = body.gameIds.map((gameId, index) => supabase.from("picks")
+    const draftIds = new Set(rows.filter((pick: any) => pick.status === "draft").map((pick: any) => pick.game_id));
+    const writes = body.gameIds.map((gameId, index) => ({ gameId, index })).filter(({ gameId }) => draftIds.has(gameId)).map(({ gameId, index }) => supabase.from("picks")
       .update({ confidence_points: Math.max(1, 5 - index), updated_at: new Date().toISOString() })
       .eq("group_id", context.group.id)
       .eq("season_year", context.seasonYear)

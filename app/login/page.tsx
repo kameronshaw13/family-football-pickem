@@ -5,7 +5,7 @@ import MenuSelect from "@/components/MenuSelect";
 import NumericText from "@/components/NumericText";
 
 type AppSlug = "shaw-family" | "other-family" | "friends";
-type AppConfig = { name: string; home: string; users: Array<{ username: string; label: string }>; shaw?: boolean; passwordless?: boolean; icon?: string };
+type AppConfig = { name: string; home: string; users: Array<{ username: string; label: string }>; shaw?: boolean; passwordless?: boolean };
 
 const appConfig: Record<AppSlug, AppConfig> = {
   "shaw-family": {
@@ -22,7 +22,6 @@ const appConfig: Record<AppSlug, AppConfig> = {
     name: "Caleb Family Pick'em",
     home: "/other-family",
     passwordless: true,
-    icon: "/other-family-app-icon.png",
     users: [
       { username: "caleb", label: "Caleb" },
       { username: "monte", label: "Monte" },
@@ -33,7 +32,6 @@ const appConfig: Record<AppSlug, AppConfig> = {
   friends: {
     name: "Friends Pick'em",
     home: "/friends",
-    icon: "/friends-app-icon.png",
     users: [
       { username: "kameron", label: "Kameron" },
       { username: "caleb", label: "Caleb" },
@@ -102,7 +100,7 @@ export default function LoginPage() {
     <section className="login-card">
       {config.shaw
         ? <div className="login-brand"><img className="login-brand-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" /></div>
-        : <div className="login-brand login-brand-generic">{config.icon && <img className="login-brand-app-icon" src={config.icon} alt="" />}<strong>{config.name}</strong></div>}
+        : <div className="login-brand login-brand-generic"><strong>{config.name}</strong></div>}
       <h1>{passwordless ? "Enter Caleb Family" : mode === "create" ? "Create your account" : "Sign in"}</h1>
       <p>{passwordless ? "Choose a name to open the app. Passwords are temporarily disabled while the league is being set up." : mode === "create" ? "Choose your name and create a private password. After this, use that password to get back in." : "Use your name and the password you created."}</p>
       {!passwordless && <div className="mode-toggle">

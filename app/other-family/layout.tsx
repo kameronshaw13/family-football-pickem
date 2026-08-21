@@ -3,8 +3,8 @@ import type { Metadata, Viewport } from "next";
 export const metadata: Metadata = {
   title: "Caleb Family Pick'em",
   description: "Private Caleb Family football confidence pick'em.",
-  applicationName: "Caleb Family Pick'em",
-  appleWebApp: { capable: true, title: "Caleb Family Pick'em", statusBarStyle: "black-translucent" },
+  applicationName: "Family Pick'em",
+  appleWebApp: { capable: true, title: "Family Pick'em", statusBarStyle: "black-translucent" },
   icons: { icon: "/other-family-app-icon.png", apple: "/other-family-app-icon.png" },
   manifest: "/other-family/manifest.webmanifest"
 };

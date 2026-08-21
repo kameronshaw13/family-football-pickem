@@ -5,8 +5,8 @@ export default function manifest(): MetadataRoute.Manifest {
   const group = cookies().get("pickem_group")?.value || "shaw-family";
   const otherFamily = group === "other-family";
   const friends = group === "friends";
-  const name = otherFamily ? "Caleb Family Pick'em" : friends ? "Friends Pick'em" : "Family Football Pick'em";
-  const shortName = otherFamily ? "Caleb Family" : friends ? "Friends Pick'em" : "Pick'em";
+  const name = otherFamily ? "Family Pick'em" : friends ? "Football Pick'em" : "Family Football Pick'em";
+  const shortName = otherFamily ? "Family Pick'em" : friends ? "Football Pick'em" : "Pick'em";
   const startUrl = otherFamily ? "/other-family" : friends ? "/friends" : "/";
   const companionIcon = otherFamily ? "/other-family-app-icon.png" : friends ? "/friends-app-icon.png" : null;
 

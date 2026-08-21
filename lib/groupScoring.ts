@@ -10,6 +10,7 @@ export function isConfidenceMode(rules: any) {
 
 export function computeGroupStandings(profiles: ProfileSummary[], picks: FootballPick[], rules: any): GroupStanding[] {
   if (!isConfidenceMode(rules)) return computeWeeklyStandings(profiles, picks);
+  const pushMultiplier = Number.isFinite(Number(rules?.scoring?.pushMultiplier)) ? Number(rules.scoring.pushMultiplier) : 0.5;
 
   const map = new Map<string, GroupStanding>();
   for (const profile of profiles) {
@@ -33,7 +34,10 @@ export function computeGroupStandings(profiles: ProfileSummary[], picks: Footbal
         row.points = Number(row.points || 0) + Number((pick as FootballPick & { confidence_points?: number | null }).confidence_points || 0);
         row.wins += 1;
       } else if (pick.result === "loss") row.losses += 1;
-      else if (pick.result === "push") row.pushes += 1;
+      else if (pick.result === "push") {
+        row.points = Number(row.points || 0) + Number((pick as FootballPick & { confidence_points?: number | null }).confidence_points || 0) * pushMultiplier;
+        row.pushes += 1;
+      }
       continue;
     }
     if (pick.pick_type === "underdog" && pick.result === "win") {

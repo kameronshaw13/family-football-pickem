@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Caleb Family Pick'em",
-    short_name: "Caleb Family",
+    name: "Family Pick'em",
+    short_name: "Family Pick'em",
     description: "Private Caleb Family confidence pick'em.",
     start_url: "/other-family",
     scope: "/other-family",

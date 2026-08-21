@@ -10,7 +10,6 @@ type Props = {
   weeklySubmitted: boolean;
   seasonSubmitted: boolean;
   canEdit: boolean;
-  managerName: string | null;
   onSaved: (weeklyAmount: number, seasonAmount: number, weeklySubmitted: boolean, seasonSubmitted: boolean) => void;
   onError?: (message: string) => void;
 };
@@ -20,7 +19,7 @@ function displayMoney(value: number) {
   return `$${absolute.toFixed(Number.isInteger(absolute) ? 0 : 2)}`;
 }
 
-export default function GroupMoneyControls({ week, weeklyAmount, seasonAmount, weeklySubmitted, seasonSubmitted, canEdit, managerName, onSaved, onError }: Props) {
+export default function GroupMoneyControls({ week, weeklyAmount, seasonAmount, weeklySubmitted, seasonSubmitted, canEdit, onSaved, onError }: Props) {
   const [weekly, setWeekly] = useState(String(weeklyAmount || 0));
   const [season, setSeason] = useState(String(seasonAmount || 0));
   const [saving, setSaving] = useState(false);
@@ -39,8 +38,8 @@ export default function GroupMoneyControls({ week, weeklyAmount, seasonAmount, w
     if (!token) return;
     const nextWeekly = Number(weekly);
     const nextSeason = week === 1 && !seasonSubmitted ? Number(season) : null;
-    if (!Number.isFinite(nextWeekly) || nextWeekly < 0 || (nextSeason != null && (!Number.isFinite(nextSeason) || nextSeason < 0))) {
-      fail("Enter valid winner-take-all dollar amounts.");
+    if (!Number.isFinite(nextWeekly) || nextWeekly <= 0 || (nextSeason != null && (!Number.isFinite(nextSeason) || nextSeason <= 0))) {
+      fail("Each required pot must be greater than $0.");
       return;
     }
     setSaving(true);
@@ -68,27 +67,22 @@ export default function GroupMoneyControls({ week, weeklyAmount, seasonAmount, w
   }
 
   if (weeklySubmitted) return <section className="group-money-summary">
-    <div className="group-money-controls-head">
-      <strong>Week {week} Pot</strong>
-      <small>Submitted and locked for this week.</small>
-    </div>
     <div className="group-money-grid single">
-      <div className="group-money-field"><span>Winner Take All</span><strong><NumericText text={displayMoney(weeklyAmount)} /></strong></div>
+      <div className="group-money-field"><span>Week {week} pot</span><strong><NumericText text={displayMoney(weeklyAmount)} /></strong></div>
     </div>
   </section>;
 
   const showSeasonEntry = week === 1 && !seasonSubmitted;
+  const nextWeekly = Number(weekly);
+  const nextSeason = Number(season);
+  const validAmounts = Number.isFinite(nextWeekly) && nextWeekly > 0 && (!showSeasonEntry || Number.isFinite(nextSeason) && nextSeason > 0);
 
   return <section className="group-money-controls">
-    <div className="group-money-controls-head">
-      <strong>Winner Take All</strong>
-      <small>{canEdit ? `Submit the Week ${week} pot${showSeasonEntry ? " and the season pot" : ""}. It locks after submission.` : `${managerName || "Caleb"} must submit the Week ${week} pot before midweek picks.`}</small>
-    </div>
     <div className={`group-money-grid${showSeasonEntry ? "" : " single"}`}>
       <div className="group-money-field">
         {canEdit ? <>
           <label htmlFor="weekly-wta">Week {week} pot</label>
-          <div className="group-money-input-wrap"><span>$</span><input id="weekly-wta" inputMode="decimal" type="number" min="0" step="1" value={weekly} onChange={(event) => setWeekly(event.target.value)} /></div>
+          <div className="group-money-input-wrap"><span>$</span><input id="weekly-wta" inputMode="decimal" type="number" min="0.01" step="1" value={weekly} onChange={(event) => setWeekly(event.target.value)} /></div>
         </> : <>
           <span>Week {week} pot</span><strong><NumericText text={displayMoney(weeklyAmount)} /></strong>
         </>}
@@ -96,13 +90,13 @@ export default function GroupMoneyControls({ week, weeklyAmount, seasonAmount, w
       {showSeasonEntry && <div className="group-money-field">
         {canEdit ? <>
           <label htmlFor="season-wta">Season pot</label>
-          <div className="group-money-input-wrap"><span>$</span><input id="season-wta" inputMode="decimal" type="number" min="0" step="1" value={season} onChange={(event) => setSeason(event.target.value)} /></div>
+          <div className="group-money-input-wrap"><span>$</span><input id="season-wta" inputMode="decimal" type="number" min="0.01" step="1" value={season} onChange={(event) => setSeason(event.target.value)} /></div>
         </> : <>
           <span>Season pot</span><strong><NumericText text={displayMoney(seasonAmount)} /></strong>
         </>}
       </div>}
     </div>
     {message && <p className={message === "Pot submitted." ? "group-money-message success" : "group-money-message error"}>{message}</p>}
-    {canEdit && <div className="group-money-save"><button type="button" className="btn accent" disabled={saving} onClick={() => void save()}>{saving ? "Submitting…" : `Submit Week ${week} pot${showSeasonEntry ? " & season pot" : ""}`}</button></div>}
+    {canEdit && <div className="group-money-save"><button type="button" className="btn accent" disabled={saving || !validAmounts} onClick={() => void save()}>{saving ? "Submitting…" : `Submit Week ${week} pot${showSeasonEntry ? " & season pot" : ""}`}</button></div>}
   </section>;
 }

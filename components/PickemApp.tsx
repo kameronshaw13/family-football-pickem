@@ -12,6 +12,7 @@ import MenuSelect from "@/components/MenuSelect";
 import NumericText from "@/components/NumericText";
 import NotificationBadge from "@/components/NotificationBadge";
 import PushNotificationControls from "@/components/PushNotificationControls";
+import GroupMoneyControls from "@/components/GroupMoneyControls";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -1381,6 +1382,10 @@ export default function PickemApp() {
   if (!data) return <div className="app-shell"><main className="container"><div className="error-card">{message || "Could not load app."}</div></main></div>;
 
   const { currentUser, games, picks, profiles, standings, availableWeeks, bankEntries } = data;
+  const leagueCardProfiles = [
+    profiles.find((profile) => profile.id === currentUser.id) || currentUser,
+    ...profiles.filter((profile) => profile.id !== currentUser.id)
+  ];
   const liveSideBets = data.sideBets || [];
   const testWeek = testWeekActive && profiles.length === 3 ? buildTestWeek(profiles, currentUser.id) : null;
   const previewActive = Boolean(testWeekActive && testWeek);
@@ -1670,7 +1675,7 @@ export default function PickemApp() {
           <PickList picks={myUnderdog ? [...myRegular, myUnderdog] : myRegular} games={viewedGames} title="Picks" removePick={removePick} />
         </>}
         {cardView === "group" && <div className="group-list">
-          {profiles.map((profile) => {
+          {leagueCardProfiles.map((profile) => {
             const playerPicks = viewedPicks
               .filter((pick) => pick.user_id === profile.id)
               .sort((a, b) => Number(a.pick_type === "underdog") - Number(b.pick_type === "underdog") || Number(b.confidence_points || 0) - Number(a.confidence_points || 0));
@@ -1695,6 +1700,27 @@ export default function PickemApp() {
         </>}
         {standingsView === "bank" && <>
           <div className="scoreboard-heading"><h2>Bank Balances</h2></div>
+          {data.activeGroup?.slug === "other-family" && data.groupMoney && <GroupMoneyControls
+            week={Number(data.week)}
+            weeklyAmount={Number(data.groupMoney.weeklyAmount || 0)}
+            seasonAmount={Number(data.groupMoney.seasonAmount || 0)}
+            weeklySubmitted={Boolean(data.groupMoney.weeklySubmitted)}
+            seasonSubmitted={Boolean(data.groupMoney.seasonSubmitted)}
+            canEdit={Boolean(data.groupMoney.canEdit)}
+            onSaved={(weeklyAmount, seasonAmount, weeklySubmitted, seasonSubmitted) => {
+              setData((current) => {
+                if (!current?.groupMoney) return current;
+                const nextData = {
+                  ...current,
+                  groupMoney: { ...current.groupMoney, weeklyAmount, seasonAmount, weeklySubmitted, seasonSubmitted }
+                };
+                dataRef.current = nextData;
+                writeCachedAppData(nextData.week, nextData);
+                return nextData;
+              });
+            }}
+            onError={(error) => notify(error, "error")}
+          />}
           <div className="bank-summary-grid">
             <div className="bank-summary-head"><span>Player</span><span>Balance</span></div>
             {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}><NumericText text={money(row.total)} /></strong></div>)}
