@@ -122,7 +122,7 @@ export default function PlayerProfiles() {
     : "";
   const biggestDog = profile?.signature.longestDog;
   const biggestDogText = biggestDog
-    ? `${biggestDog.team} ${spread(biggestDog.spread)}${biggestDog.opponent ? ` vs ${biggestDog.opponent}` : ""} · +${biggestDog.bonusWins}W`
+    ? `${biggestDog.team} ${spread(biggestDog.spread)}${biggestDog.opponent ? ` vs ${biggestDog.opponent}` : ""} · +${biggestDog.bonusWins}${profile?.group.slug === "other-family" ? ` ${biggestDog.bonusWins === 1 ? "Pt" : "Pts"}` : "W"}`
     : "—";
 
   function closeProfile() {

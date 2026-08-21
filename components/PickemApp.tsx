@@ -15,6 +15,7 @@ import PushNotificationControls from "@/components/PushNotificationControls";
 import GroupMoneyControls from "@/components/GroupMoneyControls";
 
 type Tab = "picks" | "card" | "standings" | "rules";
+type AppSlug = "shaw-family" | "other-family" | "friends";
 type PicksView = "board" | "sideBets";
 type CardView = "mine" | "group";
 type StandingsView = "standings" | "bank";
@@ -317,10 +318,15 @@ function ResponsiveTeamName({ game, team, className = "" }: { game: Game; team: 
   return <ResponsiveText full={displayTeamName(game, team)} compact={abbreviatedTeamName(game, team)} className={className} />;
 }
 
-function dogLineText(game: Game, team: string) {
+function dogBonusText(value: number | string, pointsMode: boolean) {
+  if (!pointsMode) return `+${value}W`;
+  return `+${value} ${Number(value) === 1 ? "Pt" : "Pts"}`;
+}
+
+function dogLineText(game: Game, team: string, pointsMode: boolean) {
   const spread = normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread);
   const value = underdogWinValue(spread);
-  return `${spreadText(spread)} = +${value}W`;
+  return `${spreadText(spread)} = ${dogBonusText(value, pointsMode)}`;
 }
 
 function confidencePointText(value: number) {
@@ -961,7 +967,7 @@ function buildTestWeek(profiles: Profile[], currentUserId: string) {
   return { games, playerCards, picks, standings, settlement, bankEntries, sideBets, sideBetBankTotals };
 }
 
-export default function PickemApp() {
+export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSlug }) {
   const [tab, setTab] = useState<Tab>("picks");
   const [picksView, setPicksView] = useState<PicksView>("board");
   const [cardView, setCardView] = useState<CardView>("mine");
@@ -1005,6 +1011,27 @@ export default function PickemApp() {
       start <= clock &&
       start >= clock - 12 * 60 * 60 * 1000;
   }));
+
+  useEffect(() => {
+    if (appSlug !== "other-family") return;
+    const syncOrder = (event: Event) => {
+      const detail = (event as CustomEvent<{ week: number; points: Record<string, number> }>).detail;
+      if (!detail?.points) return;
+      const applyPoints = (picks: Pick[]) => picks.map((pick) => detail.points[pick.game_id] == null
+        ? pick
+        : { ...pick, confidence_points: Number(detail.points[pick.game_id]) });
+      setData((current) => {
+        if (!current || Number(current.week) !== Number(detail.week)) return current;
+        const nextData = { ...current, picks: applyPoints(current.picks) };
+        dataRef.current = nextData;
+        writeCachedAppData(nextData.week, nextData);
+        return nextData;
+      });
+      setStagedPicks((current) => current ? applyPoints(current) : current);
+    };
+    window.addEventListener("pickem:confidence-order-saved", syncOrder);
+    return () => window.removeEventListener("pickem:confidence-order-saved", syncOrder);
+  }, [appSlug]);
 
   const updateNotificationCounts = useCallback((next: Record<string, number>) => {
     setNotificationCounts({
@@ -1378,10 +1405,11 @@ export default function PickemApp() {
     }
   }
 
-  if (loading) return <LoadingShell />;
+  if (loading) return <LoadingShell appSlug={appSlug} />;
   if (!data) return <div className="app-shell"><main className="container"><div className="error-card">{message || "Could not load app."}</div></main></div>;
 
   const { currentUser, games, picks, profiles, standings, availableWeeks, bankEntries } = data;
+  const pointsMode = appSlug === "other-family";
   const leagueCardProfiles = [
     profiles.find((profile) => profile.id === currentUser.id) || currentUser,
     ...profiles.filter((profile) => profile.id !== currentUser.id)
@@ -1595,7 +1623,7 @@ export default function PickemApp() {
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" width={800} height={96} decoding="async" fetchPriority="high" />
+          <img className="header-wordmark" src={pointsMode || appSlug === "friends" ? "/football-pickem-wordmark.png" : "/header-wordmark.png"} alt={pointsMode || appSlug === "friends" ? "Football Pick'em" : "Shaw Family Pick'em"} width={800} height={pointsMode || appSlug === "friends" ? 100 : 96} decoding="async" fetchPriority="high" />
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
@@ -1629,13 +1657,13 @@ export default function PickemApp() {
             <MenuSelect ariaLabel="Choose game status" className="compact-select status-select" value={statusFilter} sections={[{ options: (["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => { setStatusFilter(value as GameStatusFilter); setStatusFilterTouched(true); }} />
             <MenuSelect ariaLabel="Choose league" className="compact-select league-select" value={leagueFilter} sections={[{ options: (["CFB", "NFL", "DOGS"] as LeagueFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => setLeagueFilter(value as LeagueFilter)} />
             {leagueFilter === "CFB" && <ConferenceFilter value={conferenceFilter} onChange={setConferenceFilter} />}
-            {leagueFilter === "DOGS" && <MenuSelect ariaLabel="Filter dogs by win value" className="compact-select context-select" value={dogValueFilter} sections={[{ options: [{ value: "ALL", label: "ALL DOGS" }, ...(["1", "2", "3"] as const).map((value) => ({ value, label: `+${value}W` }))] }]} onChange={(value) => setDogValueFilter(value as DogValueFilter)} />}
+            {leagueFilter === "DOGS" && <MenuSelect ariaLabel="Filter dogs by win value" className="compact-select context-select" value={dogValueFilter} sections={[{ options: [{ value: "ALL", label: "ALL DOGS" }, ...(["1", "2", "3"] as const).map((value) => ({ value, label: dogBonusText(value, pointsMode) }))] }]} onChange={(value) => setDogValueFilter(value as DogValueFilter)} />}
           </div>
           {filteredGames.length === 0 && <div className="empty-state board-empty-state">No {statusFilter.toLowerCase()} {leagueFilter === "DOGS" ? "dog" : leagueFilter} games.</div>}
           <div className="game-days">
             {gameGroups.map((group) => <div className={`game-day-group ${statusFilter === "FINAL" ? "past-day-group" : ""}`} key={group.key}>
               <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong></div>
-              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} statusFilter={statusFilter} leagueFilter={leagueFilter} weekIsOpen={weekIsOpen} now={clock} addPick={addPick} />)}</div>
+              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} statusFilter={statusFilter} leagueFilter={leagueFilter} weekIsOpen={weekIsOpen} now={clock} pointsMode={pointsMode} addPick={addPick} />)}</div>
             </div>)}
           </div>
         </>}
@@ -1672,7 +1700,7 @@ export default function PickemApp() {
         <SectionTabs items={[{ id: "mine", label: "My Card", badge: myCardNotificationCount }, { id: "group", label: "League Cards", badge: leagueCardsNotificationCount }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
         {cardView === "mine" && <>
           {!cardIsLocked && <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />}
-          <PickList picks={myUnderdog ? [...myRegular, myUnderdog] : myRegular} games={viewedGames} title="Picks" removePick={removePick} />
+          <PickList picks={myUnderdog ? [...myRegular, myUnderdog] : myRegular} games={viewedGames} title="Picks" pointsMode={pointsMode} removePick={removePick} />
         </>}
         {cardView === "group" && <div className="group-list">
           {leagueCardProfiles.map((profile) => {
@@ -1682,7 +1710,7 @@ export default function PickemApp() {
             return <div key={profile.id} className="group-card">
               <h3>{leagueCardsHidden && <EyeOff size={14} />} {profile.display_name}</h3>
               {playerPicks.length === 0 && <p className="muted group-empty-picks">No visible picks yet.</p>}
-              {playerPicks.map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} />)}
+              {playerPicks.map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} pointsMode={pointsMode} />)}
             </div>;
           })}
         </div>}
@@ -1730,7 +1758,7 @@ export default function PickemApp() {
               <h2>{previewActive ? "Test Weekly Results" : "Weekly Results"}</h2>
               {previewActive ? <span className="test-standings-label">Week 3</span> : <MenuSelect ariaLabel="Select Bank results week" className="standings-menu-select" value={String(selectedBankWeek)} disabled={bankWeekLoading} loading={bankWeekLoading} sections={[{ options: standingsWeeks.map((standingWeek) => ({ value: String(standingWeek), label: standingWeek === 0 ? "Week 0" : `Week ${standingWeek}` })) }]} onChange={(value) => void loadBankWeek(Number(value))} />}
             </div>
-            <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} />
+            <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} pointsMode={pointsMode} />
           </div>
           <div className="subsection bank-section bank-week-section"><div className="standings-heading-row"><h2 className="heading-with-badge">Side Bet Ledger <NotificationBadge count={bankNotificationCount} /></h2></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
           {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setStatusFilter("LOCKED"); setStatusFilterTouched(true); setLeagueFilter("CFB"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview board states</strong><small>See locked, live, and final games</small></span><ChevronRight size={17} /></button>}
@@ -1786,7 +1814,7 @@ function RankNumber({ rank, className }: { rank: number; className: string }) {
   return <span className={`${className} rank-${rank}`} aria-label={labels[rank]}>{rank}</span>;
 }
 
-function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null> }) {
+function BankWeekResults({ rows, picks, games, amounts, pointsMode }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null>; pointsMode: boolean }) {
   return <div className="bank-week-results">
     <div className="bank-results-labels"><span>Player</span><span>Balance</span><span>Record</span><span aria-hidden="true" /></div>
     {rows.map((row) => {
@@ -1809,7 +1837,7 @@ function BankWeekResults({ rows, picks, games, amounts }: { rows: Array<Standing
         const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
-          <div><strong className="bank-game-pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{game && <p><ResponsiveText full={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} compact={`${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} /></p>}</div>
+          <div><strong className="bank-game-pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{game && <p><ResponsiveText full={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} compact={`${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} /></p>}</div>
           {game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : <span className="test-result pending">—</span>}
         </div>;
       })}
@@ -1849,7 +1877,7 @@ function RuleItem({ title, children }: { title: string; children: React.ReactNod
   </details>;
 }
 
-function LoadingShell() {
+function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   const loadingNav = [
     { label: "Picks", icon: Zap },
     { label: "My Card", icon: SquareCheck },
@@ -1860,7 +1888,7 @@ function LoadingShell() {
   return <div className="app-shell loading-shell">
     <header className="scoreboard-header">
       <div className="scoreboard-main">
-        <div className="brand-lockup"><img className="header-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" width={800} height={96} decoding="async" fetchPriority="high" /></div>
+        <div className="brand-lockup"><img className="header-wordmark" src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="async" fetchPriority="high" /></div>
       </div>
     </header>
     <nav className="primary-nav" aria-label="Main navigation">
@@ -2202,7 +2230,7 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   </div>;
 }
 
-function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, addPick }: { game: Game; picks: Pick[]; statusFilter: GameStatusFilter; leagueFilter: LeagueFilter; weekIsOpen: boolean; now: number; addPick: (game: Game, team: string, pickType: PickType) => void }) {
+function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, pointsMode, addPick }: { game: Game; picks: Pick[]; statusFilter: GameStatusFilter; leagueFilter: LeagueFilter; weekIsOpen: boolean; now: number; pointsMode: boolean; addPick: (game: Game, team: string, pickType: PickType) => void }) {
   const closed = isClosed(game) || !weekIsOpen;
   const hasFinalScore = game.final_away_score != null && game.final_home_score != null;
   const hasLiveScore = game.live_state !== "pre" && game.live_away_score != null && game.live_home_score != null;
@@ -2220,7 +2248,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
   const homeDogValue = teamDogValue(game, game.home_team);
 
   function sideLine(team: string) {
-    if (dogView) return dogLineText(game, team);
+    if (dogView) return dogLineText(game, team, pointsMode);
     return spreadForTeam(game, team);
   }
 
@@ -2235,7 +2263,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, ad
     const spread = resultSpread(team);
     if (!dogView) return spreadText(spread);
     const dogValue = underdogWinValue(spread);
-    return dogValue > 0 ? `${spreadText(spread)} = +${dogValue}W` : null;
+    return dogValue > 0 ? `${spreadText(spread)} = ${dogBonusText(dogValue, pointsMode)}` : null;
   }
 
   function sideIsSelectable(team: string) {
@@ -2405,7 +2433,7 @@ function PickScoreBug({ game, pick, spread }: { game: Game; pick: Pick; spread: 
   </span>;
 }
 
-function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: Game[]; title: string; removePick: (p: Pick) => void }) {
+function PickList({ picks, games, title, pointsMode, removePick }: { picks: Pick[]; games: Game[]; title: string; pointsMode: boolean; removePick: (p: Pick) => void }) {
   return <div className="pick-section"><h3>{title}</h3>{!picks.length && <p className="muted card-empty-picks">None yet.</p>}{picks.map((pick) => {
     const game = games.find((g) => g.id === pick.game_id) || pick.game;
     const locked = pick.status === "locked" || Boolean(game && isClosed(game));
@@ -2418,12 +2446,12 @@ function PickList({ picks, games, title, removePick }: { picks: Pick[]; games: G
     const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip">· <NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip">· <NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
 
-function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
+function VisiblePick({ pick, games, pointsMode }: { pick: Pick; games: Game[]; pointsMode: boolean }) {
   const game = games.find((g) => g.id === pick.game_id) || pick.game;
   const locked = pick.status === "locked" || Boolean(game && isClosed(game));
   const graded = pick.result !== "pending";
@@ -2434,5 +2462,5 @@ function VisiblePick({ pick, games }: { pick: Pick; games: Game[] }) {
   const metaState = game ? hasPickScoreBug(game) ? isFinalGame(game) ? "Final" : "Live" : cardGameStateText(game, locked) : "";
   const metaText = [matchupText, metaState].filter(Boolean).join(" · ");
   const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip">· <NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={`+${pick.underdog_win_value || "?"}W`} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{metaText && <p><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="visible-pick-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip">· <NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{metaText && <p><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="visible-pick-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
 }

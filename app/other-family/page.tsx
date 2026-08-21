@@ -4,5 +4,5 @@ import PickemApp from "@/components/PickemApp";
 import RouteAppBootstrap from "@/components/RouteAppBootstrap";
 
 export default function OtherFamilyPickemPage() {
-  return <div className="route-app group-other-family"><RouteAppBootstrap slug="other-family" /><PickemApp /><CompanionAppEnhancements slug="other-family" /><CompanionFineTune slug="other-family" /></div>;
+  return <div className="route-app group-other-family"><RouteAppBootstrap slug="other-family" /><PickemApp appSlug="other-family" /><CompanionAppEnhancements slug="other-family" /><CompanionFineTune slug="other-family" /></div>;
 }

@@ -70,23 +70,6 @@ function pointText(value: number) {
   return `${value} ${value === 1 ? "pt" : "pts"}`;
 }
 
-function replaceDogWinLabels() {
-  const root = document.querySelector<HTMLElement>(".route-app.group-other-family");
-  if (!root) return;
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let node = walker.nextNode();
-  while (node) {
-    const value = node.nodeValue || "";
-    if (/\+[123]W\b/.test(value)) {
-      node.nodeValue = value.replace(/\+([123])W\b/g, (_, raw) => {
-        const points = Number(raw);
-        return `+${pointText(points)}`;
-      });
-    }
-    node = walker.nextNode();
-  }
-}
-
 function rebuildPointsLeaderboard(leaderboard: HTMLElement, rows: any[]) {
   leaderboard.classList.add("points-mode");
   const labels = leaderboard.querySelector<HTMLElement>(":scope > .leaderboard-labels");
@@ -175,16 +158,24 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
   const [order, setOrder] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const hasLockedPicks = source.some((pick: any) => pick.status === "locked");
-
   useEffect(() => {
     setOrder(initial);
   }, [initial]);
+
+  function broadcastOrder(next: any[]) {
+    window.dispatchEvent(new CustomEvent("pickem:confidence-order-saved", {
+      detail: {
+        week,
+        points: Object.fromEntries(next.map((pick, index) => [pick.game_id, Math.max(1, 5 - index)]))
+      }
+    }));
+  }
 
   async function persist(next: any[]) {
     setOrder(next);
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) return;
+    broadcastOrder(next);
     setSaving(true);
     setMessage("");
     try {
@@ -196,6 +187,7 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
       const result = await response.json();
       if (!response.ok) {
         setOrder(initial);
+        broadcastOrder(initial);
         setMessage(result.error || "Could not save confidence order.");
         return;
       }
@@ -208,9 +200,13 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
       };
       cachePayload(updated);
       onPayload(updated);
+      window.dispatchEvent(new CustomEvent("pickem:confidence-order-saved", {
+        detail: { week, points: Object.fromEntries(points) }
+      }));
       window.dispatchEvent(new CustomEvent("pickem:companion-refresh"));
     } catch {
       setOrder(initial);
+      broadcastOrder(initial);
       setMessage("Could not save confidence order.");
     } finally {
       setSaving(false);
@@ -235,7 +231,7 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
   if (!source.length) return null;
   return <section className="confidence-order-panel">
     <div className="confidence-order-head">
-      <div><strong>Confidence Order</strong><small>Move picks here · 5 points is most confident</small></div>
+      <strong>Confidence Order</strong>
       {saving && <span>Saving…</span>}
     </div>
     <div className="confidence-order-list">
@@ -252,7 +248,6 @@ function ConfidenceOrder({ payload, onPayload }: { payload: Payload; onPayload: 
         </div>;
       })}
     </div>
-    {hasLockedPicks && <p className="confidence-note">Locked games keep their assigned point slots.</p>}
     {message && <p className="confidence-error">{message}</p>}
   </section>;
 }
@@ -290,7 +285,6 @@ export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
       setPayload(nextPayload);
       if (slug === "other-family") {
         syncConfidenceStandings(nextPayload);
-        replaceDogWinLabels();
       }
     }
 
@@ -366,7 +360,6 @@ export default function CompanionAppEnhancements({ slug }: { slug: AppSlug }) {
     if (!payload) return;
     if (slug === "other-family") {
       syncConfidenceStandings(payload);
-      replaceDogWinLabels();
     }
   }, [payload, slug]);
 
