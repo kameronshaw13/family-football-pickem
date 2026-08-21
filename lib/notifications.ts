@@ -48,7 +48,9 @@ export async function getNotificationCounts(supabase: SupabaseClient, userId: st
 async function deliverPush(supabase: SupabaseClient, userId: string, payload: Omit<PushPayload, "badgeCount">, groupId?: string) {
   const config = pushConfiguration();
   if (!config.configured) return { sent: 0, configured: false };
-  const { data: subscriptions, error } = await supabase.from("push_subscriptions").select("endpoint,p256dh,auth").eq("user_id", userId);
+  let subscriptionQuery = supabase.from("push_subscriptions").select("endpoint,p256dh,auth").eq("user_id", userId);
+  if (groupId) subscriptionQuery = subscriptionQuery.eq("group_id", groupId);
+  const { data: subscriptions, error } = await subscriptionQuery;
   if (error) throw new Error(error.message);
   if (!subscriptions?.length) return { sent: 0, configured: true };
   const counts = await getNotificationCounts(supabase, userId, groupId);
