@@ -129,6 +129,17 @@ function closeConfirmationOnBackdrop(event: PointerEvent) {
   cancel?.click();
 }
 
+function appPath(pathname: string) {
+  if (pathname === "/friends" || pathname.startsWith("/friends/")) return "/friends";
+  if (pathname === "/caleb-family" || pathname.startsWith("/caleb-family/")) return "/caleb-family";
+  return "/";
+}
+
+function workerScope() {
+  const current = appPath(window.location.pathname);
+  return current === "/friends" ? "/friends/" : current === "/caleb-family" ? "/caleb-family/" : "/";
+}
+
 export default function AppExperienceEnhancements() {
   useEffect(() => {
     let active = true;
@@ -136,6 +147,7 @@ export default function AppExperienceEnhancements() {
     let restored = false;
 
     clearLegacyPreferences();
+    if ("serviceWorker" in navigator) void navigator.serviceWorker.register("/sw.js", { scope: workerScope() }).catch(() => undefined);
 
     function scheduleRestore() {
       if (restored) return;
@@ -148,10 +160,18 @@ export default function AppExperienceEnhancements() {
       });
     }
 
+    function receivePush(event: MessageEvent<{ type?: string; url?: string }>) {
+      if (event.data?.type !== "notification-push") return;
+      const target = new URL(event.data.url || "/", window.location.origin);
+      if (appPath(target.pathname) !== appPath(window.location.pathname)) return;
+      window.location.reload();
+    }
+
     const restoreObserver = new MutationObserver(scheduleRestore);
     restoreObserver.observe(document.body, { subtree: true, childList: true });
     document.addEventListener("click", rememberClick, true);
     document.addEventListener("pointerdown", closeConfirmationOnBackdrop, true);
+    navigator.serviceWorker?.addEventListener("message", receivePush);
     scheduleRestore();
 
     return () => {
@@ -160,6 +180,7 @@ export default function AppExperienceEnhancements() {
       restoreObserver.disconnect();
       document.removeEventListener("click", rememberClick, true);
       document.removeEventListener("pointerdown", closeConfirmationOnBackdrop, true);
+      navigator.serviceWorker?.removeEventListener("message", receivePush);
     };
   }, []);
 
