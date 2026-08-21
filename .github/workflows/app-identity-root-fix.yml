@@ -1,0 +1,92 @@
+name: Apply app identity root fix
+
+on:
+  push:
+    branches:
+      - fix/app-identity-root-cause
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/app-identity-root-cause
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply source-level identity fixes
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('components/PickemApp.tsx')
+          text = path.read_text()
+          original = text
+
+          import_line = 'import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";\n'
+          identity_import = 'import { appLoginPath } from "@/lib/appIdentity";\n'
+          if identity_import not in text:
+              text = text.replace(import_line, import_line + identity_import)
+
+          text = text.replace(
+              'function appDataCacheKey(week: number | null) {\n  return `${APP_DATA_CACHE_PREFIX}:${week == null ? "default" : week}`;\n}',
+              'function appDataCacheKey(appSlug: AppSlug, week: number | null) {\n  return `${APP_DATA_CACHE_PREFIX}:${appSlug}:${week == null ? "default" : week}`;\n}'
+          )
+          text = text.replace('function readCachedAppData(week: number | null) {\n  const key = appDataCacheKey(week);', 'function readCachedAppData(appSlug: AppSlug, week: number | null) {\n  const key = appDataCacheKey(appSlug, week);')
+          text = text.replace('function writeCachedAppData(week: number | null, payload: AppData) {\n  window.setTimeout(() => {\n    try {\n      window.sessionStorage.setItem(appDataCacheKey(week),', 'function writeCachedAppData(appSlug: AppSlug, week: number | null, payload: AppData) {\n  window.setTimeout(() => {\n    try {\n      window.sessionStorage.setItem(appDataCacheKey(appSlug, week),')
+
+          marker = 'export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSlug }) {\n'
+          if '  const loginPath = appLoginPath(appSlug);\n' not in text:
+              text = text.replace(marker, marker + '  const loginPath = appLoginPath(appSlug);\n')
+
+          text = text.replace('readCachedAppData(nextWeek)', 'readCachedAppData(appSlug, nextWeek)')
+          text = text.replace('writeCachedAppData(nextWeek, payload)', 'writeCachedAppData(appSlug, nextWeek, payload)')
+          text = text.replace('writeCachedAppData(nextData.week, nextData)', 'writeCachedAppData(appSlug, nextData.week, nextData)')
+          text = text.replace('window.sessionStorage.removeItem(appDataCacheKey(nextWeek));', 'window.sessionStorage.removeItem(appDataCacheKey(appSlug, nextWeek));')
+
+          text = text.replace('window.location.href = "/login";', 'window.location.href = loginPath;')
+          text = text.replace('window.location.replace("/login");', 'window.location.replace(loginPath);')
+
+          text = text.replace('    if ("serviceWorker" in navigator) void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => undefined);\n', '')
+
+          text = text.replace('<PushNotificationControls onCountsChanged={updateNotificationCounts} />', '<PushNotificationControls appSlug={appSlug} onCountsChanged={updateNotificationCounts} />')
+
+          text = text.replace('headers: { Authorization: `Bearer ${token}` }, cache: "no-store"', 'headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, cache: "no-store"')
+          text = text.replace('headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },\n        body: JSON.stringify({ action: "read", destination })', 'headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },\n        body: JSON.stringify({ action: "read", destination })')
+          text = text.replace('headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },\n        body: JSON.stringify({ action: "saveCard"', 'headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },\n        body: JSON.stringify({ action: "saveCard"')
+          text = text.replace('headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ ...body, viewWeek: data?.week })', 'headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, body: JSON.stringify({ ...body, viewWeek: data?.week })')
+
+          if text == original:
+              raise SystemExit('No PickemApp changes were applied; refusing to commit an empty transform.')
+          path.write_text(text)
+          PY
+
+      - name: Verify no root worker or shared login redirects remain in PickemApp
+        run: |
+          ! grep -F 'navigator.serviceWorker.register("/sw.js", { scope: "/" })' components/PickemApp.tsx
+          ! grep -F 'window.location.href = "/login"' components/PickemApp.tsx
+          ! grep -F 'window.location.replace("/login")' components/PickemApp.tsx
+          grep -F 'appDataCacheKey(appSlug' components/PickemApp.tsx
+          grep -F '<PushNotificationControls appSlug={appSlug}' components/PickemApp.tsx
+
+      - name: Build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Remove one-time workflow and commit
+        run: |
+          rm .github/workflows/app-identity-root-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- components/PickemApp.tsx .github/workflows/app-identity-root-fix.yml
+          git commit -m "Fix app identity at PickemApp source"
+          git push origin HEAD:fix/app-identity-root-cause
