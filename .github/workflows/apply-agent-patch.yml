@@ -1,0 +1,40 @@
+name: Apply verified side-bet patch
+
+on:
+  push:
+    branches:
+      - fix/side-bet-sync-notifications-card-order
+    paths:
+      - .github/workflows/apply-agent-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/side-bet-sync-notifications-card-order
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply exact patch
+        run: python .github/agent_patch.py
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Commit verified changes
+        run: |
+          rm .github/agent_patch.py .github/workflows/apply-agent-patch.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix side bet sync, app notifications, and card order"
+          git push origin HEAD:fix/side-bet-sync-notifications-card-order
