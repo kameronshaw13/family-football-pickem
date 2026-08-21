@@ -7,6 +7,13 @@ function appPath(pathname) {
   return "/";
 }
 
+function registrationApp() {
+  const scopePath = new URL(self.registration.scope).pathname;
+  if (scopePath.startsWith("/friends")) return "/friends";
+  if (scopePath.startsWith("/caleb-family")) return "/caleb-family";
+  return "/";
+}
+
 self.addEventListener("push", (event) => {
   let payload = {};
   try {
@@ -15,6 +22,9 @@ self.addEventListener("push", (event) => {
     payload = { title: "Family Pick'em", body: event.data ? event.data.text() : "New update available." };
   }
 
+  const targetUrl = new URL(payload.url || "/", self.location.origin);
+  if (appPath(targetUrl.pathname) !== registrationApp()) return;
+
   const title = payload.title || "Family Pick'em";
   const options = {
     body: payload.body || "New update available.",
@@ -22,11 +32,16 @@ self.addEventListener("push", (event) => {
     badge: "/icon.png",
     tag: payload.tag || "family-pickem-update",
     renotify: true,
-    data: { url: payload.url || "/" }
+    data: { url: targetUrl.href }
   };
   const tasks = [self.registration.showNotification(title, options)];
   tasks.push(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
-    windows.forEach((client) => client.postMessage({ type: "notification-push", url: payload.url || "/" }));
+    windows.forEach((client) => {
+      const clientUrl = new URL(client.url);
+      if (clientUrl.origin === self.location.origin && appPath(clientUrl.pathname) === registrationApp()) {
+        client.postMessage({ type: "notification-push", url: targetUrl.href });
+      }
+    });
   }));
   if ("setAppBadge" in self.navigator) {
     tasks.push(payload.badgeCount > 0 ? self.navigator.setAppBadge(payload.badgeCount) : self.navigator.clearAppBadge());
