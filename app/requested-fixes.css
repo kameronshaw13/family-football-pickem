@@ -38,3 +38,19 @@
   justify-content: center;
   line-height: 1;
 }
+
+.side-bet-offer-copy > strong {
+  min-width: 0;
+  position: relative;
+}
+.side-bet-offer-copy > strong.side-bet-matchup-compact > * {
+  visibility: hidden;
+}
+.side-bet-offer-copy > strong.side-bet-matchup-compact::after {
+  content: attr(data-compact-matchup);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+}
