@@ -1037,7 +1037,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     } catch {
       // Preserve the last known counts through brief network interruptions.
     }
-  }, [updateNotificationCounts]);
+  }, [appSlug, updateNotificationCounts]);
 
   const markNotificationsSeen = useCallback(async (destination: NotificationDestination) => {
     const token = window.localStorage.getItem("pickem_session_token");
@@ -1054,7 +1054,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     } catch {
       // A later focus or polling refresh will retry the read state.
     }
-  }, [updateNotificationCounts]);
+  }, [appSlug, updateNotificationCounts]);
 
   const openNotificationDestination = useCallback((url: string) => {
     const destination = new URL(url, window.location.origin).searchParams.get("notification") as NotificationDestination | null;
@@ -1194,7 +1194,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       if (!token) return;
       try {
         const response = await fetch(`/api/live-scores?week=${week}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
           cache: "no-store"
         });
         if (!response.ok) return;
@@ -1231,7 +1231,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       window.removeEventListener("online", refreshOnResume);
       document.removeEventListener("visibilitychange", refreshOnResume);
     };
-  }, [hasActiveGames, week]);
+  }, [appSlug, hasActiveGames, week]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 3200);
@@ -1274,7 +1274,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     setBankWeekLoading(true);
     try {
       const response = await fetch(`/api/bank?week=${nextWeek}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
         cache: "no-store"
       });
       const payload = await response.json();
