@@ -15,6 +15,7 @@ import PushNotificationControls from "@/components/PushNotificationControls";
 import GroupMoneyControls from "@/components/GroupMoneyControls";
 import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoints";
 import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
+import { appLoginPath } from "@/lib/appIdentity";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -676,12 +677,12 @@ function gameConferences(game: Game) {
     : [awayConference];
 }
 
-function appDataCacheKey(week: number | null) {
-  return `${APP_DATA_CACHE_PREFIX}:${week == null ? "default" : week}`;
+function appDataCacheKey(appSlug: AppSlug, week: number | null) {
+  return `${APP_DATA_CACHE_PREFIX}:${appSlug}:${week == null ? "default" : week}`;
 }
 
-function readCachedAppData(week: number | null) {
-  const key = appDataCacheKey(week);
+function readCachedAppData(appSlug: AppSlug, week: number | null) {
+  const key = appDataCacheKey(appSlug, week);
   try {
     const stored = window.sessionStorage.getItem(key);
     if (!stored) return null;
@@ -698,10 +699,10 @@ function readCachedAppData(week: number | null) {
   }
 }
 
-function writeCachedAppData(week: number | null, payload: AppData) {
+function writeCachedAppData(appSlug: AppSlug, week: number | null, payload: AppData) {
   window.setTimeout(() => {
     try {
-      window.sessionStorage.setItem(appDataCacheKey(week), JSON.stringify({ cachedAt: Date.now(), payload } satisfies AppDataCacheEntry));
+      window.sessionStorage.setItem(appDataCacheKey(appSlug, week), JSON.stringify({ cachedAt: Date.now(), payload } satisfies AppDataCacheEntry));
     } catch {
       // The app still works normally if private browsing or storage limits block this cache.
     }
@@ -969,6 +970,7 @@ function buildTestWeek(profiles: Profile[], currentUserId: string) {
 }
 
 export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSlug }) {
+  const loginPath = appLoginPath(appSlug);
   const [tab, setTab] = useState<Tab>("picks");
   const [picksView, setPicksView] = useState<PicksView>("board");
   const [cardView, setCardView] = useState<CardView>("mine");
@@ -1028,7 +1030,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) return;
     try {
-      const response = await fetch("/api/notifications", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+      const response = await fetch("/api/notifications", { headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, cache: "no-store" });
       if (!response.ok) return;
       const payload = await response.json();
       updateNotificationCounts(payload.counts || {});
@@ -1043,7 +1045,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     try {
       const response = await fetch("/api/notifications", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
         body: JSON.stringify({ action: "read", destination })
       });
       if (!response.ok) return;
@@ -1077,10 +1079,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     const isInitialLoad = data === null;
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) {
-      window.location.href = "/login";
+      window.location.href = loginPath;
       return;
     }
-    const cachedPayload = isInitialLoad ? readCachedAppData(nextWeek) : null;
+    const cachedPayload = isInitialLoad ? readCachedAppData(appSlug, nextWeek) : null;
     if (cachedPayload) {
       const cachedAt = Date.now();
       const cachedWeekIsOpen = !cachedPayload.weekOpenTime || new Date(cachedPayload.weekOpenTime).getTime() <= cachedAt;
@@ -1101,14 +1103,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     try {
       const url = new URL("/api/app-data", window.location.origin);
       if (nextWeek != null) url.searchParams.set("week", String(nextWeek));
-      const response = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+      const response = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, cache: "no-store" });
       const payload = await response.json();
       if (!response.ok) {
         if (response.status === 401) {
-          window.sessionStorage.removeItem(appDataCacheKey(nextWeek));
+          window.sessionStorage.removeItem(appDataCacheKey(appSlug, nextWeek));
           window.localStorage.removeItem("pickem_session_token");
           window.localStorage.removeItem("pickem_profile");
-          window.location.replace("/login");
+          window.location.replace(loginPath);
           return;
         }
         setMessage(payload.error || "Could not load app data.");
@@ -1123,7 +1125,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         setStatusFilter(defaultBoardStatus(payload.games || [], loadedAt, loadedWeekIsOpen));
         setStatusFilterTouched(false);
       }
-      writeCachedAppData(nextWeek, payload);
+      writeCachedAppData(appSlug, nextWeek, payload);
     } catch {
       if (!cachedPayload) setMessage("Could not load app data.");
     } finally {
@@ -1136,7 +1138,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   useEffect(() => { dataRef.current = data; }, [data]);
   useEffect(() => {
     void refreshNotificationCounts();
-    if ("serviceWorker" in navigator) void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => undefined);
     openNotificationDestination(window.location.href);
     const refresh = () => { if (document.visibilityState === "visible") void refreshNotificationCounts(); };
     const receiveClick = (event: MessageEvent<{ type?: string; url?: string }>) => {
@@ -1266,7 +1267,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) {
-      window.location.href = "/login";
+      window.location.href = loginPath;
       return;
     }
 
@@ -1281,7 +1282,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         if (response.status === 401) {
           window.localStorage.removeItem("pickem_session_token");
           window.localStorage.removeItem("pickem_profile");
-          window.location.replace("/login");
+          window.location.replace(loginPath);
           return;
         }
         notify(payload.error || "Could not load those weekly results.", "error");
@@ -1299,14 +1300,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     const submittedSignature = pickCardSignature(card);
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) {
-      window.location.href = "/login";
+      window.location.href = loginPath;
       return false;
     }
     setSavingPicks(true);
     try {
       const response = await fetch("/api/picks", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
         body: JSON.stringify({ action: "saveCard", week: data?.week, picks: card.map((pick) => ({ gameId: pick.game_id, selectedTeam: pick.selected_team, pickType: pick.pick_type, confidencePoints: pick.confidence_points ?? null })) })
       });
       const payload = await response.json();
@@ -1352,13 +1353,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   async function postSideBet(body: any) {
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) {
-      window.location.href = "/login";
+      window.location.href = loginPath;
       return false;
     }
     setSavingBet(true);
     setSavingBetId(body.sideBetId || null);
     try {
-      const response = await fetch("/api/side-bets", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ ...body, viewWeek: data?.week }) });
+      const response = await fetch("/api/side-bets", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, body: JSON.stringify({ ...body, viewWeek: data?.week }) });
       const payload = await response.json();
       if (!response.ok) {
         notify(payload.error || "Side bet action failed.", "error");
@@ -1753,7 +1754,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
                   groupMoney: { ...current.groupMoney, weeklyAmount, seasonAmount, weeklySubmitted, seasonSubmitted }
                 };
                 dataRef.current = nextData;
-                writeCachedAppData(nextData.week, nextData);
+                writeCachedAppData(appSlug, nextData.week, nextData);
                 return nextData;
               });
             }}
@@ -1776,7 +1777,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><div><h2>League Rules</h2></div></div>
-        <PushNotificationControls onCountsChanged={updateNotificationCounts} />
+        <PushNotificationControls appSlug={appSlug} onCountsChanged={updateNotificationCounts} />
         <div className="rules-list">
           {displayedRules.map((section) => <RuleItem title={section.title} key={section.title}><ul>{section.items.map((item) => <li key={item}><NumericText text={item} /></li>)}</ul></RuleItem>)}
         </div>
