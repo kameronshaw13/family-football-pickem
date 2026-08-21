@@ -1,6 +1,7 @@
 import "server-only";
 import webPush, { WebPushError, type PushSubscription } from "web-push";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { notificationTeamName } from "@/lib/notificationTeamName";
 
 export type NotificationDestination = "side_bets_received" | "side_bets_sent" | "my_card" | "league_cards" | "side_bet_ledger";
 export type NotificationType = "side_bet_offer" | "side_bet_response" | "pick_final" | "league_pick_final" | "side_bet_final" | "big_play" | "dog_pick_adjustment";
@@ -98,8 +99,23 @@ async function inferGroupId(supabase: SupabaseClient, input: NotificationInput) 
   return data.id as string;
 }
 
+async function normalizedBody(supabase: SupabaseClient, input: NotificationInput) {
+  if (!["side_bet_offer", "side_bet_response", "side_bet_final"].includes(input.type)) return input.body;
+  const { data } = await supabase.from("side_bets").select("game:games(league)").eq("id", input.entityId).maybeSingle();
+  const league = (data as any)?.game?.league as string | undefined;
+  const match = input.body.match(/^(.*?)(Pick'em|[+-]\d+(?:\.\d+)?)$/);
+  if (!match) return input.body;
+  const left = match[1].trimEnd();
+  const spread = match[2];
+  const dividerIndex = left.lastIndexOf("·");
+  const prefix = dividerIndex >= 0 ? `${left.slice(0, dividerIndex + 1)} ` : "";
+  const team = (dividerIndex >= 0 ? left.slice(dividerIndex + 1) : left).trim();
+  return `${prefix}${notificationTeamName(team, league)} ${spread}`;
+}
+
 export async function createNotification(supabase: SupabaseClient, input: NotificationInput) {
   const groupId = await inferGroupId(supabase, input);
+  const body = await normalizedBody(supabase, input);
   const { data, error } = await supabase.from("notifications").upsert({
     group_id: groupId,
     user_id: input.userId,
@@ -108,13 +124,13 @@ export async function createNotification(supabase: SupabaseClient, input: Notifi
     entity_id: input.entityId,
     dedupe_key: input.dedupeKey,
     title: input.title,
-    body: input.body,
+    body,
     url: input.url,
     action_required: Boolean(input.actionRequired)
   }, { onConflict: "group_id,user_id,dedupe_key", ignoreDuplicates: true }).select("id").maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return { created: false, sent: 0 };
-  const delivery = await deliverPush(supabase, input.userId, { title: input.title, body: input.body, url: input.url, tag: input.dedupeKey.slice(0, 64) }, groupId);
+  const delivery = await deliverPush(supabase, input.userId, { title: input.title, body, url: input.url, tag: input.dedupeKey.slice(0, 64) }, groupId);
   return { created: true, sent: delivery.sent };
 }
 
