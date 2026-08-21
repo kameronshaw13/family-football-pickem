@@ -6,6 +6,14 @@ import type { AppSlug } from "@/lib/rulePresentation";
 
 type PushState = "checking" | "unsupported" | "needs-home-screen" | "not-configured" | "denied" | "disabled" | "enabled";
 
+function activeAppSlug(explicit?: AppSlug): AppSlug {
+  if (explicit) return explicit;
+  if (typeof window === "undefined") return "shaw-family";
+  if (window.location.pathname === "/friends" || window.location.pathname.startsWith("/friends/")) return "friends";
+  if (window.location.pathname === "/caleb-family" || window.location.pathname.startsWith("/caleb-family/")) return "other-family";
+  return "shaw-family";
+}
+
 function authHeaders(appSlug: AppSlug) {
   const token = window.localStorage.getItem("pickem_session_token");
   return token ? { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug } : null;
@@ -40,7 +48,8 @@ async function appRegistration(appSlug: AppSlug) {
   return (await navigator.serviceWorker.getRegistration(scope)) || registration;
 }
 
-export default function PushNotificationControls({ appSlug, onCountsChanged }: { appSlug: AppSlug; onCountsChanged?: (counts: Record<string, number>) => void }) {
+export default function PushNotificationControls({ appSlug: explicitAppSlug, onCountsChanged }: { appSlug?: AppSlug; onCountsChanged?: (counts: Record<string, number>) => void }) {
+  const appSlug = activeAppSlug(explicitAppSlug);
   const [state, setState] = useState<PushState>("checking");
   const [publicKey, setPublicKey] = useState("");
   const [busy, setBusy] = useState(false);
