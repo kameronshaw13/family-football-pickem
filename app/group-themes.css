@@ -28,6 +28,16 @@
 .confidence-order-head strong { display: block; font-family: var(--font-display); font-size: 12px; font-weight: 800; text-transform: uppercase; }
 .confidence-order-head > span { color: var(--muted); font-size: 10.5px; font-weight: 700; }
 .confidence-order-list { border-top: 1px solid var(--line); }
+.route-app.group-other-family .pick-section > [data-companion-host="confidence"]:empty + .pick-card::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--line);
+  content: "";
+  pointer-events: none;
+}
 .confidence-order-row { display: grid; min-height: 44px; grid-template-columns: 48px minmax(0, 1fr) 64px; align-items: center; gap: 8px; padding: 5px var(--pick-content-inset); border-bottom: 1px solid var(--line); }
 .confidence-order-row:last-child { border-bottom: 0; }
 .confidence-order-row > strong { overflow: hidden; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }

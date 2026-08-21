@@ -1797,7 +1797,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><div><h2>League Rules</h2></div></div>
         <PushNotificationControls onCountsChanged={updateNotificationCounts} />
-        <div className="rules-list">
+        {appSlug === "shaw-family" && <div className="rules-list">
           <RuleItem title="Season Schedule"><ul><li><NumericText text="The season runs for 20 weeks." /></li><li><NumericText text="It begins with two CFB-only weeks before NFL games start and ends Sunday, Jan. 10, after the final NFL regular-season games." /></li><li>Each week runs from Tuesday through the following Monday.</li></ul></RuleItem>
           <RuleItem title="Weekly Card"><ul><li><NumericText text="Week 1: 3 CFB picks plus 1 dog." /></li><li><NumericText text="Week 2: 5 CFB picks plus 1 dog." /></li><li><NumericText text="Weeks 3–20: 5 picks, including at least 1 CFB and 1 NFL pick, plus 1 dog." /></li></ul></RuleItem>
           <RuleItem title="Eligible Games"><ul><li>Chargers games are ineligible.</li><li>Each CFB game must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
@@ -1807,7 +1807,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           <RuleItem title="Perfect Week"><ul><li><NumericText text="Does not apply in Week 1." /></li><li>A perfect card doubles every weekly payment.</li></ul></RuleItem>
           <RuleItem title="Pick Locks"><ul><li><NumericText text="Tuesday–Friday lines freeze 1 hour before kickoff." /></li><li>Tuesday–Friday picks lock at kickoff.</li><li><NumericText text="Saturday–Monday lines freeze Friday at 7:00 PM CT." /></li><li><NumericText text="Saturday–Monday picks lock Friday at 8:00 PM CT." /></li></ul></RuleItem>
           <RuleItem title="Side Bets"><ul><li>Spread bets only.</li><li><NumericText text="Maximum: $20 per bet." /></li><li><NumericText text="Each player has 3 side-bet slots per week." /></li><li><NumericText text="Accepted and pending offers count toward the 3-bet limit." /></li><li><NumericText text="Offers open Tuesday at 8:00 AM CT with the new week." /></li><li><NumericText text="Tuesday–Friday lines freeze 1 hour before kickoff." /></li><li><NumericText text="Saturday–Monday lines freeze Friday at 7:00 PM CT." /></li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets post directly to the bank.</li></ul></RuleItem>
-        </div>
+        </div>}
       </section>}
     </main>
     {!previewActive && stagedPicks !== null && autosaveBlockedSignatureRef.current !== pickCardSignature(stagedPicks) && !toast && <div className="autosave-toast" role="status" aria-live="polite"><LoaderCircle size={18} /><span>Saving…</span></div>}

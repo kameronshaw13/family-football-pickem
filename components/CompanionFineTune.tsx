@@ -10,8 +10,8 @@ type RuleSection = { title: string; items: string[] };
 
 const SHARED_SEASON = [
   "The season runs for 20 weeks.",
-  "It begins with two CFB-only weeks before NFL games start and ends after the final NFL regular-season games.",
-  "Each week runs from Tuesday through the following Monday."
+  "It begins with two CFB-only weeks before NFL games begin and ends on the Monday after the final NFL regular-season games.",
+  "Each week opens Tuesday and closes the following Monday."
 ];
 
 const SHARED_ELIGIBLE = [
@@ -20,7 +20,7 @@ const SHARED_ELIGIBLE = [
 ];
 
 function eligibleRules(slug: AppSlug) {
-  return slug === "other-family" ? SHARED_ELIGIBLE : ["Chargers games are ineligible.", ...SHARED_ELIGIBLE];
+  return slug === "other-family" ? SHARED_ELIGIBLE : ["All Los Angeles Chargers games are excluded.", ...SHARED_ELIGIBLE];
 }
 
 const SHARED_LOCKS = [
@@ -57,6 +57,7 @@ function rulesFor(slug: AppSlug): RuleSection[] {
         "+10 to +19.5: +2 points.",
         "+20 or more: +3 points.",
         "The dog must win outright.",
+        "A winning dog adds its tier value to the weekly and season point totals.",
         "A losing dog earns 0 points and does not subtract points."
       ] },
       { title: "Standings", items: [
@@ -64,15 +65,16 @@ function rulesFor(slug: AppSlug): RuleSection[] {
         "Points ties are broken by regular-pick wins, then fewer regular-pick losses, then pushes.",
         "The season prize is winner-take-all using the season pot Caleb submits once during Week 1.",
         "The season pot locks immediately after submission.",
-        "The winner receives the season pot, and all remaining players split the contribution equally.",
-        "If first place remains tied, the tied winners split the season pot."
+        "The winner receives the full season pot; tied winners split it evenly.",
+        "The total season-pot loss is divided equally among all players outside first place.",
+        "If every player is tied, there is no season payment."
       ] },
       { title: "Weekly Bank", items: [
         "Each week is winner-take-all using the Week pot Caleb submits in the Bank tab.",
         "The weekly pot locks immediately after submission.",
         "Caleb must submit the weekly pot before selecting a Tuesday–Friday game.",
-        "The weekly winner receives the configured pot and the remaining players split the contribution equally.",
-        "If first place remains tied, the tied winners split the pot.",
+        "The weekly winner receives the full pot; tied winners split it evenly.",
+        "The total weekly-pot loss is divided equally among all players outside first place.",
         "If every player is tied, there is no payment."
       ] },
       { title: "Pick Locks", items: SHARED_LOCKS },
@@ -99,21 +101,21 @@ function rulesFor(slug: AppSlug): RuleSection[] {
       "+10 to +19.5: +2 wins.",
       "+20 or more: +3 wins.",
       "The dog must win outright.",
-      "A losing dog does not add a loss."
+      "A losing dog earns 0 bonus wins and does not add a loss."
     ] },
     { title: "Standings", items: [
       "Season and weekly standings are ranked by win percentage.",
       "Win-percentage ties are broken by total wins.",
       "Season payouts: 1st +$150, 2nd +$50, 3rd -$30, 4th -$70, 5th -$100.",
-      "If finishing positions remain tied after the normal tiebreakers, the payouts for the tied positions are shared evenly."
+      "Players still tied after win percentage and total wins receive the average payout for the positions they share."
     ] },
     { title: "Weekly Bank", items: [
       "Weekly payouts: 1st +$20, 2nd +$10, 3rd -$5, 4th -$10, 5th -$15.",
-      "If weekly positions remain tied after the normal tiebreakers, the payouts for the tied positions are shared evenly."
+      "Players still tied after win percentage and total wins receive the average payout for the positions they share."
     ] },
     { title: "Perfect Week", items: [
       "Does not apply in Week 1.",
-      "A perfect card doubles every weekly payment."
+      "A perfect card doubles all five weekly payout amounts."
     ] },
     { title: "Pick Locks", items: SHARED_LOCKS },
     { title: "Side Bets", items: [
