@@ -1,0 +1,74 @@
+name: Finish app identity fix
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/app-identity-root-cause
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Finish source-level group isolation
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          path = Path('components/PickemApp.tsx')
+          text = path.read_text()
+          original = text
+
+          text = text.replace(
+              'headers: { Authorization: `Bearer ${token}` },\n          cache: "no-store"',
+              'headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },\n          cache: "no-store"'
+          )
+          text = text.replace(
+              'headers: { Authorization: `Bearer ${token}` },\n        cache: "no-store"',
+              'headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },\n        cache: "no-store"'
+          )
+          text = text.replace('  }, [updateNotificationCounts]);\n\n  const markNotificationsSeen', '  }, [appSlug, updateNotificationCounts]);\n\n  const markNotificationsSeen', 1)
+          text = text.replace('  }, [updateNotificationCounts]);\n\n  const openNotificationDestination', '  }, [appSlug, updateNotificationCounts]);\n\n  const openNotificationDestination', 1)
+          text = text.replace('  }, [hasActiveGames, week]);', '  }, [appSlug, hasActiveGames, week]);', 1)
+
+          if text == original:
+              raise SystemExit('No finishing changes were applied.')
+          path.write_text(text)
+          PY
+
+      - name: Verify group isolation
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          text = Path('components/PickemApp.tsx').read_text()
+          for endpoint in ['/api/app-data', '/api/notifications', '/api/live-scores', '/api/bank', '/api/picks', '/api/side-bets']:
+              if endpoint not in text:
+                  raise SystemExit(f'Missing expected endpoint {endpoint}')
+          if 'navigator.serviceWorker.register("/sw.js", { scope: "/" })' in text:
+              raise SystemExit('Root worker registration still exists')
+          if 'window.location.href = "/login"' in text or 'window.location.replace("/login")' in text:
+              raise SystemExit('Shared login redirect still exists')
+          PY
+          npm ci
+          npm run build
+
+      - name: Commit source and remove workflow
+        run: |
+          rm .github/workflows/finish-app-identity-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- components/PickemApp.tsx .github/workflows/finish-app-identity-fix.yml
+          git commit -m "Complete explicit app group isolation"
+          git push origin HEAD:fix/app-identity-root-cause
