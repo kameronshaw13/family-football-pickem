@@ -3,7 +3,7 @@ import PickemApp from "@/components/PickemApp";
 import RouteAppBootstrap from "@/components/RouteAppBootstrap";
 
 export const metadata: Metadata = {
-  manifest: "/manifest.webmanifest"
+  manifest: "/shaw-manifest.webmanifest"
 };
 
 export default function Home() {
