@@ -1,0 +1,19 @@
+.rules-panel > .section-title { order: 1; }
+.rules-panel > .rules-list { order: 2; }
+.rules-panel > .notification-settings {
+  order: 3;
+  min-height: 55px;
+  margin: 0;
+  padding: 6px var(--page-gutter) 6px calc(var(--page-gutter) + 12px);
+  border-top: 0;
+  border-bottom: 1px solid var(--line-strong);
+  background: transparent;
+}
+.rules-panel > .notification-settings .notification-settings-heading {
+  min-height: 30px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.rules-panel > .notification-settings .notification-settings-copy > p { display: none; }
