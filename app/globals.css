@@ -274,14 +274,14 @@ p { margin: 0; }
 .pick-title, .visible-pick-copy strong { display: flex; min-width: 0; align-items: center; gap: 4px; overflow: hidden; color: var(--ink); font-size: 14px; font-weight: 700; line-height: 1.25; white-space: nowrap; }
 .pick-title-team { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pick-title-market { display: inline-flex; flex: 0 0 auto; align-items: center; white-space: nowrap; }
-.dog-separator { margin-inline: 4px; font-size: .92em; line-height: inherit; }
+.dog-separator { margin-inline: 4px; font-size: .92em; line-height: inherit; transform: translateY(.5px); }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; }
 .visible-pick { position: relative; display: grid; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; margin: 0; padding: 7px var(--pick-content-inset); border: 0; }
 .visible-pick::after { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--line); content: ""; pointer-events: none; }
 .group-card .visible-pick:first-of-type::before { position: absolute; top: 0; right: 0; left: 0; height: 1px; background: var(--line-strong); content: ""; pointer-events: none; }
 .visible-pick:last-child::after { background: var(--line-strong); }
 .pick-meta, .visible-pick-copy p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dog-tag { color: var(--red); font-size: .92em; font-weight: inherit; font-variant-numeric: tabular-nums; line-height: inherit; }
+.dog-tag { color: var(--red); font-size: .92em; font-weight: inherit; font-variant-numeric: tabular-nums; line-height: inherit; transform: translateY(.5px); }
 .actions { display: flex; gap: 8px; margin-top: 11px; }
 .btn { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 6px; padding: 8px 13px; border: 1px solid transparent; border-radius: 5px; color: #fff; background: var(--graphite-light); font-size: 12px; font-weight: 800; }
 .btn.accent, .btn.gold { background: var(--blue-dark); }

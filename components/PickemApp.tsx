@@ -749,6 +749,27 @@ function pickCardSignature(card: Pick[]) {
     .join("|");
 }
 
+function normalizeConfidenceCard(card: Pick[], regularTotal: number) {
+  const regular = card.filter((pick) => pick.pick_type === "regular");
+  const lockedValues = new Set(regular
+    .filter((pick) => pick.status === "locked")
+    .map((pick) => Number(pick.confidence_points))
+    .filter((value) => Number.isInteger(value) && value >= 1 && value <= regularTotal));
+  const availableValues = Array.from({ length: regularTotal }, (_, index) => regularTotal - index)
+    .filter((value) => !lockedValues.has(value));
+  const editable = regular
+    .map((pick, index) => ({ pick, index }))
+    .filter(({ pick }) => pick.status !== "locked")
+    .sort((a, b) => Number(b.pick.confidence_points || 0) - Number(a.pick.confidence_points || 0) || a.index - b.index);
+  const pointsByGame = new Map(editable.map(({ pick }, index) => [pick.game_id, availableValues[index] ?? null]));
+
+  return card.map((pick) => {
+    if (pick.pick_type !== "regular" || pick.status === "locked") return pick;
+    const confidencePoints = pointsByGame.get(pick.game_id);
+    return pick.confidence_points === confidencePoints ? pick : { ...pick, confidence_points: confidencePoints };
+  });
+}
+
 function completeSeasonStandings(profiles: Profile[], rows: Standing[]) {
   const byUser = new Map(rows.map((row) => [row.user_id, row]));
   const complete = profiles.map((profile) => byUser.get(profile.id) || {
@@ -1265,6 +1286,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     // savePicks intentionally runs only after staged card changes settle.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.week, savingPicks, stagedPicks, testWeekActive]);
+  useEffect(() => {
+    if (appSlug !== "other-family" || !data || stagedPicks || savingPicks || testWeekActive) return;
+    const currentCard = data.picks.filter((pick) => pick.user_id === data.currentUser.id && Number(pick.week) === Number(data.week));
+    const normalizedCard = normalizeConfidenceCard(currentCard, data.weekRule.regularTotal);
+    const confidenceChanged = normalizedCard.some((pick, index) => pick.confidence_points !== currentCard[index]?.confidence_points);
+    if (confidenceChanged) setStagedPicks(normalizedCard);
+  }, [appSlug, data, savingPicks, stagedPicks, testWeekActive]);
 
   function notify(message: string, tone: NonNullable<Toast>["tone"] = "info") {
     setToast({ message, tone });
@@ -1320,7 +1348,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       const response = await fetch("/api/picks", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: "saveCard", week: data?.week, picks: card.map((pick) => ({ gameId: pick.game_id, selectedTeam: pick.selected_team, pickType: pick.pick_type })) })
+        body: JSON.stringify({ action: "saveCard", week: data?.week, picks: card.map((pick) => ({ gameId: pick.game_id, selectedTeam: pick.selected_team, pickType: pick.pick_type, confidencePoints: pick.confidence_points ?? null })) })
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -1486,12 +1514,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : "";
 
   function stageCard(nextCard: Pick[]) {
-    const matchesSaved = nextCard.length === myPicks.length && nextCard.every((nextPick) => {
+    const normalizedCard = pointsMode ? normalizeConfidenceCard(nextCard, rule.regularTotal) : nextCard;
+    const matchesSaved = normalizedCard.length === myPicks.length && normalizedCard.every((nextPick) => {
       const savedPick = myPicks.find((pick) => pick.game_id === nextPick.game_id);
       return savedPick?.selected_team === nextPick.selected_team && savedPick.pick_type === nextPick.pick_type;
     });
     autosaveBlockedSignatureRef.current = null;
-    setStagedPicks(matchesSaved ? null : nextCard);
+    setStagedPicks(matchesSaved ? null : normalizedCard);
   }
 
   const filteredGames = boardActive ? viewedGames.filter((g) => {

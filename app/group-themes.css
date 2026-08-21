@@ -38,7 +38,7 @@
 .confidence-move button:disabled { color: var(--muted); background: var(--surface-muted); opacity: .42; }
 .confidence-error { margin: 0; padding: 0 var(--pick-content-inset) 8px; font-size: 10.5px; }
 .confidence-error { color: var(--red); }
-.confidence-card-chip { margin-left: 3px; color: var(--blue-dark); font-size: .92em; font-weight: 800; white-space: nowrap; }
+.confidence-card-chip { margin-left: 3px; color: var(--blue-dark); font-size: .92em; font-weight: 800; white-space: nowrap; transform: translateY(.5px); }
 
 /* Confidence standings are intentionally simpler than record standings. */
 .leaderboard.points-mode .leaderboard-labels,

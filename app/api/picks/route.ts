@@ -7,7 +7,12 @@ import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
-const savedPickSchema = z.object({ gameId: z.string().min(1), selectedTeam: z.string().min(1), pickType: z.enum(["regular", "underdog"]) });
+const savedPickSchema = z.object({
+  gameId: z.string().min(1),
+  selectedTeam: z.string().min(1),
+  pickType: z.enum(["regular", "underdog"]),
+  confidencePoints: z.number().int().positive().max(20).nullable().optional()
+});
 const bodySchema = z.object({ action: z.literal("saveCard"), week: z.number().int().nonnegative(), picks: z.array(savedPickSchema).max(12) });
 
 function isMidweekGame(commenceTime: string, timeZone: string) {
@@ -125,23 +130,28 @@ export async function POST(req: NextRequest) {
 
     const confidenceMode = context.rules?.scoring?.mode === "confidence";
     const existingByGame = new Map(existing.map((pick: any) => [pick.game_id, pick]));
-    const retainedConfidence = new Map<string, number>();
+    const confidenceByGame = new Map<string, number>();
     if (confidenceMode) {
-      for (const submitted of body.picks.filter((pick) => pick.pickType === "regular")) {
-        const prior: any = existingByGame.get(submitted.gameId);
-        const value = Number(prior?.confidence_points);
-        if (Number.isInteger(value) && value >= 1 && value <= rule.regularTotal) retainedConfidence.set(submitted.gameId, value);
-      }
-    }
-    const usedConfidence = new Set(retainedConfidence.values());
-    const availableConfidence = Array.from({ length: rule.regularTotal }, (_, index) => rule.regularTotal - index).filter((value) => !usedConfidence.has(value));
-    const confidenceByGame = new Map(retainedConfidence);
-    if (confidenceMode) {
-      for (const submitted of body.picks.filter((pick) => pick.pickType === "regular")) {
-        if (confidenceByGame.has(submitted.gameId)) continue;
-        const next = availableConfidence.shift();
-        if (next != null) confidenceByGame.set(submitted.gameId, next);
-      }
+      const lockedConfidence = new Set(lockedPicks
+        .filter((pick: any) => pick.pick_type === "regular")
+        .map((pick: any) => Number(pick.confidence_points))
+        .filter((value: number) => Number.isInteger(value) && value >= 1 && value <= rule.regularTotal));
+      const availableConfidence = Array.from({ length: rule.regularTotal }, (_, index) => rule.regularTotal - index)
+        .filter((value) => !lockedConfidence.has(value));
+      const editableRegular = body.picks
+        .map((pick, index) => ({ pick, index }))
+        .filter(({ pick }) => pick.pickType === "regular" && !lockedByGame.has(pick.gameId))
+        .sort((a, b) => {
+          const priorA: any = existingByGame.get(a.pick.gameId);
+          const priorB: any = existingByGame.get(b.pick.gameId);
+          const pointsA = Number(a.pick.confidencePoints ?? priorA?.confidence_points ?? 0);
+          const pointsB = Number(b.pick.confidencePoints ?? priorB?.confidence_points ?? 0);
+          return pointsB - pointsA || a.index - b.index;
+        });
+      editableRegular.forEach(({ pick }, index) => {
+        const points = availableConfidence[index];
+        if (points != null) confidenceByGame.set(pick.gameId, points);
+      });
     }
 
     const editableIds = new Set(editable.map((pick) => pick.gameId));
