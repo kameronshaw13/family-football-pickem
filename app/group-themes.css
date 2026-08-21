@@ -5,19 +5,6 @@
   width: min(228px, 100%);
 }
 
-.login-brand-generic {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  color: var(--graphite);
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 900;
-}
-.login-football { font-size: 28px; line-height: 1; }
-.login-brand-wordmark { width: min(290px, 82vw); height: auto; object-fit: contain; }
-
 /* Confidence ordering lives directly inside My Card and uses Shaw styling. */
 .confidence-order-panel {
   margin: 5px calc(var(--page-gutter) * -1) 0;
@@ -28,7 +15,7 @@
 .confidence-order-head strong { display: block; font-family: var(--font-display); font-size: 12px; font-weight: 800; text-transform: uppercase; }
 .confidence-order-head > span { color: var(--muted); font-size: 10.5px; font-weight: 700; }
 .confidence-order-list { border-top: 1px solid var(--line); }
-.route-app.group-other-family .pick-section > [data-companion-host="confidence"]:empty + .pick-card::before {
+.route-app.group-other-family .pick-section > h3 + .pick-card::before {
   position: absolute;
   top: 0;
   right: 0;
@@ -85,9 +72,6 @@
 .route-app.group-other-family .side-bet-recipient-grid label { min-height: 43px; grid-template-columns: 16px minmax(0, 1fr); column-gap: 6px; padding: 5px 7px; }
 .route-app.group-friends .side-bet-recipient-grid label small,
 .route-app.group-other-family .side-bet-recipient-grid label small { display: none; }
-
-/* The base rules are hidden by the route component; this list replaces them. */
-.companion-rules-list { margin-top: 8px; }
 
 @media (max-width: 420px) {
   .route-app.group-friends .brand-lockup > .header-wordmark,

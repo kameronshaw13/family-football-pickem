@@ -13,9 +13,10 @@ import NumericText from "@/components/NumericText";
 import NotificationBadge from "@/components/NotificationBadge";
 import PushNotificationControls from "@/components/PushNotificationControls";
 import GroupMoneyControls from "@/components/GroupMoneyControls";
+import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoints";
+import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
 
 type Tab = "picks" | "card" | "standings" | "rules";
-type AppSlug = "shaw-family" | "other-family" | "friends";
 type PicksView = "board" | "sideBets";
 type CardView = "mine" | "group";
 type StandingsView = "standings" | "bank";
@@ -77,7 +78,7 @@ type AppData = {
   weekOpenTime: string | null;
   availableWeeks: number[];
   activeGroup?: { id: string; slug: string; name?: string };
-  groupRules?: any;
+  groupRules?: GroupRules;
   sideBetSettings?: { enabled: boolean; maxAmount: number | null; maxPerWeek: number | null; manualAmount: boolean };
   groupMoney?: { weeklyAmount: number; seasonAmount: number; weeklySubmitted: boolean; seasonSubmitted: boolean; canEdit: boolean; managerName: string | null };
 };
@@ -749,27 +750,6 @@ function pickCardSignature(card: Pick[]) {
     .join("|");
 }
 
-function normalizeConfidenceCard(card: Pick[], regularTotal: number) {
-  const regular = card.filter((pick) => pick.pick_type === "regular");
-  const lockedValues = new Set(regular
-    .filter((pick) => pick.status === "locked")
-    .map((pick) => Number(pick.confidence_points))
-    .filter((value) => Number.isInteger(value) && value >= 1 && value <= regularTotal));
-  const availableValues = Array.from({ length: regularTotal }, (_, index) => regularTotal - index)
-    .filter((value) => !lockedValues.has(value));
-  const editable = regular
-    .map((pick, index) => ({ pick, index }))
-    .filter(({ pick }) => pick.status !== "locked")
-    .sort((a, b) => Number(b.pick.confidence_points || 0) - Number(a.pick.confidence_points || 0) || a.index - b.index);
-  const pointsByGame = new Map(editable.map(({ pick }, index) => [pick.game_id, availableValues[index] ?? null]));
-
-  return card.map((pick) => {
-    if (pick.pick_type !== "regular" || pick.status === "locked") return pick;
-    const confidencePoints = pointsByGame.get(pick.game_id);
-    return pick.confidence_points === confidencePoints ? pick : { ...pick, confidence_points: confidencePoints };
-  });
-}
-
 function completeSeasonStandings(profiles: Profile[], rows: Standing[]) {
   const byUser = new Map(rows.map((row) => [row.user_id, row]));
   const complete = profiles.map((profile) => byUser.get(profile.id) || {
@@ -1032,27 +1012,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       start <= clock &&
       start >= clock - 12 * 60 * 60 * 1000;
   }));
-
-  useEffect(() => {
-    if (appSlug !== "other-family") return;
-    const syncOrder = (event: Event) => {
-      const detail = (event as CustomEvent<{ week: number; points: Record<string, number> }>).detail;
-      if (!detail?.points) return;
-      const applyPoints = (picks: Pick[]) => picks.map((pick) => detail.points[pick.game_id] == null
-        ? pick
-        : { ...pick, confidence_points: Number(detail.points[pick.game_id]) });
-      setData((current) => {
-        if (!current || Number(current.week) !== Number(detail.week)) return current;
-        const nextData = { ...current, picks: applyPoints(current.picks) };
-        dataRef.current = nextData;
-        writeCachedAppData(nextData.week, nextData);
-        return nextData;
-      });
-      setStagedPicks((current) => current ? applyPoints(current) : current);
-    };
-    window.addEventListener("pickem:confidence-order-saved", syncOrder);
-    return () => window.removeEventListener("pickem:confidence-order-saved", syncOrder);
-  }, [appSlug]);
 
   const updateNotificationCounts = useCallback((next: Record<string, number>) => {
     setNotificationCounts({
@@ -1512,12 +1471,15 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const filteredBetGames = openBetGames.filter((game) => game.league === betLeagueFilter && (betLeagueFilter === "NFL" || betConferenceFilter === "ALL" || gameConferences(game).includes(betConferenceFilter)));
   const selectedBetGame = filteredBetGames.find((game) => game.id === betGameId);
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : "";
+  const displayedRules = tab === "rules" ? ruleSections(appSlug, data.groupRules || {}) : [];
 
   function stageCard(nextCard: Pick[]) {
     const normalizedCard = pointsMode ? normalizeConfidenceCard(nextCard, rule.regularTotal) : nextCard;
     const matchesSaved = normalizedCard.length === myPicks.length && normalizedCard.every((nextPick) => {
       const savedPick = myPicks.find((pick) => pick.game_id === nextPick.game_id);
-      return savedPick?.selected_team === nextPick.selected_team && savedPick.pick_type === nextPick.pick_type;
+      return savedPick?.selected_team === nextPick.selected_team &&
+        savedPick.pick_type === nextPick.pick_type &&
+        (!pointsMode || Number(savedPick.confidence_points || 0) === Number(nextPick.confidence_points || 0));
     });
     autosaveBlockedSignatureRef.current = null;
     setStagedPicks(matchesSaved ? null : normalizedCard);
@@ -1729,7 +1691,26 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         <SectionTabs items={[{ id: "mine", label: "My Card", badge: myCardNotificationCount }, { id: "group", label: "League Cards", badge: leagueCardsNotificationCount }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
         {cardView === "mine" && <>
           {!cardIsLocked && <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />}
-          <PickList picks={myUnderdog ? [...myRegular, myUnderdog] : myRegular} games={viewedGames} title="Picks" pointsMode={pointsMode} removePick={removePick} />
+          <PickList
+            picks={myUnderdog ? [...myRegular, myUnderdog] : myRegular}
+            games={viewedGames}
+            title="Picks"
+            pointsMode={pointsMode}
+            removePick={removePick}
+            headerContent={pointsMode && myRegular.length > 0 ? <ConfidenceOrder
+              picks={myRegular}
+              regularTotal={rule.regularTotal}
+              saving={savingPicks}
+              onMove={(index, direction) => {
+                const moved = moveConfidencePick(myRegular, index, direction, rule.regularTotal);
+                if (moved === myRegular) return;
+                const pointsByGame = new Map(moved.map((pick) => [pick.game_id, pick.confidence_points]));
+                stageCard(cardPicks.map((pick) => pointsByGame.has(pick.game_id)
+                  ? { ...pick, confidence_points: pointsByGame.get(pick.game_id) }
+                  : pick));
+              }}
+            /> : null}
+          />
         </>}
         {cardView === "group" && <div className="group-list">
           {leagueCardProfiles.map((profile) => {
@@ -1749,10 +1730,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         <SectionTabs items={[{ id: "standings", label: "Standings" }, { id: "bank", label: "Bank", badge: bankNotificationCount }]} value={standingsView} onChange={(value) => setStandingsView(value as StandingsView)} />
         {standingsView === "standings" && <>
           <div className="scoreboard-heading"><h2>Season Standings</h2></div>
-          <Leaderboard rows={seasonStandings} />
+          <Leaderboard rows={seasonStandings} pointsMode={pointsMode} />
           <div className="subsection weekly-standings">
             <div className="standings-heading-row"><h2>Weekly Standings</h2>{previewActive ? <span className="test-standings-label">Test Week</span> : <MenuSelect ariaLabel="Select standings week" className="standings-menu-select" value={String(selectedStandingsWeek)} sections={[{ options: standingsWeeks.map((standingWeek) => ({ value: String(standingWeek), label: standingWeek === 0 ? "Week 0" : `Week ${standingWeek}` })) }]} onChange={(value) => setStandingsWeek(Number(value))} />}</div>
-            <Leaderboard rows={weeklyStandings} />
+            <Leaderboard rows={weeklyStandings} pointsMode={pointsMode} />
           </div>
         </>}
         {standingsView === "bank" && <>
@@ -1797,17 +1778,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       {tab === "rules" && <section className="panel rules-panel">
         <div className="section-title"><div><h2>League Rules</h2></div></div>
         <PushNotificationControls onCountsChanged={updateNotificationCounts} />
-        {appSlug === "shaw-family" && <div className="rules-list">
-          <RuleItem title="Season Schedule"><ul><li><NumericText text="The season runs for 20 weeks." /></li><li><NumericText text="It begins with two CFB-only weeks before NFL games start and ends Sunday, Jan. 10, after the final NFL regular-season games." /></li><li>Each week runs from Tuesday through the following Monday.</li></ul></RuleItem>
-          <RuleItem title="Weekly Card"><ul><li><NumericText text="Week 1: 3 CFB picks plus 1 dog." /></li><li><NumericText text="Week 2: 5 CFB picks plus 1 dog." /></li><li><NumericText text="Weeks 3–20: 5 picks, including at least 1 CFB and 1 NFL pick, plus 1 dog." /></li></ul></RuleItem>
-          <RuleItem title="Eligible Games"><ul><li>Chargers games are ineligible.</li><li>Each CFB game must include at least one FBS team.</li><li>Conference title games, bowl games, and CFP games are eligible.</li></ul></RuleItem>
-          <RuleItem title="Underdog"><ul><li><NumericText text="+7 to +9.5: +1 win." /></li><li><NumericText text="+10 to +19.5: +2 wins." /></li><li><NumericText text="+20 or more: +3 wins." /></li><li>The dog must win outright.</li><li>A losing dog does not add a loss.</li></ul></RuleItem>
-          <RuleItem title="Standings"><ul><li>Season and weekly standings are ranked by win percentage.</li><li>Win-percentage ties are broken by total wins.</li><li><NumericText text="The season winner wins $300." /></li><li><NumericText text="Second place loses $100." /></li><li><NumericText text="Last place loses $200." /></li></ul></RuleItem>
-          <RuleItem title="Weekly Bank"><ul><li><NumericText text="Last place pays first place $20." /></li><li><NumericText text="Second place pays first place $10." /></li><li><NumericText text="If last place is tied, each tied player pays first place $15." /></li><li><NumericText text="If first place is tied, the tied players split $20 from last place." /></li><li>A three-way tie has no payment.</li></ul></RuleItem>
-          <RuleItem title="Perfect Week"><ul><li><NumericText text="Does not apply in Week 1." /></li><li>A perfect card doubles every weekly payment.</li></ul></RuleItem>
-          <RuleItem title="Pick Locks"><ul><li><NumericText text="Tuesday–Friday lines freeze 1 hour before kickoff." /></li><li>Tuesday–Friday picks lock at kickoff.</li><li><NumericText text="Saturday–Monday lines freeze Friday at 7:00 PM CT." /></li><li><NumericText text="Saturday–Monday picks lock Friday at 8:00 PM CT." /></li></ul></RuleItem>
-          <RuleItem title="Side Bets"><ul><li>Spread bets only.</li><li><NumericText text="Maximum: $20 per bet." /></li><li><NumericText text="Each player has 3 side-bet slots per week." /></li><li><NumericText text="Accepted and pending offers count toward the 3-bet limit." /></li><li><NumericText text="Offers open Tuesday at 8:00 AM CT with the new week." /></li><li><NumericText text="Tuesday–Friday lines freeze 1 hour before kickoff." /></li><li><NumericText text="Saturday–Monday lines freeze Friday at 7:00 PM CT." /></li><li>Offers may be sent or accepted until kickoff.</li><li>Settled bets post directly to the bank.</li></ul></RuleItem>
-        </div>}
+        <div className="rules-list">
+          {displayedRules.map((section) => <RuleItem title={section.title} key={section.title}><ul>{section.items.map((item) => <li key={item}><NumericText text={item} /></li>)}</ul></RuleItem>)}
+        </div>
       </section>}
     </main>
     {!previewActive && stagedPicks !== null && autosaveBlockedSignatureRef.current !== pickCardSignature(stagedPicks) && !toast && <div className="autosave-toast" role="status" aria-live="polite"><LoaderCircle size={18} /><span>Saving…</span></div>}
@@ -1845,7 +1818,7 @@ function RankNumber({ rank, className }: { rank: number; className: string }) {
 
 function BankWeekResults({ rows, picks, games, amounts, pointsMode }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null>; pointsMode: boolean }) {
   return <div className="bank-week-results">
-    <div className="bank-results-labels"><span>Player</span><span>Balance</span><span>Record</span><span aria-hidden="true" /></div>
+    <div className="bank-results-labels"><span>Player</span><span>Balance</span><span>{pointsMode ? "Points" : "Record"}</span><span aria-hidden="true" /></div>
     {rows.map((row) => {
     const playerPicks = picks
       .filter((pick) => pick.user_id === row.user_id)
@@ -1858,7 +1831,7 @@ function BankWeekResults({ rows, picks, games, amounts, pointsMode }: { rows: Ar
       });
     const amount = amounts[row.user_id];
     return <details className="bank-player-result" key={row.user_id}>
-      <summary><strong className="bank-result-player">{row.display_name}</strong><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : <NumericText text={money(amount)} />}</span><span className="bank-result-record"><RecordText wins={row.wins} losses={row.losses} pushes={row.pushes} /></span><ChevronDown size={16} /></summary>
+      <summary><strong className="bank-result-player">{row.display_name}</strong><span className={`bank-result-amount ${amount != null && amount > 0 ? "money-pos" : amount != null && amount < 0 ? "money-neg" : ""}`}>{amount == null ? "—" : <NumericText text={money(amount)} />}</span><span className="bank-result-record">{pointsMode ? <NumericText text={`${Number(row.points || 0)} pts`} /> : <RecordText wins={row.wins} losses={row.losses} pushes={row.pushes} />}</span><ChevronDown size={16} /></summary>
       {!playerPicks.length && <p className="muted">No visible picks yet.</p>}
       {playerPicks.map((pick) => {
         const game = games.find((item) => item.id === pick.game_id) || pick.game;
@@ -1874,15 +1847,15 @@ function BankWeekResults({ rows, picks, games, amounts, pointsMode }: { rows: Ar
   })}</div>;
 }
 
-function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {
+function Leaderboard({ rows, pointsMode }: { rows: Array<Standing & { rank?: number }>; pointsMode: boolean }) {
   function rankFor(index: number) {
     if (rows[index].rank) return rows[index].rank;
     const firstMatch = rows.findIndex((row) => row.win_pct === rows[index].win_pct && row.wins === rows[index].wins);
     return firstMatch + 1;
   }
 
-  return <div className="leaderboard">
-    <div className="leaderboard-labels"><span>Place</span><span>Player</span><span>W</span><span>L</span><span>P</span><span>Win %</span></div>
+  return <div className={`leaderboard${pointsMode ? " points-mode" : ""}`}>
+    <div className="leaderboard-labels">{pointsMode ? <><span>Place</span><span>Player</span><span>Points</span></> : <><span>Place</span><span>Player</span><span>W</span><span>L</span><span>P</span><span>Win %</span></>}</div>
     {rows.map((row, index) => {
       const rank = rankFor(index);
       const hasResults = row.wins + row.losses + row.pushes > 0;
@@ -1890,10 +1863,12 @@ function Leaderboard({ rows }: { rows: Array<Standing & { rank?: number }> }) {
       return <div className="leaderboard-row" key={row.user_id}>
         <RankNumber rank={rank} className="leaderboard-rank" />
         <div className="leaderboard-player"><strong>{row.display_name}</strong></div>
-        <span className="leaderboard-stat">{row.wins}</span>
-        <span className="leaderboard-stat">{row.losses}</span>
-        <span className="leaderboard-stat">{row.pushes}</span>
-        <strong className={`leaderboard-pct ${pctTone}`}><NumericText text={pctText(row.win_pct)} /></strong>
+        {pointsMode ? <strong className="leaderboard-points"><NumericText text={Number(row.points || 0)} /></strong> : <>
+          <span className="leaderboard-stat">{row.wins}</span>
+          <span className="leaderboard-stat">{row.losses}</span>
+          <span className="leaderboard-stat">{row.pushes}</span>
+          <strong className={`leaderboard-pct ${pctTone}`}><NumericText text={pctText(row.win_pct)} /></strong>
+        </>}
       </div>;
     })}
   </div>;
@@ -1904,6 +1879,32 @@ function RuleItem({ title, children }: { title: string; children: React.ReactNod
     <summary><strong>{title}</strong><ChevronDown className="rule-chevron" size={17} /></summary>
     <div className="rule-copy">{children}</div>
   </details>;
+}
+
+function ConfidenceOrder({ picks, regularTotal, saving, onMove }: { picks: Pick[]; regularTotal: number; saving: boolean; onMove: (index: number, direction: -1 | 1) => void }) {
+  function targetIndex(index: number, direction: -1 | 1) {
+    if (picks[index]?.status === "locked") return -1;
+    let target = index + direction;
+    while (target >= 0 && target < picks.length && picks[target]?.status === "locked") target += direction;
+    return target >= 0 && target < picks.length ? target : -1;
+  }
+
+  return <section className="confidence-order-panel">
+    <div className="confidence-order-head"><strong>Confidence Order</strong>{saving && <span>Saving…</span>}</div>
+    <div className="confidence-order-list">
+      {picks.map((pick, index) => {
+        const pickLocked = pick.status === "locked";
+        return <div className={`confidence-order-row${pickLocked ? " locked" : ""}`} data-confidence-game-id={pick.game_id} key={pick.game_id}>
+          <span className="confidence-value"><NumericText text={confidencePointText(Number(pick.confidence_points || Math.max(1, regularTotal - index)))} /></span>
+          <strong>{pick.selected_team}</strong>
+          <span className="confidence-move">
+            <button type="button" aria-label={`Move ${pick.selected_team} up`} disabled={saving || pickLocked || targetIndex(index, -1) < 0} onClick={() => onMove(index, -1)}><ChevronUp size={15} /></button>
+            <button type="button" aria-label={`Move ${pick.selected_team} down`} disabled={saving || pickLocked || targetIndex(index, 1) < 0} onClick={() => onMove(index, 1)}><ChevronDown size={15} /></button>
+          </span>
+        </div>;
+      })}
+    </div>
+  </section>;
 }
 
 function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
@@ -2462,8 +2463,8 @@ function PickScoreBug({ game, pick, spread }: { game: Game; pick: Pick; spread: 
   </span>;
 }
 
-function PickList({ picks, games, title, pointsMode, removePick }: { picks: Pick[]; games: Game[]; title: string; pointsMode: boolean; removePick: (p: Pick) => void }) {
-  return <div className="pick-section"><h3>{title}</h3>{!picks.length && <p className="muted card-empty-picks">None yet.</p>}{picks.map((pick) => {
+function PickList({ picks, games, title, pointsMode, removePick, headerContent }: { picks: Pick[]; games: Game[]; title: string; pointsMode: boolean; removePick: (p: Pick) => void; headerContent?: React.ReactNode }) {
+  return <div className="pick-section"><h3>{title}</h3>{headerContent}{!picks.length && <p className="muted card-empty-picks">None yet.</p>}{picks.map((pick) => {
     const game = games.find((g) => g.id === pick.game_id) || pick.game;
     const locked = pick.status === "locked" || Boolean(game && isClosed(game));
     const graded = pick.result !== "pending";

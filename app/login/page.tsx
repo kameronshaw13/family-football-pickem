@@ -5,13 +5,12 @@ import MenuSelect from "@/components/MenuSelect";
 import NumericText from "@/components/NumericText";
 
 type AppSlug = "shaw-family" | "other-family" | "friends";
-type AppConfig = { name: string; home: string; users: Array<{ username: string; label: string }>; shaw?: boolean; passwordless?: boolean };
+type AppConfig = { name: string; home: string; users: Array<{ username: string; label: string }>; passwordless?: boolean };
 
 const appConfig: Record<AppSlug, AppConfig> = {
   "shaw-family": {
     name: "Shaw Family Pick'em",
     home: "/",
-    shaw: true,
     users: [
       { username: "kameron", label: "Kameron" },
       { username: "mike", label: "Mike" },
@@ -71,7 +70,7 @@ export default function LoginPage() {
   }, []);
 
   const config = useMemo(() => groupSlug ? appConfig[groupSlug] : null, [groupSlug]);
-  if (!config || !groupSlug) return <main className="app-shell login-screen"><section className="login-card"><div className="login-brand login-brand-generic"><strong>Football Pick'em</strong></div><p>Loading…</p></section></main>;
+  if (!config || !groupSlug) return <main className="app-shell login-screen"><section className="login-card"><div className="login-app-name">Football Pick'em</div><p>Loading…</p></section></main>;
   const homePath = config.home;
   const passwordless = Boolean(config.passwordless);
 
@@ -98,9 +97,7 @@ export default function LoginPage() {
 
   return <main className={`app-shell login-screen login-${groupSlug}`}>
     <section className="login-card">
-      {config.shaw
-        ? <div className="login-brand"><img className="login-brand-wordmark" src="/header-wordmark.png" alt="Shaw Family Pick'em" /></div>
-        : <div className="login-brand login-brand-generic"><strong>{config.name}</strong></div>}
+      <div className="login-app-name">{config.name}</div>
       <h1>{passwordless ? "Enter Caleb Family" : mode === "create" ? "Create your account" : "Sign in"}</h1>
       <p>{passwordless ? "Choose a name to open the app. Passwords are temporarily disabled while the league is being set up." : mode === "create" ? "Choose your name and create a private password. After this, use that password to get back in." : "Use your name and the password you created."}</p>
       {!passwordless && <div className="mode-toggle">
