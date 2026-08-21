@@ -1,6 +1,12 @@
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
+function appPath(pathname) {
+  if (pathname === "/friends" || pathname.startsWith("/friends/")) return "/friends";
+  if (pathname === "/caleb-family" || pathname.startsWith("/caleb-family/")) return "/caleb-family";
+  return "/";
+}
+
 self.addEventListener("push", (event) => {
   let payload = {};
   try {
@@ -19,6 +25,9 @@ self.addEventListener("push", (event) => {
     data: { url: payload.url || "/" }
   };
   const tasks = [self.registration.showNotification(title, options)];
+  tasks.push(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+    windows.forEach((client) => client.postMessage({ type: "notification-push", url: payload.url || "/" }));
+  }));
   if ("setAppBadge" in self.navigator) {
     tasks.push(payload.badgeCount > 0 ? self.navigator.setAppBadge(payload.badgeCount) : self.navigator.clearAppBadge());
   }
@@ -30,7 +39,11 @@ self.addEventListener("notificationclick", (event) => {
   const targetUrl = new URL(event.notification.data?.url || "/", self.location.origin).href;
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    const existing = windows.find((client) => new URL(client.url).origin === self.location.origin);
+    const targetApp = appPath(new URL(targetUrl).pathname);
+    const existing = windows.find((client) => {
+      const clientUrl = new URL(client.url);
+      return clientUrl.origin === self.location.origin && appPath(clientUrl.pathname) === targetApp;
+    });
     if (existing) {
       existing.postMessage({ type: "notification-click", url: targetUrl });
       if ("navigate" in existing) await existing.navigate(targetUrl);
