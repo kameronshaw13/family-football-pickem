@@ -22,7 +22,7 @@ function notificationSpread(value: number) {
 }
 
 function groupNotificationUrl(slug: string, destination: string) {
-  const base = slug === "friends" ? "/friends" : slug === "other-family" ? "/other-family" : "/";
+  const base = slug === "friends" ? "/friends" : slug === "other-family" ? "/caleb-family" : "/";
   return `${base}?notification=${encodeURIComponent(destination)}`;
 }
 
@@ -179,6 +179,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (!target) return NextResponse.json({ ok: false, error: "This offer was not sent to you." }, { status: 403 });
+    if (body.action === "accept" && sideBet.status === "accepted" && sideBet.accepted_by === auth.profile.id) {
+      return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });
+    }
+    if (body.action === "decline" && target.response === "declined") {
+      return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });
+    }
     if (target.response !== "pending" || sideBet.status !== "open") return NextResponse.json({ ok: false, error: "This offer is no longer available." }, { status: 409 });
     if (!sideBet.game || new Date(sideBet.game.commence_time) <= now) return NextResponse.json({ ok: false, error: "Kickoff has passed. This offer expired." }, { status: 409 });
 
@@ -217,7 +223,13 @@ export async function POST(req: NextRequest) {
       updated_at: nowIso
     }).eq("group_id", context.group.id).eq("id", sideBet.id).eq("status", "open").select("id").maybeSingle();
     if (acceptError) throw new Error(acceptError.message);
-    if (!accepted) return NextResponse.json({ ok: false, error: "This offer was accepted before you could accept it." }, { status: 409 });
+    if (!accepted) {
+      const { data: current } = await supabase.from("side_bets").select("status,accepted_by").eq("group_id", context.group.id).eq("id", sideBet.id).maybeSingle();
+      if (current?.status === "accepted" && current.accepted_by === auth.profile.id) {
+        return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });
+      }
+      return NextResponse.json({ ok: false, error: "This offer was accepted before you could accept it." }, { status: 409 });
+    }
 
     await Promise.all([
       supabase.from("side_bet_targets").update({ response: "accepted", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id),
