@@ -10,3 +10,12 @@
 .card-panel .pick-section > .card-empty-picks {
   order: 0;
 }
+
+.rules-panel > .section-title { order: 0; }
+.rules-panel > .rules-list { order: 1; }
+.rules-panel > .notification-settings { order: 2; margin-top: 12px; margin-bottom: 0; }
+.rules-panel .notification-settings-heading { font-size: 14px; font-weight: 700; }
+
+.bank-game-result .test-result.pending {
+  display: none;
+}

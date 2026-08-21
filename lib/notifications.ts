@@ -45,6 +45,10 @@ export async function getNotificationCounts(supabase: SupabaseClient, userId: st
   return counts;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function deliverPush(supabase: SupabaseClient, userId: string, payload: Omit<PushPayload, "badgeCount">, groupId?: string) {
   const config = pushConfiguration();
   if (!config.configured) return { sent: 0, configured: false };
@@ -58,15 +62,22 @@ async function deliverPush(supabase: SupabaseClient, userId: string, payload: Om
   let sent = 0;
   await Promise.all(subscriptions.map(async (row) => {
     const subscription: PushSubscription = { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } };
-    try {
-      await webPush.sendNotification(subscription, JSON.stringify({ ...payload, badgeCount: counts.total }), { TTL: 60 * 60 * 24, urgency: "high", timeout: 5_000 });
-      sent += 1;
-    } catch (error) {
-      if (error instanceof WebPushError && [404, 410].includes(error.statusCode)) {
-        await supabase.from("push_subscriptions").delete().eq("endpoint", row.endpoint);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        await webPush.sendNotification(subscription, JSON.stringify({ ...payload, badgeCount: counts.total }), { TTL: 60 * 60 * 24, urgency: "high", timeout: 10_000 });
+        sent += 1;
         return;
+      } catch (error) {
+        if (error instanceof WebPushError && [404, 410].includes(error.statusCode)) {
+          await supabase.from("push_subscriptions").delete().eq("endpoint", row.endpoint);
+          return;
+        }
+        if (attempt === 0) {
+          await sleep(300);
+          continue;
+        }
+        console.error("Push delivery failed after retry", error);
       }
-      console.error("Push delivery failed", error);
     }
   }));
   return { sent, configured: true };
