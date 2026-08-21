@@ -4,13 +4,13 @@
 .rules-panel > .section-title {
   order: 1;
   position: relative;
-  padding-right: 108px;
+  padding-right: 94px;
 }
 .rules-panel > .rules-list { order: 2; }
 .rules-panel > .notification-settings {
   position: absolute;
   z-index: 3;
-  top: 8px;
+  top: 4px;
   right: var(--page-gutter);
   width: auto;
   min-height: 0;
@@ -30,18 +30,26 @@
   align-items: center;
 }
 .rules-panel > .notification-settings .btn {
-  min-height: 34px;
-  height: 34px;
-  padding: 0 10px;
+  min-height: 30px;
+  height: 30px;
+  padding: 0 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
   line-height: 1;
+  font-size: 11px;
 }
 
+.side-bet-offer-copy,
 .side-bet-offer-copy > strong {
   min-width: 0;
+}
+.side-bet-offer-copy > strong {
   position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip !important;
 }
 .side-bet-offer-copy > strong.side-bet-matchup-compact > * {
   visibility: hidden;

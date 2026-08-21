@@ -41,11 +41,30 @@ function workerScope(appSlug: AppSlug) {
 }
 
 async function appRegistration(appSlug: AppSlug) {
-  const scope = workerScope(appSlug);
-  const registration = await navigator.serviceWorker.register("/sw.js", { scope });
+  const wanted = workerScope(appSlug);
+  const wantedPath = wanted === "/" ? "/" : wanted.replace(/\/$/, "");
+  const registrations = await navigator.serviceWorker.getRegistrations();
+
+  for (const registration of registrations) {
+    const scopePath = new URL(registration.scope).pathname.replace(/\/$/, "") || "/";
+    if (appSlug !== "shaw-family" && scopePath === "/") await registration.unregister();
+    if (!["/", "/friends", "/caleb-family"].includes(scopePath)) await registration.unregister();
+  }
+
+  let registration = await navigator.serviceWorker.getRegistration(wanted);
+  const existingPath = registration ? new URL(registration.scope).pathname.replace(/\/$/, "") || "/" : "";
+  if (!registration || existingPath !== wantedPath) registration = await navigator.serviceWorker.register("/sw.js", { scope: wanted });
   if (registration.active) return registration;
-  await navigator.serviceWorker.ready;
-  return (await navigator.serviceWorker.getRegistration(scope)) || registration;
+
+  await new Promise<void>((resolve) => {
+    const worker = registration.installing || registration.waiting;
+    if (!worker) return resolve();
+    const done = () => { if (worker.state === "activated") resolve(); };
+    worker.addEventListener("statechange", done);
+    done();
+    window.setTimeout(resolve, 2500);
+  });
+  return registration;
 }
 
 export default function PushNotificationControls({ appSlug: explicitAppSlug, onCountsChanged }: { appSlug?: AppSlug; onCountsChanged?: (counts: Record<string, number>) => void }) {
@@ -54,6 +73,20 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
   const [publicKey, setPublicKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+
+  async function post(body: object) {
+    const headers = authHeaders(appSlug);
+    if (!headers) throw new Error("Sign in again to manage notifications.");
+    const response = await fetch("/api/notifications", {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Notification request failed.");
+    onCountsChanged?.(payload.counts || {});
+    return payload;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -69,10 +102,8 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
       const headers = authHeaders(appSlug);
       if (!headers) return;
       try {
-        const [registration, response] = await Promise.all([
-          appRegistration(appSlug),
-          fetch("/api/notifications", { headers, cache: "no-store" })
-        ]);
+        const registration = await appRegistration(appSlug);
+        const response = await fetch("/api/notifications", { headers, cache: "no-store" });
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || "Could not check notifications.");
         if (cancelled) return;
@@ -80,8 +111,20 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
         setPublicKey(payload.publicKey || "");
         if (!payload.configured) return setState("not-configured");
         if (Notification.permission === "denied") return setState("denied");
-        const subscription = await registration.pushManager.getSubscription();
-        setState(subscription ? "enabled" : "disabled");
+
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription && Notification.permission === "granted" && payload.publicKey) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: applicationServerKey(payload.publicKey)
+          });
+        }
+        if (subscription) {
+          await post({ action: "subscribe", subscription: subscription.toJSON(), userAgent: navigator.userAgent });
+          if (!cancelled) setState("enabled");
+        } else if (!cancelled) {
+          setState("disabled");
+        }
       } catch (error) {
         if (!cancelled) {
           setState("disabled");
@@ -91,21 +134,9 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
     }
     void inspect();
     return () => { cancelled = true; };
+  // post intentionally uses the same appSlug and callback for this mounted control.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appSlug, onCountsChanged]);
-
-  async function post(body: object) {
-    const headers = authHeaders(appSlug);
-    if (!headers) throw new Error("Sign in again to manage notifications.");
-    const response = await fetch("/api/notifications", {
-      method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "Notification request failed.");
-    onCountsChanged?.(payload.counts || {});
-    return payload;
-  }
 
   async function enable() {
     setBusy(true);
@@ -164,8 +195,8 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
     </div>
     <div className="notification-settings-actions">
       {state === "enabled"
-        ? <button type="button" className="btn secondary" disabled={busy} onClick={() => void disable()}><BellOff size={14} /> Turn Off</button>
-        : <button type="button" className="btn accent" disabled={busy || ["checking", "unsupported", "needs-home-screen", "not-configured", "denied"].includes(state)} onClick={() => void enable()}><Bell size={14} /> Enable</button>}
+        ? <button type="button" className="btn secondary" disabled={busy} onClick={() => void disable()}><BellOff size={13} /> Turn Off</button>
+        : <button type="button" className="btn accent" disabled={busy || ["checking", "unsupported", "needs-home-screen", "not-configured", "denied"].includes(state)} onClick={() => void enable()}><Bell size={13} /> Enable</button>}
     </div>
   </section>;
 }
