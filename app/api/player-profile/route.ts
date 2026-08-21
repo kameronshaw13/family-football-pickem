@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
       ok: true,
       group: {
         slug: context.group.slug,
-        titleLabel: context.group.slug === "other-family" ? "Gilliland Pick'em" : context.group.slug === "friends" ? "Friends Pick'em" : "Shaw Pick'em"
+        titleLabel: context.group.slug === "other-family" ? "Family Pick'em" : context.group.slug === "friends" ? "Friends Pick'em" : "Shaw Pick'em"
       },
       player: { id: player.id, displayName: player.display_name },
       period: { selected: selectedYear == null ? "all" : String(selectedYear), label: selectedYear == null ? "All Time" : String(selectedYear), availableYears },
