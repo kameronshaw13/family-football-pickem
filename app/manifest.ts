@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
   const friends = group === "friends";
   const name = otherFamily ? "Family Pick'em" : friends ? "Football Pick'em" : "Family Football Pick'em";
   const shortName = otherFamily ? "Family Pick'em" : friends ? "Football Pick'em" : "Pick'em";
-  const startUrl = otherFamily ? "/other-family" : friends ? "/friends" : "/";
+  const startUrl = otherFamily ? "/caleb-family" : friends ? "/friends" : "/";
   const companionIcon = otherFamily ? "/other-family-app-icon.png" : friends ? "/friends-app-icon.png" : null;
 
   return {
