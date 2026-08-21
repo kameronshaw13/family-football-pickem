@@ -15,7 +15,6 @@ const MANUAL: Record<string, string> = {
   "sam houston bearkats": "Sam Houston",
   "sam houston state bearkats": "Sam Houston",
   "louisiana ragin cajuns": "Louisiana",
-  "louisiana ragin cajuns": "Louisiana",
   "umass minutemen": "UMass",
   "massachusetts minutemen": "UMass",
   "uconn huskies": "UConn",
