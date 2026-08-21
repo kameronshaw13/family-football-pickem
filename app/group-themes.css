@@ -2,7 +2,7 @@
 .route-app.group-friends .brand-lockup > .header-wordmark,
 .route-app.group-other-family .brand-lockup > .header-wordmark {
   display: block;
-  width: min(255px, 100%);
+  width: min(236px, 100%);
 }
 
 .login-brand-generic {
@@ -33,8 +33,8 @@
 .confidence-order-row > strong { overflow: hidden; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .confidence-value { color: var(--blue-dark); font-family: var(--font-display); font-size: 11px; font-weight: 800; }
 .confidence-move { display: flex; justify-self: end; gap: 4px; }
-.confidence-move button { display: flex; width: 28px; height: 28px; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--ink); background: var(--panel); line-height: 0; }
-.confidence-move button svg { display: block; width: 15px; height: 15px; flex: 0 0 15px; margin: 0; }
+.confidence-move button { display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--ink); background: var(--panel); line-height: 0; }
+.confidence-move button svg { display: block; width: 16px; height: 16px; margin: 0; }
 .confidence-move button:disabled { color: var(--muted); background: var(--surface-muted); opacity: .42; }
 .confidence-error { margin: 0; padding: 0 var(--pick-content-inset) 8px; font-size: 10.5px; }
 .confidence-error { color: var(--red); }
@@ -65,7 +65,7 @@
 .group-money-message { margin: 0; padding: 6px var(--pick-content-inset) 0; font-size: 10.5px; font-weight: 700; }
 .group-money-message.success { color: var(--green); }
 .group-money-message.error { color: var(--red); }
-.group-money-save { padding: 8px var(--pick-content-inset); }
+.group-money-save { padding: 8px var(--pick-content-inset); border-top: 1px solid var(--line-strong); }
 .group-money-save .btn { width: 100%; }
 
 /* Companion leagues retain unlimited recipients, shown in one row. */
@@ -80,7 +80,5 @@
 .companion-rules-list { margin-top: 8px; }
 
 @media (max-width: 420px) {
-  .route-app.group-friends .brand-lockup > .header-wordmark,
-  .route-app.group-other-family .brand-lockup > .header-wordmark { width: min(248px, 100%); }
   .confidence-order-row { grid-template-columns: 48px minmax(0, 1fr) 64px; }
 }
