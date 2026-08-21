@@ -1,0 +1,20 @@
+{
+  "id": "/caleb-family",
+  "name": "Caleb Family Pick'em",
+  "short_name": "Family Pick'em",
+  "description": "Private Caleb Family football confidence pick'em.",
+  "start_url": "/caleb-family",
+  "scope": "/caleb-family",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#20282d",
+  "theme_color": "#20282d",
+  "icons": [
+    {
+      "src": "/other-family-app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

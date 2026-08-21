@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   applicationName: "Football Pick'em",
   appleWebApp: { capable: true, title: "Football Pick'em", statusBarStyle: "black-translucent" },
   icons: { icon: "/friends-app-icon.png", apple: "/friends-app-icon.png" },
-  manifest: "/friends/manifest.webmanifest"
+  manifest: "/friends-manifest.webmanifest"
 };
 
 export const viewport: Viewport = {
