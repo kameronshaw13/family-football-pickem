@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { Bell, BellOff } from "lucide-react";
+import type { AppSlug } from "@/lib/rulePresentation";
 
 type PushState = "checking" | "unsupported" | "needs-home-screen" | "not-configured" | "denied" | "disabled" | "enabled";
 
-function authHeaders() {
+function authHeaders(appSlug: AppSlug) {
   const token = window.localStorage.getItem("pickem_session_token");
-  return token ? { Authorization: `Bearer ${token}` } : null;
+  return token ? { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug } : null;
 }
 
 function applicationServerKey(value: string) {
@@ -25,7 +26,21 @@ function isStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches || Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
 }
 
-export default function PushNotificationControls({ onCountsChanged }: { onCountsChanged?: (counts: Record<string, number>) => void }) {
+function workerScope(appSlug: AppSlug) {
+  if (appSlug === "friends") return "/friends/";
+  if (appSlug === "other-family") return "/caleb-family/";
+  return "/";
+}
+
+async function appRegistration(appSlug: AppSlug) {
+  const scope = workerScope(appSlug);
+  const registration = await navigator.serviceWorker.register("/sw.js", { scope });
+  if (registration.active) return registration;
+  await navigator.serviceWorker.ready;
+  return (await navigator.serviceWorker.getRegistration(scope)) || registration;
+}
+
+export default function PushNotificationControls({ appSlug, onCountsChanged }: { appSlug: AppSlug; onCountsChanged?: (counts: Record<string, number>) => void }) {
   const [state, setState] = useState<PushState>("checking");
   const [publicKey, setPublicKey] = useState("");
   const [busy, setBusy] = useState(false);
@@ -42,11 +57,11 @@ export default function PushNotificationControls({ onCountsChanged }: { onCounts
         if (!cancelled) setState("needs-home-screen");
         return;
       }
-      const headers = authHeaders();
+      const headers = authHeaders(appSlug);
       if (!headers) return;
       try {
         const [registration, response] = await Promise.all([
-          navigator.serviceWorker.register("/sw.js", { scope: "/" }),
+          appRegistration(appSlug),
           fetch("/api/notifications", { headers, cache: "no-store" })
         ]);
         const payload = await response.json();
@@ -67,10 +82,10 @@ export default function PushNotificationControls({ onCountsChanged }: { onCounts
     }
     void inspect();
     return () => { cancelled = true; };
-  }, [onCountsChanged]);
+  }, [appSlug, onCountsChanged]);
 
   async function post(body: object) {
-    const headers = authHeaders();
+    const headers = authHeaders(appSlug);
     if (!headers) throw new Error("Sign in again to manage notifications.");
     const response = await fetch("/api/notifications", {
       method: "POST",
@@ -93,7 +108,7 @@ export default function PushNotificationControls({ onCountsChanged }: { onCounts
         setState(permission === "denied" ? "denied" : "disabled");
         return;
       }
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await appRegistration(appSlug);
       const existing = await registration.pushManager.getSubscription();
       const subscription = existing || await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -101,7 +116,6 @@ export default function PushNotificationControls({ onCountsChanged }: { onCounts
       });
       await post({ action: "subscribe", subscription: subscription.toJSON(), userAgent: navigator.userAgent });
       setState("enabled");
-      setMessage("Notifications enabled on this device.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not enable notifications.");
     } finally {
@@ -113,14 +127,13 @@ export default function PushNotificationControls({ onCountsChanged }: { onCounts
     setBusy(true);
     setMessage("");
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await appRegistration(appSlug);
       const subscription = await registration.pushManager.getSubscription();
       if (subscription) {
         await post({ action: "unsubscribe", endpoint: subscription.endpoint });
         await subscription.unsubscribe();
       }
       setState("disabled");
-      setMessage("Notifications disabled on this device.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not disable notifications.");
     } finally {
@@ -128,18 +141,16 @@ export default function PushNotificationControls({ onCountsChanged }: { onCounts
     }
   }
 
-  const status = state === "enabled" ? "Enabled on this device"
-    : state === "denied" ? "Blocked in iPhone Settings"
+  const helper = state === "denied" ? "Blocked in iPhone Settings"
     : state === "needs-home-screen" ? "Add the app to your Home Screen first"
     : state === "not-configured" ? "Waiting for Vercel push keys"
     : state === "unsupported" ? "Not supported in this browser"
-    : state === "checking" ? "Checking this device…"
-    : "Off on this device";
+    : "";
 
   return <section className="notification-settings" aria-labelledby="notification-settings-title">
     <div className="notification-settings-copy">
       <div className="notification-settings-heading"><Bell size={17} /><strong id="notification-settings-title">Push Notifications</strong></div>
-      <p>{status}</p>
+      {helper && <p>{helper}</p>}
       {message && <small role="status">{message}</small>}
     </div>
     <div className="notification-settings-actions">
