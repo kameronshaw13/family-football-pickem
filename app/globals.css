@@ -464,12 +464,6 @@ fieldset .field-label { padding: 0; }
 .bank-game-result > div strong { overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.25; white-space: nowrap; }
 .bank-game-pick-title { display: flex; min-width: 0; align-items: center; gap: 4px; color: var(--ink); }
 .bank-game-result p { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
-.test-week-launch { display: grid; width: calc(100% + (var(--page-gutter) * 2)); min-height: 54px; grid-template-columns: 24px minmax(0, 1fr) 18px; align-items: center; gap: 9px; margin: var(--space-4) calc(var(--page-gutter) * -1) 0; padding: 8px var(--page-gutter); border: 0; border-block: 1px solid var(--line-strong); color: var(--ink); background: var(--surface-soft); text-align: left; }
-.test-week-launch > svg:first-child { color: var(--blue-dark); }
-.test-week-launch > svg:last-child { color: var(--muted); }
-.test-week-launch span { display: grid; gap: 2px; }
-.test-week-launch strong { font-size: 13px; }
-.test-week-launch small { color: var(--muted); font-size: 11px; font-weight: 600; }
 .test-result { display: grid; width: 25px; height: 25px; place-items: center; color: #fff; background: var(--muted); font-family: var(--font-display); font-size: 12px; font-weight: 800; }
 .test-result.win { background: var(--green); }
 .test-result.loss { background: var(--red); }

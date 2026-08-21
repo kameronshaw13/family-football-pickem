@@ -19,45 +19,22 @@ export async function POST(req: NextRequest) {
     if (!allowed) return NextResponse.json({ ok: false, error: "That name is not on this pick'em list." }, { status: 403 });
 
     const username = allowed.username;
-    const passwordless = groupSlug === "other-family";
     const supabase = getSupabaseAdmin();
 
-    let { data: profile, error } = await supabase
+    const { data: profile, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("username", username)
       .maybeSingle();
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
-    if (!profile && passwordless) {
-      const seededResult = await supabase
-        .from("profiles")
-        .select("*")
-        .ilike("display_name", allowed.displayName)
-        .maybeSingle();
-      if (seededResult.error) return NextResponse.json({ ok: false, error: seededResult.error.message }, { status: 500 });
-      profile = seededResult.data;
-      if (profile && !profile.username) {
-        const claimed = await supabase
-          .from("profiles")
-          .update({ username, updated_at: new Date().toISOString() })
-          .eq("id", profile.id)
-          .select("*")
-          .single();
-        if (claimed.error) return NextResponse.json({ ok: false, error: claimed.error.message }, { status: 500 });
-        profile = claimed.data;
-      }
-    }
-
     if (!profile) {
-      return NextResponse.json({ ok: false, error: passwordless ? "That Caleb Family roster spot is not available." : "Account not created yet. Choose Create account first." }, { status: 404 });
+      return NextResponse.json({ ok: false, error: "Account not created yet. Choose Create account first." }, { status: 404 });
     }
 
-    if (!passwordless) {
-      if (!profile.password_hash) return NextResponse.json({ ok: false, error: "Account not created yet. Choose Create account first." }, { status: 404 });
-      if (!body.password || body.password.length < 6 || !verifyPassword(body.password, profile.password_hash)) {
-        return NextResponse.json({ ok: false, error: "Incorrect password." }, { status: 401 });
-      }
+    if (!profile.password_hash) return NextResponse.json({ ok: false, error: "Account not created yet. Choose Create account first." }, { status: 404 });
+    if (!body.password || body.password.length < 6 || !verifyPassword(body.password, profile.password_hash)) {
+      return NextResponse.json({ ok: false, error: "Incorrect password." }, { status: 401 });
     }
 
     const { data: group, error: groupError } = await supabase.from("pickem_groups").select("id").eq("slug", groupSlug).maybeSingle();

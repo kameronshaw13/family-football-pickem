@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, BellOff, Send } from "lucide-react";
+import { Bell, BellOff } from "lucide-react";
 
 type PushState = "checking" | "unsupported" | "needs-home-screen" | "not-configured" | "denied" | "disabled" | "enabled";
 
@@ -128,19 +128,6 @@ export default function PushNotificationControls({ onCountsChanged }: { onCounts
     }
   }
 
-  async function sendTest() {
-    setBusy(true);
-    setMessage("");
-    try {
-      const payload = await post({ action: "test" });
-      setMessage(payload.testResult?.sent ? "Test notification sent." : "No active device subscription was found.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not send the test notification.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   const status = state === "enabled" ? "Enabled on this device"
     : state === "denied" ? "Blocked in iPhone Settings"
     : state === "needs-home-screen" ? "Add the app to your Home Screen first"
@@ -156,10 +143,9 @@ export default function PushNotificationControls({ onCountsChanged }: { onCounts
       {message && <small role="status">{message}</small>}
     </div>
     <div className="notification-settings-actions">
-      {state === "enabled" ? <>
-        <button type="button" className="btn secondary" disabled={busy} onClick={() => void sendTest()}><Send size={14} /> Test</button>
-        <button type="button" className="btn secondary" disabled={busy} onClick={() => void disable()}><BellOff size={14} /> Turn Off</button>
-      </> : <button type="button" className="btn accent" disabled={busy || ["checking", "unsupported", "needs-home-screen", "not-configured", "denied"].includes(state)} onClick={() => void enable()}><Bell size={14} /> Enable</button>}
+      {state === "enabled"
+        ? <button type="button" className="btn secondary" disabled={busy} onClick={() => void disable()}><BellOff size={14} /> Turn Off</button>
+        : <button type="button" className="btn accent" disabled={busy || ["checking", "unsupported", "needs-home-screen", "not-configured", "denied"].includes(state)} onClick={() => void enable()}><Bell size={14} /> Enable</button>}
     </div>
   </section>;
 }

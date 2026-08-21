@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, LoaderCircle, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, LoaderCircle, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
@@ -1771,7 +1771,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} pointsMode={pointsMode} />
           </div>
           <div className="subsection bank-section bank-week-section"><div className="standings-heading-row"><h2 className="heading-with-badge">Side Bet Ledger <NotificationBadge count={bankNotificationCount} /></h2></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
-          {currentUser.is_admin && !previewActive && <button className="test-week-launch" onClick={() => { setTestWeekActive(true); setStagedPicks(null); setPicksView("board"); setCardView("mine"); setStatusFilter("LOCKED"); setStatusFilterTouched(true); setLeagueFilter("CFB"); setTab("picks"); }}><FlaskConical size={18} /><span><strong>Preview board states</strong><small>See locked, live, and final games</small></span><ChevronRight size={17} /></button>}
         </>}
       </section>}
 
