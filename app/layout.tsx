@@ -15,8 +15,7 @@ export const metadata: Metadata = {
   description: "Private Shaw Family football pick'em.",
   applicationName: "Family Pick'em",
   appleWebApp: { capable: true, title: "Family Pick'em", statusBarStyle: "black-translucent" },
-  icons: { icon: "/icon.png", apple: "/icon.png" },
-  manifest: "/manifest.webmanifest"
+  icons: { icon: "/icon.png", apple: "/icon.png" }
 };
 
 export const viewport: Viewport = {
