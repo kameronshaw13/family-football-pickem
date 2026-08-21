@@ -2,7 +2,7 @@
 .route-app.group-friends .brand-lockup > .header-wordmark,
 .route-app.group-other-family .brand-lockup > .header-wordmark {
   display: block;
-  width: min(236px, 100%);
+  width: min(228px, 100%);
 }
 
 .login-brand-generic {
@@ -80,5 +80,7 @@
 .companion-rules-list { margin-top: 8px; }
 
 @media (max-width: 420px) {
+  .route-app.group-friends .brand-lockup > .header-wordmark,
+  .route-app.group-other-family .brand-lockup > .header-wordmark { width: min(220px, 100%); }
   .confidence-order-row { grid-template-columns: 48px minmax(0, 1fr) 64px; }
 }
