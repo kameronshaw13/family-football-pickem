@@ -15,6 +15,7 @@
 .confidence-order-head strong { display: block; font-family: var(--font-display); font-size: 12px; font-weight: 800; text-transform: uppercase; }
 .confidence-order-head > span { color: var(--muted); font-size: 10.5px; font-weight: 700; }
 .confidence-order-list { border-top: 1px solid var(--line); }
+.route-app.group-other-family .confidence-order-panel + .pick-card::before { display: none; }
 .route-app.group-other-family .pick-section > h3 + .pick-card::before {
   position: absolute;
   top: 0;
