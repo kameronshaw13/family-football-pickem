@@ -65,7 +65,7 @@
 .group-money-message { margin: 0; padding: 6px var(--pick-content-inset) 0; font-size: 10.5px; font-weight: 700; }
 .group-money-message.success { color: var(--green); }
 .group-money-message.error { color: var(--red); }
-.group-money-save { padding: 8px var(--pick-content-inset); border-top: 1px solid var(--line-strong); }
+.group-money-save { padding: 8px var(--pick-content-inset); border-top: 1px solid var(--line); }
 .group-money-save .btn { width: 100%; }
 
 /* Companion leagues retain unlimited recipients, shown in one row. */
