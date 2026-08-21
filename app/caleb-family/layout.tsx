@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   applicationName: "Family Pick'em",
   appleWebApp: { capable: true, title: "Family Pick'em", statusBarStyle: "black-translucent" },
   icons: { icon: "/other-family-app-icon.png", apple: "/other-family-app-icon.png" },
-  manifest: "/caleb-family/manifest.webmanifest"
+  manifest: "/caleb-family-manifest.webmanifest"
 };
 
 export const viewport: Viewport = {
