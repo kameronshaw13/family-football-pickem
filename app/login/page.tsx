@@ -19,7 +19,7 @@ const appConfig: Record<AppSlug, AppConfig> = {
   },
   "other-family": {
     name: "Caleb Family Pick'em",
-    home: "/other-family",
+    home: "/caleb-family",
     users: [
       { username: "caleb", label: "Caleb" },
       { username: "monte", label: "Monte" },
