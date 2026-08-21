@@ -88,13 +88,6 @@ function appPath(pathname: string) {
   return "/";
 }
 function appSlug() { const path = appPath(window.location.pathname); return path === "/friends" ? "friends" : path === "/caleb-family" ? "other-family" : "shaw-family"; }
-function workerScope() { const current = appPath(window.location.pathname); return current === "/friends" ? "/friends/" : current === "/caleb-family" ? "/caleb-family/" : "/"; }
-function forceFullResponsiveText(root: ParentNode = document) {
-  root.querySelectorAll<HTMLElement>(".responsive-text[aria-label]").forEach((host) => {
-    const full = host.getAttribute("aria-label"); const value = host.querySelector<HTMLElement>(".responsive-text-value");
-    if (full && value && value.textContent !== full) value.textContent = full;
-  });
-}
 
 export default function AppExperienceEnhancements() {
   useEffect(() => {
@@ -110,16 +103,14 @@ export default function AppExperienceEnhancements() {
       return originalFetch(input, { ...init, headers });
     }) as typeof window.fetch;
 
-    if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker.register("/sw.js", { scope: workerScope() }).catch(() => undefined);
-    }
-
     function scheduleRestore() {
       if (restored) return;
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
         if (!active || restored || !document.querySelector(".app-shell:not(.loading-shell)")) return;
-        restored = true; restorePreferences(); forceFullResponsiveText(); restoreObserver.disconnect();
+        restored = true;
+        restorePreferences();
+        restoreObserver.disconnect();
       });
     }
     function receivePush(event: MessageEvent<{ type?: string; url?: string }>) {
@@ -141,7 +132,7 @@ export default function AppExperienceEnhancements() {
       } catch {}
     }
 
-    const restoreObserver = new MutationObserver((mutations) => { scheduleRestore(); for (const mutation of mutations) mutation.addedNodes.forEach((node) => { if (node instanceof Element) forceFullResponsiveText(node); }); });
+    const restoreObserver = new MutationObserver(() => scheduleRestore());
     restoreObserver.observe(document.body, { subtree: true, childList: true });
     document.addEventListener("click", rememberClick, true);
     document.addEventListener("pointerdown", closeConfirmationOnBackdrop, true);
