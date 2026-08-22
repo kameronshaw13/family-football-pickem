@@ -53,6 +53,23 @@
   white-space: nowrap;
   text-overflow: clip !important;
 }
+.side-bet-offer-copy > strong[data-side-bet-runtime-text],
+.side-bet-offer-copy > p[data-side-bet-runtime-text] {
+  font-size: 0;
+}
+.side-bet-offer-copy > strong[data-side-bet-runtime-text]::after,
+.side-bet-offer-copy > p[data-side-bet-runtime-text]::after {
+  content: attr(data-side-bet-runtime-text);
+  font-size: initial;
+}
+.side-bet-offer-copy > strong[data-side-bet-runtime-text]::after {
+  font: inherit;
+}
+.side-bet-offer-copy > p[data-side-bet-runtime-text]::after {
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
 
 .confirmation-matchup > div .side-bet-review-logo {
   width: 30px;
