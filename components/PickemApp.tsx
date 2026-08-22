@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, LoaderCircle, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
-import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
+import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
@@ -17,6 +17,7 @@ import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoi
 import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
 import { appLoginPath } from "@/lib/appIdentity";
 import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetPerspective, sideBetsForView } from "@/lib/sideBetPresentation";
+import { orderCardPicks } from "@/lib/cardOrdering";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -84,13 +85,6 @@ type AppData = {
   sideBetSettings?: { enabled: boolean; maxAmount: number | null; maxPerWeek: number | null; manualAmount: boolean };
   groupMoney?: { weeklyAmount: number; seasonAmount: number; weeklySubmitted: boolean; seasonSubmitted: boolean; canEdit: boolean; managerName: string | null };
 };
-type BankWeekData = {
-  week: number;
-  games: Game[];
-  picks: Pick[];
-  weeklyStandingsByWeek?: Record<string, Standing[]>;
-};
-
 type AppDataCacheEntry = {
   cachedAt: number;
   payload: AppData;
@@ -1019,10 +1013,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [picksView, setPicksView] = useState<PicksView>("board");
   const [cardView, setCardView] = useState<CardView>("mine");
   const [standingsView, setStandingsView] = useState<StandingsView>("standings");
-  const [standingsWeek, setStandingsWeek] = useState<number | null>(null);
-  const [bankWeek, setBankWeek] = useState<number | null>(null);
-  const [bankWeekData, setBankWeekData] = useState<BankWeekData | null>(null);
-  const [bankWeekLoading, setBankWeekLoading] = useState(false);
   const [betView, setBetView] = useState<BetView>("received");
   const [statusFilter, setStatusFilter] = useState<GameStatusFilter>("OPEN");
   const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>("CFB");
@@ -1316,12 +1306,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     if (destination && notificationCounts[destination] > 0) void markNotificationsSeen(destination);
   }, [betView, cardView, data, markNotificationsSeen, notificationCounts.league_cards, notificationCounts.my_card, notificationCounts.side_bet_ledger, notificationCounts.side_bets_sent, picksView, standingsView, tab, testWeekActive]);
   useEffect(() => {
-    if (week == null) return;
-    setStandingsWeek(week);
-    setBankWeek(week);
-    setBankWeekData(null);
-  }, [week]);
-  useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
@@ -1403,44 +1387,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
   function notify(message: string, tone: NonNullable<Toast>["tone"] = "info") {
     setToast({ message, tone });
-  }
-
-  async function loadBankWeek(nextWeek: number) {
-    setBankWeek(nextWeek);
-    if (nextWeek === data?.week) {
-      setBankWeekData(null);
-      return;
-    }
-
-    const token = window.localStorage.getItem("pickem_session_token");
-    if (!token) {
-      window.location.href = loginPath;
-      return;
-    }
-
-    setBankWeekLoading(true);
-    try {
-      const response = await fetch(`/api/bank?week=${nextWeek}`, {
-        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
-        cache: "no-store"
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        if (response.status === 401) {
-          window.localStorage.removeItem("pickem_session_token");
-          window.localStorage.removeItem("pickem_profile");
-          window.location.replace(loginPath);
-          return;
-        }
-        notify(payload.error || "Could not load those weekly results.", "error");
-        return;
-      }
-      setBankWeekData(payload);
-    } catch {
-      notify("Could not load those weekly results.", "error");
-    } finally {
-      setBankWeekLoading(false);
-    }
   }
 
   async function savePicks(card: Pick[], autosave = false) {
@@ -1564,31 +1510,27 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     const game = viewedGames.find((item) => item.id === pick.game_id) || pick.game;
     return pick.status === "locked" || Boolean(game && isClosed(game));
   });
-  const myRegular = cardPicks.filter((p) => p.pick_type === "regular").sort((a, b) => Number(b.confidence_points || 0) - Number(a.confidence_points || 0));
+  const myRegular = orderCardPicks(cardPicks.filter((p) => p.pick_type === "regular"), viewedGames, pointsMode);
   const myUnderdog = cardPicks.find((p) => p.pick_type === "underdog");
   const regularCounts = countRegularByLeague(cardPicks, viewedGames);
   const seasonStandings = standingsActive ? (previewActive ? testWeek!.standings : completeSeasonStandings(profiles, standings)) : [];
-  const selectedStandingsWeek = standingsWeek ?? data.week;
   const weeklyStandings = !standingsActive
     ? []
     : previewActive
     ? testWeek!.standings
-    : data.weeklyStandingsByWeek?.[String(selectedStandingsWeek)] || (selectedStandingsWeek === data.week ? computeWeeklyStandings(profiles, picks) : computeWeeklyStandings(profiles, []));
-  const selectedBankWeek = bankWeek ?? data.week;
-  const selectedBankData = !bankActive ? null : selectedBankWeek === data.week ? data : bankWeekData?.week === selectedBankWeek ? bankWeekData : null;
-  const bankResultWeek = previewActive ? 3 : selectedBankWeek;
-  const bankResultGames = previewActive ? testWeek!.games : selectedBankData?.games || [];
-  const bankResultPicks = previewActive ? testWeek!.picks : selectedBankData?.picks || [];
+    : data.weeklyStandingsByWeek?.[String(data.week)] || computeWeeklyStandings(profiles, picks);
+  const bankResultWeek = previewActive ? 3 : data.week;
+  const bankResultGames = previewActive ? testWeek!.games : games;
+  const bankResultPicks = previewActive ? testWeek!.picks : picks;
   const bankWeekStandings = !bankActive
     ? []
     : previewActive
     ? testWeek!.standings
-    : selectedBankData?.weeklyStandingsByWeek?.[String(bankResultWeek)] || computeWeeklyStandings(profiles, bankResultPicks);
+    : data.weeklyStandingsByWeek?.[String(bankResultWeek)] || computeWeeklyStandings(profiles, bankResultPicks);
   const bankWeekAmounts = bankActive ? Object.fromEntries(profiles.map((profile) => {
     const entries = viewedBankEntries.filter((entry) => entry.week === bankResultWeek && entry.user_id === profile.id);
     return [profile.id, entries.length ? entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : null];
   })) : {};
-  const standingsWeeks = tab === "standings" ? availableWeeks.filter((availableWeek) => availableWeek <= data.week).sort((a, b) => b - a) : [];
   const weekIsOpen = !previewActive && (!data.weekOpenTime || new Date(data.weekOpenTime) <= new Date());
   const leagueCardsHidden = tab === "card" && cardView === "group" && viewedGames.some((game) => !isClosed(game));
   const incomingOffers = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
@@ -1858,9 +1800,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         </>}
         {cardView === "group" && <div className="group-list">
           {leagueCardProfiles.map((profile) => {
-            const playerPicks = viewedPicks
-              .filter((pick) => pick.user_id === profile.id)
-              .sort((a, b) => Number(a.pick_type === "underdog") - Number(b.pick_type === "underdog") || Number(b.confidence_points || 0) - Number(a.confidence_points || 0));
+            const playerPicks = orderCardPicks(viewedPicks.filter((pick) => pick.user_id === profile.id), viewedGames, pointsMode);
             return <div key={profile.id} className="group-card">
               <h3>{leagueCardsHidden && <EyeOff size={14} />} {profile.display_name}</h3>
               {playerPicks.length === 0 && <p className="muted group-empty-picks">No visible picks yet.</p>}
@@ -1876,7 +1816,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           <div className="scoreboard-heading"><h2>Season Standings</h2></div>
           <Leaderboard rows={seasonStandings} pointsMode={pointsMode} />
           <div className="subsection weekly-standings">
-            <div className="standings-heading-row"><h2>Weekly Standings</h2>{previewActive ? <span className="test-standings-label">Test Week</span> : <MenuSelect ariaLabel="Select standings week" className="standings-menu-select" value={String(selectedStandingsWeek)} sections={[{ options: standingsWeeks.map((standingWeek) => ({ value: String(standingWeek), label: standingWeek === 0 ? "Week 0" : `Week ${standingWeek}` })) }]} onChange={(value) => setStandingsWeek(Number(value))} />}</div>
+            <div className="standings-heading-row"><h2>Weekly Standings</h2>{previewActive ? <span className="test-standings-label">Test Week</span> : null}</div>
             <Leaderboard rows={weeklyStandings} pointsMode={pointsMode} />
           </div>
         </>}
@@ -1910,7 +1850,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           <div className="subsection bank-section bank-week-section">
             <div className="standings-heading-row">
               <h2>{previewActive ? "Test Weekly Results" : "Weekly Results"}</h2>
-              {previewActive ? <span className="test-standings-label">Week 3</span> : <MenuSelect ariaLabel="Select Bank results week" className="standings-menu-select" value={String(selectedBankWeek)} disabled={bankWeekLoading} loading={bankWeekLoading} sections={[{ options: standingsWeeks.map((standingWeek) => ({ value: String(standingWeek), label: standingWeek === 0 ? "Week 0" : `Week ${standingWeek}` })) }]} onChange={(value) => void loadBankWeek(Number(value))} />}
+              {previewActive ? <span className="test-standings-label">Week 3</span> : null}
             </div>
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} pointsMode={pointsMode} />
           </div>
@@ -2322,7 +2262,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
         <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
       </section>}
 
-    {view === "received" && <SideBetList bets={received} mode="received" currentUser={currentUser} empty="No offers sent to you yet." saving={saving} savingBetId={savingBetId} canAccept={weekIsOpen && !limitReached} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
+    {view === "received" && <SideBetList bets={received} mode="received" currentUser={currentUser} empty="No offers sent to you yet." saving={saving} savingBetId={savingBetId} canAccept={(bet) => weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, MAX_SIDE_BETS_PER_WEEK, bet.id)} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
     {view === "sent" && <SideBetList bets={sent} mode="sent" currentUser={currentUser} empty="You have not sent any offers yet." saving={saving} savingBetId={savingBetId} canAccept={!limitReached} acceptDisabledText="Limit reached" requestAccept={setConfirmingBetId} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop">
@@ -2360,9 +2300,9 @@ function SideBetGameCard({ game, selectedTeam, disabled, onSelect }: { game: Gam
   </article>;
 }
 
-function SideBetList({ bets, mode, currentUser, empty, saving, savingBetId, canAccept, acceptDisabledText, requestAccept, respond }: { bets: SideBet[]; mode: "received" | "sent"; currentUser: Profile; empty: string; saving: boolean; savingBetId: string | null; canAccept: boolean; acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
+function SideBetList({ bets, mode, currentUser, empty, saving, savingBetId, canAccept, acceptDisabledText, requestAccept, respond }: { bets: SideBet[]; mode: "received" | "sent"; currentUser: Profile; empty: string; saving: boolean; savingBetId: string | null; canAccept: boolean | ((bet: SideBet) => boolean); acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
   const sorted = [...bets].sort((a, b) => Number(b.status === "open") - Number(a.status === "open") || new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  return <div className="side-bet-list">{!sorted.length && <div className="empty-state">{empty}</div>}{sorted.map((bet) => <SideBetCard key={bet.id} bet={bet} mode={mode} currentUser={currentUser} saving={saving} working={savingBetId === bet.id} canAccept={canAccept} acceptDisabledText={acceptDisabledText} requestAccept={requestAccept} respond={respond} />)}</div>;
+  return <div className="side-bet-list">{!sorted.length && <div className="empty-state">{empty}</div>}{sorted.map((bet) => <SideBetCard key={bet.id} bet={bet} mode={mode} currentUser={currentUser} saving={saving} working={savingBetId === bet.id} canAccept={typeof canAccept === "function" ? canAccept(bet) : canAccept} acceptDisabledText={acceptDisabledText} requestAccept={requestAccept} respond={respond} />)}</div>;
 }
 
 function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, acceptDisabledText, requestAccept, respond }: { bet: SideBet; mode: "received" | "sent"; currentUser: Profile; saving: boolean; working: boolean; canAccept: boolean; acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {

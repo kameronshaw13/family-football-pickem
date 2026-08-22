@@ -13,6 +13,7 @@ type SideBetLimitTarget = {
 
 type SideBetForLimit = AcceptedSideBet & {
   id?: string;
+  week?: number;
   status: string;
   targets?: SideBetLimitTarget[] | null;
 };
@@ -51,6 +52,12 @@ export function sideBetSlotCounts(rows: SideBetForLimit[], playerIds: string[] =
   }
 
   return counts;
+}
+
+export function hasAvailableSideBetSlot(rows: SideBetForLimit[], playerId: string, week: number, maxPerWeek: number, excludeSideBetId?: string) {
+  if (!Number.isFinite(maxPerWeek)) return true;
+  const weekRows = rows.filter((row) => Number(row.week) === Number(week));
+  return (sideBetSlotCounts(weekRows, [playerId], excludeSideBetId)[playerId] || 0) < maxPerWeek;
 }
 
 export async function getAcceptedSideBetCounts(supabase: any, week: number, playerIds: string[] = []) {
