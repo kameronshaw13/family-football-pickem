@@ -84,3 +84,11 @@
 .ledger-list .side-bet-ledger-row.runtime-accepted {
   border-left-color: var(--blue);
 }
+
+/* SideBetDisplayGuard owns the visible ledger. React still renders its native
+   settled rows underneath, so keep those hidden at all times. This prevents
+   duplicate rows and the brief native-row flash after side-bet updates/clear. */
+.ledger-list > .side-bet-ledger-row:not(.runtime-full-ledger),
+.ledger-list > p.muted:not(.runtime-full-ledger) {
+  display: none !important;
+}
