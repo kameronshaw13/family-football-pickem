@@ -37,6 +37,16 @@ async function allGroupBets(supabase: any, groupId: string, seasonYear: number) 
   return data || [];
 }
 
+async function dismissedSideBetIds(supabase: any, groupId: string, profileId: string) {
+  const { data, error } = await supabase
+    .from("side_bet_dismissals")
+    .select("side_bet_id")
+    .eq("group_id", groupId)
+    .eq("user_id", profileId);
+  if (error) throw new Error(error.message);
+  return new Set((data || []).map((row: any) => row.side_bet_id));
+}
+
 async function snapshot(supabase: any, context: any, profileId: string, week: number) {
   let rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
   const now = new Date();
@@ -55,8 +65,9 @@ async function snapshot(supabase: any, context: any, profileId: string, week: nu
   }
   const settings = getGroupSideBetSettings(context);
   const rawCounts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === week), context.members.map((member: any) => member.id));
+  const dismissed = await dismissedSideBetIds(supabase, context.group.id, profileId);
   return {
-    sideBets: rows.filter((bet: any) => bet.creator_id === profileId || bet.accepted_by === profileId || bet.targets?.some((target: any) => target.recipient_id === profileId)),
+    sideBets: rows.filter((bet: any) => !dismissed.has(bet.id) && (bet.creator_id === profileId || bet.accepted_by === profileId || bet.targets?.some((target: any) => target.recipient_id === profileId))),
     sideBetSlotCounts: Number.isFinite(settings.maxPerWeek)
       ? rawCounts
       : Object.fromEntries(context.members.map((member: any) => [member.id, 0]))
@@ -156,15 +167,18 @@ export async function POST(req: NextRequest) {
     const target = sideBet.targets?.find((row: any) => row.recipient_id === auth.profile.id);
 
     if (body.action === "clear") {
-      if (sideBet.creator_id === auth.profile.id) {
-        if (!["declined", "cancelled"].includes(sideBet.status)) return NextResponse.json({ ok: false, error: "Only declined or cancelled offers can be cleared." }, { status: 409 });
-        const result = await supabase.from("side_bets").delete().eq("group_id", context.group.id).eq("id", sideBet.id).eq("creator_id", auth.profile.id);
-        if (result.error) throw new Error(result.error.message);
-      } else {
-        if (!target || (target.response !== "declined" && sideBet.status !== "cancelled")) return NextResponse.json({ ok: false, error: "Only declined or cancelled offers can be cleared." }, { status: 409 });
-        const result = await supabase.from("side_bet_targets").delete().eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id);
-        if (result.error) throw new Error(result.error.message);
-      }
+      const isCreator = sideBet.creator_id === auth.profile.id;
+      const canClear = isCreator
+        ? ["declined", "cancelled"].includes(sideBet.status)
+        : Boolean(target && (target.response === "declined" || sideBet.status === "cancelled"));
+      if (!canClear) return NextResponse.json({ ok: false, error: "Only declined or cancelled offers can be cleared." }, { status: 409 });
+      const { error: dismissError } = await supabase.from("side_bet_dismissals").upsert({
+        side_bet_id: sideBet.id,
+        user_id: auth.profile.id,
+        group_id: context.group.id,
+        created_at: nowIso
+      }, { onConflict: "side_bet_id,user_id,group_id" });
+      if (dismissError) throw new Error(dismissError.message);
       return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });
     }
 
