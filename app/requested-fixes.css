@@ -53,3 +53,17 @@
   white-space: nowrap;
   text-overflow: clip !important;
 }
+
+.confirmation-matchup > div .side-bet-review-logo {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  margin-left: auto;
+  object-fit: contain;
+}
+.confirmation-matchup > div .side-bet-review-logo + strong {
+  margin-left: 0;
+}
+.ledger-list .side-bet-ledger-row.runtime-accepted {
+  border-left-color: var(--blue);
+}
