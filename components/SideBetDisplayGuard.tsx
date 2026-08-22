@@ -106,7 +106,12 @@ function ledgerPresentation(bet: Bet, userId: string) {
   return { displayTeam, title, names: `${person(bettorForTeam(bet, away))} vs ${person(bettorForTeam(bet, home))}` };
 }
 function renderLedger(payload: AppData, ledgerBets: Bet[]) {
-  const ledger = document.querySelector<HTMLElement>(".ledger-list"); const userId = payload.currentUser?.id; if (!ledger || !userId) return; const rows = ledgerBets.filter((b) => b.status === "accepted" || b.status === "settled").sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); const sig = rows.map((b) => `${b.id}:${b.status}:${b.result || ""}:${b.winner_id || ""}`).join("|"); if (ledger.dataset.fullSideBetLedgerSignature === sig) return; ledger.dataset.fullSideBetLedgerSignature = sig;
+  const ledger = document.querySelector<HTMLElement>(".ledger-list"); const userId = payload.currentUser?.id; if (!ledger || !userId) return;
+  const rows = ledgerBets.filter((b) => b.status === "accepted" || b.status === "settled").sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const sig = rows.map((b) => `${b.id}:${b.status}:${b.result || ""}:${b.winner_id || ""}`).join("|");
+  const expectedRuntimeRows = rows.length || 1;
+  if (ledger.dataset.fullSideBetLedgerSignature === sig && ledger.querySelectorAll(".runtime-full-ledger").length === expectedRuntimeRows) return;
+  ledger.dataset.fullSideBetLedgerSignature = sig;
   Array.from(ledger.children).forEach((node) => { if (node instanceof HTMLElement) node.hidden = true; }); ledger.querySelectorAll(".runtime-full-ledger").forEach((node) => node.remove());
   rows.forEach((bet) => { const x = ledgerPresentation(bet, userId); const row = document.createElement("div"); row.className = "ledger-row side-bet-ledger-row runtime-full-ledger"; row.dataset.sideBetId = bet.id; row.hidden = false; const logo = logoForTeam(bet.game, x.displayTeam);
     if (logo) { const image = document.createElement("img"); image.src = logo; image.alt = ""; image.className = "team-logo"; image.width = 34; image.height = 34; image.loading = "lazy"; row.append(image); } else { const fallback = document.createElement("div"); fallback.className = "team-logo fallback"; fallback.textContent = fallbackDisplayName(x.displayTeam, bet.game?.league).slice(0, 1); row.append(fallback); }
@@ -131,8 +136,9 @@ export default function SideBetDisplayGuard() {
     }
     function captureReview(event: MouseEvent) { const target = event.target; if (!(target instanceof Element)) return; const button = target.closest("button"); if (!button || !/review\s*&?\s*accept/i.test(button.textContent || "")) return; const card = button.closest<HTMLElement>(".side-bet-card.mode-received"); if (card?.dataset.sideBetId) { reviewBetId = card.dataset.sideBetId; window.setTimeout(apply, 0); } }
     const observer = new MutationObserver(() => window.requestAnimationFrame(() => { const mode = activeMode(); if (payload && mode && mode !== previousMode) { forceModeRefresh = true; hideCurrentList(); void refresh(true); return; } apply(); }));
-    observer.observe(document.body, { subtree: true, childList: true, characterData: true }); document.addEventListener("click", captureReview, true); window.addEventListener("focus", refresh); document.addEventListener("visibilitychange", refresh); void refresh(); const timer = window.setInterval(() => void refresh(), 2500);
-    return () => { if (payload?.currentUser?.id && previousMode && acceptedShown.length) addSeen(payload.currentUser.id, acceptedShown); stopped = true; observer.disconnect(); document.removeEventListener("click", captureReview, true); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); window.clearInterval(timer); };
+    const refreshOnResume = () => { void refresh(); };
+    observer.observe(document.body, { subtree: true, childList: true, characterData: true }); document.addEventListener("click", captureReview, true); window.addEventListener("focus", refreshOnResume); document.addEventListener("visibilitychange", refreshOnResume); void refresh(); const timer = window.setInterval(() => void refresh(), 2500);
+    return () => { if (payload?.currentUser?.id && previousMode && acceptedShown.length) addSeen(payload.currentUser.id, acceptedShown); stopped = true; observer.disconnect(); document.removeEventListener("click", captureReview, true); window.removeEventListener("focus", refreshOnResume); document.removeEventListener("visibilitychange", refreshOnResume); window.clearInterval(timer); };
   }, []);
   return null;
 }
