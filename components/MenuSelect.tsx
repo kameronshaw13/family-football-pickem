@@ -58,6 +58,10 @@ export default function MenuSelect({
   }, [open]);
 
   useEffect(() => {
+    setOpen(false);
+  }, [value]);
+
+  useEffect(() => {
     if (disabled) setOpen(false);
   }, [disabled]);
 
