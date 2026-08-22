@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import type { AppSlug } from "@/lib/rulePresentation";
 
 const CACHE_PREFIX = "pickem_app_data_v1";
+const LOCAL_ACTION_GRACE_MS = 6000;
 
 type Target = {
   recipient_id?: string;
@@ -85,12 +86,24 @@ function reloadDestination() {
   return url.toString();
 }
 
+function isLocalSideBetAction(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false;
+  const button = target.closest("button");
+  if (!button?.closest(".side-bet-center")) return false;
+  return /send offer|review\s*&?\s*accept|accept bet|decline|cancel offer|clear/i.test(button.textContent || "");
+}
+
 export default function SideBetAutoSync() {
   useEffect(() => {
     const appSlug = appSlugForPath();
     let baseline = cachedSideBetSignature(appSlug);
     let stopped = false;
     let checking = false;
+    let localActionUntil = 0;
+
+    function markLocalAction(event: Event) {
+      if (isLocalSideBetAction(event.target)) localActionUntil = Date.now() + LOCAL_ACTION_GRACE_MS;
+    }
 
     async function check() {
       if (stopped || checking || document.visibilityState !== "visible") return;
@@ -111,6 +124,12 @@ export default function SideBetAutoSync() {
           return;
         }
         if (next !== baseline) {
+          if (Date.now() < localActionUntil) {
+            // Local side-bet actions already update React state immediately. Treat the
+            // authoritative response as the new baseline instead of reloading the app.
+            baseline = next;
+            return;
+          }
           clearAppCache(appSlug);
           window.location.replace(reloadDestination());
         }
@@ -121,6 +140,7 @@ export default function SideBetAutoSync() {
       }
     }
 
+    document.addEventListener("click", markLocalAction, true);
     void check();
     const timer = window.setInterval(() => void check(), 2500);
     const foregroundCheck = () => void check();
@@ -128,6 +148,7 @@ export default function SideBetAutoSync() {
     document.addEventListener("visibilitychange", foregroundCheck);
     return () => {
       stopped = true;
+      document.removeEventListener("click", markLocalAction, true);
       window.clearInterval(timer);
       window.removeEventListener("focus", foregroundCheck);
       document.removeEventListener("visibilitychange", foregroundCheck);
