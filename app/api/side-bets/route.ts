@@ -16,6 +16,9 @@ const bodySchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("clear"), sideBetId: z.string().uuid(), viewWeek })
 ]);
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function notificationSpread(value: number) {
   if (value === 0) return "Pick'em";
   return value > 0 ? `+${value}` : String(value);
@@ -72,6 +75,28 @@ async function snapshot(supabase: any, context: any, profileId: string, week: nu
       ? rawCounts
       : Object.fromEntries(context.members.map((member: any) => [member.id, 0]))
   };
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const auth = await getProfileFromRequest(req);
+    if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
+
+    const parsedWeek = z.coerce.number().int().nonnegative().safeParse(req.nextUrl.searchParams.get("week"));
+    if (!parsedWeek.success) return NextResponse.json({ ok: false, error: "A valid week is required." }, { status: 400 });
+
+    const supabase = getSupabaseAdmin();
+    const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
+    const settings = getGroupSideBetSettings(context);
+    if (!settings.enabled) return NextResponse.json({ ok: true, sideBets: [], sideBetSlotCounts: {} }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+
+    return NextResponse.json(
+      { ok: true, ...(await snapshot(supabase, context, auth.profile.id, parsedWeek.data)) },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {

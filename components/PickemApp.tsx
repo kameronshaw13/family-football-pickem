@@ -16,6 +16,7 @@ import GroupMoneyControls from "@/components/GroupMoneyControls";
 import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoints";
 import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
 import { appLoginPath } from "@/lib/appIdentity";
+import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetPerspective, sideBetsForView } from "@/lib/sideBetPresentation";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -93,6 +94,10 @@ type BankWeekData = {
 type AppDataCacheEntry = {
   cachedAt: number;
   payload: AppData;
+};
+type SideBetSnapshot = {
+  sideBets: SideBet[];
+  sideBetSlotCounts?: Record<string, number>;
 };
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
@@ -709,6 +714,45 @@ function writeCachedAppData(appSlug: AppSlug, week: number | null, payload: AppD
   }, 0);
 }
 
+function sideBetSyncSignature(bets: SideBet[] = []) {
+  return bets.map((bet) => ({
+    id: bet.id,
+    status: bet.status,
+    acceptedBy: bet.accepted_by,
+    winnerId: bet.winner_id,
+    result: bet.result,
+    updatedAt: bet.updated_at,
+    targets: (bet.targets || []).map((target) => `${target.recipient_id}:${target.response}:${target.responded_at || ""}`).sort()
+  })).sort((a, b) => a.id.localeCompare(b.id)).map((bet) => JSON.stringify(bet)).join("|");
+}
+
+function sideBetLedgerSignature(bets: SideBet[] = []) {
+  return bets.map((bet) => `${bet.id}:${bet.status}:${bet.result}:${bet.winner_id || ""}:${bet.updated_at}`).sort().join("|");
+}
+
+function acceptedSideBetSeenKey(appSlug: AppSlug, userId: string) {
+  return `pickem_seen_accepted_side_bets:${appSlug}:${userId}`;
+}
+
+function readAcceptedSideBetIds(storageKey: string) {
+  try {
+    return new Set((JSON.parse(window.localStorage.getItem(storageKey) || "[]") as string[]).filter(Boolean));
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function storeAcceptedSideBetIds(storageKey: string, ids: string[]) {
+  if (!ids.length) return;
+  const next = readAcceptedSideBetIds(storageKey);
+  ids.forEach((id) => next.add(id));
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(Array.from(next)));
+  } catch {
+    // Accepted cards still transition correctly for the active session if storage is unavailable.
+  }
+}
+
 function logoForTeam(game: Game, team: string) {
   return team === game.home_team ? game.home_logo_url : game.away_logo_url;
 }
@@ -993,6 +1037,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [savingPicks, setSavingPicks] = useState(false);
   const [savingBet, setSavingBet] = useState(false);
   const [savingBetId, setSavingBetId] = useState<string | null>(null);
+  const [sideBetLedger, setSideBetLedger] = useState<SideBet[]>([]);
+  const [sideBetLedgerReady, setSideBetLedgerReady] = useState(false);
   const [stagedPicks, setStagedPicks] = useState<Pick[] | null>(null);
   const [clock, setClock] = useState(() => Date.now());
   const [betGameId, setBetGameId] = useState("");
@@ -1006,6 +1052,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [notificationCounts, setNotificationCounts] = useState<NotificationCounts>(EMPTY_NOTIFICATION_COUNTS);
   const autosaveBlockedSignatureRef = useRef<string | null>(null);
   const dataRef = useRef<AppData | null>(null);
+  const sideBetRequestSequenceRef = useRef(0);
+  const sideBetAppliedRequestRef = useRef(0);
+  const sideBetRefreshInFlightRef = useRef(false);
+  const sideBetMutationInFlightRef = useRef(false);
+  const sideBetLedgerRefreshInFlightRef = useRef(false);
   const hasActiveGames = Boolean(data?.games.some((game) => {
     const start = new Date(game.commence_time).getTime();
     return game.final_home_score == null &&
@@ -1038,6 +1089,72 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       // Preserve the last known counts through brief network interruptions.
     }
   }, [appSlug, updateNotificationCounts]);
+
+  const applySideBetSnapshot = useCallback((payload: SideBetSnapshot, requestId: number) => {
+    if (requestId < sideBetRequestSequenceRef.current || requestId < sideBetAppliedRequestRef.current) return;
+    sideBetAppliedRequestRef.current = requestId;
+    setData((current) => {
+      if (!current) return current;
+      const nextSideBets = payload.sideBets.map((bet) => ({
+        ...bet,
+        game: current.games.find((game) => game.id === bet.game_id) || bet.game
+      }));
+      const nextSlotCounts = payload.sideBetSlotCounts || current.sideBetSlotCounts;
+      if (sideBetSyncSignature(current.sideBets) === sideBetSyncSignature(nextSideBets) &&
+          JSON.stringify(current.sideBetSlotCounts) === JSON.stringify(nextSlotCounts)) return current;
+      const nextData = { ...current, sideBets: nextSideBets, sideBetSlotCounts: nextSlotCounts };
+      dataRef.current = nextData;
+      writeCachedAppData(appSlug, nextData.week, nextData);
+      return nextData;
+    });
+  }, [appSlug]);
+
+  const refreshSideBets = useCallback(async () => {
+    if (sideBetRefreshInFlightRef.current || sideBetMutationInFlightRef.current || document.visibilityState === "hidden") return;
+    const current = dataRef.current;
+    const token = window.localStorage.getItem("pickem_session_token");
+    if (!current || !token) return;
+
+    const requestId = ++sideBetRequestSequenceRef.current;
+    sideBetRefreshInFlightRef.current = true;
+    try {
+      const response = await fetch(`/api/side-bets?week=${current.week}`, {
+        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
+        cache: "no-store"
+      });
+      if (!response.ok) return;
+      const payload = await response.json() as SideBetSnapshot;
+      const changed = sideBetSyncSignature(current.sideBets) !== sideBetSyncSignature(payload.sideBets || []);
+      applySideBetSnapshot({ ...payload, sideBets: payload.sideBets || [] }, requestId);
+      if (changed) void refreshNotificationCounts();
+    } catch {
+      // Keep the current offers visible and retry on the next foreground refresh.
+    } finally {
+      sideBetRefreshInFlightRef.current = false;
+    }
+  }, [appSlug, applySideBetSnapshot, refreshNotificationCounts]);
+
+  const refreshSideBetLedger = useCallback(async () => {
+    if (sideBetLedgerRefreshInFlightRef.current || document.visibilityState === "hidden") return;
+    const token = window.localStorage.getItem("pickem_session_token");
+    if (!token) return;
+    sideBetLedgerRefreshInFlightRef.current = true;
+    try {
+      const response = await fetch("/api/side-bet-ledger", {
+        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
+        cache: "no-store"
+      });
+      if (!response.ok) return;
+      const payload = await response.json() as { sideBetLedger?: SideBet[] };
+      const nextLedger = payload.sideBetLedger || [];
+      setSideBetLedger((current) => sideBetLedgerSignature(current) === sideBetLedgerSignature(nextLedger) ? current : nextLedger);
+      setSideBetLedgerReady(true);
+    } catch {
+      // Preserve the last authoritative ledger while the network recovers.
+    } finally {
+      sideBetLedgerRefreshInFlightRef.current = false;
+    }
+  }, [appSlug]);
 
   const markNotificationsSeen = useCallback(async (destination: NotificationDestination) => {
     const token = window.localStorage.getItem("pickem_session_token");
@@ -1136,6 +1253,36 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
   useEffect(() => { load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   useEffect(() => { dataRef.current = data; }, [data]);
+  useEffect(() => {
+    if (!data?.currentUser.id) return;
+    setSideBetLedger([]);
+    setSideBetLedgerReady(false);
+    void refreshSideBetLedger();
+  }, [data?.activeGroup?.id, data?.currentUser.id, refreshSideBetLedger]);
+  useEffect(() => {
+    if (!data || testWeekActive) return;
+    const offersVisible = tab === "picks" && picksView === "sideBets";
+    const ledgerVisible = tab === "standings" && standingsView === "bank";
+    if (!offersVisible && !ledgerVisible) return;
+
+    const refreshVisibleSideBets = () => {
+      if (document.visibilityState !== "visible") return;
+      if (offersVisible) void refreshSideBets();
+      if (ledgerVisible) void refreshSideBetLedger();
+    };
+
+    refreshVisibleSideBets();
+    const timer = window.setInterval(refreshVisibleSideBets, 2500);
+    window.addEventListener("focus", refreshVisibleSideBets);
+    window.addEventListener("online", refreshVisibleSideBets);
+    document.addEventListener("visibilitychange", refreshVisibleSideBets);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshVisibleSideBets);
+      window.removeEventListener("online", refreshVisibleSideBets);
+      document.removeEventListener("visibilitychange", refreshVisibleSideBets);
+    };
+  }, [data?.week, picksView, refreshSideBetLedger, refreshSideBets, standingsView, tab, testWeekActive]);
   useEffect(() => {
     void refreshNotificationCounts();
     openNotificationDestination(window.location.href);
@@ -1356,6 +1503,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       window.location.href = loginPath;
       return false;
     }
+    sideBetMutationInFlightRef.current = true;
+    const requestId = ++sideBetRequestSequenceRef.current;
     setSavingBet(true);
     setSavingBetId(body.sideBetId || null);
     try {
@@ -1366,28 +1515,18 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         return false;
       }
       if (Array.isArray(payload.sideBets)) {
-        setData((current) => {
-          if (!current) return current;
-          const nextData = {
-            ...current,
-            sideBets: payload.sideBets.map((bet: SideBet) => ({
-              ...bet,
-              game: current.games.find((game) => game.id === bet.game_id) || bet.game
-            })),
-            sideBetSlotCounts: payload.sideBetSlotCounts || current.sideBetSlotCounts
-          };
-          dataRef.current = nextData;
-          return nextData;
-        });
+        applySideBetSnapshot({ sideBets: payload.sideBets, sideBetSlotCounts: payload.sideBetSlotCounts }, requestId);
       } else {
         await load(week);
       }
+      if (body.action === "accept") void refreshSideBetLedger();
       void refreshNotificationCounts();
       return true;
     } catch {
       notify("Side bet action failed.", "error");
       return false;
     } finally {
+      sideBetMutationInFlightRef.current = false;
       setSavingBet(false);
       setSavingBetId(null);
     }
@@ -1406,6 +1545,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const testWeek = testWeekActive && profiles.length === 3 ? buildTestWeek(profiles, currentUser.id) : null;
   const previewActive = Boolean(testWeekActive && testWeek);
   const sideBets = previewActive ? testWeek!.sideBets : liveSideBets;
+  const viewedSideBetLedger = (previewActive ? testWeek!.sideBets : sideBetLedger)
+    .filter((bet) => bet.status === "accepted" || bet.status === "settled")
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   const viewedSideBetBankTotals = previewActive ? testWeek!.sideBetBankTotals : data.sideBetBankTotals;
   const viewedGames = previewActive ? testWeek!.games : games;
   const viewedPicks = previewActive ? testWeek!.picks : picks;
@@ -1660,6 +1802,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           </div>
         </>}
         {picksView === "sideBets" && <SideBetCenter
+          appSlug={appSlug}
           view={betView}
           setView={setBetView}
           currentUser={currentUser}
@@ -1771,7 +1914,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             </div>
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} pointsMode={pointsMode} />
           </div>
-          <div className="subsection bank-section bank-week-section"><div className="standings-heading-row"><h2 className="heading-with-badge">Side Bet Ledger <NotificationBadge count={bankNotificationCount} /></h2></div><div className="ledger-list">{sideBets.filter((bet) => bet.status === "settled").length === 0 && <p className="muted">No settled side bets yet.</p>}{sideBets.filter((bet) => bet.status === "settled").map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
+          <div className="subsection bank-section bank-week-section"><div className="standings-heading-row"><h2 className="heading-with-badge">Side Bet Ledger <NotificationBadge count={bankNotificationCount} /></h2></div><div className="ledger-list">{!previewActive && !sideBetLedgerReady && <p className="muted">Loading side bet ledger…</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.length === 0 && <p className="muted">No side bets in the ledger yet.</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
         </>}
       </section>}
 
@@ -1930,7 +2073,8 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, viewNotificationCounts, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, viewNotificationCounts, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+  appSlug: AppSlug;
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
@@ -1964,8 +2108,16 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const slipSwipeStartY = useRef<number | null>(null);
   const slipCloseTimer = useRef<number | null>(null);
   const slipClosingRef = useRef(false);
-  const received = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
-  const sent = sideBets.filter((bet) => bet.creator_id === currentUser.id);
+  const [seenAcceptedBetIds, setSeenAcceptedBetIds] = useState<Set<string> | null>(null);
+  const seenStorageKey = acceptedSideBetSeenKey(appSlug, currentUser.id);
+  const currentBetViewRef = useRef(view);
+  const visibleAcceptedByViewRef = useRef<Record<"received" | "sent", string[]>>({ received: [], sent: [] });
+  const received = sideBetsForView(sideBets, currentUser.id, "received", seenAcceptedBetIds);
+  const sent = sideBetsForView(sideBets, currentUser.id, "sent", seenAcceptedBetIds);
+  visibleAcceptedByViewRef.current = {
+    received: received.filter((bet) => bet.status === "accepted").map((bet) => bet.id),
+    sent: sent.filter((bet) => bet.status === "accepted").map((bet) => bet.id)
+  };
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
   const creatorSpread = selectedGame && selectedCreatorTeam ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
@@ -1983,6 +2135,33 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     return groups;
   }, []);
   const hasSlip = Boolean(selectedGame && selectedCreatorTeam);
+
+  const markAcceptedSeen = useCallback((ids: string[]) => {
+    if (!ids.length) return;
+    storeAcceptedSideBetIds(seenStorageKey, ids);
+    setSeenAcceptedBetIds((current) => {
+      const next = new Set(current || []);
+      ids.forEach((id) => next.add(id));
+      return next;
+    });
+  }, [seenStorageKey]);
+
+  useEffect(() => {
+    setSeenAcceptedBetIds(readAcceptedSideBetIds(seenStorageKey));
+  }, [seenStorageKey]);
+
+  useEffect(() => {
+    const previousView = currentBetViewRef.current;
+    if (previousView !== view) {
+      if (previousView === "received" || previousView === "sent") markAcceptedSeen(visibleAcceptedByViewRef.current[previousView]);
+      currentBetViewRef.current = view;
+    }
+  }, [markAcceptedSeen, view]);
+
+  useEffect(() => () => {
+    const activeView = currentBetViewRef.current;
+    if (activeView === "received" || activeView === "sent") storeAcceptedSideBetIds(seenStorageKey, visibleAcceptedByViewRef.current[activeView]);
+  }, [seenStorageKey]);
 
   const collapseSlip = useCallback(() => {
     if (!slipExpanded || slipClosingRef.current) return;
@@ -2151,8 +2330,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         <div className="confirmation-icon"><CircleDollarSign size={22} /></div>
         <div className="confirmation-heading"><span>Review side bet</span><h2 id="accept-bet-title">Accept <NumericText text={stakeMoney(Number(confirmingBet.amount))} /> bet?</h2></div>
         <div className="confirmation-matchup">
-          <div><span>You take</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.offered_team)} ${spreadText(Number(confirmingBet.offered_spread))}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.offered_team)} ${spreadText(Number(confirmingBet.offered_spread))}`} /> : <>{confirmingBet.offered_team} <NumericText text={spreadText(Number(confirmingBet.offered_spread))} /></>}</strong></div>
-          <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.creator_team)} ${spreadText(Number(confirmingBet.creator_spread))}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.creator_team)} ${spreadText(Number(confirmingBet.creator_spread))}`} /> : <>{confirmingBet.creator_team} <NumericText text={spreadText(Number(confirmingBet.creator_spread))} /></>}</strong></div>
+          <div><span>You take</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.offered_team)} ${spreadText(Number(confirmingBet.offered_spread))}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.offered_team)} ${spreadText(Number(confirmingBet.offered_spread))}`} /> : <>{confirmingBet.offered_team} <NumericText text={spreadText(Number(confirmingBet.offered_spread))} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.offered_team) : null} name={confirmingBet.offered_team} /></div>
+          <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.creator_team)} ${spreadText(Number(confirmingBet.creator_spread))}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.creator_team)} ${spreadText(Number(confirmingBet.creator_spread))}`} /> : <>{confirmingBet.creator_team} <NumericText text={spreadText(Number(confirmingBet.creator_spread))} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.creator_team) : null} name={confirmingBet.creator_team} /></div>
         </div>
         {confirmingBet.game && <p className="confirmation-kickoff"><NumericText text={dt(confirmingBet.game.commence_time)} /></p>}
         <div className="confirmation-actions"><button className="btn secondary" disabled={saving} onClick={() => setConfirmingBetId(null)}>Cancel</button><button className="btn accept" disabled={saving} onClick={acceptConfirmedBet}><Check size={16} /> {saving ? "Accepting…" : "Accept bet"}</button></div>
@@ -2191,31 +2370,23 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   const creatorName = bet.creator?.display_name || "A player";
   const target = bet.targets?.find((row) => row.recipient_id === currentUser.id);
   const targetNames = bet.targets?.map((row) => row.recipient?.display_name).filter(Boolean).join(" or ") || "player";
-  const offerOpen = bet.status === "open" && target?.response === "pending" && Boolean(game && new Date(game.commence_time) > new Date());
-  const creatorSideTeam = bet.creator_team;
-  const creatorSideSpread = Number(bet.creator_spread);
-  const creatorSideName = game ? displayTeamName(game, creatorSideTeam) : creatorSideTeam;
-  const offeredSideTeam = bet.offered_team;
-  const offeredSideSpread = Number(bet.offered_spread);
-  const offeredSideName = game ? displayTeamName(game, offeredSideTeam) : offeredSideTeam;
+  const offerOpen = bet.status === "open" && (mode === "sent" || target?.response === "pending") && Boolean(game && new Date(game.commence_time) > new Date());
+  const perspective = sideBetPerspective(bet, mode);
+  const perspectiveTeam = perspective.team;
+  const perspectiveSpread = perspective.spread;
+  const offeredSideName = game ? displayTeamName(game, bet.offered_team) : bet.offered_team;
   const awayName = game ? displayTeamName(game, game.away_team) : "";
   const homeName = game ? displayTeamName(game, game.home_team) : "";
   const matchupText = !game
-    ? `${creatorSideName} ${spreadText(creatorSideSpread)}`
-    : creatorSideTeam === game.away_team
-      ? `${awayName} ${spreadText(creatorSideSpread)} at ${homeName}`
-      : `${awayName} at ${homeName} ${spreadText(creatorSideSpread)}`;
+    ? `${perspectiveTeam} ${spreadText(perspectiveSpread)}`
+    : perspectiveTeam === game.away_team
+      ? `${awayName} ${spreadText(perspectiveSpread)} at ${homeName}`
+      : `${awayName} at ${homeName} ${spreadText(perspectiveSpread)}`;
+  const acceptedTarget = bet.targets?.find((row) => row.recipient_id === bet.accepted_by || row.response === "accepted");
   const declinedTarget = bet.targets?.find((row) => row.response === "declined");
-  const acceptedName = bet.accepted_by_profile?.display_name;
-  const responseName = acceptedName ||
-    declinedTarget?.recipient?.display_name ||
-    (declinedTarget?.recipient_id === currentUser.id ? currentUser.display_name : "") ||
-    (bet.status === "declined" ? (mode === "sent" ? targetNames : currentUser.display_name) : "") ||
-    (bet.status === "cancelled" ? creatorName : "") ||
-    (mode === "sent" ? targetNames : creatorName);
-  const responseAction = acceptedName
+  const responseAction = bet.status === "accepted" || acceptedTarget
     ? "Accepted"
-    : declinedTarget || bet.status === "declined"
+    : bet.status === "declined" || declinedTarget
       ? "Declined"
       : bet.status === "cancelled"
         ? "Cancelled"
@@ -2223,7 +2394,18 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
           ? "Expired"
           : "Offered";
   const responseTone = responseAction === "Accepted" ? "accepted" : ["Declined", "Cancelled", "Expired"].includes(responseAction) ? "declined" : "pending";
-  const actionFirst = responseAction === "Offered";
+  const responseActor = responseAction === "Accepted"
+    ? (bet.accepted_by || acceptedTarget?.recipient_id) === currentUser.id ? "You" : bet.accepted_by_profile?.display_name || acceptedTarget?.recipient?.display_name || targetNames
+    : responseAction === "Declined"
+      ? declinedTarget?.recipient_id === currentUser.id ? "You" : declinedTarget?.recipient?.display_name || targetNames
+      : responseAction === "Cancelled"
+        ? bet.creator_id === currentUser.id ? "You" : creatorName
+        : responseAction === "Expired"
+          ? "Offer"
+          : mode === "received" ? creatorName : "You";
+  const responseDetail = responseAction === "Offered" && mode === "sent"
+    ? `${targetNames} ${offeredSideName} ${spreadText(Number(bet.offered_spread))}`
+    : `${offeredSideName} ${spreadText(Number(bet.offered_spread))}`;
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
   const canClearOffer = mode === "received"
     ? target?.response === "declined" || bet.status === "cancelled"
@@ -2231,8 +2413,8 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
 
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""}`}>
     <div className="side-bet-offer-row">
-      <TeamLogo url={game ? logoForTeam(game, creatorSideTeam) : null} name={creatorSideTeam} />
-      <div className="side-bet-offer-copy"><strong><NumericText text={matchupText} /></strong><p>{actionFirst ? <><span className={`side-bet-response ${responseTone}`}>{responseAction}</span> {responseName}</> : <>{responseName} <span className={`side-bet-response ${responseTone}`}>{responseAction}</span></>} {offeredSideName} <NumericText text={spreadText(offeredSideSpread)} />{game && <> · <NumericText text={dt(game.commence_time)} /></>}</p></div>
+      <TeamLogo url={game ? logoForTeam(game, perspectiveTeam) : null} name={perspectiveTeam} />
+      <div className="side-bet-offer-copy"><strong><NumericText text={matchupText} /></strong><p>{responseActor} <span className={`side-bet-response ${responseTone}`}>{responseAction}</span> <NumericText text={responseDetail} />{game && <> · <NumericText text={dt(game.commence_time)} /></>}</p></div>
       <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
     </div>
     {mode === "received" && offerOpen && <div className="actions"><button className={`btn accept ${working ? "working" : ""}`} disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : <NumericText text={acceptDisabledText} />}</button><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
@@ -2243,19 +2425,25 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
 
 function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Profile }) {
   const game = bet.game;
-  const creatorName = bet.creator?.display_name || "Player";
-  const acceptorName = bet.accepted_by_profile?.display_name || "Opponent";
-  const favoriteTeam = Number(bet.creator_spread) < 0 ? bet.creator_team : Number(bet.offered_spread) < 0 ? bet.offered_team : bet.creator_team;
-  const favoriteSpread = favoriteTeam === bet.creator_team ? Number(bet.creator_spread) : Number(bet.offered_spread);
-  const favoriteName = game ? displayTeamName(game, favoriteTeam) : favoriteTeam;
-  const otherTeam = favoriteTeam === bet.creator_team ? bet.offered_team : bet.creator_team;
-  const otherName = game ? displayTeamName(game, otherTeam) : otherTeam;
-  const coveredTeam = bet.result === "creator_win" ? bet.creator_team : bet.result === "acceptor_win" ? bet.offered_team : null;
-  const winnerName = bet.result === "creator_win" ? creatorName : bet.result === "acceptor_win" ? acceptorName : null;
-  const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
-  return <div className="ledger-row side-bet-ledger-row">
-    {bet.result === "push" ? <span className="tie-icon" role="img" aria-label="Tie">👔</span> : <TeamLogo url={game && coveredTeam ? logoForTeam(game, coveredTeam) : null} name={coveredTeam || "Winner"} />}
-    <div><strong>{otherName} vs {favoriteName} <NumericText text={spreadText(favoriteSpread)} /></strong><p>{creatorName} vs {acceptorName} · {winnerName ? `${winnerName} Wins` : "Push"}</p></div>
+  const creator = sideBetBettorForTeam(bet, bet.creator_team);
+  const acceptor = sideBetBettorForTeam(bet, bet.offered_team);
+  const displayPerson = (person: { id: string; name: string }) => person.id === currentUser.id ? "You" : person.name;
+  const perspective = sideBetLedgerPerspective(bet, currentUser.id);
+  const displayTeam = perspective.team;
+  const displaySpread = perspective.spread;
+  const awayTeam = game?.away_team || bet.offered_team;
+  const homeTeam = game?.home_team || bet.creator_team;
+  const awayName = game ? displayTeamName(game, awayTeam) : awayTeam;
+  const homeName = game ? displayTeamName(game, homeTeam) : homeTeam;
+  const title = displayTeam === awayTeam
+    ? `${awayName} ${spreadText(displaySpread)} at ${homeName}`
+    : `${awayName} at ${homeName} ${spreadText(displaySpread)}`;
+  const winner = bet.winner_id === creator.id ? creator : bet.winner_id === acceptor.id ? acceptor : null;
+  const status = bet.status === "accepted" ? "Accepted" : bet.result === "push" ? "Push" : winner ? `${displayPerson(winner)} Won` : "Settled";
+  const amountDisplay = perspective.involvesUser ? sideBetAmountForUser(bet, currentUser.id) : { text: stakeMoney(Number(bet.amount)), tone: "money-neutral" };
+  return <div className={`ledger-row side-bet-ledger-row ${bet.status === "accepted" ? "accepted" : ""}`}>
+    <TeamLogo url={game ? logoForTeam(game, displayTeam) : null} name={displayTeam} />
+    <div><strong><NumericText text={title} /></strong><p>{displayPerson(sideBetBettorForTeam(bet, awayTeam))} vs {displayPerson(sideBetBettorForTeam(bet, homeTeam))} · {status}</p></div>
     <strong className={amountDisplay.tone}><NumericText text={amountDisplay.text} /></strong>
   </div>;
 }
@@ -2390,9 +2578,10 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
   </article>;
 }
 
-function TeamLogo({ url, name }: { url?: string | null; name: string }) {
-  if (url) return <img src={url} alt="" className="team-logo" width={34} height={34} loading="lazy" decoding="async" />;
-  return <div className="team-logo fallback">{name.slice(0, 1)}</div>;
+function TeamLogo({ url, name, className = "" }: { url?: string | null; name: string; className?: string }) {
+  const classes = `team-logo ${className}`.trim();
+  if (url) return <img src={url} alt="" className={classes} width={34} height={34} loading="lazy" decoding="async" />;
+  return <div className={`${classes} fallback`}>{name.slice(0, 1)}</div>;
 }
 
 function PossessionIcon({ game, team }: { game: Game; team: string }) {
