@@ -94,6 +94,7 @@ export default function SideBetAutoSync() {
 
     async function check() {
       if (stopped || checking || document.visibilityState !== "visible") return;
+      if (!document.querySelector(".side-bet-center")) return;
       const token = window.localStorage.getItem("pickem_session_token");
       if (!token) return;
       checking = true;
