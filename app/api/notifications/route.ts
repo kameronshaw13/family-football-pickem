@@ -51,8 +51,22 @@ export async function POST(req: NextRequest) {
     const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
 
     if (body.action === "subscribe") {
-      const { error } = await supabase.from("push_subscriptions").upsert({ user_id: auth.profile.id, group_id: context.group.id, endpoint: body.subscription.endpoint, p256dh: body.subscription.keys.p256dh, auth: body.subscription.keys.auth, user_agent: body.userAgent || null, updated_at: new Date().toISOString() }, { onConflict: "endpoint" });
+      const now = new Date().toISOString();
+      const userAgent = body.userAgent || null;
+      const { error } = await supabase.from("push_subscriptions").upsert({ user_id: auth.profile.id, group_id: context.group.id, endpoint: body.subscription.endpoint, p256dh: body.subscription.keys.p256dh, auth: body.subscription.keys.auth, user_agent: userAgent, updated_at: now }, { onConflict: "endpoint" });
       if (error) throw new Error(error.message);
+
+      // iOS can issue a fresh endpoint after a PWA reinstall while the old endpoint remains
+      // valid in our table. Keep only the endpoint the current installed app just confirmed.
+      if (userAgent) {
+        const { error: pruneError } = await supabase.from("push_subscriptions")
+          .delete()
+          .eq("user_id", auth.profile.id)
+          .eq("group_id", context.group.id)
+          .eq("user_agent", userAgent)
+          .neq("endpoint", body.subscription.endpoint);
+        if (pruneError) throw new Error(pruneError.message);
+      }
     }
     if (body.action === "unsubscribe") {
       const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", body.endpoint).eq("user_id", auth.profile.id).eq("group_id", context.group.id);
