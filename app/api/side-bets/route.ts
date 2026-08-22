@@ -166,19 +166,22 @@ export async function POST(req: NextRequest) {
         throw new Error(targetResult.error.message);
       }
 
-      void Promise.all(recipientIds.map((recipientId) => createNotificationSafely(supabase, {
-        groupId: context.group.id,
-        userId: recipientId,
-        type: "side_bet_offer",
-        destination: "side_bets_received",
-        entityId: sideBet.id,
-        dedupeKey: `side-bet-offer:${sideBet.id}`,
-        title: `Side bet from ${auth.profile.display_name}`,
-        body: `$${amount} · ${offeredTeam} ${notificationSpread(-creatorSpread)}`,
-        url: groupNotificationUrl(context.group.slug, "side_bets_received"),
-        actionRequired: true
-      })));
-      return NextResponse.json({ ok: true, sideBet, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? Number(game.week))) });
+      const [nextSnapshot] = await Promise.all([
+        snapshot(supabase, context, auth.profile.id, body.viewWeek ?? Number(game.week)),
+        Promise.all(recipientIds.map((recipientId) => createNotificationSafely(supabase, {
+          groupId: context.group.id,
+          userId: recipientId,
+          type: "side_bet_offer",
+          destination: "side_bets_received",
+          entityId: sideBet.id,
+          dedupeKey: `side-bet-offer:${sideBet.id}`,
+          title: `Side bet from ${auth.profile.display_name}`,
+          body: `$${amount} · ${offeredTeam} ${notificationSpread(-creatorSpread)}`,
+          url: groupNotificationUrl(context.group.slug, "side_bets_received"),
+          actionRequired: true
+        })))
+      ]);
+      return NextResponse.json({ ok: true, sideBet, ...nextSnapshot });
     }
 
     const { data: sideBet, error: sideBetError } = await supabase
@@ -233,18 +236,21 @@ export async function POST(req: NextRequest) {
       const { count } = await supabase.from("side_bet_targets").select("recipient_id", { count: "exact", head: true }).eq("side_bet_id", sideBet.id).eq("response", "pending");
       if (!count) await supabase.from("side_bets").update({ status: "declined", updated_at: nowIso }).eq("group_id", context.group.id).eq("id", sideBet.id).eq("status", "open");
       await resolveSideBetOfferNotifications(supabase, [sideBet.id], auth.profile.id, context.group.id);
-      void createNotificationSafely(supabase, {
-        groupId: context.group.id,
-        userId: sideBet.creator_id,
-        type: "side_bet_response",
-        destination: "side_bets_sent",
-        entityId: sideBet.id,
-        dedupeKey: `side-bet-declined:${sideBet.id}:${auth.profile.id}`,
-        title: `${auth.profile.display_name} declined your side bet`,
-        body: `${sideBet.offered_team} ${notificationSpread(Number(sideBet.offered_spread))}`,
-        url: groupNotificationUrl(context.group.slug, "side_bets_sent")
-      });
-      return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });
+      const [nextSnapshot] = await Promise.all([
+        snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
+        createNotificationSafely(supabase, {
+          groupId: context.group.id,
+          userId: sideBet.creator_id,
+          type: "side_bet_response",
+          destination: "side_bets_sent",
+          entityId: sideBet.id,
+          dedupeKey: `side-bet-declined:${sideBet.id}:${auth.profile.id}`,
+          title: `${auth.profile.display_name} declined your side bet`,
+          body: `${sideBet.offered_team} ${notificationSpread(Number(sideBet.offered_spread))}`,
+          url: groupNotificationUrl(context.group.slug, "side_bets_sent")
+        })
+      ]);
+      return NextResponse.json({ ok: true, ...nextSnapshot });
     }
 
     if (Number.isFinite(settings.maxPerWeek)) {
@@ -275,18 +281,21 @@ export async function POST(req: NextRequest) {
       supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).eq("side_bet_id", sideBet.id).neq("recipient_id", auth.profile.id).eq("response", "pending")
     ]);
     await resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id);
-    void createNotificationSafely(supabase, {
-      groupId: context.group.id,
-      userId: sideBet.creator_id,
-      type: "side_bet_response",
-      destination: "side_bets_sent",
-      entityId: sideBet.id,
-      dedupeKey: `side-bet-accepted:${sideBet.id}`,
-      title: `${auth.profile.display_name} accepted your side bet`,
-      body: `$${Number(sideBet.amount)} · ${sideBet.creator_team} ${notificationSpread(Number(sideBet.creator_spread))}`,
-      url: groupNotificationUrl(context.group.slug, "side_bets_sent")
-    });
-    return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });
+    const [nextSnapshot] = await Promise.all([
+      snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
+      createNotificationSafely(supabase, {
+        groupId: context.group.id,
+        userId: sideBet.creator_id,
+        type: "side_bet_response",
+        destination: "side_bets_sent",
+        entityId: sideBet.id,
+        dedupeKey: `side-bet-accepted:${sideBet.id}`,
+        title: `${auth.profile.display_name} accepted your side bet`,
+        body: `$${Number(sideBet.amount)} · ${sideBet.creator_team} ${notificationSpread(Number(sideBet.creator_spread))}`,
+        url: groupNotificationUrl(context.group.slug, "side_bets_sent")
+      })
+    ]);
+    return NextResponse.json({ ok: true, ...nextSnapshot });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
