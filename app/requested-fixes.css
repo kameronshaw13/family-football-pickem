@@ -53,22 +53,49 @@
   white-space: nowrap;
   text-overflow: clip !important;
 }
+
+/* Keep React's original side-bet text in the DOM, but visually replace it with
+   the corrected runtime perspective text without changing font metrics. */
 .side-bet-offer-copy > strong[data-side-bet-runtime-text],
 .side-bet-offer-copy > p[data-side-bet-runtime-text] {
-  font-size: 0;
+  color: transparent;
+}
+.side-bet-offer-copy > strong[data-side-bet-runtime-text] > *,
+.side-bet-offer-copy > p[data-side-bet-runtime-text] > * {
+  display: none !important;
 }
 .side-bet-offer-copy > strong[data-side-bet-runtime-text]::after,
 .side-bet-offer-copy > p[data-side-bet-runtime-text]::after {
   content: attr(data-side-bet-runtime-text);
-  font-size: initial;
+  font: inherit;
+  line-height: inherit;
 }
 .side-bet-offer-copy > strong[data-side-bet-runtime-text]::after {
-  font: inherit;
+  color: var(--ink);
 }
 .side-bet-offer-copy > p[data-side-bet-runtime-text]::after {
-  font-size: inherit;
-  line-height: inherit;
-  color: inherit;
+  color: var(--muted);
+}
+
+/* Accepted cards remain in React state for ledger/accounting, but the display
+   guard hides them after their one-look lifecycle. When every card in a view
+   is hidden, restore the same empty-state feedback React would normally show. */
+.side-bet-list:has(.side-bet-card.mode-sent):not(:has(.side-bet-card.mode-sent:not([hidden])))::after,
+.side-bet-list:has(.side-bet-card.mode-received):not(:has(.side-bet-card.mode-received:not([hidden])))::after {
+  display: block;
+  margin-bottom: 10px;
+  padding: 14px;
+  border-left: 3px solid var(--line-strong);
+  color: var(--muted);
+  background: var(--saved);
+  font-size: 13px;
+  font-weight: 700;
+}
+.side-bet-list:has(.side-bet-card.mode-sent):not(:has(.side-bet-card.mode-sent:not([hidden])))::after {
+  content: "You have not sent any offers yet.";
+}
+.side-bet-list:has(.side-bet-card.mode-received):not(:has(.side-bet-card.mode-received:not([hidden])))::after {
+  content: "No offers sent to you yet.";
 }
 
 .confirmation-matchup > div .side-bet-review-logo {
