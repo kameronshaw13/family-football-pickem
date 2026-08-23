@@ -2373,17 +2373,13 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   const displaySpread = perspective.spread;
   const awayTeam = game?.away_team || bet.offered_team;
   const homeTeam = game?.home_team || bet.creator_team;
-  const awayName = game ? displayTeamName(game, awayTeam) : awayTeam;
-  const homeName = game ? displayTeamName(game, homeTeam) : homeTeam;
-  const title = displayTeam === awayTeam
-    ? `${awayName} ${spreadText(displaySpread)} at ${homeName}`
-    : `${awayName} at ${homeName} ${spreadText(displaySpread)}`;
   const winner = bet.winner_id === creator.id ? creator : bet.winner_id === acceptor.id ? acceptor : null;
-  const status = bet.status === "accepted" ? "Accepted" : bet.result === "push" ? "Push" : winner ? `${displayPerson(winner)} Won` : "Settled";
+  const status = bet.status === "accepted" ? "" : bet.result === "push" ? "Push" : winner ? `${displayPerson(winner)} Won` : "Settled";
+  const bettors = `${displayPerson(sideBetBettorForTeam(bet, awayTeam))} vs ${displayPerson(sideBetBettorForTeam(bet, homeTeam))}`;
   const amountDisplay = perspective.involvesUser ? sideBetAmountForUser(bet, currentUser.id) : { text: stakeMoney(Number(bet.amount)), tone: "money-neutral" };
   return <div className={`ledger-row side-bet-ledger-row ${bet.status === "accepted" ? "accepted" : ""}`}>
     <TeamLogo url={game ? logoForTeam(game, displayTeam) : null} name={displayTeam} />
-    <div><strong><NumericText text={title} /></strong><p>{displayPerson(sideBetBettorForTeam(bet, awayTeam))} vs {displayPerson(sideBetBettorForTeam(bet, homeTeam))} · {status}</p></div>
+    <div className="side-bet-ledger-copy"><strong className="side-bet-ledger-title">{game ? <ResponsiveTeamName game={game} team={displayTeam} className="pick-title-team" /> : <span className="pick-title-team">{displayTeam}</span>}<span className="pick-title-market"><NumericText text={spreadText(displaySpread)} /></span></strong><p>{bettors}{status ? <> · {status}</> : null}</p></div>
     <strong className={amountDisplay.tone}><NumericText text={amountDisplay.text} /></strong>
   </div>;
 }
