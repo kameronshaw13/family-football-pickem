@@ -474,9 +474,11 @@ fieldset .field-label { padding: 0; }
 .side-bet-ledger-row .team-logo { width: 34px; height: 34px; }
 .tie-icon { display: grid; width: 30px; height: 30px; place-items: center; font-size: 22px; line-height: 1; }
 .side-bet-ledger-copy { display: grid; min-width: 0; align-content: center; }
-.ledger-row.side-bet-ledger-row .side-bet-ledger-title { display: flex; min-width: 0; align-items: center; gap: 4px; overflow: hidden; color: var(--ink); font-size: 14px; font-weight: 700; line-height: 1.25; white-space: nowrap; }
+.ledger-row.side-bet-ledger-row .side-bet-ledger-title { display: flex; min-width: 0; align-items: center; gap: 4px; overflow: hidden; color: var(--ink); white-space: nowrap; }
+.side-bet-ledger-title .side-bet-ledger-matchup { width: 100%; flex: 1 1 auto; }
 .side-bet-ledger-row > div p { display: block; overflow: hidden; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
-.side-bet-ledger-row > strong:last-child { justify-self: end; font-family: var(--font-display); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.side-bet-ledger-title, .side-bet-ledger-amount { font-family: var(--font-display); font-size: 14px; font-weight: 700; line-height: 1.25; }
+.side-bet-ledger-row > .side-bet-ledger-amount { justify-self: end; font-variant-numeric: tabular-nums; text-align: right; }
 .numeric-token { font-variant-numeric: tabular-nums; }
 .numeric-fragment { white-space: nowrap; }
 .numeric-symbol { display: inline-block; }

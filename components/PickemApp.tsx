@@ -2209,14 +2209,21 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   const displaySpread = perspective.spread;
   const awayTeam = game?.away_team || bet.offered_team;
   const homeTeam = game?.home_team || bet.creator_team;
+  const spread = spreadText(displaySpread);
+  const matchupFull = game
+    ? `${displayTeamName(game, awayTeam)}${displayTeam === awayTeam ? ` ${spread}` : ""} at ${displayTeamName(game, homeTeam)}${displayTeam === homeTeam ? ` ${spread}` : ""}`
+    : `${displayTeam} ${spread} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}`;
+  const matchupCompact = game
+    ? `${abbreviatedTeamName(game, awayTeam)}${displayTeam === awayTeam ? ` ${spread}` : ""} at ${abbreviatedTeamName(game, homeTeam)}${displayTeam === homeTeam ? ` ${spread}` : ""}`
+    : matchupFull;
   const winner = bet.winner_id === creator.id ? creator : bet.winner_id === acceptor.id ? acceptor : null;
   const status = bet.status === "accepted" ? "" : bet.result === "push" ? "Push" : winner ? `${displayPerson(winner)} Won` : "Settled";
   const bettors = `${displayPerson(sideBetBettorForTeam(bet, awayTeam))} vs ${displayPerson(sideBetBettorForTeam(bet, homeTeam))}`;
   const amountDisplay = perspective.involvesUser ? sideBetAmountForUser(bet, currentUser.id) : { text: stakeMoney(Number(bet.amount)), tone: "money-neutral" };
   return <div className={`ledger-row side-bet-ledger-row ${bet.status === "accepted" ? "accepted" : ""}`}>
     <TeamLogo url={game ? logoForTeam(game, displayTeam) : null} name={displayTeam} />
-    <div className="side-bet-ledger-copy"><strong className="side-bet-ledger-title">{game ? <ResponsiveTeamName game={game} team={displayTeam} className="pick-title-team" /> : <span className="pick-title-team">{displayTeam}</span>}<span className="pick-title-market"><NumericText text={spreadText(displaySpread)} /></span></strong><p>{bettors}{status ? <> · {status}</> : null}</p></div>
-    <strong className={amountDisplay.tone}><NumericText text={amountDisplay.text} /></strong>
+    <div className="side-bet-ledger-copy"><strong className="side-bet-ledger-title"><ResponsiveText full={matchupFull} compact={matchupCompact} className="side-bet-ledger-matchup" /></strong><p>{bettors}{status ? <> · {status}</> : null}</p></div>
+    <strong className={`side-bet-ledger-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
   </div>;
 }
 
