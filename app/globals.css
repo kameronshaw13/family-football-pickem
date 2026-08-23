@@ -275,6 +275,7 @@ p { margin: 0; }
 .pick-row-actions .icon-btn { border-color: #d6aaa6; color: var(--red); background: var(--red-soft); }
 .pick-title, .visible-pick-copy strong { display: flex; min-width: 0; align-items: center; gap: 4px; overflow: hidden; color: var(--ink); font-size: 14px; font-weight: 700; line-height: 1.25; white-space: nowrap; }
 .pick-title-team { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick-title-team.responsive-text { flex: 1 1 auto; }
 .pick-title-market { display: inline-flex; flex: 0 0 auto; align-items: center; white-space: nowrap; }
 .dog-separator { margin-inline: 4px; font-size: .92em; line-height: inherit; transform: translateY(.5px); }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; }
@@ -493,6 +494,8 @@ fieldset .field-label { padding: 0; }
 .notification-settings-copy small { display: block; margin-top: 3px; color: var(--blue-dark); font-size: 9px; font-weight: 700; line-height: 1.25; }
 .notification-settings-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
 .notification-settings-actions .btn { min-height: 34px; padding: 6px 8px; font-size: 10px; }
+.notification-settings-actions .notification-status-check { min-width: 68px; color: var(--muted); background: var(--surface-muted); }
+.notification-status-spinner { display: inline-flex; animation: spin .8s linear infinite; }
 .rules-list { overflow: hidden; border-top: 1px solid var(--line-strong); }
 .rule-item { border-bottom: 1px solid var(--line-strong); }
 .rule-item summary { display: grid; grid-template-columns: minmax(0, 1fr) 22px; min-height: 55px; align-items: center; gap: 9px; padding: 6px 0; list-style: none; cursor: pointer; outline: 0; background: transparent; -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }

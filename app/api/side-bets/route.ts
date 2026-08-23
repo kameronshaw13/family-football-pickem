@@ -6,6 +6,7 @@ import { createNotificationSafely, resolveSideBetOfferNotifications } from "@/li
 import { sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { notificationTeamName } from "@/lib/notificationTeamName";
 
 const viewWeek = z.number().int().nonnegative().optional();
 const bodySchema = z.discriminatedUnion("action", [
@@ -176,7 +177,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-offer:${sideBet.id}`,
           title: `Side bet from ${auth.profile.display_name}`,
-          body: `$${amount} · ${offeredTeam} ${notificationSpread(-creatorSpread)}`,
+          body: `$${amount} · ${notificationTeamName(offeredTeam, game.league)} ${notificationSpread(-creatorSpread)}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_received"),
           actionRequired: true
         })))
@@ -246,7 +247,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-declined:${sideBet.id}:${auth.profile.id}`,
           title: `${auth.profile.display_name} declined your side bet`,
-          body: `${sideBet.offered_team} ${notificationSpread(Number(sideBet.offered_spread))}`,
+          body: `${notificationTeamName(sideBet.offered_team, sideBet.game?.league)} ${notificationSpread(Number(sideBet.offered_spread))}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_sent")
         })
       ]);
@@ -291,7 +292,7 @@ export async function POST(req: NextRequest) {
         entityId: sideBet.id,
         dedupeKey: `side-bet-accepted:${sideBet.id}`,
         title: `${auth.profile.display_name} accepted your side bet`,
-        body: `$${Number(sideBet.amount)} · ${sideBet.creator_team} ${notificationSpread(Number(sideBet.creator_spread))}`,
+        body: `$${Number(sideBet.amount)} · ${notificationTeamName(sideBet.creator_team, sideBet.game?.league)} ${notificationSpread(Number(sideBet.creator_spread))}`,
         url: groupNotificationUrl(context.group.slug, "side_bets_sent")
       })
     ]);

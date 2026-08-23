@@ -18,6 +18,7 @@ import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentat
 import { appLoginPath } from "@/lib/appIdentity";
 import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetPerspective, sideBetsForView } from "@/lib/sideBetPresentation";
 import { orderCardPicks } from "@/lib/cardOrdering";
+import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -96,78 +97,7 @@ type SideBetSnapshot = {
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
 const APP_DATA_CACHE_MAX_AGE = 10 * 60 * 1000;
-const TEAM_DISPLAY_NAME_CACHE = new Map<string, string>();
 const EMPTY_NOTIFICATION_COUNTS: NotificationCounts = { side_bets_received: 0, side_bets_sent: 0, my_card: 0, league_cards: 0, side_bet_ledger: 0, total: 0 };
-
-const NFL_NICKNAMES = [
-  "49ers", "Bears", "Bengals", "Bills", "Broncos", "Browns", "Buccaneers", "Cardinals", "Chargers", "Chiefs", "Colts", "Commanders", "Cowboys", "Dolphins", "Eagles", "Falcons", "Giants", "Jaguars", "Jets", "Lions", "Packers", "Panthers", "Patriots", "Raiders", "Rams", "Ravens", "Saints", "Seahawks", "Steelers", "Texans", "Titans", "Vikings"
-];
-
-// These are mascot/nickname suffixes that should not show for college teams.
-// The app keeps the school/location name only: "Ohio State Buckeyes" -> "Ohio State".
-const COLLEGE_NICKNAME_SUFFIXES = [
-  "Rainbow Warriors", "Rainbow Wahine", "Blue Raiders", "Blue Hens", "Blue Hose", "Blue Devils", "Bluejays", "Green Wave", "Mean Green", "Red Wolves", "Red Raiders", "RedHawks", "Redhawks", "Black Knights", "Golden Hurricane", "Golden Flashes", "Golden Gophers", "Golden Bears", "Golden Eagles", "Golden Knights", "Golden Lions", "Golden Panthers", "Golden Rams", "Golden Grizzlies", "Ragin Cajuns", "Ragin' Cajuns", "Thundering Herd", "Fighting Irish", "Fighting Illini", "Fighting Hawks", "Fighting Camels", "Fighting Blue Hens", "Midshipmen", "Gamecocks", "Mountaineers", "Commodores", "Scarlet Knights", "Yellow Jackets", "Boilermakers", "Nittany Lions", "Tar Heels", "Cardinal", "Sun Devils", "Demon Deacons", "Crimson Tide", "Horned Frogs", "Chanticleers", "Sycamores", "Governors", "Privateers", "Keydets", "Paladins", "Terriers", "Hatters", "Musketeers", "Ramblers", "Explorers", "Billikens", "Jackrabbits", "Leathernecks", "Roadrunners", "Lumberjacks", "Longhorns", "Sooners", "Cyclones", "Buffaloes", "Hurricanes", "Seminoles", "Volunteers", "Razorbacks", "Wolf Pack", "Wolfpack", "Jayhawks", "Buckeyes", "Wolverines", "Badgers", "Hawkeyes", "Hoosiers", "Terrapins", "Cornhuskers", "Flames", "Monarchs", "Miners", "Blazers", "Lobos", "Aztecs", "Bulls", "Zips", "Bobcats", "Rockets", "Chippewas", "Gaels", "Mocs", "Lancers", "Camels", "Seawolves", "Highlanders", "Retrievers", "Pioneers", "Broncs", "Jaspers", "Peacocks", "Salukis", "Flyers", "Penguins", "Vandals", "Mavericks", "Phoenix", "Bison", "Bisons", "Catamounts", "Minutemen", "Jaguars", "Coyotes", "Panthers", "Lions", "Tigers", "Wildcats", "Bulldogs", "Eagles", "Hawks", "Falcons", "Bears", "Bruins", "Rams", "Aggies", "Spartans", "Trojans", "Cardinals", "Pirates", "Knights", "Warriors", "Raiders", "Rebels", "Mustangs", "Owls", "Cougars", "Huskies", "Bearcats", "Bearkats", "Cowboys", "Cowgirls", "Utes", "Ducks", "Beavers", "Hokies", "Cavaliers", "Gators", "Gauchos", "Anteaters", "Matadors", "Titans", "Tritons", "Lopes", "Antelopes", "Vaqueros", "Vaqueras", "Lumberjills", "Colonels", "Racers", "Norfolk", "Dukes", "Dukes", "Dragons", "Quakers", "Big Red", "Crimson", "Bantams", "Engineers", "Statesmen", "Dutchmen", "Saints", "Saint Mary's", "Friars", "Friars", "Friars", "Vikings", "Ospreys", "Eagles", "Skyhawks", "Bucs", "Buccaneers", "Mocs", "Golden Eagles", "Hilltoppers", "Hilltoppers", "Hillcats", "Lions", "Lancers", "Patriots", "Minutewomen", "Greyhounds", "Greyhounds", "Mules", "Gorillas", "Grit", "Reivers", "Tars", "Royals", "Lakers", "Orange"
-].sort((a, b) => b.length - a.length);
-
-const COLLEGE_KEEP_LAST_WORDS = new Set([
-  "State", "Tech", "A&M", "International", "Southern", "Northern", "Eastern", "Western", "Central", "Atlantic", "Pacific", "Carolina", "Florida", "Georgia", "Texas", "Washington", "Mississippi", "Arizona", "Alabama", "Louisiana", "California", "Colorado", "Dakota", "Mexico", "England", "Orleans", "Monroe", "Lafayette", "Vegas", "Jose", "Diego", "Angeles", "Louis", "Francisco", "Forest", "Green", "Bowling", "Army", "Navy", "Air", "Force", "Notre", "Dame", "Ole", "Miss", "BYU", "TCU", "UAB", "UTEP", "UTSA", "UCF", "USF", "UCLA", "USC", "SMU", "UNLV", "UNM", "LSU", "NC", "Appalachian", "Liberty", "Temple", "Rice", "Duke", "Tulane", "Rutgers", "Purdue", "Stanford", "Syracuse", "Clemson", "Auburn", "Memphis", "Hawaii", "Valley", "Bluff"
-]);
-
-const COLLEGE_MANUAL_DISPLAY: Record<string, string> = {
-  "north carolina tar heels": "North Carolina",
-  "unc tar heels": "North Carolina",
-  "north carolina": "North Carolina",
-  "stanford cardinal": "Stanford",
-  "stanford": "Stanford",
-  "san jose state spartans": "San Jose State",
-  "san jose state": "San Jose State",
-  "sjsu": "San Jose State",
-  "hawaii rainbow warriors": "Hawaii",
-  "hawai'i rainbow warriors": "Hawaii",
-  "hawaii": "Hawaii",
-  "hawai'i": "Hawaii",
-  "appalachian state mountaineers": "Appalachian State",
-  "app state mountaineers": "App State",
-  "app state": "App State",
-  "miami hurricanes": "Miami",
-  "miami fl hurricanes": "Miami",
-  "miami florida hurricanes": "Miami",
-  "miami ohio redhawks": "Miami Ohio",
-  "miami (oh) redhawks": "Miami Ohio",
-  "nc state wolfpack": "NC State",
-  "n.c. state wolfpack": "NC State",
-  "ole miss rebels": "Ole Miss",
-  "southern miss golden eagles": "Southern Miss",
-  "western kentucky hilltoppers": "Western Kentucky",
-  "middle tennessee blue raiders": "Middle Tennessee",
-  "bowling green falcons": "Bowling Green",
-  "florida international panthers": "FIU",
-  "fiu panthers": "FIU",
-  "florida atlantic owls": "Florida Atlantic",
-  "fau owls": "FAU",
-  "sam houston bearkats": "Sam Houston",
-  "sam houston state bearkats": "Sam Houston",
-  "louisiana ragin cajuns": "Louisiana",
-  "louisiana ragin' cajuns": "Louisiana",
-  "louisiana monroe warhawks": "Louisiana Monroe",
-  "ul monroe warhawks": "Louisiana Monroe",
-  "umass minutemen": "UMass",
-  "massachusetts minutemen": "UMass",
-  "utep miners": "UTEP",
-  "utsa roadrunners": "UTSA",
-  "uconn huskies": "UConn",
-  "connecticut huskies": "UConn",
-  "byu cougars": "BYU",
-  "tcu horned frogs": "TCU",
-  "ucf knights": "UCF",
-  "usf bulls": "USF",
-  "uab blazers": "UAB",
-  "unlv rebels": "UNLV",
-  "smu mustangs": "SMU",
-  "lsu tigers": "LSU",
-  "ucla bruins": "UCLA",
-  "usc trojans": "USC"
-};
 
 const CENTRAL_WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/Chicago" });
 const CENTRAL_FULL_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/Chicago" });
@@ -177,106 +107,12 @@ const CENTRAL_DAY_KEY_FORMATTER = new Intl.DateTimeFormat("en-CA", { year: "nume
 const CENTRAL_DAY_LABEL_FORMATTER = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "America/Chicago" });
 const CENTRAL_WEEKDAY_LONG_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" });
 
-function normalizeNameKey(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/hawai[\s'’`-]*i/g, "hawaii")
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-const COLLEGE_NICKNAME_SUFFIX_MATCHES = COLLEGE_NICKNAME_SUFFIXES.map((suffix) => ({
-  suffix,
-  key: normalizeNameKey(suffix)
-}));
-
-const TEAM_ABBREVIATIONS: Record<string, string> = {
-  "north dakota state": "NDSU",
-  "south dakota state": "SDSU",
-  "north carolina state": "NCSU",
-  "appalachian state": "App State",
-  "arkansas pine bluff": "UAPB",
-  "ut rio grande valley": "UTRGV",
-  "louisiana monroe": "ULM",
-  "middle tennessee": "MTSU",
-  "western kentucky": "WKU",
-  "northern illinois": "NIU",
-  "bowling green": "BGSU",
-  "florida international": "FIU",
-  "florida atlantic": "FAU"
-};
-
-function stripCollegeNickname(rawTeam: string) {
-  const manual = COLLEGE_MANUAL_DISPLAY[normalizeNameKey(rawTeam)];
-  if (manual) return manual;
-
-  let cleaned = rawTeam
-    .replace(/\bUniversity of\b/gi, "")
-    .replace(/\bCollege\b/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  let changed = true;
-  while (changed) {
-    changed = false;
-    const cleanedKey = normalizeNameKey(cleaned);
-    for (const suffix of COLLEGE_NICKNAME_SUFFIX_MATCHES) {
-      if (cleanedKey.endsWith(` ${suffix.key}`)) {
-        cleaned = cleaned.slice(0, Math.max(0, cleaned.length - suffix.suffix.length)).trim();
-        changed = true;
-        break;
-      }
-    }
-  }
-
-  const manualAfterStrip = COLLEGE_MANUAL_DISPLAY[normalizeNameKey(cleaned)];
-  if (manualAfterStrip) return manualAfterStrip;
-
-  // Safety fallback for "School Mascot" names not listed above. If the school has
-  // 3+ words and the final word is not part of a school name, remove it.
-  const parts = cleaned.split(/\s+/).filter(Boolean);
-  const last = parts[parts.length - 1];
-  const lastTwo = parts.slice(-2).join(" ");
-  const lastTwoKey = normalizeNameKey(lastTwo);
-  if (parts.length >= 3 && ["tar heels", "fighting irish", "red raiders", "blue devils", "golden bears", "green wave", "crimson tide"].includes(lastTwoKey)) {
-    cleaned = parts.slice(0, -2).join(" ");
-  } else if (parts.length >= 3 && last && !COLLEGE_KEEP_LAST_WORDS.has(last)) {
-    cleaned = parts.slice(0, -1).join(" ");
-  }
-
-  return cleaned || rawTeam;
-}
-
 function displayTeamName(game: Game, team: string) {
-  const cacheKey = `${game.league}:${team}`;
-  const cached = TEAM_DISPLAY_NAME_CACHE.get(cacheKey);
-  if (cached) return cached;
-
-  let displayName: string;
-  if (game.league === "NFL") {
-    const match = NFL_NICKNAMES.find((nickname) => team.toLowerCase().endsWith(nickname.toLowerCase()));
-    displayName = match || team.split(/\s+/).slice(-1)[0] || team;
-  } else {
-    displayName = stripCollegeNickname(team);
-  }
-  TEAM_DISPLAY_NAME_CACHE.set(cacheKey, displayName);
-  return displayName;
+  return teamDisplayName(game.league, team);
 }
 
 function abbreviatedTeamName(game: Game, team: string) {
-  const fullName = displayTeamName(game, team);
-  const manual = TEAM_ABBREVIATIONS[normalizeNameKey(fullName)] || TEAM_ABBREVIATIONS[normalizeNameKey(team)];
-  if (manual) return manual;
-  if (fullName.length <= 8 || /^[A-Z0-9]+$/.test(fullName)) return fullName;
-
-  const words = fullName.split(/[^A-Za-z0-9]+/).filter(Boolean);
-  const initials = words.map((word) => /^[A-Z0-9]{2,4}$/.test(word) ? word : word[0].toUpperCase()).join("");
-  const abbreviation = /\bState$/i.test(fullName) && !initials.endsWith("U") ? `${initials}U` : initials;
-  return abbreviation.length >= 2 && abbreviation.length <= 7 ? abbreviation : fullName;
+  return teamAbbreviatedName(game.league, team);
 }
 
 function ResponsiveText({ full, compact, className = "" }: { full: string; compact: string; className?: string }) {

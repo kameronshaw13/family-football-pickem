@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellOff, LoaderCircle } from "lucide-react";
 import type { AppSlug } from "@/lib/rulePresentation";
 import { appWorkerScope } from "@/lib/appIdentity";
 
@@ -189,9 +189,11 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
       {message && <small role="status">{message}</small>}
     </div>
     <div className="notification-settings-actions">
-      {state === "enabled"
+      {state === "checking"
+        ? <button type="button" className="btn secondary notification-status-check" disabled aria-label="Checking notification status"><span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={13} /></span> Checking</button>
+        : state === "enabled"
         ? <button type="button" className="btn secondary" disabled={busy} onClick={() => void disable()}><BellOff size={13} /> Turn Off</button>
-        : <button type="button" className="btn accent" disabled={busy || ["checking", "unsupported", "needs-home-screen", "not-configured", "denied"].includes(state)} onClick={() => void enable()}><Bell size={13} /> Enable</button>}
+        : <button type="button" className="btn accent" disabled={busy || ["unsupported", "needs-home-screen", "not-configured", "denied"].includes(state)} onClick={() => void enable()}><Bell size={13} /> Enable</button>}
     </div>
   </section>;
 }

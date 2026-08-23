@@ -6,6 +6,7 @@ import { createNotificationSafely } from "@/lib/notifications";
 import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { notificationTeamName } from "@/lib/notificationTeamName";
 
 const SPORTS = [
   { key: "americanfootball_nfl", league: "NFL" },
@@ -81,6 +82,7 @@ async function reconcileDraftDogs(supabase: ReturnType<typeof getSupabaseAdmin>,
   for (const pick of draftDogs || []) {
     const game = updatedById.get(pick.game_id);
     if (!game) continue;
+    const selectedTeam = notificationTeamName(pick.selected_team, game.league);
     const oldGame = previousGames.get(pick.game_id);
     const oldSpread = oldGame ? normalizeSpreadForSelectedTeam(pick.selected_team, oldGame.current_spread_team, oldGame.current_spread) : null;
     const newSpread = normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread);
@@ -108,8 +110,8 @@ async function reconcileDraftDogs(supabase: ReturnType<typeof getSupabaseAdmin>,
         dedupeKey: `dog-adjust:${pick.id}:${changedAt.getTime()}:${oldValue}:0`,
         title: "Dog pick removed",
         body: sameLine
-          ? `${pick.selected_team} was removed as your dog at ${spreadText(newSpread)}. Dogs must be +7 or higher.`
-          : `${pick.selected_team} was removed as your dog: ${spreadText(oldSpread)} → ${spreadText(newSpread)}. Dogs must be +7 or higher.`,
+          ? `${selectedTeam} was removed as your dog at ${spreadText(newSpread)}. Dogs must be +7 or higher.`
+          : `${selectedTeam} was removed as your dog: ${spreadText(oldSpread)} → ${spreadText(newSpread)}. Dogs must be +7 or higher.`,
         url: `/?group=${encodeURIComponent(pick.group_id)}&notification=my_card`,
         actionRequired: true
       }));
@@ -136,7 +138,7 @@ async function reconcileDraftDogs(supabase: ReturnType<typeof getSupabaseAdmin>,
       entityId: pick.id,
       dedupeKey: `dog-adjust:${pick.id}:${changedAt.getTime()}:${oldValue}:${newValue}`,
       title: "Dog value changed",
-      body: `${pick.selected_team} changed from +${winWord(oldValue)} to +${winWord(newValue)}: ${spreadText(oldSpread)} → ${spreadText(newSpread)}.`,
+      body: `${selectedTeam} changed from +${winWord(oldValue)} to +${winWord(newValue)}: ${spreadText(oldSpread)} → ${spreadText(newSpread)}.`,
       url: `/?group=${encodeURIComponent(pick.group_id)}&notification=my_card`,
       actionRequired: true
     }));
