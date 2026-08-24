@@ -475,7 +475,7 @@ fieldset .field-label { padding: 0; }
 .ledger-row:last-child { border-bottom: 0; }
 .ledger-row strong { font-size: 13px; }
 .ledger-row p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: capitalize; }
-.ledger-row.side-bet-ledger-row { display: grid; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; padding: 7px var(--pick-content-inset); background: transparent; }
+.ledger-row.side-bet-ledger-row { display: grid; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; padding: 7px var(--pick-content-inset); background: var(--panel); }
 .side-bet-ledger-row .team-logo { width: 34px; height: 34px; }
 .tie-icon { display: grid; width: 30px; height: 30px; place-items: center; font-size: 22px; line-height: 1; }
 .side-bet-ledger-copy { display: grid; min-width: 0; align-content: center; }
