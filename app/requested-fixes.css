@@ -4,7 +4,7 @@
 .rules-panel > .section-title {
   order: 1;
   position: relative;
-  padding-right: 94px;
+  padding-right: 122px;
 }
 .rules-panel > .rules-list { order: 2; }
 .rules-panel > .notification-settings {
@@ -31,18 +31,28 @@
   justify-content: center;
 }
 .rules-panel > .notification-settings .btn {
-  min-height: 30px;
-  height: 30px;
-  padding: 0 8px;
+  min-height: 28px;
+  height: 28px;
+  padding: 0 2px;
+  border: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
+  color: var(--ink);
+  background: transparent;
   line-height: 1;
-  font-size: 11px;
+  font-size: 10.5px;
+  font-weight: 700;
   text-align: center;
   white-space: nowrap;
 }
+.rules-panel > .notification-settings .notification-compact-toggle:disabled { opacity: 1; }
+.rules-panel > .notification-settings .notification-compact-toggle.disabled { color: var(--muted); }
+.rules-panel > .notification-settings .notification-compact-toggle svg { flex: 0 0 auto; }
+.rules-panel > .notification-settings .notification-compact-state { font-size: 9.5px; font-weight: 800; }
+.rules-panel > .notification-settings .notification-compact-toggle.enabled .notification-compact-state { color: var(--green); }
+.rules-panel > .notification-settings .notification-compact-toggle.disabled .notification-compact-state { color: var(--muted); }
 
 .side-bet-offer-copy,
 .side-bet-offer-copy > strong {
@@ -64,6 +74,8 @@
 .confirmation-matchup > div .side-bet-review-logo + strong {
   margin-left: 0;
 }
+.ledger-list { background: var(--panel); }
+.ledger-list .side-bet-ledger-row { background: var(--panel) !important; }
 .ledger-list .side-bet-ledger-row.accepted {
   border-left-color: var(--blue);
 }

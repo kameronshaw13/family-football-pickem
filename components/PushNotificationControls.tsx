@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, BellOff, LoaderCircle } from "lucide-react";
+import { Bell, LoaderCircle } from "lucide-react";
 import type { AppSlug } from "@/lib/rulePresentation";
 import { appWorkerScope } from "@/lib/appIdentity";
 
@@ -181,6 +181,7 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
     : state === "not-configured" ? "Waiting for Vercel push keys"
     : state === "unsupported" ? "Not supported in this browser"
     : "";
+  const unavailable = ["unsupported", "needs-home-screen", "not-configured", "denied"].includes(state);
 
   return <section className="notification-settings" aria-labelledby="notification-settings-title">
     <div className="notification-settings-copy">
@@ -190,10 +191,10 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
     </div>
     <div className="notification-settings-actions">
       {state === "checking"
-        ? <button type="button" className="btn secondary notification-status-check" disabled aria-label="Checking notification status"><span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={13} /></span> Checking</button>
+        ? <button type="button" className="btn secondary notification-compact-toggle notification-status-check" disabled aria-label="Checking notification status"><span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={12} /></span><span>Notifications</span></button>
         : state === "enabled"
-        ? <button type="button" className="btn secondary" disabled={busy} onClick={() => void disable()}><BellOff size={13} /> Turn Off</button>
-        : <button type="button" className="btn accent" disabled={busy || ["unsupported", "needs-home-screen", "not-configured", "denied"].includes(state)} onClick={() => void enable()}><Bell size={13} /> Enable</button>}
+        ? <button type="button" className="btn secondary notification-compact-toggle enabled" disabled={busy} aria-label="Turn off push notifications" onClick={() => void disable()}>{busy ? <span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={12} /></span> : <Bell size={13} />}<span>Notifications</span><span className="notification-compact-state">On</span></button>
+        : <button type="button" className="btn secondary notification-compact-toggle disabled" disabled={busy || unavailable} aria-label={helper || "Turn on push notifications"} title={helper || message || undefined} onClick={() => void enable()}>{busy ? <span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={12} /></span> : <Bell size={13} />}<span>Notifications</span><span className="notification-compact-state">Off</span></button>}
     </div>
   </section>;
 }

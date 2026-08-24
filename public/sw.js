@@ -14,6 +14,13 @@ function registrationApp() {
   return "/";
 }
 
+function notificationIcon() {
+  const app = registrationApp();
+  if (app === "/friends") return "/friends-app-icon-navy.png";
+  if (app === "/caleb-family") return "/caleb-app-icon-gold.png";
+  return "/apple-icon.png";
+}
+
 self.addEventListener("push", (event) => {
   let payload = {};
   try {
@@ -28,8 +35,8 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "Family Pick'em";
   const options = {
     body: payload.body || "New update available.",
-    icon: "/apple-icon.png",
-    badge: "/icon.png",
+    icon: notificationIcon(),
+    badge: notificationIcon(),
     tag: payload.tag || "family-pickem-update",
     renotify: true,
     data: { url: targetUrl.href }
