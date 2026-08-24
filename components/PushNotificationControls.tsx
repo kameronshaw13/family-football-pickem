@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, LoaderCircle } from "lucide-react";
+import { Bell, BellOff, LoaderCircle } from "lucide-react";
 import type { AppSlug } from "@/lib/rulePresentation";
 import { appWorkerScope } from "@/lib/appIdentity";
 
@@ -194,7 +194,7 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
         ? <button type="button" className="btn secondary notification-compact-toggle notification-status-check" disabled aria-label="Checking notification status"><span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={12} /></span><span>Notifications</span></button>
         : state === "enabled"
         ? <button type="button" className="btn secondary notification-compact-toggle enabled" disabled={busy} aria-label="Turn off push notifications" onClick={() => void disable()}>{busy ? <span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={12} /></span> : <Bell size={13} />}<span>Notifications</span><span className="notification-compact-state">On</span></button>
-        : <button type="button" className="btn secondary notification-compact-toggle disabled" disabled={busy || unavailable} aria-label={helper || "Turn on push notifications"} title={helper || message || undefined} onClick={() => void enable()}>{busy ? <span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={12} /></span> : <Bell size={13} />}<span>Notifications</span><span className="notification-compact-state">Off</span></button>}
+        : <button type="button" className="btn secondary notification-compact-toggle disabled" disabled={busy || unavailable} aria-label={helper || "Turn on push notifications"} title={helper || message || undefined} onClick={() => void enable()}>{busy ? <span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={12} /></span> : <BellOff size={13} />}<span>Notifications</span><span className="notification-compact-state">Off</span></button>}
     </div>
   </section>;
 }

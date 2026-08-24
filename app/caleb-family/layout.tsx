@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: "Private Caleb Family football confidence pick'em.",
   applicationName: "Family Pick'em",
   appleWebApp: { capable: true, title: "Family Pick'em", statusBarStyle: "black-translucent" },
-  icons: { icon: "/caleb-app-icon-gold.png", apple: "/caleb-app-icon-gold.png" },
+  icons: { icon: "/caleb-app-icon-gold.png?v=2", apple: "/caleb-app-icon-gold.png?v=2" },
   manifest: "/caleb-family-manifest.webmanifest"
 };
 
