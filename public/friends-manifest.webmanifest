@@ -11,7 +11,7 @@
   "theme_color": "#20282d",
   "icons": [
     {
-      "src": "/friends-app-icon-navy.png?v=2",
+      "src": "/friends-app-icon-navy.png?v=3",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

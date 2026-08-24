@@ -16,8 +16,8 @@ function registrationApp() {
 
 function notificationIcon() {
   const app = registrationApp();
-  if (app === "/friends") return "/friends-app-icon-navy.png?v=2";
-  if (app === "/caleb-family") return "/caleb-app-icon-gold.png?v=2";
+  if (app === "/friends") return "/friends-app-icon-navy.png?v=3";
+  if (app === "/caleb-family") return "/caleb-app-icon-gold.png?v=3";
   return "/apple-icon.png";
 }
 
