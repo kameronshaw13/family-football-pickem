@@ -24,7 +24,7 @@ type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
 type CardView = "mine" | "group";
 type StandingsView = "standings" | "bank";
-type BetView = "new" | "received" | "sent";
+type BetView = "offers" | "new";
 type SideBetLeagueFilter = "CFB" | "NFL";
 type GameStatusFilter = "OPEN" | "LOCKED" | "FINAL";
 type LeagueFilter = "CFB" | "NFL" | "DOGS";
@@ -826,7 +826,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [picksView, setPicksView] = useState<PicksView>("board");
   const [cardView, setCardView] = useState<CardView>("mine");
   const [standingsView, setStandingsView] = useState<StandingsView>("standings");
-  const [betView, setBetView] = useState<BetView>("received");
+  const [betView, setBetView] = useState<BetView>("offers");
   const [statusFilter, setStatusFilter] = useState<GameStatusFilter>("OPEN");
   const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>("CFB");
   const [conferenceFilter, setConferenceFilter] = useState("ALL");
@@ -982,7 +982,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     if (destination === "side_bets_received" || destination === "side_bets_sent") {
       setTab("picks");
       setPicksView("sideBets");
-      setBetView(destination === "side_bets_received" ? "received" : "sent");
+      setBetView("offers");
     } else if (destination === "my_card" || destination === "league_cards") {
       setTab("card");
       setCardView(destination === "my_card" ? "mine" : "group");
@@ -1112,7 +1112,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   useEffect(() => {
     if (!data || testWeekActive) return;
     let destination: NotificationDestination | null = null;
-    if (tab === "picks" && picksView === "sideBets" && betView === "sent") destination = "side_bets_sent";
+    if (tab === "picks" && picksView === "sideBets" && betView === "offers") destination = "side_bets_sent";
     else if (tab === "card" && cardView === "mine") destination = "my_card";
     else if (tab === "card" && cardView === "group") destination = "league_cards";
     else if (tab === "standings" && standingsView === "bank") destination = "side_bet_ledger";
@@ -1495,7 +1495,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       setBetCreatorTeam("");
       setBetRecipients([]);
       setBetAmount("20");
-      setBetView("sent");
+      setBetView("offers");
       notify("Side bet offer sent.", "success");
     }
     return ok;
@@ -1573,7 +1573,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           recipients={betRecipients}
           saving={savingBet}
           savingBetId={savingBetId}
-          viewNotificationCounts={{ received: receivedNotificationCount, sent: sentNotificationCount }}
+          offerNotificationCount={receivedNotificationCount + sentNotificationCount}
           setGame={(gameId) => { setBetGameId(gameId); setBetCreatorTeam(""); }}
           setGameLeague={(nextLeague) => { setBetLeagueFilter(nextLeague); setBetConferenceFilter("ALL"); setBetGameId(""); setBetCreatorTeam(""); }}
           setGameConference={(nextConference) => { setBetConferenceFilter(nextConference); setBetGameId(""); setBetCreatorTeam(""); }}
@@ -1825,7 +1825,7 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, viewNotificationCounts, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
@@ -1842,7 +1842,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   recipients: string[];
   saving: boolean;
   savingBetId: string | null;
-  viewNotificationCounts: Partial<Record<BetView, number>>;
+  offerNotificationCount: number;
   setGame: (value: string) => void;
   setGameLeague: (value: SideBetLeagueFilter) => void;
   setGameConference: (value: string) => void;
@@ -1861,6 +1861,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const slipClosingRef = useRef(false);
   const received = sideBetsForView(sideBets, currentUser.id, "received");
   const sent = sideBetsForView(sideBets, currentUser.id, "sent");
+  const offers = [...received, ...sent];
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
   const creatorSpread = selectedGame && selectedCreatorTeam ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
@@ -1967,7 +1968,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
     <div className={`view-select-row side-bet-filter-row ${view === "new" ? "make-offer" : ""}`.trim()}>
-      <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "received", label: "For You", badge: viewNotificationCounts.received }, { value: "sent", label: "Sent", badge: viewNotificationCounts.sent }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => { setSlipExpanded(false); setView(value as BetView); }} />
+      <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "offers", label: "Offers", badge: offerNotificationCount }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => { setSlipExpanded(false); setView(value as BetView); }} />
       {view === "new" && <MenuSelect
         ariaLabel="Filter side bet games by league"
         className="compact-select"
@@ -2038,8 +2039,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
       </section>}
 
-    {view === "received" && <SideBetList bets={received} mode="received" currentUser={currentUser} empty="No offers sent to you yet." saving={saving} savingBetId={savingBetId} canAccept={(bet) => weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, MAX_SIDE_BETS_PER_WEEK, bet.id)} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
-    {view === "sent" && <SideBetList bets={sent} mode="sent" currentUser={currentUser} empty="You have not sent any offers yet." saving={saving} savingBetId={savingBetId} canAccept={!limitReached} acceptDisabledText="Limit reached" requestAccept={setConfirmingBetId} respond={respond} />}
+    {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty="No side bet offers yet." saving={saving} savingBetId={savingBetId} canAccept={(bet) => weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, MAX_SIDE_BETS_PER_WEEK, bet.id)} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop">
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title">
@@ -2076,23 +2076,24 @@ function SideBetGameCard({ game, selectedTeam, disabled, onSelect }: { game: Gam
   </article>;
 }
 
-function SideBetList({ bets, mode, currentUser, empty, saving, savingBetId, canAccept, acceptDisabledText, requestAccept, respond }: { bets: SideBet[]; mode: "received" | "sent"; currentUser: Profile; empty: string; saving: boolean; savingBetId: string | null; canAccept: boolean | ((bet: SideBet) => boolean); acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
+function SideBetList({ bets, currentUser, empty, saving, savingBetId, canAccept, acceptDisabledText, requestAccept, respond }: { bets: SideBet[]; currentUser: Profile; empty: string; saving: boolean; savingBetId: string | null; canAccept: (bet: SideBet) => boolean; acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
+  const modeFor = (bet: SideBet) => bet.creator_id === currentUser.id ? "sent" as const : "received" as const;
   const pending = bets
-    .filter((bet) => sideBetOfferIsPending(bet, currentUser.id, mode))
+    .filter((bet) => sideBetOfferIsPending(bet, currentUser.id, modeFor(bet)))
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   const history = bets
-    .filter((bet) => !sideBetOfferIsPending(bet, currentUser.id, mode))
+    .filter((bet) => !sideBetOfferIsPending(bet, currentUser.id, modeFor(bet)))
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-  const card = (bet: SideBet) => <SideBetCard key={bet.id} bet={bet} mode={mode} currentUser={currentUser} saving={saving} working={savingBetId === bet.id} canAccept={typeof canAccept === "function" ? canAccept(bet) : canAccept} acceptDisabledText={acceptDisabledText} requestAccept={requestAccept} respond={respond} />;
+  const card = (bet: SideBet) => <SideBetCard key={bet.id} bet={bet} mode={modeFor(bet)} currentUser={currentUser} saving={saving} working={savingBetId === bet.id} canAccept={canAccept(bet)} acceptDisabledText={acceptDisabledText} requestAccept={requestAccept} respond={respond} />;
 
   if (!bets.length) return <div className="side-bet-list"><div className="empty-state">{empty}</div></div>;
   return <div className="side-bet-list grouped">
-    <section className="side-bet-list-section" aria-labelledby={`${mode}-pending-offers`}>
-      <h3 id={`${mode}-pending-offers`}>Pending Offers</h3>
+    <section className="side-bet-list-section" aria-labelledby="pending-offers-title">
+      <h3 id="pending-offers-title">Pending Offers</h3>
       <div className="side-bet-list-section-body">{pending.length ? pending.map(card) : <p className="muted side-bet-list-empty">No pending offers.</p>}</div>
     </section>
-    <section className="side-bet-list-section" aria-labelledby={`${mode}-offer-history`}>
-      <h3 id={`${mode}-offer-history`}>Offer History</h3>
+    <section className="side-bet-list-section" aria-labelledby="offer-history-title">
+      <h3 id="offer-history-title">Offer History</h3>
       <div className="side-bet-list-section-body">{history.length ? history.map(card) : <p className="muted side-bet-list-empty">No offer history yet.</p>}</div>
     </section>
   </div>;
