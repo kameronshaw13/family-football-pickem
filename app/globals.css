@@ -240,7 +240,7 @@ p { margin: 0; }
 .pick-section, .subsection { margin-top: var(--space-4); }
 .pick-section h3, .subsection h3 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .pick-section h3 { margin-left: calc(var(--pick-content-inset) - var(--page-gutter) + 2px); }
-.pick-card { position: relative; display: flex; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); align-items: center; margin: 0 calc(var(--page-gutter) * -1); padding: 7px var(--pick-content-inset); border: 0; background: transparent; }
+.pick-card { position: relative; display: flex; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); align-items: center; margin: 0 calc(var(--page-gutter) * -1); padding: 7px var(--pick-content-inset); border: 0; background: var(--panel); }
 .pick-card::after { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--line); content: ""; pointer-events: none; }
 .pick-card:first-of-type::before { position: absolute; top: 0; right: 0; left: 0; height: 1px; background: var(--line-strong); content: ""; pointer-events: none; }
 .pick-card:last-child::after { background: var(--line-strong); }
@@ -248,8 +248,8 @@ p { margin: 0; }
 .group-card { margin: 0; padding: 0; border: 0; background: transparent; }
 .group-card h3 { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-4) calc(var(--pick-content-inset) + 2px) var(--space-2); color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .group-card:first-child h3 { margin-top: var(--space-1); }
-.group-empty-picks { display: flex; height: 39px; min-height: 39px; align-items: center; margin: 0; padding: 10px var(--pick-content-inset); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.card-empty-picks { display: flex; min-height: var(--pick-card-row-height); align-items: center; margin: 0 calc(var(--page-gutter) * -1); padding: 12px var(--pick-content-inset); border-block: 1px solid var(--line); }
+.group-empty-picks { display: flex; height: 39px; min-height: 39px; align-items: center; margin: 0; padding: 10px var(--pick-content-inset); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--panel); }
+.card-empty-picks { display: flex; min-height: var(--pick-card-row-height); align-items: center; margin: 0 calc(var(--page-gutter) * -1); padding: 12px var(--pick-content-inset); border-block: 1px solid var(--line); background: var(--panel); }
 .pick-top { display: grid; width: 100%; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; }
 .pick-top > .team-logo, .visible-pick > .team-logo { width: 34px; height: 34px; }
 .pick-copy, .visible-pick-copy { display: grid; min-width: 0; align-content: center; }
@@ -279,7 +279,7 @@ p { margin: 0; }
 .pick-title-market { display: inline-flex; flex: 0 0 auto; align-items: center; white-space: nowrap; }
 .dog-separator { margin-inline: 4px; font-size: .92em; line-height: inherit; transform: translateY(.5px); }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; }
-.visible-pick { position: relative; display: grid; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; margin: 0; padding: 7px var(--pick-content-inset); border: 0; }
+.visible-pick { position: relative; display: grid; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; margin: 0; padding: 7px var(--pick-content-inset); border: 0; background: var(--panel); }
 .visible-pick::after { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--line); content: ""; pointer-events: none; }
 .group-card .visible-pick:first-of-type::before { position: absolute; top: 0; right: 0; left: 0; height: 1px; background: var(--line-strong); content: ""; pointer-events: none; }
 .visible-pick:last-child::after { background: var(--line-strong); }
