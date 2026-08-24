@@ -490,6 +490,7 @@ fieldset .field-label { padding: 0; }
 .numeric-symbol-after { margin-left: .2px; }
 .numeric-symbol-before { margin-right: .2px; }
 .ledger-list > .muted { display: flex; min-height: var(--data-row-height); align-items: center; margin: 0; padding: 13px var(--bank-content-inset); background: var(--panel); }
+.ledger-list > .ledger-empty-state { height: 39px; min-height: 39px; padding: 10px var(--pick-content-inset); }
 
 .rules-panel { display: grid; }
 .rules-panel > .section-title { padding-left: 4px; }

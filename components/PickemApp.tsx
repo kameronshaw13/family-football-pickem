@@ -1666,7 +1666,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             </div>
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} pointsMode={pointsMode} />
           </div>
-          <div className="subsection bank-section bank-week-section"><div className="standings-heading-row"><h2 className="heading-with-badge">Side Bet Ledger <NotificationBadge count={bankNotificationCount} /></h2></div><div className="ledger-list">{!previewActive && !sideBetLedgerReady && <p className="muted">Loading side bet ledger…</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.length === 0 && <p className="muted">No side bets in the ledger yet.</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
+          <div className="subsection bank-section bank-week-section"><div className="standings-heading-row"><h2 className="heading-with-badge">Side Bet Ledger <NotificationBadge count={bankNotificationCount} /></h2></div><div className="ledger-list">{!previewActive && !sideBetLedgerReady && <p className="muted">Loading side bet ledger…</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.length === 0 && <p className="muted ledger-empty-state">No side bets in the ledger yet.</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
         </>}
       </section>}
 
@@ -2317,7 +2317,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
 
 function TeamLogo({ url, name, className = "" }: { url?: string | null; name: string; className?: string }) {
   const classes = `team-logo ${className}`.trim();
-  if (url) return <img src={url} alt="" className={classes} width={34} height={34} loading="lazy" decoding="async" />;
+  if (url) return <img src={url} alt="" className={classes} width={34} height={34} loading="eager" decoding="sync" />;
   return <div className={`${classes} fallback`}>{name.slice(0, 1)}</div>;
 }
 
