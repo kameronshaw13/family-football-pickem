@@ -248,7 +248,7 @@ p { margin: 0; }
 .group-card { margin: 0; padding: 0; border: 0; background: transparent; }
 .group-card h3 { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-4) calc(var(--pick-content-inset) + 2px) var(--space-2); color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .group-card:first-child h3 { margin-top: var(--space-1); }
-.group-empty-picks { display: flex; min-height: var(--pick-card-row-height); align-items: center; margin: 0; padding: 12px var(--pick-content-inset); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.group-empty-picks { display: flex; height: 39px; min-height: 39px; align-items: center; margin: 0; padding: 10px var(--pick-content-inset); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .card-empty-picks { display: flex; min-height: var(--pick-card-row-height); align-items: center; margin: 0 calc(var(--page-gutter) * -1); padding: 12px var(--pick-content-inset); border-block: 1px solid var(--line); }
 .pick-top { display: grid; width: 100%; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; }
 .pick-top > .team-logo, .visible-pick > .team-logo { width: 34px; height: 34px; }
@@ -275,7 +275,7 @@ p { margin: 0; }
 .pick-row-actions .icon-btn { border-color: #d6aaa6; color: var(--red); background: var(--red-soft); }
 .pick-title, .visible-pick-copy strong { display: flex; min-width: 0; align-items: center; gap: 4px; overflow: hidden; color: var(--ink); font-size: 14px; font-weight: 700; line-height: 1.25; white-space: nowrap; }
 .pick-title-team { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pick-title-team.responsive-text { flex: 1 1 auto; }
+.pick-title-team.responsive-text { max-width: 100%; flex: 0 1 auto; }
 .pick-title-market { display: inline-flex; flex: 0 0 auto; align-items: center; white-space: nowrap; }
 .dog-separator { margin-inline: 4px; font-size: .92em; line-height: inherit; transform: translateY(.5px); }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; }
@@ -477,7 +477,7 @@ fieldset .field-label { padding: 0; }
 .ledger-row.side-bet-ledger-row .side-bet-ledger-title { display: flex; min-width: 0; align-items: center; gap: 4px; overflow: hidden; color: var(--ink); white-space: nowrap; }
 .side-bet-ledger-title .side-bet-ledger-matchup { width: 100%; flex: 1 1 auto; }
 .side-bet-ledger-row > div p { display: block; overflow: hidden; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
-.side-bet-ledger-title, .side-bet-ledger-amount { font-family: var(--font-display); font-size: 14px; font-weight: 700; line-height: 1.25; }
+.ledger-row.side-bet-ledger-row .side-bet-ledger-title, .ledger-row.side-bet-ledger-row .side-bet-ledger-amount { font-family: var(--font-display); font-size: 14px; font-weight: 700; line-height: 1.25; }
 .side-bet-ledger-row > .side-bet-ledger-amount { justify-self: end; font-variant-numeric: tabular-nums; text-align: right; }
 .numeric-token { font-variant-numeric: tabular-nums; }
 .numeric-fragment { white-space: nowrap; }
