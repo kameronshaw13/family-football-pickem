@@ -16,7 +16,7 @@ import GroupMoneyControls from "@/components/GroupMoneyControls";
 import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoints";
 import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
 import { appLoginPath } from "@/lib/appIdentity";
-import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetPerspective, sideBetsForView } from "@/lib/sideBetPresentation";
+import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetsForView } from "@/lib/sideBetPresentation";
 import { orderCardPicks } from "@/lib/cardOrdering";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 
@@ -558,29 +558,6 @@ function sideBetSyncSignature(bets: SideBet[] = []) {
 
 function sideBetLedgerSignature(bets: SideBet[] = []) {
   return bets.map((bet) => `${bet.id}:${bet.status}:${bet.result}:${bet.winner_id || ""}:${bet.updated_at}`).sort().join("|");
-}
-
-function acceptedSideBetSeenKey(appSlug: AppSlug, userId: string) {
-  return `pickem_seen_accepted_side_bets:${appSlug}:${userId}`;
-}
-
-function readAcceptedSideBetIds(storageKey: string) {
-  try {
-    return new Set((JSON.parse(window.localStorage.getItem(storageKey) || "[]") as string[]).filter(Boolean));
-  } catch {
-    return new Set<string>();
-  }
-}
-
-function storeAcceptedSideBetIds(storageKey: string, ids: string[]) {
-  if (!ids.length) return;
-  const next = readAcceptedSideBetIds(storageKey);
-  ids.forEach((id) => next.add(id));
-  try {
-    window.localStorage.setItem(storageKey, JSON.stringify(Array.from(next)));
-  } catch {
-    // Accepted cards still transition correctly for the active session if storage is unavailable.
-  }
 }
 
 function logoForTeam(game: Game, team: string) {
@@ -1580,7 +1557,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           </div>
         </>}
         {picksView === "sideBets" && <SideBetCenter
-          appSlug={appSlug}
           view={betView}
           setView={setBetView}
           currentUser={currentUser}
@@ -1849,8 +1825,7 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   </div>;
 }
 
-function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, viewNotificationCounts, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
-  appSlug: AppSlug;
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, viewNotificationCounts, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
@@ -1884,16 +1859,8 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   const slipSwipeStartY = useRef<number | null>(null);
   const slipCloseTimer = useRef<number | null>(null);
   const slipClosingRef = useRef(false);
-  const [seenAcceptedBetIds, setSeenAcceptedBetIds] = useState<Set<string> | null>(null);
-  const seenStorageKey = acceptedSideBetSeenKey(appSlug, currentUser.id);
-  const currentBetViewRef = useRef(view);
-  const visibleAcceptedByViewRef = useRef<Record<"received" | "sent", string[]>>({ received: [], sent: [] });
-  const received = sideBetsForView(sideBets, currentUser.id, "received", seenAcceptedBetIds);
-  const sent = sideBetsForView(sideBets, currentUser.id, "sent", seenAcceptedBetIds);
-  visibleAcceptedByViewRef.current = {
-    received: received.filter((bet) => bet.status === "accepted").map((bet) => bet.id),
-    sent: sent.filter((bet) => bet.status === "accepted").map((bet) => bet.id)
-  };
+  const received = sideBetsForView(sideBets, currentUser.id, "received");
+  const sent = sideBetsForView(sideBets, currentUser.id, "sent");
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
   const creatorSpread = selectedGame && selectedCreatorTeam ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
@@ -1911,33 +1878,6 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
     return groups;
   }, []);
   const hasSlip = Boolean(selectedGame && selectedCreatorTeam);
-
-  const markAcceptedSeen = useCallback((ids: string[]) => {
-    if (!ids.length) return;
-    storeAcceptedSideBetIds(seenStorageKey, ids);
-    setSeenAcceptedBetIds((current) => {
-      const next = new Set(current || []);
-      ids.forEach((id) => next.add(id));
-      return next;
-    });
-  }, [seenStorageKey]);
-
-  useEffect(() => {
-    setSeenAcceptedBetIds(readAcceptedSideBetIds(seenStorageKey));
-  }, [seenStorageKey]);
-
-  useEffect(() => {
-    const previousView = currentBetViewRef.current;
-    if (previousView !== view) {
-      if (previousView === "received" || previousView === "sent") markAcceptedSeen(visibleAcceptedByViewRef.current[previousView]);
-      currentBetViewRef.current = view;
-    }
-  }, [markAcceptedSeen, view]);
-
-  useEffect(() => () => {
-    const activeView = currentBetViewRef.current;
-    if (activeView === "received" || activeView === "sent") storeAcceptedSideBetIds(seenStorageKey, visibleAcceptedByViewRef.current[activeView]);
-  }, [seenStorageKey]);
 
   const collapseSlip = useCallback(() => {
     if (!slipExpanded || slipClosingRef.current) return;
@@ -2137,8 +2077,25 @@ function SideBetGameCard({ game, selectedTeam, disabled, onSelect }: { game: Gam
 }
 
 function SideBetList({ bets, mode, currentUser, empty, saving, savingBetId, canAccept, acceptDisabledText, requestAccept, respond }: { bets: SideBet[]; mode: "received" | "sent"; currentUser: Profile; empty: string; saving: boolean; savingBetId: string | null; canAccept: boolean | ((bet: SideBet) => boolean); acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
-  const sorted = [...bets].sort((a, b) => Number(b.status === "open") - Number(a.status === "open") || new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  return <div className="side-bet-list">{!sorted.length && <div className="empty-state">{empty}</div>}{sorted.map((bet) => <SideBetCard key={bet.id} bet={bet} mode={mode} currentUser={currentUser} saving={saving} working={savingBetId === bet.id} canAccept={typeof canAccept === "function" ? canAccept(bet) : canAccept} acceptDisabledText={acceptDisabledText} requestAccept={requestAccept} respond={respond} />)}</div>;
+  const pending = bets
+    .filter((bet) => sideBetOfferIsPending(bet, currentUser.id, mode))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const history = bets
+    .filter((bet) => !sideBetOfferIsPending(bet, currentUser.id, mode))
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  const card = (bet: SideBet) => <SideBetCard key={bet.id} bet={bet} mode={mode} currentUser={currentUser} saving={saving} working={savingBetId === bet.id} canAccept={typeof canAccept === "function" ? canAccept(bet) : canAccept} acceptDisabledText={acceptDisabledText} requestAccept={requestAccept} respond={respond} />;
+
+  if (!bets.length) return <div className="side-bet-list"><div className="empty-state">{empty}</div></div>;
+  return <div className="side-bet-list grouped">
+    <section className="side-bet-list-section" aria-labelledby={`${mode}-pending-offers`}>
+      <h3 id={`${mode}-pending-offers`}>Pending Offers</h3>
+      <div className="side-bet-list-section-body">{pending.length ? pending.map(card) : <p className="muted side-bet-list-empty">No pending offers.</p>}</div>
+    </section>
+    <section className="side-bet-list-section" aria-labelledby={`${mode}-offer-history`}>
+      <h3 id={`${mode}-offer-history`}>Offer History</h3>
+      <div className="side-bet-list-section-body">{history.length ? history.map(card) : <p className="muted side-bet-list-empty">No offer history yet.</p>}</div>
+    </section>
+  </div>;
 }
 
 function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, acceptDisabledText, requestAccept, respond }: { bet: SideBet; mode: "received" | "sent"; currentUser: Profile; saving: boolean; working: boolean; canAccept: boolean; acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {

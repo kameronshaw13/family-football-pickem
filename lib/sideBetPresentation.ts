@@ -2,15 +2,18 @@ import type { SideBet } from "./types";
 
 export type SideBetViewMode = "received" | "sent";
 
-export function sideBetsForView(bets: SideBet[], userId: string, mode: SideBetViewMode, seenAcceptedIds: ReadonlySet<string> | null) {
+export function sideBetsForView(bets: SideBet[], userId: string, mode: SideBetViewMode) {
   return bets.filter((bet) => {
-    const belongsToView = mode === "sent"
+    return mode === "sent"
       ? bet.creator_id === userId
       : bet.creator_id !== userId && Boolean(bet.targets?.some((target) => target.recipient_id === userId));
-    if (!belongsToView) return false;
-    if (bet.status !== "accepted") return true;
-    return Boolean(seenAcceptedIds && !seenAcceptedIds.has(bet.id));
   });
+}
+
+export function sideBetOfferIsPending(bet: SideBet, userId: string, mode: SideBetViewMode) {
+  if (bet.status !== "open") return false;
+  if (mode === "sent") return Boolean(bet.targets?.some((target) => target.response === "pending"));
+  return bet.targets?.find((target) => target.recipient_id === userId)?.response === "pending";
 }
 
 export function sideBetPerspective(bet: SideBet, mode: SideBetViewMode) {

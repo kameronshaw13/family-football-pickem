@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetPerspective, sideBetsForView } from "../lib/sideBetPresentation.ts";
+import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetsForView } from "../lib/sideBetPresentation.ts";
 import type { SideBet } from "../lib/types.ts";
 
 function bet(overrides: Partial<SideBet> = {}): SideBet {
@@ -33,11 +33,24 @@ test("sender and recipient see their own team, spread, and logo perspective", ()
   assert.deepEqual(sideBetPerspective(bet(), "received"), { team: "Home Team", spread: -7.5 });
 });
 
-test("accepted offers show once and then restore the natural empty state", () => {
+test("accepted offers remain visible in offer history", () => {
   const accepted = bet({ status: "accepted", accepted_by: "recipient" });
-  assert.deepEqual(sideBetsForView([accepted], "sender", "sent", new Set()).map((row) => row.id), ["bet-1"]);
-  assert.deepEqual(sideBetsForView([accepted], "sender", "sent", new Set(["bet-1"])), []);
-  assert.deepEqual(sideBetsForView([accepted], "recipient", "received", new Set(["bet-1"])), []);
+  assert.deepEqual(sideBetsForView([accepted], "sender", "sent").map((row) => row.id), ["bet-1"]);
+  assert.deepEqual(sideBetsForView([accepted], "recipient", "received").map((row) => row.id), ["bet-1"]);
+  assert.equal(sideBetOfferIsPending(accepted, "sender", "sent"), false);
+  assert.equal(sideBetOfferIsPending(accepted, "recipient", "received"), false);
+});
+
+test("pending status follows the current recipient response", () => {
+  const open = bet();
+  assert.equal(sideBetOfferIsPending(open, "sender", "sent"), true);
+  assert.equal(sideBetOfferIsPending(open, "recipient", "received"), true);
+
+  const recipientDeclined = bet({
+    targets: [{ side_bet_id: "bet-1", recipient_id: "recipient", response: "declined", responded_at: "2026-08-21T13:00:00.000Z", recipient: { id: "recipient", display_name: "Recipient" } }]
+  });
+  assert.equal(sideBetOfferIsPending(recipientDeclined, "recipient", "received"), false);
+  assert.equal(sideBetOfferIsPending(recipientDeclined, "sender", "sent"), false);
 });
 
 test("ledger uses the current user's side when involved", () => {
