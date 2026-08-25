@@ -47,6 +47,11 @@ function makeSeasonNamesInteractive() {
   });
 }
 
+function bankPanelIsActive() {
+  const activeTab = document.querySelector<HTMLElement>(".standings-panel .section-tabs button.active");
+  return activeTab?.textContent?.replace(/\s+/g, " ").trim().startsWith("Bank") || false;
+}
+
 function preloadLogos(payload: UiPayload | null) {
   for (const game of payload?.games || []) {
     for (const url of [game.away_logo_url, game.home_logo_url]) {
@@ -63,11 +68,17 @@ export default function AppUiCoordinator() {
   useEffect(() => {
     let active = true;
     let frame = 0;
+    let bankWasActive = false;
 
     function run() {
       if (!active) return;
       makeSeasonNamesInteractive();
       preloadLogos(cachedPayload());
+      const bankActive = bankPanelIsActive();
+      if (bankActive && !bankWasActive) {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      }
+      bankWasActive = bankActive;
     }
 
     function schedule() {

@@ -63,6 +63,9 @@
   white-space: nowrap;
   text-overflow: clip !important;
 }
+.side-bet-response-line {
+  width: calc(100% - 3px);
+}
 
 .confirmation-matchup > div .side-bet-review-logo {
   width: 30px;
