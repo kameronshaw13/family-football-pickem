@@ -19,6 +19,7 @@
   --panel: #fbfaf6;
   --ink: #0a0f12;
   --muted: #68747a;
+  --header-muted: #59666d;
   --line: #d0d4d1;
   --line-strong: #afb7b4;
   --graphite: #20282d;
@@ -143,7 +144,7 @@ p { margin: 0; }
 .custom-select-menu > .custom-select-section:first-child > .custom-select-option:first-child { border-top: 0; }
 .custom-select-option.selected { color: var(--blue-dark); background: var(--blue-soft); }
 .custom-select-option:active { background: var(--hover); }
-.custom-select-group-label { display: flex; min-height: 28px; align-items: center; padding: 4px 10px; border-top: 1px solid var(--line); color: var(--muted); background: var(--surface-soft); font-size: 10px; font-weight: 800; line-height: 1.1; text-align: left; text-transform: uppercase; }
+.custom-select-group-label { display: flex; min-height: 28px; align-items: center; padding: 4px 10px; border-top: 1px solid var(--line); color: var(--header-muted); background: var(--surface-soft); font-size: 10px; font-weight: 800; line-height: 1.1; text-align: left; text-transform: uppercase; }
 .game-menu-select .custom-select-section:first-child .custom-select-group-label { border-top: 0; }
 .game-menu-select .custom-select-option { height: auto; min-height: 38px; }
 .game-days { display: grid; gap: var(--space-4); }
@@ -238,7 +239,7 @@ p { margin: 0; }
 .card-progress.complete .progress-track span { background: var(--green); }
 .game-list, .card-progress, .group-list, .side-bet-list, .leaderboard, .bank-summary-grid, .bank-week-results, .ledger-list, .rules-list { margin-inline: calc(var(--page-gutter) * -1); }
 .pick-section, .subsection { margin-top: var(--space-4); }
-.pick-section h3, .subsection h3 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
+.pick-section h3, .subsection h3 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); color: var(--header-muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .pick-section h3 { margin-left: calc(var(--pick-content-inset) - var(--page-gutter) + 2px); }
 .pick-card { position: relative; display: flex; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); align-items: center; margin: 0 calc(var(--page-gutter) * -1); padding: 7px var(--pick-content-inset); border: 0; background: var(--panel); }
 .pick-card::after { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--line); content: ""; pointer-events: none; }
@@ -246,15 +247,15 @@ p { margin: 0; }
 .pick-card:last-child::after { background: var(--line-strong); }
 .group-list { display: grid; gap: 0; }
 .group-card { margin: 0; padding: 0; border: 0; background: transparent; }
-.group-card h3 { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-4) calc(var(--pick-content-inset) + 2px) var(--space-2); color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.group-card h3 { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-4) calc(var(--pick-content-inset) + 2px) var(--space-2); color: var(--header-muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .group-card:first-child h3 { margin-top: var(--space-1); }
-.card-panel .pick-section > h3, .card-panel .group-card > h3 { display: flex; height: 30px; min-height: 30px; align-items: center; margin: 0; padding: 0 var(--pick-content-inset); border-block: 1px solid var(--line); color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.card-panel .pick-section > h3, .card-panel .group-card > h3 { display: flex; height: 30px; min-height: 30px; align-items: center; margin: 0; padding: 0 var(--pick-content-inset); border-block: 1px solid var(--line); color: var(--header-muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
 .card-panel .pick-section > h3 { margin-inline: calc(var(--page-gutter) * -1); }
 .card-panel .group-card + .group-card { margin-top: var(--space-3); }
 .card-panel .pick-section .pick-card:first-of-type::before, .card-panel .group-card .visible-pick:first-of-type::before { display: none; }
 .card-panel .pick-section > h3 ~ .card-empty-picks, .card-panel .group-card > h3 ~ .group-empty-picks { border-top: 0; }
 .group-empty-picks { display: flex; height: 39px; min-height: 39px; align-items: center; margin: 0; padding: 10px var(--pick-content-inset); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--panel); }
-.card-empty-picks { display: flex; min-height: var(--pick-card-row-height); align-items: center; margin: 0 calc(var(--page-gutter) * -1); padding: 12px var(--pick-content-inset); border-block: 1px solid var(--line); background: var(--panel); }
+.card-empty-picks { display: flex; height: 39px; min-height: 39px; align-items: center; margin: 0 calc(var(--page-gutter) * -1); padding: 10px var(--pick-content-inset); border-block: 1px solid var(--line); background: var(--panel); }
 .pick-top { display: grid; width: 100%; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; }
 .pick-top > .team-logo, .visible-pick > .team-logo { width: 34px; height: 34px; }
 .pick-copy, .visible-pick-copy { display: grid; min-width: 0; align-content: center; }
@@ -338,7 +339,7 @@ fieldset .field-label { padding: 0; }
 .side-bet-slip-team-choice .team-spread { width: auto; flex: 0 0 auto; justify-content: flex-start; font-weight: 700; }
 .side-bet-selection-clear { justify-self: end; border-color: #d6aaa6; color: var(--red); background: var(--red-soft); }
 .side-bet-slip-section { border-bottom: 1px solid var(--line-strong); }
-.side-bet-slip-section-head { display: flex; height: 30px; align-items: center; gap: 10px; padding: 0 var(--pick-content-inset); border-bottom: 1px solid var(--line); color: var(--muted); background: var(--surface-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.side-bet-slip-section-head { display: flex; height: 30px; align-items: center; gap: 10px; padding: 0 var(--pick-content-inset); border-bottom: 1px solid var(--line); color: var(--header-muted); background: var(--surface-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
 .side-bet-amount-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .side-bet-amount-grid button { min-height: 43px; padding: 6px; border: 0; border-right: 1px solid var(--line); color: var(--ink); background: var(--panel); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .side-bet-amount-grid button:last-child { border-right: 0; }
@@ -354,14 +355,14 @@ fieldset .field-label { padding: 0; }
 .side-bet-slip-summary { border-bottom: 1px solid var(--line-strong); background: var(--panel); }
 .side-bet-slip-summary > div { display: grid; min-height: 39px; grid-template-columns: 70px minmax(0, 1fr); align-items: center; gap: 10px; padding: 6px var(--pick-content-inset); border-bottom: 1px solid var(--line); }
 .side-bet-slip-summary > div:last-child { border-bottom: 0; }
-.side-bet-slip-summary > div > span { color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.side-bet-slip-summary > div > span { color: var(--header-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
 .side-bet-slip-summary strong { overflow: hidden; font-size: 12px; font-weight: 700; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .side-bet-slip-summary strong .responsive-text, .confirmation-matchup strong .responsive-text { width: 100%; }
 .side-bet-slip-submit { width: calc(100% - (var(--pick-content-inset) * 2)); min-height: 43px; margin: 10px var(--pick-content-inset) 11px; }
 .side-bet-list { display: grid; gap: 0; }
 .side-bet-list.grouped { gap: var(--space-3); }
 .side-bet-list-section { display: grid; }
-.side-bet-list-section > h3 { display: flex; height: 30px; align-items: center; margin: 0; padding: 0 var(--pick-content-inset); border-block: 1px solid var(--line); color: var(--muted); background: var(--surface-muted); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.side-bet-list-section > h3 { display: flex; height: 30px; align-items: center; margin: 0; padding: 0 var(--pick-content-inset); border-block: 1px solid var(--line); color: var(--header-muted); background: var(--surface-muted); font-size: 10px; font-weight: 800; text-transform: uppercase; }
 .side-bet-list-section-body { background: var(--panel); }
 .side-bet-list-empty { display: flex; min-height: 48px; align-items: center; padding: 10px var(--pick-content-inset); border-bottom: 1px solid var(--line); }
 .side-bet-card { min-height: 68px; padding: 10px var(--pick-content-inset); border: 0; border-bottom: 1px solid var(--line); background: var(--panel); }
@@ -403,7 +404,7 @@ fieldset .field-label { padding: 0; }
 .confirmation-sheet { width: min(520px, 100%); padding: 18px; border-radius: 8px; background: var(--panel); box-shadow: 0 24px 60px rgba(20, 33, 43, .3); }
 .confirmation-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; color: var(--blue-dark); background: var(--blue-soft); }
 .confirmation-heading { margin-top: 12px; }
-.confirmation-heading > span { color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
+.confirmation-heading > span { color: var(--header-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .confirmation-heading h2 { margin: 3px 0 0; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .confirmation-matchup { margin-top: 15px; border-block: 1px solid var(--line); }
 .confirmation-matchup > div { display: flex; min-height: 52px; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
@@ -418,7 +419,7 @@ fieldset .field-label { padding: 0; }
 .scoreboard-heading h2 { display: flex; min-height: 24px; align-items: center; margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 20px; font-weight: 800; line-height: 1.15; }
 .leaderboard { overflow: hidden; border-block: 1px solid var(--line-strong); background: transparent; }
 .leaderboard-labels, .leaderboard-row { display: grid; grid-template-columns: 48px minmax(94px, 1fr) repeat(3, 32px) 62px; align-items: center; }
-.leaderboard-labels { height: var(--data-header-height); min-height: var(--data-header-height); padding: 0 11px; border-bottom: 1px solid var(--line); color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
+.leaderboard-labels { height: var(--data-header-height); min-height: var(--data-header-height); padding: 0 11px; border-bottom: 1px solid var(--line); color: var(--header-muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .leaderboard-row { height: var(--data-row-height); min-height: var(--data-row-height); padding: 8px 11px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .leaderboard-row:last-child { border-bottom: 0; }
 .leaderboard-labels > span, .leaderboard-row > span, .leaderboard-row > strong, .leaderboard-player { display: flex; height: 100%; align-items: center; justify-content: center; line-height: 1.2; text-align: center; }
@@ -441,7 +442,7 @@ fieldset .field-label { padding: 0; }
 .test-standings-label { color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; text-transform: uppercase; }
 .bank-summary-grid { overflow: hidden; border-block: 1px solid var(--line-strong); background: transparent; }
 .bank-summary-head, .money-card { display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; padding-inline: var(--bank-content-inset) 17px; }
-.bank-summary-head { height: var(--data-header-height); min-height: var(--data-header-height); border-bottom: 1px solid var(--line); color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.bank-summary-head { height: var(--data-header-height); min-height: var(--data-header-height); border-bottom: 1px solid var(--line); color: var(--header-muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
 .bank-summary-head span:last-child, .money-card strong { display: flex; height: 100%; align-items: center; justify-content: flex-end; text-align: right; }
 .money-card { height: var(--data-row-height); min-height: var(--data-row-height); padding-block: 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .money-card:last-child { border-bottom: 0; }
@@ -452,7 +453,7 @@ fieldset .field-label { padding: 0; }
 .money-neutral { color: var(--ink); }
 .bank-section { margin-top: var(--space-4); }
 .bank-week-results { border-block: 1px solid var(--line-strong); background: var(--panel); }
-.bank-results-labels { display: grid; height: var(--data-header-height); min-height: var(--data-header-height); grid-template-columns: minmax(0, 1fr) 58px 48px 18px; align-items: center; gap: 8px; padding: 0 11px 0 var(--bank-content-inset); border-bottom: 1px solid var(--line); color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
+.bank-results-labels { display: grid; height: var(--data-header-height); min-height: var(--data-header-height); grid-template-columns: minmax(0, 1fr) 58px 48px 18px; align-items: center; gap: 8px; padding: 0 11px 0 var(--bank-content-inset); border-bottom: 1px solid var(--line); color: var(--header-muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .bank-results-labels > span:first-child { text-align: left; }
 .bank-results-labels > span:nth-child(2), .bank-results-labels > span:nth-child(3) { display: flex; height: 100%; align-items: center; justify-content: flex-end; text-align: right; }
 .bank-player-result { position: relative; }
