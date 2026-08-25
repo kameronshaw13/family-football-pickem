@@ -115,23 +115,64 @@ function abbreviatedTeamName(game: Game, team: string) {
   return teamAbbreviatedName(game.league, team);
 }
 
-function ResponsiveText({ full, compact, className = "" }: { full: string; compact: string; className?: string }) {
+function matchupTextVariants(game: Game, options: { spreadTeam?: string; spread?: number | null; suffix?: string } = {}) {
+  const awayFull = displayTeamName(game, game.away_team);
+  const homeFull = displayTeamName(game, game.home_team);
+  const awayCompact = abbreviatedTeamName(game, game.away_team);
+  const homeCompact = abbreviatedTeamName(game, game.home_team);
+  const spreadTeam = options.spreadTeam;
+  const suffix = options.suffix || "";
+  const preferredTeamToCompact = spreadTeam
+    ? spreadTeam === game.away_team ? game.home_team : game.away_team
+    : awayFull.length >= homeFull.length ? game.away_team : game.home_team;
+  const preferredCanCompact = preferredTeamToCompact === game.away_team
+    ? awayCompact !== awayFull
+    : homeCompact !== homeFull;
+  const alternateTeam = preferredTeamToCompact === game.away_team ? game.home_team : game.away_team;
+  const alternateCanCompact = alternateTeam === game.away_team
+    ? awayCompact !== awayFull
+    : homeCompact !== homeFull;
+  const firstTeamToCompact = preferredCanCompact || !alternateCanCompact ? preferredTeamToCompact : alternateTeam;
+  const spread = options.spread ?? null;
+  const format = (away: string, home: string) => {
+    const awayMarket = spreadTeam === game.away_team ? ` ${spreadText(spread)}` : "";
+    const homeMarket = spreadTeam === game.home_team ? ` ${spreadText(spread)}` : "";
+    return `${away}${awayMarket} at ${home}${homeMarket}${suffix}`;
+  };
+
+  return {
+    full: format(awayFull, homeFull),
+    intermediate: format(firstTeamToCompact === game.away_team ? awayCompact : awayFull, firstTeamToCompact === game.home_team ? homeCompact : homeFull),
+    compact: format(awayCompact, homeCompact)
+  };
+}
+
+function ResponsiveText({ full, intermediate, compact, className = "" }: { full: string; intermediate?: string; compact: string; className?: string }) {
   const hostRef = useRef<HTMLSpanElement>(null);
-  const measureRef = useRef<HTMLSpanElement>(null);
-  const [useCompact, setUseCompact] = useState(false);
+  const fullMeasureRef = useRef<HTMLSpanElement>(null);
+  const intermediateMeasureRef = useRef<HTMLSpanElement>(null);
+  const [variant, setVariant] = useState<"full" | "intermediate" | "compact">("full");
 
   useEffect(() => {
     const host = hostRef.current;
-    const measure = measureRef.current;
-    if (!host || !measure || full === compact) {
-      setUseCompact(false);
+    const fullMeasure = fullMeasureRef.current;
+    const intermediateMeasure = intermediateMeasureRef.current;
+    if (!host || !fullMeasure || full === compact) {
+      setVariant("full");
       return;
     }
 
     let active = true;
     const update = () => {
       if (!active) return;
-      setUseCompact(measure.getBoundingClientRect().width > host.clientWidth + 0.5);
+      const availableWidth = host.clientWidth + 0.5;
+      if (fullMeasure.getBoundingClientRect().width <= availableWidth) {
+        setVariant("full");
+      } else if (intermediate && intermediateMeasure && intermediateMeasure.getBoundingClientRect().width <= availableWidth) {
+        setVariant("intermediate");
+      } else {
+        setVariant("compact");
+      }
     };
     update();
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
@@ -143,11 +184,14 @@ function ResponsiveText({ full, compact, className = "" }: { full: string; compa
       observer?.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, [compact, full]);
+  }, [compact, full, intermediate]);
 
-  return <span ref={hostRef} className={`responsive-text ${className}`.trim()} aria-label={full} title={useCompact ? full : undefined}>
-    <span ref={measureRef} className="responsive-text-measure" aria-hidden="true">{full}</span>
-    <span className="responsive-text-value"><NumericText text={useCompact ? compact : full} /></span>
+  const value = variant === "full" ? full : variant === "intermediate" && intermediate ? intermediate : compact;
+
+  return <span ref={hostRef} className={`responsive-text ${className}`.trim()} aria-label={full} title={variant === "full" ? undefined : full}>
+    <span ref={fullMeasureRef} className="responsive-text-measure" aria-hidden="true">{full}</span>
+    {intermediate && <span ref={intermediateMeasureRef} className="responsive-text-measure" aria-hidden="true">{intermediate}</span>}
+    <span className="responsive-text-value"><NumericText text={value} /></span>
   </span>;
 }
 
@@ -1864,6 +1908,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
   const creatorSpread = selectedGame && selectedCreatorTeam ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
+  const selectedMatchup = selectedGame ? matchupTextVariants(selectedGame) : null;
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
   const slotCount = slotCounts[currentUser.id] || 0;
   const limitReached = slotCount >= MAX_SIDE_BETS_PER_WEEK;
@@ -2008,7 +2053,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
     {view === "new" && selectedGame && selectedCreatorTeam && slipExpanded && <section ref={slipSheetRef} className={`side-bet-slip-sheet ${slipClosing ? "closing" : ""}`.trim()} role="dialog" aria-labelledby="side-bet-slip-title">
         <div className="side-bet-slip-sheet-head" onPointerDown={beginSlipSwipe} onPointerMove={continueSlipSwipe} onPointerUp={endSlipSwipe} onPointerCancel={endSlipSwipe}>
-          <div className="side-bet-slip-title"><h2 id="side-bet-slip-title"><ResponsiveText full={`${displayTeamName(selectedGame, selectedGame.away_team)} at ${displayTeamName(selectedGame, selectedGame.home_team)}`} compact={`${abbreviatedTeamName(selectedGame, selectedGame.away_team)} at ${abbreviatedTeamName(selectedGame, selectedGame.home_team)}`} /></h2><p><NumericText text={`${fullDateText(selectedGame.commence_time)} · ${timeText(selectedGame.commence_time)}`} /></p></div>
+          <div className="side-bet-slip-title"><h2 id="side-bet-slip-title">{selectedMatchup && <ResponsiveText full={selectedMatchup.full} intermediate={selectedMatchup.intermediate} compact={selectedMatchup.compact} />}</h2><p><NumericText text={`${fullDateText(selectedGame.commence_time)} · ${timeText(selectedGame.commence_time)}`} /></p></div>
           <button type="button" className="slip-icon-btn side-bet-header-collapse" aria-label="Collapse bet slip" onPointerDown={(event) => event.stopPropagation()} onClick={collapseSlip}><ChevronDown size={18} /></button>
         </div>
 
@@ -2107,20 +2152,9 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   const perspectiveSpread = perspective.spread;
   const offeredSideName = game ? displayTeamName(game, bet.offered_team) : bet.offered_team;
   const offeredSideCompact = game ? abbreviatedTeamName(game, bet.offered_team) : bet.offered_team;
-  const awayName = game ? displayTeamName(game, game.away_team) : "";
-  const homeName = game ? displayTeamName(game, game.home_team) : "";
-  const awayCompactName = game ? abbreviatedTeamName(game, game.away_team) : "";
-  const homeCompactName = game ? abbreviatedTeamName(game, game.home_team) : "";
-  const matchupText = !game
-    ? `${perspectiveTeam} ${spreadText(perspectiveSpread)}`
-    : perspectiveTeam === game.away_team
-      ? `${awayName} ${spreadText(perspectiveSpread)} at ${homeName}`
-      : `${awayName} at ${homeName} ${spreadText(perspectiveSpread)}`;
-  const matchupCompactText = !game
-    ? matchupText
-    : perspectiveTeam === game.away_team
-      ? `${awayCompactName} ${spreadText(perspectiveSpread)} at ${homeCompactName}`
-      : `${awayCompactName} at ${homeCompactName} ${spreadText(perspectiveSpread)}`;
+  const matchup = game
+    ? matchupTextVariants(game, { spreadTeam: perspectiveTeam, spread: perspectiveSpread })
+    : { full: `${perspectiveTeam} ${spreadText(perspectiveSpread)}`, intermediate: undefined, compact: `${perspectiveTeam} ${spreadText(perspectiveSpread)}` };
   const responseSummary = sideBetResponseSummary(bet, currentUser.id, mode);
   const responseSpread = spreadText(Number(bet.offered_spread));
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
@@ -2131,7 +2165,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""}`}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, perspectiveTeam) : null} name={perspectiveTeam} />
-      <div className="side-bet-offer-copy"><strong><ResponsiveText full={matchupText} compact={matchupCompactText} /></strong><p className="side-bet-response-line"><ResponsiveText full={responseSummary.subjectFull} compact={responseSummary.subjectCompact} className="side-bet-response-subject" /><span className={`side-bet-response ${responseSummary.tone}`}>{responseSummary.action}</span>{responseSummary.recipientFull && <ResponsiveText full={responseSummary.recipientFull} compact={responseSummary.recipientCompact || responseSummary.recipientFull} className="side-bet-response-recipients" />}<ResponsiveText full={`${offeredSideName} ${responseSpread}`} compact={`${offeredSideCompact} ${responseSpread}`} className="side-bet-response-team" />{game && <span className="side-bet-response-date">· <NumericText text={dt(game.commence_time)} /></span>}</p></div>
+      <div className="side-bet-offer-copy"><strong><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} /></strong><p className="side-bet-response-line"><ResponsiveText full={responseSummary.subjectFull} compact={responseSummary.subjectCompact} className="side-bet-response-subject" /><span className={`side-bet-response ${responseSummary.tone}`}>{responseSummary.action}</span>{responseSummary.recipientFull && <ResponsiveText full={responseSummary.recipientFull} compact={responseSummary.recipientCompact || responseSummary.recipientFull} className="side-bet-response-recipients" />}<ResponsiveText full={`${offeredSideName} ${responseSpread}`} compact={`${offeredSideCompact} ${responseSpread}`} className="side-bet-response-team" />{game && <span className="side-bet-response-date">· <NumericText text={dt(game.commence_time)} /></span>}</p></div>
       <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
     </div>
     {mode === "received" && offerOpen && <div className="actions"><button className={`btn accept ${working ? "working" : ""}`} disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : <NumericText text={acceptDisabledText} />}</button><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
@@ -2151,19 +2185,16 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   const awayTeam = game?.away_team || bet.offered_team;
   const homeTeam = game?.home_team || bet.creator_team;
   const spread = spreadText(displaySpread);
-  const matchupFull = game
-    ? `${displayTeamName(game, awayTeam)}${displayTeam === awayTeam ? ` ${spread}` : ""} at ${displayTeamName(game, homeTeam)}${displayTeam === homeTeam ? ` ${spread}` : ""}`
-    : `${displayTeam} ${spread} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}`;
-  const matchupCompact = game
-    ? `${abbreviatedTeamName(game, awayTeam)}${displayTeam === awayTeam ? ` ${spread}` : ""} at ${abbreviatedTeamName(game, homeTeam)}${displayTeam === homeTeam ? ` ${spread}` : ""}`
-    : matchupFull;
+  const matchup = game
+    ? matchupTextVariants(game, { spreadTeam: displayTeam, spread: displaySpread })
+    : { full: `${displayTeam} ${spread} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}`, intermediate: undefined, compact: `${displayTeam} ${spread} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}` };
   const winner = bet.winner_id === creator.id ? creator : bet.winner_id === acceptor.id ? acceptor : null;
   const status = bet.status === "accepted" ? "" : bet.result === "push" ? "Push" : winner ? `${displayPerson(winner)} Won` : "Settled";
   const bettors = `${displayPerson(sideBetBettorForTeam(bet, awayTeam))} vs ${displayPerson(sideBetBettorForTeam(bet, homeTeam))}`;
   const amountDisplay = perspective.involvesUser ? sideBetAmountForUser(bet, currentUser.id) : { text: stakeMoney(Number(bet.amount)), tone: "money-neutral" };
   return <div className={`ledger-row side-bet-ledger-row ${bet.status === "accepted" ? "accepted" : ""}`}>
     <TeamLogo url={game ? logoForTeam(game, displayTeam) : null} name={displayTeam} />
-    <div className="side-bet-ledger-copy"><strong className="side-bet-ledger-title"><ResponsiveText full={matchupFull} compact={matchupCompact} className="side-bet-ledger-matchup" /></strong><p>{bettors}{status ? <> · {status}</> : null}</p></div>
+    <div className="side-bet-ledger-copy"><strong className="side-bet-ledger-title"><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} className="side-bet-ledger-matchup" /></strong><p>{bettors}{status ? <> · {status}</> : null}</p></div>
     <strong className={`side-bet-ledger-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
   </div>;
 }

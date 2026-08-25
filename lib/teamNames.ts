@@ -73,6 +73,7 @@ const COLLEGE_MANUAL_DISPLAY: Record<string, string> = {
 const TEAM_ABBREVIATIONS: Record<string, string> = {
   "north dakota state": "NDSU",
   "south dakota state": "SDSU",
+  "sacramento state": "Sac State",
   "eastern michigan": "EMU",
   "western michigan": "WMU",
   "central michigan": "CMU",

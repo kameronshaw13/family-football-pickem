@@ -18,7 +18,9 @@ test("NFL display names use the team nickname", () => {
 test("compact labels use familiar abbreviations for long school names", () => {
   assert.equal(teamAbbreviatedName("CFB", "North Dakota State Bison"), "NDSU");
   assert.equal(teamAbbreviatedName("CFB", "Eastern Michigan Eagles"), "EMU");
-  assert.equal(teamAbbreviatedName("CFB", "Sacramento State Hornets"), "SSU");
+  assert.equal(teamAbbreviatedName("CFB", "Sacramento State Hornets"), "Sac State");
+  assert.equal(teamAbbreviatedName("CFB", "Texas Longhorns"), "Texas");
+  assert.equal(teamAbbreviatedName("CFB", "Florida Gators"), "Florida");
   assert.equal(teamAbbreviatedName("CFB", "Western Michigan Broncos"), "WMU");
   assert.equal(teamAbbreviatedName("CFB", "Central Michigan Chippewas"), "CMU");
 });
