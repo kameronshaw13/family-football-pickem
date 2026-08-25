@@ -66,6 +66,9 @@
 .side-bet-response-line {
   width: calc(100% - 3px);
 }
+.side-bet-offer-amount {
+  font-weight: 700;
+}
 
 .confirmation-matchup > div .side-bet-review-logo {
   width: 30px;
