@@ -2109,11 +2109,18 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   const offeredSideCompact = game ? abbreviatedTeamName(game, bet.offered_team) : bet.offered_team;
   const awayName = game ? displayTeamName(game, game.away_team) : "";
   const homeName = game ? displayTeamName(game, game.home_team) : "";
+  const awayCompactName = game ? abbreviatedTeamName(game, game.away_team) : "";
+  const homeCompactName = game ? abbreviatedTeamName(game, game.home_team) : "";
   const matchupText = !game
     ? `${perspectiveTeam} ${spreadText(perspectiveSpread)}`
     : perspectiveTeam === game.away_team
       ? `${awayName} ${spreadText(perspectiveSpread)} at ${homeName}`
       : `${awayName} at ${homeName} ${spreadText(perspectiveSpread)}`;
+  const matchupCompactText = !game
+    ? matchupText
+    : perspectiveTeam === game.away_team
+      ? `${awayCompactName} ${spreadText(perspectiveSpread)} at ${homeCompactName}`
+      : `${awayCompactName} at ${homeCompactName} ${spreadText(perspectiveSpread)}`;
   const responseSummary = sideBetResponseSummary(bet, currentUser.id, mode);
   const responseSpread = spreadText(Number(bet.offered_spread));
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
@@ -2124,7 +2131,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""}`}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, perspectiveTeam) : null} name={perspectiveTeam} />
-      <div className="side-bet-offer-copy"><strong><NumericText text={matchupText} /></strong><p className="side-bet-response-line"><ResponsiveText full={responseSummary.subjectFull} compact={responseSummary.subjectCompact} className="side-bet-response-subject" /><span className={`side-bet-response ${responseSummary.tone}`}>{responseSummary.action}</span>{responseSummary.recipientFull && <ResponsiveText full={responseSummary.recipientFull} compact={responseSummary.recipientCompact || responseSummary.recipientFull} className="side-bet-response-recipients" />}<ResponsiveText full={`${offeredSideName} ${responseSpread}`} compact={`${offeredSideCompact} ${responseSpread}`} className="side-bet-response-team" />{game && <span className="side-bet-response-date">· <NumericText text={dt(game.commence_time)} /></span>}</p></div>
+      <div className="side-bet-offer-copy"><strong><ResponsiveText full={matchupText} compact={matchupCompactText} /></strong><p className="side-bet-response-line"><ResponsiveText full={responseSummary.subjectFull} compact={responseSummary.subjectCompact} className="side-bet-response-subject" /><span className={`side-bet-response ${responseSummary.tone}`}>{responseSummary.action}</span>{responseSummary.recipientFull && <ResponsiveText full={responseSummary.recipientFull} compact={responseSummary.recipientCompact || responseSummary.recipientFull} className="side-bet-response-recipients" />}<ResponsiveText full={`${offeredSideName} ${responseSpread}`} compact={`${offeredSideCompact} ${responseSpread}`} className="side-bet-response-team" />{game && <span className="side-bet-response-date">· <NumericText text={dt(game.commence_time)} /></span>}</p></div>
       <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
     </div>
     {mode === "received" && offerOpen && <div className="actions"><button className={`btn accept ${working ? "working" : ""}`} disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : <NumericText text={acceptDisabledText} />}</button><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
