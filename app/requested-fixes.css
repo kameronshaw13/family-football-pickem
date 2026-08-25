@@ -54,12 +54,19 @@
 .rules-panel > .notification-settings .notification-compact-toggle.enabled .notification-compact-state { color: var(--green); }
 .rules-panel > .notification-settings .notification-compact-toggle.disabled .notification-compact-state { color: var(--muted); }
 
+.picks-panel .stacked-matchup {
+  row-gap: 1px;
+}
 .picks-panel .stacked-matchup .team-row {
   height: var(--data-row-height);
   min-height: var(--data-row-height);
+  border-bottom: 0;
 }
-.picks-panel .stacked-matchup .team-row:last-child {
-  border-bottom: 1px solid transparent;
+.picks-panel .stacked-matchup .team-row:first-child::before {
+  bottom: -1px;
+}
+.picks-panel .stacked-matchup .team-row:first-child::after {
+  bottom: -8px;
 }
 .picks-panel .stacked-matchup .team-row.picked-side {
   box-shadow: none;
