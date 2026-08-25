@@ -19,3 +19,55 @@
 .bank-game-result .test-result.pending {
   display: none;
 }
+
+/* Dropdown/select controls center against their full cell height; divider paint is excluded from layout. */
+.week-select-wrap {
+  height: 36px;
+  min-height: 36px;
+}
+.header-menu-select .custom-select-trigger {
+  display: flex;
+  height: 36px;
+  min-height: 36px;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.compact-select {
+  height: var(--data-header-height);
+  min-height: var(--data-header-height);
+}
+.compact-select select,
+.compact-select .custom-select-trigger {
+  height: 100%;
+  min-height: 100%;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+}
+.field-menu-select .custom-select-trigger {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.custom-select-option {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.custom-select-group-label {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.header-menu-select > .custom-select-chevron,
+.header-menu-select > .custom-select-spinner,
+.compact-select > .custom-select-chevron,
+.compact-select > .custom-select-spinner {
+  top: 50%;
+  translate: 0 -50%;
+}
