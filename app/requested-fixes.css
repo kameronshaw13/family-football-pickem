@@ -54,6 +54,12 @@
 .rules-panel > .notification-settings .notification-compact-toggle.enabled .notification-compact-state { color: var(--green); }
 .rules-panel > .notification-settings .notification-compact-toggle.disabled .notification-compact-state { color: var(--muted); }
 
+.side-bet-card {
+  height: var(--pick-card-row-height);
+  min-height: var(--pick-card-row-height);
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
 .side-bet-offer-copy,
 .side-bet-offer-copy > strong {
   min-width: 0;
