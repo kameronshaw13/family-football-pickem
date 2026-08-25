@@ -374,7 +374,7 @@ fieldset .field-label { padding: 0; }
 .side-bet-offer-copy p { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .side-bet-response-line { display: flex; min-width: 0; align-items: baseline; gap: 3px; }
 .side-bet-response-subject, .side-bet-response-recipients, .side-bet-response-team { min-width: 0; flex: 0 1 auto; }
-.side-bet-response-team { flex: 1 1 auto; }
+.side-bet-response-team { flex: 0 1 auto; }
 .side-bet-response, .side-bet-response-date { flex: 0 0 auto; }
 .side-bet-response { font-weight: 800; }
 .side-bet-response.accepted { color: var(--green); }
