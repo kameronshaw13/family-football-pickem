@@ -16,7 +16,7 @@ import GroupMoneyControls from "@/components/GroupMoneyControls";
 import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoints";
 import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
 import { appLoginPath } from "@/lib/appIdentity";
-import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetsForView } from "@/lib/sideBetPresentation";
+import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetResponseSummary, sideBetsForView } from "@/lib/sideBetPresentation";
 import { orderCardPicks } from "@/lib/cardOrdering";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 
@@ -2101,14 +2101,11 @@ function SideBetList({ bets, currentUser, empty, saving, savingBetId, canAccept,
 
 function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, acceptDisabledText, requestAccept, respond }: { bet: SideBet; mode: "received" | "sent"; currentUser: Profile; saving: boolean; working: boolean; canAccept: boolean; acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
   const game = bet.game;
-  const creatorName = bet.creator?.display_name || "A player";
   const target = bet.targets?.find((row) => row.recipient_id === currentUser.id);
-  const targetNames = bet.targets?.map((row) => row.recipient?.display_name).filter(Boolean).join(" or ") || "player";
   const offerOpen = bet.status === "open" && (mode === "sent" || target?.response === "pending") && Boolean(game && new Date(game.commence_time) > new Date());
   const perspective = sideBetPerspective(bet, mode);
   const perspectiveTeam = perspective.team;
   const perspectiveSpread = perspective.spread;
-  const offeredSideName = game ? displayTeamName(game, bet.offered_team) : bet.offered_team;
   const awayName = game ? displayTeamName(game, game.away_team) : "";
   const homeName = game ? displayTeamName(game, game.home_team) : "";
   const matchupText = !game
@@ -2116,30 +2113,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
     : perspectiveTeam === game.away_team
       ? `${awayName} ${spreadText(perspectiveSpread)} at ${homeName}`
       : `${awayName} at ${homeName} ${spreadText(perspectiveSpread)}`;
-  const acceptedTarget = bet.targets?.find((row) => row.recipient_id === bet.accepted_by || row.response === "accepted");
-  const declinedTarget = bet.targets?.find((row) => row.response === "declined");
-  const responseAction = bet.status === "accepted" || acceptedTarget
-    ? "Accepted"
-    : bet.status === "declined" || declinedTarget
-      ? "Declined"
-      : bet.status === "cancelled"
-        ? "Cancelled"
-        : bet.status === "expired"
-          ? "Expired"
-          : "Offered";
-  const responseTone = responseAction === "Accepted" ? "accepted" : ["Declined", "Cancelled", "Expired"].includes(responseAction) ? "declined" : "pending";
-  const responseActor = responseAction === "Accepted"
-    ? (bet.accepted_by || acceptedTarget?.recipient_id) === currentUser.id ? "You" : bet.accepted_by_profile?.display_name || acceptedTarget?.recipient?.display_name || targetNames
-    : responseAction === "Declined"
-      ? declinedTarget?.recipient_id === currentUser.id ? "You" : declinedTarget?.recipient?.display_name || targetNames
-      : responseAction === "Cancelled"
-        ? bet.creator_id === currentUser.id ? "You" : creatorName
-        : responseAction === "Expired"
-          ? "Offer"
-          : mode === "received" ? creatorName : "You";
-  const responseDetail = responseAction === "Offered" && mode === "sent"
-    ? `${targetNames} ${offeredSideName} ${spreadText(Number(bet.offered_spread))}`
-    : `${offeredSideName} ${spreadText(Number(bet.offered_spread))}`;
+  const responseSummary = sideBetResponseSummary(bet, currentUser.id, mode);
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
   const canClearOffer = mode === "received"
     ? target?.response === "declined" || bet.status === "cancelled"
@@ -2148,7 +2122,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""}`}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, perspectiveTeam) : null} name={perspectiveTeam} />
-      <div className="side-bet-offer-copy"><strong><NumericText text={matchupText} /></strong><p>{responseActor} <span className={`side-bet-response ${responseTone}`}>{responseAction}</span> <NumericText text={responseDetail} />{game && <> · <NumericText text={dt(game.commence_time)} /></>}</p></div>
+      <div className="side-bet-offer-copy"><strong><NumericText text={matchupText} /></strong><p><ResponsiveText full={responseSummary.full} compact={responseSummary.compact} className={`side-bet-response ${responseSummary.tone}`} /></p>{game && <span className="side-bet-offer-date"><NumericText text={dt(game.commence_time)} /></span>}</div>
       <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
     </div>
     {mode === "received" && offerOpen && <div className="actions"><button className={`btn accept ${working ? "working" : ""}`} disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : <NumericText text={acceptDisabledText} />}</button><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}

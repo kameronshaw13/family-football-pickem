@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetsForView } from "../lib/sideBetPresentation.ts";
+import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetResponseSummary, sideBetsForView } from "../lib/sideBetPresentation.ts";
 import type { SideBet } from "../lib/types.ts";
 
 function bet(overrides: Partial<SideBet> = {}): SideBet {
@@ -51,6 +51,57 @@ test("pending status follows the current recipient response", () => {
   });
   assert.equal(sideBetOfferIsPending(recipientDeclined, "recipient", "received"), false);
   assert.equal(sideBetOfferIsPending(recipientDeclined, "sender", "sent"), false);
+});
+
+test("a partial decline leaves the sender's offer pending for the remaining recipients", () => {
+  const partialDecline = bet({
+    targets: [
+      { side_bet_id: "bet-1", recipient_id: "mike", response: "declined", responded_at: "2026-08-21T13:00:00.000Z", recipient: { id: "mike", display_name: "Mike" } },
+      { side_bet_id: "bet-1", recipient_id: "quentin", response: "pending", responded_at: null, recipient: { id: "quentin", display_name: "Quentin" } }
+    ]
+  });
+
+  assert.equal(sideBetOfferIsPending(partialDecline, "sender", "sent"), true);
+  assert.deepEqual(sideBetResponseSummary(partialDecline, "sender", "sent"), {
+    full: "Offered to Quentin",
+    compact: "Offered to Quentin",
+    tone: "pending"
+  });
+  assert.deepEqual(sideBetResponseSummary(partialDecline, "mike", "received"), {
+    full: "You declined",
+    compact: "You declined",
+    tone: "declined"
+  });
+});
+
+test("all declines name each recipient and compact larger groups without truncating every name", () => {
+  const allDeclined = bet({
+    status: "declined",
+    targets: [
+      { side_bet_id: "bet-1", recipient_id: "mike", response: "declined", responded_at: "2026-08-21T13:00:00.000Z", recipient: { id: "mike", display_name: "Mike" } },
+      { side_bet_id: "bet-1", recipient_id: "quentin", response: "declined", responded_at: "2026-08-21T13:01:00.000Z", recipient: { id: "quentin", display_name: "Quentin" } }
+    ]
+  });
+  assert.deepEqual(sideBetResponseSummary(allDeclined, "sender", "sent"), {
+    full: "Mike and Quentin declined",
+    compact: "Mike and Quentin declined",
+    tone: "declined"
+  });
+
+  const fourPending = bet({
+    targets: ["Mike", "Quentin", "Caleb", "Josh"].map((name) => ({
+      side_bet_id: "bet-1",
+      recipient_id: name.toLowerCase(),
+      response: "pending" as const,
+      responded_at: null,
+      recipient: { id: name.toLowerCase(), display_name: name }
+    }))
+  });
+  assert.deepEqual(sideBetResponseSummary(fourPending, "sender", "sent"), {
+    full: "Offered to Mike, Quentin, Caleb, and Josh",
+    compact: "Offered to Mike, Quentin +2",
+    tone: "pending"
+  });
 });
 
 test("ledger uses the current user's side when involved", () => {

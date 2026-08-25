@@ -248,6 +248,11 @@ p { margin: 0; }
 .group-card { margin: 0; padding: 0; border: 0; background: transparent; }
 .group-card h3 { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-4) calc(var(--pick-content-inset) + 2px) var(--space-2); color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .group-card:first-child h3 { margin-top: var(--space-1); }
+.card-panel .pick-section > h3, .card-panel .group-card > h3 { display: flex; height: 30px; min-height: 30px; align-items: center; margin: 0; padding: 0 var(--pick-content-inset); border-block: 1px solid var(--line); color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.card-panel .pick-section > h3 { margin-inline: calc(var(--page-gutter) * -1); }
+.card-panel .group-card + .group-card { margin-top: var(--space-3); }
+.card-panel .pick-section .pick-card:first-of-type::before, .card-panel .group-card .visible-pick:first-of-type::before { display: none; }
+.card-panel .pick-section > h3 ~ .card-empty-picks, .card-panel .group-card > h3 ~ .group-empty-picks { border-top: 0; }
 .group-empty-picks { display: flex; height: 39px; min-height: 39px; align-items: center; margin: 0; padding: 10px var(--pick-content-inset); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--panel); }
 .card-empty-picks { display: flex; min-height: var(--pick-card-row-height); align-items: center; margin: 0 calc(var(--page-gutter) * -1); padding: 12px var(--pick-content-inset); border-block: 1px solid var(--line); background: var(--panel); }
 .pick-top { display: grid; width: 100%; grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; }
@@ -366,11 +371,12 @@ fieldset .field-label { padding: 0; }
 .side-bet-offer-row > .team-logo { width: 34px; height: 34px; }
 .side-bet-offer-copy { min-width: 0; }
 .side-bet-offer-copy > strong { display: block; overflow: hidden; font-size: 15px; font-weight: 700; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-.side-bet-offer-copy p { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-.side-bet-response { font-weight: 800; }
+.side-bet-offer-copy p { margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.side-bet-response { width: 100%; font-weight: 800; }
 .side-bet-response.accepted { color: var(--green); }
 .side-bet-response.declined { color: var(--red); }
 .side-bet-response.pending { color: var(--blue-dark); }
+.side-bet-offer-date { display: block; margin-top: 2px; overflow: hidden; color: var(--muted); font-size: 10px; font-weight: 600; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .side-bet-offer-amount { align-self: center; justify-self: end; font-family: var(--font-display); font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .side-bet-card .status-mark { padding: 2px 5px; }
 .status-mark.open { color: var(--blue-dark); background: var(--blue-soft); }
