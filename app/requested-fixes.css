@@ -60,6 +60,8 @@
 }
 .side-bet-offer-copy > strong {
   overflow: hidden;
+  font-size: 14px;
+  font-weight: 700;
   white-space: nowrap;
   text-overflow: clip !important;
 }
