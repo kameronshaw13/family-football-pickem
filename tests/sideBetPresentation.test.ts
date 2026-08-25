@@ -41,6 +41,24 @@ test("accepted offers remain visible in offer history", () => {
   assert.equal(sideBetOfferIsPending(accepted, "recipient", "received"), false);
 });
 
+test("cancelled offers identify the sender in offer history", () => {
+  const cancelled = bet({ status: "cancelled" });
+  assert.equal(sideBetOfferIsPending(cancelled, "sender", "sent"), false);
+  assert.equal(sideBetOfferIsPending(cancelled, "recipient", "received"), false);
+  assert.deepEqual(sideBetResponseSummary(cancelled, "sender", "sent"), {
+    subjectFull: "You",
+    subjectCompact: "You",
+    action: "Cancelled",
+    tone: "declined"
+  });
+  assert.deepEqual(sideBetResponseSummary(cancelled, "recipient", "received"), {
+    subjectFull: "Sender",
+    subjectCompact: "Sender",
+    action: "Cancelled",
+    tone: "declined"
+  });
+});
+
 test("pending status follows the current recipient response", () => {
   const open = bet();
   assert.equal(sideBetOfferIsPending(open, "sender", "sent"), true);

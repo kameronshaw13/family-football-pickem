@@ -214,9 +214,22 @@ export async function POST(req: NextRequest) {
     if (body.action === "cancel") {
       if (sideBet.creator_id !== auth.profile.id) return NextResponse.json({ ok: false, error: "Only the sender can cancel this offer." }, { status: 403 });
       if (sideBet.status !== "open") return NextResponse.json({ ok: false, error: "This offer is no longer open." }, { status: 409 });
-      const result = await supabase.from("side_bets").update({ status: "cancelled", updated_at: nowIso }).eq("group_id", context.group.id).eq("id", sideBet.id).eq("status", "open");
-      if (result.error) throw new Error(result.error.message);
-      await supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("response", "pending");
+      const { data: cancelled, error: cancelError } = await supabase
+        .from("side_bets")
+        .update({ status: "cancelled", updated_at: nowIso })
+        .eq("group_id", context.group.id)
+        .eq("id", sideBet.id)
+        .eq("status", "open")
+        .select("id")
+        .maybeSingle();
+      if (cancelError) throw new Error(cancelError.message);
+      if (!cancelled) return NextResponse.json({ ok: false, error: "This offer is no longer open." }, { status: 409 });
+      const { error: closeTargetsError } = await supabase
+        .from("side_bet_targets")
+        .update({ response: "closed", responded_at: nowIso })
+        .eq("side_bet_id", sideBet.id)
+        .eq("response", "pending");
+      if (closeTargetsError) throw new Error(closeTargetsError.message);
       await resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id);
       return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });
     }
