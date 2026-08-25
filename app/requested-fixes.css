@@ -124,194 +124,335 @@
   border-left-color: var(--blue);
 }
 
-/* Vertical cell normalization: dividers are painted without consuming centering space. */
-.week-select-wrap {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .36);
+/* Universal vertical geometry: declared heights describe divider-free visual cells. */
+
+/* Header/test controls with symmetric top/bottom borders keep their full interior height. */
+.test-week-chip {
+  min-height: 38px;
+}
+.test-mode-banner {
+  min-height: 54px;
 }
 
+/* Scoped two-tab bars reserve 44px for the tab cell and 3px below for divider/accent paint. */
 .picks-panel > .section-tabs,
 .card-panel > .section-tabs,
 .standings-panel > .section-tabs {
+  height: 47px;
+  grid-template-rows: 44px 3px;
   border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line-strong);
+  box-shadow: none;
+  overflow: visible;
+}
+.picks-panel > .section-tabs::after,
+.card-panel > .section-tabs::after,
+.standings-panel > .section-tabs::after {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  left: 0;
+  height: 1px;
+  background: var(--line-strong);
+  content: "";
+  pointer-events: none;
 }
 .picks-panel > .section-tabs button,
 .card-panel > .section-tabs button,
 .standings-panel > .section-tabs button {
+  position: relative;
+  height: 44px;
+  min-height: 44px;
   padding-top: 0;
   padding-bottom: 0;
-  border-bottom: 0;
+  border: 0;
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 -3px 0 transparent;
 }
-.picks-panel > .section-tabs button.active,
-.card-panel > .section-tabs button.active,
-.standings-panel > .section-tabs button.active {
-  box-shadow: inset 0 -3px 0 var(--blue);
+.picks-panel > .section-tabs button::after,
+.card-panel > .section-tabs button::after,
+.standings-panel > .section-tabs button::after {
+  position: absolute;
+  right: 0;
+  bottom: -3px;
+  left: 0;
+  height: 3px;
+  background: transparent;
+  content: "";
+  pointer-events: none;
 }
-
-.compact-select {
-  border-bottom: 0;
-  box-shadow: inset 0 -2px 0 var(--line-strong);
-}
-.compact-select.open {
-  border-bottom-color: transparent;
-  box-shadow: inset 0 -2px 0 var(--blue);
-}
-
-.custom-select-option {
-  border-top: 0;
-  box-shadow: inset 0 1px 0 var(--line);
-}
-.custom-select-menu > .custom-select-section:first-child > .custom-select-option:first-child {
-  border-top: 0;
-  box-shadow: none;
-}
-.custom-select-group-label {
-  border-top: 0;
-  box-shadow: inset 0 1px 0 var(--line);
-}
-.game-menu-select .custom-select-section:first-child .custom-select-group-label {
-  border-top: 0;
-  box-shadow: none;
+.picks-panel > .section-tabs button.active::after,
+.card-panel > .section-tabs button.active::after,
+.standings-panel > .section-tabs button.active::after {
+  background: var(--blue);
 }
 
+/* Dropdowns are already normalized in experience-enhancements.css. */
+
+/* Game-card header: 34px visible header + 1px divider. */
 .game-head {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+  height: calc(var(--data-header-height) + 1px);
+  min-height: calc(var(--data-header-height) + 1px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 
+/* My Card rows: 62px visible row + divider. */
 .pick-card {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+  height: calc(var(--pick-card-row-height) + 1px);
+  min-height: calc(var(--pick-card-row-height) + 1px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 .pick-card:last-child {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line-strong);
-}
-.visible-pick {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
-}
-.visible-pick:last-child {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line-strong);
+  border-bottom-color: var(--line-strong);
+  box-shadow: none;
 }
 
+/* League Card rows: 62px visible row + divider. */
+.visible-pick {
+  height: calc(var(--pick-card-row-height) + 1px);
+  min-height: calc(var(--pick-card-row-height) + 1px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
+}
+.visible-pick:last-child {
+  border-bottom-color: var(--line-strong);
+  box-shadow: none;
+}
+
+/* Card section headings preserve a true 30px surface between their two borders. */
+.card-panel .pick-section > h3,
+.card-panel .group-card > h3 {
+  height: 32px;
+  min-height: 32px;
+  border-block: 1px solid var(--line);
+}
+
+/* Empty card rows preserve a true 39px surface regardless of one or two dividers. */
+.group-empty-picks,
+.card-empty-picks {
+  height: 41px;
+  min-height: 41px;
+}
+.card-panel .pick-section > h3 ~ .card-empty-picks,
+.card-panel .group-card > h3 ~ .group-empty-picks {
+  height: 40px;
+  min-height: 40px;
+}
+
+/* Side Bet list headings preserve a 30px interior between top and bottom dividers. */
+.side-bet-list-section > h3 {
+  height: 32px;
+  min-height: 32px;
+  border-block: 1px solid var(--line);
+}
+
+/* Side Bet offer/history rows: 62px visible surface + bottom divider. */
 .side-bet-card {
+  height: calc(var(--pick-card-row-height) + 1px);
+  min-height: calc(var(--pick-card-row-height) + 1px);
   border-top: 0;
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 .side-bet-list > .side-bet-card:first-child {
-  box-shadow: inset 0 1px 0 var(--line), inset 0 -1px 0 var(--line);
+  height: calc(var(--pick-card-row-height) + 2px);
+  min-height: calc(var(--pick-card-row-height) + 2px);
+  border-top: 1px solid var(--line);
+}
+.side-bet-list-section-body .side-bet-card:first-child {
+  height: calc(var(--pick-card-row-height) + 1px);
+  min-height: calc(var(--pick-card-row-height) + 1px);
+  border-top: 0;
 }
 .side-bet-offer-row {
   min-height: 48px;
 }
 .side-bet-list-empty {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+  min-height: 49px;
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 
+/* Side Bet sheet headers/summary reserve their named surface before divider pixels. */
 .side-bet-slip-sheet-head {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 #59676e;
+  min-height: 62px;
+  border-bottom: 1px solid #59676e;
+  box-shadow: none;
 }
 .side-bet-slip-section-head {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+  height: 31px;
+  min-height: 31px;
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 .side-bet-slip-summary > div {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+  min-height: 40px;
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 .side-bet-slip-summary > div:last-child {
+  min-height: 39px;
   border-bottom: 0;
   box-shadow: none;
 }
 
+/* Standings: 34px header / 58px rows, with dividers outside those surfaces. */
 .leaderboard-labels {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+  height: calc(var(--data-header-height) + 1px);
+  min-height: calc(var(--data-header-height) + 1px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 .leaderboard-row {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+  height: calc(var(--data-row-height) + 1px);
+  min-height: calc(var(--data-row-height) + 1px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 .leaderboard-row:last-child {
+  height: var(--data-row-height);
+  min-height: var(--data-row-height);
   border-bottom: 0;
   box-shadow: none;
 }
 
-.bank-summary-head,
-.bank-results-labels {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+/* Bank summary: 34px header / 58px money rows. */
+.bank-summary-head {
+  height: calc(var(--data-header-height) + 1px);
+  min-height: calc(var(--data-header-height) + 1px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 .money-card {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+  height: calc(var(--data-row-height) + 1px);
+  min-height: calc(var(--data-row-height) + 1px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 .money-card:last-child {
+  height: var(--data-row-height);
+  min-height: var(--data-row-height);
   border-bottom: 0;
   box-shadow: none;
 }
+
+/* Bank results header and expandable player summary. */
+.bank-results-labels {
+  height: calc(var(--data-header-height) + 1px);
+  min-height: calc(var(--data-header-height) + 1px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
+}
+.bank-player-result:not(:last-child) {
+  border-bottom: 1px solid var(--line);
+}
+.bank-player-result:not(:last-child)::after {
+  display: none;
+}
 .bank-player-result > summary {
+  height: var(--data-row-height);
+  min-height: var(--data-row-height);
   border-bottom: 0;
   box-shadow: none;
 }
 .bank-player-result[open] > summary {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+  height: calc(var(--data-row-height) + 1px);
+  min-height: calc(var(--data-row-height) + 1px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 
-.ledger-row {
+/* Bank pick rows: 62px visible row; separators follow each non-final row. */
+.bank-game-result {
+  height: var(--pick-card-row-height);
+  min-height: var(--pick-card-row-height);
   border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+}
+.bank-game-result:not(:last-child) {
+  height: calc(var(--pick-card-row-height) + 1px);
+  min-height: calc(var(--pick-card-row-height) + 1px);
+  border-bottom: 1px solid var(--line);
+}
+.bank-game-result:not(:last-child)::after {
+  display: none;
+}
+
+/* Ledger: 58px normal rows and 62px Side Bet rows before separators. */
+.ledger-row {
+  min-height: calc(var(--data-row-height) + 1px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 .ledger-row:last-child {
+  min-height: var(--data-row-height);
   border-bottom: 0;
   box-shadow: none;
 }
 .ledger-row.side-bet-ledger-row {
+  height: calc(var(--pick-card-row-height) + 1px);
+  min-height: calc(var(--pick-card-row-height) + 1px);
+  border-bottom: 1px solid var(--line);
+}
+.ledger-row.side-bet-ledger-row:last-child {
+  height: var(--pick-card-row-height);
+  min-height: var(--pick-card-row-height);
   border-bottom: 0;
 }
 
+/* Caleb confidence rows: 44px visible surface before separators. */
 .route-app.group-other-family .confidence-order-row {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+  min-height: 45px;
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 .route-app.group-other-family .confidence-order-row:last-child {
+  min-height: 44px;
   border-bottom: 0;
   box-shadow: none;
 }
 
+/* Review Bet: keep each named row height as divider-free surface. */
 .confirmation-heading {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 #59676e;
+  min-height: 55px;
+  border-bottom: 1px solid #59676e;
+  box-shadow: none;
 }
 .confirmation-amount-row {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line-strong);
+  min-height: 41px;
+  border-bottom: 1px solid var(--line-strong);
+  box-shadow: none;
 }
 .confirmation-matchup > div {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line);
+  min-height: 51px;
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
 }
 .confirmation-matchup > div:last-child {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line-strong);
+  min-height: 51px;
+  border-bottom: 1px solid var(--line-strong);
+  box-shadow: none;
 }
 .confirmation-kickoff {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 var(--line-strong);
+  min-height: 32px;
+  border-bottom: 1px solid var(--line-strong);
+  box-shadow: none;
 }
 
+/* Player Profile header: 62px visual surface + divider; 60px on compact screens. */
 .player-profile-head {
-  border-bottom: 0;
-  box-shadow: inset 0 -1px 0 #59676e;
+  min-height: 63px;
+  border-bottom: 1px solid #59676e;
+  box-shadow: none;
+}
+.player-profile-legacy-row {
+  min-height: 45px;
+}
+
+@media (max-width: 420px) {
+  .player-profile-head {
+    min-height: 61px;
+  }
 }
