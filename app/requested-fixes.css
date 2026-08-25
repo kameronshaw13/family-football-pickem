@@ -81,7 +81,7 @@
   height: var(--pick-card-row-height);
   min-height: var(--pick-card-row-height);
   padding: 7px var(--pick-content-inset);
-  border-bottom: 1px solid transparent;
+  border-bottom: 0;
 }
 
 .side-bet-card {
@@ -122,4 +122,196 @@
 .ledger-list .side-bet-ledger-row { background: var(--panel) !important; }
 .ledger-list .side-bet-ledger-row.accepted {
   border-left-color: var(--blue);
+}
+
+/* Vertical cell normalization: dividers are painted without consuming centering space. */
+.week-select-wrap {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .36);
+}
+
+.picks-panel > .section-tabs,
+.card-panel > .section-tabs,
+.standings-panel > .section-tabs {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line-strong);
+}
+.picks-panel > .section-tabs button,
+.card-panel > .section-tabs button,
+.standings-panel > .section-tabs button {
+  padding-top: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 -3px 0 transparent;
+}
+.picks-panel > .section-tabs button.active,
+.card-panel > .section-tabs button.active,
+.standings-panel > .section-tabs button.active {
+  box-shadow: inset 0 -3px 0 var(--blue);
+}
+
+.compact-select {
+  border-bottom: 0;
+  box-shadow: inset 0 -2px 0 var(--line-strong);
+}
+.compact-select.open {
+  border-bottom-color: transparent;
+  box-shadow: inset 0 -2px 0 var(--blue);
+}
+
+.custom-select-option {
+  border-top: 0;
+  box-shadow: inset 0 1px 0 var(--line);
+}
+.custom-select-menu > .custom-select-section:first-child > .custom-select-option:first-child {
+  border-top: 0;
+  box-shadow: none;
+}
+.custom-select-group-label {
+  border-top: 0;
+  box-shadow: inset 0 1px 0 var(--line);
+}
+.game-menu-select .custom-select-section:first-child .custom-select-group-label {
+  border-top: 0;
+  box-shadow: none;
+}
+
+.game-head {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+
+.pick-card {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.pick-card:last-child {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line-strong);
+}
+.visible-pick {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.visible-pick:last-child {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line-strong);
+}
+
+.side-bet-card {
+  border-top: 0;
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.side-bet-list > .side-bet-card:first-child {
+  box-shadow: inset 0 1px 0 var(--line), inset 0 -1px 0 var(--line);
+}
+.side-bet-offer-row {
+  min-height: 48px;
+}
+.side-bet-list-empty {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+
+.side-bet-slip-sheet-head {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 #59676e;
+}
+.side-bet-slip-section-head {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.side-bet-slip-summary > div {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.side-bet-slip-summary > div:last-child {
+  border-bottom: 0;
+  box-shadow: none;
+}
+
+.leaderboard-labels {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.leaderboard-row {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.leaderboard-row:last-child {
+  border-bottom: 0;
+  box-shadow: none;
+}
+
+.bank-summary-head,
+.bank-results-labels {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.money-card {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.money-card:last-child {
+  border-bottom: 0;
+  box-shadow: none;
+}
+.bank-player-result > summary {
+  border-bottom: 0;
+  box-shadow: none;
+}
+.bank-player-result[open] > summary {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+
+.ledger-row {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.ledger-row:last-child {
+  border-bottom: 0;
+  box-shadow: none;
+}
+.ledger-row.side-bet-ledger-row {
+  border-bottom: 0;
+}
+
+.route-app.group-other-family .confidence-order-row {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.route-app.group-other-family .confidence-order-row:last-child {
+  border-bottom: 0;
+  box-shadow: none;
+}
+
+.confirmation-heading {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 #59676e;
+}
+.confirmation-amount-row {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line-strong);
+}
+.confirmation-matchup > div {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.confirmation-matchup > div:last-child {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line-strong);
+}
+.confirmation-kickoff {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 var(--line-strong);
+}
+
+.player-profile-head {
+  border-bottom: 0;
+  box-shadow: inset 0 -1px 0 #59676e;
 }
