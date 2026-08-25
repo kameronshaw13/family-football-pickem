@@ -63,13 +63,17 @@ test("a partial decline leaves the sender's offer pending for the remaining reci
 
   assert.equal(sideBetOfferIsPending(partialDecline, "sender", "sent"), true);
   assert.deepEqual(sideBetResponseSummary(partialDecline, "sender", "sent"), {
-    full: "Offered to Quentin",
-    compact: "Offered to Quentin",
+    subjectFull: "You",
+    subjectCompact: "You",
+    action: "Offered",
+    recipientFull: "Quentin",
+    recipientCompact: "Quentin",
     tone: "pending"
   });
   assert.deepEqual(sideBetResponseSummary(partialDecline, "mike", "received"), {
-    full: "You declined",
-    compact: "You declined",
+    subjectFull: "You",
+    subjectCompact: "You",
+    action: "Declined",
     tone: "declined"
   });
 });
@@ -83,8 +87,9 @@ test("all declines name each recipient and compact larger groups without truncat
     ]
   });
   assert.deepEqual(sideBetResponseSummary(allDeclined, "sender", "sent"), {
-    full: "Mike and Quentin declined",
-    compact: "Mike and Quentin declined",
+    subjectFull: "Mike and Quentin",
+    subjectCompact: "Mike + Quentin",
+    action: "Declined",
     tone: "declined"
   });
 
@@ -98,8 +103,11 @@ test("all declines name each recipient and compact larger groups without truncat
     }))
   });
   assert.deepEqual(sideBetResponseSummary(fourPending, "sender", "sent"), {
-    full: "Offered to Mike, Quentin, Caleb, and Josh",
-    compact: "Offered to Mike, Quentin +2",
+    subjectFull: "You",
+    subjectCompact: "You",
+    action: "Offered",
+    recipientFull: "Mike, Quentin, Caleb, and Josh",
+    recipientCompact: "Mike, Quentin +2",
     tone: "pending"
   });
 });

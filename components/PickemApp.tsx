@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, EyeOff, FlaskConical, LoaderCircle, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
@@ -1345,7 +1345,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return [profile.id, entries.length ? entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : null];
   })) : {};
   const weekIsOpen = !previewActive && (!data.weekOpenTime || new Date(data.weekOpenTime) <= new Date());
-  const leagueCardsHidden = tab === "card" && cardView === "group" && viewedGames.some((game) => !isClosed(game));
   const incomingOffers = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
   const pendingOfferCount = incomingOffers.filter((bet) => bet.status === "open" && bet.targets?.some((target) => target.recipient_id === currentUser.id && target.response === "pending")).length;
   const receivedNotificationCount = previewActive ? 1 : Math.max(pendingOfferCount, notificationCounts.side_bets_received);
@@ -1614,7 +1613,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           {leagueCardProfiles.map((profile) => {
             const playerPicks = orderCardPicks(viewedPicks.filter((pick) => pick.user_id === profile.id), viewedGames, pointsMode);
             return <div key={profile.id} className="group-card">
-              <h3>{leagueCardsHidden && <EyeOff size={14} />} {profile.display_name}</h3>
+              <h3>{profile.display_name}</h3>
               {playerPicks.length === 0 && <p className="muted group-empty-picks">No visible picks yet.</p>}
               {playerPicks.map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} pointsMode={pointsMode} />)}
             </div>;
@@ -2106,6 +2105,8 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   const perspective = sideBetPerspective(bet, mode);
   const perspectiveTeam = perspective.team;
   const perspectiveSpread = perspective.spread;
+  const offeredSideName = game ? displayTeamName(game, bet.offered_team) : bet.offered_team;
+  const offeredSideCompact = game ? abbreviatedTeamName(game, bet.offered_team) : bet.offered_team;
   const awayName = game ? displayTeamName(game, game.away_team) : "";
   const homeName = game ? displayTeamName(game, game.home_team) : "";
   const matchupText = !game
@@ -2114,6 +2115,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
       ? `${awayName} ${spreadText(perspectiveSpread)} at ${homeName}`
       : `${awayName} at ${homeName} ${spreadText(perspectiveSpread)}`;
   const responseSummary = sideBetResponseSummary(bet, currentUser.id, mode);
+  const responseSpread = spreadText(Number(bet.offered_spread));
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
   const canClearOffer = mode === "received"
     ? target?.response === "declined" || bet.status === "cancelled"
@@ -2122,7 +2124,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""}`}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, perspectiveTeam) : null} name={perspectiveTeam} />
-      <div className="side-bet-offer-copy"><strong><NumericText text={matchupText} /></strong><p><ResponsiveText full={responseSummary.full} compact={responseSummary.compact} className={`side-bet-response ${responseSummary.tone}`} /></p>{game && <span className="side-bet-offer-date"><NumericText text={dt(game.commence_time)} /></span>}</div>
+      <div className="side-bet-offer-copy"><strong><NumericText text={matchupText} /></strong><p className="side-bet-response-line"><ResponsiveText full={responseSummary.subjectFull} compact={responseSummary.subjectCompact} className="side-bet-response-subject" /><span className={`side-bet-response ${responseSummary.tone}`}>{responseSummary.action}</span>{responseSummary.recipientFull && <ResponsiveText full={responseSummary.recipientFull} compact={responseSummary.recipientCompact || responseSummary.recipientFull} className="side-bet-response-recipients" />}<ResponsiveText full={`${offeredSideName} ${responseSpread}`} compact={`${offeredSideCompact} ${responseSpread}`} className="side-bet-response-team" />{game && <span className="side-bet-response-date">· <NumericText text={dt(game.commence_time)} /></span>}</p></div>
       <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
     </div>
     {mode === "received" && offerOpen && <div className="actions"><button className={`btn accept ${working ? "working" : ""}`} disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : <NumericText text={acceptDisabledText} />}</button><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}

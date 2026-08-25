@@ -3,8 +3,11 @@ import type { SideBet } from "./types";
 export type SideBetViewMode = "received" | "sent";
 export type SideBetResponseTone = "accepted" | "declined" | "pending";
 export type SideBetResponseSummary = {
-  full: string;
-  compact: string;
+  subjectFull: string;
+  subjectCompact: string;
+  action: "Accepted" | "Cancelled" | "Closed" | "Declined" | "Expired" | "Offered";
+  recipientFull?: string;
+  recipientCompact?: string;
   tone: SideBetResponseTone;
 };
 
@@ -19,16 +22,9 @@ function naturalNameList(names: string[]) {
 }
 
 function compactNameList(names: string[]) {
-  if (names.length <= 2) return naturalNameList(names);
+  if (names.length <= 1) return naturalNameList(names);
+  if (names.length === 2) return `${names[0]} + ${names[1]}`;
   return `${names[0]}, ${names[1]} +${names.length - 2}`;
-}
-
-function namedSummary(names: string[], prefix: string, suffix = ""): Pick<SideBetResponseSummary, "full" | "compact"> {
-  const end = suffix ? ` ${suffix}` : "";
-  return {
-    full: `${prefix}${naturalNameList(names)}${end}`,
-    compact: `${prefix}${compactNameList(names)}${end}`
-  };
 }
 
 export function sideBetsForView(bets: SideBet[], userId: string, mode: SideBetViewMode) {
@@ -56,39 +52,51 @@ export function sideBetResponseSummary(bet: SideBet, userId: string, mode: SideB
     const name = acceptedByCurrentUser
       ? "You"
       : acceptedTarget?.recipient?.display_name || bet.accepted_by_profile?.display_name || "A player";
-    return { full: `${name} accepted`, compact: `${name} accepted`, tone: "accepted" };
+    return { subjectFull: name, subjectCompact: name, action: "Accepted", tone: "accepted" };
   }
 
   if (bet.status === "cancelled") {
     const name = bet.creator_id === userId ? "You" : creatorName;
-    return { full: `${name} cancelled`, compact: `${name} cancelled`, tone: "declined" };
+    return { subjectFull: name, subjectCompact: name, action: "Cancelled", tone: "declined" };
   }
 
   if (bet.status === "expired") {
-    return { full: "Offer expired", compact: "Offer expired", tone: "declined" };
+    return { subjectFull: "Offer", subjectCompact: "Offer", action: "Expired", tone: "declined" };
   }
 
   if (mode === "received") {
     if (currentTarget?.response === "declined") {
-      return { full: "You declined", compact: "You declined", tone: "declined" };
+      return { subjectFull: "You", subjectCompact: "You", action: "Declined", tone: "declined" };
     }
     if (currentTarget?.response === "pending" && bet.status === "open") {
-      return { full: `${creatorName} offered to you`, compact: `${creatorName} offered to you`, tone: "pending" };
+      return { subjectFull: creatorName, subjectCompact: creatorName, action: "Offered", tone: "pending" };
     }
-    return { full: "Offer closed", compact: "Offer closed", tone: "declined" };
+    return { subjectFull: "Offer", subjectCompact: "Offer", action: "Closed", tone: "declined" };
   }
 
   const pendingNames = targets.filter((target) => target.response === "pending").map(targetName);
   if (bet.status === "open" && pendingNames.length) {
-    return { ...namedSummary(pendingNames, "Offered to "), tone: "pending" };
+    return {
+      subjectFull: "You",
+      subjectCompact: "You",
+      action: "Offered",
+      recipientFull: naturalNameList(pendingNames),
+      recipientCompact: compactNameList(pendingNames),
+      tone: "pending"
+    };
   }
 
   const declinedNames = targets.filter((target) => target.response === "declined").map(targetName);
   if (declinedNames.length) {
-    return { ...namedSummary(declinedNames, "", "declined"), tone: "declined" };
+    return {
+      subjectFull: naturalNameList(declinedNames),
+      subjectCompact: compactNameList(declinedNames),
+      action: "Declined",
+      tone: "declined"
+    };
   }
 
-  return { full: "Offer declined", compact: "Offer declined", tone: "declined" };
+  return { subjectFull: "Offer", subjectCompact: "Offer", action: "Declined", tone: "declined" };
 }
 
 export function sideBetPerspective(bet: SideBet, mode: SideBetViewMode) {
