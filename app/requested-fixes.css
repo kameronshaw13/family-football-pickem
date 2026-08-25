@@ -61,6 +61,13 @@
 .picks-panel .stacked-matchup .team-row:last-child {
   border-bottom: 1px solid transparent;
 }
+.picks-panel .stacked-matchup .team-row.picked-side {
+  box-shadow: none;
+  background:
+    linear-gradient(var(--blue), var(--blue)) left top / 4px 100% no-repeat,
+    var(--blue-soft);
+  background-clip: padding-box;
+}
 
 .bank-game-result {
   height: var(--pick-card-row-height);
