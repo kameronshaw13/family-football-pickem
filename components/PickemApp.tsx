@@ -195,6 +195,66 @@ function ResponsiveText({ full, intermediate, compact, className = "" }: { full:
   </span>;
 }
 
+type SideBetResponseText = ReturnType<typeof sideBetResponseSummary>;
+type SideBetResponseVariant = "full" | "names" | "team" | "minimal";
+const SIDE_BET_RESPONSE_VARIANTS: SideBetResponseVariant[] = ["full", "names", "team", "minimal"];
+
+function SideBetResponseLine({ summary, teamFull, teamCompact, spread, date }: { summary: SideBetResponseText; teamFull: string; teamCompact: string; spread: string; date?: string }) {
+  const hostRef = useRef<HTMLParagraphElement>(null);
+  const measureRefs = useRef<Partial<Record<SideBetResponseVariant, HTMLSpanElement | null>>>({});
+  const [variant, setVariant] = useState<SideBetResponseVariant>("full");
+
+  const contentFor = (value: SideBetResponseVariant) => ({
+    subject: value === "full" ? summary.subjectFull : summary.subjectCompact,
+    recipient: value === "full" ? summary.recipientFull : summary.recipientCompact || summary.recipientFull,
+    team: value === "full" || value === "names" ? teamFull : value === "team" ? teamCompact : ""
+  });
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+
+    let active = true;
+    const update = () => {
+      if (!active) return;
+      const availableWidth = host.clientWidth + 0.5;
+      const fittingVariant = SIDE_BET_RESPONSE_VARIANTS.find((value) => {
+        const measure = measureRefs.current[value];
+        return measure && measure.getBoundingClientRect().width <= availableWidth;
+      });
+      setVariant(fittingVariant || "minimal");
+    };
+    update();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    observer?.observe(host);
+    window.addEventListener("resize", update);
+    document.fonts?.ready.then(update).catch(() => undefined);
+    return () => {
+      active = false;
+      observer?.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [date, spread, summary, teamCompact, teamFull]);
+
+  const renderContent = (value: SideBetResponseVariant) => {
+    const content = contentFor(value);
+    return <>
+      <span>{content.subject}</span>
+      <span className={`side-bet-response ${summary.tone}`}>{summary.action}</span>
+      {content.recipient && <span>{content.recipient}</span>}
+      {content.team && <span>{content.team}</span>}
+      <NumericText text={spread} />
+      {date && <span>· <NumericText text={date} /></span>}
+    </>;
+  };
+  const fullLabel = [summary.subjectFull, summary.action, summary.recipientFull, teamFull, spread, date ? `· ${date}` : ""].filter(Boolean).join(" ");
+
+  return <p ref={hostRef} className="side-bet-response-line" aria-label={fullLabel} title={variant === "full" ? undefined : fullLabel}>
+    {SIDE_BET_RESPONSE_VARIANTS.map((value) => <span ref={(element) => { measureRefs.current[value] = element; }} className="side-bet-response-measure" aria-hidden="true" key={value}>{renderContent(value)}</span>)}
+    <span className="side-bet-response-value">{renderContent(variant)}</span>
+  </p>;
+}
+
 function ResponsiveTeamName({ game, team, className = "" }: { game: Game; team: string; className?: string }) {
   return <ResponsiveText full={displayTeamName(game, team)} compact={abbreviatedTeamName(game, team)} className={className} />;
 }
@@ -2165,7 +2225,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""}`}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, perspectiveTeam) : null} name={perspectiveTeam} />
-      <div className="side-bet-offer-copy"><strong><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} /></strong><p className="side-bet-response-line"><ResponsiveText full={responseSummary.subjectFull} compact={responseSummary.subjectCompact} className="side-bet-response-subject" /><span className={`side-bet-response ${responseSummary.tone}`}>{responseSummary.action}</span>{responseSummary.recipientFull && <ResponsiveText full={responseSummary.recipientFull} compact={responseSummary.recipientCompact || responseSummary.recipientFull} className="side-bet-response-recipients" />}<ResponsiveText full={`${offeredSideName} ${responseSpread}`} compact={`${offeredSideCompact} ${responseSpread}`} className="side-bet-response-team" />{game && <span className="side-bet-response-date">· <NumericText text={dt(game.commence_time)} /></span>}</p></div>
+      <div className="side-bet-offer-copy"><strong><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} /></strong><SideBetResponseLine summary={responseSummary} teamFull={offeredSideName} teamCompact={offeredSideCompact} spread={responseSpread} date={game ? dt(game.commence_time) : undefined} /></div>
       <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
     </div>
     {mode === "received" && offerOpen && <div className="actions"><button className={`btn accept ${working ? "working" : ""}`} disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : <NumericText text={acceptDisabledText} />}</button><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
