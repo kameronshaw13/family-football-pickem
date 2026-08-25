@@ -71,3 +71,40 @@
   top: 50%;
   translate: 0 -50%;
 }
+
+/* Keep dropdown dividers outside the cells they separate, including top-edge separators. */
+.week-select-wrap,
+.compact-select,
+.compact-select.open {
+  box-shadow: none !important;
+}
+.week-select-wrap::after,
+.compact-select::after {
+  position: absolute;
+  right: 0;
+  left: 0;
+  content: "";
+  pointer-events: none;
+}
+.week-select-wrap::after {
+  bottom: -1px;
+  height: 1px;
+  background: rgba(255, 255, 255, .36);
+}
+.compact-select::after {
+  bottom: -2px;
+  height: 2px;
+  background: var(--line-strong);
+}
+.compact-select.open::after {
+  background: var(--blue);
+}
+
+.custom-select-menu {
+  row-gap: 1px;
+  background: var(--line);
+}
+.custom-select-option,
+.custom-select-group-label {
+  box-shadow: none !important;
+}
