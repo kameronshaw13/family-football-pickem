@@ -1,0 +1,5 @@
+/* Preserve full Roboto Slab descenders on Pick Board team names without changing row height. */
+.team-name-line .responsive-text,
+.team-name-line .responsive-text-value {
+  line-height: 1.3;
+}
