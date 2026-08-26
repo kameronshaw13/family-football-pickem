@@ -1,0 +1,22 @@
+/* Friends has eight players, so each user has seven possible side-bet recipients.
+   Use four equal cells on the first row and three equal cells across the full second row. */
+.route-app.group-friends .side-bet-recipient-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.route-app.group-friends .side-bet-recipient-grid > label:nth-child(-n + 4) {
+  grid-column: span 3;
+}
+
+.route-app.group-friends .side-bet-recipient-grid > label:nth-child(n + 5) {
+  grid-column: span 4;
+}
+
+.route-app.group-friends .side-bet-recipient-grid > label:nth-child(4),
+.route-app.group-friends .side-bet-recipient-grid > label:last-child {
+  border-right: 0;
+}
+
+.route-app.group-friends .side-bet-recipient-grid > label:nth-child(n + 5) {
+  border-top: 1px solid var(--line);
+}
