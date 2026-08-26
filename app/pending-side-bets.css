@@ -21,11 +21,11 @@
   align-items: center;
 }
 
-/* Pending actions stay compact while preserving true vertical centering. */
+/* Preserve the original 8px optical separation, but use a tighter centered action control. */
 .side-bet-card.open .actions {
   min-height: 30px;
   align-items: center;
-  margin-top: 4px;
+  margin-top: 8px;
   margin-bottom: 0;
 }
 
@@ -63,7 +63,7 @@
 .side-bet-card .clear-offer-actions {
   min-height: 28px;
   align-items: center;
-  margin-top: 4px;
+  margin-top: 8px;
   margin-bottom: 0;
 }
 
