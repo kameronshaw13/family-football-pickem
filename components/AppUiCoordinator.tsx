@@ -13,11 +13,11 @@ type UiPayload = {
 
 type CacheEntry = { cachedAt?: number; payload?: UiPayload };
 type FontGeometry = { baseline: number; lineHeight: number };
-type InkGeometry = { center: number; height: number };
 
 const CACHE_PREFIX = "pickem_app_data_v1:";
 const preloadImages = new Map<string, HTMLImageElement>();
 const OPTICAL_PRECISION = 4096;
+const FALLBACK_METRIC_TEXT = "Hg";
 
 const OPTICALLY_CENTERED_TEXT_SELECTOR = [
   ".section-tab-label",
@@ -103,25 +103,6 @@ const OPTICALLY_CENTERED_TEXT_SELECTOR = [
   ".notification-settings-heading"
 ].join(", ");
 
-const OPTICALLY_CENTERED_BLOCK_SELECTOR = [
-  ".pick-copy",
-  ".visible-pick-copy",
-  ".side-bet-offer-copy",
-  ".side-bet-ledger-copy",
-  ".bank-game-result > div",
-  ".side-bet-slip-title",
-  ".player-profile-head-copy"
-].join(", ");
-
-const OPTICAL_EXCLUSION_SELECTOR = [
-  ".responsive-text-measure",
-  ".side-bet-response-measure",
-  ".notification-badge",
-  "svg",
-  "[hidden]",
-  "[aria-hidden=\"true\"]"
-].join(", ");
-
 function precise(value: number) {
   return Math.round(value * OPTICAL_PRECISION) / OPTICAL_PRECISION;
 }
@@ -174,32 +155,6 @@ function preloadLogos(payload: UiPayload | null) {
   }
 }
 
-function transformedText(text: string, transform: string) {
-  if (transform === "uppercase") return text.toLocaleUpperCase();
-  if (transform === "lowercase") return text.toLocaleLowerCase();
-  if (transform === "capitalize") {
-    return text.replace(/(^|[\s-])([a-z])/g, (_, prefix: string, letter: string) => `${prefix}${letter.toLocaleUpperCase()}`);
-  }
-  return text;
-}
-
-function opticalText(element: HTMLElement) {
-  let value = "";
-
-  function visit(node: Node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      value += node.nodeValue || "";
-      return;
-    }
-    if (!(node instanceof HTMLElement)) return;
-    if (node !== element && node.matches(OPTICAL_EXCLUSION_SELECTOR)) return;
-    node.childNodes.forEach(visit);
-  }
-
-  element.childNodes.forEach(visit);
-  return value.replace(/\s+/g, " ").trim();
-}
-
 function fontKey(style: CSSStyleDeclaration) {
   return [
     style.fontFamily,
@@ -221,11 +176,12 @@ export default function AppUiCoordinator() {
     let frame = 0;
     let bankWasActive = false;
     const fontGeometryCache = new Map<string, FontGeometry>();
+    const shiftCache = new Map<string, number>();
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
 
     const probe = document.createElement("span");
-    const probeText = document.createTextNode("Hg");
+    const probeText = document.createTextNode(FALLBACK_METRIC_TEXT);
     const baselineMarker = document.createElement("i");
     probe.dataset.slabOpticalProbe = "true";
     probe.style.position = "fixed";
@@ -268,29 +224,31 @@ export default function AppUiCoordinator() {
       return geometry;
     }
 
-    function opticalShift(element: HTMLElement): { shift: number; inkHeight: number } | null {
+    function stableShift(element: HTMLElement) {
       if (!context || !element.isConnected || element.getClientRects().length === 0) return null;
       if (element.closest(".responsive-text-measure, .side-bet-response-measure")) return null;
       const style = window.getComputedStyle(element);
       if (style.display === "none" || style.visibility === "hidden") return null;
-      const rawText = opticalText(element);
-      if (!rawText) return null;
-      const text = transformedText(rawText, style.textTransform);
+      if (!element.textContent?.replace(/\s+/g, " ").trim()) return null;
+
+      const key = fontKey(style);
+      const cached = shiftCache.get(key);
+      if (cached !== undefined) return cached;
       const geometry = geometryFor(style);
 
       context.font = canvasFont(style);
       context.textBaseline = "alphabetic";
-      const metrics = context.measureText(text);
-      const ascent = Number(metrics.actualBoundingBoxAscent || 0);
-      const descent = Number(metrics.actualBoundingBoxDescent || 0);
+      const metrics = context.measureText(FALLBACK_METRIC_TEXT);
+      const fontAscent = Number(metrics.fontBoundingBoxAscent || 0);
+      const fontDescent = Number(metrics.fontBoundingBoxDescent || 0);
+      const ascent = fontAscent > 0 ? fontAscent : Number(metrics.actualBoundingBoxAscent || 0);
+      const descent = fontDescent > 0 ? fontDescent : Number(metrics.actualBoundingBoxDescent || 0);
       if (!(ascent > 0 || descent > 0)) return null;
 
-      const inkCenterInLine = geometry.baseline + ((descent - ascent) / 2);
-      const shift = (geometry.lineHeight / 2) - inkCenterInLine;
-      return {
-        shift: precise(shift),
-        inkHeight: ascent + descent
-      };
+      const fontCenterInLine = geometry.baseline + ((descent - ascent) / 2);
+      const shift = precise((geometry.lineHeight / 2) - fontCenterInLine);
+      shiftCache.set(key, shift);
+      return shift;
     }
 
     function clearOpticalTranslations() {
@@ -298,13 +256,18 @@ export default function AppUiCoordinator() {
         element.style.removeProperty("translate");
         element.removeAttribute("data-slab-optical-centered");
       });
-      document.querySelectorAll<HTMLElement>("[data-slab-optical-centered-block]").forEach((element) => {
-        element.style.removeProperty("translate");
-        element.removeAttribute("data-slab-optical-centered-block");
+      document.querySelectorAll<HTMLElement>("[data-stable-font-wrapper-centered]").forEach((wrapper) => {
+        wrapper.style.removeProperty("translate");
+        wrapper.removeAttribute("data-stable-font-wrapper-centered");
+      });
+      // Clean up legacy block translations from the old glyph-dependent system.
+      document.querySelectorAll<HTMLElement>("[data-slab-optical-centered-block]").forEach((block) => {
+        block.style.removeProperty("translate");
+        block.removeAttribute("data-slab-optical-centered-block");
       });
     }
 
-    function applyOpticalTextCentering() {
+    function applyStableTextCentering() {
       if (document.fonts?.status === "loading") return;
       clearOpticalTranslations();
 
@@ -312,43 +275,36 @@ export default function AppUiCoordinator() {
       const matchSet = new Set(matches);
       const leafMatches = matches.filter((element) => {
         return !Array.from(element.querySelectorAll<HTMLElement>(OPTICALLY_CENTERED_TEXT_SELECTOR))
-          .some((descendant) => matchSet.has(descendant) && opticalText(descendant));
+          .some((descendant) => matchSet.has(descendant) && Boolean(descendant.textContent?.trim()));
       });
-      const inkByElement = new Map<HTMLElement, InkGeometry>();
 
       leafMatches.forEach((element) => {
-        const measurement = opticalShift(element);
-        if (!measurement) return;
-        const rect = element.getBoundingClientRect();
-        element.style.setProperty("translate", `0 ${measurement.shift}px`);
+        const shift = stableShift(element);
+        if (shift === null) return;
+
+        // Responsive text uses overflow for horizontal ellipsis. Move the clipping
+        // wrapper and glyphs together so vertical correction cannot shave a top or
+        // bottom pixel from a descender/ascender inside a stationary clip box.
+        const responsiveWrapper = element.matches(".responsive-text-value")
+          ? element.closest<HTMLElement>(".responsive-text")
+          : null;
+
+        if (responsiveWrapper) {
+          element.style.setProperty("translate", "0 0");
+          responsiveWrapper.style.setProperty("translate", `0 ${shift}px`);
+          responsiveWrapper.dataset.stableFontWrapperCentered = "true";
+        } else {
+          element.style.setProperty("translate", `0 ${shift}px`);
+        }
         element.dataset.slabOpticalCentered = "true";
-        inkByElement.set(element, {
-          center: rect.top + (rect.height / 2),
-          height: measurement.inkHeight
-        });
 
         const teamName = element.closest(".team-name");
         const nameLine = teamName?.closest(".team-name-line");
         const possession = nameLine?.querySelector<HTMLElement>(".possession-icon");
         if (possession) {
-          possession.style.setProperty("translate", `0 ${measurement.shift}px`);
+          possession.style.setProperty("translate", `0 ${shift}px`);
           possession.dataset.slabOpticalCentered = "true";
         }
-      });
-
-      document.querySelectorAll<HTMLElement>(OPTICALLY_CENTERED_BLOCK_SELECTOR).forEach((block) => {
-        const descendants = Array.from(block.querySelectorAll<HTMLElement>(OPTICALLY_CENTERED_TEXT_SELECTOR))
-          .map((element) => inkByElement.get(element))
-          .filter((geometry): geometry is InkGeometry => Boolean(geometry));
-        if (!descendants.length) return;
-        const top = Math.min(...descendants.map((geometry) => geometry.center - (geometry.height / 2)));
-        const bottom = Math.max(...descendants.map((geometry) => geometry.center + (geometry.height / 2)));
-        const visibleCenter = (top + bottom) / 2;
-        const rect = block.getBoundingClientRect();
-        const blockCenter = rect.top + (rect.height / 2);
-        const shift = precise(blockCenter - visibleCenter);
-        block.style.setProperty("translate", `0 ${shift}px`);
-        block.dataset.slabOpticalCenteredBlock = "true";
       });
     }
 
@@ -356,7 +312,7 @@ export default function AppUiCoordinator() {
       if (!active) return;
       makeSeasonNamesInteractive();
       preloadLogos(cachedPayload());
-      applyOpticalTextCentering();
+      applyStableTextCentering();
       const bankActive = bankPanelIsActive();
       if (bankActive && !bankWasActive) {
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -377,6 +333,7 @@ export default function AppUiCoordinator() {
 
     function onFontsLoaded() {
       fontGeometryCache.clear();
+      shiftCache.clear();
       schedule();
     }
 
