@@ -76,6 +76,7 @@
 .week-select-wrap,
 .compact-select,
 .compact-select.open {
+  border-bottom: 0;
   box-shadow: none !important;
 }
 .week-select-wrap::after,
@@ -106,5 +107,6 @@
 }
 .custom-select-option,
 .custom-select-group-label {
+  border-top: 0;
   box-shadow: none !important;
 }
