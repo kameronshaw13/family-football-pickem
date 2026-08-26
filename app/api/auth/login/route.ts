@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createProfileSession } from "@/lib/authServer";
+import { createProfileSession, setSessionCookie } from "@/lib/authServer";
 import { findFamilyUser, normalizeAppSlug } from "@/lib/authUsers";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { makeSessionToken, verifyPassword } from "@/lib/passwords";
@@ -53,7 +53,9 @@ export async function POST(req: NextRequest) {
     const sessionError = await createProfileSession(profile.id, token);
     if (sessionError) return NextResponse.json({ ok: false, error: `Could not create this device session: ${sessionError.message}` }, { status: 500 });
 
-    return NextResponse.json({ ok: true, token, profile: publicProfile(profile), group: groupSlug });
+    const response = NextResponse.json({ ok: true, token, profile: publicProfile(profile), group: groupSlug });
+    setSessionCookie(response, token);
+    return response;
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }

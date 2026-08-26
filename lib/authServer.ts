@@ -1,9 +1,11 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 const SESSION_CACHE_TTL_MS = 60_000;
 const SESSION_CACHE_LIMIT = 32;
+const SESSION_COOKIE = "pickem_session";
+const SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 const sessionCache = new Map<string, { profile: any; expiresAt: number }>();
 
 function sessionTokenHash(token: string) {
@@ -16,6 +18,32 @@ function cacheProfile(tokenHash: string, profile: any) {
     if (oldestKey) sessionCache.delete(oldestKey);
   }
   sessionCache.set(tokenHash, { profile, expiresAt: Date.now() + SESSION_CACHE_TTL_MS });
+}
+
+export function setSessionCookie(response: NextResponse, token: string) {
+  response.cookies.set(SESSION_COOKIE, token, {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: SESSION_COOKIE_MAX_AGE_SECONDS
+  });
+}
+
+export function clearSessionCookie(response: NextResponse) {
+  response.cookies.set(SESSION_COOKIE, "", {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0
+  });
+}
+
+export function sessionTokenFromRequest(req: NextRequest) {
+  const raw = req.headers.get("authorization") || "";
+  const bearer = raw.replace("Bearer ", "").trim();
+  return bearer || req.cookies.get(SESSION_COOKIE)?.value?.trim() || "";
 }
 
 export async function createProfileSession(profileId: string, token: string) {
@@ -73,11 +101,10 @@ export async function getProfileFromToken(token: string) {
 }
 
 export async function getProfileFromRequest(req: NextRequest) {
-  const raw = req.headers.get("authorization") || "";
-  const token = raw.replace("Bearer ", "").trim();
-  if (!token) return { profile: null, error: "Missing login token.", status: 401 };
+  const token = sessionTokenFromRequest(req);
+  if (!token) return { profile: null, error: "Missing login token.", status: 401, token: "" };
 
   const profile = await getProfileFromToken(token);
-  if (!profile) return { profile: null, error: "Session expired. Sign in again.", status: 401 };
-  return { profile, error: null, status: 200 };
+  if (!profile) return { profile: null, error: "Session expired. Sign in again.", status: 401, token };
+  return { profile, error: null, status: 200, token };
 }
