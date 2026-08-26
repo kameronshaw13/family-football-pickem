@@ -35,3 +35,39 @@
   align-items: center;
   justify-content: center;
 }
+
+/* Offer History normally stays on the shared 62px row. Only rows that actually render Clear may grow. */
+.side-bet-card:has(.clear-offer-actions) {
+  height: auto;
+  min-height: calc(var(--pick-card-row-height) + 1px);
+}
+
+.side-bet-list > .side-bet-card:has(.clear-offer-actions):first-child {
+  height: auto;
+  min-height: calc(var(--pick-card-row-height) + 2px);
+}
+
+.side-bet-list-section-body .side-bet-card:has(.clear-offer-actions):first-child {
+  height: auto;
+  min-height: calc(var(--pick-card-row-height) + 1px);
+}
+
+.side-bet-card:has(.clear-offer-actions) .side-bet-offer-row {
+  height: 48px;
+  min-height: 48px;
+  align-items: center;
+}
+
+.side-bet-card .clear-offer-actions {
+  min-height: 32px;
+  align-items: center;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.side-bet-card .clear-offer-actions .btn {
+  height: 32px;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+}
