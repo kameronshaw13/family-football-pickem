@@ -21,17 +21,19 @@
   align-items: center;
 }
 
-/* Give pending actions their own centered row instead of forcing them into the 62px offer surface. */
+/* Pending actions stay compact while preserving true vertical centering. */
 .side-bet-card.open .actions {
-  min-height: 36px;
+  min-height: 30px;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 4px;
   margin-bottom: 0;
 }
 
 .side-bet-card.open .actions .btn {
-  height: 36px;
-  min-height: 36px;
+  height: 30px;
+  min-height: 30px;
+  padding-top: 4px;
+  padding-bottom: 4px;
   align-items: center;
   justify-content: center;
 }
@@ -59,15 +61,17 @@
 }
 
 .side-bet-card .clear-offer-actions {
-  min-height: 32px;
+  min-height: 28px;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 4px;
   margin-bottom: 0;
 }
 
 .side-bet-card .clear-offer-actions .btn {
-  height: 32px;
-  min-height: 32px;
+  height: 28px;
+  min-height: 28px;
+  padding-top: 3px;
+  padding-bottom: 3px;
   align-items: center;
   justify-content: center;
 }
