@@ -147,14 +147,14 @@ export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSect
       { title: "Underdog", items: dogItems(rules, false) },
       { title: "Standings", items: [
         "Season and weekly standings are ranked by win percentage. Win-percentage ties are broken by total wins.",
-        `Season payouts: 1st ${signedMoney(numberValue(prizes.first, 150))}, 2nd ${signedMoney(numberValue(prizes.second, 50))}, 3rd ${signedMoney(numberValue(prizes.third, -30))}, 4th ${signedMoney(numberValue(prizes.fourth, -70))}, 5th ${signedMoney(numberValue(prizes.fifth, -100))}.`,
+        `Season payouts: 1st ${signedMoney(numberValue(prizes.first, 200))}, 2nd ${signedMoney(numberValue(prizes.second, 100))}, 3rd ${signedMoney(numberValue(prizes.third, 50))}, 4th ${signedMoney(numberValue(prizes.fourth, 0))}, 5th ${signedMoney(numberValue(prizes.fifth, -50))}, 6th ${signedMoney(numberValue(prizes.sixth, -75))}, 7th ${signedMoney(numberValue(prizes.seventh, -100))}, 8th ${signedMoney(numberValue(prizes.eighth, -125))}.`,
         "Players still tied after win percentage and total wins receive the average payout for the positions they share."
       ] },
       { title: "Weekly Bank", items: [
-        `Weekly payouts: 1st ${signedMoney(numberValue(weekly.first, 20))}, 2nd ${signedMoney(numberValue(weekly.second, 10))}, 3rd ${signedMoney(numberValue(weekly.third, -5))}, 4th ${signedMoney(numberValue(weekly.fourth, -10))}, 5th ${signedMoney(numberValue(weekly.fifth, -15))}.`,
+        `Weekly payouts: 1st ${signedMoney(numberValue(weekly.first, 40))}, 2nd ${signedMoney(numberValue(weekly.second, 20))}, 3rd ${signedMoney(numberValue(weekly.third, 0))}, 4th ${signedMoney(numberValue(weekly.fourth, 0))}, 5th ${signedMoney(numberValue(weekly.fifth, 0))}, 6th ${signedMoney(numberValue(weekly.sixth, -10))}, 7th ${signedMoney(numberValue(weekly.seventh, -20))}, 8th ${signedMoney(numberValue(weekly.eighth, -30))}.`,
         "Players still tied after win percentage and total wins receive the average payout for the positions they share."
       ] },
-      { title: "Perfect Week", items: ["Does not apply in Week 1.", "A perfect card doubles all five weekly payout amounts."] },
+      { title: "Perfect Week", items: ["Does not apply in Week 1.", "A perfect card doubles all eight weekly payout amounts."] },
       { title: "Pick Locks", items: pickLocks },
       { title: "Side Bets", items: sideBetItems(rules, true) }
     ];

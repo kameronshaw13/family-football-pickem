@@ -15,7 +15,10 @@ export const APP_USERS = {
     { username: "caleb", displayName: "Caleb", isAdmin: false },
     { username: "mason", displayName: "Mason", isAdmin: false },
     { username: "isaac", displayName: "Isaac", isAdmin: false },
-    { username: "josh", displayName: "Josh", isAdmin: false }
+    { username: "josh", displayName: "Josh", isAdmin: false },
+    { username: "tate", displayName: "Tate", isAdmin: false },
+    { username: "jack", displayName: "Jack", isAdmin: false },
+    { username: "caden", displayName: "Caden", isAdmin: false }
   ]
 } as const;
 
