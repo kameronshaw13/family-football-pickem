@@ -9,7 +9,10 @@ const users = [
   { username: "caleb", label: "Caleb" },
   { username: "mason", label: "Mason" },
   { username: "isaac", label: "Isaac" },
-  { username: "josh", label: "Josh" }
+  { username: "josh", label: "Josh" },
+  { username: "tate", label: "Tate" },
+  { username: "jack", label: "Jack" },
+  { username: "caden", label: "Caden" }
 ];
 
 export default function FriendsLoginPage() {
