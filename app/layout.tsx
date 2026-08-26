@@ -4,6 +4,7 @@ import "./experience-enhancements.css";
 import "./profile-enhancements.css";
 import "./group-themes.css";
 import "./requested-fixes.css";
+import "./pending-side-bets.css";
 import type { Metadata, Viewport } from "next";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
