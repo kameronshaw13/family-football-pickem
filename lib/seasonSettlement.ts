@@ -54,13 +54,17 @@ export async function settleSeasonIfReady(supabase: SupabaseClient, currentTime 
       }
       settlement = winnerTakeAllSettlement(standings, Number(moneyRow?.winner_take_all_amount || 0));
     } else if (mode === "friends_season") {
-      const payouts = standings.map((_, index) => {
-        if (index === 0) return Number(prizeRules.first ?? 150);
-        if (index === 1) return Number(prizeRules.second ?? 50);
-        if (index === 2) return Number(prizeRules.third ?? -30);
-        if (index === 3) return Number(prizeRules.fourth ?? -70);
-        return Number(prizeRules.fifth ?? -100);
-      });
+      const configuredPayouts = [
+        Number(prizeRules.first ?? 200),
+        Number(prizeRules.second ?? 100),
+        Number(prizeRules.third ?? 50),
+        Number(prizeRules.fourth ?? 0),
+        Number(prizeRules.fifth ?? -50),
+        Number(prizeRules.sixth ?? -75),
+        Number(prizeRules.seventh ?? -100),
+        Number(prizeRules.eighth ?? -125)
+      ];
+      const payouts = standings.map((_, index) => Number(configuredPayouts[index] ?? 0));
       settlement = rankedPayoutSettlement(standings, payouts, `${seasonYear} season payout`);
     } else {
       if (standings.length < 2 || standings[0].rank === standings[1].rank) {
