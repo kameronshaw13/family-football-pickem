@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 const PRECISION = 4096;
-const CALIBRATION_TEXT = "HgjpqyAOM0123456789";
+const FALLBACK_METRIC_TEXT = "Hg";
 
 function precise(value: number) {
   return Math.round(value * PRECISION) / PRECISION;
@@ -16,19 +16,12 @@ function fontKey(style: CSSStyleDeclaration) {
     style.fontStyle,
     style.fontWeight,
     style.lineHeight,
-    style.letterSpacing,
-    style.textTransform
+    style.letterSpacing
   ].join("|");
 }
 
 function canvasFont(style: CSSStyleDeclaration) {
   return `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-}
-
-function calibrationText(transform: string) {
-  if (transform === "uppercase") return CALIBRATION_TEXT.toLocaleUpperCase();
-  if (transform === "lowercase") return CALIBRATION_TEXT.toLocaleLowerCase();
-  return CALIBRATION_TEXT;
 }
 
 export default function StableFontMetrics() {
@@ -83,24 +76,54 @@ export default function StableFontMetrics() {
 
       context.font = canvasFont(style);
       context.textBaseline = "alphabetic";
-      const metrics = context.measureText(calibrationText(style.textTransform));
-      const ascent = Number(metrics.actualBoundingBoxAscent || 0);
-      const descent = Number(metrics.actualBoundingBoxDescent || 0);
+      const metrics = context.measureText(FALLBACK_METRIC_TEXT);
+
+      // Use font-level bounds when the browser exposes them. These describe the
+      // typeface/style itself, so Georgia, Alabama, JSU, NDSU, etc. all receive
+      // exactly the same vertical correction. The fallback is also fixed text,
+      // never the displayed word, so content can no longer change positioning.
+      const fontAscent = Number(metrics.fontBoundingBoxAscent || 0);
+      const fontDescent = Number(metrics.fontBoundingBoxDescent || 0);
+      const ascent = fontAscent > 0 ? fontAscent : Number(metrics.actualBoundingBoxAscent || 0);
+      const descent = fontDescent > 0 ? fontDescent : Number(metrics.actualBoundingBoxDescent || 0);
       if (!(ascent > 0 || descent > 0)) return null;
 
-      const inkCenterInLine = baseline + ((descent - ascent) / 2);
-      const shift = precise((lineHeight / 2) - inkCenterInLine);
+      const fontCenterInLine = baseline + ((descent - ascent) / 2);
+      const shift = precise((lineHeight / 2) - fontCenterInLine);
       shiftCache.set(key, shift);
       return shift;
     }
 
+    function clearWrapperTranslations() {
+      document.querySelectorAll<HTMLElement>("[data-stable-font-wrapper-centered]").forEach((wrapper) => {
+        wrapper.style.removeProperty("translate");
+        wrapper.removeAttribute("data-stable-font-wrapper-centered");
+      });
+    }
+
     function applyStableMetrics() {
       if (document.fonts?.status === "loading") return;
+      clearWrapperTranslations();
 
       document.querySelectorAll<HTMLElement>("[data-slab-optical-centered]").forEach((element) => {
         const shift = stableShift(element);
         if (shift === null) return;
-        element.style.setProperty("translate", `0 ${shift}px`);
+
+        // Responsive team names use overflow for horizontal ellipsis. Moving the
+        // inner glyph layer can clip a descender/ascender against that box, so move
+        // the entire clipping wrapper instead. The text and its clip boundary stay
+        // together and the vertical glyph pixels remain intact.
+        const responsiveWrapper = element.matches(".responsive-text-value")
+          ? element.closest<HTMLElement>(".responsive-text")
+          : null;
+
+        if (responsiveWrapper) {
+          element.style.setProperty("translate", "0 0");
+          responsiveWrapper.style.setProperty("translate", `0 ${shift}px`);
+          responsiveWrapper.dataset.stableFontWrapperCentered = "true";
+        } else {
+          element.style.setProperty("translate", `0 ${shift}px`);
+        }
 
         const teamName = element.closest(".team-name");
         const nameLine = teamName?.closest(".team-name-line");
@@ -108,8 +131,8 @@ export default function StableFontMetrics() {
         if (possession) possession.style.setProperty("translate", `0 ${shift}px`);
       });
 
-      // Multi-line/container positioning belongs to fixed layout geometry. Exact glyphs
-      // should never move an entire block up or down.
+      // Multi-line/container positioning belongs to fixed layout geometry. Exact
+      // glyphs must never move an entire row/card block up or down.
       document.querySelectorAll<HTMLElement>("[data-slab-optical-centered-block]").forEach((block) => {
         block.style.setProperty("translate", "0 0");
       });
@@ -142,6 +165,7 @@ export default function StableFontMetrics() {
       window.removeEventListener("focus", schedule);
       window.removeEventListener("resize", schedule);
       document.fonts?.removeEventListener?.("loadingdone", onFontsLoaded);
+      clearWrapperTranslations();
       probe.remove();
     };
   }, []);
