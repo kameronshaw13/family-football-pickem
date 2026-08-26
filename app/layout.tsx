@@ -6,10 +6,11 @@ import "./group-themes.css";
 import "./requested-fixes.css";
 import "./pending-side-bets.css";
 import "./dog-card-optical-spacing.css";
-import "./stable-pick-stack.css";
+import "./stable-font-metrics.css";
 import type { Metadata, Viewport } from "next";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
+import StableFontMetrics from "@/components/StableFontMetrics";
 import DogPickAdjustmentAlerts from "@/components/DogPickAdjustmentAlerts";
 import PlayerProfiles from "@/components/PlayerProfiles";
 
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/football-pickem-wordmark.png" as="image" type="image/png" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;500;600;700;800;900&display=swap" />
       </head>
-      <body>{children}<AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /></body>
+      <body>{children}<AppExperienceEnhancements /><AppUiCoordinator /><StableFontMetrics /><DogPickAdjustmentAlerts /><PlayerProfiles /></body>
     </html>
   );
 }
