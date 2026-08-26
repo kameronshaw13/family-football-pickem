@@ -28,10 +28,32 @@ export const viewport: Viewport = {
   themeColor: "#20282d"
 };
 
+const SESSION_RECOVERY_SCRIPT = `
+(() => {
+  try {
+    const tokenKey = "pickem_session_token";
+    const cookieName = "pickem_session";
+    const cookieToken = document.cookie
+      .split("; ")
+      .find((part) => part.startsWith(cookieName + "="))
+      ?.slice(cookieName.length + 1);
+    const storedToken = window.localStorage.getItem(tokenKey);
+
+    if (storedToken) {
+      document.cookie = cookieName + "=" + encodeURIComponent(storedToken) + "; Max-Age=31536000; Path=/; SameSite=Lax; Secure";
+    } else if (cookieToken) {
+      window.localStorage.setItem(tokenKey, decodeURIComponent(cookieToken));
+    }
+  } catch {
+    // If storage is unavailable, normal sign-in remains available.
+  }
+})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="light">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: SESSION_RECOVERY_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preload" href="/header-wordmark.png" as="image" type="image/png" />
