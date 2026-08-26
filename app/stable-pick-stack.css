@@ -1,0 +1,6 @@
+/* Keep two-line pick stacks centered by their fixed layout geometry, not by the exact glyph shapes in a matchup. */
+.pick-copy[data-slab-optical-centered-block],
+.visible-pick-copy[data-slab-optical-centered-block],
+.bank-game-result > div[data-slab-optical-centered-block] {
+  translate: 0 0 !important;
+}
