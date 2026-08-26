@@ -7,6 +7,7 @@ import "./requested-fixes.css";
 import "./pending-side-bets.css";
 import "./dog-card-optical-spacing.css";
 import "./stable-font-metrics.css";
+import "./friends-eight-player.css";
 import type { Metadata, Viewport } from "next";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
