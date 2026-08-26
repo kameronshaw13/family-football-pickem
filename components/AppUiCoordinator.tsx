@@ -22,7 +22,13 @@ const FALLBACK_METRIC_TEXT = "Hg";
 const OPTICALLY_CENTERED_TEXT_SELECTOR = [
   ".section-tab-label",
   ".heading-with-badge",
+  ".primary-nav button > span:last-child",
+  ".test-week-chip",
   ".custom-select-label",
+  ".custom-select-option",
+  ".custom-select-group-label",
+  ".game-day-marker > b",
+  ".game-day-marker > strong",
   ".responsive-text-value",
   ".game-time",
   ".game-final-status",
@@ -32,6 +38,12 @@ const OPTICALLY_CENTERED_TEXT_SELECTOR = [
   ".team-spread",
   ".team-board-market",
   ".team-result-score",
+  ".pick-section h3",
+  ".group-card h3",
+  ".card-panel .pick-section > h3",
+  ".card-panel .group-card > h3",
+  ".group-empty-picks",
+  ".card-empty-picks",
   ".pick-title-team",
   ".pick-title-market",
   ".pick-title-market > .numeric-token",
@@ -41,6 +53,11 @@ const OPTICALLY_CENTERED_TEXT_SELECTOR = [
   ".pick-meta",
   ".visible-pick-copy strong",
   ".visible-pick-copy p",
+  ".badge:not(.notification-badge)",
+  ".test-result",
+  ".score-bug-score",
+  ".side-bet-list-section > h3",
+  ".side-bet-list-empty",
   ".side-bet-offer-copy > strong",
   ".side-bet-offer-copy > p",
   ".side-bet-response-value",
@@ -51,6 +68,8 @@ const OPTICALLY_CENTERED_TEXT_SELECTOR = [
   ".leaderboard-stat",
   ".leaderboard-pct",
   ".leaderboard-points",
+  ".standings-heading-row h2",
+  ".test-standings-label",
   ".bank-summary-head > span",
   ".money-card > span",
   ".money-card > strong",
@@ -260,7 +279,6 @@ export default function AppUiCoordinator() {
         wrapper.style.removeProperty("translate");
         wrapper.removeAttribute("data-stable-font-wrapper-centered");
       });
-      // Clean up legacy block translations from the old glyph-dependent system.
       document.querySelectorAll<HTMLElement>("[data-slab-optical-centered-block]").forEach((block) => {
         block.style.removeProperty("translate");
         block.removeAttribute("data-slab-optical-centered-block");
@@ -271,7 +289,8 @@ export default function AppUiCoordinator() {
       if (document.fonts?.status === "loading") return;
       clearOpticalTranslations();
 
-      const matches = Array.from(document.querySelectorAll<HTMLElement>(OPTICALLY_CENTERED_TEXT_SELECTOR));
+      const matches = Array.from(document.querySelectorAll<HTMLElement>(OPTICALLY_CENTERED_TEXT_SELECTOR))
+        .filter((element) => !element.closest(".notification-badge"));
       const matchSet = new Set(matches);
       const leafMatches = matches.filter((element) => {
         return !Array.from(element.querySelectorAll<HTMLElement>(OPTICALLY_CENTERED_TEXT_SELECTOR))
@@ -282,9 +301,6 @@ export default function AppUiCoordinator() {
         const shift = stableShift(element);
         if (shift === null) return;
 
-        // Responsive text uses overflow for horizontal ellipsis. Move the clipping
-        // wrapper and glyphs together so vertical correction cannot shave a top or
-        // bottom pixel from a descender/ascender inside a stationary clip box.
         const responsiveWrapper = element.matches(".responsive-text-value")
           ? element.closest<HTMLElement>(".responsive-text")
           : null;
