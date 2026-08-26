@@ -1,0 +1,7 @@
+/* My Card + League Card dog labels use the same optical vertical geometry as regular pick markets. */
+.pick-card .dog-separator,
+.pick-card .dog-tag,
+.visible-pick .dog-separator,
+.visible-pick .dog-tag {
+  transform: none;
+}
