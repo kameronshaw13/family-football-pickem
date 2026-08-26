@@ -88,11 +88,14 @@ export async function settleWeekIfReady(supabase: SupabaseClient, week: number, 
       const perfect = rule.perfectBonus && standings[0]?.losses === 0 && standings[0]?.wins >= 5;
       const multiplier = perfect ? 2 : 1;
       const configuredPayouts = [
-        Number(bankRules.first ?? bankRules.winner ?? 20),
-        Number(bankRules.second ?? 10),
-        Number(bankRules.third ?? -5),
-        Number(bankRules.fourth ?? -10),
-        Number(bankRules.fifth ?? -15)
+        Number(bankRules.first ?? bankRules.winner ?? 40),
+        Number(bankRules.second ?? 20),
+        Number(bankRules.third ?? 0),
+        Number(bankRules.fourth ?? 0),
+        Number(bankRules.fifth ?? 0),
+        Number(bankRules.sixth ?? -10),
+        Number(bankRules.seventh ?? -20),
+        Number(bankRules.eighth ?? -30)
       ];
       const payouts = standings.map((_, index) => Number(configuredPayouts[index] ?? 0) * multiplier);
       settlement = { ...rankedPayoutSettlement(standings, payouts, `Week ${week} payout${perfect ? " · perfect week" : ""}`), perfect };
