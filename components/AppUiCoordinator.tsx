@@ -17,6 +17,7 @@ type InkGeometry = { center: number; height: number };
 
 const CACHE_PREFIX = "pickem_app_data_v1:";
 const preloadImages = new Map<string, HTMLImageElement>();
+const OPTICAL_PRECISION = 4096;
 
 const OPTICALLY_CENTERED_TEXT_SELECTOR = [
   ".section-tab-label",
@@ -116,6 +117,10 @@ const OPTICAL_EXCLUSION_SELECTOR = [
   "[hidden]",
   "[aria-hidden=\"true\"]"
 ].join(", ");
+
+function precise(value: number) {
+  return Math.round(value * OPTICAL_PRECISION) / OPTICAL_PRECISION;
+}
 
 function cachedPayload() {
   let best: { cachedAt: number; payload: UiPayload } | null = null;
@@ -279,7 +284,7 @@ export default function AppUiCoordinator() {
       const inkCenterInLine = geometry.baseline + ((descent - ascent) / 2);
       const shift = (geometry.lineHeight / 2) - inkCenterInLine;
       return {
-        shift: Math.round(shift * 64) / 64,
+        shift: precise(shift),
         inkHeight: ascent + descent
       };
     }
@@ -337,7 +342,7 @@ export default function AppUiCoordinator() {
         const visibleCenter = (top + bottom) / 2;
         const rect = block.getBoundingClientRect();
         const blockCenter = rect.top + (rect.height / 2);
-        const shift = Math.round((blockCenter - visibleCenter) * 64) / 64;
+        const shift = precise(blockCenter - visibleCenter);
         block.style.setProperty("translate", `0 ${shift}px`);
         block.dataset.slabOpticalCenteredBlock = "true";
       });
