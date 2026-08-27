@@ -107,13 +107,6 @@ body,
   white-space: nowrap;
 }
 
-/* Temporary visual comparison: only the far-right pregame spread is 16px on mobile. */
-@media (max-width: 520px) {
-  .team-spread {
-    font-size: 16px;
-  }
-}
-
 /* Side-bet money sits on the exact vertical centerline used by the centered
    team logo in Pending Offers, Offer History, and the Side Bet Ledger. */
 .side-bet-offer-amount,
