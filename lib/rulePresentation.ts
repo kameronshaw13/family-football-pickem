@@ -74,7 +74,7 @@ function sideBetItems(rules: GroupRules, companion: boolean) {
   return [...items,
     "Offers open Tuesday at 8:00 AM CT with the new week.",
     "Tuesday–Friday lines freeze 1 hour before kickoff.",
-    "Saturday–Monday lines freeze Saturday at 9:00 AM CT.",
+    "Saturday–Monday lines freeze Saturday at 10:00 AM CT.",
     "Offers may be sent or accepted until kickoff.",
     "Settled bets post directly to the bank."
   ];
@@ -89,8 +89,8 @@ const seasonSchedule = [
 const pickLocks = [
   "Tuesday–Friday lines freeze 1 hour before kickoff.",
   "Tuesday–Friday picks lock at kickoff.",
-  "Saturday–Monday lines freeze Saturday at 9:00 AM CT.",
-  "Saturday–Monday picks lock Saturday at 10:00 AM CT."
+  "Saturday–Monday lines freeze Saturday at 10:00 AM CT.",
+  "Saturday–Monday picks lock Saturday at 11:00 AM CT."
 ];
 
 export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSection[] {

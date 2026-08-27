@@ -14,10 +14,10 @@ export function getGameLockTime(commenceTimeIso: string, timezone = APP_TIMEZONE
     return kickoffUtc;
   }
 
-  // Saturday/Sunday/Monday games lock Saturday at 10:00 AM CT for that football weekend.
+  // Saturday/Sunday/Monday games lock Saturday at 11:00 AM CT for that football weekend.
   const saturdayLocal = setDay(kickoffLocal, 6, { weekStartsOn: 1 });
   const lockLocal = new Date(saturdayLocal);
-  lockLocal.setHours(10, 0, 0, 0);
+  lockLocal.setHours(11, 0, 0, 0);
 
   if (lockLocal.getTime() > kickoffLocal.getTime()) {
     lockLocal.setDate(lockLocal.getDate() - 7);
@@ -37,10 +37,10 @@ export function getSpreadFreezeTime(commenceTimeIso: string, timezone = APP_TIME
   }
 
   // Saturday-Monday lines receive their final scheduled refresh Saturday morning
-  // and freeze at 9:00 AM CT, one hour before the shared 10:00 AM pick lock.
+  // and freeze at 10:00 AM CT, one hour before the shared 11:00 AM pick lock.
   const saturdayLocal = setDay(kickoffLocal, 6, { weekStartsOn: 1 });
   const freezeLocal = new Date(saturdayLocal);
-  freezeLocal.setHours(9, 0, 0, 0);
+  freezeLocal.setHours(10, 0, 0, 0);
 
   if (freezeLocal.getTime() > kickoffLocal.getTime()) {
     freezeLocal.setDate(freezeLocal.getDate() - 7);
