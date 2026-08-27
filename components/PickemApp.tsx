@@ -2347,7 +2347,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
   const homeOpponentOnly = dogView && !hasScore && homeDogValue === 0;
 
   function pickedResult(): GameOutcome | null {
-    if (!existingMatchesView || !existing || !hasScore || awayScore == null || homeScore == null) return null;
+    if (!existingMatchesView || !existing || !gameIsFinal || awayScore == null || homeScore == null) return null;
     if (gameIsFinal && existing.result !== "pending") return existing.result;
     if (existing.pick_type === "underdog") {
       return gradeUnderdogOutright(existing.selected_team, game.home_team, game.away_team, homeScore, awayScore);
