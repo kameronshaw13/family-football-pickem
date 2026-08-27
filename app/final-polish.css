@@ -100,11 +100,10 @@ body,
   line-height: 1.3;
 }
 
-/* Preserve the existing right-side market geometry explicitly. Team names on
-   the left are also 16px, so spread and team text remain intentionally matched. */
+/* Preserve right-side market wrapping without overriding the shared responsive
+   sizing: team names and markets are 16px by default and 15px on mobile. */
 .team-spread,
 .team-board-market {
-  font-size: 16px;
   white-space: nowrap;
 }
 
