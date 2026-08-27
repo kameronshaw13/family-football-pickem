@@ -1,0 +1,68 @@
+name: Cohesive two-line centering
+
+on:
+  push:
+    branches:
+      - fix/cohesive-two-line-centering
+    paths:
+      - .github/workflows/cohesive-two-line-centering.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Bootstrap cohesive two-line centering'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/cohesive-two-line-centering
+          fetch-depth: 0
+      - name: Apply cohesive visible-edge centering
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('components/AppUiCoordinator.tsx')
+          text = path.read_text()
+
+          old_config = '''  {\n    block: ".side-bet-ledger-copy",\n    row: ".side-bet-ledger-row",\n    top: [".side-bet-ledger-title .responsive-text-value", ".side-bet-ledger-title"],\n    bottom: [":scope > p"]\n  }\n] as const;'''
+          new_config = '''  {\n    block: ".side-bet-ledger-copy",\n    row: ".side-bet-ledger-row",\n    top: [".side-bet-ledger-title .responsive-text-value", ".side-bet-ledger-title"],\n    bottom: [":scope > p"]\n  },\n  {\n    block: ".bank-game-result > div",\n    row: ".bank-game-result",\n    top: [".bank-game-pick-title .responsive-text-value", ".bank-game-pick-title"],\n    bottom: [":scope > p .responsive-text-value", ":scope > p"]\n  }\n] as const;'''
+          if old_config not in text:
+              raise SystemExit('two-line config anchor not found')
+          text = text.replace(old_config, new_config, 1)
+
+          old_cache = '''    const fontGeometryCache = new Map<string, FontGeometry>();\n    const shiftCache = new Map<string, number>();'''
+          new_cache = '''    const fontGeometryCache = new Map<string, FontGeometry>();\n    const shiftCache = new Map<string, number>();\n    const visibleGlyphMetricCache = new Map<string, { ascent: number; descent: number }>();'''
+          if old_cache not in text:
+              raise SystemExit('cache anchor not found')
+          text = text.replace(old_cache, new_cache, 1)
+
+          old_bounds = '''    function visibleGlyphBounds(element: HTMLElement) {\n      if (!context || !element.isConnected || element.getClientRects().length === 0) return null;\n      const style = window.getComputedStyle(element);\n      if (style.display === "none" || style.visibility === "hidden") return null;\n      const text = element.textContent?.replace(/\\s+/g, " ").trim();\n      if (!text) return null;\n\n      const geometry = geometryFor(style);\n      context.font = canvasFont(style);\n      context.textBaseline = "alphabetic";\n      const metrics = context.measureText(text);\n      const fontAscent = Number(metrics.fontBoundingBoxAscent || 0);\n      const fontDescent = Number(metrics.fontBoundingBoxDescent || 0);\n      const ascent = fontAscent > 0 ? fontAscent : Number(metrics.actualBoundingBoxAscent || 0);\n      const descent = fontDescent > 0 ? fontDescent : Number(metrics.actualBoundingBoxDescent || 0);\n      if (!(ascent > 0 || descent > 0)) return null;\n\n      const rect = element.getBoundingClientRect();\n      return {\n        top: rect.top + geometry.baseline - ascent,\n        bottom: rect.top + geometry.baseline + descent\n      };\n    }'''
+          new_bounds = '''    function canonicalVisibleGlyphMetrics(style: CSSStyleDeclaration) {\n      if (!context) return null;\n      const key = fontKey(style);\n      const cached = visibleGlyphMetricCache.get(key);\n      if (cached) return cached;\n\n      context.font = canvasFont(style);\n      context.textBaseline = "alphabetic";\n      const metrics = context.measureText(FALLBACK_METRIC_TEXT);\n      const actualAscent = Number(metrics.actualBoundingBoxAscent || 0);\n      const actualDescent = Number(metrics.actualBoundingBoxDescent || 0);\n      const fontAscent = Number(metrics.fontBoundingBoxAscent || 0);\n      const fontDescent = Number(metrics.fontBoundingBoxDescent || 0);\n      const ascent = actualAscent > 0 ? actualAscent : fontAscent;\n      const descent = actualDescent > 0 ? actualDescent : fontDescent;\n      if (!(ascent > 0 || descent > 0)) return null;\n\n      const visibleMetrics = { ascent, descent };\n      visibleGlyphMetricCache.set(key, visibleMetrics);\n      return visibleMetrics;\n    }\n\n    function visibleGlyphBounds(element: HTMLElement) {\n      if (!element.isConnected || element.getClientRects().length === 0) return null;\n      const style = window.getComputedStyle(element);\n      if (style.display === "none" || style.visibility === "hidden") return null;\n      if (!element.textContent?.replace(/\\s+/g, " ").trim()) return null;\n\n      const geometry = geometryFor(style);\n      const visibleMetrics = canonicalVisibleGlyphMetrics(style);\n      if (!visibleMetrics) return null;\n\n      const rect = element.getBoundingClientRect();\n      return {\n        top: rect.top + geometry.baseline - visibleMetrics.ascent,\n        bottom: rect.top + geometry.baseline + visibleMetrics.descent\n      };\n    }'''
+          if old_bounds not in text:
+              raise SystemExit('visible glyph bounds anchor not found')
+          text = text.replace(old_bounds, new_bounds, 1)
+
+          old_fonts = '''    function onFontsLoaded() {\n      fontGeometryCache.clear();\n      shiftCache.clear();\n      schedule();\n    }'''
+          new_fonts = '''    function onFontsLoaded() {\n      fontGeometryCache.clear();\n      shiftCache.clear();\n      visibleGlyphMetricCache.clear();\n      schedule();\n    }'''
+          if old_fonts not in text:
+              raise SystemExit('font reload anchor not found')
+          text = text.replace(old_fonts, new_fonts, 1)
+
+          path.write_text(text)
+          PY
+          git diff --check
+          npm ci
+          npm test
+          npm run build
+      - name: Commit verified centering logic
+        shell: bash
+        run: |
+          rm -f .github/workflows/cohesive-two-line-centering.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- components/AppUiCoordinator.tsx .github/workflows/cohesive-two-line-centering.yml
+          git commit -m "Unify two-line visible-edge centering"
+          git push origin HEAD:fix/cohesive-two-line-centering
