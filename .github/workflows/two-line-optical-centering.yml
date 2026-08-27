@@ -1,0 +1,62 @@
+name: Two-line optical centering
+
+on:
+  push:
+    branches:
+      - fix/two-line-optical-centering
+    paths:
+      - .github/workflows/two-line-optical-centering.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Bootstrap two-line optical centering'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/two-line-optical-centering
+          fetch-depth: 0
+      - name: Apply visible-edge centering
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('components/AppUiCoordinator.tsx')
+          text = path.read_text()
+
+          insert_after = '''].join(", ");\n\nfunction precise(value: number) {\n'''
+          block_config = '''].join(", ");\n\nconst OPTICALLY_CENTERED_TWO_LINE_BLOCKS = [\n  {\n    block: ".pick-copy",\n    row: ".pick-card",\n    top: [".pick-title-team .responsive-text-value", ".pick-title-team"],\n    bottom: [".pick-meta .responsive-text-value", ".pick-meta"]\n  },\n  {\n    block: ".visible-pick-copy",\n    row: ".visible-pick",\n    top: [".pick-title-team .responsive-text-value", ".pick-title-team", ":scope > strong"],\n    bottom: [":scope > p .responsive-text-value", ":scope > p"]\n  },\n  {\n    block: ".side-bet-offer-copy",\n    row: ".side-bet-offer-row",\n    top: [":scope > strong .responsive-text-value", ":scope > strong"],\n    bottom: [":scope > .side-bet-response-line .side-bet-response-value", ":scope > p"]\n  },\n  {\n    block: ".side-bet-ledger-copy",\n    row: ".side-bet-ledger-row",\n    top: [".side-bet-ledger-title .responsive-text-value", ".side-bet-ledger-title"],\n    bottom: [":scope > p"]\n  }\n] as const;\n\nfunction precise(value: number) {\n'''
+          if insert_after not in text:
+              raise SystemExit('selector close anchor not found')
+          text = text.replace(insert_after, block_config, 1)
+
+          stable_anchor = '''    function clearOpticalTranslations() {\n'''
+          helpers = '''    function firstVisibleMatch(block: HTMLElement, selectors: readonly string[]) {\n      for (const selector of selectors) {\n        const match = block.querySelector<HTMLElement>(selector);\n        if (!match || !match.textContent?.replace(/\\s+/g, " ").trim()) continue;\n        if (match.getClientRects().length === 0) continue;\n        return match;\n      }\n      return null;\n    }\n\n    function visibleGlyphBounds(element: HTMLElement) {\n      if (!context || !element.isConnected || element.getClientRects().length === 0) return null;\n      const style = window.getComputedStyle(element);\n      if (style.display === "none" || style.visibility === "hidden") return null;\n      const text = element.textContent?.replace(/\\s+/g, " ").trim();\n      if (!text) return null;\n\n      const geometry = geometryFor(style);\n      context.font = canvasFont(style);\n      context.textBaseline = "alphabetic";\n      const metrics = context.measureText(text);\n      const fontAscent = Number(metrics.fontBoundingBoxAscent || 0);\n      const fontDescent = Number(metrics.fontBoundingBoxDescent || 0);\n      const ascent = fontAscent > 0 ? fontAscent : Number(metrics.actualBoundingBoxAscent || 0);\n      const descent = fontDescent > 0 ? fontDescent : Number(metrics.actualBoundingBoxDescent || 0);\n      if (!(ascent > 0 || descent > 0)) return null;\n\n      const rect = element.getBoundingClientRect();\n      return {\n        top: rect.top + geometry.baseline - ascent,\n        bottom: rect.top + geometry.baseline + descent\n      };\n    }\n\n    function applyVisibleEdgeBlockCentering() {\n      OPTICALLY_CENTERED_TWO_LINE_BLOCKS.forEach((config) => {\n        document.querySelectorAll<HTMLElement>(config.block).forEach((block) => {\n          block.style.removeProperty("translate");\n          block.removeAttribute("data-slab-optical-centered-block");\n\n          const row = block.closest<HTMLElement>(config.row);\n          const topLine = firstVisibleMatch(block, config.top);\n          const bottomLine = firstVisibleMatch(block, config.bottom);\n          if (!row || !topLine || !bottomLine) return;\n\n          const topBounds = visibleGlyphBounds(topLine);\n          const bottomBounds = visibleGlyphBounds(bottomLine);\n          if (!topBounds || !bottomBounds) return;\n\n          const rowRect = row.getBoundingClientRect();\n          const visibleCenter = (topBounds.top + bottomBounds.bottom) / 2;\n          const rowCenter = rowRect.top + (rowRect.height / 2);\n          const shift = precise(rowCenter - visibleCenter);\n          block.style.setProperty("translate", `0 ${shift}px`);\n          block.dataset.slabOpticalCenteredBlock = "true";\n        });\n      });\n    }\n\n    function clearOpticalTranslations() {\n'''
+          if stable_anchor not in text:
+              raise SystemExit('clear anchor not found')
+          text = text.replace(stable_anchor, helpers, 1)
+
+          call_anchor = '''      leafMatches.forEach((element) => {\n        const shift = stableShift(element);\n        if (shift === null) return;\n\n        const responsiveWrapper = element.matches(".responsive-text-value")\n          ? element.closest<HTMLElement>(".responsive-text")\n          : null;\n\n        if (responsiveWrapper) {\n          element.style.setProperty("translate", "0 0");\n          responsiveWrapper.style.setProperty("translate", `0 ${shift}px`);\n          responsiveWrapper.dataset.stableFontWrapperCentered = "true";\n        } else {\n          element.style.setProperty("translate", `0 ${shift}px`);\n        }\n        element.dataset.slabOpticalCentered = "true";\n\n        const teamName = element.closest(".team-name");\n        const nameLine = teamName?.closest(".team-name-line");\n        const possession = nameLine?.querySelector<HTMLElement>(".possession-icon");\n        if (possession) {\n          possession.style.setProperty("translate", `0 ${shift}px`);\n          possession.dataset.slabOpticalCentered = "true";\n        }\n      });\n    }\n'''
+          call_replacement = call_anchor.replace('''      });\n    }\n''', '''      });\n\n      applyVisibleEdgeBlockCentering();\n    }\n''')
+          if call_anchor not in text:
+              raise SystemExit('leaf centering anchor not found')
+          text = text.replace(call_anchor, call_replacement, 1)
+
+          path.write_text(text)
+          PY
+          npm ci
+          git diff --check
+          npm test
+          npm run build
+      - name: Commit verified centering
+        shell: bash
+        run: |
+          rm -f .github/workflows/two-line-optical-centering.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- components/AppUiCoordinator.tsx .github/workflows/two-line-optical-centering.yml
+          git commit -m "Optically center two-line card text"
+          git push origin HEAD:fix/two-line-optical-centering
