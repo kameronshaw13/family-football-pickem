@@ -122,6 +122,33 @@ const OPTICALLY_CENTERED_TEXT_SELECTOR = [
   ".notification-settings-heading"
 ].join(", ");
 
+const OPTICALLY_CENTERED_TWO_LINE_BLOCKS = [
+  {
+    block: ".pick-copy",
+    row: ".pick-card",
+    top: [".pick-title-team .responsive-text-value", ".pick-title-team"],
+    bottom: [".pick-meta .responsive-text-value", ".pick-meta"]
+  },
+  {
+    block: ".visible-pick-copy",
+    row: ".visible-pick",
+    top: [".pick-title-team .responsive-text-value", ".pick-title-team", ":scope > strong"],
+    bottom: [":scope > p .responsive-text-value", ":scope > p"]
+  },
+  {
+    block: ".side-bet-offer-copy",
+    row: ".side-bet-offer-row",
+    top: [":scope > strong .responsive-text-value", ":scope > strong"],
+    bottom: [":scope > .side-bet-response-line .side-bet-response-value", ":scope > p"]
+  },
+  {
+    block: ".side-bet-ledger-copy",
+    row: ".side-bet-ledger-row",
+    top: [".side-bet-ledger-title .responsive-text-value", ".side-bet-ledger-title"],
+    bottom: [":scope > p"]
+  }
+] as const;
+
 function precise(value: number) {
   return Math.round(value * OPTICAL_PRECISION) / OPTICAL_PRECISION;
 }
@@ -270,6 +297,65 @@ export default function AppUiCoordinator() {
       return shift;
     }
 
+    function firstVisibleMatch(block: HTMLElement, selectors: readonly string[]) {
+      for (const selector of selectors) {
+        const match = block.querySelector<HTMLElement>(selector);
+        if (!match || !match.textContent?.replace(/\s+/g, " ").trim()) continue;
+        if (match.getClientRects().length === 0) continue;
+        return match;
+      }
+      return null;
+    }
+
+    function visibleGlyphBounds(element: HTMLElement) {
+      if (!context || !element.isConnected || element.getClientRects().length === 0) return null;
+      const style = window.getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden") return null;
+      const text = element.textContent?.replace(/\s+/g, " ").trim();
+      if (!text) return null;
+
+      const geometry = geometryFor(style);
+      context.font = canvasFont(style);
+      context.textBaseline = "alphabetic";
+      const metrics = context.measureText(text);
+      const fontAscent = Number(metrics.fontBoundingBoxAscent || 0);
+      const fontDescent = Number(metrics.fontBoundingBoxDescent || 0);
+      const ascent = fontAscent > 0 ? fontAscent : Number(metrics.actualBoundingBoxAscent || 0);
+      const descent = fontDescent > 0 ? fontDescent : Number(metrics.actualBoundingBoxDescent || 0);
+      if (!(ascent > 0 || descent > 0)) return null;
+
+      const rect = element.getBoundingClientRect();
+      return {
+        top: rect.top + geometry.baseline - ascent,
+        bottom: rect.top + geometry.baseline + descent
+      };
+    }
+
+    function applyVisibleEdgeBlockCentering() {
+      OPTICALLY_CENTERED_TWO_LINE_BLOCKS.forEach((config) => {
+        document.querySelectorAll<HTMLElement>(config.block).forEach((block) => {
+          block.style.removeProperty("translate");
+          block.removeAttribute("data-slab-optical-centered-block");
+
+          const row = block.closest<HTMLElement>(config.row);
+          const topLine = firstVisibleMatch(block, config.top);
+          const bottomLine = firstVisibleMatch(block, config.bottom);
+          if (!row || !topLine || !bottomLine) return;
+
+          const topBounds = visibleGlyphBounds(topLine);
+          const bottomBounds = visibleGlyphBounds(bottomLine);
+          if (!topBounds || !bottomBounds) return;
+
+          const rowRect = row.getBoundingClientRect();
+          const visibleCenter = (topBounds.top + bottomBounds.bottom) / 2;
+          const rowCenter = rowRect.top + (rowRect.height / 2);
+          const shift = precise(rowCenter - visibleCenter);
+          block.style.setProperty("translate", `0 ${shift}px`);
+          block.dataset.slabOpticalCenteredBlock = "true";
+        });
+      });
+    }
+
     function clearOpticalTranslations() {
       document.querySelectorAll<HTMLElement>("[data-slab-optical-centered]").forEach((element) => {
         element.style.removeProperty("translate");
@@ -322,6 +408,8 @@ export default function AppUiCoordinator() {
           possession.dataset.slabOpticalCentered = "true";
         }
       });
+
+      applyVisibleEdgeBlockCentering();
     }
 
     function run() {
