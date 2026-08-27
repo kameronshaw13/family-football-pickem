@@ -96,7 +96,7 @@ type SideBetSnapshot = {
 };
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
-const APP_DATA_CACHE_MAX_AGE = 10 * 60 * 1000;
+const APP_DATA_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
 const EMPTY_NOTIFICATION_COUNTS: NotificationCounts = { side_bets_received: 0, side_bets_sent: 0, my_card: 0, league_cards: 0, side_bet_ledger: 0, total: 0 };
 
 const CENTRAL_WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/Chicago" });
@@ -1127,7 +1127,18 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     try {
       const url = new URL("/api/app-data", window.location.origin);
       if (nextWeek != null) url.searchParams.set("week", String(nextWeek));
-      const response = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, cache: "no-store" });
+      let response: Response | null = null;
+      let lastError: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          response = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, cache: "no-store" });
+          break;
+        } catch (error) {
+          lastError = error;
+          if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 250 * (attempt + 1)));
+        }
+      }
+      if (!response) throw lastError || new Error("Could not load app data.");
       const payload = await response.json();
       if (!response.ok) {
         if (response.status === 401) {
@@ -2337,7 +2348,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
 
   function pickedResult(): GameOutcome | null {
     if (!existingMatchesView || !existing || !gameIsFinal || awayScore == null || homeScore == null) return null;
-    if (existing.result !== "pending") return existing.result;
+    if (gameIsFinal && existing.result !== "pending") return existing.result;
     if (existing.pick_type === "underdog") {
       return gradeUnderdogOutright(existing.selected_team, game.home_team, game.away_team, homeScore, awayScore);
     }
@@ -2352,21 +2363,21 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
     return spread == null ? null : gradeAgainstSpread(team, game.home_team, game.away_team, homeScore, awayScore, spread);
   }
 
-  const finalPickResult = pickedResult();
+  const pickedScoreResult = pickedResult();
   function finalResultForTeam(team: string): GameOutcome | null {
     if (!gameIsFinal) return null;
-    if (!existingMatchesView || !existing || !finalPickResult) return resultWithoutPick(team);
-    if (finalPickResult === "push") return "push";
-    if (team === existing.selected_team) return finalPickResult;
-    return finalPickResult === "win" ? "loss" : "win";
+    if (!existingMatchesView || !existing || !pickedScoreResult) return resultWithoutPick(team);
+    if (pickedScoreResult === "push") return "push";
+    if (team === existing.selected_team) return pickedScoreResult;
+    return pickedScoreResult === "win" ? "loss" : "win";
   }
 
   function resultClasses(team: string) {
     const classes: string[] = [];
-    const outcome = finalResultForTeam(team);
-    if (outcome) classes.push(`outcome-${outcome}`);
-    if (existingMatchesView && existing?.selected_team === team && finalPickResult) {
-      classes.push(`picked-${finalPickResult}`);
+    const finalOutcome = finalResultForTeam(team);
+    if (finalOutcome) classes.push(`outcome-${finalOutcome}`);
+    if (existingMatchesView && existing?.selected_team === team && pickedScoreResult) {
+      classes.push(`picked-${pickedScoreResult}`);
     }
     return classes.join(" ");
   }
