@@ -12,7 +12,7 @@ The `CRON_SECRET` value must match the environment variable you set in Vercel.
 
 ## Schedule
 
-Create six jobs every day:
+Keep the six regular daily jobs:
 
 - 2:00 AM CT
 - 6:00 AM CT
@@ -21,18 +21,29 @@ Create six jobs every day:
 - 6:00 PM CT
 - 10:00 PM CT
 
-This is the automatic football schedule. Each run refreshes both CFB and NFL, locks closed picks, checks official ESPN final scores, grades picks and side bets, and settles the weekly bank once all three cards are final. For Saturday-Monday games, the Friday 6:00 PM run is the final spread update and picks close at 7:00 PM. For Tuesday-Friday games, the app stops accepting spread changes 25 hours before kickoff and closes picks 24 hours before kickoff.
+Add two Saturday-morning jobs:
+
+- Saturday 7:50 AM CT
+- Saturday 8:50 AM CT
+
+Each run refreshes both CFB and NFL, locks closed picks, checks official ESPN final scores, grades picks and side bets, and settles the weekly bank when a group is ready.
+
+The Saturday-only calls create two extra weekend line checks around 8:00 and 9:00 AM. The 8:50 AM call is the final scheduled refresh for Saturday-Monday games before those lines freeze at 9:00 AM CT. Saturday-Monday picks then lock at 10:00 AM CT.
+
+Tuesday-Friday games stay on the per-game schedule: their lines freeze 1 hour before kickoff and their picks lock at kickoff. This keeps Friday games out of the weekend freeze window even when they kick after Friday evening.
 
 Because many schedulers use UTC, during daylight saving time Central Time is UTC-5:
 
 - 2:00 AM CT = 07:00 UTC
 - 6:00 AM CT = 11:00 UTC
+- Saturday 7:50 AM CT = 12:50 UTC
+- Saturday 8:50 AM CT = 13:50 UTC
 - 10:00 AM CT = 15:00 UTC
 - 2:00 PM CT = 19:00 UTC
 - 6:00 PM CT = 23:00 UTC
 - 10:00 PM CT = 03:00 UTC next day
 
-If the scheduler supports America/Chicago time zones, use that instead.
+If the scheduler supports America/Chicago time zones, use that instead so daylight-saving changes are handled automatically.
 
 ## What the endpoint does
 
