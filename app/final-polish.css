@@ -1,8 +1,13 @@
 /* Final shared polish pass: visual-only corrections without changing card geometry. */
 
-/* Strong section boundaries where a section visually begins and ends. */
+/* Pending Offers / Offer History use a strong outer frame, while the internal
+   divider between the heading and its first row stays at the normal line tone. */
 .side-bet-list-section > h3 {
-  border-block-color: var(--line-strong);
+  border-top-color: var(--line-strong);
+  border-bottom-color: var(--line);
+}
+.side-bet-list-section-body > :last-child {
+  border-bottom-color: var(--line-strong);
 }
 
 .card-progress {
@@ -17,6 +22,13 @@
 .card-panel .card-empty-picks,
 .card-panel .group-empty-picks {
   border-bottom-color: var(--line-strong);
+}
+
+/* Weekly Results should have the same strong closing boundary as the other
+   data sections. This also gives the final player row the same visual frame
+   as the rows above it without moving its text baseline. */
+.bank-player-result:last-child {
+  border-bottom: 1px solid var(--line-strong);
 }
 
 /* Conference group headings own a single separator; the first option beneath
@@ -44,13 +56,13 @@ body,
   line-height: 1.3;
 }
 
-/* Preserve the existing right-side market geometry explicitly. */
+/* Preserve the existing right-side market geometry explicitly. Team names on
+   the left are also 16px, so spread and team text remain intentionally matched. */
 .team-spread,
 .team-board-market {
   font-size: 16px;
   white-space: nowrap;
 }
-
 
 /* Real and preview Pick Board use the same score-based selected-side treatment. */
 .picks-panel .stacked-matchup .team-row.picked-win {
