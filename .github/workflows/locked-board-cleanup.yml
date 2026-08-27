@@ -1,0 +1,70 @@
+name: Locked board cleanup
+
+on:
+  push:
+    branches:
+      - fix/locked-board-dropdown-preview-cleanup
+    paths:
+      - .github/workflows/locked-board-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Bootstrap locked board cleanup'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/locked-board-dropdown-preview-cleanup
+          fetch-depth: 0
+      - name: Apply requested cleanup
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          polish = Path('app/final-polish.css')
+          text = polish.read_text()
+          text = text.replace('''\n.board-empty-state {\n  border-bottom: 1px solid var(--line-strong);\n}\n''', '\n')
+          old_dropdown = '''/* Conference group headings own a single separator; the first option beneath\n   the heading should not draw a second adjacent rule. */\n.context-select .custom-select-group-label + .custom-select-option {\n  border-top: 0;\n}\n'''
+          new_dropdown = '''/* Conference dropdown separators are explicit here instead of combining the\n   menu row-gap with item borders. This guarantees a single rule above and\n   below Power 4 / Group of 6 headings. */\n.context-select .custom-select-menu {\n  row-gap: 0;\n  background: var(--panel);\n}\n.context-select .custom-select-option,\n.context-select .custom-select-group-label {\n  border-top: 1px solid var(--line);\n}\n.context-select .custom-select-menu > .custom-select-section:first-child > .custom-select-option:first-child,\n.context-select .custom-select-menu > .custom-select-section:first-child > .custom-select-group-label:first-child {\n  border-top: 0;\n}\n'''
+          if old_dropdown not in text:
+              raise SystemExit('conference dropdown block not found')
+          polish.write_text(text.replace(old_dropdown, new_dropdown, 1))
+
+          globals_path = Path('app/globals.css')
+          globals_text = globals_path.read_text()
+          old_locked_css = '.game-card.locked-out .team-row, .side-bet-game-card.closed .team-row { color: var(--muted); background: var(--canvas-muted); -webkit-text-fill-color: var(--muted); }'
+          new_locked_css = '.side-bet-game-card.closed .team-row { color: var(--muted); background: var(--canvas-muted); -webkit-text-fill-color: var(--muted); }'
+          if old_locked_css not in globals_text:
+              raise SystemExit('locked-out css not found')
+          globals_path.write_text(globals_text.replace(old_locked_css, new_locked_css, 1))
+
+          app = Path('components/PickemApp.tsx')
+          app_text = app.read_text()
+          app_text = app_text.replace('Check, ChevronDown, ChevronRight, ChevronUp,', 'Check, ChevronDown, ChevronUp,', 1)
+          locked_class = ' ${!weekIsOpen && !gameIsLive && !gameIsFinal ? "locked-out" : ""}'
+          if locked_class not in app_text:
+              raise SystemExit('locked-out GameCard class not found')
+          app_text = app_text.replace(locked_class, '', 1)
+
+          preview = '''          {appSlug === "shaw-family" && currentUser.username.toLowerCase() === "kameron" && !previewActive && <button\n            type="button"\n            className="test-week-launch"\n            onClick={() => {\n              setTestWeekActive(true);\n              setStagedPicks(null);\n              setPicksView("board");\n              setCardView("mine");\n              setStatusFilter("LOCKED");\n              setStatusFilterTouched(false);\n              setLeagueFilter("CFB");\n              setConferenceFilter("ALL");\n              setTab("picks");\n            }}\n          >\n            <FlaskConical size={18} />\n            <span><strong>Preview Board States</strong><small>Test picks, cards, standings, and results</small></span>\n            <ChevronRight size={17} />\n          </button>}\n'''
+          if preview not in app_text:
+              raise SystemExit('Kameron preview launcher not found')
+          app.write_text(app_text.replace(preview, '', 1))
+          PY
+          npm ci
+          git diff --check
+          npm test
+          npm run build
+      - name: Commit verified cleanup
+        shell: bash
+        run: |
+          rm -f .github/workflows/locked-board-cleanup.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- app/final-polish.css app/globals.css components/PickemApp.tsx .github/workflows/locked-board-cleanup.yml
+          git commit -m "Clean up locked board and conference menu"
+          git push origin HEAD:fix/locked-board-dropdown-preview-cleanup
