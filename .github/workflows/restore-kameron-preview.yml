@@ -1,0 +1,52 @@
+name: Restore Kameron board preview
+
+on:
+  push:
+    branches:
+      - restore/kameron-shaw-board-preview
+    paths:
+      - .github/workflows/restore-kameron-preview.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Bootstrap Kameron board preview patch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: restore/kameron-shaw-board-preview
+          fetch-depth: 0
+      - name: Restore launcher
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('components/PickemApp.tsx')
+          text = path.read_text()
+
+          old_import = 'import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";'
+          new_import = 'import { Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";'
+          if old_import not in text:
+              raise SystemExit('Expected lucide import not found')
+          text = text.replace(old_import, new_import, 1)
+
+          needle = '''          </div>\n          <div className="subsection bank-section bank-week-section">\n            <div className="standings-heading-row">\n              <h2>{previewActive ? "Test Weekly Results" : "Weekly Results"}</h2>'''
+          launcher = '''          </div>\n          {appSlug === "shaw-family" && currentUser.username.toLowerCase() === "kameron" && !previewActive && <button\n            type="button"\n            className="test-week-launch"\n            onClick={() => {\n              setTestWeekActive(true);\n              setStagedPicks(null);\n              setPicksView("board");\n              setCardView("mine");\n              setStatusFilter("LOCKED");\n              setStatusFilterTouched(false);\n              setLeagueFilter("CFB");\n              setConferenceFilter("ALL");\n              setTab("picks");\n            }}\n          >\n            <FlaskConical size={18} />\n            <span><strong>Preview Board States</strong><small>Test picks, cards, standings, and results</small></span>\n            <ChevronRight size={17} />\n          </button>}\n          <div className="subsection bank-section bank-week-section">\n            <div className="standings-heading-row">\n              <h2>{previewActive ? "Test Weekly Results" : "Weekly Results"}</h2>'''
+          if needle not in text:
+              raise SystemExit('Expected Bank section insertion point not found')
+          text = text.replace(needle, launcher, 1)
+          path.write_text(text)
+          PY
+          git diff --check
+      - name: Commit launcher
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- components/PickemApp.tsx
+          git commit -m "Restore Kameron Shaw board preview launcher"
+          git push origin HEAD:restore/kameron-shaw-board-preview
