@@ -155,7 +155,7 @@ export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSect
         `Weekly payouts: 1st ${signedMoney(numberValue(weekly.first, 40))}, 2nd ${signedMoney(numberValue(weekly.second, 20))}, 3rd ${signedMoney(numberValue(weekly.third, 0))}, 4th ${signedMoney(numberValue(weekly.fourth, 0))}, 5th ${signedMoney(numberValue(weekly.fifth, 0))}, 6th ${signedMoney(numberValue(weekly.sixth, -10))}, 7th ${signedMoney(numberValue(weekly.seventh, -20))}, 8th ${signedMoney(numberValue(weekly.eighth, -30))}.`,
         "If players finish a week tied for a payout position, they share the average payout for the positions they occupy."
       ] },
-      { title: "Perfect Week", items: ["Does not apply in Week 1.", `A perfect card multiplies all eight weekly payout amounts by ${perfectMultiplier}.`] },
+      { title: "Perfect Week", items: ["Does not apply in Week 1.", `A perfect week multiplies every weekly payment by ${perfectMultiplier}.`] },
       { title: "Pick Locks", items: pickLocks },
       { title: "Side Bets", items: sideBetItems(rules, true) }
     ];

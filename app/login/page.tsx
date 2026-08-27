@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import MenuSelect from "@/components/MenuSelect";
 import NumericText from "@/components/NumericText";
+import { getClientSessionToken, storeClientSession } from "@/lib/clientSession";
 
 const users = [
   { username: "kameron", label: "Kameron" },
@@ -16,10 +17,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
-    const token = window.localStorage.getItem("pickem_session_token");
-    if (token) window.location.replace("/");
+    const token = getClientSessionToken();
+    if (token) {
+      window.location.replace("/");
+      return;
+    }
+    setSessionChecked(true);
   }, []);
 
   async function submit(event: React.FormEvent) {
@@ -37,8 +43,7 @@ export default function LoginPage() {
         setMessage(payload.error || "Could not continue.");
         return;
       }
-      window.localStorage.setItem("pickem_session_token", payload.token);
-      window.localStorage.setItem("pickem_profile", JSON.stringify(payload.profile));
+      storeClientSession(payload.token, payload.profile);
       window.location.replace("/");
     } catch {
       setMessage("Could not continue.");
@@ -46,6 +51,8 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
+
+  if (!sessionChecked) return null;
 
   return <main className="app-shell login-screen login-shaw-family">
     <section className="login-card">

@@ -7,6 +7,8 @@ import { appWorkerScope } from "@/lib/appIdentity";
 
 type PushState = "checking" | "unsupported" | "needs-home-screen" | "not-configured" | "denied" | "disabled" | "enabled";
 
+const pushStateCache = new Map<AppSlug, Exclude<PushState, "checking">>();
+
 function activeAppSlug(explicit?: AppSlug): AppSlug {
   if (explicit) return explicit;
   if (typeof window === "undefined") return "shaw-family";
@@ -64,10 +66,15 @@ async function appRegistration(appSlug: AppSlug) {
 
 export default function PushNotificationControls({ appSlug: explicitAppSlug, onCountsChanged }: { appSlug?: AppSlug; onCountsChanged?: (counts: Record<string, number>) => void }) {
   const appSlug = activeAppSlug(explicitAppSlug);
-  const [state, setState] = useState<PushState>("checking");
+  const [state, setState] = useState<PushState>(() => pushStateCache.get(appSlug) || "checking");
   const [publicKey, setPublicKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+
+  function rememberState(next: Exclude<PushState, "checking">) {
+    pushStateCache.set(appSlug, next);
+    setState(next);
+  }
 
   async function post(body: object) {
     const headers = authHeaders(appSlug);
@@ -87,11 +94,11 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
     let cancelled = false;
     async function inspect() {
       if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-        if (!cancelled) setState("unsupported");
+        if (!cancelled) rememberState("unsupported");
         return;
       }
       if (isIosBrowser() && !isStandalone()) {
-        if (!cancelled) setState("needs-home-screen");
+        if (!cancelled) rememberState("needs-home-screen");
         return;
       }
       const headers = authHeaders(appSlug);
@@ -104,8 +111,8 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
         if (cancelled) return;
         onCountsChanged?.(payload.counts || {});
         setPublicKey(payload.publicKey || "");
-        if (!payload.configured) return setState("not-configured");
-        if (Notification.permission === "denied") return setState("denied");
+        if (!payload.configured) return rememberState("not-configured");
+        if (Notification.permission === "denied") return rememberState("denied");
 
         let subscription = await registration.pushManager.getSubscription();
         if (!subscription && Notification.permission === "granted" && payload.publicKey) {
@@ -116,20 +123,20 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
         }
         if (subscription) {
           await post({ action: "subscribe", subscription: subscription.toJSON(), userAgent: navigator.userAgent });
-          if (!cancelled) setState("enabled");
+          if (!cancelled) rememberState("enabled");
         } else if (!cancelled) {
-          setState("disabled");
+          rememberState("disabled");
         }
       } catch (error) {
         if (!cancelled) {
-          setState("disabled");
+          rememberState("disabled");
           setMessage(error instanceof Error ? error.message : "Could not check notifications.");
         }
       }
     }
     void inspect();
     return () => { cancelled = true; };
-  // post intentionally uses the same appSlug and callback for this mounted control.
+  // post and rememberState intentionally use the same appSlug and callback for this mounted control.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appSlug, onCountsChanged]);
 
@@ -140,7 +147,7 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
       if (!publicKey) throw new Error("Push keys have not been added to Vercel yet.");
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        setState(permission === "denied" ? "denied" : "disabled");
+        rememberState(permission === "denied" ? "denied" : "disabled");
         return;
       }
       const registration = await appRegistration(appSlug);
@@ -150,7 +157,7 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
         applicationServerKey: applicationServerKey(publicKey)
       });
       await post({ action: "subscribe", subscription: subscription.toJSON(), userAgent: navigator.userAgent });
-      setState("enabled");
+      rememberState("enabled");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not enable notifications.");
     } finally {
@@ -168,7 +175,7 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
         await post({ action: "unsubscribe", endpoint: subscription.endpoint });
         await subscription.unsubscribe();
       }
-      setState("disabled");
+      rememberState("disabled");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not disable notifications.");
     } finally {
