@@ -1,0 +1,52 @@
+/* Final shared polish pass: visual-only corrections without changing card geometry. */
+
+/* Strong section boundaries where a section visually begins and ends. */
+.side-bet-list-section > h3 {
+  border-block-color: var(--line-strong);
+}
+
+.card-progress {
+  border-block-color: var(--line-strong);
+}
+
+.board-empty-state {
+  border-bottom: 1px solid var(--line-strong);
+}
+
+/* Empty Picks sections should end with the same strong boundary as populated cards. */
+.card-panel .card-empty-picks,
+.card-panel .group-empty-picks {
+  border-bottom-color: var(--line-strong);
+}
+
+/* Conference group headings own a single separator; the first option beneath
+   the heading should not draw a second adjacent rule. */
+.context-select .custom-select-group-label + .custom-select-option {
+  border-top: 0;
+}
+
+/* Keep the app from rubber-banding downward when the user reaches the top of
+   Pick Board / Side Bets on browsers that support overscroll-behavior. */
+html,
+body,
+.app-shell {
+  overscroll-behavior-y: none;
+}
+
+/* Give Roboto Slab descenders a little more line-box room without changing
+   fixed row heights or the existing optical-centering engine. */
+.responsive-text,
+.responsive-text-value,
+.bank-result-player,
+.side-bet-list-section > h3,
+.card-progress-copy strong,
+.card-progress-count {
+  line-height: 1.3;
+}
+
+/* Preserve the existing right-side market geometry explicitly. */
+.team-spread,
+.team-board-market {
+  font-size: 16px;
+  white-space: nowrap;
+}
