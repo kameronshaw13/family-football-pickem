@@ -1,0 +1,47 @@
+name: Dropdown cleanup
+
+on:
+  push:
+    branches:
+      - fix/all-dropdown-clean-cells
+    paths:
+      - .github/workflows/dropdown-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Bootstrap dropdown cleanup'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/all-dropdown-clean-cells
+          fetch-depth: 0
+      - name: Apply dropdown cleanup
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('app/final-polish.css')
+          text = path.read_text()
+          old = '''/* Conference dropdown separators are painted as overlays rather than consuming\n   row height. Every option remains the same 38px cell, and selected blue rows\n   fill their complete cell right up to the separator. */\n.context-select .custom-select-menu {\n  row-gap: 0;\n  background: var(--panel);\n}\n.context-select .custom-select-option,\n.context-select .custom-select-group-label {\n  border-top: 0;\n}\n.context-select .custom-select-group-label {\n  position: relative;\n}\n.context-select .custom-select-group-label::before {\n  position: absolute;\n  top: 0;\n  right: 0;\n  left: 0;\n  height: 1px;\n  background: var(--line);\n  content: "";\n  pointer-events: none;\n}\n.context-select .custom-select-menu > .custom-select-section:first-child > .custom-select-group-label:first-child::before {\n  display: none;\n}\n'''
+          new = '''/* Dropdown options use clean, divider-free 38px cells everywhere. Removing the\n   option border does not change row height, so every selectable cell keeps the\n   same visual space and selected blue backgrounds fill the entire cell. */\n.custom-select-menu {\n  row-gap: 0;\n  background: var(--panel);\n}\n.custom-select-option {\n  border-top: 0;\n}\n\n/* Conference section labels remain distinct. Their dividers are overlays, so\n   Power 4 and Group of 6 each get one line above and below without stealing\n   space from the header or the neighboring 38px option cells. */\n.context-select .custom-select-group-label {\n  position: relative;\n  border-top: 0;\n}\n.context-select .custom-select-group-label::before,\n.context-select .custom-select-group-label::after {\n  position: absolute;\n  right: 0;\n  left: 0;\n  height: 1px;\n  background: var(--line);\n  content: "";\n  pointer-events: none;\n}\n.context-select .custom-select-group-label::before {\n  top: 0;\n}\n.context-select .custom-select-group-label::after {\n  bottom: 0;\n}\n'''
+          if old not in text:
+              raise SystemExit('dropdown block not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          npm ci
+          git diff --check
+          npm test
+          npm run build
+      - name: Commit verified cleanup
+        shell: bash
+        run: |
+          rm -f .github/workflows/dropdown-cleanup.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- app/final-polish.css .github/workflows/dropdown-cleanup.yml
+          git commit -m "Clean up all dropdown option dividers"
+          git push origin HEAD:fix/all-dropdown-clean-cells
