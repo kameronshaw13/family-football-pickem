@@ -7,7 +7,7 @@ const NFL_NICKNAMES = [
 // "Eastern Michigan"). Long school names are abbreviated separately, and only
 // when the UI determines that the full label does not fit.
 const COLLEGE_NICKNAME_SUFFIXES = [
-  "Rainbow Warriors", "Rainbow Wahine", "Blue Raiders", "Blue Hens", "Blue Hose", "Blue Devils", "Bluejays", "Green Wave", "Mean Green", "Red Wolves", "Red Raiders", "RedHawks", "Redhawks", "Black Knights", "Golden Hurricane", "Golden Flashes", "Golden Gophers", "Golden Bears", "Golden Eagles", "Golden Knights", "Golden Lions", "Golden Panthers", "Golden Rams", "Golden Grizzlies", "Ragin Cajuns", "Ragin' Cajuns", "Thundering Herd", "Fighting Irish", "Fighting Illini", "Fighting Hawks", "Fighting Camels", "Fighting Blue Hens", "Midshipmen", "Gamecocks", "Mountaineers", "Commodores", "Scarlet Knights", "Yellow Jackets", "Boilermakers", "Nittany Lions", "Tar Heels", "Cardinal", "Sun Devils", "Demon Deacons", "Crimson Tide", "Horned Frogs", "Chanticleers", "Sycamores", "Governors", "Privateers", "Keydets", "Paladins", "Terriers", "Hatters", "Musketeers", "Ramblers", "Explorers", "Billikens", "Jackrabbits", "Leathernecks", "Roadrunners", "Lumberjacks", "Longhorns", "Sooners", "Cyclones", "Buffaloes", "Hurricanes", "Seminoles", "Volunteers", "Razorbacks", "Wolf Pack", "Wolfpack", "Jayhawks", "Buckeyes", "Wolverines", "Badgers", "Hawkeyes", "Hoosiers", "Terrapins", "Cornhuskers", "Flames", "Monarchs", "Miners", "Blazers", "Lobos", "Aztecs", "Bulls", "Zips", "Bobcats", "Rockets", "Chippewas", "Gaels", "Mocs", "Lancers", "Camels", "Seawolves", "Highlanders", "Retrievers", "Pioneers", "Broncs", "Jaspers", "Peacocks", "Salukis", "Flyers", "Penguins", "Vandals", "Mavericks", "Phoenix", "Bison", "Bisons", "Catamounts", "Minutemen", "Jaguars", "Coyotes", "Panthers", "Lions", "Tigers", "Wildcats", "Bulldogs", "Eagles", "Hawks", "Falcons", "Bears", "Bruins", "Rams", "Aggies", "Spartans", "Trojans", "Cardinals", "Pirates", "Knights", "Warriors", "Raiders", "Rebels", "Mustangs", "Owls", "Cougars", "Huskies", "Bearcats", "Bearkats", "Cowboys", "Cowgirls", "Utes", "Ducks", "Beavers", "Hokies", "Cavaliers", "Gators", "Gauchos", "Anteaters", "Matadors", "Titans", "Tritons", "Lopes", "Antelopes", "Vaqueros", "Vaqueras", "Lumberjills", "Colonels", "Racers", "Norfolk", "Dukes", "Dragons", "Quakers", "Big Red", "Crimson", "Bantams", "Engineers", "Statesmen", "Dutchmen", "Saints", "Saint Mary's", "Friars", "Vikings", "Ospreys", "Skyhawks", "Bucs", "Buccaneers", "Hilltoppers", "Hillcats", "Patriots", "Minutewomen", "Greyhounds", "Mules", "Gorillas", "Grit", "Reivers", "Tars", "Royals", "Lakers", "Orange"
+  "Rainbow Warriors", "Rainbow Wahine", "Blue Raiders", "Blue Hens", "Blue Hose", "Blue Devils", "Bluejays", "Green Wave", "Mean Green", "Red Wolves", "Red Raiders", "RedHawks", "Redhawks", "Black Knights", "Golden Hurricane", "Golden Flashes", "Golden Gophers", "Golden Bears", "Golden Eagles", "Golden Knights", "Golden Lions", "Golden Panthers", "Golden Rams", "Golden Grizzlies", "Ragin Cajuns", "Ragin' Cajuns", "Thundering Herd", "Fighting Irish", "Fighting Illini", "Fighting Hawks", "Fighting Camels", "Fighting Blue Hens", "Midshipmen", "Gamecocks", "Mountaineers", "Commodores", "Scarlet Knights", "Yellow Jackets", "Boilermakers", "Nittany Lions", "Tar Heels", "Cardinal", "Sun Devils", "Demon Deacons", "Crimson Tide", "Horned Frogs", "Chanticleers", "Sycamores", "Governors", "Privateers", "Keydets", "Paladins", "Terriers", "Hatters", "Musketeers", "Ramblers", "Explorers", "Billikens", "Jackrabbits", "Leathernecks", "Roadrunners", "Lumberjacks", "Longhorns", "Sooners", "Cyclones", "Buffaloes", "Hurricanes", "Seminoles", "Volunteers", "Razorbacks", "Wolf Pack", "Wolfpack", "Jayhawks", "Buckeyes", "Wolverines", "Badgers", "Hawkeyes", "Hoosiers", "Terrapins", "Cornhuskers", "Flames", "Monarchs", "Miners", "Blazers", "Lobos", "Aztecs", "Bulls", "Zips", "Bobcats", "Rockets", "Chippewas", "Gaels", "Mocs", "Lancers", "Camels", "Seawolves", "Highlanders", "Retrievers", "Pioneers", "Broncs", "Jaspers", "Peacocks", "Salukis", "Flyers", "Penguins", "Vandals", "Mavericks", "Phoenix", "Bison", "Bisons", "Catamounts", "Minutemen", "Jaguars", "Coyotes", "Panthers", "Lions", "Tigers", "Wildcats", "Bulldogs", "Eagles", "Hawks", "Falcons", "Bears", "Bruins", "Rams", "Aggies", "Spartans", "Trojans", "Cardinals", "Pirates", "Knights", "Warriors", "Raiders", "Rebels", "Mustangs", "Owls", "Cougars", "Huskies", "Bearcats", "Bearkats", "Cowboys", "Cowgirls", "Utes", "Ducks", "Beavers", "Hokies", "Cavaliers", "Gators", "Gauchos", "Anteaters", "Matadors", "Titans", "Tritons", "Lopes", "Antelopes", "Vaqueros", "Vaqueras", "Lumberjills", "Colonels", "Racers", "Norfolk", "Dukes", "Dragons", "Quakers", "Big Red", "Crimson", "Bantams", "Engineers", "Statesmen", "Dutchmen", "Saints", "Saint Mary's", "Friars", "Vikings", "Ospreys", "Skyhawks", "Bucs", "Buccaneers", "Hilltoppers", "Hillcats", "Patriots", "Minutewomen", "Greyhounds", "Mules", "Gorillas", "Grit", "Reivers", "Tars", "Royals", "Lakers", "Orange", "Leopards"
 ].sort((a, b) => b.length - a.length);
 
 const COLLEGE_KEEP_LAST_WORDS = new Set([
@@ -73,12 +73,12 @@ const COLLEGE_MANUAL_DISPLAY: Record<string, string> = {
 const TEAM_ABBREVIATIONS: Record<string, string> = {
   "north dakota state": "NDSU",
   "south dakota state": "SDSU",
-  "sacramento state": "Sac State",
+  "sacramento state": "Sac St.",
   "eastern michigan": "EMU",
   "western michigan": "WMU",
   "central michigan": "CMU",
   "north carolina state": "NCSU",
-  "appalachian state": "App State",
+  "appalachian state": "App St.",
   "arkansas pine bluff": "UAPB",
   "ut rio grande valley": "UTRGV",
   "louisiana monroe": "ULM",
@@ -110,9 +110,13 @@ const COLLEGE_SUFFIX_MATCHES = COLLEGE_NICKNAME_SUFFIXES.map((suffix) => ({
   key: normalizeTeamNameKey(suffix)
 }));
 
+function collegeDisplayStyle(name: string) {
+  return name.replace(/\bState\b/g, "St.");
+}
+
 function collegeSchoolName(rawTeam: string) {
   const manual = COLLEGE_MANUAL_DISPLAY[normalizeTeamNameKey(rawTeam)];
-  if (manual) return manual;
+  if (manual) return collegeDisplayStyle(manual);
 
   let cleaned = rawTeam
     .replace(/\bUniversity of\b/gi, "")
@@ -134,7 +138,7 @@ function collegeSchoolName(rawTeam: string) {
   }
 
   const manualAfterStrip = COLLEGE_MANUAL_DISPLAY[normalizeTeamNameKey(cleaned)];
-  if (manualAfterStrip) return manualAfterStrip;
+  if (manualAfterStrip) return collegeDisplayStyle(manualAfterStrip);
 
   const parts = cleaned.split(/\s+/).filter(Boolean);
   const last = parts[parts.length - 1];
@@ -145,7 +149,7 @@ function collegeSchoolName(rawTeam: string) {
     cleaned = parts.slice(0, -1).join(" ");
   }
 
-  return cleaned || rawTeam;
+  return collegeDisplayStyle(cleaned || rawTeam);
 }
 
 export function teamDisplayName(league: string | null | undefined, team: string) {
@@ -160,14 +164,18 @@ export function teamDisplayName(league: string | null | undefined, team: string)
   return displayName;
 }
 
+function teamAbbreviationKey(value: string) {
+  return normalizeTeamNameKey(value).replace(/\bst\b/g, "state");
+}
+
 export function teamAbbreviatedName(league: string | null | undefined, team: string) {
   const fullName = teamDisplayName(league, team);
-  const manual = TEAM_ABBREVIATIONS[normalizeTeamNameKey(fullName)] || TEAM_ABBREVIATIONS[normalizeTeamNameKey(team)];
+  const manual = TEAM_ABBREVIATIONS[teamAbbreviationKey(fullName)] || TEAM_ABBREVIATIONS[normalizeTeamNameKey(team)];
   if (manual) return manual;
   if (fullName.length <= 8 || /^[A-Z0-9]+$/.test(fullName)) return fullName;
 
   const words = fullName.split(/[^A-Za-z0-9]+/).filter(Boolean);
   const initials = words.map((word) => /^[A-Z0-9]{2,4}$/.test(word) ? word : word[0].toUpperCase()).join("");
-  const abbreviation = /\bState$/i.test(fullName) && !initials.endsWith("U") ? `${initials}U` : initials;
+  const abbreviation = /\bSt\.$/i.test(fullName) && !initials.endsWith("U") ? `${initials}U` : initials;
   return abbreviation.length >= 2 && abbreviation.length <= 7 ? abbreviation : fullName;
 }
