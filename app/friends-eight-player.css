@@ -20,10 +20,3 @@
 .route-app.group-friends .side-bet-recipient-grid > label:nth-child(n + 5) {
   border-top: 1px solid var(--line);
 }
-
-/* Give My Card's Picks header and every League Card player header a strong
-   top separator, even when the section has no visible picks. */
-.route-app.group-friends .card-panel .pick-section > h3,
-.route-app.group-friends .card-panel .group-card > h3 {
-  border-top-color: var(--line-strong);
-}
