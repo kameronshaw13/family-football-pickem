@@ -12,36 +12,24 @@ The `CRON_SECRET` value must match the environment variable you set in Vercel.
 
 ## Schedule
 
-Keep the six regular daily jobs:
+Keep the regular scheduler jobs that cover Tuesday-Friday games, including a Friday 8:50 PM CT call so a Friday 10:00 PM CT kickoff can receive its final update before the 9:00 PM line freeze.
 
-- 2:00 AM CT
-- 6:00 AM CT
-- 10:00 AM CT
-- 2:00 PM CT
-- 6:00 PM CT
-- 10:00 PM CT
+Add these Saturday-morning jobs:
 
-Add two Saturday-morning jobs:
-
-- Saturday 7:50 AM CT
 - Saturday 8:50 AM CT
+- Saturday 9:50 AM CT
 
 Each run refreshes both CFB and NFL, locks closed picks, checks official ESPN final scores, grades picks and side bets, and settles the weekly bank when a group is ready.
 
-The Saturday-only calls create two extra weekend line checks around 8:00 and 9:00 AM. The 8:50 AM call is the final scheduled refresh for Saturday-Monday games before those lines freeze at 9:00 AM CT. Saturday-Monday picks then lock at 10:00 AM CT.
+The Saturday-only calls create two extra weekend line checks around 9:00 and 10:00 AM. The 9:50 AM call is the final scheduled refresh for Saturday-Monday games before those lines freeze at 10:00 AM CT. Saturday-Monday picks then lock at 11:00 AM CT.
 
-Tuesday-Friday games stay on the per-game schedule: their lines freeze 1 hour before kickoff and their picks lock at kickoff. This keeps Friday games out of the weekend freeze window even when they kick after Friday evening.
+Tuesday-Friday games stay on the per-game schedule: their lines freeze 1 hour before kickoff and their picks lock at kickoff. This keeps Friday games out of the weekend freeze window even when they kick late Friday night.
 
 Because many schedulers use UTC, during daylight saving time Central Time is UTC-5:
 
-- 2:00 AM CT = 07:00 UTC
-- 6:00 AM CT = 11:00 UTC
-- Saturday 7:50 AM CT = 12:50 UTC
+- Friday 8:50 PM CT = 01:50 UTC Saturday
 - Saturday 8:50 AM CT = 13:50 UTC
-- 10:00 AM CT = 15:00 UTC
-- 2:00 PM CT = 19:00 UTC
-- 6:00 PM CT = 23:00 UTC
-- 10:00 PM CT = 03:00 UTC next day
+- Saturday 9:50 AM CT = 14:50 UTC
 
 If the scheduler supports America/Chicago time zones, use that instead so daylight-saving changes are handled automatically.
 
