@@ -38,6 +38,13 @@
   border-top: 0;
 }
 
+/* Conference options, including ALL CONF., are explicitly fixed to the same
+   38px selectable cell height. */
+.context-select .custom-select-option {
+  height: 38px;
+  min-height: 38px;
+}
+
 /* Conference section labels remain distinct. Their dividers are overlays, so
    Power 4 and Group of 6 each get one line above and below without stealing
    space from the header or the neighboring 38px option cells. */
