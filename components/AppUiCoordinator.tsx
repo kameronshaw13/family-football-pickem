@@ -146,6 +146,12 @@ const OPTICALLY_CENTERED_TWO_LINE_BLOCKS = [
     row: ".side-bet-ledger-row",
     top: [".side-bet-ledger-title .responsive-text-value", ".side-bet-ledger-title"],
     bottom: [":scope > p"]
+  },
+  {
+    block: ".bank-game-result > div",
+    row: ".bank-game-result",
+    top: [".bank-game-pick-title .responsive-text-value", ".bank-game-pick-title"],
+    bottom: [":scope > p .responsive-text-value", ":scope > p"]
   }
 ] as const;
 
@@ -223,6 +229,7 @@ export default function AppUiCoordinator() {
     let bankWasActive = false;
     const fontGeometryCache = new Map<string, FontGeometry>();
     const shiftCache = new Map<string, number>();
+    const visibleGlyphMetricCache = new Map<string, { ascent: number; descent: number }>();
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
 
@@ -307,27 +314,42 @@ export default function AppUiCoordinator() {
       return null;
     }
 
-    function visibleGlyphBounds(element: HTMLElement) {
-      if (!context || !element.isConnected || element.getClientRects().length === 0) return null;
-      const style = window.getComputedStyle(element);
-      if (style.display === "none" || style.visibility === "hidden") return null;
-      const text = element.textContent?.replace(/\s+/g, " ").trim();
-      if (!text) return null;
+    function canonicalVisibleGlyphMetrics(style: CSSStyleDeclaration) {
+      if (!context) return null;
+      const key = fontKey(style);
+      const cached = visibleGlyphMetricCache.get(key);
+      if (cached) return cached;
 
-      const geometry = geometryFor(style);
       context.font = canvasFont(style);
       context.textBaseline = "alphabetic";
-      const metrics = context.measureText(text);
+      const metrics = context.measureText(FALLBACK_METRIC_TEXT);
+      const actualAscent = Number(metrics.actualBoundingBoxAscent || 0);
+      const actualDescent = Number(metrics.actualBoundingBoxDescent || 0);
       const fontAscent = Number(metrics.fontBoundingBoxAscent || 0);
       const fontDescent = Number(metrics.fontBoundingBoxDescent || 0);
-      const ascent = fontAscent > 0 ? fontAscent : Number(metrics.actualBoundingBoxAscent || 0);
-      const descent = fontDescent > 0 ? fontDescent : Number(metrics.actualBoundingBoxDescent || 0);
+      const ascent = actualAscent > 0 ? actualAscent : fontAscent;
+      const descent = actualDescent > 0 ? actualDescent : fontDescent;
       if (!(ascent > 0 || descent > 0)) return null;
+
+      const visibleMetrics = { ascent, descent };
+      visibleGlyphMetricCache.set(key, visibleMetrics);
+      return visibleMetrics;
+    }
+
+    function visibleGlyphBounds(element: HTMLElement) {
+      if (!element.isConnected || element.getClientRects().length === 0) return null;
+      const style = window.getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden") return null;
+      if (!element.textContent?.replace(/\s+/g, " ").trim()) return null;
+
+      const geometry = geometryFor(style);
+      const visibleMetrics = canonicalVisibleGlyphMetrics(style);
+      if (!visibleMetrics) return null;
 
       const rect = element.getBoundingClientRect();
       return {
-        top: rect.top + geometry.baseline - ascent,
-        bottom: rect.top + geometry.baseline + descent
+        top: rect.top + geometry.baseline - visibleMetrics.ascent,
+        bottom: rect.top + geometry.baseline + visibleMetrics.descent
       };
     }
 
@@ -438,6 +460,7 @@ export default function AppUiCoordinator() {
     function onFontsLoaded() {
       fontGeometryCache.clear();
       shiftCache.clear();
+      visibleGlyphMetricCache.clear();
       schedule();
     }
 
