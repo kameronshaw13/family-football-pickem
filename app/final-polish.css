@@ -45,28 +45,40 @@
   min-height: 38px;
 }
 
-/* Conference section labels remain distinct. Their dividers are overlays, so
-   Power 4 and Group of 6 each get one line above and below without stealing
-   space from the header or the neighboring 38px option cells. */
-.context-select .custom-select-group-label {
+/* Conference section labels remain distinct without changing any row height.
+   The divider above Power 4 / Group of 6 is painted by the final option in the
+   preceding section, so selected ALL CONF. and SEC backgrounds run completely
+   flush into that divider. The header itself owns only its bottom divider. */
+.context-select .custom-select-section:not(:last-child) > .custom-select-option:last-child {
   position: relative;
-  border-top: 0;
 }
-.context-select .custom-select-group-label::before,
-.context-select .custom-select-group-label::after {
+.context-select .custom-select-section:not(:last-child) > .custom-select-option:last-child::after {
   position: absolute;
   right: 0;
+  bottom: -1px;
   left: 0;
+  z-index: 1;
   height: 1px;
   background: var(--line);
   content: "";
   pointer-events: none;
 }
+.context-select .custom-select-group-label {
+  position: relative;
+  border-top: 0;
+}
 .context-select .custom-select-group-label::before {
-  top: 0;
+  display: none;
 }
 .context-select .custom-select-group-label::after {
+  position: absolute;
+  right: 0;
   bottom: 0;
+  left: 0;
+  height: 1px;
+  background: var(--line);
+  content: "";
+  pointer-events: none;
 }
 
 /* Keep the app from rubber-banding downward when the user reaches the top of
