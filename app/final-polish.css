@@ -27,23 +27,27 @@
   border-bottom: 0;
 }
 
-/* Conference dropdown separators are painted as overlays rather than consuming
-   row height. Every option remains the same 38px cell, and selected blue rows
-   fill their complete cell right up to the separator. */
-.context-select .custom-select-menu {
+/* Dropdown options use clean, divider-free 38px cells everywhere. Removing the
+   option border does not change row height, so every selectable cell keeps the
+   same visual space and selected blue backgrounds fill the entire cell. */
+.custom-select-menu {
   row-gap: 0;
   background: var(--panel);
 }
-.context-select .custom-select-option,
-.context-select .custom-select-group-label {
+.custom-select-option {
   border-top: 0;
 }
+
+/* Conference section labels remain distinct. Their dividers are overlays, so
+   Power 4 and Group of 6 each get one line above and below without stealing
+   space from the header or the neighboring 38px option cells. */
 .context-select .custom-select-group-label {
   position: relative;
+  border-top: 0;
 }
-.context-select .custom-select-group-label::before {
+.context-select .custom-select-group-label::before,
+.context-select .custom-select-group-label::after {
   position: absolute;
-  top: 0;
   right: 0;
   left: 0;
   height: 1px;
@@ -51,8 +55,11 @@
   content: "";
   pointer-events: none;
 }
-.context-select .custom-select-menu > .custom-select-section:first-child > .custom-select-group-label:first-child::before {
-  display: none;
+.context-select .custom-select-group-label::before {
+  top: 0;
+}
+.context-select .custom-select-group-label::after {
+  bottom: 0;
 }
 
 /* Keep the app from rubber-banding downward when the user reaches the top of
