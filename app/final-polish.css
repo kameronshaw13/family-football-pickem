@@ -14,9 +14,6 @@
   border-block-color: var(--line-strong);
 }
 
-.board-empty-state {
-  border-bottom: 1px solid var(--line-strong);
-}
 
 /* Empty Picks sections should end with the same strong boundary as populated cards. */
 .card-panel .card-empty-picks,
@@ -31,9 +28,19 @@
   border-bottom: 1px solid var(--line-strong);
 }
 
-/* Conference group headings own a single separator; the first option beneath
-   the heading should not draw a second adjacent rule. */
-.context-select .custom-select-group-label + .custom-select-option {
+/* Conference dropdown separators are explicit here instead of combining the
+   menu row-gap with item borders. This guarantees a single rule above and
+   below Power 4 / Group of 6 headings. */
+.context-select .custom-select-menu {
+  row-gap: 0;
+  background: var(--panel);
+}
+.context-select .custom-select-option,
+.context-select .custom-select-group-label {
+  border-top: 1px solid var(--line);
+}
+.context-select .custom-select-menu > .custom-select-section:first-child > .custom-select-option:first-child,
+.context-select .custom-select-menu > .custom-select-section:first-child > .custom-select-group-label:first-child {
   border-top: 0;
 }
 

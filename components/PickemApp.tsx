@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Check, ChevronDown, ChevronRight, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
@@ -1773,25 +1773,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             <div className="bank-summary-head"><span>Player</span><span>Balance</span></div>
             {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}><NumericText text={money(row.total)} /></strong></div>)}
           </div>
-          {appSlug === "shaw-family" && currentUser.username.toLowerCase() === "kameron" && !previewActive && <button
-            type="button"
-            className="test-week-launch"
-            onClick={() => {
-              setTestWeekActive(true);
-              setStagedPicks(null);
-              setPicksView("board");
-              setCardView("mine");
-              setStatusFilter("LOCKED");
-              setStatusFilterTouched(false);
-              setLeagueFilter("CFB");
-              setConferenceFilter("ALL");
-              setTab("picks");
-            }}
-          >
-            <FlaskConical size={18} />
-            <span><strong>Preview Board States</strong><small>Test picks, cards, standings, and results</small></span>
-            <ChevronRight size={17} />
-          </button>}
           <div className="subsection bank-section bank-week-section">
             <div className="standings-heading-row">
               <h2>{previewActive ? "Test Weekly Results" : "Weekly Results"}</h2>
@@ -2387,7 +2368,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
   const homeResultLine = showScoreValues ? resultLine(game.home_team) : null;
   const liveSituation = gameIsLive ? liveSituationStatus(game) : "";
 
-  return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${!weekIsOpen && !gameIsLive && !gameIsFinal ? "locked-out" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
+  return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
     <div className="game-head compact-game-head">
       <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status"><NumericText text={livePeriodStatus(game)} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}</div>
       {statusFilter !== "OPEN" && gameIsLive && liveSituation && <div className="game-live-situation"><LiveSituationText game={game} /></div>}
