@@ -86,7 +86,11 @@ export async function settleWeekIfReady(supabase: SupabaseClient, week: number, 
       settlement = winnerTakeAllSettlement(standings, Number(moneyRow?.winner_take_all_amount || 0));
     } else if (bankRules.mode === "friends_weekly") {
       const perfect = rule.perfectBonus && standings[0]?.losses === 0 && standings[0]?.wins >= 5;
-      const multiplier = perfect ? 2 : 1;
+      const configuredPerfectMultiplier = Number(bankRules.perfectMultiplier ?? 1.5);
+      const perfectMultiplier = Number.isFinite(configuredPerfectMultiplier) && configuredPerfectMultiplier > 0
+        ? configuredPerfectMultiplier
+        : 1.5;
+      const multiplier = perfect ? perfectMultiplier : 1;
       const configuredPayouts = [
         Number(bankRules.first ?? bankRules.winner ?? 40),
         Number(bankRules.second ?? 20),

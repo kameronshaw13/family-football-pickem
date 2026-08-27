@@ -74,7 +74,7 @@ function sideBetItems(rules: GroupRules, companion: boolean) {
   return [...items,
     "Offers open Tuesday at 8:00 AM CT with the new week.",
     "Tuesday–Friday lines freeze 1 hour before kickoff.",
-    "Saturday–Monday lines freeze Friday at 7:00 PM CT.",
+    "Saturday–Monday lines freeze Saturday at 9:00 AM CT.",
     "Offers may be sent or accepted until kickoff.",
     "Settled bets post directly to the bank."
   ];
@@ -89,8 +89,8 @@ const seasonSchedule = [
 const pickLocks = [
   "Tuesday–Friday lines freeze 1 hour before kickoff.",
   "Tuesday–Friday picks lock at kickoff.",
-  "Saturday–Monday lines freeze Friday at 7:00 PM CT.",
-  "Saturday–Monday picks lock Friday at 8:00 PM CT."
+  "Saturday–Monday lines freeze Saturday at 9:00 AM CT.",
+  "Saturday–Monday picks lock Saturday at 10:00 AM CT."
 ];
 
 export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSection[] {
@@ -135,6 +135,7 @@ export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSect
   if (appSlug === "friends") {
     const prizes = rules.seasonPrizes || {};
     const weekly = rules.weeklyBank || {};
+    const perfectMultiplier = numberValue(weekly.perfectMultiplier, 1.5);
     return [
       { title: "Season Schedule", items: seasonSchedule },
       { title: "Weekly Card", items: [
@@ -154,7 +155,7 @@ export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSect
         `Weekly payouts: 1st ${signedMoney(numberValue(weekly.first, 40))}, 2nd ${signedMoney(numberValue(weekly.second, 20))}, 3rd ${signedMoney(numberValue(weekly.third, 0))}, 4th ${signedMoney(numberValue(weekly.fourth, 0))}, 5th ${signedMoney(numberValue(weekly.fifth, 0))}, 6th ${signedMoney(numberValue(weekly.sixth, -10))}, 7th ${signedMoney(numberValue(weekly.seventh, -20))}, 8th ${signedMoney(numberValue(weekly.eighth, -30))}.`,
         "If players finish a week tied for a payout position, they share the average payout for the positions they occupy."
       ] },
-      { title: "Perfect Week", items: ["Does not apply in Week 1.", "A perfect card doubles all eight weekly payout amounts."] },
+      { title: "Perfect Week", items: ["Does not apply in Week 1.", `A perfect card multiplies all eight weekly payout amounts by ${perfectMultiplier}.`] },
       { title: "Pick Locks", items: pickLocks },
       { title: "Side Bets", items: sideBetItems(rules, true) }
     ];
