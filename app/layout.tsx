@@ -52,11 +52,87 @@ const SESSION_RECOVERY_SCRIPT = `
   }
 })();`;
 
+const APP_DATA_STARTUP_GUARD_SCRIPT = `
+(() => {
+  try {
+    if (window.__pickemAppDataFetchGuardInstalled) return;
+    window.__pickemAppDataFetchGuardInstalled = true;
+    const nativeFetch = window.fetch.bind(window);
+    const transientStatuses = new Set([408, 425, 429, 500, 502, 503, 504]);
+    const maxAge = 24 * 60 * 60 * 1000;
+
+    function cacheKey(input, init) {
+      try {
+        const raw = typeof input === "string" ? input : input instanceof Request ? input.url : String(input);
+        const url = new URL(raw, window.location.origin);
+        if (url.pathname !== "/api/app-data") return "";
+        const headers = new Headers(init?.headers || (input instanceof Request ? input.headers : undefined));
+        const group = headers.get("x-pickem-group") || document.documentElement.dataset.pickemGroup || "shaw-family";
+        return "pickem_app_data_response_v1:" + group + ":" + (url.searchParams.get("week") || "default");
+      } catch {
+        return "";
+      }
+    }
+
+    function readCachedResponse(key) {
+      if (!key) return null;
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) return null;
+        const entry = JSON.parse(raw);
+        if (!entry || !entry.body || Date.now() - Number(entry.cachedAt || 0) > maxAge) {
+          window.localStorage.removeItem(key);
+          return null;
+        }
+        const profile = JSON.parse(window.localStorage.getItem("pickem_profile") || "null");
+        const payload = JSON.parse(entry.body);
+        if (!profile?.id || !payload?.currentUser?.id || profile.id !== payload.currentUser.id) {
+          window.localStorage.removeItem(key);
+          return null;
+        }
+        return new Response(entry.body, { status: 200, headers: { "Content-Type": "application/json", "x-pickem-startup-cache": "1" } });
+      } catch {
+        try { window.localStorage.removeItem(key); } catch {}
+        return null;
+      }
+    }
+
+    window.fetch = async function guardedFetch(input, init) {
+      const key = cacheKey(input, init);
+      if (!key) return nativeFetch(input, init);
+      try {
+        const response = await nativeFetch(input, init);
+        if (response.ok) {
+          response.clone().text().then((body) => {
+            try { window.localStorage.setItem(key, JSON.stringify({ cachedAt: Date.now(), body })); } catch {}
+          }).catch(() => undefined);
+          return response;
+        }
+        if (!transientStatuses.has(response.status)) return response;
+        return readCachedResponse(key) || response;
+      } catch (error) {
+        const cached = readCachedResponse(key);
+        if (cached) return cached;
+        throw error;
+      }
+    };
+  } catch {
+    // The normal live request path remains available if this startup guard cannot install.
+  }
+})();`;
+
+declare global {
+  interface Window {
+    __pickemAppDataFetchGuardInstalled?: boolean;
+  }
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="light">
       <head>
         <script dangerouslySetInnerHTML={{ __html: SESSION_RECOVERY_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: APP_DATA_STARTUP_GUARD_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preload" href="/header-wordmark.png" as="image" type="image/png" />
