@@ -21,27 +21,38 @@
   border-bottom-color: var(--line-strong);
 }
 
-/* Weekly Results should have the same strong closing boundary as the other
-   data sections. This also gives the final player row the same visual frame
-   as the rows above it without moving its text baseline. */
+/* The Weekly Results container already owns the strong closing boundary.
+   Do not add another line to the final player row. */
 .bank-player-result:last-child {
-  border-bottom: 1px solid var(--line-strong);
+  border-bottom: 0;
 }
 
-/* Conference dropdown separators are explicit here instead of combining the
-   menu row-gap with item borders. This guarantees a single rule above and
-   below Power 4 / Group of 6 headings. */
+/* Conference dropdown separators are painted as overlays rather than consuming
+   row height. Every option remains the same 38px cell, and selected blue rows
+   fill their complete cell right up to the separator. */
 .context-select .custom-select-menu {
   row-gap: 0;
   background: var(--panel);
 }
 .context-select .custom-select-option,
 .context-select .custom-select-group-label {
-  border-top: 1px solid var(--line);
-}
-.context-select .custom-select-menu > .custom-select-section:first-child > .custom-select-option:first-child,
-.context-select .custom-select-menu > .custom-select-section:first-child > .custom-select-group-label:first-child {
   border-top: 0;
+}
+.context-select .custom-select-group-label {
+  position: relative;
+}
+.context-select .custom-select-group-label::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--line);
+  content: "";
+  pointer-events: none;
+}
+.context-select .custom-select-menu > .custom-select-section:first-child > .custom-select-group-label:first-child::before {
+  display: none;
 }
 
 /* Keep the app from rubber-banding downward when the user reaches the top of
@@ -69,6 +80,17 @@ body,
 .team-board-market {
   font-size: 16px;
   white-space: nowrap;
+}
+
+/* Side-bet money sits on the exact vertical centerline used by the centered
+   team logo in Pending Offers, Offer History, and the Side Bet Ledger. */
+.side-bet-offer-amount,
+.side-bet-ledger-amount {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  align-self: stretch;
 }
 
 /* Real and preview Pick Board use the same score-based selected-side treatment. */
