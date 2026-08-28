@@ -67,16 +67,11 @@ export async function getProfileFromToken(token: string) {
   const supabase = getSupabaseAdmin();
   const { data: session, error: sessionError } = await supabase
     .from("profile_sessions")
-    .select("profile_id, profile:profiles(id,username,display_name,is_admin)")
+    .select("profile_id")
     .eq("token_hash", tokenHash)
     .maybeSingle();
 
   if (!sessionError && session?.profile_id) {
-    const embeddedProfile = Array.isArray(session.profile) ? session.profile[0] : session.profile;
-    if (embeddedProfile) {
-      cacheProfile(tokenHash, embeddedProfile);
-      return embeddedProfile;
-    }
     const { data: sessionProfile, error: profileError } = await supabase
       .from("profiles")
       .select("id,username,display_name,is_admin")
