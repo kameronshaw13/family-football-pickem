@@ -2,20 +2,8 @@
 
 import { useEffect } from "react";
 
-type UiGame = {
-  away_logo_url?: string | null;
-  home_logo_url?: string | null;
-};
-
-type UiPayload = {
-  games?: UiGame[];
-};
-
-type CacheEntry = { cachedAt?: number; payload?: UiPayload };
 type FontGeometry = { baseline: number; lineHeight: number };
 
-const CACHE_PREFIX = "pickem_app_data_v1:";
-const preloadImages = new Map<string, HTMLImageElement>();
 const OPTICAL_PRECISION = 4096;
 const FALLBACK_METRIC_TEXT = "Hg";
 
@@ -159,23 +147,6 @@ function precise(value: number) {
   return Math.round(value * OPTICAL_PRECISION) / OPTICAL_PRECISION;
 }
 
-function cachedPayload() {
-  let best: { cachedAt: number; payload: UiPayload } | null = null;
-  try {
-    for (let index = 0; index < window.sessionStorage.length; index += 1) {
-      const key = window.sessionStorage.key(index);
-      if (!key?.startsWith(CACHE_PREFIX)) continue;
-      const entry = JSON.parse(window.sessionStorage.getItem(key) || "null") as CacheEntry | null;
-      if (!entry?.payload) continue;
-      const cachedAt = Number(entry.cachedAt || 0);
-      if (!best || cachedAt > best.cachedAt) best = { cachedAt, payload: entry.payload };
-    }
-  } catch {
-    return null;
-  }
-  return best?.payload || null;
-}
-
 function makeSeasonNamesInteractive() {
   const heading = Array.from(document.querySelectorAll<HTMLElement>(".standings-panel .scoreboard-heading h2"))
     .find((node) => node.textContent?.trim() === "Season Standings");
@@ -193,18 +164,6 @@ function makeSeasonNamesInteractive() {
 function bankPanelIsActive() {
   const activeTab = document.querySelector<HTMLElement>(".standings-panel .section-tabs button.active");
   return activeTab?.textContent?.replace(/\s+/g, " ").trim().startsWith("Bank") || false;
-}
-
-function preloadLogos(payload: UiPayload | null) {
-  for (const game of payload?.games || []) {
-    for (const url of [game.away_logo_url, game.home_logo_url]) {
-      if (!url || preloadImages.has(url)) continue;
-      const image = new Image();
-      image.src = url;
-      preloadImages.set(url, image);
-      void image.decode?.().catch(() => undefined);
-    }
-  }
 }
 
 function fontKey(style: CSSStyleDeclaration) {
@@ -437,7 +396,6 @@ export default function AppUiCoordinator() {
     function run() {
       if (!active) return;
       makeSeasonNamesInteractive();
-      preloadLogos(cachedPayload());
       applyStableTextCentering();
       const bankActive = bankPanelIsActive();
       if (bankActive && !bankWasActive) {
