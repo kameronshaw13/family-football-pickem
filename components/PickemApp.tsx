@@ -940,6 +940,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [week, setWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [sessionValidated, setSessionValidated] = useState(false);
   const [message, setMessage] = useState("");
   const [savingPicks, setSavingPicks] = useState(false);
   const [savingBet, setSavingBet] = useState(false);
@@ -1151,6 +1152,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         setMessage(payload.error || "Could not load app data.");
         return;
       }
+      if (isInitialLoad) setSessionValidated(true);
       const loadedAt = Date.now();
       const loadedWeekIsOpen = !payload.weekOpenTime || new Date(payload.weekOpenTime).getTime() <= loadedAt;
       dataRef.current = payload;
@@ -1202,6 +1204,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     };
   }, [data?.week, picksView, refreshSideBetLedger, refreshSideBets, standingsView, tab, testWeekActive]);
   useEffect(() => {
+    if (!sessionValidated) return;
     void refreshNotificationCounts();
     openNotificationDestination(window.location.href);
     const refresh = () => { if (document.visibilityState === "visible") void refreshNotificationCounts(); };
@@ -1218,7 +1221,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       document.removeEventListener("visibilitychange", refresh);
       navigator.serviceWorker?.removeEventListener("message", receiveClick);
     };
-  }, [openNotificationDestination, refreshNotificationCounts]);
+  }, [openNotificationDestination, refreshNotificationCounts, sessionValidated]);
   useEffect(() => {
     const badgeNavigator = navigator as BadgeNavigator;
     if (notificationCounts.total > 0) void badgeNavigator.setAppBadge?.(notificationCounts.total);
