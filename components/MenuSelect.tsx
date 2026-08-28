@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, LoaderCircle } from "lucide-react";
 import NumericText from "@/components/NumericText";
 import NotificationBadge from "@/components/NotificationBadge";
@@ -36,7 +36,10 @@ export default function MenuSelect({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const selected = sections.flatMap((section) => section.options).find((option) => option.value === value);
+  const selected = useMemo(
+    () => sections.flatMap((section) => section.options).find((option) => option.value === value),
+    [sections, value]
+  );
   const selectedText = selected?.selectedLabel || selected?.label || value;
 
   useEffect(() => {
