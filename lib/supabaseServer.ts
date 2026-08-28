@@ -6,6 +6,7 @@ export function getSupabaseAdmin() {
   if (!url || !key) throw new Error("Missing Supabase server environment variables.");
 
   return createClient<any>(url, key, {
+    accessToken: async () => key,
     auth: {
       autoRefreshToken: false,
       persistSession: false,
