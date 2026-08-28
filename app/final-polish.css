@@ -136,3 +136,26 @@ body,
   column-gap: var(--card-logo-gap);
 }
 .pick-row-actions, .visible-pick-actions { align-self: center; }
+
+/* Keep compact icon buttons visually unchanged while giving fingers a roughly
+   44px touch target on phones/tablets. */
+@media (pointer: coarse) {
+  .icon-btn,
+  .slip-icon-btn {
+    position: relative;
+  }
+
+  .icon-btn::after,
+  .slip-icon-btn::after {
+    position: absolute;
+    content: "";
+  }
+
+  .icon-btn::after {
+    inset: -7px;
+  }
+
+  .slip-icon-btn::after {
+    inset: -6px;
+  }
+}
