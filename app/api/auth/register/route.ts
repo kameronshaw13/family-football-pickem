@@ -5,6 +5,8 @@ import { findFamilyUser, normalizeAppSlug } from "@/lib/authUsers";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { hashPassword, makeSessionToken } from "@/lib/passwords";
 
+export const maxDuration = 15;
+
 const schema = z.object({ username: z.string().min(2), password: z.string().min(6), group: z.string().optional() });
 
 function publicProfile(profile: any) {
