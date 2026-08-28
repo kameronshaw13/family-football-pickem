@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const maxDuration = 30;
 
 const destinationSchema = z.enum(["side_bets_received", "side_bets_sent", "my_card", "league_cards", "side_bet_ledger"]);
 const bodySchema = z.discriminatedUnion("action", [
