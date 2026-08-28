@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 
-export default function NumericText({ text }: { text: string | number }) {
+function NumericText({ text }: { text: string | number }) {
   const tokens = String(text).split(/(\s+)/);
   const isDigit = (character?: string) => Boolean(character && /\d/.test(character));
   const isNumericSymbol = (character: string) => !isDigit(character) && !/\s/.test(character) && character.toUpperCase() === character.toLowerCase();
@@ -22,3 +22,5 @@ export default function NumericText({ text }: { text: string | number }) {
 
   return <span className="numeric-token">{parts}</span>;
 }
+
+export default memo(NumericText);
