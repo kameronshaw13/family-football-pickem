@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
     if (error) throw new Error(error.message);
     return NextResponse.json({ ok: true, sideBetLedger: data || [] }, { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
+    const timedOut = error instanceof Error && ["AbortError", "TimeoutError"].includes(error.name);
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: timedOut ? 504 : 500 });
   }
 }
