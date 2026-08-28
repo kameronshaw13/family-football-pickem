@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
       .eq("group_id", context.group.id)
       .eq("season_year", context.seasonYear)
       .in("status", ["accepted", "settled"])
+      .abortSignal(AbortSignal.timeout(12_000))
       .order("created_at", { ascending: false });
 
     if (error) throw new Error(error.message);
