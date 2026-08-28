@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GET as getAppDataV2 } from "@/app/api/app-data-v2/route";
 
 export { dynamic, revalidate } from "@/app/api/app-data-v2/route";
+export const maxDuration = 30;
 
 function pickStart(pick: any) {
   return new Date(pick?.game?.commence_time || 0).getTime();
