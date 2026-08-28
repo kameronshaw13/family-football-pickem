@@ -159,3 +159,26 @@ body,
     inset: -6px;
   }
 }
+
+/* iOS cannot be hard-locked to portrait as a web app. On phone-sized touch
+   screens, cover landscape with a simple portrait reminder without resizing,
+   transforming, or otherwise changing the app underneath. */
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 500px) {
+  html[data-pickem-group] body::after {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    color: #fff;
+    background: var(--graphite);
+    content: "SHAW FAMILY PICK’EM\A\A↻\A\ARotate your phone";
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.45;
+    text-align: center;
+    white-space: pre-line;
+  }
+}
