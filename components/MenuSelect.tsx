@@ -17,6 +17,14 @@ export type MenuSelectSection = {
   options: MenuSelectOption[];
 };
 
+function selectedOption(sections: MenuSelectSection[], value: string) {
+  for (const section of sections) {
+    const match = section.options.find((option) => option.value === value);
+    if (match) return match;
+  }
+  return undefined;
+}
+
 export default function MenuSelect({
   value,
   sections,
@@ -36,10 +44,7 @@ export default function MenuSelect({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const selected = useMemo(
-    () => sections.flatMap((section) => section.options).find((option) => option.value === value),
-    [sections, value]
-  );
+  const selected = useMemo(() => selectedOption(sections, value), [sections, value]);
   const selectedText = selected?.selectedLabel || selected?.label || value;
 
   useEffect(() => {
