@@ -57,23 +57,41 @@
   white-space: nowrap;
 }
 
-.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-title-team,
-.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-team,
-.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-team {
-  overflow: visible;
-  text-overflow: clip;
+/* The normal CFB team-name formatter strips the final word from these synthetic labels.
+   Hide that formatted value and render the administrative label explicitly instead. */
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-title-team .responsive-text-value,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-team .responsive-text-value,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-team .responsive-text-value {
+  display: none;
 }
 
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-title-team::after,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-team::after,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-team::after {
+  content: "No Pick Submitted";
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]):has(.dog-tag) .pick-title-team::after,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]):has(.dog-tag) .pick-title-team::after,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]):has(.dog-tag) .pick-title-team::after {
+  content: "No Dog Submitted";
+}
+
+/* Mirror the real final-game result grid exactly: 27 / 27 / 48 with 5px gaps.
+   The W/L/P badge lives centered in the third 48px column. */
 .pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug,
 .visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug,
 .bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > .pick-score-bug {
-  display: flex;
+  display: grid;
   width: 112px;
   min-width: 112px;
   height: 44px;
-  align-items: center;
-  justify-content: flex-end;
+  grid-template-columns: 27px 27px 48px;
+  grid-template-rows: 44px;
   align-self: center;
+  align-content: center;
+  justify-content: end;
+  gap: 5px;
   border: 0;
   background: transparent;
   font-family: var(--font-display);
@@ -93,7 +111,10 @@
   display: grid;
   width: 26px;
   height: 26px;
+  grid-column: 3;
+  grid-row: 1;
   place-items: center;
+  place-self: center;
   border: 1px solid #ddb1ad;
   border-radius: 2px;
   color: var(--red);
