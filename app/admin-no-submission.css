@@ -47,31 +47,37 @@
 .visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .visible-pick-copy > strong,
 .bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) .bank-game-pick-title {
   margin: 0;
+  overflow: visible;
   color: var(--ink);
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.25;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-title-team,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-team,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-team {
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug,
 .visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug,
 .bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > .pick-score-bug {
-  display: grid;
-  width: 26px;
-  min-width: 26px;
-  height: 26px;
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr;
-  place-items: center;
+  display: flex;
+  width: 112px;
+  min-width: 112px;
+  height: 44px;
+  align-items: center;
+  justify-content: flex-end;
   align-self: center;
-  border: 1px solid #ddb1ad;
-  border-radius: 2px;
-  color: var(--red);
-  background: var(--red-soft);
+  border: 0;
+  background: transparent;
   font-family: var(--font-display);
   font-size: 0;
-  font-weight: 800;
   line-height: 1;
 }
 
@@ -84,6 +90,14 @@
 .pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug::after,
 .visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug::after,
 .bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > .pick-score-bug::after {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid #ddb1ad;
+  border-radius: 2px;
+  color: var(--red);
+  background: var(--red-soft);
   content: "L";
   font-size: 13px;
   font-weight: 800;
