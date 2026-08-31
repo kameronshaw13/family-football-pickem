@@ -1,0 +1,80 @@
+/* Administrative missed-pick rows are stored as synthetic games so scoring and settlement stay consistent.
+   This marker collapses those rows into a simple label + loss indicator without changing normal game cards. */
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]),
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]),
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) {
+  height: 44px;
+  min-height: 44px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-top {
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 10px;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-top > .team-logo,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) > .team-logo,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > .team-logo {
+  display: none;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-title-market,
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-meta,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-market,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .visible-pick-copy p,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-market,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) p {
+  display: none;
+}
+
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]),
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) {
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 10px;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-title,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .visible-pick-copy > strong,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) .bank-game-pick-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > .pick-score-bug {
+  display: grid;
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  place-items: center;
+  align-self: center;
+  background: var(--red);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug > *,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug > *,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > .pick-score-bug > * {
+  display: none;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug::after,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug::after,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > .pick-score-bug::after {
+  content: "L";
+  font-size: 12px;
+  font-weight: 800;
+}
