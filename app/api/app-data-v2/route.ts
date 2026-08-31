@@ -93,8 +93,7 @@ export async function GET(req: NextRequest) {
       standingsWeeks.map((standingWeek) => [String(standingWeek), computeGroupStandings(profiles, lockedByWeek.get(standingWeek) || [], context.rules)])
     );
     const standings = computeGroupStandings(profiles, (lockedResult.data || []) as any, context.rules);
-    const normalizedPicks = (picksResult.data || []).map((pick: any) => ({ ...pick, game: gameById.get(pick.game_id) || pick.game }));
-    const visiblePicks = normalizedPicks.filter((pick: any) => pick.game && (pick.user_id === auth.profile.id || new Date(pick.game.lock_time) <= now));
+    const visiblePicks = (picksResult.data || []).map((pick: any) => ({ ...pick, game: gameById.get(pick.game_id) || pick.game }));
     const dismissedSideBetIds = new Set((sideBetDismissalResult.data || []).map((row: any) => row.side_bet_id));
     const sideBets = allSideBets.filter((bet: any) => !dismissedSideBetIds.has(bet.id) && (bet.creator_id === auth.profile.id || bet.accepted_by === auth.profile.id || bet.targets?.some((target: any) => target.recipient_id === auth.profile.id)));
     const rawSideBetSlotCounts = sideBetSlotCounts(allSideBets.filter((bet: any) => Number(bet.week) === week), profiles.map((profile) => profile.id));
