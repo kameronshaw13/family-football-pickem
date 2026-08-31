@@ -12,6 +12,8 @@ export type FinalizeIncompleteCardsResult = {
   missingDogs: number;
 };
 
+const ADMIN_NO_SUBMISSION_MARKER = "/admin-no-submission.svg";
+
 function configuredWeekRule(rules: any, week: number) {
   const fallback = getWeekRule(week);
   const pickRules = rules?.pickRules || {};
@@ -103,6 +105,8 @@ async function finalizeGroupWeek(
       commence_time: weekendLock.toISOString(),
       home_team: "Automatic Loss",
       away_team: "No Pick Submitted",
+      home_logo_url: ADMIN_NO_SUBMISSION_MARKER,
+      away_logo_url: ADMIN_NO_SUBMISSION_MARKER,
       current_spread_team: null,
       current_spread: null,
       current_bookmaker: "Administrative",
@@ -121,6 +125,8 @@ async function finalizeGroupWeek(
       commence_time: weekendLock.toISOString(),
       home_team: "No Bonus",
       away_team: "No Dog Submitted",
+      home_logo_url: ADMIN_NO_SUBMISSION_MARKER,
+      away_logo_url: ADMIN_NO_SUBMISSION_MARKER,
       current_spread_team: null,
       current_spread: null,
       current_bookmaker: "Administrative",
