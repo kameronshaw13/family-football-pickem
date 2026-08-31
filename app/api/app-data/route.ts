@@ -25,6 +25,21 @@ function hasIncompleteCards(payload: any) {
   return Array.from(counts.values()).some((count) => count.regular < regularTotal || count.dog < underdogTotal);
 }
 
+function weekendLockReached(payload: any) {
+  if (!Array.isArray(payload?.games) || !payload.games.length) return false;
+  const timezone = payload.activeGroup?.timezone || "America/Chicago";
+  const weekdayFormatter = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: timezone });
+  const weekendLocks = payload.games
+    .filter((game: any) => {
+      const weekday = weekdayFormatter.format(new Date(game.commence_time));
+      return weekday === "Sat" || weekday === "Sun" || weekday === "Mon";
+    })
+    .map((game: any) => new Date(game.lock_time || 0).getTime())
+    .filter((value: number) => Number.isFinite(value) && value > 0)
+    .sort((a: number, b: number) => a - b);
+  return weekendLocks.length > 0 && Date.now() >= weekendLocks[0];
+}
+
 async function readPayload(req: NextRequest) {
   const response = await getAppDataV2(req);
   if (!response.ok) return { response, payload: null };
@@ -38,7 +53,7 @@ export async function GET(req: NextRequest) {
   const groupId = payload.activeGroup?.id;
   const seasonYear = Number(payload.seasonYear);
   const week = Number(payload.week);
-  if (hasIncompleteCards(payload) && groupId && Number.isInteger(seasonYear) && Number.isInteger(week)) {
+  if (weekendLockReached(payload) && hasIncompleteCards(payload) && groupId && Number.isInteger(seasonYear) && Number.isInteger(week)) {
     const finalized = await finalizeIncompleteCardsAfterWeekendLock(getSupabaseAdmin(), { groupId, seasonYear, week });
     if (finalized.cardsFinalized > 0) {
       const refreshed = await readPayload(req);
