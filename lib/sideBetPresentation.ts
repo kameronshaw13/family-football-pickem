@@ -29,9 +29,15 @@ function compactNameList(names: string[]) {
 
 export function sideBetsForView(bets: SideBet[], userId: string, mode: SideBetViewMode) {
   return bets.filter((bet) => {
-    return mode === "sent"
-      ? bet.creator_id === userId
-      : bet.creator_id !== userId && Boolean(bet.targets?.some((target) => target.recipient_id === userId));
+    if (mode === "sent") return bet.creator_id === userId;
+    if (bet.creator_id === userId) return false;
+
+    // Once an offer has been accepted, it becomes a two-person bet. Other
+    // original recipients should no longer see that accepted/settled bet in
+    // their Offer History just because they were initially targeted.
+    if (bet.accepted_by) return bet.accepted_by === userId;
+
+    return Boolean(bet.targets?.some((target) => target.recipient_id === userId));
   });
 }
 
