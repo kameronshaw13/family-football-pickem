@@ -4,14 +4,28 @@ import {
   sideBetLedgerPerspective,
   sideBetOfferIsPending,
   sideBetPerspective,
-  sideBetsForView,
+  sideBetsForView as baseSideBetsForView,
   sideBetResponseSummary as baseSideBetResponseSummary
 } from "./sideBetPresentationBase";
 
 export type { SideBetResponseSummary, SideBetResponseTone, SideBetViewMode } from "./sideBetPresentationBase";
-export { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetsForView };
+export { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective };
+
+type PresentationSideBet = SideBet & { __presentationExpired?: boolean };
+
+export function sideBetsForView(bets: SideBet[], userId: string, mode: "received" | "sent") {
+  return baseSideBetsForView(bets, userId, mode).map((bet) => {
+    if (bet.status !== "expired") return bet;
+    return { ...bet, status: "cancelled", __presentationExpired: true } as PresentationSideBet;
+  });
+}
 
 export function sideBetResponseSummary(bet: SideBet, userId: string, mode: "received" | "sent") {
+  const presentationBet = bet as PresentationSideBet;
+  if (presentationBet.__presentationExpired) {
+    return { subjectFull: "Offer", subjectCompact: "Offer", action: "Expired" as const, tone: "declined" as const };
+  }
+
   const summary = baseSideBetResponseSummary(bet, userId, mode);
   const targets = bet.targets || [];
 
@@ -19,10 +33,7 @@ export function sideBetResponseSummary(bet: SideBet, userId: string, mode: "rece
     const pending = targets.filter((target) => target.response === "pending");
     if (pending.length && summary.action === "Offered") {
       const firstName = pending[0]?.recipient?.display_name || "Player";
-      return {
-        ...summary,
-        recipientCompact: pending.length === 1 ? firstName : `${firstName} +${pending.length - 1}`
-      };
+      return { ...summary, recipientCompact: pending.length === 1 ? firstName : `${firstName} +${pending.length - 1}` };
     }
   }
 
@@ -30,10 +41,7 @@ export function sideBetResponseSummary(bet: SideBet, userId: string, mode: "rece
     const declined = targets.filter((target) => target.response === "declined");
     if (declined.length) {
       const firstName = declined[0]?.recipient?.display_name || "Player";
-      return {
-        ...summary,
-        subjectCompact: declined.length === 1 ? firstName : `${firstName} +${declined.length - 1}`
-      };
+      return { ...summary, subjectCompact: declined.length === 1 ? firstName : `${firstName} +${declined.length - 1}` };
     }
   }
 
