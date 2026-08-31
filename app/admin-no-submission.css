@@ -1,24 +1,30 @@
 /* Administrative missed-pick rows are stored as synthetic games so scoring and settlement stay consistent.
-   This marker collapses those rows into a simple label + loss indicator without changing normal game cards. */
+   Keep their normal pick-row geometry, but render them as a single clean label plus the standard soft loss badge. */
 
 .pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]),
 .visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]),
 .bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) {
-  height: 44px;
-  min-height: 44px;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  height: var(--pick-card-row-height);
+  min-height: var(--pick-card-row-height);
+  padding-top: 7px;
+  padding-bottom: 7px;
 }
 
 .pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-top {
-  grid-template-columns: minmax(0, 1fr) max-content;
+  grid-template-columns: var(--card-logo-column) minmax(0, 1fr) max-content;
+  gap: var(--card-logo-gap);
+}
+
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]),
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) {
+  grid-template-columns: 38px minmax(0, 1fr) max-content;
   gap: 10px;
 }
 
 .pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-top > .team-logo,
 .visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) > .team-logo,
 .bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > .team-logo {
-  display: none;
+  visibility: hidden;
 }
 
 .pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-title-market,
@@ -30,10 +36,11 @@
   display: none;
 }
 
-.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]),
-.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) {
-  grid-template-columns: minmax(0, 1fr) max-content;
-  gap: 10px;
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-copy,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .visible-pick-copy,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > div {
+  align-self: stretch;
+  align-content: center;
 }
 
 .pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-title,
@@ -41,9 +48,10 @@
 .bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) .bank-game-pick-title {
   margin: 0;
   color: var(--ink);
+  font-family: var(--font-display);
   font-size: 14px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug,
@@ -57,8 +65,10 @@
   grid-template-rows: 1fr;
   place-items: center;
   align-self: center;
-  background: var(--red);
-  color: #fff;
+  border: 1px solid #ddb1ad;
+  border-radius: 2px;
+  color: var(--red);
+  background: var(--red-soft);
   font-family: var(--font-display);
   font-size: 0;
   font-weight: 800;
@@ -75,6 +85,16 @@
 .visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug::after,
 .bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > .pick-score-bug::after {
   content: "L";
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
+}
+
+/* Keep the existing League Cards empty-row treatment, but make the message explicit. */
+.group-empty-picks {
+  font-size: 0;
+}
+.group-empty-picks::after {
+  content: "No picks submitted.";
+  font-size: 12px;
+  font-weight: 600;
 }
