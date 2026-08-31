@@ -11,9 +11,9 @@ const BATCH1_STYLES = `
 .notification-badge .numeric-fragment{display:block;line-height:1}
 .nav-notification-badge{top:-6px;right:-9px;min-width:17px;height:17px;padding:0 4px;border:0;box-shadow:0 0 0 2px var(--graphite)}
 .game-final-status{text-transform:none}
-.game-card.final-outcome .team-row.outcome-loss .team-name,.game-card.final-outcome .team-row.outcome-loss .team-board-market,.game-card.final-outcome .team-row.outcome-loss .team-result-score{color:color-mix(in srgb,var(--ink) 68%,var(--muted) 32%);-webkit-text-fill-color:color-mix(in srgb,var(--ink) 68%,var(--muted) 32%)}
-.game-card.final-outcome .team-row.outcome-loss .team-logo,.score-bug-team.outcome-loss .team-logo{opacity:.78;filter:saturate(.8)}
-.score-bug-team.outcome-loss .score-bug-score{color:color-mix(in srgb,var(--ink) 68%,var(--muted) 32%)}
+.game-card.final-outcome .team-row.outcome-loss .team-name,.game-card.final-outcome .team-row.outcome-loss .team-board-market,.game-card.final-outcome .team-row.outcome-loss .team-result-score{color:color-mix(in srgb,var(--ink) 64%,var(--muted) 36%);-webkit-text-fill-color:color-mix(in srgb,var(--ink) 64%,var(--muted) 36%)}
+.game-card.final-outcome .team-row.outcome-loss .team-logo,.score-bug-team.outcome-loss .team-logo{opacity:.73;filter:saturate(.76)}
+.score-bug-team.outcome-loss .score-bug-score{color:color-mix(in srgb,var(--ink) 64%,var(--muted) 36%)}
 .side-bet-response-line[data-batch1-text] .side-bet-response-value{visibility:hidden}
 .side-bet-response-line[data-batch1-text]::after{position:absolute;inset:0 auto auto 0;max-width:100%;overflow:hidden;color:var(--muted);content:attr(data-batch1-text);text-overflow:ellipsis;white-space:nowrap;visibility:visible}
 `;
