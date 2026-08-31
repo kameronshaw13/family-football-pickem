@@ -10,6 +10,7 @@ import "./stable-font-metrics.css";
 import "./friends-eight-player.css";
 import "./universal-card-dividers.css";
 import "./final-polish.css";
+import "./admin-no-submission.css";
 import type { Metadata, Viewport } from "next";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
