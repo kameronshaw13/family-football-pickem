@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { finalizeIncompleteCardsAfterWeekendLock } from "@/lib/finalizeIncompleteCards";
 import { lockDuePicks } from "@/lib/lockDuePicks";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
@@ -13,7 +14,8 @@ export async function GET(req: NextRequest) {
 
     const supabase = getSupabaseAdmin();
     const result = await lockDuePicks(supabase);
-    return NextResponse.json({ ok: true, ...result });
+    const incompleteCards = await finalizeIncompleteCardsAfterWeekendLock(supabase);
+    return NextResponse.json({ ok: true, ...result, incompleteCards });
   } catch (error) {
     return NextResponse.json({ ok: false, error: "Lock route crashed.", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
