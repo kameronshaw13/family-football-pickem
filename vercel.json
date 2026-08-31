@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/results",
       "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/lock",
+      "schedule": "5 17 * * 6"
     }
   ]
 }
