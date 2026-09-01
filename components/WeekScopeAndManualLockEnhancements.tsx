@@ -22,19 +22,15 @@ const STYLES = `
 .manual-lock-toast.error{color:var(--red)}
 .manual-lock-review .confirmation-heading{margin-top:0;margin-bottom:0}
 .manual-lock-review .confirmation-heading h2{margin:0}
-.manual-lock-review .confirmation-matchup{grid-template-columns:1fr;margin-top:8px}
-.manual-lock-review .confirmation-matchup>div.manual-lock-pick-cell{display:grid;min-height:52px;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:10px;padding:6px 10px;text-align:left}
-.manual-lock-review .manual-lock-review-logo{width:34px;height:34px;object-fit:contain}
-.manual-lock-review .manual-lock-review-fallback{display:grid;width:34px;height:34px;place-items:center;border-radius:50%;background:var(--surface-muted);font-size:13px;font-weight:900}
-.manual-lock-review .manual-lock-pick-copy{display:grid;min-width:0;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px}
-.manual-lock-review .manual-lock-pick-copy strong{min-width:0;overflow:hidden;color:var(--ink);font-size:15px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
-.manual-lock-review .manual-lock-pick-copy span{color:var(--ink);font-size:15px;font-weight:700;text-align:right;white-space:nowrap}
-.manual-lock-review .manual-lock-meta{margin:7px 2px 0;color:var(--muted);font-size:10px;font-weight:700;line-height:1.35;text-align:center}
-.manual-lock-review .manual-lock-note{margin:6px 2px 12px;color:var(--muted);font-size:11px;font-weight:700;line-height:1.35;text-align:center}
+.manual-lock-review .confirmation-matchup{grid-template-columns:1fr;margin-top:8px;border-block:1px solid var(--line-strong)}
+.manual-lock-review .confirmation-matchup>div.manual-lock-pick-cell{display:grid;width:100%;height:var(--data-row-height);min-height:var(--data-row-height);grid-template-columns:38px minmax(0,1fr) 68px;align-items:center;gap:var(--space-3);padding:10px var(--pick-content-inset);border:0;color:var(--ink);background:var(--blue-soft);box-shadow:inset 4px 0 0 var(--blue);text-align:left;cursor:default;transition:none}
+.manual-lock-review .manual-lock-pick-cell>.team-logo{width:34px;height:34px}
+.manual-lock-review .manual-lock-pick-cell>.team-name{min-width:0;overflow:hidden;color:var(--ink);font-family:var(--font-display);font-size:16px;font-weight:700;line-height:1.2;text-overflow:ellipsis;text-transform:none;white-space:nowrap;-webkit-text-fill-color:var(--ink)}
+.manual-lock-review .manual-lock-pick-cell>.team-spread{display:inline-flex;width:100%;align-items:center;justify-content:flex-end;color:var(--ink);font-family:var(--font-display);font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;text-transform:none;white-space:nowrap;-webkit-text-fill-color:var(--ink)}
+.manual-lock-review .confirmation-kickoff.manual-lock-meta{display:flex;min-height:30px;align-items:center;justify-content:center;margin:0;padding:5px 8px;border-bottom:1px solid var(--line-strong);color:var(--header-muted);background:var(--surface-muted);font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2;text-align:center}
+.manual-lock-review .manual-lock-note{margin:8px 2px 12px;color:var(--muted);font-size:11px;font-weight:700;line-height:1.35;text-align:center}
 .manual-lock-review .confirmation-actions{grid-template-columns:1fr 1fr}
-.manual-lock-review .manual-lock-confirm-btn{position:relative;display:flex;align-items:center;justify-content:center;color:var(--ink);background:var(--gold);border-color:#b88912}
-.manual-lock-review .manual-lock-confirm-btn>span{display:block;width:100%;text-align:center}
-.manual-lock-review .manual-lock-confirm-btn svg{position:absolute;top:50%;left:calc(50% + 40px);width:13px;height:13px;transform:translateY(-50%);stroke-width:2.2}
+.manual-lock-review .manual-lock-confirm-btn{display:flex;align-items:center;justify-content:center;color:var(--ink);background:var(--gold);border-color:#b88912}
 `;
 
 type CachedGame = {
@@ -127,7 +123,7 @@ function buildReviewLogo(card: HTMLElement, selectedTeam: string) {
   const image = card.querySelector<HTMLImageElement>(".team-logo");
   if (image?.src) {
     const logo = document.createElement("img");
-    logo.className = "manual-lock-review-logo";
+    logo.className = "team-logo manual-lock-review-logo";
     logo.src = image.src;
     logo.alt = "";
     logo.width = 34;
@@ -135,7 +131,7 @@ function buildReviewLogo(card: HTMLElement, selectedTeam: string) {
     return logo;
   }
   const fallback = document.createElement("div");
-  fallback.className = "manual-lock-review-fallback";
+  fallback.className = "team-logo fallback manual-lock-review-fallback";
   fallback.textContent = selectedTeam.slice(0, 1);
   return fallback;
 }
@@ -216,20 +212,18 @@ function openReview(appSlug: AppSlug, card: HTMLElement, selectedTeam: string, s
   const matchup = document.createElement("div");
   matchup.className = "confirmation-matchup";
   const pickCell = document.createElement("div");
-  pickCell.className = "manual-lock-pick-cell";
-  pickCell.appendChild(buildReviewLogo(card, selectedTeam));
-  const pickCopy = document.createElement("div");
-  pickCopy.className = "manual-lock-pick-copy";
-  const team = document.createElement("strong");
+  pickCell.className = "team-row picked-side manual-lock-pick-cell";
+  const team = document.createElement("span");
+  team.className = "team-name";
   team.textContent = reviewTeamName(card, selectedTeam);
   const spread = document.createElement("span");
+  spread.className = "team-spread";
   spread.textContent = spreadText;
-  pickCopy.append(team, spread);
-  pickCell.appendChild(pickCopy);
+  pickCell.append(buildReviewLogo(card, selectedTeam), team, spread);
   matchup.appendChild(pickCell);
 
   const meta = document.createElement("p");
-  meta.className = "manual-lock-meta";
+  meta.className = "confirmation-kickoff manual-lock-meta";
   const game = gameForSelectedTeam(appSlug, selectedTeam);
   meta.textContent = [reviewMatchup(card), game?.commence_time ? fullGameDate(game.commence_time) : ""].filter(Boolean).join(" · ");
 
@@ -246,7 +240,7 @@ function openReview(appSlug: AppSlug, card: HTMLElement, selectedTeam: string, s
   const confirm = document.createElement("button");
   confirm.type = "button";
   confirm.className = "btn manual-lock-confirm-btn";
-  confirm.innerHTML = `<span>Confirm lock</span>${iconMarkup()}`;
+  confirm.textContent = "Confirm lock";
   actions.append(cancel, confirm);
 
   sheet.append(heading, matchup);
