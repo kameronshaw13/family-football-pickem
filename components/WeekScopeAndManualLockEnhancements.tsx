@@ -13,16 +13,17 @@ const STYLES = `
 .manual-lock-review .confirmation-heading{margin-bottom:10px}
 .manual-lock-review .confirmation-heading h2{margin:0}
 .manual-lock-review .confirmation-matchup{grid-template-columns:1fr}
-.manual-lock-review .confirmation-matchup>div.manual-lock-pick-cell{display:flex;min-height:64px;align-items:center;justify-content:flex-start;gap:10px;padding:10px 12px;text-align:left}
-.manual-lock-review .manual-lock-review-logo{width:34px;height:34px;flex:0 0 34px;object-fit:contain}
-.manual-lock-review .manual-lock-review-fallback{display:grid;width:34px;height:34px;flex:0 0 34px;place-items:center;border-radius:50%;background:var(--surface-muted);font-size:13px;font-weight:900}
-.manual-lock-review .manual-lock-pick-copy{display:flex;min-width:0;flex:1;align-items:baseline;justify-content:space-between;gap:14px}
-.manual-lock-review .manual-lock-pick-copy strong{min-width:0;overflow:hidden;color:var(--ink);font-size:14px;text-overflow:ellipsis;white-space:nowrap}
-.manual-lock-review .manual-lock-pick-copy span{flex:0 0 auto;margin-left:auto;color:var(--ink);font-size:14px;font-weight:900;text-align:right}
+.manual-lock-review .confirmation-matchup>div.manual-lock-pick-cell{display:grid;min-height:64px;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:10px;padding:10px 12px;text-align:left}
+.manual-lock-review .manual-lock-review-logo{width:34px;height:34px;object-fit:contain}
+.manual-lock-review .manual-lock-review-fallback{display:grid;width:34px;height:34px;place-items:center;border-radius:50%;background:var(--surface-muted);font-size:13px;font-weight:900}
+.manual-lock-review .manual-lock-pick-copy{display:grid;min-width:0;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px}
+.manual-lock-review .manual-lock-pick-copy strong{min-width:0;overflow:hidden;color:var(--ink);font-size:13px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
+.manual-lock-review .manual-lock-pick-copy span{color:var(--ink);font-size:13px;font-weight:700;text-align:right;white-space:nowrap}
 .manual-lock-review .manual-lock-note{margin:9px 2px 12px;color:var(--muted);font-size:11px;font-weight:700;line-height:1.35;text-align:center}
 .manual-lock-review .confirmation-actions{grid-template-columns:1fr 1fr}
-.manual-lock-review .manual-lock-confirm-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;color:var(--ink);background:var(--gold);border-color:#b88912}
-.manual-lock-review .manual-lock-confirm-btn svg{width:13px;height:13px;stroke-width:2.2}
+.manual-lock-review .manual-lock-confirm-btn{position:relative;display:flex;align-items:center;justify-content:center;color:var(--ink);background:var(--gold);border-color:#b88912}
+.manual-lock-review .manual-lock-confirm-btn>span{display:block;width:100%;text-align:center}
+.manual-lock-review .manual-lock-confirm-btn svg{position:absolute;right:12px;width:13px;height:13px;stroke-width:2.2}
 `;
 
 function selectedWeekFromHeader() {
