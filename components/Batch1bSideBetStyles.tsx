@@ -6,7 +6,6 @@ const STYLES = `
 .side-bet-card.has-clear-offer-action{display:block!important;height:auto!important;min-height:111px!important;padding-bottom:10px!important}
 .side-bet-card.has-clear-offer-action>.clear-offer-actions{display:flex!important;position:static!important;z-index:2;margin-top:8px!important;justify-content:flex-end!important;pointer-events:auto}
 .side-bet-card.has-clear-offer-action>.clear-offer-actions .btn{position:relative;z-index:3;pointer-events:auto}
-.card-panel .group-card>h3+.group-empty-picks{height:39px!important;min-height:39px!important;margin:0!important;border-top:0!important;background:var(--panel)!important}
 .manual-pick-lock{height:30px!important;min-height:30px!important;min-width:62px!important;font-size:11px!important;font-weight:800!important;line-height:1.2!important}
 .manual-pick-lock svg{width:13px!important;height:13px!important}
 .manual-lock-review .confirmation-matchup{margin-top:0!important;border-top:0!important;border-bottom:1px solid var(--line-strong)!important}
