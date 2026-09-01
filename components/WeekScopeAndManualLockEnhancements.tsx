@@ -4,16 +4,24 @@ import { useEffect } from "react";
 import type { AppSlug } from "@/lib/rulePresentation";
 
 const STYLES = `
-.manual-pick-lock{display:inline-flex;min-width:60px;height:28px;align-items:center;justify-content:center;gap:5px;padding:0 8px;border:1px solid #b88912;border-radius:4px;color:#3d2a00;background:var(--gold);font-family:var(--font-display);font-size:10px;font-weight:900;line-height:1;cursor:pointer}
-.manual-pick-lock svg{width:12px;height:12px;stroke-width:2.2}
+.manual-pick-lock{display:inline-flex;min-width:60px;height:28px;align-items:center;justify-content:center;gap:5px;padding:0 8px;border:1px solid #b88912;border-radius:4px;color:var(--ink);background:var(--gold);font-family:var(--font-display);font-size:10px;font-weight:900;line-height:1;cursor:pointer}
+.manual-pick-lock svg{width:12px;height:12px;stroke-width:2.2;color:var(--ink)}
 .manual-pick-lock:disabled{cursor:default;opacity:.55}
 .manual-lock-confirmed{display:inline-flex;min-width:42px;height:28px;align-items:center;justify-content:center;color:var(--muted);font-size:9px;font-weight:800}
 .manual-lock-toast{position:fixed;right:12px;bottom:calc(var(--nav-height) + env(safe-area-inset-bottom) + 12px);left:12px;z-index:65;display:flex;min-height:44px;align-items:center;justify-content:center;padding:9px 12px;border:1px solid var(--line-strong);border-radius:5px;background:var(--panel);box-shadow:var(--shadow);color:var(--ink);font-size:12px;font-weight:800;text-align:center}
 .manual-lock-toast.error{color:var(--red)}
+.manual-lock-review .confirmation-heading{margin-bottom:10px}
+.manual-lock-review .confirmation-heading h2{margin:0}
 .manual-lock-review .confirmation-matchup{grid-template-columns:1fr}
-.manual-lock-review .confirmation-matchup>div{min-height:70px}
+.manual-lock-review .confirmation-matchup>div.manual-lock-pick-cell{display:flex;min-height:64px;align-items:center;justify-content:flex-start;gap:10px;padding:10px 12px;text-align:left}
+.manual-lock-review .manual-lock-review-logo{width:34px;height:34px;flex:0 0 34px;object-fit:contain}
+.manual-lock-review .manual-lock-review-fallback{display:grid;width:34px;height:34px;flex:0 0 34px;place-items:center;border-radius:50%;background:var(--surface-muted);font-size:13px;font-weight:900}
+.manual-lock-review .manual-lock-pick-copy{display:flex;min-width:0;flex:1;align-items:baseline;gap:7px}
+.manual-lock-review .manual-lock-pick-copy strong{min-width:0;overflow:hidden;color:var(--ink);font-size:14px;text-overflow:ellipsis;white-space:nowrap}
+.manual-lock-review .manual-lock-pick-copy span{flex:0 0 auto;color:var(--ink);font-size:14px;font-weight:900}
+.manual-lock-review .manual-lock-note{margin:9px 2px 12px;color:var(--muted);font-size:11px;font-weight:700;line-height:1.35;text-align:center}
 .manual-lock-review .confirmation-actions{grid-template-columns:1fr 1fr}
-.manual-lock-review .manual-lock-confirm-btn{color:#3d2a00;background:var(--gold);border-color:#b88912}
+.manual-lock-review .manual-lock-confirm-btn{color:var(--ink);background:var(--gold);border-color:#b88912}
 `;
 
 function selectedWeekFromHeader() {
@@ -53,25 +61,82 @@ function closeReview() {
   document.querySelector(".manual-lock-review-backdrop")?.remove();
 }
 
-function openReview(selectedTeam: string, spreadText: string, onConfirm: () => Promise<void>) {
+function buildReviewLogo(card: HTMLElement, selectedTeam: string) {
+  const image = card.querySelector<HTMLImageElement>(".team-logo");
+  if (image?.src) {
+    const logo = document.createElement("img");
+    logo.className = "manual-lock-review-logo";
+    logo.src = image.src;
+    logo.alt = "";
+    logo.width = 34;
+    logo.height = 34;
+    return logo;
+  }
+  const fallback = document.createElement("div");
+  fallback.className = "manual-lock-review-fallback";
+  fallback.textContent = selectedTeam.slice(0, 1);
+  return fallback;
+}
+
+function openReview(card: HTMLElement, selectedTeam: string, spreadText: string, onConfirm: () => Promise<void>) {
   closeReview();
   const backdrop = document.createElement("div");
   backdrop.className = "confirmation-backdrop manual-lock-review-backdrop";
-  backdrop.innerHTML = `
-    <section class="confirmation-sheet manual-lock-review" role="dialog" aria-modal="true" aria-labelledby="manual-lock-title">
-      <div class="confirmation-heading"><span>Review pick</span><h2 id="manual-lock-title">Lock pick?</h2></div>
-      <div class="confirmation-matchup"><div><span>Locking</span><strong>${selectedTeam} ${spreadText}</strong></div></div>
-      <p class="confirmation-kickoff">This cannot be undone.</p>
-      <div class="confirmation-actions"><button type="button" class="btn secondary manual-lock-cancel">Cancel</button><button type="button" class="btn manual-lock-confirm-btn">Confirm lock</button></div>
-    </section>`;
+
+  const sheet = document.createElement("section");
+  sheet.className = "confirmation-sheet manual-lock-review";
+  sheet.setAttribute("role", "dialog");
+  sheet.setAttribute("aria-modal", "true");
+  sheet.setAttribute("aria-labelledby", "manual-lock-title");
+
+  const heading = document.createElement("div");
+  heading.className = "confirmation-heading";
+  const title = document.createElement("h2");
+  title.id = "manual-lock-title";
+  title.textContent = "Lock Pick";
+  heading.appendChild(title);
+
+  const matchup = document.createElement("div");
+  matchup.className = "confirmation-matchup";
+  const pickCell = document.createElement("div");
+  pickCell.className = "manual-lock-pick-cell";
+  pickCell.appendChild(buildReviewLogo(card, selectedTeam));
+  const pickCopy = document.createElement("div");
+  pickCopy.className = "manual-lock-pick-copy";
+  const team = document.createElement("strong");
+  team.textContent = selectedTeam;
+  const spread = document.createElement("span");
+  spread.textContent = spreadText;
+  pickCopy.append(team, spread);
+  pickCell.appendChild(pickCopy);
+  matchup.appendChild(pickCell);
+
+  const note = document.createElement("p");
+  note.className = "manual-lock-note";
+  note.textContent = "Locks this pick at this spread permanently. It cannot be changed or removed.";
+
+  const actions = document.createElement("div");
+  actions.className = "confirmation-actions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.className = "btn secondary manual-lock-cancel";
+  cancel.textContent = "Cancel";
+  const confirm = document.createElement("button");
+  confirm.type = "button";
+  confirm.className = "btn manual-lock-confirm-btn";
+  confirm.textContent = "Confirm lock";
+  actions.append(cancel, confirm);
+
+  sheet.append(heading, matchup, note, actions);
+  backdrop.appendChild(sheet);
   document.body.appendChild(backdrop);
-  backdrop.querySelector<HTMLButtonElement>(".manual-lock-cancel")?.addEventListener("click", closeReview);
+
+  cancel.addEventListener("click", closeReview);
   backdrop.addEventListener("click", (event) => { if (event.target === backdrop) closeReview(); });
-  backdrop.querySelector<HTMLButtonElement>(".manual-lock-confirm-btn")?.addEventListener("click", async (event) => {
-    const button = event.currentTarget as HTMLButtonElement;
-    if (button.disabled) return;
-    button.disabled = true;
-    button.textContent = "Locking…";
+  confirm.addEventListener("click", async () => {
+    if (confirm.disabled) return;
+    confirm.disabled = true;
+    confirm.textContent = "Locking…";
     await onConfirm();
   });
 }
@@ -119,7 +184,7 @@ export default function WeekScopeAndManualLockEnhancements({ appSlug }: { appSlu
           button.addEventListener("click", () => {
             if (button.disabled) return;
             const spreadText = spreadFromCard(card) || "current spread";
-            openReview(selectedTeam, spreadText, async () => {
+            openReview(card, selectedTeam, spreadText, async () => {
               button.disabled = true;
               const saved = await waitForAutosave();
               const week = selectedWeekFromHeader();
