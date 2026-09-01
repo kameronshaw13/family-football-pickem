@@ -53,8 +53,13 @@ export async function GET(req: NextRequest) {
       if (!prior || new Date(game.updated_at || 0) > new Date(prior.updated_at || 0)) unique.set(key, game);
     }
     const allGames = Array.from(unique.values()).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
-    const openGames = allGames.filter((game) => new Date(game.commence_time).getTime() >= Date.now() - 7 * 86400000);
-    const defaultWeek = openGames[0]?.week ?? allGames[allGames.length - 1]?.week ?? 0;
+    const standingsWeeks = Array.from(new Set(allGames.map((game) => Number(game.week)))).sort((a, b) => a - b);
+    const openedWeeks = standingsWeeks.filter((candidateWeek) => {
+      const candidateGames = allGames.filter((game) => Number(game.week) === candidateWeek);
+      const openTime = getPickWeekOpenTime(candidateWeek, candidateGames.map((game) => game.commence_time), context.group.timezone);
+      return !openTime || openTime <= now;
+    });
+    const defaultWeek = openedWeeks[openedWeeks.length - 1] ?? standingsWeeks[0] ?? 0;
     const week = requestedWeek != null ? Number(requestedWeek) : defaultWeek;
     const games = allGames.filter((game) => Number(game.week) === week);
     const gameById = new Map(allGames.map((game) => [game.id, game]));
@@ -88,14 +93,17 @@ export async function GET(req: NextRequest) {
       if (rows) rows.push(pick);
       else lockedByWeek.set(pickWeek, [pick]);
     }
-    const standingsWeeks = Array.from(new Set(allGames.map((game) => Number(game.week))));
     const weeklyStandingsByWeek = Object.fromEntries(
       standingsWeeks.map((standingWeek) => [String(standingWeek), computeGroupStandings(profiles, lockedByWeek.get(standingWeek) || [], context.rules)])
     );
     const standings = computeGroupStandings(profiles, (lockedResult.data || []) as any, context.rules);
     const visiblePicks = (picksResult.data || []).map((pick: any) => ({ ...pick, game: gameById.get(pick.game_id) || pick.game }));
     const dismissedSideBetIds = new Set((sideBetDismissalResult.data || []).map((row: any) => row.side_bet_id));
-    const sideBets = allSideBets.filter((bet: any) => !dismissedSideBetIds.has(bet.id) && (bet.creator_id === auth.profile.id || bet.accepted_by === auth.profile.id || bet.targets?.some((target: any) => target.recipient_id === auth.profile.id)));
+    const sideBets = allSideBets.filter((bet: any) =>
+      Number(bet.week) === week &&
+      !dismissedSideBetIds.has(bet.id) &&
+      (bet.creator_id === auth.profile.id || bet.accepted_by === auth.profile.id || bet.targets?.some((target: any) => target.recipient_id === auth.profile.id))
+    );
     const rawSideBetSlotCounts = sideBetSlotCounts(allSideBets.filter((bet: any) => Number(bet.week) === week), profiles.map((profile) => profile.id));
     const sideBetSlotCountsByPlayer = Number.isFinite(sideBetSettings.maxPerWeek)
       ? rawSideBetSlotCounts
@@ -150,7 +158,7 @@ export async function GET(req: NextRequest) {
       week,
       weekRule: getGroupWeekRule(context, week),
       weekOpenTime: weekOpen ? weekOpen.toISOString() : null,
-      availableWeeks: standingsWeeks.sort((a, b) => a - b)
+      availableWeeks: standingsWeeks
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
