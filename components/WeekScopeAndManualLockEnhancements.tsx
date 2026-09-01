@@ -16,12 +16,13 @@ const STYLES = `
 .manual-lock-review .confirmation-matchup>div.manual-lock-pick-cell{display:flex;min-height:64px;align-items:center;justify-content:flex-start;gap:10px;padding:10px 12px;text-align:left}
 .manual-lock-review .manual-lock-review-logo{width:34px;height:34px;flex:0 0 34px;object-fit:contain}
 .manual-lock-review .manual-lock-review-fallback{display:grid;width:34px;height:34px;flex:0 0 34px;place-items:center;border-radius:50%;background:var(--surface-muted);font-size:13px;font-weight:900}
-.manual-lock-review .manual-lock-pick-copy{display:flex;min-width:0;flex:1;align-items:baseline;gap:7px}
+.manual-lock-review .manual-lock-pick-copy{display:flex;min-width:0;flex:1;align-items:baseline;justify-content:space-between;gap:14px}
 .manual-lock-review .manual-lock-pick-copy strong{min-width:0;overflow:hidden;color:var(--ink);font-size:14px;text-overflow:ellipsis;white-space:nowrap}
-.manual-lock-review .manual-lock-pick-copy span{flex:0 0 auto;color:var(--ink);font-size:14px;font-weight:900}
+.manual-lock-review .manual-lock-pick-copy span{flex:0 0 auto;margin-left:auto;color:var(--ink);font-size:14px;font-weight:900;text-align:right}
 .manual-lock-review .manual-lock-note{margin:9px 2px 12px;color:var(--muted);font-size:11px;font-weight:700;line-height:1.35;text-align:center}
 .manual-lock-review .confirmation-actions{grid-template-columns:1fr 1fr}
-.manual-lock-review .manual-lock-confirm-btn{color:var(--ink);background:var(--gold);border-color:#b88912}
+.manual-lock-review .manual-lock-confirm-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;color:var(--ink);background:var(--gold);border-color:#b88912}
+.manual-lock-review .manual-lock-confirm-btn svg{width:13px;height:13px;stroke-width:2.2}
 `;
 
 function selectedWeekFromHeader() {
@@ -78,6 +79,12 @@ function buildReviewLogo(card: HTMLElement, selectedTeam: string) {
   return fallback;
 }
 
+function reviewTeamName(card: HTMLElement, selectedTeam: string) {
+  const visible = card.querySelector<HTMLElement>(".pick-title-team .responsive-text-value")?.textContent?.trim()
+    || card.querySelector<HTMLElement>(".pick-title-team")?.textContent?.trim();
+  return visible || selectedTeam;
+}
+
 function openReview(card: HTMLElement, selectedTeam: string, spreadText: string, onConfirm: () => Promise<void>) {
   closeReview();
   const backdrop = document.createElement("div");
@@ -104,7 +111,7 @@ function openReview(card: HTMLElement, selectedTeam: string, spreadText: string,
   const pickCopy = document.createElement("div");
   pickCopy.className = "manual-lock-pick-copy";
   const team = document.createElement("strong");
-  team.textContent = selectedTeam;
+  team.textContent = reviewTeamName(card, selectedTeam);
   const spread = document.createElement("span");
   spread.textContent = spreadText;
   pickCopy.append(team, spread);
@@ -113,7 +120,7 @@ function openReview(card: HTMLElement, selectedTeam: string, spreadText: string,
 
   const note = document.createElement("p");
   note.className = "manual-lock-note";
-  note.textContent = "Locks this pick at this spread permanently. It cannot be changed or removed.";
+  note.textContent = "Locks only this pick at this spread permanently. Your other unlocked picks can still be changed.";
 
   const actions = document.createElement("div");
   actions.className = "confirmation-actions";
@@ -124,7 +131,7 @@ function openReview(card: HTMLElement, selectedTeam: string, spreadText: string,
   const confirm = document.createElement("button");
   confirm.type = "button";
   confirm.className = "btn manual-lock-confirm-btn";
-  confirm.textContent = "Confirm lock";
+  confirm.innerHTML = `<span>Confirm lock</span>${iconMarkup()}`;
   actions.append(cancel, confirm);
 
   sheet.append(heading, matchup, note, actions);
@@ -206,7 +213,7 @@ export default function WeekScopeAndManualLockEnhancements({ appSlug }: { appSlu
                 manuallyLocked.add(selectedTeam);
                 closeReview();
                 apply();
-                showMessage(`${selectedTeam} locked at the current spread.`);
+                showMessage(`${reviewTeamName(card, selectedTeam)} locked at the current spread.`);
               } catch (error) {
                 button.disabled = false;
                 closeReview();
