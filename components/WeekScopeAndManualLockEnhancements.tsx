@@ -3,6 +3,16 @@
 import { useEffect } from "react";
 import type { AppSlug } from "@/lib/rulePresentation";
 
+const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
+const FULL_GAME_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "America/Chicago"
+});
+
 const STYLES = `
 .manual-pick-lock{display:inline-flex;min-width:60px;height:28px;align-items:center;justify-content:center;gap:5px;padding:0 8px;border:1px solid #b88912;border-radius:4px;color:var(--ink);background:var(--gold);font-family:var(--font-display);font-size:10px;font-weight:900;line-height:1;cursor:pointer}
 .manual-pick-lock svg{width:12px;height:12px;stroke-width:2.2;color:var(--ink)}
@@ -10,21 +20,40 @@ const STYLES = `
 .manual-lock-confirmed{display:inline-flex;min-width:42px;height:28px;align-items:center;justify-content:center;color:var(--muted);font-size:9px;font-weight:800}
 .manual-lock-toast{position:fixed;right:12px;bottom:calc(var(--nav-height) + env(safe-area-inset-bottom) + 12px);left:12px;z-index:65;display:flex;min-height:44px;align-items:center;justify-content:center;padding:9px 12px;border:1px solid var(--line-strong);border-radius:5px;background:var(--panel);box-shadow:var(--shadow);color:var(--ink);font-size:12px;font-weight:800;text-align:center}
 .manual-lock-toast.error{color:var(--red)}
-.manual-lock-review .confirmation-heading{margin-bottom:10px}
+.manual-lock-review .confirmation-heading{margin-top:0;margin-bottom:0}
 .manual-lock-review .confirmation-heading h2{margin:0}
-.manual-lock-review .confirmation-matchup{grid-template-columns:1fr}
-.manual-lock-review .confirmation-matchup>div.manual-lock-pick-cell{display:grid;min-height:64px;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:10px;padding:10px 12px;text-align:left}
+.manual-lock-review .confirmation-matchup{grid-template-columns:1fr;margin-top:8px}
+.manual-lock-review .confirmation-matchup>div.manual-lock-pick-cell{display:grid;min-height:52px;grid-template-columns:34px minmax(0,1fr);align-items:center;gap:10px;padding:6px 10px;text-align:left}
 .manual-lock-review .manual-lock-review-logo{width:34px;height:34px;object-fit:contain}
 .manual-lock-review .manual-lock-review-fallback{display:grid;width:34px;height:34px;place-items:center;border-radius:50%;background:var(--surface-muted);font-size:13px;font-weight:900}
 .manual-lock-review .manual-lock-pick-copy{display:grid;min-width:0;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px}
-.manual-lock-review .manual-lock-pick-copy strong{min-width:0;overflow:hidden;color:var(--ink);font-size:13px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
-.manual-lock-review .manual-lock-pick-copy span{color:var(--ink);font-size:13px;font-weight:700;text-align:right;white-space:nowrap}
-.manual-lock-review .manual-lock-note{margin:9px 2px 12px;color:var(--muted);font-size:11px;font-weight:700;line-height:1.35;text-align:center}
+.manual-lock-review .manual-lock-pick-copy strong{min-width:0;overflow:hidden;color:var(--ink);font-size:15px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
+.manual-lock-review .manual-lock-pick-copy span{color:var(--ink);font-size:15px;font-weight:700;text-align:right;white-space:nowrap}
+.manual-lock-review .manual-lock-meta{margin:7px 2px 0;color:var(--muted);font-size:10px;font-weight:700;line-height:1.35;text-align:center}
+.manual-lock-review .manual-lock-note{margin:6px 2px 12px;color:var(--muted);font-size:11px;font-weight:700;line-height:1.35;text-align:center}
 .manual-lock-review .confirmation-actions{grid-template-columns:1fr 1fr}
 .manual-lock-review .manual-lock-confirm-btn{position:relative;display:flex;align-items:center;justify-content:center;color:var(--ink);background:var(--gold);border-color:#b88912}
 .manual-lock-review .manual-lock-confirm-btn>span{display:block;width:100%;text-align:center}
-.manual-lock-review .manual-lock-confirm-btn svg{position:absolute;right:12px;width:13px;height:13px;stroke-width:2.2}
+.manual-lock-review .manual-lock-confirm-btn svg{position:absolute;top:50%;left:calc(50% + 40px);width:13px;height:13px;transform:translateY(-50%);stroke-width:2.2}
 `;
+
+type CachedGame = {
+  commence_time?: string | null;
+  away_team?: string | null;
+  home_team?: string | null;
+};
+
+type CachedSideBet = {
+  offered_team?: string | null;
+  creator_team?: string | null;
+  game?: CachedGame | null;
+};
+
+type CachedPayload = {
+  week?: number | null;
+  games?: CachedGame[];
+  sideBets?: CachedSideBet[];
+};
 
 function selectedWeekFromHeader() {
   const text = document.querySelector<HTMLElement>(".week-select-wrap .custom-select-trigger")?.textContent || "";
@@ -63,6 +92,37 @@ function closeReview() {
   document.querySelector(".manual-lock-review-backdrop")?.remove();
 }
 
+function fullGameDate(iso: string) {
+  return FULL_GAME_DATE_FORMATTER.format(new Date(iso));
+}
+
+function readCachedPayload(appSlug: AppSlug, week: number | null) {
+  const keys = [
+    `${APP_DATA_CACHE_PREFIX}:${appSlug}:${week == null ? "default" : week}`,
+    `${APP_DATA_CACHE_PREFIX}:${appSlug}:default`
+  ];
+  for (const key of keys) {
+    try {
+      const stored = window.sessionStorage.getItem(key);
+      if (!stored) continue;
+      const entry = JSON.parse(stored) as { payload?: CachedPayload } | null;
+      const payload = entry?.payload;
+      if (!payload) continue;
+      if (week != null && payload.week != null && Number(payload.week) !== week) continue;
+      return payload;
+    } catch {
+      // Ignore stale cache entries and continue to the fallback key.
+    }
+  }
+  return null;
+}
+
+function gameForSelectedTeam(appSlug: AppSlug, selectedTeam: string) {
+  const week = selectedWeekFromHeader();
+  const payload = readCachedPayload(appSlug, week);
+  return payload?.games?.find((game) => game.away_team === selectedTeam || game.home_team === selectedTeam) || null;
+}
+
 function buildReviewLogo(card: HTMLElement, selectedTeam: string) {
   const image = card.querySelector<HTMLImageElement>(".team-logo");
   if (image?.src) {
@@ -86,7 +146,56 @@ function reviewTeamName(card: HTMLElement, selectedTeam: string) {
   return visible || selectedTeam;
 }
 
-function openReview(card: HTMLElement, selectedTeam: string, spreadText: string, onConfirm: () => Promise<void>) {
+function reviewMatchup(card: HTMLElement) {
+  const full = card.querySelector<HTMLElement>(".pick-meta .responsive-text")?.getAttribute("aria-label")
+    || card.querySelector<HTMLElement>(".pick-meta")?.textContent
+    || "";
+  return full.split(" · ")[0]?.trim() || "";
+}
+
+function normalizeTeamText(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function reviewRowTeam(row: Element | undefined) {
+  if (!row) return "";
+  const full = row.querySelector<HTMLElement>(".responsive-text")?.getAttribute("aria-label")
+    || row.querySelector<HTMLElement>("strong")?.textContent
+    || "";
+  return full.replace(/\s(?:[+-]\d+(?:\.\d+)?|pk)\s*$/i, "").trim();
+}
+
+function teamLabelMatches(rawTeam: string | null | undefined, displayedTeam: string) {
+  const raw = normalizeTeamText(rawTeam || "");
+  const displayed = normalizeTeamText(displayedTeam);
+  if (!raw || !displayed) return false;
+  return raw === displayed || raw.startsWith(`${displayed} `) || raw.endsWith(` ${displayed}`) || raw.includes(displayed);
+}
+
+function enhanceSideBetConfirmationDate(appSlug: AppSlug) {
+  const sheet = Array.from(document.querySelectorAll<HTMLElement>(".confirmation-sheet")).find((candidate) => {
+    if (candidate.classList.contains("manual-lock-review")) return false;
+    return /review side bet/i.test(candidate.querySelector<HTMLElement>(".confirmation-heading > span")?.textContent || "");
+  });
+  if (!sheet) return;
+  const kickoff = sheet.querySelector<HTMLElement>(".confirmation-kickoff");
+  if (!kickoff) return;
+  const rows = Array.from(sheet.querySelectorAll(".confirmation-matchup > div"));
+  const offeredTeam = reviewRowTeam(rows[0]);
+  const creatorTeam = reviewRowTeam(rows[1]);
+  if (!offeredTeam || !creatorTeam) return;
+
+  const payload = readCachedPayload(appSlug, selectedWeekFromHeader());
+  const bet = payload?.sideBets?.find((candidate) =>
+    teamLabelMatches(candidate.offered_team, offeredTeam) && teamLabelMatches(candidate.creator_team, creatorTeam)
+  );
+  const commenceTime = bet?.game?.commence_time;
+  if (!commenceTime) return;
+  const nextText = fullGameDate(commenceTime);
+  if (kickoff.textContent?.trim() !== nextText) kickoff.textContent = nextText;
+}
+
+function openReview(appSlug: AppSlug, card: HTMLElement, selectedTeam: string, spreadText: string, onConfirm: () => Promise<void>) {
   closeReview();
   const backdrop = document.createElement("div");
   backdrop.className = "confirmation-backdrop manual-lock-review-backdrop";
@@ -119,6 +228,11 @@ function openReview(card: HTMLElement, selectedTeam: string, spreadText: string,
   pickCell.appendChild(pickCopy);
   matchup.appendChild(pickCell);
 
+  const meta = document.createElement("p");
+  meta.className = "manual-lock-meta";
+  const game = gameForSelectedTeam(appSlug, selectedTeam);
+  meta.textContent = [reviewMatchup(card), game?.commence_time ? fullGameDate(game.commence_time) : ""].filter(Boolean).join(" · ");
+
   const note = document.createElement("p");
   note.className = "manual-lock-note";
   note.textContent = "Locks only this pick at this spread permanently. Your other unlocked picks can still be changed.";
@@ -135,7 +249,9 @@ function openReview(card: HTMLElement, selectedTeam: string, spreadText: string,
   confirm.innerHTML = `<span>Confirm lock</span>${iconMarkup()}`;
   actions.append(cancel, confirm);
 
-  sheet.append(heading, matchup, note, actions);
+  sheet.append(heading, matchup);
+  if (meta.textContent) sheet.appendChild(meta);
+  sheet.append(note, actions);
   backdrop.appendChild(sheet);
   document.body.appendChild(backdrop);
 
@@ -164,6 +280,7 @@ export default function WeekScopeAndManualLockEnhancements({ appSlug }: { appSlu
       applying = true;
       try {
         syncWeekCookie();
+        enhanceSideBetConfirmationDate(appSlug);
         document.querySelectorAll<HTMLElement>(".pick-card").forEach((card) => {
           const actions = card.querySelector<HTMLElement>(".pick-row-actions");
           const remove = actions?.querySelector<HTMLButtonElement>('button[aria-label^="Remove "]');
@@ -192,7 +309,7 @@ export default function WeekScopeAndManualLockEnhancements({ appSlug }: { appSlu
           button.addEventListener("click", () => {
             if (button.disabled) return;
             const spreadText = spreadFromCard(card) || "current spread";
-            openReview(card, selectedTeam, spreadText, async () => {
+            openReview(appSlug, card, selectedTeam, spreadText, async () => {
               button.disabled = true;
               const saved = await waitForAutosave();
               const week = selectedWeekFromHeader();
