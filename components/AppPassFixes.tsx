@@ -18,9 +18,9 @@ const STYLES = `
 .card-panel .group-card>h3+.admin-no-submission-row::before{display:none!important}
 
 /* Give glyphs paint room without adding padding or changing any fixed row geometry. */
-.leaderboard-row>.leaderboard-rank,.leaderboard-row>.leaderboard-stat,.leaderboard-row>.leaderboard-pct,.leaderboard-row>.leaderboard-points{line-height:1.3!important;overflow:visible!important;transform:translateY(-.5px)}
+.leaderboard-row>.leaderboard-rank,.leaderboard-row>.leaderboard-stat,.leaderboard-row>.leaderboard-pct,.leaderboard-row>.leaderboard-points{line-height:1.3!important;overflow:visible!important}
 .leaderboard-row>.leaderboard-player>strong{line-height:1.3!important;overflow:clip!important;overflow-clip-margin:2px}
-.leaderboard-row>.leaderboard-pct .numeric-token,.leaderboard-row>.leaderboard-pct .numeric-fragment,.leaderboard-row>.leaderboard-points .numeric-token,.leaderboard-row>.leaderboard-points .numeric-fragment{line-height:inherit!important;overflow:visible!important}
+.leaderboard-row>.leaderboard-rank .numeric-token,.leaderboard-row>.leaderboard-rank .numeric-fragment,.leaderboard-row>.leaderboard-stat .numeric-token,.leaderboard-row>.leaderboard-stat .numeric-fragment,.leaderboard-row>.leaderboard-pct .numeric-token,.leaderboard-row>.leaderboard-pct .numeric-fragment,.leaderboard-row>.leaderboard-points .numeric-token,.leaderboard-row>.leaderboard-points .numeric-fragment{line-height:inherit!important;overflow:visible!important}
 .game-time,.game-final-status,.game-live-status,.game-live-situation{line-height:1.3!important;overflow:visible!important}
 .game-time .numeric-token,.game-time .numeric-fragment,.game-final-status .numeric-token,.game-final-status .numeric-fragment,.game-live-status .numeric-token,.game-live-status .numeric-fragment,.game-live-situation .numeric-token,.game-live-situation .numeric-fragment{line-height:inherit!important;overflow:visible!important}
 .pick-meta,.visible-pick-copy>p{overflow:clip!important;overflow-clip-margin:2px;line-height:1.4!important}
