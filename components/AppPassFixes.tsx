@@ -17,11 +17,14 @@ const STYLES = `
 .card-panel .group-card>h3+.admin-no-submission-row{border-top:0!important;background:var(--panel)!important;box-shadow:none!important}
 .card-panel .group-card>h3+.admin-no-submission-row::before{display:none!important}
 
-/* Give glyphs paint room without adding padding or changing any fixed row geometry. */
-.leaderboard-row>.leaderboard-rank,.leaderboard-row>.leaderboard-stat,.leaderboard-row>.leaderboard-pct,.leaderboard-row>.leaderboard-points{line-height:1.3!important;overflow:visible!important}
-.leaderboard-row>.leaderboard-player>strong{line-height:1.3!important;overflow:clip!important;overflow-clip-margin:2px}
-.leaderboard-row>.leaderboard-rank .numeric-token,.leaderboard-row>.leaderboard-rank .numeric-fragment,.leaderboard-row>.leaderboard-stat .numeric-token,.leaderboard-row>.leaderboard-stat .numeric-fragment,.leaderboard-row>.leaderboard-pct .numeric-token,.leaderboard-row>.leaderboard-pct .numeric-fragment,.leaderboard-row>.leaderboard-points .numeric-token,.leaderboard-row>.leaderboard-points .numeric-fragment{line-height:inherit!important;overflow:visible!important}
-.leaderboard-row>.leaderboard-rank .numeric-token,.leaderboard-row>.leaderboard-stat .numeric-token,.leaderboard-row>.leaderboard-pct .numeric-token,.leaderboard-row>.leaderboard-points .numeric-token{display:inline-block;padding-bottom:1px}
+/* Standings numbers use the same natural, unpadded line box as Bank values. */
+.leaderboard-row>.leaderboard-rank,.leaderboard-row>.leaderboard-stat,.leaderboard-row>.leaderboard-pct,.leaderboard-row>.leaderboard-points{line-height:normal!important;overflow:visible!important}
+.leaderboard-row>.leaderboard-rank .numeric-token,.leaderboard-row>.leaderboard-rank .numeric-fragment,.leaderboard-row>.leaderboard-stat .numeric-token,.leaderboard-row>.leaderboard-stat .numeric-fragment,.leaderboard-row>.leaderboard-pct .numeric-token,.leaderboard-row>.leaderboard-pct .numeric-fragment,.leaderboard-row>.leaderboard-points .numeric-token,.leaderboard-row>.leaderboard-points .numeric-fragment{display:inline;line-height:inherit!important;overflow:visible!important;padding-bottom:0!important}
+
+/* Keep the complete Place column centered and leave clickable player names unadorned. */
+.leaderboard-labels>span:first-child,.leaderboard-row>.leaderboard-rank{justify-content:center!important;padding-left:0!important;text-align:center!important}
+.leaderboard-row>.leaderboard-rank{width:100%}
+.standings-panel .leaderboard-player .player-profile-link{text-decoration:none!important}
 .bank-game-result .bank-game-pick-title{overflow:clip!important;overflow-clip-margin:2px;line-height:1.3!important}
 .bank-game-result .bank-game-pick-title .pick-title-market,.bank-game-result .bank-game-pick-title .numeric-token,.bank-game-result .bank-game-pick-title .numeric-fragment{line-height:inherit!important;overflow:visible!important}
 .bank-game-result .bank-game-pick-title .pick-title-market>.numeric-token{display:inline-block;padding-bottom:1px}
