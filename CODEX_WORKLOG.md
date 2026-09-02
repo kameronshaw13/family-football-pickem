@@ -1,7 +1,7 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
 **Last updated:** 2026-09-02  
-**Current app-code production baseline:** `79eb947b556a3159a8500f19080af5b034667987`  
+**Current app-code production baseline:** `ffc350fde62db266e30ddef24470ad0330c00d22`
 **Production status:** Vercel READY
 
 > **Codex / future sessions:** Read this file before changing the app. Treat it as the running source of truth. After a task is completed, update the relevant status here in the same work session. Do not rely only on chat history.
@@ -35,11 +35,13 @@
 
 Current app-code baseline:
 
-- app-code commit: `79eb947b556a3159a8500f19080af5b034667987`
-- commit message: **Show lock state in weekly pick results**
+- app-code commit: `ffc350fde62db266e30ddef24470ad0330c00d22`
+- commit message: **Match standings text metrics to bank**
 - Vercel production for that app-code commit: **READY**
-- latest implementation branch: `fix/typography-breathing-room-weekly-locks-2026-09-02`
-- latest rollback branch: `backup/pre-typography-breathing-room-weekly-locks-2026-09-02`
+- latest implementation branch: `fix/standings-bank-linebox-2026-09-02`
+- latest rollback branch: `backup/pre-standings-bank-linebox-2026-09-02`
+- prior implementation branch: `fix/typography-breathing-room-weekly-locks-2026-09-02`
+- prior rollback branch: `backup/pre-typography-breathing-room-weekly-locks-2026-09-02`
 - prior implementation branch: `fix/standings-shared-numeric-rendering-2026-09-02`
 - prior rollback branch: `backup/pre-standings-shared-numeric-rendering-2026-09-02`
 - prior implementation branch: `fix/standings-digit-baseline-2026-09-02`
@@ -156,7 +158,7 @@ If the user still sees the band, determine from the live DOM whether it is the n
 
 ### D. Text clipping / line boxes
 
-**Status: PATCHED 2026-09-02; NEEDS USER VERIFICATION.**
+**Status: REWORKED 2026-09-02; NEEDS USER VERIFICATION.**
 
 User requirement:
 
@@ -170,16 +172,18 @@ Known examples from the latest app pass:
 - game time in the top-left of Pick Board games
 - matchup/time line in My Card / League Card pick rows
 
-Latest targeted approach in `AppPassFixes.tsx`:
+Latest standings replacement in `AppPassFixes.tsx`:
 
-- Season and Weekly Standings share the same row-level fix: rank, W/L/P, win percentage, and points cells use a descender-safe `1.3` line height with overflow-visible paint room
-- standings player names keep horizontal truncation/ellipsis but receive the same `1.3` line height and a 2px clip margin for glyph paint
-- a `translateY(-0.5px)` follow-up was shipped briefly but made the standings baseline look visually off; it has been removed
-- rank and W/L/P values now use the same shared `NumericText` rendering path already used by win percentage, points, spreads, scores, and times
-- all standings numeric wrappers inherit the descender-safe line height and overflow-visible paint room, with no manual baseline adjustment
-- standings numeric tokens now have a real 1px bottom inset, giving rounded digits/descenders physical breathing room inside the existing flex-centered cell
+- the earlier forced `1.3` standings line height and 1px numeric bottom inset did not solve the user's visual issue and have been removed
+- Season and Weekly Standings numeric cells now use the same natural, unpadded line-box behavior as the working Bank values (`line-height: normal`, inline numeric wrappers, no bottom padding)
+- row heights, row padding, columns, and dividers remain unchanged
+- the Place header and every place number are explicitly centered within the first grid column
+- Season Standings player names remain clickable for profiles, but the blue profile-link underline is suppressed inside the standings table
+- rank and W/L/P values continue using the shared `NumericText` rendering path already used by Bank values, win percentage, points, spreads, scores, and times
+
+Weekly Results behavior from the prior pass remains:
+
 - Weekly Results pick titles use clip-margin paint room and `1.3` line height; their spread token also has the real 1px bottom inset
-- standings and Weekly Results row heights, outer padding, dividers, and columns are unchanged
 - game time/final/live status and numeric fragments remain overflow-visible
 - pick matchup/meta text keeps the existing `1.4` line-height and uses `overflow: clip` plus a small `overflow-clip-margin` so glyph bottoms can paint without padding/margin geometry changes
 - no fixed row heights, card spacing, or broad vertical padding were changed
@@ -371,6 +375,7 @@ Small visual regressions matter. Do not make broad CSS changes to solve one row.
 Do not move/delete existing backups. Key recent examples include:
 
 - `backup/pre-typography-breathing-room-weekly-locks-2026-09-02`
+- `backup/pre-standings-bank-linebox-2026-09-02`
 - `backup/pre-standings-shared-numeric-rendering-2026-09-02`
 - `backup/pre-standings-digit-baseline-2026-09-02`
 - `backup/pre-standings-text-clipping-2026-09-02`
