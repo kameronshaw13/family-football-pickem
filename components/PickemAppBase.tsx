@@ -1732,7 +1732,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             const playerPicks = orderCardPicks(viewedPicks.filter((pick) => pick.user_id === profile.id), viewedGames, pointsMode);
             return <div key={profile.id} className="group-card">
               <h3>{profile.display_name}</h3>
-              {playerPicks.length === 0 && <p className="muted group-empty-picks">No visible picks yet.</p>}
+              {playerPicks.length === 0 && <p className="muted group-empty-picks">No picks submitted.</p>}
               {playerPicks.map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} pointsMode={pointsMode} />)}
             </div>;
           })}
