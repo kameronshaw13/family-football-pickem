@@ -1,8 +1,8 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
 **Last updated:** 2026-09-01  
-**Current production baseline when this file was created:** `79ef0c88b7377cbf1fc9ae3d3f0c93a854791885`  
-**Production status at creation:** Vercel READY
+**Current app-code production baseline:** `c317cea77e2d92134331dc19219270724616312e`  
+**Production status:** Vercel READY
 
 > **Codex / future sessions:** Read this file before changing the app. Treat it as the running source of truth. After a task is completed, update the relevant status here in the same work session. Do not rely only on chat history.
 
@@ -33,29 +33,85 @@
 
 ## 2. Current production state
 
-Current live baseline at the time this file was created:
+Current app-code baseline:
 
-- `main`: `79ef0c88b7377cbf1fc9ae3d3f0c93a854791885`
-- Commit message: **Restore base league empty row styling and lock weight**
-- Vercel production: **READY**
+- app-code commit: `c317cea77e2d92134331dc19219270724616312e`
+- commit message: **Load app pass fixes**
+- Vercel production for that app-code commit: **READY**
+- implementation branch: `fix/app-pass-1-7-2026-09-01`
+- rollback branch: `backup/pre-app-pass-1-7-2026-09-01`
 
-Important effective styling in `components/Batch1bSideBetStyles.tsx`:
+A later worklog-only commit may make the literal `main` SHA newer than the app-code baseline above without changing runtime behavior.
+
+New targeted compatibility layer: `components/AppPassFixes.tsx`.
+
+It currently owns the latest seven-item app pass behavior:
+
+- restores the My Card progress/status card when all currently submitted picks are locked but the required card is still incomplete
+- removes that fallback once the full required card is locked or the shared Sat–Mon weekend lock has arrived
+- replaces the pending locked-state gray dash with a lock icon before the shared weekend lock
+- hides that lock indicator after the shared weekend lock
+- tags administrative no-submission rows explicitly and removes any top spacer/banding at the player-header boundary
+- expands text paint/clipping room without padding or fixed-row geometry changes
+- changes completed-week Side Bets to history-only behavior and a `Week is complete` Make Offer state
+
+Important effective styling in `components/Batch1bSideBetStyles.tsx` remains:
 
 - gold manual Lock control is 30px tall
 - effective Lock font weight is **800**
 - Lock icon is 13px
 - lock review team/spread row is neutral/white through overrides
 - lock review matchup/date uses gray hierarchy text and weight 700
-- game time/final/live status currently use inline-flex + `line-height: 1.3` + `overflow: visible` to avoid clipping without padding-based spacing changes
+- game time/final/live status use inline-flex + `line-height: 1.3` + `overflow: visible`
 - Clear-history cards are explicitly tagged with `has-clear-offer-action` instead of relying on CSS `:has()` for sizing
 
 ---
 
 ## 3. Immediate UI items — USER VERIFICATION / FIX NEXT
 
-### A. League Cards — empty / no-submission row
+### A. My Card — partial manual-lock progress state
 
-**Status: NEEDS USER VERIFICATION. Do not assume fixed.**
+**Status: IMPLEMENTED 2026-09-01; NEEDS USER VERIFICATION.**
+
+Reported problem:
+
+- if the user had only one submitted pick and manually locked it, the large My Card progress/status card disappeared
+- root cause: base `cardIsLocked` treats every currently existing pick being locked as a fully locked card, even when the required card is incomplete
+
+Current behavior added in `AppPassFixes.tsx`:
+
+- if the native progress card disappears only because every currently submitted pick is locked, restore the same `card-progress` presentation
+- keep it visible while the required card is incomplete
+- remove it when all required selections are locked
+- also remove it once the shared Sat–Mon weekend lock has occurred
+- do not manually test this by locking another real production pick without explicit authorization
+
+### B. My Card / League Cards — locked-pick right-side icon
+
+**Status: IMPLEMENTED 2026-09-01; NEEDS USER VERIFICATION.**
+
+Desired behavior:
+
+Before the shared Saturday 11:00 AM America/Chicago lock:
+
+- a locked pending pick shows a lock icon in the 30px right-side action position
+- My Card uses the same position previously occupied by the red X/remove control
+- League Cards show the lock icon for locked picks and nothing for unlocked picks
+- do not show the old gray dash
+
+After the shared Saturday 11:00 AM lock:
+
+- the pending locked-pick indicator is blank on the right
+
+Implementation notes:
+
+- the shared lock is derived from the selected week's actual Sat–Mon game `lock_time` values rather than the device weekday
+- live/final scorebugs and graded result badges are not replaced by the lock icon
+- the immediate post-lock `manual-lock-confirmed` state is also normalized to the icon so behavior does not depend on a page refresh
+
+### C. League Cards — empty / no-submission row
+
+**Status: PATCHED 2026-09-01; NEEDS USER VERIFICATION. Do not assume visually solved until the user checks it.**
 
 The user repeatedly saw gray space/banding above the white no-picks row.
 
@@ -63,9 +119,14 @@ Current important distinction:
 
 - normal empty League Cards state in `PickemAppBase.tsx` is `.group-empty-picks` and renders `No visible picks yet.` before CSS presentation changes
 - finalized missing-pick rows are a different system using synthetic picks/games and `public/admin-no-submission.svg`, with styling in `app/admin-no-submission.css`
-- the user clarified that the desired empty row should remain **thin/compact**, not be the same height as a normal selected team row
+- the desired empty row should remain **thin/compact**, not be expanded to the same height as a normal selected team row merely to hide a gap
 
-Latest production commit `79ef0c88...` removed the added 39px `.group-empty-picks` override and restored the base League Cards empty-row styling.
+Latest targeted pass:
+
+- explicitly tags rows containing `admin-no-submission.svg` as `.admin-no-submission-row`
+- forces both the normal empty row and synthetic no-submission row to start directly below the player header with no top margin/spacer
+- keeps the row background white/panel-colored and suppresses an extra first-row pseudo-divider on the synthetic row
+- does not change the normal spacing between different player sections
 
 **Desired visual:**
 
@@ -75,32 +136,49 @@ Latest production commit `79ef0c88...` removed the added 39px `.group-empty-pick
 - no thick gray band / no extra gray spacer
 - normal spacing between different players' sections must remain
 
-**Before changing this again:** identify whether the visible row the user is pointing to is:
+If the user still sees the band, determine from the live DOM whether it is the normal `.group-empty-picks` state or `.admin-no-submission-row` before making another change.
 
-1. `.group-empty-picks`, or
-2. a synthetic admin `No Pick Submitted` row using `admin-no-submission.svg`.
+### D. Text clipping / line boxes
 
-Do not keep layering CSS on the wrong one.
-
-### B. Text clipping / line boxes
-
-**Status: NEEDS USER VERIFICATION / likely more targeted cleanup.**
-
-User has seen text barely clipped at the bottom in multiple places, especially compact game-time/status text.
+**Status: PATCHED 2026-09-01; NEEDS USER VERIFICATION.**
 
 User requirement:
 
 - text must never be clipped at top/bottom
-- **but original vertical spacing/alignment must remain**
+- **original vertical spacing/alignment must remain**
 - do not fix clipping by adding broad padding that pushes nearby elements around
 
-Current production reverted the broad padding/margin experiments and now only has a targeted game-time/status rule:
+Known examples from the latest app pass:
 
-`display:inline-flex; align-items:center; line-height:1.3; overflow:visible`
+- bottoms of standings rank `1 / 2 / 3`
+- game time in the top-left of Pick Board games
+- matchup/time line in My Card / League Card pick rows
 
-If more clipping is reported, fix the exact selector/line box rather than applying one large global padding rule.
+Latest targeted approach in `AppPassFixes.tsx`:
 
-### C. Manual Lock control / review modal
+- standings rank line box gets additional line-height paint room without changing row height
+- game time/final/live status and numeric fragments remain overflow-visible
+- pick matchup/meta text keeps the existing `1.4` line-height and uses `overflow: clip` plus a small `overflow-clip-margin` so glyph bottoms can paint without padding/margin geometry changes
+- no fixed row heights, card spacing, or broad vertical padding were changed
+
+If any clipping remains, fix only the exact remaining selector/line box.
+
+### E. Side Bets — completed week behavior
+
+**Status: IMPLEMENTED 2026-09-01; NEEDS USER VERIFICATION ON A COMPLETED WEEK.**
+
+Once every game in the selected week is final:
+
+- hide the **Pending Offers** section entirely
+- keep **Offer History**
+- Make Offer should not show CFB/NFL/conference game options
+- do not show the weekly side-bet-slot-limit message instead
+- show a simple **Week is complete** state
+- hide any stale bet-slip bar/sheet if one was left selected before the week completed
+
+The completed-week state is derived from the selected week's actual game completion data and recalculates when the selected week/DOM changes.
+
+### F. Manual Lock control / review modal
 
 **Status: mostly complete; verify visually before more changes.**
 
@@ -118,7 +196,7 @@ Current intended state:
 - team display should be school/team display name, not raw nickname string when possible
 - spread should remain on the far right
 
-### D. Offer History Clear button
+### G. Offer History Clear button
 
 **Status: IMPLEMENTED, BUT USER SHOULD RE-VERIFY declined/canceled cases.**
 
@@ -269,6 +347,7 @@ Small visual regressions matter. Do not make broad CSS changes to solve one row.
 
 Do not move/delete existing backups. Key recent examples include:
 
+- `backup/pre-app-pass-1-7-2026-09-01`
 - `backup/pre-white-empty-row-layout-neutral-text-2026-09-01`
 - `backup/pre-text-clipping-divider-polish-2026-09-01`
 - `backup/pre-lock-review-card-spacing-text-safety-2026-09-01`
@@ -290,7 +369,7 @@ There may be additional backups. Search refs before creating a similarly named o
 
 After each completed task, update at least:
 
-1. **Current production state** with the new `main` SHA if production changed.
+1. **Current production state** with the new app-code SHA if production behavior changed.
 2. The relevant item under **Immediate UI items** or **Backlog**.
 3. Move truly finished items to **Completed / already shipped** only after build/production verification and, for visual issues, ideally after user verification.
 4. Add any new rollback branch that is important to preserve.
