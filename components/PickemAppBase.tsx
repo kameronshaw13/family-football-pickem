@@ -1825,7 +1825,7 @@ function ConferenceFilter({ value, onChange }: { value: string; onChange: (value
 
 function RankNumber({ rank, className }: { rank: number; className: string }) {
   const labels: Record<number, string> = { 1: "First place", 2: "Second place", 3: "Third place" };
-  return <span className={`${className} rank-${rank}`} aria-label={labels[rank]}>{rank}</span>;
+  return <span className={`${className} rank-${rank}`} aria-label={labels[rank]}><NumericText text={rank} /></span>;
 }
 
 function BankWeekResults({ rows, picks, games, amounts, pointsMode }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null>; pointsMode: boolean }) {
@@ -1876,9 +1876,9 @@ function Leaderboard({ rows, pointsMode }: { rows: Array<Standing & { rank?: num
         <RankNumber rank={rank} className="leaderboard-rank" />
         <div className="leaderboard-player"><strong>{row.display_name}</strong></div>
         {pointsMode ? <strong className="leaderboard-points"><NumericText text={Number(row.points || 0)} /></strong> : <>
-          <span className="leaderboard-stat">{row.wins}</span>
-          <span className="leaderboard-stat">{row.losses}</span>
-          <span className="leaderboard-stat">{row.pushes}</span>
+          <span className="leaderboard-stat"><NumericText text={row.wins} /></span>
+          <span className="leaderboard-stat"><NumericText text={row.losses} /></span>
+          <span className="leaderboard-stat"><NumericText text={row.pushes} /></span>
           <strong className={`leaderboard-pct ${pctTone}`}><NumericText text={pctText(row.win_pct)} /></strong>
         </>}
       </div>;
