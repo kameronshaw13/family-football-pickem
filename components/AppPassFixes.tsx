@@ -18,7 +18,7 @@ const STYLES = `
 .card-panel .group-card>h3+.admin-no-submission-row::before{display:none!important}
 
 /* Give glyphs paint room without adding padding or changing any fixed row geometry. */
-.leaderboard-row>.leaderboard-rank,.leaderboard-row>.leaderboard-stat,.leaderboard-row>.leaderboard-pct,.leaderboard-row>.leaderboard-points{line-height:1.3!important;overflow:visible!important}
+.leaderboard-row>.leaderboard-rank,.leaderboard-row>.leaderboard-stat,.leaderboard-row>.leaderboard-pct,.leaderboard-row>.leaderboard-points{line-height:1.3!important;overflow:visible!important;transform:translateY(-.5px)}
 .leaderboard-row>.leaderboard-player>strong{line-height:1.3!important;overflow:clip!important;overflow-clip-margin:2px}
 .leaderboard-row>.leaderboard-pct .numeric-token,.leaderboard-row>.leaderboard-pct .numeric-fragment,.leaderboard-row>.leaderboard-points .numeric-token,.leaderboard-row>.leaderboard-points .numeric-fragment{line-height:inherit!important;overflow:visible!important}
 .game-time,.game-final-status,.game-live-status,.game-live-situation{line-height:1.3!important;overflow:visible!important}
