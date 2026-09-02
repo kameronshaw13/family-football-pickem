@@ -21,10 +21,16 @@ const STYLES = `
 .leaderboard-row>.leaderboard-rank,.leaderboard-row>.leaderboard-stat,.leaderboard-row>.leaderboard-pct,.leaderboard-row>.leaderboard-points{line-height:normal!important;overflow:visible!important}
 .leaderboard-row>.leaderboard-rank .numeric-token,.leaderboard-row>.leaderboard-rank .numeric-fragment,.leaderboard-row>.leaderboard-stat .numeric-token,.leaderboard-row>.leaderboard-stat .numeric-fragment,.leaderboard-row>.leaderboard-pct .numeric-token,.leaderboard-row>.leaderboard-pct .numeric-fragment,.leaderboard-row>.leaderboard-points .numeric-token,.leaderboard-row>.leaderboard-points .numeric-fragment{display:inline;line-height:inherit!important;overflow:visible!important;padding-bottom:0!important}
 
-/* Keep the complete Place column centered and leave clickable player names unadorned. */
+/* The Place value and player name share identical type metrics, so flex centering aligns their visible centers. */
+.leaderboard-row>.leaderboard-rank,.leaderboard-row>.leaderboard-player>strong{font-size:14px!important;font-weight:700!important;line-height:normal!important}
 .leaderboard-labels>span:first-child,.leaderboard-row>.leaderboard-rank{justify-content:center!important;padding-left:0!important;text-align:center!important}
 .leaderboard-row>.leaderboard-rank{width:100%}
 .standings-panel .leaderboard-player .player-profile-link{text-decoration:none!important}
+
+/* Pending Offers use the same natural, unpadded single-line treatment as working pick titles. */
+.side-bet-offer-copy>strong{overflow:clip!important;overflow-clip-margin:2px;line-height:normal!important}
+.side-bet-offer-copy>strong .responsive-text,.side-bet-offer-copy>strong .responsive-text-value{line-height:inherit!important;overflow:clip!important;overflow-clip-margin:2px}
+.side-bet-offer-copy>strong .numeric-token,.side-bet-offer-copy>strong .numeric-fragment{display:inline;line-height:inherit!important;overflow:visible!important;padding-bottom:0!important}
 .bank-game-result .bank-game-pick-title{overflow:clip!important;overflow-clip-margin:2px;line-height:1.3!important}
 .bank-game-result .bank-game-pick-title .pick-title-market,.bank-game-result .bank-game-pick-title .numeric-token,.bank-game-result .bank-game-pick-title .numeric-fragment{line-height:inherit!important;overflow:visible!important}
 .bank-game-result .bank-game-pick-title .pick-title-market>.numeric-token{display:inline-block;padding-bottom:1px}
