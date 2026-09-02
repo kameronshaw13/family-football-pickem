@@ -181,12 +181,17 @@ function syncPartialLockProgress(payload: CachedPayload | null, games: CachedGam
   const progressCard = fallback || document.createElement("div");
   progressCard.dataset.appPassProgress = "1";
   progressCard.className = `card-progress${cardComplete ? " complete" : ""}`;
-  progressCard.innerHTML = `<div class="card-progress-copy"><div class="card-progress-heading"><strong>${cardComplete ? "Card complete" : "Build your card"}</strong><span class="card-progress-state saved">${progressCheckMarkup()}Picks saved</span></div><span class="card-progress-count"></span></div><div class="progress-track" aria-hidden="true"><span></span></div>`;
+  if (!fallback) {
+    progressCard.innerHTML = `<div class="card-progress-copy"><div class="card-progress-heading"><strong></strong><span class="card-progress-state saved">${progressCheckMarkup()}Picks saved</span></div><span class="card-progress-count"></span></div><div class="progress-track" aria-hidden="true"><span></span></div>`;
+    panel.insertBefore(progressCard, pickSection);
+  }
+  const heading = progressCard.querySelector<HTMLElement>(".card-progress-heading>strong");
   const count = progressCard.querySelector<HTMLElement>(".card-progress-count");
   const bar = progressCard.querySelector<HTMLElement>(".progress-track>span");
-  if (count) count.textContent = countText;
+  const headingText = cardComplete ? "Card complete" : "Build your card";
+  if (heading && heading.textContent !== headingText) heading.textContent = headingText;
+  if (count && count.textContent !== countText) count.textContent = countText;
   if (bar) bar.style.width = `${progress}%`;
-  if (!fallback) panel.insertBefore(progressCard, pickSection);
 }
 
 function syncCompletedWeek(center: HTMLElement | null, complete: boolean) {
