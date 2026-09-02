@@ -1,7 +1,7 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
 **Last updated:** 2026-09-01  
-**Current app-code production baseline:** `c317cea77e2d92134331dc19219270724616312e`  
+**Current app-code production baseline:** `69bd040573fd9968dae81b1c3570275934752e61`  
 **Production status:** Vercel READY
 
 > **Codex / future sessions:** Read this file before changing the app. Treat it as the running source of truth. After a task is completed, update the relevant status here in the same work session. Do not rely only on chat history.
@@ -35,11 +35,11 @@
 
 Current app-code baseline:
 
-- app-code commit: `c317cea77e2d92134331dc19219270724616312e`
-- commit message: **Load app pass fixes**
+- app-code commit: `69bd040573fd9968dae81b1c3570275934752e61`
+- commit message: **Stabilize app pass fixes**
 - Vercel production for that app-code commit: **READY**
 - implementation branch: `fix/app-pass-1-7-2026-09-01`
-- rollback branch: `backup/pre-app-pass-1-7-2026-09-01`
+- rollback branches: `backup/pre-app-pass-1-7-2026-09-01` and `backup/pre-app-pass-stabilize-2026-09-01`
 
 A later worklog-only commit may make the literal `main` SHA newer than the app-code baseline above without changing runtime behavior.
 
@@ -54,6 +54,10 @@ It currently owns the latest seven-item app pass behavior:
 - tags administrative no-submission rows explicitly and removes any top spacer/banding at the player-header boundary
 - expands text paint/clipping room without padding or fixed-row geometry changes
 - changes completed-week Side Bets to history-only behavior and a `Week is complete` Make Offer state
+
+Stabilization note:
+
+- the fallback progress card only creates its internal DOM once and then updates changed text/progress values in place; this avoids MutationObserver churn/re-render loops while preserving the same visual structure
 
 Important effective styling in `components/Batch1bSideBetStyles.tsx` remains:
 
@@ -347,6 +351,7 @@ Small visual regressions matter. Do not make broad CSS changes to solve one row.
 
 Do not move/delete existing backups. Key recent examples include:
 
+- `backup/pre-app-pass-stabilize-2026-09-01`
 - `backup/pre-app-pass-1-7-2026-09-01`
 - `backup/pre-white-empty-row-layout-neutral-text-2026-09-01`
 - `backup/pre-text-clipping-divider-polish-2026-09-01`
