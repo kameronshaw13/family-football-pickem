@@ -1847,12 +1847,13 @@ function BankWeekResults({ rows, picks, games, amounts, pointsMode }: { rows: Ar
       {!playerPicks.length && <p className="muted">No visible picks yet.</p>}
       {playerPicks.map((pick) => {
         const game = games.find((item) => item.id === pick.game_id) || pick.game;
+        const locked = pick.status === "locked" || Boolean(game && isClosed(game));
         const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
         const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
           <div><strong className="bank-game-pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{game && <p><ResponsiveText full={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} compact={`${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} /></p>}</div>
-          {game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : <span className="test-result pending">—</span>}
+          {game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : <span className="test-result pending">—</span>}
         </div>;
       })}
     </details>;
