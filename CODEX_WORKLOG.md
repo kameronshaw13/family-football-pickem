@@ -1,7 +1,7 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
-**Last updated:** 2026-09-01  
-**Current app-code production baseline:** `69bd040573fd9968dae81b1c3570275934752e61`  
+**Last updated:** 2026-09-02  
+**Current app-code production baseline:** `82867117228ac74c4ed64a147a8ed125920d449d`  
 **Production status:** Vercel READY
 
 > **Codex / future sessions:** Read this file before changing the app. Treat it as the running source of truth. After a task is completed, update the relevant status here in the same work session. Do not rely only on chat history.
@@ -35,11 +35,13 @@
 
 Current app-code baseline:
 
-- app-code commit: `69bd040573fd9968dae81b1c3570275934752e61`
-- commit message: **Stabilize app pass fixes**
+- app-code commit: `82867117228ac74c4ed64a147a8ed125920d449d`
+- commit message: **Remove synthetic League Card empty text**
 - Vercel production for that app-code commit: **READY**
-- implementation branch: `fix/app-pass-1-7-2026-09-01`
-- rollback branches: `backup/pre-app-pass-1-7-2026-09-01` and `backup/pre-app-pass-stabilize-2026-09-01`
+- latest implementation branch: `fix/league-card-empty-row-2026-09-02`
+- latest rollback branch: `backup/pre-league-card-empty-row-2026-09-02`
+- prior implementation branch: `fix/app-pass-1-7-2026-09-01`
+- prior rollback branches: `backup/pre-app-pass-1-7-2026-09-01` and `backup/pre-app-pass-stabilize-2026-09-01`
 
 A later worklog-only commit may make the literal `main` SHA newer than the app-code baseline above without changing runtime behavior.
 
@@ -115,7 +117,7 @@ Implementation notes:
 
 ### C. League Cards — empty / no-submission row
 
-**Status: PATCHED 2026-09-01; NEEDS USER VERIFICATION. Do not assume visually solved until the user checks it.**
+**Status: REBUILT 2026-09-02; NEEDS USER VERIFICATION.**
 
 The user repeatedly saw gray space/banding above the white no-picks row.
 
@@ -127,10 +129,11 @@ Current important distinction:
 
 Latest targeted pass:
 
-- explicitly tags rows containing `admin-no-submission.svg` as `.admin-no-submission-row`
-- forces both the normal empty row and synthetic no-submission row to start directly below the player header with no top margin/spacer
-- keeps the row background white/panel-colored and suppresses an extra first-row pseudo-divider on the synthetic row
-- does not change the normal spacing between different player sections
+- confirmed every League Card is built from the same complete group-member list and the selected week's picks are returned consistently to each group member
+- replaced the League Card's hidden `No visible picks yet.` text plus CSS-generated pseudo-element message with real `No picks submitted.` row content
+- removed the `font-size: 0` / `::after` text path so the browser measures the same visible line box it actually renders
+- retained the existing compact `group-empty-picks` row geometry, white/panel background, dividers, and normal spacing between player sections
+- explicitly tags finalized rows containing `admin-no-submission.svg` as `.admin-no-submission-row`; that separate synthetic finalization path remains unchanged
 
 **Desired visual:**
 
@@ -351,6 +354,7 @@ Small visual regressions matter. Do not make broad CSS changes to solve one row.
 
 Do not move/delete existing backups. Key recent examples include:
 
+- `backup/pre-league-card-empty-row-2026-09-02`
 - `backup/pre-app-pass-stabilize-2026-09-01`
 - `backup/pre-app-pass-1-7-2026-09-01`
 - `backup/pre-white-empty-row-layout-neutral-text-2026-09-01`
