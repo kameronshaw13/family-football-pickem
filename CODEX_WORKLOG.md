@@ -1,7 +1,7 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
 **Last updated:** 2026-09-02  
-**Current app-code production baseline:** `5b990c3f607ccbf8397b19865639717743d74694`  
+**Current app-code production baseline:** `79eb947b556a3159a8500f19080af5b034667987`  
 **Production status:** Vercel READY
 
 > **Codex / future sessions:** Read this file before changing the app. Treat it as the running source of truth. After a task is completed, update the relevant status here in the same work session. Do not rely only on chat history.
@@ -35,11 +35,13 @@
 
 Current app-code baseline:
 
-- app-code commit: `5b990c3f607ccbf8397b19865639717743d74694`
-- commit message: **Use shared numeric rendering in standings**
+- app-code commit: `79eb947b556a3159a8500f19080af5b034667987`
+- commit message: **Show lock state in weekly pick results**
 - Vercel production for that app-code commit: **READY**
-- latest implementation branch: `fix/standings-shared-numeric-rendering-2026-09-02`
-- latest rollback branch: `backup/pre-standings-shared-numeric-rendering-2026-09-02`
+- latest implementation branch: `fix/typography-breathing-room-weekly-locks-2026-09-02`
+- latest rollback branch: `backup/pre-typography-breathing-room-weekly-locks-2026-09-02`
+- prior implementation branch: `fix/standings-shared-numeric-rendering-2026-09-02`
+- prior rollback branch: `backup/pre-standings-shared-numeric-rendering-2026-09-02`
 - prior implementation branch: `fix/standings-digit-baseline-2026-09-02`
 - prior rollback branch: `backup/pre-standings-digit-baseline-2026-09-02`
 - prior implementation branch: `fix/standings-text-clipping-2026-09-02`
@@ -120,6 +122,7 @@ Implementation notes:
 - the shared lock is derived from the selected week's actual Sat–Mon game `lock_time` values rather than the device weekday
 - live/final scorebugs and graded result badges are not replaced by the lock icon
 - the immediate post-lock `manual-lock-confirmed` state is also normalized to the icon so behavior does not depend on a page refresh
+- pending locked picks in expandable Weekly Results now render the same shared lock-state element, so they show the icon before the shared weekend lock and remain blank after it
 
 ### C. League Cards — empty / no-submission row
 
@@ -174,7 +177,9 @@ Latest targeted approach in `AppPassFixes.tsx`:
 - a `translateY(-0.5px)` follow-up was shipped briefly but made the standings baseline look visually off; it has been removed
 - rank and W/L/P values now use the same shared `NumericText` rendering path already used by win percentage, points, spreads, scores, and times
 - all standings numeric wrappers inherit the descender-safe line height and overflow-visible paint room, with no manual baseline adjustment
-- standings row heights, padding, dividers, and column geometry are unchanged
+- standings numeric tokens now have a real 1px bottom inset, giving rounded digits/descenders physical breathing room inside the existing flex-centered cell
+- Weekly Results pick titles use clip-margin paint room and `1.3` line height; their spread token also has the real 1px bottom inset
+- standings and Weekly Results row heights, outer padding, dividers, and columns are unchanged
 - game time/final/live status and numeric fragments remain overflow-visible
 - pick matchup/meta text keeps the existing `1.4` line-height and uses `overflow: clip` plus a small `overflow-clip-margin` so glyph bottoms can paint without padding/margin geometry changes
 - no fixed row heights, card spacing, or broad vertical padding were changed
@@ -365,6 +370,7 @@ Small visual regressions matter. Do not make broad CSS changes to solve one row.
 
 Do not move/delete existing backups. Key recent examples include:
 
+- `backup/pre-typography-breathing-room-weekly-locks-2026-09-02`
 - `backup/pre-standings-shared-numeric-rendering-2026-09-02`
 - `backup/pre-standings-digit-baseline-2026-09-02`
 - `backup/pre-standings-text-clipping-2026-09-02`
