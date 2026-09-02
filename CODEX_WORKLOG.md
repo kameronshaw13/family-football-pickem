@@ -1,7 +1,7 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
 **Last updated:** 2026-09-02  
-**Current app-code production baseline:** `f3002a39516c6e770c2421571f202914b33b55fd`  
+**Current app-code production baseline:** `4820c29ef3ef49496d6f26b03d42eaaacfbe23ab`  
 **Production status:** Vercel READY
 
 > **Codex / future sessions:** Read this file before changing the app. Treat it as the running source of truth. After a task is completed, update the relevant status here in the same work session. Do not rely only on chat history.
@@ -35,11 +35,13 @@
 
 Current app-code baseline:
 
-- app-code commit: `f3002a39516c6e770c2421571f202914b33b55fd`
-- commit message: **Fix standings text clipping**
+- app-code commit: `4820c29ef3ef49496d6f26b03d42eaaacfbe23ab`
+- commit message: **Lift standings digits above clip edge**
 - Vercel production for that app-code commit: **READY**
-- latest implementation branch: `fix/standings-text-clipping-2026-09-02`
-- latest rollback branch: `backup/pre-standings-text-clipping-2026-09-02`
+- latest implementation branch: `fix/standings-digit-baseline-2026-09-02`
+- latest rollback branch: `backup/pre-standings-digit-baseline-2026-09-02`
+- prior implementation branch: `fix/standings-text-clipping-2026-09-02`
+- prior rollback branch: `backup/pre-standings-text-clipping-2026-09-02`
 - prior implementation branch: `fix/league-card-empty-row-2026-09-02`
 - prior rollback branch: `backup/pre-league-card-empty-row-2026-09-02`
 - prior implementation branch: `fix/app-pass-1-7-2026-09-01`
@@ -167,6 +169,7 @@ Latest targeted approach in `AppPassFixes.tsx`:
 
 - Season and Weekly Standings share the same row-level fix: rank, W/L/P, win percentage, and points cells use a descender-safe `1.3` line height with overflow-visible paint room
 - standings player names keep horizontal truncation/ellipsis but receive the same `1.3` line height and a 2px clip margin for glyph paint
+- a follow-up reported rounded bottoms on digits such as `0` and `3` still appearing fractionally flat after the optical-centering engine ran; standings numeric cells now receive an additional `translateY(-0.5px)` paint adjustment
 - standings row heights, padding, dividers, and column geometry are unchanged
 - game time/final/live status and numeric fragments remain overflow-visible
 - pick matchup/meta text keeps the existing `1.4` line-height and uses `overflow: clip` plus a small `overflow-clip-margin` so glyph bottoms can paint without padding/margin geometry changes
@@ -358,6 +361,7 @@ Small visual regressions matter. Do not make broad CSS changes to solve one row.
 
 Do not move/delete existing backups. Key recent examples include:
 
+- `backup/pre-standings-digit-baseline-2026-09-02`
 - `backup/pre-standings-text-clipping-2026-09-02`
 - `backup/pre-league-card-empty-row-2026-09-02`
 - `backup/pre-app-pass-stabilize-2026-09-01`
