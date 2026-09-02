@@ -1,7 +1,7 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
 **Last updated:** 2026-09-02  
-**Current app-code production baseline:** `ffc350fde62db266e30ddef24470ad0330c00d22`
+**Current app-code production baseline:** `5263100526afb77d66f5b0010f2b9b67ec61c5a0`
 **Production status:** Vercel READY
 
 > **Codex / future sessions:** Read this file before changing the app. Treat it as the running source of truth. After a task is completed, update the relevant status here in the same work session. Do not rely only on chat history.
@@ -35,11 +35,13 @@
 
 Current app-code baseline:
 
-- app-code commit: `ffc350fde62db266e30ddef24470ad0330c00d22`
-- commit message: **Match standings text metrics to bank**
+- app-code commit: `5263100526afb77d66f5b0010f2b9b67ec61c5a0`
+- commit message: **Use natural line boxes for standings and offers**
 - Vercel production for that app-code commit: **READY**
-- latest implementation branch: `fix/standings-bank-linebox-2026-09-02`
-- latest rollback branch: `backup/pre-standings-bank-linebox-2026-09-02`
+- latest implementation branch: `fix/shared-natural-lineboxes-2026-09-02`
+- latest rollback branch: `backup/pre-shared-natural-lineboxes-2026-09-02`
+- prior implementation branch: `fix/standings-bank-linebox-2026-09-02`
+- prior rollback branch: `backup/pre-standings-bank-linebox-2026-09-02`
 - prior implementation branch: `fix/typography-breathing-room-weekly-locks-2026-09-02`
 - prior rollback branch: `backup/pre-typography-breathing-room-weekly-locks-2026-09-02`
 - prior implementation branch: `fix/standings-shared-numeric-rendering-2026-09-02`
@@ -178,8 +180,16 @@ Latest standings replacement in `AppPassFixes.tsx`:
 - Season and Weekly Standings numeric cells now use the same natural, unpadded line-box behavior as the working Bank values (`line-height: normal`, inline numeric wrappers, no bottom padding)
 - row heights, row padding, columns, and dividers remain unchanged
 - the Place header and every place number are explicitly centered within the first grid column
+- the Place number and adjacent player name now share the exact same 14px/700/natural line-box metrics, so their visible centers align without a manual pixel translation
 - Season Standings player names remain clickable for profiles, but the blue profile-link underline is suppressed inside the standings table
 - rank and W/L/P values continue using the shared `NumericText` rendering path already used by Bank values, win percentage, points, spreads, scores, and times
+
+Pending Offers replacement:
+
+- the team/spread line no longer combines a clipped `1.25` parent with a taller `1.3` responsive child
+- it now uses the same natural, unpadded single-line treatment as the working pick titles, with a small paint-only clip margin so ellipsis behavior remains without cutting off glyph bottoms
+- nested number/spread wrappers inherit that line box and have no manual bottom padding or transform
+- Pending Offer row height, logo placement, amount column, and action spacing are unchanged
 
 Weekly Results behavior from the prior pass remains:
 
@@ -375,6 +385,7 @@ Small visual regressions matter. Do not make broad CSS changes to solve one row.
 Do not move/delete existing backups. Key recent examples include:
 
 - `backup/pre-typography-breathing-room-weekly-locks-2026-09-02`
+- `backup/pre-shared-natural-lineboxes-2026-09-02`
 - `backup/pre-standings-bank-linebox-2026-09-02`
 - `backup/pre-standings-shared-numeric-rendering-2026-09-02`
 - `backup/pre-standings-digit-baseline-2026-09-02`
