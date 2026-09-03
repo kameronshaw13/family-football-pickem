@@ -1,1 +1,3 @@
-Private family football pick'em app.
+# Family Football Pick'em
+
+A private family football pick'em app.
