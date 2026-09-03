@@ -1,0 +1,247 @@
+name: Apply side-bet root performance fix v2
+
+on:
+  push:
+    branches: [sidebet-root-fix-2026-09-03]
+    paths:
+      - '.github/workflows/apply-sidebet-root-fix-v2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone --branch sidebet-root-fix-2026-09-03 "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
+
+      - name: Apply source fixes
+        run: |
+          cd repo
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected 1 match, found {count}")
+              return text.replace(old, new, 1)
+
+          route = Path('app/api/side-bets/routeBase.ts')
+          text = route.read_text()
+
+          old = '''async function allGroupBets(supabase: any, groupId: string, seasonYear: number) {
+            const { data, error } = await supabase
+              .from("side_bets")
+              .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
+              .eq("group_id", groupId)
+              .eq("season_year", seasonYear)
+              .order("created_at", { ascending: false });
+            if (error) throw new Error(error.message);
+            return data || [];
+          }
+
+          async function dismissedSideBetIds(supabase: any, groupId: string, profileId: string) {
+            const { data, error } = await supabase
+              .from("side_bet_dismissals")
+              .select("side_bet_id")
+              .eq("group_id", groupId)
+              .eq("user_id", profileId);
+            if (error) throw new Error(error.message);
+            return new Set((data || []).map((row: any) => row.side_bet_id));
+          }'''
+          new = '''async function allGroupBets(supabase: any, groupId: string, seasonYear: number, week?: number) {
+            let query = supabase
+              .from("side_bets")
+              .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
+              .eq("group_id", groupId)
+              .eq("season_year", seasonYear);
+            if (Number.isInteger(week)) query = query.eq("week", week);
+            const { data, error } = await query.order("created_at", { ascending: false });
+            if (error) throw new Error(error.message);
+            return data || [];
+          }
+
+          async function dismissedSideBetIds(supabase: any, groupId: string, profileId: string, sideBetIds?: string[]) {
+            if (sideBetIds && sideBetIds.length === 0) return new Set<string>();
+            let query = supabase
+              .from("side_bet_dismissals")
+              .select("side_bet_id")
+              .eq("group_id", groupId)
+              .eq("user_id", profileId);
+            if (sideBetIds) query = query.in("side_bet_id", sideBetIds);
+            const { data, error } = await query;
+            if (error) throw new Error(error.message);
+            return new Set((data || []).map((row: any) => row.side_bet_id));
+          }'''
+          text = replace_once(text, old, new, 'week-scoped side bet query')
+
+          lines = text.splitlines()
+          found = {'snapshot': 0, 'raw_counts': 0, 'dismissed': 0, 'create_limit': 0, 'accept_limit': 0}
+          for i, line in enumerate(lines):
+              stripped = line.strip()
+              indent = line[:len(line) - len(line.lstrip())]
+              if stripped == 'let rows = await allGroupBets(supabase, context.group.id, context.seasonYear);':
+                  lines[i] = indent + 'let rows = await allGroupBets(supabase, context.group.id, context.seasonYear, week);'
+                  found['snapshot'] += 1
+              elif stripped == 'const rawCounts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === week), context.members.map((member: any) => member.id));':
+                  lines[i] = indent + 'const rawCounts = sideBetSlotCounts(rows, context.members.map((member: any) => member.id));'
+                  found['raw_counts'] += 1
+              elif stripped == 'const dismissed = await dismissedSideBetIds(supabase, context.group.id, profileId);':
+                  lines[i] = indent + 'const dismissed = await dismissedSideBetIds(supabase, context.group.id, profileId, rows.map((bet: any) => bet.id));'
+                  found['dismissed'] += 1
+              elif 'const counts = sideBetSlotCounts(rows.filter' in stripped and 'Number(game.week)' in stripped:
+                  previous = lines[i - 1]
+                  if previous.strip() != 'const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);':
+                      raise SystemExit('create limit query: unexpected previous line')
+                  prev_indent = previous[:len(previous) - len(previous.lstrip())]
+                  lines[i - 1] = prev_indent + 'const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, Number(game.week));'
+                  lines[i] = indent + 'const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id));'
+                  found['create_limit'] += 1
+              elif 'const counts = sideBetSlotCounts(rows.filter' in stripped and 'Number(sideBet.week)' in stripped:
+                  previous = lines[i - 1]
+                  if previous.strip() != 'const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);':
+                      raise SystemExit('accept limit query: unexpected previous line')
+                  prev_indent = previous[:len(previous) - len(previous.lstrip())]
+                  lines[i - 1] = prev_indent + 'const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, Number(sideBet.week));'
+                  lines[i] = indent + 'const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id), sideBet.id);'
+                  found['accept_limit'] += 1
+          if any(value != 1 for value in found.values()):
+              raise SystemExit(f'week-scoped query edits incomplete: {found}')
+
+          moved = 0
+          cancel_parallel = 0
+          out = []
+          pending_resolver = None
+          skip_next = False
+          for i, line in enumerate(lines):
+              if skip_next:
+                  skip_next = False
+                  continue
+              stripped = line.strip()
+              next_stripped = lines[i + 1].strip() if i + 1 < len(lines) else ''
+              if stripped.startswith('await resolveSideBetOfferNotifications(') and next_stripped.startswith('const [nextSnapshot] = await Promise.all(['):
+                  pending_resolver = stripped.removeprefix('await ').removesuffix(';')
+                  moved += 1
+                  continue
+              if stripped == 'await resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id);' and next_stripped == 'return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });':
+                  indent = line[:len(line) - len(line.lstrip())]
+                  out.extend([
+                      indent + 'const [nextSnapshot] = await Promise.all([',
+                      indent + '  snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),',
+                      indent + '  resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id)',
+                      indent + ']);',
+                      indent + 'return NextResponse.json({ ok: true, ...nextSnapshot });'
+                  ])
+                  cancel_parallel += 1
+                  skip_next = True
+                  continue
+              out.append(line)
+              if pending_resolver and 'snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),' in stripped:
+                  indent = line[:len(line) - len(line.lstrip())]
+                  out.append(indent + pending_resolver + ',')
+                  pending_resolver = None
+          if pending_resolver is not None or moved != 2 or cancel_parallel != 1:
+              raise SystemExit(f'notification parallelism edits incomplete: moved={moved}, cancel={cancel_parallel}, pending={pending_resolver}')
+          route.write_text('\n'.join(out) + '\n')
+
+          wrapper = Path('app/api/side-bets/route.ts')
+          wrapper.write_text(textwrap.dedent('''
+          import { NextRequest, NextResponse } from "next/server";
+          import { getProfileFromRequest } from "@/lib/authServer";
+          import { requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+          import { getSupabaseAdmin } from "@/lib/supabaseServer";
+          import { GET as baseGET, POST as basePOST } from "./routeBase";
+
+          export const dynamic = "force-dynamic";
+          export const revalidate = 0;
+
+          export async function GET(req: NextRequest) {
+            return baseGET(req);
+          }
+
+          export async function POST(req: NextRequest) {
+            let body: any = null;
+            try {
+              body = await req.clone().json();
+            } catch {
+              return basePOST(req);
+            }
+
+            if (body?.action !== "clear" || typeof body?.sideBetId !== "string") return basePOST(req);
+
+            try {
+              const auth = await getProfileFromRequest(req);
+              if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
+              const supabase = getSupabaseAdmin();
+              const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
+              const { data: sideBet, error } = await supabase
+                .from("side_bets")
+                .select("id,creator_id,week,status,targets:side_bet_targets(recipient_id)")
+                .eq("group_id", context.group.id)
+                .eq("season_year", context.seasonYear)
+                .eq("id", body.sideBetId)
+                .maybeSingle();
+
+              if (error || !sideBet || sideBet.status !== "expired") return basePOST(req);
+              const involved = sideBet.creator_id === auth.profile.id || sideBet.targets?.some((target: any) => target.recipient_id === auth.profile.id);
+              if (!involved) return NextResponse.json({ ok: false, error: "This offer is not in your history." }, { status: 403 });
+
+              const { error: dismissError } = await supabase.from("side_bet_dismissals").upsert({
+                side_bet_id: sideBet.id,
+                user_id: auth.profile.id,
+                group_id: context.group.id,
+                created_at: new Date().toISOString()
+              }, { onConflict: "side_bet_id,user_id,group_id" });
+              if (dismissError) throw dismissError;
+
+              const url = new URL(req.url);
+              url.search = "";
+              const viewWeek = Number(body.viewWeek ?? sideBet.week);
+              url.searchParams.set("week", String(viewWeek));
+              return baseGET(new NextRequest(url, { method: "GET", headers: req.headers }));
+            } catch (error) {
+              return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
+            }
+          }
+          ''').lstrip())
+
+          app = Path('components/PickemAppBase.tsx')
+          lines = app.read_text().splitlines()
+          found = {'constant': 0, 'timer': 0, 'backdrop': 0, 'sheet': 0}
+          for i, line in enumerate(lines):
+              stripped = line.strip()
+              indent = line[:len(line) - len(line.lstrip())]
+              if stripped == 'const APP_DATA_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;':
+                  lines[i] = line + '\n' + indent + 'const SIDE_BET_VISIBLE_REFRESH_MS = 10_000;'
+                  found['constant'] += 1
+              elif stripped == 'const timer = window.setInterval(refreshVisibleSideBets, 2500);':
+                  lines[i] = indent + 'const timer = window.setInterval(refreshVisibleSideBets, SIDE_BET_VISIBLE_REFRESH_MS);'
+                  found['timer'] += 1
+              elif '{confirmingBet && <div className="confirmation-backdrop">' in line:
+                  lines[i] = line.replace('<div className="confirmation-backdrop">', '<div className="confirmation-backdrop" onClick={() => { if (!saving) setConfirmingBetId(null); }}>')
+                  found['backdrop'] += 1
+                  if i + 1 < len(lines) and 'className="confirmation-sheet"' in lines[i + 1]:
+                      lines[i + 1] = lines[i + 1].replace('aria-labelledby="accept-bet-title">', 'aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>')
+                      found['sheet'] += 1
+          if any(value != 1 for value in found.values()):
+              raise SystemExit(f'client side-bet edits incomplete: {found}')
+          app.write_text('\n'.join(lines) + '\n')
+          PY
+
+      - name: Commit source changes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/api/side-bets/routeBase.ts app/api/side-bets/route.ts components/PickemAppBase.tsx
+          git diff --cached --check
+          git commit -m "Optimize side-bet data flow and modal interactions"
+          git push origin HEAD:sidebet-root-fix-2026-09-03
