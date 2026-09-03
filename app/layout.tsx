@@ -13,7 +13,6 @@ import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
 import DogPickAdjustmentAlerts from "@/components/DogPickAdjustmentAlerts";
 import PlayerProfiles from "@/components/PlayerProfiles";
-import { fetchEspnCollegeAbbreviationAliases } from "@/lib/espnLogos";
 
 export const metadata: Metadata = {
   title: "Family Football Pick'em",
@@ -126,18 +125,10 @@ declare global {
   }
 }
 
-function abbreviationBootstrapScript(aliases: Record<string, string>) {
-  const serialized = JSON.stringify(aliases).replace(/</g, "\\u003c");
-  return `globalThis.__pickemEspnCollegeAbbreviations=${serialized};`;
-}
-
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const espnCollegeAbbreviations = await fetchEspnCollegeAbbreviationAliases().catch(() => ({}));
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="light">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: abbreviationBootstrapScript(espnCollegeAbbreviations) }} />
         <script dangerouslySetInnerHTML={{ __html: SESSION_RECOVERY_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: APP_DATA_STARTUP_GUARD_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
