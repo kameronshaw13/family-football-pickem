@@ -1,4 +1,4 @@
-/* Final shared polish pass: visual-only corrections without changing card geometry. */
+/* Final shared polish pass: stable visual corrections without changing card geometry. */
 
 /* Pending Offers / Offer History use a strong outer frame, while the internal
    divider between the heading and its first row stays at the normal line tone. */
@@ -14,7 +14,6 @@
   border-block-color: var(--line-strong);
 }
 
-
 /* Empty Picks sections should end with the same strong boundary as populated cards. */
 .card-panel .card-empty-picks,
 .card-panel .group-empty-picks {
@@ -27,9 +26,7 @@
   border-bottom: 0;
 }
 
-/* Dropdown options use clean, divider-free 38px cells everywhere. Removing the
-   option border does not change row height, so every selectable cell keeps the
-   same visual space and selected blue backgrounds fill the entire cell. */
+/* Dropdown options use clean, divider-free 38px cells everywhere. */
 .custom-select-menu {
   row-gap: 0;
   background: var(--panel);
@@ -38,17 +35,11 @@
   border-top: 0;
 }
 
-/* Conference options, including ALL CONF., are explicitly fixed to the same
-   38px selectable cell height. */
 .context-select .custom-select-option {
   height: 38px;
   min-height: 38px;
 }
 
-/* Conference section labels remain distinct without changing any row height.
-   The divider above Power 4 / Group of 6 is painted by the final option in the
-   preceding section, so selected ALL CONF. and SEC backgrounds run completely
-   flush into that divider. The header itself owns only its bottom divider. */
 .context-select .custom-select-section:not(:last-child) > .custom-select-option:last-child {
   position: relative;
 }
@@ -81,18 +72,13 @@
   pointer-events: none;
 }
 
-/* Keep the app from rubber-banding downward when the user reaches the top of
-   Pick Board / Side Bets on browsers that support overscroll-behavior. */
 html,
 body,
 .app-shell {
   overscroll-behavior-y: none;
 }
 
-/* Give Roboto Slab descenders a little more line-box room without changing
-   fixed row heights or the existing optical-centering engine. */
-.responsive-text,
-.responsive-text-value,
+/* Specific non-card text surfaces that need a slightly taller natural line box. */
 .bank-result-player,
 .side-bet-list-section > h3,
 .card-progress-copy strong,
@@ -100,15 +86,28 @@ body,
   line-height: 1.3;
 }
 
-/* Preserve right-side market wrapping without overriding the shared responsive
-   sizing: team names and markets are 16px by default and 15px on mobile. */
+/* Pick Board team names keep full Roboto Slab descenders. */
+.team-name-line .responsive-text,
+.team-name-line .responsive-text-value {
+  line-height: 1.3;
+}
+
+/* Legacy content-specific optical nudges are disabled; AppUiCoordinator owns vertical placement. */
+.confidence-card-chip,
+.pick-card .dog-separator,
+.pick-card .dog-tag,
+.visible-pick .dog-separator,
+.visible-pick .dog-tag,
+.bank-game-result .dog-separator,
+.bank-game-result .dog-tag {
+  transform: none;
+}
+
 .team-spread,
 .team-board-market {
   white-space: nowrap;
 }
 
-/* Side-bet money sits on the exact vertical centerline used by the centered
-   team logo in Pending Offers, Offer History, and the Side Bet Ledger. */
 .side-bet-offer-amount,
 .side-bet-ledger-amount {
   display: flex;
@@ -118,7 +117,6 @@ body,
   align-self: stretch;
 }
 
-/* Real and preview Pick Board use the same score-based selected-side treatment. */
 .picks-panel .stacked-matchup .team-row.picked-win {
   background: linear-gradient(var(--green), var(--green)) left top / 4px 100% no-repeat, var(--win-soft);
 }
@@ -136,6 +134,136 @@ body,
   column-gap: var(--card-logo-gap);
 }
 .pick-row-actions, .visible-pick-actions { align-self: center; }
+
+/* Card section headers own the strong divider everywhere. */
+.card-panel .pick-section > h3,
+.card-panel .group-card > h3 {
+  border-top-color: var(--line-strong);
+}
+
+/* Canonical card/result typography. AppUiCoordinator is the only system allowed
+   to move these lines vertically. These rules never add vertical padding, margins,
+   transforms, clip-paths, or overflow clipping. */
+.card-panel .pick-section .pick-card .pick-copy,
+.card-panel .group-card .visible-pick-copy,
+.bank-game-result > div,
+.side-bet-offer-copy {
+  min-width: 0;
+  overflow: visible;
+}
+
+.card-panel .pick-section .pick-card .pick-title,
+.card-panel .group-card .visible-pick-copy > strong,
+.bank-game-result .bank-game-pick-title,
+.side-bet-offer-copy > strong {
+  min-width: 0;
+  overflow: visible;
+  line-height: 1.25;
+}
+
+.card-panel .pick-section .pick-card .pick-title-team,
+.card-panel .pick-section .pick-card .pick-title-market,
+.card-panel .group-card .visible-pick-copy > strong .pick-title-team,
+.card-panel .group-card .visible-pick-copy > strong .pick-title-market,
+.bank-game-result .bank-game-pick-title .pick-title-team,
+.bank-game-result .bank-game-pick-title .pick-title-market,
+.side-bet-offer-copy > strong .responsive-text,
+.card-panel .pick-section .pick-card .responsive-text,
+.card-panel .group-card .visible-pick-copy .responsive-text,
+.bank-game-result .responsive-text {
+  min-width: 0;
+  overflow: visible;
+  line-height: inherit;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.card-panel .pick-section .pick-card .responsive-text-value,
+.card-panel .group-card .visible-pick-copy .responsive-text-value,
+.bank-game-result .responsive-text-value,
+.side-bet-offer-copy .responsive-text-value,
+.card-panel .pick-section .pick-card .pick-title .numeric-token,
+.card-panel .pick-section .pick-card .pick-title .numeric-fragment,
+.card-panel .pick-section .pick-card .pick-title .numeric-symbol,
+.card-panel .group-card .visible-pick-copy > strong .numeric-token,
+.card-panel .group-card .visible-pick-copy > strong .numeric-fragment,
+.card-panel .group-card .visible-pick-copy > strong .numeric-symbol,
+.bank-game-result .bank-game-pick-title .numeric-token,
+.bank-game-result .bank-game-pick-title .numeric-fragment,
+.bank-game-result .bank-game-pick-title .numeric-symbol {
+  overflow: visible;
+  line-height: inherit;
+}
+
+.card-panel .pick-section .pick-card .pick-meta,
+.card-panel .group-card .visible-pick-copy > p,
+.bank-game-result > div > p,
+.side-bet-offer-copy > p {
+  overflow: visible;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.confirmation-kickoff {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Standings numbers keep one shared natural line-box treatment. */
+.standings-panel .leaderboard-row > .leaderboard-rank,
+.standings-panel .leaderboard-row > .leaderboard-player,
+.standings-panel .leaderboard-row > .leaderboard-stat,
+.standings-panel .leaderboard-row > .leaderboard-pct,
+.standings-panel .leaderboard-row > .leaderboard-points {
+  height: 100%;
+  align-self: stretch;
+  align-items: center;
+  transform: none;
+}
+.standings-panel .leaderboard-row > .leaderboard-rank,
+.standings-panel .leaderboard-row > .leaderboard-stat,
+.standings-panel .leaderboard-row > .leaderboard-pct,
+.standings-panel .leaderboard-row > .leaderboard-points {
+  line-height: normal;
+  overflow: visible;
+}
+.standings-panel .leaderboard-row > .leaderboard-rank {
+  display: flex;
+  justify-content: center;
+}
+.standings-panel .leaderboard-row > .leaderboard-rank .numeric-token,
+.standings-panel .leaderboard-row > .leaderboard-rank .numeric-fragment,
+.standings-panel .leaderboard-row > .leaderboard-stat .numeric-token,
+.standings-panel .leaderboard-row > .leaderboard-stat .numeric-fragment,
+.standings-panel .leaderboard-row > .leaderboard-pct .numeric-token,
+.standings-panel .leaderboard-row > .leaderboard-pct .numeric-fragment,
+.standings-panel .leaderboard-row > .leaderboard-points .numeric-token,
+.standings-panel .leaderboard-row > .leaderboard-points .numeric-fragment {
+  display: inline;
+  line-height: inherit;
+  overflow: visible;
+  padding: 0;
+  transform: none;
+}
+
+/* Accepted existing exception: game time already renders correctly on iOS. */
+.game-card .game-head .game-time {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.4;
+  padding-block: 3px;
+  margin-block: -3px;
+  overflow: visible;
+}
+.game-card .game-head .game-time > .numeric-token,
+.game-card .game-head .game-time .numeric-fragment,
+.game-card .game-head .game-time .numeric-symbol {
+  line-height: 1.4;
+  overflow: visible;
+}
 
 /* Keep compact icon buttons visually unchanged while giving fingers a roughly
    44px touch target on phones/tablets. */
