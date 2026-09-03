@@ -1,0 +1,20 @@
+name: Verify logo clear FCS and copy
+
+on:
+  push:
+    branches:
+      - fix/logo-clear-fcs-copy-2026-09-03
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - name: Run stable and focused tests
+        run: node --test tests/cardOrdering.test.ts tests/confidencePoints.test.ts tests/lockRules.test.ts tests/notificationCounts.test.ts tests/settlementMath.test.ts tests/sideBetLimits.test.ts tests/weeklyBank.test.ts tests/fcsDisplayAndWiring.test.ts
+      - name: Build
+        run: npm run build
