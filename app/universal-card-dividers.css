@@ -1,6 +1,0 @@
-/* Use the stronger section separator consistently across every Pick'em app.
-   The header owns the separator, so it remains visible even when a card has no picks. */
-.card-panel .pick-section > h3,
-.card-panel .group-card > h3 {
-  border-top-color: var(--line-strong);
-}
