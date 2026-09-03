@@ -30,41 +30,33 @@ function groupNotificationUrl(slug: string, destination: string) {
   return `${base}?notification=${encodeURIComponent(destination)}`;
 }
 
-async function allGroupBets(supabase: any, groupId: string, seasonYear: number) {
-  const { data, error } = await supabase
+async function allGroupBets(supabase: any, groupId: string, seasonYear: number, week?: number) {
+  let query = supabase
     .from("side_bets")
     .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
     .eq("group_id", groupId)
-    .eq("season_year", seasonYear)
-    .order("created_at", { ascending: false });
+    .eq("season_year", seasonYear);
+  if (Number.isInteger(week)) query = query.eq("week", week);
+  const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return data || [];
 }
 
-async function weekGroupBets(supabase: any, groupId: string, seasonYear: number, week: number) {
-  const { data, error } = await supabase
-    .from("side_bets")
-    .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
-    .eq("group_id", groupId)
-    .eq("season_year", seasonYear)
-    .eq("week", week)
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  return data || [];
-}
-
-async function dismissedSideBetIds(supabase: any, groupId: string, profileId: string) {
-  const { data, error } = await supabase
+async function dismissedSideBetIds(supabase: any, groupId: string, profileId: string, sideBetIds?: string[]) {
+  if (sideBetIds && sideBetIds.length === 0) return new Set<string>();
+  let query = supabase
     .from("side_bet_dismissals")
     .select("side_bet_id")
     .eq("group_id", groupId)
     .eq("user_id", profileId);
+  if (sideBetIds) query = query.in("side_bet_id", sideBetIds);
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return new Set((data || []).map((row: any) => row.side_bet_id));
 }
 
 async function snapshot(supabase: any, context: any, profileId: string, week: number) {
-  let rows = await weekGroupBets(supabase, context.group.id, context.seasonYear, week);
+  let rows = await allGroupBets(supabase, context.group.id, context.seasonYear, week);
   const now = new Date();
   const nowIso = now.toISOString();
   const expiredIds = rows
@@ -80,8 +72,8 @@ async function snapshot(supabase: any, context: any, profileId: string, week: nu
     rows = rows.map((bet: any) => expired.has(bet.id) ? { ...bet, status: "expired" } : bet);
   }
   const settings = getGroupSideBetSettings(context);
-  const rawCounts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === week), context.members.map((member: any) => member.id));
-  const dismissed = await dismissedSideBetIds(supabase, context.group.id, profileId);
+  const rawCounts = sideBetSlotCounts(rows, context.members.map((member: any) => member.id));
+  const dismissed = await dismissedSideBetIds(supabase, context.group.id, profileId, rows.map((bet: any) => bet.id));
   return {
     sideBets: rows.filter((bet: any) => !dismissed.has(bet.id) && (bet.creator_id === profileId || bet.accepted_by === profileId || bet.targets?.some((target: any) => target.recipient_id === profileId))),
     sideBetSlotCounts: Number.isFinite(settings.maxPerWeek)
@@ -144,8 +136,8 @@ export async function POST(req: NextRequest) {
       if (creatorSpread == null) return NextResponse.json({ ok: false, error: "This game does not have a spread available." }, { status: 409 });
 
       if (Number.isFinite(settings.maxPerWeek)) {
-        const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
-        const counts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === Number(game.week)), context.members.map((member) => member.id));
+        const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, Number(game.week));
+        const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id));
         if ((counts[auth.profile.id] || 0) >= settings.maxPerWeek) {
           return NextResponse.json({ ok: false, error: `You already have ${settings.maxPerWeek} accepted or pending side bets this week.` }, { status: 409 });
         }
@@ -242,8 +234,11 @@ export async function POST(req: NextRequest) {
         .eq("side_bet_id", sideBet.id)
         .eq("response", "pending");
       if (closeTargetsError) throw new Error(closeTargetsError.message);
-      await resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id);
-      return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });
+      const [nextSnapshot] = await Promise.all([
+        snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
+        resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id)
+      ]);
+      return NextResponse.json({ ok: true, ...nextSnapshot });
     }
 
     if (!target) return NextResponse.json({ ok: false, error: "This offer was not sent to you." }, { status: 403 });
@@ -261,9 +256,9 @@ export async function POST(req: NextRequest) {
       if (result.error) throw new Error(result.error.message);
       const { count } = await supabase.from("side_bet_targets").select("recipient_id", { count: "exact", head: true }).eq("side_bet_id", sideBet.id).eq("response", "pending");
       if (!count) await supabase.from("side_bets").update({ status: "declined", updated_at: nowIso }).eq("group_id", context.group.id).eq("id", sideBet.id).eq("status", "open");
-      await resolveSideBetOfferNotifications(supabase, [sideBet.id], auth.profile.id, context.group.id);
       const [nextSnapshot] = await Promise.all([
         snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
+        resolveSideBetOfferNotifications(supabase, [sideBet.id], auth.profile.id, context.group.id),
         createNotificationSafely(supabase, {
           groupId: context.group.id,
           userId: sideBet.creator_id,
@@ -280,8 +275,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (Number.isFinite(settings.maxPerWeek)) {
-      const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
-      const counts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === Number(sideBet.week)), context.members.map((member) => member.id), sideBet.id);
+      const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, Number(sideBet.week));
+      const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id), sideBet.id);
       if ((counts[auth.profile.id] || 0) >= settings.maxPerWeek || (counts[sideBet.creator_id] || 0) >= settings.maxPerWeek) {
         return NextResponse.json({ ok: false, error: "A player has reached the weekly side bet limit." }, { status: 409 });
       }
@@ -306,9 +301,9 @@ export async function POST(req: NextRequest) {
       supabase.from("side_bet_targets").update({ response: "accepted", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id),
       supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).eq("side_bet_id", sideBet.id).neq("recipient_id", auth.profile.id).eq("response", "pending")
     ]);
-    await resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id);
     const [nextSnapshot] = await Promise.all([
       snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
+      resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id),
       createNotificationSafely(supabase, {
         groupId: context.group.id,
         userId: sideBet.creator_id,
