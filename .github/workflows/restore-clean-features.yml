@@ -17,9 +17,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Keep generated rule lookup null-safe
-        run: sed -i 's/data\.sideBetSettings/data?.sideBetSettings/g; s/data\.sideBetSlotCounts/data?.sideBetSlotCounts/g' scripts/restore-clean-features.mjs
-
       - name: Apply isolated feature restores
         run: node scripts/restore-clean-features.mjs
 
