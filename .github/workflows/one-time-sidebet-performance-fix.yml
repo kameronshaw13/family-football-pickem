@@ -1,0 +1,105 @@
+name: One-time side bet source performance cleanup
+
+on:
+  push:
+    paths:
+      - .github/workflows/one-time-sidebet-performance-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
+          cd repo
+          git checkout main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Apply source fixes
+        run: |
+          cd repo
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly one match, found {count}")
+              return text.replace(old, new, 1)
+
+          app_path = Path("components/PickemAppBase.tsx")
+          app = app_path.read_text()
+
+          app = replace_once(
+              app,
+              '''      const payload = await response.json() as SideBetSnapshot;\n      const changed = sideBetSyncSignature(current.sideBets) !== sideBetSyncSignature(payload.sideBets || []);\n      applySideBetSnapshot({ ...payload, sideBets: payload.sideBets || [] }, requestId);\n      if (changed) void refreshNotificationCounts();''',
+              '''      const payload = await response.json() as SideBetSnapshot;\n      const nextSideBets = payload.sideBets || [];\n      const sideBetsChanged = sideBetSyncSignature(current.sideBets) !== sideBetSyncSignature(nextSideBets);\n      const slotCountsChanged = JSON.stringify(current.sideBetSlotCounts || {}) !== JSON.stringify(payload.sideBetSlotCounts || {});\n      if (sideBetsChanged || slotCountsChanged) {\n        applySideBetSnapshot({ ...payload, sideBets: nextSideBets }, requestId);\n      }\n      if (sideBetsChanged) void refreshNotificationCounts();''',
+              "skip no-op side bet state updates"
+          )
+
+          app = replace_once(
+              app,
+              '''  useEffect(() => {\n    if (!data?.currentUser.id) return;\n    setSideBetLedger([]);\n    setSideBetLedgerReady(false);\n    void refreshSideBetLedger();\n  }, [data?.activeGroup?.id, data?.currentUser.id, refreshSideBetLedger]);''',
+              '''  useEffect(() => {\n    if (!data?.currentUser.id) return;\n    setSideBetLedger([]);\n    setSideBetLedgerReady(false);\n  }, [data?.activeGroup?.id, data?.currentUser.id]);''',
+              "lazy-load side bet ledger"
+          )
+
+          app = replace_once(
+              app,
+              'const timer = window.setInterval(refreshVisibleSideBets, 2500);',
+              'const timer = window.setInterval(refreshVisibleSideBets, 10000);',
+              "reduce side bet polling cadence"
+          )
+
+          app = replace_once(
+              app,
+              '''  async function acceptConfirmedBet() {\n    if (!confirmingBetId) return;\n    const accepted = await respond("accept", confirmingBetId);\n    if (accepted) setConfirmingBetId(null);\n  }''',
+              '''  async function acceptConfirmedBet() {\n    if (!confirmingBetId) return;\n    const sideBetId = confirmingBetId;\n    setConfirmingBetId(null);\n    const accepted = await respond("accept", sideBetId);\n    if (!accepted) setConfirmingBetId(sideBetId);\n  }''',
+              "optimistic confirmation dismissal"
+          )
+
+          app = replace_once(
+              app,
+              '{confirmingBet && <div className="confirmation-backdrop">',
+              '{confirmingBet && <div className="confirmation-backdrop" onClick={() => { if (!saving) setConfirmingBetId(null); }}>',
+              "confirmation backdrop click"
+          )
+
+          app = replace_once(
+              app,
+              '<section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title">',
+              '<section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>',
+              "confirmation sheet propagation"
+          )
+
+          app_path.write_text(app)
+
+          route_path = Path("app/api/side-bets/routeBase.ts")
+          route = route_path.read_text()
+
+          all_group_block = '''async function allGroupBets(supabase: any, groupId: string, seasonYear: number) {\n  const { data, error } = await supabase\n    .from("side_bets")\n    .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")\n    .eq("group_id", groupId)\n    .eq("season_year", seasonYear)\n    .order("created_at", { ascending: false });\n  if (error) throw new Error(error.message);\n  return data || [];\n}\n'''
+          week_group_block = all_group_block + '''\nasync function weekGroupBets(supabase: any, groupId: string, seasonYear: number, week: number) {\n  const { data, error } = await supabase\n    .from("side_bets")\n    .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")\n    .eq("group_id", groupId)\n    .eq("season_year", seasonYear)\n    .eq("week", week)\n    .order("created_at", { ascending: false });\n  if (error) throw new Error(error.message);\n  return data || [];\n}\n'''
+          route = replace_once(route, all_group_block, week_group_block, "add week-scoped side bet query")
+          route = replace_once(
+              route,
+              '  let rows = await allGroupBets(supabase, context.group.id, context.seasonYear);',
+              '  let rows = await weekGroupBets(supabase, context.group.id, context.seasonYear, week);',
+              "scope snapshot to current week"
+          )
+          route_path.write_text(route)
+          PY
+
+      - name: Commit source fixes
+        run: |
+          cd repo
+          git add components/PickemAppBase.tsx app/api/side-bets/routeBase.ts
+          git diff --cached --check
+          git commit -m "Fix side bet interaction and polling performance"
+          git push origin main
