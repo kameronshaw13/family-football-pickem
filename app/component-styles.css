@@ -38,3 +38,8 @@
 .game-final-status,
 .game-live-status,
 .game-live-situation { display: inline-flex; align-items: center; overflow: visible; line-height: 1.3; }
+
+
+/* Native pending-lock state shared by My Card, League Cards, and Weekly Results. */
+.pick-lock-indicator { display: grid; width: 30px; min-width: 30px; height: 30px; min-height: 30px; place-items: center; padding: 0; border: 0; border-radius: 0; color: var(--ink); background: transparent; box-shadow: none; line-height: 1; }
+.pick-lock-indicator svg { display: block; width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; }

@@ -266,8 +266,9 @@ export default function WeekScopeAndManualLockEnhancements({ appSlug }: { appSlu
             remove.style.display = "none";
             if (!actions.querySelector(".manual-lock-confirmed")) {
               const confirmed = document.createElement("span");
-              confirmed.className = "manual-lock-confirmed";
-              confirmed.textContent = "Locked";
+              confirmed.className = "manual-lock-confirmed pick-lock-indicator";
+              confirmed.setAttribute("aria-label", "Locked");
+              confirmed.innerHTML = iconMarkup();
               actions.prepend(confirmed);
             }
             actions.querySelector(".manual-pick-lock")?.remove();

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
@@ -325,6 +325,19 @@ function isClosed(game: Game) {
 }
 function isFinalGame(game: Game) {
   return (game.final_away_score != null && game.final_home_score != null) || Boolean(game.live_completed) || game.live_state === "post";
+}
+function universalWeekendLockTime(games: Game[]) {
+  const candidates = games.flatMap((game) => {
+    const lock = new Date(game.lock_time).getTime();
+    const kickoff = new Date(game.commence_time).getTime();
+    if (!Number.isFinite(lock) || !Number.isFinite(kickoff) || lock >= kickoff - 60_000) return [];
+    return [lock];
+  });
+  return candidates.length ? Math.min(...candidates) : null;
+}
+function LockedPickIndicator({ hidden = false }: { hidden?: boolean }) {
+  if (hidden) return null;
+  return <span className="pick-lock-indicator" aria-label="Locked"><Lock size={18} aria-hidden="true" /></span>;
 }
 function boardStatusForGame(game: Game, now: number, weekIsOpen: boolean): GameStatusFilter {
   if (isFinalGame(game)) return "FINAL";
@@ -1449,10 +1462,15 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const bankActive = tab === "standings" && standingsView === "bank";
   const myPicks = viewedPicks.filter((p) => p.user_id === currentUser.id && p.week === viewedWeek);
   const cardPicks = previewActive ? myPicks : stagedPicks ?? myPicks;
-  const cardIsLocked = tab === "card" && cardView === "mine" && cardPicks.length > 0 && cardPicks.every((pick) => {
+  const universalLockAt = universalWeekendLockTime(viewedGames);
+  const universalLockReached = universalLockAt != null && universalLockAt <= clock;
+  const requiredCardPicks = rule.regularTotal + rule.underdogTotal;
+  const allSubmittedPicksLocked = cardPicks.length > 0 && cardPicks.every((pick) => {
     const game = viewedGames.find((item) => item.id === pick.game_id) || pick.game;
     return pick.status === "locked" || Boolean(game && isClosed(game));
   });
+  const cardIsFullyLocked = cardPicks.length >= requiredCardPicks && allSubmittedPicksLocked;
+  const hideCardProgress = universalLockReached || cardIsFullyLocked;
   const myRegular = orderCardPicks(cardPicks.filter((p) => p.pick_type === "regular"), viewedGames, pointsMode);
   const myUnderdog = cardPicks.find((p) => p.pick_type === "underdog");
   const regularCounts = countRegularByLeague(cardPicks, viewedGames);
@@ -1717,12 +1735,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       {tab === "card" && <section className="panel card-panel">
         <SectionTabs items={[{ id: "mine", label: "My Card", badge: myCardNotificationCount }, { id: "group", label: "League Cards", badge: leagueCardsNotificationCount }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
         {cardView === "mine" && <>
-          {!cardIsLocked && <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />}
+          {!hideCardProgress && <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />}
           <PickList
             picks={myUnderdog ? [...myRegular, myUnderdog] : myRegular}
             games={viewedGames}
             title="Picks"
             pointsMode={pointsMode}
+            universalLockReached={universalLockReached}
             removePick={removePick}
             headerContent={pointsMode && myRegular.length > 0 ? <ConfidenceOrder
               picks={myRegular}
@@ -1745,7 +1764,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             return <div key={profile.id} className="group-card">
               <h3>{profile.display_name}</h3>
               {playerPicks.length === 0 && <p className="muted group-empty-picks">No visible picks yet.</p>}
-              {playerPicks.map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} pointsMode={pointsMode} />)}
+              {playerPicks.map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} pointsMode={pointsMode} universalLockReached={universalLockReached} />)}
             </div>;
           })}
         </div>}
@@ -1793,7 +1812,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               <h2>{previewActive ? "Test Weekly Results" : "Weekly Results"}</h2>
               {previewActive ? <span className="test-standings-label">Week 3</span> : null}
             </div>
-            <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} pointsMode={pointsMode} />
+            <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} pointsMode={pointsMode} universalLockReached={universalLockReached} />
           </div>
           <div className="subsection bank-section bank-week-section"><div className="standings-heading-row"><h2 className="heading-with-badge">Side Bet Ledger <NotificationBadge count={bankNotificationCount} /></h2></div><div className="ledger-list">{!previewActive && !sideBetLedgerReady && <p className="muted">Loading side bet ledger…</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.length === 0 && <p className="muted ledger-empty-state">No side bets in the ledger yet.</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
         </>}
@@ -1840,7 +1859,7 @@ function RankNumber({ rank, className }: { rank: number; className: string }) {
   return <span className={`${className} rank-${rank}`} aria-label={labels[rank]}>{rank}</span>;
 }
 
-function BankWeekResults({ rows, picks, games, amounts, pointsMode }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null>; pointsMode: boolean }) {
+function BankWeekResults({ rows, picks, games, amounts, pointsMode, universalLockReached }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null>; pointsMode: boolean; universalLockReached: boolean }) {
   return <div className="bank-week-results">
     <div className="bank-results-labels"><span>Player</span><span>Balance</span><span>{pointsMode ? "Points" : "Record"}</span><span aria-hidden="true" /></div>
     {rows.map((row) => {
@@ -1860,11 +1879,12 @@ function BankWeekResults({ rows, picks, games, amounts, pointsMode }: { rows: Ar
       {playerPicks.map((pick) => {
         const game = games.find((item) => item.id === pick.game_id) || pick.game;
         const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
+        const locked = pick.status === "locked" || Boolean(game && isClosed(game));
         const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
           <div><strong className="bank-game-pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{game && <p><ResponsiveText full={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} compact={`${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} /></p>}</div>
-          {game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : <span className="test-result pending">—</span>}
+          {game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : locked ? <LockedPickIndicator hidden={universalLockReached} /> : null}
         </div>;
       })}
     </details>;
@@ -2491,7 +2511,7 @@ function PickScoreBug({ game, pick, spread }: { game: Game; pick: Pick; spread: 
   </span>;
 }
 
-function PickList({ picks, games, title, pointsMode, removePick, headerContent }: { picks: Pick[]; games: Game[]; title: string; pointsMode: boolean; removePick: (p: Pick) => void; headerContent?: React.ReactNode }) {
+function PickList({ picks, games, title, pointsMode, universalLockReached, removePick, headerContent }: { picks: Pick[]; games: Game[]; title: string; pointsMode: boolean; universalLockReached: boolean; removePick: (p: Pick) => void; headerContent?: React.ReactNode }) {
   return <div className="pick-section"><h3>{title}</h3>{headerContent}{!picks.length && <p className="muted card-empty-picks">None yet.</p>}{picks.map((pick) => {
     const game = games.find((g) => g.id === pick.game_id) || pick.game;
     const locked = pick.status === "locked" || Boolean(game && isClosed(game));
@@ -2504,12 +2524,12 @@ function PickList({ picks, games, title, pointsMode, removePick, headerContent }
     const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip">· <NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip">· <NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <LockedPickIndicator hidden={universalLockReached} /> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
 
-function VisiblePick({ pick, games, pointsMode }: { pick: Pick; games: Game[]; pointsMode: boolean }) {
+function VisiblePick({ pick, games, pointsMode, universalLockReached }: { pick: Pick; games: Game[]; pointsMode: boolean; universalLockReached: boolean }) {
   const game = games.find((g) => g.id === pick.game_id) || pick.game;
   const locked = pick.status === "locked" || Boolean(game && isClosed(game));
   const graded = pick.result !== "pending";
@@ -2520,5 +2540,5 @@ function VisiblePick({ pick, games, pointsMode }: { pick: Pick; games: Game[]; p
   const metaState = game ? hasPickScoreBug(game) ? isFinalGame(game) ? "Final" : "Live" : cardGameStateText(game, locked) : "";
   const metaText = [matchupText, metaState].filter(Boolean).join(" · ");
   const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip">· <NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{metaText && <p><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="visible-pick-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}</div></div>;
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip">· <NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{metaText && <p><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="visible-pick-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <LockedPickIndicator hidden={universalLockReached} /> : null}</div></div>;
 }
