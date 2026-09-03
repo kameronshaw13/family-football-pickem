@@ -1,7 +1,7 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
 **Last updated:** 2026-09-03  
-**Current app-code production baseline:** `fddb50759355c9a29c4655d51b5fd2747f3c457d`
+**Current app-code production baseline:** `230e908dd589c4d6a27a756dff0943f08dc3700d`
 **Production status:** Vercel READY
 
 > **Codex / future sessions:** Read this file before changing the app. Treat it as the running source of truth. After a task is completed, update the relevant status here in the same work session. Do not rely only on chat history.
@@ -35,11 +35,13 @@
 
 Current app-code baseline:
 
-- app-code commit: `fddb50759355c9a29c4655d51b5fd2747f3c457d`
-- commit message: **Polish card lock states and uncap Shaw side bets**
+- app-code commit: `230e908dd589c4d6a27a756dff0943f08dc3700d`
+- commit message: **Refine My Card matchup and lock status**
 - Vercel production for that app-code commit: **READY**
-- latest implementation branch: `fix/my-card-icons-unlimited-side-bets-2026-09-03`
-- latest rollback branch: `backup/pre-my-card-icons-unlimited-side-bets-2026-09-03`
+- latest implementation branch: `fix/my-card-matchup-locked-icon-2026-09-03`
+- latest rollback branch: `backup/pre-my-card-matchup-locked-icon-2026-09-03`
+- prior implementation branch: `fix/my-card-icons-unlimited-side-bets-2026-09-03`
+- prior rollback branch: `backup/pre-my-card-icons-unlimited-side-bets-2026-09-03`
 - prior implementation branch: `fix/shared-natural-lineboxes-2026-09-02`
 - prior rollback branch: `backup/pre-shared-natural-lineboxes-2026-09-02`
 - prior implementation branch: `fix/standings-bank-linebox-2026-09-02`
@@ -65,8 +67,8 @@ It currently owns the latest seven-item app pass behavior:
 
 - restores the My Card progress/status card when all currently submitted picks are locked but the required card is still incomplete
 - removes that fallback once the full required card is locked or the shared Sat–Mon weekend lock has arrived
-- renders pending locked picks with a slightly larger closed padlock and pending unlocked picks with an open padlock before the shared weekend lock
-- hides both padlock indicators after the shared weekend lock
+- renders pending locked picks with a slightly larger dark closed padlock before the shared weekend lock while pending unlocked picks remain blank
+- hides the locked-pick indicator after the shared weekend lock
 - tags administrative no-submission rows explicitly and removes any top spacer/banding at the player-header boundary
 - expands text paint/clipping room without padding or fixed-row geometry changes
 - changes completed-week Side Bets to history-only behavior and a `Week is complete` Make Offer state
@@ -206,12 +208,13 @@ If any clipping remains, fix only the exact remaining selector/line box.
 
 **Status: DEPLOYED 2026-09-03; NEEDS USER VISUAL VERIFICATION.**
 
-- My Card selected-team labels now always use the existing team abbreviation so the name cannot run into the manual Lock control
-- full team names remain available to assistive technology, browser title text, and the manual-lock review dialog
-- before the shared Saturday 11:00 AM America/Chicago lock, pending locked picks use a closed padlock and pending unlocked picks use an open padlock in League Cards and Weekly Results
-- the closed/open padlocks are 18px, slightly larger than the prior 16px closed icon
-- after the shared weekend lock, the pending padlock state remains blank; live/final scorebugs and graded results still take precedence
-- My Card's editable unlocked row retains its functional Lock and remove controls rather than adding a duplicate open-padlock status icon
+- My Card selected-team labels use the existing team abbreviation
+- My Card's matchup/time line also always uses abbreviated matchup names so it stays clear of the Lock/remove action area
+- the full matchup remains available to assistive technology, browser title text, and the manual-lock review dialog
+- before the shared Saturday 11:00 AM America/Chicago lock, pending locked picks use an 18px closed padlock in My Card, League Cards, and Weekly Results
+- pending unlocked picks remain blank in read-only League Cards and Weekly Results; My Card retains its functional Lock and remove controls
+- the closed padlock uses the same dark `var(--ink)` color as team-name text
+- after the shared weekend lock, the pending locked-pick indicator remains blank; live/final scorebugs and graded results still take precedence
 
 ### F. Shaw side bets — unlimited weekly count
 
@@ -408,6 +411,7 @@ Small visual regressions matter. Do not make broad CSS changes to solve one row.
 
 Do not move/delete existing backups. Key recent examples include:
 
+- `backup/pre-my-card-matchup-locked-icon-2026-09-03`
 - `backup/pre-my-card-icons-unlimited-side-bets-2026-09-03`
 - `backup/pre-typography-breathing-room-weekly-locks-2026-09-02`
 - `backup/pre-shared-natural-lineboxes-2026-09-02`
