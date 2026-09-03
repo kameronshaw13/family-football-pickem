@@ -6,61 +6,33 @@ import {
 
 export { normalizeTeamNameKey };
 
+declare global {
+  // Injected by the root layout from ESPN's all-college-teams feed before the
+  // client app hydrates. Keys use the same normalization rules as ESPN aliases.
+  var __pickemEspnCollegeAbbreviations: Record<string, string> | undefined;
+}
+
 const DISPLAY_OVERRIDES: Record<string, string> = {
   "boston college": "Boston College",
   "boston college eagles": "Boston College"
 };
 
-const ABBREVIATION_OVERRIDES: Record<string, string> = {
-  "air force": "AFA",
-  "alabama": "Bama",
-  "arkansas state": "Ark. St.",
-  "arkansas st": "Ark. St.",
-  "boise state": "Boise St.",
-  "boise st": "Boise St.",
-  "bowling green": "BGSU",
-  "california": "Cal",
-  "charlotte": "CLT",
-  "cincinnati": "Cincy",
-  "coastal carolina": "CCU",
-  "colorado": "CU",
-  "east carolina": "ECU",
-  "fresno state": "Fres. St.",
-  "fresno st": "Fres. St.",
-  "georgia": "UGA",
-  "jacksonville state": "Jax. State",
-  "jacksonville st": "Jax. State",
-  "jacksonville state gamecocks": "Jax. State",
-  "jsu": "Jax. State",
-  "james madison": "JMU",
-  "kansas": "KU",
-  "kennesaw state": "Kenn. St.",
-  "kennesaw st": "Kenn. St.",
-  "kentucky": "UK",
-  "louisiana tech": "La Tech",
-  "mississippi state": "Miss. St.",
-  "mississippi st": "Miss. St.",
-  "new mexico": "NMU",
-  "north carolina": "UNC",
-  "north texas": "UNT",
-  "northwestern": "NWU",
-  "oklahoma": "OU",
-  "old dominion": "ODU",
-  "pittsburgh": "Pitt",
-  "sam houston": "SHSU",
-  "sam houston state": "SHSU",
-  "south alabama": "USA",
-  "south carolina": "South Car.",
-  "south florida": "USF",
-  "southern miss": "USM",
-  "southern mississippi": "USM",
-  "tennessee": "Tenn",
-  "texas aandm": "TA&M",
-  "texas tech": "TTU",
-  "vanderbilt": "Vandy",
-  "west virginia": "WVU",
-  "west virginia mountaineers": "WVU"
-};
+function espnAbbreviationKey(value: string) {
+  return normalizeTeamNameKey(value)
+    .replace(/\bsan jos\b/g, "san jose")
+    .replace(/\bst\b/g, "state")
+    .replace(/\bmiami fl\b/g, "miami")
+    .replace(/\bmiami florida\b/g, "miami")
+    .replace(/\bmississippi\b/g, "miss");
+}
+
+function espnCollegeAbbreviation(team: string, displayName: string) {
+  const aliases = globalThis.__pickemEspnCollegeAbbreviations;
+  if (!aliases) return null;
+  const raw = aliases[espnAbbreviationKey(team)];
+  if (raw) return raw;
+  return aliases[espnAbbreviationKey(displayName)] || null;
+}
 
 export function teamDisplayName(league: string | null | undefined, team: string) {
   if (league !== "NFL") {
@@ -71,11 +43,10 @@ export function teamDisplayName(league: string | null | undefined, team: string)
 }
 
 export function teamAbbreviatedName(league: string | null | undefined, team: string) {
+  const displayName = teamDisplayName(league, team);
   if (league !== "NFL") {
-    const rawKey = normalizeTeamNameKey(team);
-    const displayKey = normalizeTeamNameKey(teamDisplayName(league, team));
-    const override = ABBREVIATION_OVERRIDES[rawKey] || ABBREVIATION_OVERRIDES[displayKey];
-    if (override) return override;
+    const espn = espnCollegeAbbreviation(team, displayName);
+    if (espn) return espn;
   }
   return baseTeamAbbreviatedName(league, team);
 }
