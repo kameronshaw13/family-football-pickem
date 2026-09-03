@@ -193,7 +193,7 @@ The earlier week-switch guard remains in place to prevent premature incomplete-c
 
 ### Recent visual/UI work
 
-- college odds imports require both teams to match ESPN, preventing Northern Iowa from being confused with Iowa at a shared kickoff time
+- college odds imports require both teams to match ESPN, and the stale Northern Iowa–Eastern Washington row is explicitly rejected even with its previously misassigned FBS logos
 - locked picks use the smaller gray lock icon
 - expired side-bet offers expose the same per-user Clear action as declined/cancelled offers
 - side-bet acceptance and manual-lock popup matchup/date cells share height, size, and weight

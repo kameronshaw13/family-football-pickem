@@ -36,6 +36,16 @@ const FBS_CONFERENCES = new Set<string>([
   FBS_INDEPENDENTS_CONFERENCE
 ]);
 
+// These schools' current FCS matchup was previously stored with Iowa/Northern
+// Illinois logos after a same-kickoff identity collision. Keep the name guard
+// so that stale row cannot pass logo-based FBS eligibility.
+const KNOWN_FCS_SCHOOLS = ["northern iowa", "eastern washington"];
+
+function isKnownFcsSchool(team: string | null | undefined) {
+  const normalized = (team || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return KNOWN_FCS_SCHOOLS.some((school) => normalized === school || normalized.startsWith(`${school} `));
+}
+
 const CONFERENCE_BY_TEAM_ID = new Map(
   Object.entries(TEAM_IDS_BY_CONFERENCE).flatMap(([conference, teamIds]) =>
     teamIds.map((teamId) => [teamId, conference] as const)
@@ -72,10 +82,13 @@ export function isDivisionOneCfbMatchup(game: {
 
 export function isFbsTeamGame(game: {
   league: string;
+  home_team?: string | null;
+  away_team?: string | null;
   home_logo_url?: string | null;
   away_logo_url?: string | null;
 }) {
   if (game.league !== "CFB") return true;
+  if (isKnownFcsSchool(game.home_team) && isKnownFcsSchool(game.away_team)) return false;
   const homeSubdivision = cfbSubdivisionForLogo(game.home_logo_url);
   const awaySubdivision = cfbSubdivisionForLogo(game.away_logo_url);
   return Boolean(
