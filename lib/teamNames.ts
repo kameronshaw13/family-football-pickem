@@ -14,7 +14,9 @@ const DISPLAY_OVERRIDES: Record<string, string> = {
 const ABBREVIATION_OVERRIDES: Record<string, string> = {
   "jacksonville state": "Jax. State",
   "jacksonville state gamecocks": "Jax. State",
-  "jsu": "Jax. State"
+  "jsu": "Jax. State",
+  "west virginia": "WVU",
+  "west virginia mountaineers": "WVU"
 };
 
 export function teamDisplayName(league: string | null | undefined, team: string) {
