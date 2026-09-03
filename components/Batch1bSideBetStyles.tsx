@@ -11,9 +11,8 @@ const STYLES = `
 .manual-lock-review .confirmation-matchup{margin-top:0!important;border-top:0!important;border-bottom:1px solid var(--line-strong)!important}
 .manual-lock-review .confirmation-matchup>div.manual-lock-pick-cell{background:var(--panel)!important;box-shadow:none!important}
 .manual-lock-review .manual-lock-pick-cell>.team-name,.manual-lock-review .manual-lock-pick-cell>.team-spread{line-height:1.3!important}
-.manual-lock-review .confirmation-kickoff.manual-lock-meta{border-top:0!important;border-bottom:1px solid var(--line-strong)!important;color:var(--header-muted)!important;font-family:var(--font-display);font-size:10px!important;font-weight:700!important;letter-spacing:0;line-height:1.25!important}
+.manual-lock-review .confirmation-kickoff.manual-lock-meta{border-top:0!important;border-bottom:1px solid var(--line-strong)!important;color:var(--header-muted)!important;letter-spacing:0;line-height:1.25!important}
 .manual-lock-review .manual-lock-note{color:var(--ink)!important;font-weight:600!important;line-height:1.4!important}
-.game-time,.game-final-status,.game-live-status,.game-live-situation{display:inline-flex;align-items:center;line-height:1.3!important;overflow:visible}
 `;
 
 export default function Batch1bSideBetStyles() {
