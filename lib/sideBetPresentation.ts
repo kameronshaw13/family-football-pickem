@@ -29,11 +29,25 @@ export function sideBetResponseSummary(bet: SideBet, userId: string, mode: "rece
   const summary = baseSideBetResponseSummary(bet, userId, mode);
   const targets = bet.targets || [];
 
+  if (mode === "received" && summary.action === "Accepted" && summary.subjectFull === "You") {
+    const creatorName = bet.creator?.display_name || "Player";
+    return {
+      ...summary,
+      recipientFull: `from ${creatorName}`,
+      recipientCompact: `from ${creatorName}`
+    };
+  }
+
   if (mode === "sent" && bet.status === "open") {
     const pending = targets.filter((target) => target.response === "pending");
     if (pending.length && summary.action === "Offered") {
       const firstName = pending[0]?.recipient?.display_name || "Player";
-      return { ...summary, recipientCompact: pending.length === 1 ? firstName : `${firstName} +${pending.length - 1}` };
+      const compactNames = pending.length === 1 ? firstName : `${firstName} +${pending.length - 1}`;
+      return {
+        ...summary,
+        recipientFull: `to ${summary.recipientFull || firstName}`,
+        recipientCompact: `to ${compactNames}`
+      };
     }
   }
 
