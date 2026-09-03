@@ -1,7 +1,7 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
 **Last updated:** 2026-09-03  
-**Current app-code production baseline:** `230e908dd589c4d6a27a756dff0943f08dc3700d`
+**Current app-code production baseline:** `2a64303f3f665fa2ca5c877fc84a173725bb6c5e`
 **Production status:** Vercel READY
 
 > **Codex / future sessions:** Read this file before changing the app. Treat it as the running source of truth. After a task is completed, update the relevant status here in the same work session. Do not rely only on chat history.
@@ -35,8 +35,8 @@
 
 Current app-code baseline:
 
-- app-code commit: `230e908dd589c4d6a27a756dff0943f08dc3700d`
-- commit message: **Refine My Card matchup and lock status**
+- app-code commit: `2a64303f3f665fa2ca5c877fc84a173725bb6c5e`
+- commit message: **Restore font centering and patch game time clipping**
 - Vercel production for that app-code commit: **READY**
 - latest implementation branch: `fix/my-card-matchup-locked-icon-2026-09-03`
 - latest rollback branch: `backup/pre-my-card-matchup-locked-icon-2026-09-03`
@@ -450,3 +450,36 @@ After each completed task, update at least:
 5. Add newly reported user issues verbatim enough that another session understands the desired visual/behavioral result.
 
 If the user says something is still wrong, change its status back to **NEEDS FIX** instead of stacking another “completed” note on top.
+
+---
+
+## 11. Deferred wholesale typography cleanup — DO NOT PIECE-MEAL
+
+**Status: DEFERRED by user on 2026-09-03. Current production intentionally keeps the existing JavaScript font-centering system.**
+
+What happened:
+
+- commit `9e5e52fa2bef20284949eae674bd0cc273ccadd1` removed the runtime font-metric translations from `components/AppUiCoordinator.tsx`
+- commit `6e332c8a26786d044ada4324e1ac8a424249ef20` then tried to make typography purely layout/CSS driven
+- that wholesale direction changed where text was visually output across the app and the user asked to restore the prior system
+- production commit `2a64303f3f665fa2ca5c877fc84a173725bb6c5e` restores the pre-change `AppUiCoordinator.tsx`, restores the supporting `stable-font-metrics.css`, and restores `LatestUiFixes`
+
+Current targeted game-time treatment:
+
+- keep the existing runtime optical centering
+- the top-left `.game-time` in Pick Board game cards gets symmetric 2px paint breathing room via padding/negative margin plus visible overflow
+- this is intended to prevent clipping without changing the font size, game-header height, or intended optical position
+- do not broaden this selector unless the user reports another exact clipping surface
+
+Future typography project, when explicitly resumed:
+
+- treat removal/replacement of runtime font centering as a dedicated app-wide project, not a one-off cleanup
+- inventory every selector currently covered by `OPTICALLY_CENTERED_TEXT_SELECTOR` and the two-line block system
+- define one replacement baseline/line-box strategy for normal text, responsive text, numeric text, standings, pick cards, side bets, game headers, and future UI
+- verify the entire app on iOS/Safari-sized mobile layouts before removing the current system or deleting targeted clipping patches
+- preserve existing visual positions as the acceptance baseline; do not assume mathematically simpler CSS is visually equivalent
+- only remove legacy patches after the replacement system has been visually verified across all affected surfaces
+
+Unrelated systems to preserve during that future work:
+
+- ESPN remains the canonical FBS/FCS abbreviation source; the typography rollback does **not** revert the ESPN abbreviation work
