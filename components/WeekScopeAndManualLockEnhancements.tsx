@@ -27,7 +27,7 @@ const STYLES = `
 .manual-lock-review .manual-lock-pick-cell>.team-logo{width:34px;height:34px}
 .manual-lock-review .manual-lock-pick-cell>.team-name{min-width:0;overflow:hidden;color:var(--ink);font-family:var(--font-display);font-size:16px;font-weight:700;line-height:1.2;text-overflow:ellipsis;text-transform:none;white-space:nowrap;-webkit-text-fill-color:var(--ink)}
 .manual-lock-review .manual-lock-pick-cell>.team-spread{display:inline-flex;width:100%;align-items:center;justify-content:flex-end;color:var(--ink);font-family:var(--font-display);font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;text-transform:none;white-space:nowrap;-webkit-text-fill-color:var(--ink)}
-.manual-lock-review .confirmation-kickoff.manual-lock-meta{display:flex;min-height:30px;align-items:center;justify-content:center;margin:0;padding:5px 8px;border-bottom:1px solid var(--line-strong);color:var(--header-muted);background:var(--surface-muted);font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2;text-align:center}
+.manual-lock-review .confirmation-kickoff.manual-lock-meta{display:flex;min-height:30px;align-items:center;justify-content:center;margin:0;padding:5px 8px;border-bottom:1px solid var(--line-strong);color:var(--header-muted);background:var(--surface-muted);font-variant-numeric:tabular-nums;line-height:1.2;text-align:center}
 .manual-lock-review .manual-lock-note{margin:8px 2px 12px;color:var(--muted);font-size:11px;font-weight:700;line-height:1.35;text-align:center}
 .manual-lock-review .confirmation-actions{grid-template-columns:1fr 1fr}
 .manual-lock-review .manual-lock-confirm-btn{display:flex;align-items:center;justify-content:center;color:var(--ink);background:var(--gold);border-color:#b88912}
