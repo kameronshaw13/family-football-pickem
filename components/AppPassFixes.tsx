@@ -8,7 +8,7 @@ const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
 const STYLES = `
 /* Keep a locked pick in the same 30px action slot previously occupied by the remove X. */
 .pick-lock-indicator{display:grid!important;width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important;place-items:center!important;padding:0!important;border:0!important;border-radius:0!important;color:var(--muted)!important;background:transparent!important;box-shadow:none!important;font-size:0!important;line-height:1!important}
-.pick-lock-indicator svg{display:block;width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none}
+.pick-lock-indicator svg{display:block;width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none}
 .pick-lock-indicator.app-pass-lock-hidden{display:none!important}
 
 /* An empty League Card row must start immediately below the player header. */
@@ -115,6 +115,10 @@ function lockIconMarkup() {
   return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke-linecap="round"/></svg>`;
 }
 
+function unlockIconMarkup() {
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.8-1.3" stroke-linecap="round"/></svg>`;
+}
+
 function gameIsFinal(game: CachedGame) {
   return (game.final_away_score != null && game.final_home_score != null) || Boolean(game.live_completed) || game.live_state === "post";
 }
@@ -139,13 +143,14 @@ function pickIsLocked(pick: CachedPick, gamesById: Map<string, CachedGame>, now:
   return Number.isFinite(lock) && lock <= now;
 }
 
-function enhanceLockIndicator(element: HTMLElement, universalLockReached: boolean) {
+function enhanceLockIndicator(element: HTMLElement, universalLockReached: boolean, locked: boolean) {
   element.classList.add("pick-lock-indicator");
   element.classList.toggle("app-pass-lock-hidden", universalLockReached);
-  element.setAttribute("aria-label", "Locked");
-  if (element.dataset.appPassLockIcon !== "1") {
-    element.dataset.appPassLockIcon = "1";
-    element.innerHTML = lockIconMarkup();
+  element.setAttribute("aria-label", locked ? "Locked" : "Unlocked");
+  const iconState = locked ? "locked" : "unlocked";
+  if (element.dataset.appPassLockIcon !== iconState) {
+    element.dataset.appPassLockIcon = iconState;
+    element.innerHTML = locked ? lockIconMarkup() : unlockIconMarkup();
   }
 }
 
@@ -242,7 +247,8 @@ export default function AppPassFixes({ appSlug }: { appSlug: AppSlug }) {
         const universalLock = universalWeekendLockTime(games);
         const universalLockReached = universalLock != null && universalLock <= now;
 
-        document.querySelectorAll<HTMLElement>(".pick-status-locked,.manual-lock-confirmed").forEach((element) => enhanceLockIndicator(element, universalLockReached));
+        document.querySelectorAll<HTMLElement>(".pick-status-locked,.manual-lock-confirmed").forEach((element) => enhanceLockIndicator(element, universalLockReached, true));
+        document.querySelectorAll<HTMLElement>(".pick-status-unlocked").forEach((element) => enhanceLockIndicator(element, universalLockReached, false));
 
         document.querySelectorAll<HTMLElement>(".pick-card,.visible-pick,.bank-game-result").forEach((row) => {
           const admin = Boolean(row.querySelector('img[src*="admin-no-submission.svg"]'));

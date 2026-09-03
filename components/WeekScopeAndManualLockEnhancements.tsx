@@ -137,7 +137,8 @@ function buildReviewLogo(card: HTMLElement, selectedTeam: string) {
 }
 
 function reviewTeamName(card: HTMLElement, selectedTeam: string) {
-  const visible = card.querySelector<HTMLElement>(".pick-title-team .responsive-text-value")?.textContent?.trim()
+  const visible = card.querySelector<HTMLElement>(".pick-title-team")?.getAttribute("aria-label")?.trim()
+    || card.querySelector<HTMLElement>(".pick-title-team .responsive-text-value")?.textContent?.trim()
     || card.querySelector<HTMLElement>(".pick-title-team")?.textContent?.trim();
   return visible || selectedTeam;
 }
