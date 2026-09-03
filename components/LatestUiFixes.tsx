@@ -13,8 +13,15 @@ const STYLES = `
 .card-panel .pick-section .pick-card .pick-meta .responsive-text,
 .card-panel .pick-section .pick-card .pick-meta .responsive-text-value{overflow:clip!important;overflow-clip-margin:5px!important;line-height:1.45!important}
 
-/* Optically center Place with the player name and W/L/P values. */
-.standings-panel .leaderboard-row>.leaderboard-rank{transform:translateY(.5px)!important}
+/* Standings cells are vertically centered by the same row mechanics. No optical nudges. */
+.standings-panel .leaderboard-row>.leaderboard-rank,
+.standings-panel .leaderboard-row>.leaderboard-player,
+.standings-panel .leaderboard-row>.leaderboard-stat,
+.standings-panel .leaderboard-row>.leaderboard-pct,
+.standings-panel .leaderboard-row>.leaderboard-points{height:100%!important;align-self:stretch!important;align-items:center!important;transform:none!important}
+.standings-panel .leaderboard-row>.leaderboard-rank{display:flex!important;justify-content:center!important;line-height:normal!important}
+.standings-panel .leaderboard-row>.leaderboard-rank .numeric-token,
+.standings-panel .leaderboard-row>.leaderboard-rank .numeric-fragment{display:inline!important;line-height:inherit!important;padding:0!important;transform:none!important}
 `;
 
 function syncSentOfferBlue() {
