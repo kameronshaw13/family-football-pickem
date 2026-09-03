@@ -72,14 +72,15 @@ function includesAll(haystack: Set<string>, needles: Set<string>) {
   return needles.size > 0 && Array.from(needles).every((token) => haystack.has(token));
 }
 
-function hasEmbeddedAbbreviation(sourceTokens: Set<string>, abbreviation: string) {
+function hasEmbeddedAbbreviation(sourceName: string, abbreviation: string) {
   const normalizedAbbreviation = normalize(abbreviation);
-  // Two-letter abbreviations are too collision-prone (UT, OS, etc.). Longer ESPN
-  // abbreviations are safe as whole tokens and cover provider names such as
-  // "LIU Post Pioneers", "BYU Cougars", and "UCF Knights".
+  const sourceTokens = normalize(sourceName).split(" ").filter(Boolean);
+  // Two-letter abbreviations are too collision-prone. Longer ESPN abbreviations
+  // are accepted only as the provider name's leading school token. This keeps
+  // aliases such as LIU Post / BYU / UCF while preventing Northern Iowa -> Iowa.
   return normalizedAbbreviation.length >= 3 &&
     !normalizedAbbreviation.includes(" ") &&
-    sourceTokens.has(normalizedAbbreviation);
+    sourceTokens[0] === normalizedAbbreviation;
 }
 
 function identityScore(sourceName: string, team: EspnTeam) {
@@ -90,7 +91,7 @@ function identityScore(sourceName: string, team: EspnTeam) {
   if (aliases.includes(source)) return 120;
 
   const sourceTokens = tokenSet(source);
-  if (hasEmbeddedAbbreviation(sourceTokens, team.abbreviation)) return 110;
+  if (hasEmbeddedAbbreviation(source, team.abbreviation)) return 110;
 
   const locationTokens = tokenSet(team.location);
   const nicknameTokens = tokenSet(team.nickname);
@@ -102,7 +103,7 @@ function identityScore(sourceName: string, team: EspnTeam) {
   return overlap >= 2 ? Math.round((overlap / Math.max(displayTokens.size, sourceTokens.size)) * 80) : 0;
 }
 
-function alignmentScore(firstTeamScore: number, secondTeamScore: number, kickoffDistance: number) {
+function alignmentScore(firstTeamScore: number, secondTeamScore: number, kickoffDistance: number, allowOneSided: boolean) {
   if (Math.min(firstTeamScore, secondTeamScore) >= MIN_TWO_SIDED_IDENTITY_SCORE) {
     return firstTeamScore + secondTeamScore;
   }
@@ -110,7 +111,8 @@ function alignmentScore(firstTeamScore: number, secondTeamScore: number, kickoff
   // Some odds providers retain legacy or alternate names for smaller schools.
   // When one side is an exact/very strong identity, the kickoff window safely
   // disambiguates the opponent without making ordinary team-name matching fuzzy.
-  if (Number.isFinite(kickoffDistance) &&
+  if (allowOneSided &&
+      Number.isFinite(kickoffDistance) &&
       kickoffDistance <= ONE_SIDED_MATCH_MAX_DISTANCE_MS &&
       Math.max(firstTeamScore, secondTeamScore) >= STRONG_ONE_SIDED_IDENTITY_SCORE) {
     return Math.max(firstTeamScore, secondTeamScore);
@@ -276,7 +278,8 @@ export function resolveEspnCommenceTime(match: EspnScheduleMatch, fallbackIso: s
   return fromZonedTime(`${year}-${month}-${day}T${hour}:${minute}:${second}`, timezone).toISOString();
 }
 
-export function findEspnScheduleMatch(matchup: Matchup, schedule: EspnScheduleGame[]): EspnScheduleMatch | null {
+export function findEspnScheduleMatch(matchup: Matchup, schedule: EspnScheduleGame[], options: { allowOneSided?: boolean } = {}): EspnScheduleMatch | null {
+  const allowOneSided = options.allowOneSided !== false;
   let best: { score: number; distance: number; match: EspnScheduleMatch } | null = null;
   const sourceTime = new Date(matchup.commence_time).getTime();
 
@@ -286,8 +289,8 @@ export function findEspnScheduleMatch(matchup: Matchup, schedule: EspnScheduleGa
     const directAway = identityScore(matchup.away_team, game.awayTeam);
     const swappedHome = identityScore(matchup.home_team, game.awayTeam);
     const swappedAway = identityScore(matchup.away_team, game.homeTeam);
-    const directScore = alignmentScore(directHome, directAway, distance);
-    const swappedScore = alignmentScore(swappedHome, swappedAway, distance);
+    const directScore = alignmentScore(directHome, directAway, distance, allowOneSided);
+    const swappedScore = alignmentScore(swappedHome, swappedAway, distance, allowOneSided);
     const score = Math.max(directScore, swappedScore);
     if (!score) continue;
 

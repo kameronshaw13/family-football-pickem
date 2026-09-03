@@ -188,7 +188,9 @@ async function refreshOdds() {
       const returned = (await oddsResponse.json()) as OddsEvent[];
       const schedule = await fetchEspnSchedule(sport.league, returned.map((event) => event.commence_time));
       const data = returned.flatMap((event) => {
-        const scheduleMatch = findEspnScheduleMatch(event, schedule);
+        const scheduleMatch = findEspnScheduleMatch(event, schedule, {
+          allowOneSided: sport.key !== "americanfootball_ncaaf_fcs"
+        });
         if (!scheduleMatch) return [];
         const officialHomeName = scheduleMatch.swapped ? event.away_team : event.home_team;
         const officialAwayName = scheduleMatch.swapped ? event.home_team : event.away_team;
