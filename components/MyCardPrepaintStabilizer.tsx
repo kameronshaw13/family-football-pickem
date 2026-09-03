@@ -38,6 +38,29 @@ function fitPickTeam(team: HTMLElement, title: HTMLElement, market: HTMLElement 
   if (team.textContent?.trim() !== chosen) team.textContent = chosen;
 }
 
+function metadataWidthBeforeActions(row: HTMLElement, responsive: HTMLElement) {
+  const top = row.querySelector<HTMLElement>(".pick-top");
+  const actions = row.querySelector<HTMLElement>(".pick-row-actions");
+  if (!top || !actions) {
+    responsive.style.removeProperty("max-width");
+    responsive.style.removeProperty("width");
+    return responsive.clientWidth + 0.5;
+  }
+
+  const responsiveRect = responsive.getBoundingClientRect();
+  const actionsRect = actions.getBoundingClientRect();
+  const topStyle = window.getComputedStyle(top);
+  const gridGap = Number.parseFloat(topStyle.columnGap || topStyle.gap) || 0;
+  const boundaryWidth = Math.max(0, actionsRect.left - gridGap - responsiveRect.left);
+
+  /* Constrain the actual host to the same physical boundary used for fitting.
+     AppPassFixes runs another fitting pass later; because it reads clientWidth,
+     this keeps both passes from ever treating the lock/result column as usable. */
+  responsive.style.setProperty("width", "100%");
+  responsive.style.setProperty("max-width", `${boundaryWidth}px`);
+  return Math.min(responsive.clientWidth, boundaryWidth) + 0.5;
+}
+
 function stabilizeMyCardText() {
   document.querySelectorAll<HTMLElement>(".card-panel .pick-section .pick-card").forEach((row) => {
     const title = row.querySelector<HTMLElement>(".pick-title");
@@ -78,7 +101,7 @@ function stabilizeMyCardText() {
         : `${fullMatchup.away} at ${compactMatchup.home}`;
     const intermediateMeta = `${intermediateMatchup}${fullParts.suffix}`;
     const compactMeta = `${compactMatchup.away} at ${compactMatchup.home}${fullParts.suffix}`;
-    const available = responsive.clientWidth + 0.5;
+    const available = metadataWidthBeforeActions(row, responsive);
     const candidates = [fullMeta, intermediateMeta, compactMeta];
     const chosen = candidates.find((candidate) => textWidth(candidate, value) <= available) || compactMeta;
     if (value.textContent?.trim() !== chosen) value.textContent = chosen;
@@ -93,8 +116,15 @@ export default function MyCardPrepaintStabilizer() {
     // fitting AppPassFixes performs here immediately, so entering My Card does not
     // show an initial text position/abbreviation and then settle one frame later.
     const observer = new MutationObserver(() => stabilizeMyCardText());
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    const onResize = () => stabilizeMyCardText();
+    window.addEventListener("resize", onResize);
+    void document.fonts?.ready.then(stabilizeMyCardText).catch(() => undefined);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", onResize);
+    };
   }, []);
 
   return null;
