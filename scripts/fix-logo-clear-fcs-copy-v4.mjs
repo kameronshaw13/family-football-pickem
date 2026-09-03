@@ -1,0 +1,5 @@
+import fs from "node:fs";
+
+await import("./fix-logo-clear-fcs-copy-v2.mjs");
+
+fs.writeFileSync("tests/fcsDisplayAndMatching.test.ts", `import test from "node:test";\nimport assert from "node:assert/strict";\nimport fs from "node:fs";\nimport { teamDisplayName } from "../lib/teamNamesBase.ts";\n\ntest("new FCS school labels omit mascots", () => {\n  assert.equal(teamDisplayName("CFB", "LIU Sharks"), "LIU");\n  assert.equal(teamDisplayName("CFB", "Maine Black Bears"), "Maine");\n  assert.equal(teamDisplayName("CFB", "Charlotte 49ers"), "Charlotte");\n});\n\ntest("FCS odds feed disables one-sided ESPN matching while normal matching keeps it available", () => {\n  const scheduleSource = fs.readFileSync("lib/espnSchedule.ts", "utf8");\n  const oddsSource = fs.readFileSync("app/api/cron/odds/route.ts", "utf8");\n  assert.match(scheduleSource, /options: \\{ allowOneSided\\?: boolean \\} = \\{\\}/);\n  assert.match(scheduleSource, /const allowOneSided = options\\.allowOneSided !== false/);\n  assert.match(scheduleSource, /if \\(allowOneSided &&/);\n  assert.match(oddsSource, /allowOneSided: sport\\.key !== "americanfootball_ncaaf_fcs"/);\n});\n`);
