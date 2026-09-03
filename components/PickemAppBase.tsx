@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
@@ -2439,7 +2438,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
 
 function TeamLogo({ url, name, className = "" }: { url?: string | null; name: string; className?: string }) {
   const classes = `team-logo ${className}`.trim();
-  if (url) return <Image src={url} alt="" className={classes} width={68} height={68} sizes="34px" quality={100} loading="eager" />;
+  if (url) return <img src={url} alt="" className={classes} width={68} height={68} loading="eager" decoding="async" />;
   return <div className={`${classes} fallback`}>{name.slice(0, 1)}</div>;
 }
 
