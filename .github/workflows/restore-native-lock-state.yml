@@ -1,0 +1,41 @@
+name: Restore native lock state
+
+on:
+  push:
+    branches:
+      - restore-native-lock-state-2026-09-03
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply native lock-state restore
+        run: node scripts/restore-native-lock-state.mjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run stable logic tests
+        run: node --test tests/cardOrdering.test.ts tests/confidencePoints.test.ts tests/lockRules.test.ts tests/notificationCounts.test.ts tests/settlementMath.test.ts tests/sideBetLimits.test.ts tests/weeklyBank.test.ts
+
+      - name: Build
+        run: npm run build
+
+      - name: Remove one-time tooling
+        run: rm -f scripts/restore-native-lock-state.mjs .github/workflows/restore-native-lock-state.yml
+
+      - name: Commit verified changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Restore native lock-state behavior"
+          git push origin HEAD:restore-native-lock-state-2026-09-03
