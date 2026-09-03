@@ -41,6 +41,16 @@ const STYLES = `
 .bank-game-result .bank-game-pick-title .numeric-fragment,
 .bank-game-result .bank-game-pick-title .numeric-symbol{line-height:inherit!important;overflow:visible!important}
 
+/* League Card selected-team titles use ResponsiveText, whose generic wrapper clips
+   its own glyph box. Open only those inner wrappers vertically and give the spread
+   numerals explicit paint room; the outer grid/copy boundary still contains the row. */
+.card-panel .group-card .visible-pick-copy>strong .pick-title-team.responsive-text,
+.card-panel .group-card .visible-pick-copy>strong .pick-title-team.responsive-text .responsive-text-value{overflow:visible!important;line-height:1.45!important;padding-block:3px!important;margin-block:-3px!important;text-overflow:clip!important}
+.card-panel .group-card .visible-pick-copy>strong .pick-title-market,
+.card-panel .group-card .visible-pick-copy>strong .pick-title-market .numeric-token,
+.card-panel .group-card .visible-pick-copy>strong .pick-title-market .numeric-fragment,
+.card-panel .group-card .visible-pick-copy>strong .pick-title-market .numeric-symbol{line-height:1.45!important;overflow:visible!important;padding-block:3px!important;margin-block:-3px!important}
+
 /* Lock Pick and Review & Accept popup matchup/date lines use the same treatment. */
 .confirmation-kickoff{font-family:var(--font-display)!important;font-size:12px!important;font-weight:700!important}
 
