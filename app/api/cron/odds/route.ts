@@ -10,7 +10,8 @@ import { notificationTeamName } from "@/lib/notificationTeamName";
 
 const SPORTS = [
   { key: "americanfootball_nfl", league: "NFL" },
-  { key: "americanfootball_ncaaf", league: "CFB" }
+  { key: "americanfootball_ncaaf", league: "CFB" },
+  { key: "americanfootball_ncaaf_fcs", league: "CFB" }
 ] as const;
 
 type OddsEvent = {
@@ -40,6 +41,12 @@ type PreparedSport = {
 
 function unauthorized() {
   return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+}
+
+function uniqueByKey<T>(items: T[], keyFor: (item: T) => string) {
+  const unique = new Map<string, T>();
+  for (const item of items) unique.set(keyFor(item), item);
+  return Array.from(unique.values());
 }
 
 function pickSpread(event: OddsEvent) {
@@ -264,8 +271,11 @@ async function refreshOdds() {
       };
     }));
 
-    const spreadGames = preparedSports.flatMap((result) => result.spreadGames);
-    const frozenGames = preparedSports.flatMap((result) => result.frozenGames);
+    // The Odds API may expose an FBS-vs-FCS event under both college-football
+    // sport keys during migration periods. Deduplicate before writing so one
+    // event can never cause a duplicate ON CONFLICT update in Supabase.
+    const spreadGames = uniqueByKey(preparedSports.flatMap((result) => result.spreadGames), (game) => game.id);
+    const frozenGames = uniqueByKey(preparedSports.flatMap((result) => result.frozenGames), (game) => game.id);
     const gameWrites = [
       spreadGames.length
         ? supabase.from("games").upsert(spreadGames, { onConflict: "id" })
@@ -286,7 +296,7 @@ async function refreshOdds() {
 
     const dogAdjustments = await reconcileDraftDogs(supabase, spreadGames, previousGames, now);
 
-    const snapshots = preparedSports.flatMap((result) => result.snapshots);
+    const snapshots = uniqueByKey(preparedSports.flatMap((result) => result.snapshots), (snapshot) => snapshot.game_id);
     if (snapshots.length) {
       const { error: snapshotError } = await supabase.from("odds_snapshots").insert(snapshots);
       if (snapshotError) {
