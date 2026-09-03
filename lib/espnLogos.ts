@@ -105,7 +105,7 @@ export async function fetchEspnCollegeAbbreviationAliases(): Promise<Record<stri
   }
 
   const aliases: Record<string, string> = {};
-  for (const [key, values] of candidates) {
+  for (const [key, values] of Array.from(candidates.entries())) {
     if (values.size === 1) aliases[key] = Array.from(values)[0];
   }
   return aliases;
