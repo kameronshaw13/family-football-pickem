@@ -1,0 +1,106 @@
+name: Refactor My Card source
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    if: github.event.head_commit.message == 'Run My Card source refactor'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Move responsive fitting into React source
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          base_path = Path('components/PickemAppBase.tsx')
+          text = base_path.read_text()
+
+          old_import = 'import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";'
+          new_import = 'import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";'
+          assert old_import in text, 'React import changed unexpectedly'
+          text = text.replace(old_import, new_import, 1)
+
+          responsive_start = text.index('function ResponsiveText(')
+          responsive_effect = text.index('  useEffect(() => {', responsive_start)
+          text = text[:responsive_effect] + text[responsive_effect:].replace('  useEffect(() => {', '  useLayoutEffect(() => {', 1)
+
+          abbreviated_start = text.index('\nfunction AbbreviatedTeamName(')
+          abbreviated_end = text.index('\nfunction dogBonusText(', abbreviated_start)
+          text = text[:abbreviated_start] + text[abbreviated_end:]
+
+          pick_start = text.index('function PickList(')
+          pick_end = text.index('\nfunction VisiblePick(', pick_start)
+          pick_block = text[pick_start:pick_end]
+
+          old_title = '<AbbreviatedTeamName game={game} team={pick.selected_team} className="pick-title-team" />'
+          assert old_title in pick_block, 'My Card abbreviated title source changed unexpectedly'
+          pick_block = pick_block.replace(old_title, '<ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" />', 1)
+
+          old_meta_setup = '''    const matchupText = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Game unavailable";
+    const compactMatchupText = game ? `${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}` : matchupText;
+    const metaState = game ? hasPickScoreBug(game) ? isFinalGame(game) ? "Final" : "Live" : cardGameStateText(game, locked) : "";
+    const metaText = [matchupText, metaState].filter(Boolean).join(" · ");
+    const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");'''
+          new_meta_setup = '''    const matchupText = game ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}` : "Game unavailable";
+    const compactMatchupText = game ? `${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}` : matchupText;
+    const intermediateMatchupText = game
+      ? `${pick.selected_team === game.away_team ? displayTeamName(game, game.away_team) : abbreviatedTeamName(game, game.away_team)} at ${pick.selected_team === game.home_team ? displayTeamName(game, game.home_team) : abbreviatedTeamName(game, game.home_team)}`
+      : matchupText;
+    const metaState = game ? hasPickScoreBug(game) ? isFinalGame(game) ? "Final" : "Live" : cardGameStateText(game, locked) : "";
+    const metaText = [matchupText, metaState].filter(Boolean).join(" · ");
+    const intermediateMetaText = [intermediateMatchupText, metaState].filter(Boolean).join(" · ");
+    const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");'''
+          assert old_meta_setup in pick_block, 'My Card metadata setup changed unexpectedly'
+          pick_block = pick_block.replace(old_meta_setup, new_meta_setup, 1)
+
+          old_meta_render = '<ResponsiveText full={compactMetaText} compact={compactMetaText} accessibleText={metaText} />'
+          new_meta_render = '<ResponsiveText full={metaText} intermediate={intermediateMetaText} compact={compactMetaText} />'
+          assert old_meta_render in pick_block, 'My Card metadata render changed unexpectedly'
+          pick_block = pick_block.replace(old_meta_render, new_meta_render, 1)
+
+          text = text[:pick_start] + pick_block + text[pick_end:]
+          base_path.write_text(text)
+
+          app_path = Path('components/PickemApp.tsx')
+          app = app_path.read_text()
+          stabilizer_import = 'import MyCardPrepaintStabilizer from "@/components/MyCardPrepaintStabilizer";\n'
+          assert stabilizer_import in app, 'Stabilizer import missing unexpectedly'
+          app = app.replace(stabilizer_import, '', 1)
+          stabilizer_mount = '<MyCardPrepaintStabilizer />'
+          assert stabilizer_mount in app, 'Stabilizer mount missing unexpectedly'
+          app = app.replace(stabilizer_mount, '', 1)
+          app_path.write_text(app)
+
+          stabilizer_path = Path('components/MyCardPrepaintStabilizer.tsx')
+          assert stabilizer_path.exists(), 'Stabilizer file already missing unexpectedly'
+          stabilizer_path.unlink()
+          PY
+
+      - name: Verify build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Commit refactor
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add components/PickemAppBase.tsx components/PickemApp.tsx components/MyCardPrepaintStabilizer.tsx
+          git commit -m "Move My Card fitting into React source"
+          git push origin main
