@@ -1,7 +1,7 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
-**Last updated:** 2026-09-02  
-**Current app-code production baseline:** `5263100526afb77d66f5b0010f2b9b67ec61c5a0`
+**Last updated:** 2026-09-03  
+**Current app-code production baseline:** `fddb50759355c9a29c4655d51b5fd2747f3c457d`
 **Production status:** Vercel READY
 
 > **Codex / future sessions:** Read this file before changing the app. Treat it as the running source of truth. After a task is completed, update the relevant status here in the same work session. Do not rely only on chat history.
@@ -35,11 +35,13 @@
 
 Current app-code baseline:
 
-- app-code commit: `5263100526afb77d66f5b0010f2b9b67ec61c5a0`
-- commit message: **Use natural line boxes for standings and offers**
+- app-code commit: `fddb50759355c9a29c4655d51b5fd2747f3c457d`
+- commit message: **Polish card lock states and uncap Shaw side bets**
 - Vercel production for that app-code commit: **READY**
-- latest implementation branch: `fix/shared-natural-lineboxes-2026-09-02`
-- latest rollback branch: `backup/pre-shared-natural-lineboxes-2026-09-02`
+- latest implementation branch: `fix/my-card-icons-unlimited-side-bets-2026-09-03`
+- latest rollback branch: `backup/pre-my-card-icons-unlimited-side-bets-2026-09-03`
+- prior implementation branch: `fix/shared-natural-lineboxes-2026-09-02`
+- prior rollback branch: `backup/pre-shared-natural-lineboxes-2026-09-02`
 - prior implementation branch: `fix/standings-bank-linebox-2026-09-02`
 - prior rollback branch: `backup/pre-standings-bank-linebox-2026-09-02`
 - prior implementation branch: `fix/typography-breathing-room-weekly-locks-2026-09-02`
@@ -63,8 +65,8 @@ It currently owns the latest seven-item app pass behavior:
 
 - restores the My Card progress/status card when all currently submitted picks are locked but the required card is still incomplete
 - removes that fallback once the full required card is locked or the shared Sat–Mon weekend lock has arrived
-- replaces the pending locked-state gray dash with a lock icon before the shared weekend lock
-- hides that lock indicator after the shared weekend lock
+- renders pending locked picks with a slightly larger closed padlock and pending unlocked picks with an open padlock before the shared weekend lock
+- hides both padlock indicators after the shared weekend lock
 - tags administrative no-submission rows explicitly and removes any top spacer/banding at the player-header boundary
 - expands text paint/clipping room without padding or fixed-row geometry changes
 - changes completed-week Side Bets to history-only behavior and a `Week is complete` Make Offer state
@@ -160,7 +162,7 @@ If the user still sees the band, determine from the live DOM whether it is the n
 
 ### D. Text clipping / line boxes
 
-**Status: REWORKED 2026-09-02; NEEDS USER VERIFICATION.**
+**Status: USER VERIFIED 2026-09-03 — clipping is gone.**
 
 User requirement:
 
@@ -200,7 +202,29 @@ Weekly Results behavior from the prior pass remains:
 
 If any clipping remains, fix only the exact remaining selector/line box.
 
-### E. Side Bets — completed week behavior
+### E. My Card abbreviations / pending lock-state icons
+
+**Status: DEPLOYED 2026-09-03; NEEDS USER VISUAL VERIFICATION.**
+
+- My Card selected-team labels now always use the existing team abbreviation so the name cannot run into the manual Lock control
+- full team names remain available to assistive technology, browser title text, and the manual-lock review dialog
+- before the shared Saturday 11:00 AM America/Chicago lock, pending locked picks use a closed padlock and pending unlocked picks use an open padlock in League Cards and Weekly Results
+- the closed/open padlocks are 18px, slightly larger than the prior 16px closed icon
+- after the shared weekend lock, the pending padlock state remains blank; live/final scorebugs and graded results still take precedence
+- My Card's editable unlocked row retains its functional Lock and remove controls rather than adding a duplicate open-padlock status icon
+
+### F. Shaw side bets — unlimited weekly count
+
+**Status: DEPLOYED AND LIVE RULE VERIFIED 2026-09-03.**
+
+- the current Shaw season has `rules.sideBets.maxPerWeek = null`, meaning unlimited side bets per week
+- the existing per-bet maximum remains `$20`; enabled state and kickoff/acceptance rules are unchanged
+- frontend creation, recipient availability, and acceptance checks now use each group's configured `sideBetSettings.maxPerWeek` instead of a hard-coded limit of 3
+- `null` is intentionally treated as unlimited; numeric limits remain supported for any group that uses one later
+- live Supabase verification confirmed `shaw-family`, `friends`, and `other-family` currently return `maxPerWeek: null`
+- rule update is documented in `supabase/shaw_unlimited_side_bets.sql`
+
+### G. Side Bets — completed week behavior
 
 **Status: IMPLEMENTED 2026-09-01; NEEDS USER VERIFICATION ON A COMPLETED WEEK.**
 
@@ -215,7 +239,7 @@ Once every game in the selected week is final:
 
 The completed-week state is derived from the selected week's actual game completion data and recalculates when the selected week/DOM changes.
 
-### F. Manual Lock control / review modal
+### H. Manual Lock control / review modal
 
 **Status: mostly complete; verify visually before more changes.**
 
@@ -233,7 +257,7 @@ Current intended state:
 - team display should be school/team display name, not raw nickname string when possible
 - spread should remain on the far right
 
-### G. Offer History Clear button
+### I. Offer History Clear button
 
 **Status: IMPLEMENTED, BUT USER SHOULD RE-VERIFY declined/canceled cases.**
 
@@ -384,6 +408,7 @@ Small visual regressions matter. Do not make broad CSS changes to solve one row.
 
 Do not move/delete existing backups. Key recent examples include:
 
+- `backup/pre-my-card-icons-unlimited-side-bets-2026-09-03`
 - `backup/pre-typography-breathing-room-weekly-locks-2026-09-02`
 - `backup/pre-shared-natural-lineboxes-2026-09-02`
 - `backup/pre-standings-bank-linebox-2026-09-02`
