@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { getGroupSideBetSettings, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
-import { createNotificationSafely, resolveSideBetOfferNotifications } from "@/lib/notifications";
+import { createNotificationInBackground, resolveSideBetOfferNotifications } from "@/lib/notifications";
 import { sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
@@ -167,9 +167,7 @@ export async function POST(req: NextRequest) {
         throw new Error(targetResult.error.message);
       }
 
-      const [nextSnapshot] = await Promise.all([
-        snapshot(supabase, context, auth.profile.id, body.viewWeek ?? Number(game.week)),
-        Promise.all(recipientIds.map((recipientId) => createNotificationSafely(supabase, {
+      recipientIds.forEach((recipientId) => createNotificationInBackground(supabase, {
           groupId: context.group.id,
           userId: recipientId,
           type: "side_bet_offer",
@@ -180,8 +178,8 @@ export async function POST(req: NextRequest) {
           body: `$${amount} · ${notificationTeamName(offeredTeam, game.league)} ${notificationSpread(-creatorSpread)}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_received"),
           actionRequired: true
-        })))
-      ]);
+        }));
+      const nextSnapshot = await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? Number(game.week));
       return NextResponse.json({ ok: true, sideBet, ...nextSnapshot });
     }
 
@@ -250,9 +248,7 @@ export async function POST(req: NextRequest) {
       const { count } = await supabase.from("side_bet_targets").select("recipient_id", { count: "exact", head: true }).eq("side_bet_id", sideBet.id).eq("response", "pending");
       if (!count) await supabase.from("side_bets").update({ status: "declined", updated_at: nowIso }).eq("group_id", context.group.id).eq("id", sideBet.id).eq("status", "open");
       await resolveSideBetOfferNotifications(supabase, [sideBet.id], auth.profile.id, context.group.id);
-      const [nextSnapshot] = await Promise.all([
-        snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
-        createNotificationSafely(supabase, {
+      createNotificationInBackground(supabase, {
           groupId: context.group.id,
           userId: sideBet.creator_id,
           type: "side_bet_response",
@@ -262,8 +258,8 @@ export async function POST(req: NextRequest) {
           title: `${auth.profile.display_name} declined your side bet`,
           body: `${notificationTeamName(sideBet.offered_team, sideBet.game?.league)} ${notificationSpread(Number(sideBet.offered_spread))}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_sent")
-        })
-      ]);
+        });
+      const nextSnapshot = await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week);
       return NextResponse.json({ ok: true, ...nextSnapshot });
     }
 
@@ -295,9 +291,7 @@ export async function POST(req: NextRequest) {
       supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).eq("side_bet_id", sideBet.id).neq("recipient_id", auth.profile.id).eq("response", "pending")
     ]);
     await resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id);
-    const [nextSnapshot] = await Promise.all([
-      snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
-      createNotificationSafely(supabase, {
+    createNotificationInBackground(supabase, {
         groupId: context.group.id,
         userId: sideBet.creator_id,
         type: "side_bet_response",
@@ -307,8 +301,8 @@ export async function POST(req: NextRequest) {
         title: `${auth.profile.display_name} accepted your side bet`,
         body: `$${Number(sideBet.amount)} · ${notificationTeamName(sideBet.creator_team, sideBet.game?.league)} ${notificationSpread(Number(sideBet.creator_spread))}`,
         url: groupNotificationUrl(context.group.slug, "side_bets_sent")
-      })
-    ]);
+      });
+    const nextSnapshot = await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week);
     return NextResponse.json({ ok: true, ...nextSnapshot });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });

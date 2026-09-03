@@ -53,6 +53,21 @@ Important effective styling in `components/Batch1bSideBetStyles.tsx`:
 
 ## 3. Immediate UI items — USER VERIFICATION / FIX NEXT
 
+### Root-cause UI regression batch
+
+**Status: IMPLEMENTED ON `fix/root-cause-ui-regressions`; NEEDS USER VERIFICATION.**
+
+- removed the full-document font measurement/translation loop that ran after every DOM mutation
+- moved Roboto Slab from a runtime Google stylesheet to `next/font` so its metrics are available without a late network font swap
+- removed client-rendered style strings that caused React to discard and rebuild the server-rendered page during hydration
+- moved clear-offer state into React markup and removed two DOM/style patch components
+- standardized all notification bubbles at 17px with 10px centered numerals
+- changed side-bet offer badges to clear when Offers is viewed while leaving the offer actionable
+- moved push delivery into Vercel background work so Accept/Decline responses do not wait on push retries
+- switched shared team logos to `next/image` with explicit high-resolution sizing and ESPN image configuration
+
+No row heights or broad padding values were changed for the text-clipping fix. The shared runtime translations that moved glyphs into clipped containers were removed instead.
+
 ### A. League Cards — empty / no-submission row
 
 **Status: NEEDS USER VERIFICATION. Do not assume fixed.**

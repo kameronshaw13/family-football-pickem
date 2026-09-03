@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
@@ -98,6 +99,7 @@ type SideBetSnapshot = {
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
 const APP_DATA_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
 const EMPTY_NOTIFICATION_COUNTS: NotificationCounts = { side_bets_received: 0, side_bets_sent: 0, my_card: 0, league_cards: 0, side_bet_ledger: 0, total: 0 };
+const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 const CENTRAL_WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/Chicago" });
 const CENTRAL_FULL_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/Chicago" });
@@ -153,7 +155,7 @@ function ResponsiveText({ full, intermediate, compact, className = "" }: { full:
   const intermediateMeasureRef = useRef<HTMLSpanElement>(null);
   const [variant, setVariant] = useState<"full" | "intermediate" | "compact">("full");
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     const host = hostRef.current;
     const fullMeasure = fullMeasureRef.current;
     const intermediateMeasure = intermediateMeasureRef.current;
@@ -210,7 +212,7 @@ function SideBetResponseLine({ summary, teamFull, teamCompact, spread, date }: {
     team: value === "full" || value === "names" ? teamFull : value === "team" ? teamCompact : ""
   });
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     const host = hostRef.current;
     if (!host) return;
 
@@ -1067,6 +1069,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const markNotificationsSeen = useCallback(async (destination: NotificationDestination) => {
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) return;
+    setNotificationCounts((current) => ({
+      ...current,
+      [destination]: 0,
+      total: Math.max(0, current.total - current[destination])
+    }));
     try {
       const response = await fetch("/api/notifications", {
         method: "POST",
@@ -1234,8 +1241,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     else if (tab === "card" && cardView === "mine") destination = "my_card";
     else if (tab === "card" && cardView === "group") destination = "league_cards";
     else if (tab === "standings" && standingsView === "bank") destination = "side_bet_ledger";
+    if (tab === "picks" && picksView === "sideBets" && betView === "offers") {
+      if (notificationCounts.side_bets_received > 0) void markNotificationsSeen("side_bets_received");
+      if (notificationCounts.side_bets_sent > 0) void markNotificationsSeen("side_bets_sent");
+      return;
+    }
     if (destination && notificationCounts[destination] > 0) void markNotificationsSeen(destination);
-  }, [betView, cardView, data, markNotificationsSeen, notificationCounts.league_cards, notificationCounts.my_card, notificationCounts.side_bet_ledger, notificationCounts.side_bets_sent, picksView, standingsView, tab, testWeekActive]);
+  }, [betView, cardView, data, markNotificationsSeen, notificationCounts.league_cards, notificationCounts.my_card, notificationCounts.side_bet_ledger, notificationCounts.side_bets_received, notificationCounts.side_bets_sent, picksView, standingsView, tab, testWeekActive]);
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 30_000);
     return () => window.clearInterval(timer);
@@ -1463,9 +1475,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return [profile.id, entries.length ? entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : null];
   })) : {};
   const weekIsOpen = !previewActive && (!data.weekOpenTime || new Date(data.weekOpenTime) <= new Date());
-  const incomingOffers = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
-  const pendingOfferCount = incomingOffers.filter((bet) => bet.status === "open" && bet.targets?.some((target) => target.recipient_id === currentUser.id && target.response === "pending")).length;
-  const receivedNotificationCount = previewActive ? 1 : Math.max(pendingOfferCount, notificationCounts.side_bets_received);
+  const receivedNotificationCount = previewActive ? 1 : notificationCounts.side_bets_received;
   const sentNotificationCount = previewActive ? 1 : notificationCounts.side_bets_sent;
   const myCardNotificationCount = previewActive ? 1 : notificationCounts.my_card;
   const leagueCardsNotificationCount = previewActive ? 1 : notificationCounts.league_cards;
@@ -2159,8 +2169,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
     {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty="No side bet offers yet." saving={saving} savingBetId={savingBetId} canAccept={(bet) => weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, MAX_SIDE_BETS_PER_WEEK, bet.id)} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
 
-    {confirmingBet && <div className="confirmation-backdrop">
-      <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title">
+    {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
+      <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
         <div className="confirmation-icon"><CircleDollarSign size={22} /></div>
         <div className="confirmation-heading"><span>Review side bet</span><h2 id="accept-bet-title">Accept <NumericText text={stakeMoney(Number(confirmingBet.amount))} /> bet?</h2></div>
         <div className="confirmation-matchup">
@@ -2236,7 +2246,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
     ? target?.response === "declined" || bet.status === "cancelled"
     : ["declined", "cancelled"].includes(bet.status);
 
-  return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""}`}>
+  return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""} ${canClearOffer ? "has-clear-offer-action" : ""}`.trim()}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, perspectiveTeam) : null} name={perspectiveTeam} />
       <div className="side-bet-offer-copy"><strong><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} /></strong><SideBetResponseLine summary={responseSummary} teamFull={offeredSideName} teamCompact={offeredSideCompact} spread={responseSpread} date={game ? dt(game.commence_time) : undefined} /></div>
@@ -2405,7 +2415,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
 
 function TeamLogo({ url, name, className = "" }: { url?: string | null; name: string; className?: string }) {
   const classes = `team-logo ${className}`.trim();
-  if (url) return <img src={url} alt="" className={classes} width={34} height={34} loading="eager" decoding="sync" />;
+  if (url) return <Image src={url} alt="" className={classes} width={68} height={68} sizes="34px" quality={100} loading="eager" />;
   return <div className={`${classes} fallback`}>{name.slice(0, 1)}</div>;
 }
 

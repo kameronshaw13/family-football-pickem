@@ -1,11 +1,12 @@
 import "server-only";
 import webPush, { WebPushError, type PushSubscription } from "web-push";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { waitUntil } from "@vercel/functions";
 import { notificationTeamName } from "@/lib/notificationTeamName";
+import { countUnreadNotifications, type NotificationCounts, type NotificationDestination } from "@/lib/notificationCounts";
 
-export type NotificationDestination = "side_bets_received" | "side_bets_sent" | "my_card" | "league_cards" | "side_bet_ledger";
+export type { NotificationCounts, NotificationDestination } from "@/lib/notificationCounts";
 export type NotificationType = "side_bet_offer" | "side_bet_response" | "pick_final" | "league_pick_final" | "side_bet_final" | "big_play" | "dog_pick_adjustment";
-export type NotificationCounts = Record<NotificationDestination, number> & { total: number };
 
 type NotificationInput = {
   userId: string;
@@ -21,7 +22,6 @@ type NotificationInput = {
 };
 
 type PushPayload = { title: string; body: string; url: string; tag: string; badgeCount: number };
-const EMPTY_COUNTS: NotificationCounts = { side_bets_received: 0, side_bets_sent: 0, my_card: 0, league_cards: 0, side_bet_ledger: 0, total: 0 };
 
 export function pushConfiguration() {
   const publicKey = process.env.VAPID_PUBLIC_KEY?.trim() || "";
@@ -35,15 +35,7 @@ export async function getNotificationCounts(supabase: SupabaseClient, userId: st
   if (groupId) query = query.eq("group_id", groupId);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  const counts = { ...EMPTY_COUNTS };
-  for (const notification of data || []) {
-    if (!notification.action_required && notification.read_at) continue;
-    const destination = notification.destination as NotificationDestination;
-    if (!(destination in counts)) continue;
-    counts[destination] += 1;
-    counts.total += 1;
-  }
-  return counts;
+  return countUnreadNotifications(data || []);
 }
 
 function sleep(ms: number) {
@@ -137,6 +129,10 @@ export async function createNotification(supabase: SupabaseClient, input: Notifi
 export async function createNotificationSafely(supabase: SupabaseClient, input: NotificationInput) {
   try { return await createNotification(supabase, input); }
   catch (error) { console.error("Notification creation failed", error); return { created: false, sent: 0 }; }
+}
+
+export function createNotificationInBackground(supabase: SupabaseClient, input: NotificationInput) {
+  waitUntil(createNotificationSafely(supabase, input).then(() => undefined));
 }
 
 export async function resolveSideBetOfferNotifications(supabase: SupabaseClient, sideBetIds: string[], userId?: string, groupId?: string) {
