@@ -20,12 +20,25 @@ const STYLES = `
 .bank-game-result>div>p,
 .side-bet-offer-copy>p{font-family:var(--font-display)!important;font-size:12px!important;font-weight:600!important}
 
-/* Give responsive team-name hosts the actual remaining title width. That lets the
-   existing full -> ESPN-abbreviation logic react before the lock/result box is hit. */
-.card-panel .group-card .visible-pick-copy>strong .pick-title-team.responsive-text,
-.bank-game-result .bank-game-pick-title .pick-title-team.responsive-text{flex:1 1 0%!important;width:auto!important;max-width:none!important;min-width:0!important}
+/* Keep League Card / Weekly Result spreads beside the team name rather than
+   stretching them to the far edge. Give the title line enough vertical paint room
+   for Roboto Slab numerals without changing row height. */
+.card-panel .group-card .visible-pick-copy,
+.bank-game-result>div{overflow:hidden!important}
+.card-panel .group-card .visible-pick-copy>strong,
+.bank-game-result .bank-game-pick-title{line-height:1.4!important}
+.card-panel .group-card .visible-pick-copy>strong .pick-title-team,
 .card-panel .group-card .visible-pick-copy>strong .pick-title-market,
-.bank-game-result .bank-game-pick-title .pick-title-market{flex:0 0 auto!important}
+.card-panel .group-card .visible-pick-copy>strong .numeric-token,
+.card-panel .group-card .visible-pick-copy>strong .numeric-fragment,
+.bank-game-result .bank-game-pick-title .pick-title-team,
+.bank-game-result .bank-game-pick-title .pick-title-market,
+.bank-game-result .bank-game-pick-title .numeric-token,
+.bank-game-result .bank-game-pick-title .numeric-fragment{line-height:inherit!important}
+.card-panel .group-card .visible-pick-copy>strong .numeric-token,
+.card-panel .group-card .visible-pick-copy>strong .numeric-fragment,
+.bank-game-result .bank-game-pick-title .numeric-token,
+.bank-game-result .bank-game-pick-title .numeric-fragment{overflow:visible!important}
 
 /* Lock Pick and Review & Accept popup matchup/date lines use the same treatment. */
 .confirmation-kickoff{font-family:var(--font-display)!important;font-size:12px!important;font-weight:700!important}
