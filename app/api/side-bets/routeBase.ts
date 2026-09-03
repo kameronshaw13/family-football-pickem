@@ -41,6 +41,18 @@ async function allGroupBets(supabase: any, groupId: string, seasonYear: number) 
   return data || [];
 }
 
+async function weekGroupBets(supabase: any, groupId: string, seasonYear: number, week: number) {
+  const { data, error } = await supabase
+    .from("side_bets")
+    .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
+    .eq("group_id", groupId)
+    .eq("season_year", seasonYear)
+    .eq("week", week)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
 async function dismissedSideBetIds(supabase: any, groupId: string, profileId: string) {
   const { data, error } = await supabase
     .from("side_bet_dismissals")
@@ -52,7 +64,7 @@ async function dismissedSideBetIds(supabase: any, groupId: string, profileId: st
 }
 
 async function snapshot(supabase: any, context: any, profileId: string, week: number) {
-  let rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
+  let rows = await weekGroupBets(supabase, context.group.id, context.seasonYear, week);
   const now = new Date();
   const nowIso = now.toISOString();
   const expiredIds = rows

@@ -1038,9 +1038,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       });
       if (!response.ok) return;
       const payload = await response.json() as SideBetSnapshot;
-      const changed = sideBetSyncSignature(current.sideBets) !== sideBetSyncSignature(payload.sideBets || []);
-      applySideBetSnapshot({ ...payload, sideBets: payload.sideBets || [] }, requestId);
-      if (changed) void refreshNotificationCounts();
+      const nextSideBets = payload.sideBets || [];
+      const sideBetsChanged = sideBetSyncSignature(current.sideBets) !== sideBetSyncSignature(nextSideBets);
+      const slotCountsChanged = JSON.stringify(current.sideBetSlotCounts || {}) !== JSON.stringify(payload.sideBetSlotCounts || {});
+      if (sideBetsChanged || slotCountsChanged) {
+        applySideBetSnapshot({ ...payload, sideBets: nextSideBets }, requestId);
+      }
+      if (sideBetsChanged) void refreshNotificationCounts();
     } catch {
       // Keep the current offers visible and retry on the next foreground refresh.
     } finally {
@@ -1183,8 +1187,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     if (!data?.currentUser.id) return;
     setSideBetLedger([]);
     setSideBetLedgerReady(false);
-    void refreshSideBetLedger();
-  }, [data?.activeGroup?.id, data?.currentUser.id, refreshSideBetLedger]);
+  }, [data?.activeGroup?.id, data?.currentUser.id]);
   useEffect(() => {
     if (!data || testWeekActive) return;
     const offersVisible = tab === "picks" && picksView === "sideBets";
@@ -1198,7 +1201,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     };
 
     refreshVisibleSideBets();
-    const timer = window.setInterval(refreshVisibleSideBets, 2500);
+    const timer = window.setInterval(refreshVisibleSideBets, 10000);
     window.addEventListener("focus", refreshVisibleSideBets);
     window.addEventListener("online", refreshVisibleSideBets);
     document.addEventListener("visibilitychange", refreshVisibleSideBets);
@@ -2091,8 +2094,10 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
   async function acceptConfirmedBet() {
     if (!confirmingBetId) return;
-    const accepted = await respond("accept", confirmingBetId);
-    if (accepted) setConfirmingBetId(null);
+    const sideBetId = confirmingBetId;
+    setConfirmingBetId(null);
+    const accepted = await respond("accept", sideBetId);
+    if (!accepted) setConfirmingBetId(sideBetId);
   }
 
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
@@ -2170,8 +2175,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
     {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty="No side bet offers yet." saving={saving} savingBetId={savingBetId} canAccept={(bet) => weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
 
-    {confirmingBet && <div className="confirmation-backdrop">
-      <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title">
+    {confirmingBet && <div className="confirmation-backdrop" onClick={() => { if (!saving) setConfirmingBetId(null); }}>
+      <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
         <div className="confirmation-icon"><CircleDollarSign size={22} /></div>
         <div className="confirmation-heading"><span>Review side bet</span><h2 id="accept-bet-title">Accept <NumericText text={stakeMoney(Number(confirmingBet.amount))} /> bet?</h2></div>
         <div className="confirmation-matchup">
