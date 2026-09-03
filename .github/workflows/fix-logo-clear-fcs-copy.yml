@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
 
       - name: Apply isolated source fixes
-        run: node scripts/fix-logo-clear-fcs-copy-v3.mjs
+        run: node scripts/fix-logo-clear-fcs-copy-v4.mjs
 
       - name: Install dependencies
         run: npm ci
@@ -30,7 +30,7 @@ jobs:
         run: npm run build
 
       - name: Remove one-time tooling
-        run: rm -f scripts/fix-logo-clear-fcs-copy.mjs scripts/fix-logo-clear-fcs-copy-v2.mjs scripts/fix-logo-clear-fcs-copy-v3.mjs .github/workflows/fix-logo-clear-fcs-copy.yml
+        run: rm -f scripts/fix-logo-clear-fcs-copy.mjs scripts/fix-logo-clear-fcs-copy-v2.mjs scripts/fix-logo-clear-fcs-copy-v3.mjs scripts/fix-logo-clear-fcs-copy-v4.mjs lib/espnSchedule.testable.ts .github/workflows/fix-logo-clear-fcs-copy.yml
 
       - name: Commit verified changes
         run: |
