@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect } from "react";
+import { useEffect } from "react";
 
 type FontGeometry = { baseline: number; lineHeight: number };
 
@@ -192,7 +192,7 @@ function splitMatchup(text: string) {
 }
 
 export default function AppUiCoordinator() {
-  useLayoutEffect(() => {
+  useEffect(() => {
     let active = true;
     let frame = 0;
     let bankWasActive = false;
@@ -500,21 +500,16 @@ export default function AppUiCoordinator() {
       fontGeometryCache.clear();
       shiftCache.clear();
       visibleGlyphMetricCache.clear();
-      fitMyCardText();
       schedule();
     }
 
-    const observer = new MutationObserver(() => {
-      fitMyCardText();
-      schedule();
-    });
+    const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, characterData: true, subtree: true });
     document.addEventListener("keydown", onKey);
     window.addEventListener("focus", schedule);
     window.addEventListener("resize", schedule);
     document.fonts?.addEventListener?.("loadingdone", onFontsLoaded);
     void document.fonts?.ready.then(onFontsLoaded);
-    fitMyCardText();
     schedule();
 
     return () => {
