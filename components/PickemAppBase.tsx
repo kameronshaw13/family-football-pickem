@@ -100,6 +100,45 @@ const APP_DATA_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
 const EMPTY_NOTIFICATION_COUNTS: NotificationCounts = { side_bets_received: 0, side_bets_sent: 0, my_card: 0, league_cards: 0, side_bet_ledger: 0, total: 0 };
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
+const INITIAL_BOARD_LOGO_GAME_LIMIT = 8;
+const initialBoardLogoCache = new Set<string>();
+
+function preloadTeamLogo(url: string) {
+  if (!url || initialBoardLogoCache.has(url) || typeof window === "undefined") return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    const image = new window.Image();
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      window.clearTimeout(timeout);
+      initialBoardLogoCache.add(url);
+      resolve();
+    };
+    const decodeAndFinish = () => {
+      if (typeof image.decode !== "function") { finish(); return; }
+      void image.decode().catch(() => undefined).finally(finish);
+    };
+    const timeout = window.setTimeout(finish, 1500);
+    image.onload = decodeAndFinish;
+    image.onerror = finish;
+    image.decoding = "sync";
+    image.fetchPriority = "high";
+    image.src = url;
+    if (image.complete) decodeAndFinish();
+  });
+}
+
+async function preloadInitialBoardLogos(payload: AppData) {
+  if (typeof window === "undefined") return;
+  const games = [...(payload.games || [])]
+    .filter((game) => game.league === "CFB" && !isFinalGame(game))
+    .sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime())
+    .slice(0, INITIAL_BOARD_LOGO_GAME_LIMIT);
+  const urls = Array.from(new Set(games.flatMap((game) => [game.away_logo_url, game.home_logo_url]).filter((url): url is string => Boolean(url))));
+  await Promise.all(urls.map(preloadTeamLogo));
+}
+
 const CENTRAL_WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/Chicago" });
 const CENTRAL_FULL_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/Chicago" });
 const CENTRAL_OPEN_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
@@ -242,13 +281,13 @@ function SideBetResponseLine({ summary, teamFull, teamCompact, spread, date }: {
     return <>
       <span>{content.subject}</span>
       <span className={`side-bet-response ${summary.tone}`}>{summary.action}</span>
-      {content.recipient && <span>{content.recipient}</span>}
       {content.team && <span>{content.team}</span>}
       <NumericText text={spread} />
+      {content.recipient && <span>{content.recipient}</span>}
       {date && <span>· <NumericText text={date} /></span>}
     </>;
   };
-  const fullLabel = [summary.subjectFull, summary.action, summary.recipientFull, teamFull, spread, date ? `· ${date}` : ""].filter(Boolean).join(" ");
+  const fullLabel = [summary.subjectFull, summary.action, teamFull, spread, summary.recipientFull, date ? `· ${date}` : ""].filter(Boolean).join(" ");
 
   return <p ref={hostRef} className="side-bet-response-line" aria-label={fullLabel} title={variant === "full" ? undefined : fullLabel}>
     {SIDE_BET_RESPONSE_VARIANTS.map((value) => <span ref={(element) => { measureRefs.current[value] = element; }} className="side-bet-response-measure" aria-hidden="true" key={value}>{renderContent(value)}</span>)}
@@ -1128,6 +1167,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     }
     const cachedPayload = isInitialLoad ? readCachedAppData(appSlug, nextWeek) : null;
     if (cachedPayload) {
+      await preloadInitialBoardLogos(cachedPayload);
       const cachedAt = Date.now();
       const cachedWeekIsOpen = !cachedPayload.weekOpenTime || new Date(cachedPayload.weekOpenTime).getTime() <= cachedAt;
       dataRef.current = cachedPayload;
@@ -1174,6 +1214,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       if (isInitialLoad) setSessionValidated(true);
       const loadedAt = Date.now();
       const loadedWeekIsOpen = !payload.weekOpenTime || new Date(payload.weekOpenTime).getTime() <= loadedAt;
+      if (!cachedPayload) await preloadInitialBoardLogos(payload);
       dataRef.current = payload;
       setData(payload);
       setWeek(payload.week);
@@ -2269,7 +2310,9 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
     ? target?.response === "declined" || bet.status === "cancelled"
     : ["declined", "cancelled"].includes(bet.status);
 
-  return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""} ${canClearOffer ? "has-clear-offer-action" : ""}`.trim()}>
+  const hasActionRow = offerOpen || canClearOffer;
+
+  return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${hasActionRow ? "has-actions" : ""} ${saving && !working ? "background-busy" : ""}`.trim()}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, perspectiveTeam) : null} name={perspectiveTeam} />
       <div className="side-bet-offer-copy"><strong><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} /></strong><SideBetResponseLine summary={responseSummary} teamFull={offeredSideName} teamCompact={offeredSideCompact} spread={responseSpread} date={game ? dt(game.commence_time) : undefined} /></div>

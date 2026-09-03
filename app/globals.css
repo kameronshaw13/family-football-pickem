@@ -393,8 +393,6 @@ fieldset .field-label { padding: 0; }
 .side-bet-card .actions { margin-top: 8px; }
 .side-bet-card .actions .btn { min-height: 36px; padding: 6px 10px; }
 .side-bet-card.background-busy .btn:disabled { opacity: 1; }
-.side-bet-card .clear-offer-actions { justify-content: flex-end; }
-.side-bet-card .clear-offer-actions .btn { min-height: 32px; padding: 4px 8px; }
 .confirmation-backdrop { position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-end; justify-content: center; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); background: rgba(20, 33, 43, .54); backdrop-filter: blur(3px); }
 .confirmation-sheet { width: min(520px, 100%); padding: 18px; border-radius: 8px; background: var(--panel); box-shadow: 0 24px 60px rgba(20, 33, 43, .3); }
 .confirmation-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; color: var(--blue-dark); background: var(--blue-soft); }

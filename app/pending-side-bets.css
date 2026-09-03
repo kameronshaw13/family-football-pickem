@@ -1,35 +1,35 @@
-/* Pending/open Side Bet offers are the only Side Bet rows allowed to exceed the shared 62px card height. */
-.side-bet-card.open {
+/* Any Side Bet row with an action uses one shared in-flow action-row geometry. */
+.side-bet-card.has-actions {
   height: auto;
   min-height: calc(var(--pick-card-row-height) + 1px);
 }
 
-.side-bet-list > .side-bet-card.open:first-child {
+.side-bet-list > .side-bet-card.has-actions:first-child {
   height: auto;
   min-height: calc(var(--pick-card-row-height) + 2px);
 }
 
-.side-bet-list-section-body .side-bet-card.open:first-child {
+.side-bet-list-section-body .side-bet-card.has-actions:first-child {
   height: auto;
   min-height: calc(var(--pick-card-row-height) + 1px);
 }
 
-/* Keep the offer summary itself on the exact same centered 48px surface as before. */
-.side-bet-card.open .side-bet-offer-row {
+/* Keep the offer summary on the same centered 48px surface. */
+.side-bet-card.has-actions .side-bet-offer-row {
   height: 48px;
   min-height: 48px;
   align-items: center;
 }
 
-/* Give pending actions their own centered row instead of forcing them into the 62px offer surface. */
-.side-bet-card.open .actions {
+/* Give every action its own centered row instead of forcing it into the 62px offer surface. */
+.side-bet-card.has-actions .actions {
   min-height: 36px;
   align-items: center;
   margin-top: 8px;
   margin-bottom: 0;
 }
 
-.side-bet-card.open .actions .btn {
+.side-bet-card.has-actions .actions .btn {
   height: 36px;
   min-height: 36px;
   align-items: center;

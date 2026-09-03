@@ -10,12 +10,6 @@
 .score-bug-team.outcome-loss .team-logo { opacity: 1; filter: none; }
 .score-bug-team.outcome-loss .score-bug-score { color: var(--header-muted); }
 
-/* Clear history uses the same in-flow action-row geometry as other side-bet actions.
-   The card grows from its content instead of relying on a reserved pixel height. */
-.side-bet-card.has-clear-offer-action { display: block; height: auto; min-height: calc(var(--pick-card-row-height) + 1px); padding-bottom: 7px; }
-.side-bet-card.has-clear-offer-action > .clear-offer-actions { position: static; z-index: 2; display: flex; min-height: 36px; align-items: center; justify-content: flex-end; margin-top: 8px; margin-bottom: 0; pointer-events: auto; }
-.side-bet-card.has-clear-offer-action > .clear-offer-actions .btn { position: relative; z-index: 3; height: 36px; min-height: 36px; padding: 0 10px; pointer-events: auto; }
-
 .manual-pick-lock { display: inline-flex; min-width: 62px; height: 30px; min-height: 30px; align-items: center; justify-content: center; gap: 5px; padding: 0 8px; border: 1px solid #b88912; border-radius: 4px; color: var(--ink); background: var(--gold); font-family: var(--font-display); font-size: 11px; font-weight: 800; line-height: 1.2; cursor: pointer; }
 .manual-pick-lock svg { width: 13px; height: 13px; stroke-width: 2.2; color: var(--ink); }
 .manual-pick-lock:disabled { cursor: default; opacity: .55; }

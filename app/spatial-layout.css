@@ -118,12 +118,6 @@
   background: var(--red-soft);
 }
 
-.side-bet-card .clear-offer-actions .btn {
-  height: 32px;
-  min-height: 32px;
-  padding: 0 8px;
-}
-
 /* Received open offers display the recipient's side without changing side-bet logic. */
 .side-bet-card.received-offer-enhanced > .side-bet-offer-row:not(.received-offer-perspective) {
   display: none;
