@@ -2421,7 +2421,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
 
 function TeamLogo({ url, name, className = "" }: { url?: string | null; name: string; className?: string }) {
   const classes = `team-logo ${className}`.trim();
-  if (url) return <img src={url} alt="" className={classes} width={34} height={34} loading="eager" decoding="sync" />;
+  if (url) return <img src={url} alt="" className={classes} width={34} height={34} loading="lazy" decoding="async" />;
   return <div className={`${classes} fallback`}>{name.slice(0, 1)}</div>;
 }
 
