@@ -104,10 +104,11 @@ function buildReviewLogo(card: HTMLElement, selectedTeam: string) {
   if (image?.src) {
     const logo = document.createElement("img");
     logo.className = "team-logo manual-lock-review-logo";
-    logo.src = image.src;
+    logo.src = image.currentSrc || image.src;
     logo.alt = "";
     logo.width = 34;
     logo.height = 34;
+    logo.decoding = "sync";
     return logo;
   }
   const fallback = document.createElement("div");
