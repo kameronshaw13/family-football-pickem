@@ -3,6 +3,14 @@
 import { useEffect } from "react";
 
 const MONTH_DAY_PATTERN = /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?![a-z])/gi;
+const ORDINAL_DATE_SELECTORS = [
+  ".game-day-marker > strong",
+  ".card-panel .pick-meta",
+  ".card-panel .visible-pick-copy > p",
+  ".side-bet-offer-copy > p",
+  ".side-bet-slip-title > p",
+  ".confirmation-kickoff"
+].join(", ");
 
 function ordinalSuffix(day: number) {
   const lastTwo = day % 100;
@@ -26,7 +34,7 @@ function withOrdinalDay(text: string) {
 export default function DateHeaderOrdinals() {
   useEffect(() => {
     const apply = () => {
-      document.querySelectorAll<HTMLElement>(".game-day-marker > strong").forEach((element) => {
+      document.querySelectorAll<HTMLElement>(ORDINAL_DATE_SELECTORS).forEach((element) => {
         const current = element.textContent || "";
         const next = withOrdinalDay(current);
         if (next !== current) element.textContent = next;
