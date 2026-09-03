@@ -5,29 +5,6 @@ import type { AppSlug } from "@/lib/rulePresentation";
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
 
-const STYLES = `
-/* Keep a locked pick in the same 30px action slot previously occupied by the remove X. */
-.pick-lock-indicator{display:grid!important;width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important;place-items:center!important;padding:0!important;border:0!important;border-radius:0!important;color:var(--muted)!important;background:transparent!important;box-shadow:none!important;font-size:0!important;line-height:1!important}
-.pick-lock-indicator svg{display:block;width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none}
-.pick-lock-indicator.app-pass-lock-hidden{display:none!important}
-
-/* Sent offer status stays visibly blue. */
-.side-bet-card.mode-sent .side-bet-response.pending{color:var(--blue-dark)!important;-webkit-text-fill-color:var(--blue-dark)!important}
-
-/* An empty League Card row must start immediately below the player header. */
-.card-panel .group-card>h3+.group-empty-picks,.card-panel .group-card>h3+.admin-no-submission-row{margin-top:0!important}
-.card-panel .group-card>h3+.group-empty-picks{border-top:0!important;background:var(--panel)!important;box-shadow:none!important}
-.card-panel .group-card>h3+.admin-no-submission-row{border-top:0!important;background:var(--panel)!important;box-shadow:none!important}
-.card-panel .group-card>h3+.admin-no-submission-row::before{display:none!important}
-
-/* A completed week has history only and no new-offer controls. */
-.side-bet-center.app-pass-week-complete .side-bet-list-section[aria-labelledby="pending-offers-title"]{display:none!important}
-.side-bet-center.app-pass-week-complete .side-bet-filter-row.make-offer{grid-template-columns:minmax(0,120px)!important}
-.side-bet-center.app-pass-week-complete .side-bet-filter-row.make-offer>.compact-select:not(:first-child){display:none!important}
-.side-bet-center.app-pass-week-complete .side-bet-sportsbook-board>:not(.app-pass-week-complete-message){display:none!important}
-.side-bet-center.app-pass-week-complete .side-bet-slip-bar,.side-bet-center.app-pass-week-complete .side-bet-slip-sheet{display:none!important}
-`;
-
 type CachedGame = {
   id?: string;
   week?: number;
@@ -332,5 +309,5 @@ export default function AppPassFixes({ appSlug }: { appSlug: AppSlug }) {
     };
   }, [appSlug]);
 
-  return <style>{STYLES}</style>;
+  return null;
 }
