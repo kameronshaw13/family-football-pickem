@@ -3,11 +3,12 @@
 import { useEffect } from "react";
 
 const MONTH_DAY_PATTERN = /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})(?![a-z])/gi;
+
+/* Only touch simple date-only surfaces here. Do not replace textContent on
+   responsive matchup rows: doing so destroys the hidden full/compact measurement
+   spans that decide when ESPN abbreviations are required. */
 const ORDINAL_DATE_SELECTORS = [
   ".game-day-marker > strong",
-  ".card-panel .pick-meta",
-  ".card-panel .visible-pick-copy > p",
-  ".side-bet-offer-copy > p",
   ".side-bet-slip-title > p",
   ".confirmation-kickoff"
 ].join(", ");
