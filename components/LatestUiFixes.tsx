@@ -13,6 +13,12 @@ const STYLES = `
 .card-panel .pick-section .pick-card .pick-meta .responsive-text,
 .card-panel .pick-section .pick-card .pick-meta .responsive-text-value{overflow:clip!important;overflow-clip-margin:5px!important;line-height:1.45!important}
 
+/* Locked-card matchup/date text and the side-bet review callouts use one exact
+   typography treatment instead of separate near-matches. */
+.card-panel .pick-section .pick-card .pick-meta,
+.side-bet-offer-copy>p,
+.confirmation-kickoff{font-family:var(--font-display)!important;font-size:12px!important;font-weight:700!important}
+
 /* Standings cells share the same row mechanics. Place now uses the exact same
    line-box/numeric-wrapper treatment as W/L/P; only its rank color differs. */
 .standings-panel .leaderboard-row>.leaderboard-rank,
