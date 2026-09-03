@@ -1998,13 +1998,13 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         updated_at: nowIso,
         accepted_by_profile: { id: currentUser.id, display_name: currentUser.display_name },
         targets: bet.targets?.map((target) => target.recipient_id === currentUser.id
-          ? { ...target, response: "accepted", responded_at: nowIso }
-          : target.response === "pending" ? { ...target, response: "closed", responded_at: nowIso } : target)
+          ? { ...target, response: "accepted" as const, responded_at: nowIso }
+          : target.response === "pending" ? { ...target, response: "closed" as const, responded_at: nowIso } : target)
       }];
     }
     if (action === "decline") {
       const nextTargets = bet.targets?.map((target) => target.recipient_id === currentUser.id
-        ? { ...target, response: "declined", responded_at: nowIso }
+        ? { ...target, response: "declined" as const, responded_at: nowIso }
         : target);
       const stillPending = Boolean(nextTargets?.some((target) => target.response === "pending"));
       return [{ ...bet, status: stillPending ? bet.status : "declined", updated_at: nowIso, targets: nextTargets }];
@@ -2013,7 +2013,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
       ...bet,
       status: "cancelled",
       updated_at: nowIso,
-      targets: bet.targets?.map((target) => target.response === "pending" ? { ...target, response: "closed", responded_at: nowIso } : target)
+      targets: bet.targets?.map((target) => target.response === "pending" ? { ...target, response: "closed" as const, responded_at: nowIso } : target)
     }];
   });
   const received = sideBetsForView(presentedSideBets, currentUser.id, "received");
