@@ -13,12 +13,22 @@ const STYLES = `
 .card-panel .pick-section .pick-card .pick-meta .responsive-text,
 .card-panel .pick-section .pick-card .pick-meta .responsive-text-value{overflow:clip!important;overflow-clip-margin:5px!important;line-height:1.45!important}
 
-/* Keep the persistent grey matchup/date copy one step lighter than popup review text. */
+/* Persistent grey matchup/date metadata uses one exact treatment anywhere the
+   pick/card result rows output it: My Card, League Cards, weekly results and side bets. */
 .card-panel .pick-section .pick-card .pick-meta,
+.card-panel .group-card .visible-pick-copy>p,
+.bank-game-result>div>p,
 .side-bet-offer-copy>p{font-family:var(--font-display)!important;font-size:12px!important;font-weight:600!important}
 
+/* Give responsive team-name hosts the actual remaining title width. That lets the
+   existing full -> ESPN-abbreviation logic react before the lock/result box is hit. */
+.card-panel .group-card .visible-pick-copy>strong .pick-title-team.responsive-text,
+.bank-game-result .bank-game-pick-title .pick-title-team.responsive-text{flex:1 1 0%!important;width:auto!important;max-width:none!important;min-width:0!important}
+.card-panel .group-card .visible-pick-copy>strong .pick-title-market,
+.bank-game-result .bank-game-pick-title .pick-title-market{flex:0 0 auto!important}
+
 /* Lock Pick and Review & Accept popup matchup/date lines use the same treatment. */
-.confirmation-kickoff{font-family:var(--font-display)!important;font-size:11px!important;font-weight:700!important}
+.confirmation-kickoff{font-family:var(--font-display)!important;font-size:12px!important;font-weight:700!important}
 
 /* Standings cells share the same row mechanics. Place now uses the exact same
    line-box/numeric-wrapper treatment as W/L/P; only its rank color differs. */
