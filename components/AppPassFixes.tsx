@@ -157,7 +157,7 @@ function textWidth(text: string, element: HTMLElement, fontSizeOverride?: number
   const context = canvas.getContext("2d");
   if (!context) return Number.POSITIVE_INFINITY;
   const style = window.getComputedStyle(element);
-  const size = fontSizeOverride ?? Number.parseFloat(style.fontSize) || 14;
+  const size = fontSizeOverride ?? (Number.parseFloat(style.fontSize) || 14);
   context.font = `${style.fontStyle} ${style.fontWeight} ${size}px ${style.fontFamily}`;
   const spacing = Number.parseFloat(style.letterSpacing);
   return context.measureText(text).width + (Number.isFinite(spacing) ? Math.max(0, text.length - 1) * spacing : 0);
