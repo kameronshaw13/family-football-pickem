@@ -7,9 +7,12 @@ const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
 
 const STYLES = `
 /* Keep a locked pick in the same 30px action slot previously occupied by the remove X. */
-.pick-lock-indicator{display:grid!important;width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important;place-items:center!important;padding:0!important;border:0!important;border-radius:0!important;color:var(--ink)!important;background:transparent!important;box-shadow:none!important;font-size:0!important;line-height:1!important}
+.pick-lock-indicator{display:grid!important;width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important;place-items:center!important;padding:0!important;border:0!important;border-radius:0!important;color:var(--muted)!important;background:transparent!important;box-shadow:none!important;font-size:0!important;line-height:1!important}
 .pick-lock-indicator svg{display:block;width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none}
 .pick-lock-indicator.app-pass-lock-hidden{display:none!important}
+
+/* My Card always keeps the selected team at its full display name. JS only scales it down when the available row width requires it. */
+.card-panel .pick-section .pick-card .pick-title-team.app-pass-full-team{max-width:100%;overflow:hidden!important;text-overflow:clip!important;white-space:nowrap!important}
 
 /* An empty League Card row must start immediately below the player header. */
 .card-panel .group-card>h3+.group-empty-picks,.card-panel .group-card>h3+.admin-no-submission-row{margin-top:0!important}
@@ -149,6 +152,90 @@ function enhanceLockIndicator(element: HTMLElement, universalLockReached: boolea
   }
 }
 
+function textWidth(text: string, element: HTMLElement, fontSizeOverride?: number) {
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) return Number.POSITIVE_INFINITY;
+  const style = window.getComputedStyle(element);
+  const size = fontSizeOverride ?? Number.parseFloat(style.fontSize) || 14;
+  context.font = `${style.fontStyle} ${style.fontWeight} ${size}px ${style.fontFamily}`;
+  const spacing = Number.parseFloat(style.letterSpacing);
+  return context.measureText(text).width + (Number.isFinite(spacing) ? Math.max(0, text.length - 1) * spacing : 0);
+}
+
+function fitFullPickTeam(team: HTMLElement, title: HTMLElement, market: HTMLElement | null, fullTeam: string) {
+  team.classList.add("app-pass-full-team");
+  team.style.fontSize = "";
+  const titleStyle = window.getComputedStyle(title);
+  const gap = Number.parseFloat(titleStyle.columnGap || titleStyle.gap) || 4;
+  const marketWidth = market?.getBoundingClientRect().width || 0;
+  const available = Math.max(0, title.clientWidth - marketWidth - (market ? gap : 0));
+  const baseSize = Number.parseFloat(window.getComputedStyle(team).fontSize) || 14;
+  const naturalWidth = textWidth(fullTeam, team, baseSize);
+  if (available <= 0 || naturalWidth <= available + 0.5) return;
+  const fittedSize = Math.max(10, Math.min(baseSize, baseSize * available / naturalWidth));
+  team.style.fontSize = `${fittedSize.toFixed(2)}px`;
+}
+
+function splitMetaText(text: string) {
+  const divider = " · ";
+  const index = text.indexOf(divider);
+  return index < 0
+    ? { matchup: text.trim(), suffix: "" }
+    : { matchup: text.slice(0, index).trim(), suffix: text.slice(index) };
+}
+
+function splitMatchup(text: string) {
+  const marker = " at ";
+  const index = text.indexOf(marker);
+  return index < 0 ? null : { away: text.slice(0, index).trim(), home: text.slice(index + marker.length).trim() };
+}
+
+function syncMyCardText() {
+  document.querySelectorAll<HTMLElement>(".card-panel .pick-section .pick-card").forEach((row) => {
+    const title = row.querySelector<HTMLElement>(".pick-title");
+    const team = title?.querySelector<HTMLElement>(".pick-title-team");
+    const market = title?.querySelector<HTMLElement>(".pick-title-market") || null;
+    if (!title || !team) return;
+
+    const fullTeam = team.dataset.appPassFullTeam || team.getAttribute("aria-label")?.trim() || team.textContent?.trim() || "";
+    if (!fullTeam) return;
+    team.dataset.appPassFullTeam = fullTeam;
+    if (team.textContent?.trim() !== fullTeam) team.textContent = fullTeam;
+    fitFullPickTeam(team, title, market, fullTeam);
+
+    const responsive = row.querySelector<HTMLElement>(".pick-meta .responsive-text");
+    const value = responsive?.querySelector<HTMLElement>(".responsive-text-value");
+    if (!responsive || !value) return;
+
+    const fullMeta = responsive.getAttribute("aria-label")?.trim() || "";
+    if (!fullMeta) return;
+    const fullParts = splitMetaText(fullMeta);
+    const fullMatchup = splitMatchup(fullParts.matchup);
+    if (!fullMatchup) return;
+
+    const initialCompactMeta = responsive.dataset.appPassCompactMeta || value.textContent?.trim() || fullMeta;
+    responsive.dataset.appPassCompactMeta = initialCompactMeta;
+    const compactParts = splitMetaText(initialCompactMeta);
+    const compactMatchup = splitMatchup(compactParts.matchup);
+    if (!compactMatchup) return;
+
+    const selectedAway = fullTeam === fullMatchup.away;
+    const selectedHome = fullTeam === fullMatchup.home;
+    const intermediateMatchup = selectedAway
+      ? `${fullMatchup.away} at ${compactMatchup.home}`
+      : selectedHome
+        ? `${compactMatchup.away} at ${fullMatchup.home}`
+        : `${fullMatchup.away} at ${compactMatchup.home}`;
+    const intermediateMeta = `${intermediateMatchup}${fullParts.suffix}`;
+    const compactMeta = `${compactMatchup.away} at ${compactMatchup.home}${fullParts.suffix}`;
+    const available = responsive.clientWidth + 0.5;
+    const candidates = [fullMeta, intermediateMeta, compactMeta];
+    const chosen = candidates.find((candidate) => textWidth(candidate, value) <= available) || compactMeta;
+    if (value.textContent?.trim() !== chosen) value.textContent = chosen;
+  });
+}
+
 function progressCheckMarkup() {
   return `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.8 10a10 10 0 1 1-4.8-6.7"/><path d="m9 11 3 3L22 4"/></svg>`;
 }
@@ -243,6 +330,7 @@ export default function AppPassFixes({ appSlug }: { appSlug: AppSlug }) {
         const universalLockReached = universalLock != null && universalLock <= now;
 
         document.querySelectorAll<HTMLElement>(".pick-status-locked,.manual-lock-confirmed").forEach((element) => enhanceLockIndicator(element, universalLockReached));
+        syncMyCardText();
 
         document.querySelectorAll<HTMLElement>(".pick-card,.visible-pick,.bank-game-result").forEach((row) => {
           const admin = Boolean(row.querySelector('img[src*="admin-no-submission.svg"]'));
@@ -272,12 +360,14 @@ export default function AppPassFixes({ appSlug }: { appSlug: AppSlug }) {
     const timer = window.setInterval(apply, 30_000);
     void document.fonts?.ready.then(scheduleApply).catch(() => undefined);
     window.addEventListener("storage", scheduleApply);
+    window.addEventListener("resize", scheduleApply);
 
     return () => {
       observer.disconnect();
       window.clearInterval(timer);
       if (frame) window.cancelAnimationFrame(frame);
       window.removeEventListener("storage", scheduleApply);
+      window.removeEventListener("resize", scheduleApply);
       document.querySelector('[data-app-pass-progress="1"]')?.remove();
       document.querySelector(".app-pass-week-complete-message")?.remove();
     };
