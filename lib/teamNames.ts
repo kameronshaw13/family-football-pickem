@@ -34,12 +34,21 @@ function espnCollegeAbbreviation(team: string, displayName: string) {
   return aliases[espnAbbreviationKey(displayName)] || null;
 }
 
+function restoreStateDisplay(team: string, displayName: string) {
+  // The base school-name cleanup historically shortened every "State" to "St.".
+  // Only reverse that styling when the actual incoming college team contains the
+  // word State, so legitimate Saint/St. school names remain untouched.
+  if (!/\bstate\b/i.test(team)) return displayName;
+  return displayName.replace(/\bSt\.(?=\s|$)/g, "State");
+}
+
 export function teamDisplayName(league: string | null | undefined, team: string) {
   if (league !== "NFL") {
     const override = DISPLAY_OVERRIDES[normalizeTeamNameKey(team)];
     if (override) return override;
   }
-  return baseTeamDisplayName(league, team);
+  const displayName = baseTeamDisplayName(league, team);
+  return league === "NFL" ? displayName : restoreStateDisplay(team, displayName);
 }
 
 export function teamAbbreviatedName(league: string | null | undefined, team: string) {
