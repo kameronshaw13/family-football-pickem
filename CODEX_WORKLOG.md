@@ -1,6 +1,6 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
-**Last updated:** 2026-09-01  
+**Last updated:** 2026-09-03  
 **Current production baseline when this file was created:** `79ef0c88b7377cbf1fc9ae3d3f0c93a854791885`  
 **Production status at creation:** Vercel READY
 
@@ -153,27 +153,19 @@ If Clear fails again, trace the status/presentation logic first. Do not add anot
 
 ### Incomplete-card finalizer Supabase relationship
 
-**Status: NOT FIXED — high priority before the next real weekend lock.**
+**Status: FIXED in `aee7bc0`.**
 
 File: `lib/finalizeIncompleteCards.ts`
 
-Current query still uses:
-
-```ts
-.select("group_id,season_year,status,rules,group:pickem_groups(timezone)")
-```
-
-This can be ambiguous because there is more than one Supabase relationship path.
-
-Patch to the explicit FK relationship:
+The query now uses the explicit relationship:
 
 ```ts
 .select("group_id,season_year,status,rules,group:pickem_groups!group_seasons_group_id_fkey(timezone)")
 ```
 
-Do this as an isolated backend-safety patch, build it, create a rollback, then promote.
+This can be ambiguous because there is more than one Supabase relationship path.
 
-The earlier week-switch guard is already present and prevents premature incomplete-card finalization before the actual weekend lock, but the ambiguous relationship can still fail when the finalizer truly runs.
+The earlier week-switch guard remains in place to prevent premature incomplete-card finalization before the actual weekend lock.
 
 ---
 
@@ -201,6 +193,11 @@ The earlier week-switch guard is already present and prevents premature incomple
 
 ### Recent visual/UI work
 
+- college odds imports require both teams to match ESPN, preventing Northern Iowa from being confused with Iowa at a shared kickoff time
+- locked picks use the smaller gray lock icon
+- expired side-bet offers expose the same per-user Clear action as declined/cancelled offers
+- side-bet acceptance and manual-lock popup matchup/date cells share height, size, and weight
+- Next.js 14 was updated to 14.2.35; lint is configured and the full 32-test suite passes
 - losing teams use sharper gray hierarchy while logos remain full opacity
 - League Rules accordion compact spacing retained
 - Side Bet response wording/responsive cleanup retained
