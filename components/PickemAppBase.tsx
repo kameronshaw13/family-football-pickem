@@ -949,8 +949,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [sessionValidated, setSessionValidated] = useState(false);
   const [message, setMessage] = useState("");
   const [savingPicks, setSavingPicks] = useState(false);
-  const [savingBet, setSavingBet] = useState(false);
-  const [savingBetId, setSavingBetId] = useState<string | null>(null);
   const [sideBetLedger, setSideBetLedger] = useState<SideBet[]>([]);
   const [sideBetLedgerReady, setSideBetLedgerReady] = useState(false);
   const [stagedPicks, setStagedPicks] = useState<Pick[] | null>(null);
@@ -1389,10 +1387,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       window.location.href = loginPath;
       return false;
     }
+    if (sideBetMutationInFlightRef.current) return false;
     sideBetMutationInFlightRef.current = true;
     const requestId = ++sideBetRequestSequenceRef.current;
-    setSavingBet(true);
-    setSavingBetId(body.sideBetId || null);
     try {
       const response = await fetch("/api/side-bets", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, body: JSON.stringify({ ...body, viewWeek: data?.week }) });
       const payload = await response.json();
@@ -1413,8 +1410,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       return false;
     } finally {
       sideBetMutationInFlightRef.current = false;
-      setSavingBet(false);
-      setSavingBetId(null);
     }
   }
 
@@ -1699,8 +1694,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           selectedCreatorTeam={selectedCreatorTeam}
           amount={betAmount}
           recipients={betRecipients}
-          saving={savingBet}
-          savingBetId={savingBetId}
           offerNotificationCount={receivedNotificationCount + sentNotificationCount}
           setGame={(gameId) => { setBetGameId(gameId); setBetCreatorTeam(""); }}
           setGameLeague={(nextLeague) => { setBetLeagueFilter(nextLeague); setBetConferenceFilter("ALL"); setBetGameId(""); setBetCreatorTeam(""); }}
@@ -1954,7 +1947,7 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
@@ -1970,8 +1963,6 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   selectedCreatorTeam: string;
   amount: string;
   recipients: string[];
-  saving: boolean;
-  savingBetId: string | null;
   offerNotificationCount: number;
   setGame: (value: string) => void;
   setGameLeague: (value: SideBetLeagueFilter) => void;
@@ -1983,14 +1974,50 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean>;
 }) {
   const [confirmingBetId, setConfirmingBetId] = useState<string | null>(null);
+  const [pendingMutation, setPendingMutation] = useState<{ action: "create" | "accept" | "decline" | "cancel" | "clear"; sideBetId: string | null } | null>(null);
+  const [optimisticActions, setOptimisticActions] = useState<Record<string, "accept" | "decline" | "cancel" | "clear">>({});
   const [slipExpanded, setSlipExpanded] = useState(false);
   const [slipClosing, setSlipClosing] = useState(false);
   const slipSheetRef = useRef<HTMLElement>(null);
   const slipSwipeStartY = useRef<number | null>(null);
   const slipCloseTimer = useRef<number | null>(null);
   const slipClosingRef = useRef(false);
-  const received = sideBetsForView(sideBets, currentUser.id, "received");
-  const sent = sideBetsForView(sideBets, currentUser.id, "sent");
+  const saving = pendingMutation !== null;
+  const savingBetId = pendingMutation?.sideBetId ?? null;
+  const presentedSideBets: SideBet[] = sideBets.flatMap((bet): SideBet[] => {
+    const action = optimisticActions[bet.id];
+    if (!action) return [bet];
+    if (action === "clear") return [];
+    const nowIso = new Date().toISOString();
+    if (action === "accept") {
+      return [{
+        ...bet,
+        status: "accepted",
+        accepted_by: currentUser.id,
+        accepted_at: nowIso,
+        updated_at: nowIso,
+        accepted_by_profile: { id: currentUser.id, display_name: currentUser.display_name },
+        targets: bet.targets?.map((target) => target.recipient_id === currentUser.id
+          ? { ...target, response: "accepted" as const, responded_at: nowIso }
+          : target.response === "pending" ? { ...target, response: "closed" as const, responded_at: nowIso } : target)
+      }];
+    }
+    if (action === "decline") {
+      const nextTargets = bet.targets?.map((target) => target.recipient_id === currentUser.id
+        ? { ...target, response: "declined" as const, responded_at: nowIso }
+        : target);
+      const stillPending = Boolean(nextTargets?.some((target) => target.response === "pending"));
+      return [{ ...bet, status: stillPending ? bet.status : "declined", updated_at: nowIso, targets: nextTargets }];
+    }
+    return [{
+      ...bet,
+      status: "cancelled",
+      updated_at: nowIso,
+      targets: bet.targets?.map((target) => target.response === "pending" ? { ...target, response: "closed" as const, responded_at: nowIso } : target)
+    }];
+  });
+  const received = sideBetsForView(presentedSideBets, currentUser.id, "received");
+  const sent = sideBetsForView(presentedSideBets, currentUser.id, "sent");
   const offers = [...received, ...sent];
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
@@ -2011,6 +2038,27 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     return groups;
   }, []);
   const hasSlip = Boolean(selectedGame && selectedCreatorTeam);
+
+  useEffect(() => {
+    setOptimisticActions((current) => {
+      let changed = false;
+      const next = { ...current };
+      for (const [sideBetId, action] of Object.entries(current)) {
+        const bet = sideBets.find((item) => item.id === sideBetId);
+        const target = bet?.targets?.find((item) => item.recipient_id === currentUser.id);
+        const confirmed = !bet ||
+          (action === "accept" && bet.status === "accepted" && bet.accepted_by === currentUser.id) ||
+          (action === "decline" && (target?.response === "declined" || bet.status === "declined")) ||
+          (action === "cancel" && bet.status === "cancelled") ||
+          (action === "clear" && !bet);
+        if (confirmed) {
+          delete next[sideBetId];
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [currentUser.id, sideBets]);
 
   const collapseSlip = useCallback(() => {
     if (!slipExpanded || slipClosingRef.current) return;
@@ -2088,15 +2136,40 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   }
 
   async function sendOffer() {
-    const sentOffer = await createBet();
-    if (sentOffer) setSlipExpanded(false);
+    if (pendingMutation) return;
+    setPendingMutation({ action: "create", sideBetId: null });
+    try {
+      const sentOffer = await createBet();
+      if (sentOffer) setSlipExpanded(false);
+    } finally {
+      setPendingMutation(null);
+    }
+  }
+
+  async function runResponse(action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) {
+    if (pendingMutation) return false;
+    setPendingMutation({ action, sideBetId });
+    setOptimisticActions((current) => ({ ...current, [sideBetId]: action }));
+    try {
+      const ok = await respond(action, sideBetId);
+      if (!ok) {
+        setOptimisticActions((current) => {
+          const next = { ...current };
+          delete next[sideBetId];
+          return next;
+        });
+      }
+      return ok;
+    } finally {
+      setPendingMutation(null);
+    }
   }
 
   async function acceptConfirmedBet() {
     if (!confirmingBetId) return;
     const sideBetId = confirmingBetId;
     setConfirmingBetId(null);
-    const accepted = await respond("accept", sideBetId);
+    const accepted = await runResponse("accept", sideBetId);
     if (!accepted) setConfirmingBetId(sideBetId);
   }
 
@@ -2173,7 +2246,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
       </section>}
 
-    {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty="No side bet offers yet." saving={saving} savingBetId={savingBetId} canAccept={(bet) => weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
+    {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty="No side bet offers yet." saving={saving} savingBetId={savingBetId} canAccept={(bet) => weekIsOpen && hasAvailableSideBetSlot(presentedSideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={runResponse} />}
 
     {confirmingBet && <div className="confirmation-backdrop" onClick={() => { if (!saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
