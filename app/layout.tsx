@@ -138,7 +138,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const espnCollegeAbbreviations = await fetchEspnCollegeAbbreviationAliases().catch(() => ({}));
 
   return (
-    <html lang="en" data-theme="light">
+    <html lang="en" data-theme="light" style={{ "--font-display": '"Archivo", Arial, sans-serif' } as React.CSSProperties}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: abbreviationBootstrapScript(espnCollegeAbbreviations) }} />
         <script dangerouslySetInnerHTML={{ __html: SESSION_RECOVERY_SCRIPT }} />
@@ -147,7 +147,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preload" href="/header-wordmark.png" as="image" type="image/png" />
         <link rel="preload" href="/football-pickem-wordmark.png" as="image" type="image/png" />
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;500;600;700;800;900&display=swap" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" />
       </head>
       <body>{children}<AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /></body>
     </html>
