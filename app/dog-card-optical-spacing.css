@@ -1,9 +1,0 @@
-/* Card dog labels keep their smaller styling but use the same optical vertical geometry as regular pick markets. */
-.pick-card .dog-separator,
-.pick-card .dog-tag,
-.visible-pick .dog-separator,
-.visible-pick .dog-tag,
-.bank-game-result .dog-separator,
-.bank-game-result .dog-tag {
-  transform: none;
-}
