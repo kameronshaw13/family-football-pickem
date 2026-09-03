@@ -50,7 +50,7 @@ app = replaceOnce(
 app = replaceOnce(
   app,
   `    if ((data?.sideBetSlotCounts?.[currentUser.id] || 0) >= MAX_SIDE_BETS_PER_WEEK) {\n      notify(\`You already have \${MAX_SIDE_BETS_PER_WEEK} accepted or pending side bets this week.\`, "error");\n      return false;\n    }\n    const fullRecipient = profiles.find((profile) => betRecipients.includes(profile.id) && (data?.sideBetSlotCounts?.[profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK);\n`,
-  `    const maxPerWeek = data.sideBetSettings?.maxPerWeek ?? null;\n    if (maxPerWeek != null && (data.sideBetSlotCounts?.[currentUser.id] || 0) >= maxPerWeek) {\n      notify(\`You already have \${maxPerWeek} accepted or pending side bets this week.\`, "error");\n      return false;\n    }\n    const fullRecipient = maxPerWeek == null ? undefined : profiles.find((profile) => betRecipients.includes(profile.id) && (data.sideBetSlotCounts?.[profile.id] || 0) >= maxPerWeek);\n`,
+  `    const maxPerWeek = data?.sideBetSettings?.maxPerWeek ?? null;\n    if (maxPerWeek != null && (data?.sideBetSlotCounts?.[currentUser.id] || 0) >= maxPerWeek) {\n      notify(\`You already have \${maxPerWeek} accepted or pending side bets this week.\`, "error");\n      return false;\n    }\n    const fullRecipient = maxPerWeek == null ? undefined : profiles.find((profile) => betRecipients.includes(profile.id) && (data?.sideBetSlotCounts?.[profile.id] || 0) >= maxPerWeek);\n`,
   "create-side-bet group limit"
 );
 app = replaceOnce(
