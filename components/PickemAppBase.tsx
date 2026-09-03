@@ -97,6 +97,7 @@ type SideBetSnapshot = {
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
 const APP_DATA_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
+const SIDE_BET_VISIBLE_REFRESH_MS = 10_000;
 const EMPTY_NOTIFICATION_COUNTS: NotificationCounts = { side_bets_received: 0, side_bets_sent: 0, my_card: 0, league_cards: 0, side_bet_ledger: 0, total: 0 };
 
 const CENTRAL_WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/Chicago" });
@@ -1198,7 +1199,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     };
 
     refreshVisibleSideBets();
-    const timer = window.setInterval(refreshVisibleSideBets, 2500);
+    const timer = window.setInterval(refreshVisibleSideBets, SIDE_BET_VISIBLE_REFRESH_MS);
     window.addEventListener("focus", refreshVisibleSideBets);
     window.addEventListener("online", refreshVisibleSideBets);
     document.addEventListener("visibilitychange", refreshVisibleSideBets);
@@ -2170,8 +2171,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
     {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty="No side bet offers yet." saving={saving} savingBetId={savingBetId} canAccept={(bet) => weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
 
-    {confirmingBet && <div className="confirmation-backdrop">
-      <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title">
+    {confirmingBet && <div className="confirmation-backdrop" onClick={() => { if (!saving) setConfirmingBetId(null); }}>
+      <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
         <div className="confirmation-icon"><CircleDollarSign size={22} /></div>
         <div className="confirmation-heading"><span>Review side bet</span><h2 id="accept-bet-title">Accept <NumericText text={stakeMoney(Number(confirmingBet.amount))} /> bet?</h2></div>
         <div className="confirmation-matchup">
