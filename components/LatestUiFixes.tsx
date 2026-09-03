@@ -51,6 +51,16 @@ const STYLES = `
 .card-panel .group-card .visible-pick-copy>strong .pick-title-market .numeric-fragment,
 .card-panel .group-card .visible-pick-copy>strong .pick-title-market .numeric-symbol{line-height:1.45!important;overflow:visible!important;padding-block:3px!important;margin-block:-3px!important}
 
+/* Only the League Card and Weekly Results spread tokens need extra descender paint
+   room. The matching negative margin preserves the exact baseline, row height and
+   two-line-block centering while keeping the bottom of Roboto Slab numerals visible. */
+.card-panel .group-card .visible-pick-copy>strong .pick-title-market>.numeric-token,
+.bank-game-result .bank-game-pick-title .pick-title-market>.numeric-token{display:inline-block!important;line-height:1.45!important;overflow:visible!important;padding-bottom:3px!important;margin-bottom:-3px!important}
+.card-panel .group-card .visible-pick-copy>strong .pick-title-market>.numeric-token .numeric-fragment,
+.card-panel .group-card .visible-pick-copy>strong .pick-title-market>.numeric-token .numeric-symbol,
+.bank-game-result .bank-game-pick-title .pick-title-market>.numeric-token .numeric-fragment,
+.bank-game-result .bank-game-pick-title .pick-title-market>.numeric-token .numeric-symbol{line-height:inherit!important;overflow:visible!important;padding-bottom:2px!important;margin-bottom:-2px!important}
+
 /* Lock Pick and Review & Accept popup matchup/date lines use the same treatment. */
 .confirmation-kickoff{font-family:var(--font-display)!important;font-size:12px!important;font-weight:700!important}
 
