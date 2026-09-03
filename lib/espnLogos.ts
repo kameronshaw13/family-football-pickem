@@ -74,6 +74,43 @@ async function fetchTeams(league: "NFL" | "CFB") {
   return payload?.sports?.[0]?.leagues?.[0]?.teams || [];
 }
 
+/**
+ * ESPN is the canonical source for compact college team labels. This returns
+ * every unambiguous alias -> ESPN abbreviation from the same all-team feed used
+ * by our logo resolver, so it covers both FBS and FCS and updates with ESPN.
+ */
+export async function fetchEspnCollegeAbbreviationAliases(): Promise<Record<string, string>> {
+  const teams = await fetchTeams("CFB");
+  const candidates = new Map<string, Set<string>>();
+
+  for (const item of teams) {
+    const team = item?.team || item || {};
+    const abbreviation = String(team.abbreviation || "").trim();
+    if (!abbreviation) continue;
+    const aliases = uniq([
+      team.displayName,
+      team.shortDisplayName,
+      team.shortName,
+      team.location,
+      `${team.location || ""} ${team.name || ""}`,
+      abbreviation
+    ]);
+    for (const alias of aliases) {
+      const key = normalize(alias);
+      if (!key) continue;
+      const values = candidates.get(key) || new Set<string>();
+      values.add(abbreviation);
+      candidates.set(key, values);
+    }
+  }
+
+  const aliases: Record<string, string> = {};
+  for (const [key, values] of candidates) {
+    if (values.size === 1) aliases[key] = Array.from(values)[0];
+  }
+  return aliases;
+}
+
 export async function fetchEspnLogoMap(league: "NFL" | "CFB") {
   const teams = await fetchTeams(league);
   const records: ESPNTeamLogo[] = teams.map((item: any) => {
