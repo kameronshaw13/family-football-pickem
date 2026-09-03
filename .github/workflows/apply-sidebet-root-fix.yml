@@ -1,0 +1,199 @@
+name: Apply side-bet root performance fix
+
+on:
+  push:
+    branches: [sidebet-root-fix-2026-09-03]
+    paths:
+      - '.github/workflows/apply-sidebet-root-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone --branch sidebet-root-fix-2026-09-03 "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
+
+      - name: Apply source fixes
+        run: |
+          cd repo
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected 1 match, found {count}")
+              return text.replace(old, new, 1)
+
+          route = Path('app/api/side-bets/routeBase.ts')
+          text = route.read_text()
+
+          old = '''async function allGroupBets(supabase: any, groupId: string, seasonYear: number) {
+            const { data, error } = await supabase
+              .from("side_bets")
+              .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
+              .eq("group_id", groupId)
+              .eq("season_year", seasonYear)
+              .order("created_at", { ascending: false });
+            if (error) throw new Error(error.message);
+            return data || [];
+          }
+
+          async function dismissedSideBetIds(supabase: any, groupId: string, profileId: string) {
+            const { data, error } = await supabase
+              .from("side_bet_dismissals")
+              .select("side_bet_id")
+              .eq("group_id", groupId)
+              .eq("user_id", profileId);
+            if (error) throw new Error(error.message);
+            return new Set((data || []).map((row: any) => row.side_bet_id));
+          }'''
+          new = '''async function allGroupBets(supabase: any, groupId: string, seasonYear: number, week?: number) {
+            let query = supabase
+              .from("side_bets")
+              .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
+              .eq("group_id", groupId)
+              .eq("season_year", seasonYear);
+            if (Number.isInteger(week)) query = query.eq("week", week);
+            const { data, error } = await query.order("created_at", { ascending: false });
+            if (error) throw new Error(error.message);
+            return data || [];
+          }
+
+          async function dismissedSideBetIds(supabase: any, groupId: string, profileId: string, sideBetIds?: string[]) {
+            if (sideBetIds && sideBetIds.length === 0) return new Set<string>();
+            let query = supabase
+              .from("side_bet_dismissals")
+              .select("side_bet_id")
+              .eq("group_id", groupId)
+              .eq("user_id", profileId);
+            if (sideBetIds) query = query.in("side_bet_id", sideBetIds);
+            const { data, error } = await query;
+            if (error) throw new Error(error.message);
+            return new Set((data || []).map((row: any) => row.side_bet_id));
+          }'''
+          text = replace_once(text, old, new, 'week-scoped side bet query')
+
+          old = '''          let rows = await allGroupBets(supabase, context.group.id, context.seasonYear);'''
+          new = '''          let rows = await allGroupBets(supabase, context.group.id, context.seasonYear, week);'''
+          text = replace_once(text, old, new, 'snapshot query scope')
+
+          old = '''          const rawCounts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === week), context.members.map((member: any) => member.id));
+          const dismissed = await dismissedSideBetIds(supabase, context.group.id, profileId);'''
+          new = '''          const rawCounts = sideBetSlotCounts(rows, context.members.map((member: any) => member.id));
+          const dismissed = await dismissedSideBetIds(supabase, context.group.id, profileId, rows.map((bet: any) => bet.id));'''
+          text = replace_once(text, old, new, 'snapshot counts and dismissals')
+
+          old = '''              const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
+              const counts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === Number(game.week)), context.members.map((member) => member.id));'''
+          new = '''              const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, Number(game.week));
+              const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id));'''
+          text = replace_once(text, old, new, 'create limit query')
+
+          old = '''            await resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id);
+            return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });'''
+          new = '''            const [nextSnapshot] = await Promise.all([
+              snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
+              resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id)
+            ]);
+            return NextResponse.json({ ok: true, ...nextSnapshot });'''
+          text = replace_once(text, old, new, 'cancel response parallelism')
+
+          old = '''              await resolveSideBetOfferNotifications(supabase, [sideBet.id], auth.profile.id, context.group.id);
+              const [nextSnapshot] = await Promise.all([
+                snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
+                createNotificationSafely(supabase, {'''
+          new = '''              const [nextSnapshot] = await Promise.all([
+                snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
+                resolveSideBetOfferNotifications(supabase, [sideBet.id], auth.profile.id, context.group.id),
+                createNotificationSafely(supabase, {'''
+          text = replace_once(text, old, new, 'decline response parallelism')
+
+          old = '''              const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
+              const counts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === Number(sideBet.week)), context.members.map((member) => member.id), sideBet.id);'''
+          new = '''              const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, Number(sideBet.week));
+              const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id), sideBet.id);'''
+          text = replace_once(text, old, new, 'accept limit query')
+
+          old = '''            await resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id);
+            const [nextSnapshot] = await Promise.all([
+              snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
+              createNotificationSafely(supabase, {'''
+          new = '''            const [nextSnapshot] = await Promise.all([
+              snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
+              resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id),
+              createNotificationSafely(supabase, {'''
+          text = replace_once(text, old, new, 'accept response parallelism')
+          route.write_text(text)
+
+          wrapper = Path('app/api/side-bets/route.ts')
+          text = wrapper.read_text()
+          old = '''          async function filterResponseToWeek(response: Response, week: number | null) {
+            if (!response.ok || week == null || !Number.isInteger(week)) return response;
+            const payload = await response.json();
+            if (Array.isArray(payload.sideBets)) payload.sideBets = payload.sideBets.filter((bet: any) => Number(bet.week) === week);
+            return NextResponse.json(payload, { status: response.status, headers: { "Cache-Control": "no-store, max-age=0" } });
+          }
+
+          export async function GET(req: NextRequest) {
+            const parsedWeek = Number(req.nextUrl.searchParams.get("week"));
+            return filterResponseToWeek(await baseGET(req), Number.isInteger(parsedWeek) ? parsedWeek : null);
+          }'''
+          new = '''          export async function GET(req: NextRequest) {
+            return baseGET(req);
+          }'''
+          text = replace_once(text, old, new, 'remove response re-filtering')
+
+          old = '''              const response = await basePOST(req);
+              const viewWeek = Number(body?.viewWeek);
+              return filterResponseToWeek(response, Number.isInteger(viewWeek) ? viewWeek : null);'''
+          new = '''              return basePOST(req);'''
+          text = replace_once(text, old, new, 'direct normal POST response')
+
+          old = '''              const response = await basePOST(req);
+              const viewWeek = Number(body?.viewWeek);
+              return filterResponseToWeek(response, Number.isInteger(viewWeek) ? viewWeek : null);'''
+          new = '''              return basePOST(req);'''
+          text = replace_once(text, old, new, 'direct clear fallback response')
+
+          old = '''            return filterResponseToWeek(await baseGET(new NextRequest(url, { method: "GET", headers: req.headers })), viewWeek);'''
+          new = '''            return baseGET(new NextRequest(url, { method: "GET", headers: req.headers }));'''
+          text = replace_once(text, old, new, 'direct expired clear snapshot')
+          wrapper.write_text(text)
+
+          app = Path('components/PickemAppBase.tsx')
+          text = app.read_text()
+          old = '''          const APP_DATA_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;'''
+          new = '''          const APP_DATA_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
+          const SIDE_BET_VISIBLE_REFRESH_MS = 10_000;'''
+          text = replace_once(text, old, new, 'side bet refresh constant')
+
+          old = '''            const timer = window.setInterval(refreshVisibleSideBets, 2500);'''
+          new = '''            const timer = window.setInterval(refreshVisibleSideBets, SIDE_BET_VISIBLE_REFRESH_MS);'''
+          text = replace_once(text, old, new, 'side bet polling cadence')
+
+          old = '''              {confirmingBet && <div className="confirmation-backdrop">
+                <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title">'''
+          new = '''              {confirmingBet && <div className="confirmation-backdrop" onClick={() => { if (!saving) setConfirmingBetId(null); }}>
+                <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>'''
+          text = replace_once(text, old, new, 'confirmation backdrop dismissal')
+          app.write_text(text)
+          PY
+
+      - name: Commit source changes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd repo
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/api/side-bets/routeBase.ts app/api/side-bets/route.ts components/PickemAppBase.tsx
+          git diff --cached --check
+          git commit -m "Optimize side-bet data flow and modal interactions"
+          git push origin HEAD:sidebet-root-fix-2026-09-03
