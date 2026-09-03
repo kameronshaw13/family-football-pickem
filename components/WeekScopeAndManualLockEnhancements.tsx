@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { AppSlug } from "@/lib/rulePresentation";
+import { teamDisplayName } from "@/lib/teamNames";
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
 const FULL_GAME_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
@@ -17,6 +18,7 @@ type CachedGame = {
   commence_time?: string | null;
   away_team?: string | null;
   home_team?: string | null;
+  league?: string | null;
 };
 
 type CachedSideBet = {
@@ -168,7 +170,10 @@ function enhanceSideBetConfirmationDate(appSlug: AppSlug) {
   );
   const commenceTime = bet?.game?.commence_time;
   if (!commenceTime) return;
-  const nextText = fullGameDate(commenceTime);
+  const away = teamDisplayName(bet.game?.league, bet.game?.away_team || "");
+  const home = teamDisplayName(bet.game?.league, bet.game?.home_team || "");
+  const matchup = away && home ? `${away} at ${home}` : "";
+  const nextText = [matchup, fullGameDate(commenceTime)].filter(Boolean).join(" · ");
   if (kickoff.textContent?.trim() !== nextText) kickoff.textContent = nextText;
 }
 

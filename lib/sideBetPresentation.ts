@@ -1,4 +1,4 @@
-import type { SideBet } from "./types";
+import type { SideBet } from "./types.ts";
 import {
   sideBetBettorForTeam,
   sideBetLedgerPerspective,
@@ -6,9 +6,9 @@ import {
   sideBetPerspective,
   sideBetsForView as baseSideBetsForView,
   sideBetResponseSummary as baseSideBetResponseSummary
-} from "./sideBetPresentationBase";
+} from "./sideBetPresentationBase.ts";
 
-export type { SideBetResponseSummary, SideBetResponseTone, SideBetViewMode } from "./sideBetPresentationBase";
+export type { SideBetResponseSummary, SideBetResponseTone, SideBetViewMode } from "./sideBetPresentationBase.ts";
 export { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective };
 
 type PresentationSideBet = SideBet & { __presentationExpired?: boolean };

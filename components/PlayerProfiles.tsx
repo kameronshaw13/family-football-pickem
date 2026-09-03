@@ -161,7 +161,7 @@ export default function PlayerProfiles() {
           </section>
 
           <section className="player-profile-block player-profile-highlights">
-            <div className="player-profile-section-heading"><h3>Pick'em Highlights</h3></div>
+            <div className="player-profile-section-heading"><h3>Pick&apos;em Highlights</h3></div>
             <div className="player-profile-legacy-row">
               <div><span>Career Titles</span><small>{profile.group.titleLabel}</small></div>
               <strong>{titleCount}</strong>

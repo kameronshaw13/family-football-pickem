@@ -199,7 +199,7 @@ export async function finalizeIncompleteCardsAfterWeekendLock(
 ): Promise<FinalizeIncompleteCardsResult> {
   const currentTime = options.currentTime || new Date();
   let seasonQuery = supabase.from("group_seasons")
-    .select("group_id,season_year,status,rules,group:pickem_groups(timezone)")
+    .select("group_id,season_year,status,rules,group:pickem_groups!group_seasons_group_id_fkey(timezone)")
     .eq("status", "active");
   if (options.groupId) seasonQuery = seasonQuery.eq("group_id", options.groupId);
   if (options.seasonYear != null) seasonQuery = seasonQuery.eq("season_year", options.seasonYear);

@@ -375,7 +375,7 @@ function universalWeekendLockTime(games: Game[]) {
 }
 function LockedPickIndicator({ hidden = false }: { hidden?: boolean }) {
   if (hidden) return null;
-  return <span className="pick-lock-indicator" aria-label="Locked"><Lock size={18} aria-hidden="true" /></span>;
+  return <span className="pick-lock-indicator" aria-label="Locked"><Lock size={14} aria-hidden="true" /></span>;
 }
 function boardStatusForGame(game: Game, now: number, weekIsOpen: boolean): GameStatusFilter {
   if (isFinalGame(game)) return "FINAL";
@@ -2241,7 +2241,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
           <div><span>You take</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.offered_team)} ${spreadText(Number(confirmingBet.offered_spread))}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.offered_team)} ${spreadText(Number(confirmingBet.offered_spread))}`} /> : <>{confirmingBet.offered_team} <NumericText text={spreadText(Number(confirmingBet.offered_spread))} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.offered_team) : null} name={confirmingBet.offered_team} /></div>
           <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.creator_team)} ${spreadText(Number(confirmingBet.creator_spread))}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.creator_team)} ${spreadText(Number(confirmingBet.creator_spread))}`} /> : <>{confirmingBet.creator_team} <NumericText text={spreadText(Number(confirmingBet.creator_spread))} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.creator_team) : null} name={confirmingBet.creator_team} /></div>
         </div>
-        {confirmingBet.game && <p className="confirmation-kickoff"><NumericText text={dt(confirmingBet.game.commence_time)} /></p>}
+        {confirmingBet.game && <p className="confirmation-kickoff"><NumericText text={`${matchupTextVariants(confirmingBet.game).full} · ${openText(confirmingBet.game.commence_time)}`} /></p>}
         <div className="confirmation-actions"><button className="btn secondary" disabled={saving} onClick={() => setConfirmingBetId(null)}>Cancel</button><button className="btn accept" disabled={saving} onClick={acceptConfirmedBet}><Check size={16} /> {saving ? "Accepting…" : "Accept bet"}</button></div>
       </section>
     </div>}
@@ -2307,8 +2307,8 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   const responseSpread = spreadText(Number(bet.offered_spread));
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
   const canClearOffer = mode === "received"
-    ? target?.response === "declined" || bet.status === "cancelled"
-    : ["declined", "cancelled"].includes(bet.status);
+    ? target?.response === "declined" || ["cancelled", "expired"].includes(bet.status)
+    : ["declined", "cancelled", "expired"].includes(bet.status);
 
   const hasActionRow = offerOpen || canClearOffer;
 

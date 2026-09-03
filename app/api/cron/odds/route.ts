@@ -188,8 +188,10 @@ async function refreshOdds() {
       const returned = (await oddsResponse.json()) as OddsEvent[];
       const schedule = await fetchEspnSchedule(sport.league, returned.map((event) => event.commence_time));
       const data = returned.flatMap((event) => {
+        // College imports must match both schools. Kickoff time plus one matching
+        // school is not enough: Northern Iowa can otherwise be mistaken for Iowa.
         const scheduleMatch = findEspnScheduleMatch(event, schedule, {
-          allowOneSided: sport.key !== "americanfootball_ncaaf_fcs"
+          allowOneSided: sport.league === "NFL"
         });
         if (!scheduleMatch) return [];
         const officialHomeName = scheduleMatch.swapped ? event.away_team : event.home_team;

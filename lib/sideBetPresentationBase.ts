@@ -1,4 +1,4 @@
-import type { SideBet } from "./types";
+import type { SideBet } from "./types.ts";
 
 export type SideBetViewMode = "received" | "sent";
 export type SideBetResponseTone = "accepted" | "declined" | "pending";

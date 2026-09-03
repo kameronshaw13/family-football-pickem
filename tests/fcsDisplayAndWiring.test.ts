@@ -10,12 +10,13 @@ test("new FCS school labels omit mascots", () => {
   assert.equal(teamDisplayName("CFB", "Charlotte 49ers"), "Charlotte");
 });
 
-// The FCS feed must never accept the one-team fallback that allowed Northern Iowa to match Iowa.
-test("FCS odds wiring disables one-sided ESPN matching", () => {
+// No college feed may accept the one-team fallback that allowed Northern Iowa
+// to match Iowa when both games shared a kickoff time.
+test("college odds wiring disables one-sided ESPN matching", () => {
   const matcher = fs.readFileSync("lib/espnSchedule.ts", "utf8");
   const route = fs.readFileSync("app/api/cron/odds/route.ts", "utf8");
   assert.match(matcher, /options: \{ allowOneSided\?: boolean \} = \{\}/);
   assert.match(matcher, /const allowOneSided = options\.allowOneSided !== false/);
   assert.match(matcher, /if \(allowOneSided &&/);
-  assert.match(route, /allowOneSided: sport\.key !== "americanfootball_ncaaf_fcs"/);
+  assert.match(route, /allowOneSided: sport\.league === "NFL"/);
 });

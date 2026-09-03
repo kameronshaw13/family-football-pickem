@@ -2,7 +2,7 @@ import {
   normalizeTeamNameKey,
   teamAbbreviatedName as baseTeamAbbreviatedName,
   teamDisplayName as baseTeamDisplayName
-} from "./teamNamesBase";
+} from "./teamNamesBase.ts";
 
 export { normalizeTeamNameKey };
 
