@@ -49,7 +49,7 @@
   --rank-gold: #8a6a16;
   --rank-silver: #68747a;
   --rank-bronze: #965f35;
-  --font-display: "Roboto Slab", Rockwell, Georgia, serif;
+  --font-display: var(--font-roboto-slab), Rockwell, Georgia, serif;
 }
 
 * { box-sizing: border-box; }
@@ -94,11 +94,6 @@ p { margin: 0; }
 .primary-nav button.active .nav-icon-standings svg path { fill: none; stroke: #fff; }
 .primary-nav button.active .nav-icon-standings svg path:last-child { fill: #fff; }
 .nav-icon { position: relative; display: grid; place-items: center; transition: color .15s ease, filter .15s ease, transform .15s ease; }
-.notification-badge { display: inline-grid; min-width: 15px; height: 15px; flex: 0 0 auto; place-items: center; padding: 0 3px; border-radius: 999px; color: #fff; background: #cf3f39; font-size: 8px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; text-align: center; }
-.notification-badge > .numeric-token { display: flex; width: 100%; height: 100%; transform: translateY(-.5px); align-items: center; justify-content: center; line-height: 1; }
-.notification-badge .numeric-fragment { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
-.nav-notification-badge { position: absolute; top: -6px; right: -9px; min-width: 17px; height: 17px; padding-inline: 4px; border: 2px solid var(--graphite); font-size: 8px; }
-
 .container { padding: calc(env(safe-area-inset-top) + var(--header-height) + var(--space-3)) var(--page-gutter) calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-5)); }
 .test-mode-banner { display: flex; min-height: 52px; align-items: center; justify-content: space-between; gap: 10px; margin: 0 calc(var(--page-gutter) * -1) var(--space-3); padding: 8px var(--page-gutter); border-block: 1px solid #35505f; color: #fff; background: var(--graphite-light); }
 .test-mode-banner > span { display: flex; min-width: 0; align-items: center; gap: 8px; }
@@ -284,13 +279,13 @@ p { margin: 0; }
 .pick-title-team { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pick-title-team.responsive-text { max-width: 100%; flex: 0 1 auto; }
 .pick-title-market { display: inline-flex; flex: 0 0 auto; align-items: center; white-space: nowrap; }
-.dog-separator { margin-inline: 4px; font-size: .92em; line-height: inherit; transform: translateY(.5px); }
+.dog-separator { margin-inline: 4px; font-size: .92em; line-height: inherit; }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; }
 .visible-pick { position: relative; display: grid; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); grid-template-columns: var(--card-logo-column) minmax(0, 1fr) max-content; align-items: center; gap: var(--card-logo-gap); margin: 0; padding: 7px var(--pick-content-inset); border: 0; border-bottom: 1px solid var(--line); background: var(--panel); }
 .group-card .visible-pick:first-of-type::before { position: absolute; top: 0; right: 0; left: 0; height: 1px; background: var(--line-strong); content: ""; pointer-events: none; }
 .visible-pick:last-child { border-bottom-color: var(--line-strong); }
 .pick-meta, .visible-pick-copy p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dog-tag { color: var(--red); font-size: .92em; font-weight: inherit; font-variant-numeric: tabular-nums; line-height: inherit; transform: translateY(.5px); }
+.dog-tag { color: var(--red); font-size: .92em; font-weight: inherit; font-variant-numeric: tabular-nums; line-height: inherit; }
 .actions { display: flex; gap: 8px; margin-top: 11px; }
 .btn { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 6px; padding: 8px 13px; border: 1px solid transparent; border-radius: 5px; color: #fff; background: var(--graphite-light); font-size: 12px; font-weight: 800; }
 .btn.accent, .btn.gold { background: var(--blue-dark); }

@@ -47,10 +47,6 @@ type Matchup = {
   away_team: string;
 };
 
-const MIN_TWO_SIDED_IDENTITY_SCORE = 80;
-const STRONG_ONE_SIDED_IDENTITY_SCORE = 110;
-const ONE_SIDED_MATCH_MAX_DISTANCE_MS = 36 * 60 * 60 * 1000;
-
 function normalize(value: string | null | undefined) {
   return (value || "")
     .normalize("NFD")
@@ -72,16 +68,6 @@ function includesAll(haystack: Set<string>, needles: Set<string>) {
   return needles.size > 0 && Array.from(needles).every((token) => haystack.has(token));
 }
 
-function hasEmbeddedAbbreviation(sourceTokens: Set<string>, abbreviation: string) {
-  const normalizedAbbreviation = normalize(abbreviation);
-  // Two-letter abbreviations are too collision-prone (UT, OS, etc.). Longer ESPN
-  // abbreviations are safe as whole tokens and cover provider names such as
-  // "LIU Post Pioneers", "BYU Cougars", and "UCF Knights".
-  return normalizedAbbreviation.length >= 3 &&
-    !normalizedAbbreviation.includes(" ") &&
-    sourceTokens.has(normalizedAbbreviation);
-}
-
 function identityScore(sourceName: string, team: EspnTeam) {
   const source = normalize(sourceName);
   const aliases = [team.displayName, `${team.location} ${team.nickname}`, team.location, team.abbreviation]
@@ -90,8 +76,6 @@ function identityScore(sourceName: string, team: EspnTeam) {
   if (aliases.includes(source)) return 120;
 
   const sourceTokens = tokenSet(source);
-  if (hasEmbeddedAbbreviation(sourceTokens, team.abbreviation)) return 110;
-
   const locationTokens = tokenSet(team.location);
   const nicknameTokens = tokenSet(team.nickname);
   if (includesAll(sourceTokens, locationTokens) && includesAll(sourceTokens, nicknameTokens)) return 110;
@@ -100,23 +84,6 @@ function identityScore(sourceName: string, team: EspnTeam) {
   const displayTokens = tokenSet(team.displayName);
   const overlap = Array.from(displayTokens).filter((token) => sourceTokens.has(token)).length;
   return overlap >= 2 ? Math.round((overlap / Math.max(displayTokens.size, sourceTokens.size)) * 80) : 0;
-}
-
-function alignmentScore(firstTeamScore: number, secondTeamScore: number, kickoffDistance: number) {
-  if (Math.min(firstTeamScore, secondTeamScore) >= MIN_TWO_SIDED_IDENTITY_SCORE) {
-    return firstTeamScore + secondTeamScore;
-  }
-
-  // Some odds providers retain legacy or alternate names for smaller schools.
-  // When one side is an exact/very strong identity, the kickoff window safely
-  // disambiguates the opponent without making ordinary team-name matching fuzzy.
-  if (Number.isFinite(kickoffDistance) &&
-      kickoffDistance <= ONE_SIDED_MATCH_MAX_DISTANCE_MS &&
-      Math.max(firstTeamScore, secondTeamScore) >= STRONG_ONE_SIDED_IDENTITY_SCORE) {
-    return Math.max(firstTeamScore, secondTeamScore);
-  }
-
-  return 0;
 }
 
 function teamFromCompetitor(competitor: any): EspnTeam {
@@ -281,19 +248,18 @@ export function findEspnScheduleMatch(matchup: Matchup, schedule: EspnScheduleGa
   const sourceTime = new Date(matchup.commence_time).getTime();
 
   for (const game of schedule) {
-    const distance = Math.abs(new Date(game.commenceTime).getTime() - sourceTime);
     const directHome = identityScore(matchup.home_team, game.homeTeam);
     const directAway = identityScore(matchup.away_team, game.awayTeam);
     const swappedHome = identityScore(matchup.home_team, game.awayTeam);
     const swappedAway = identityScore(matchup.away_team, game.homeTeam);
-    const directScore = alignmentScore(directHome, directAway, distance);
-    const swappedScore = alignmentScore(swappedHome, swappedAway, distance);
+    const directScore = Math.min(directHome, directAway) >= 80 ? directHome + directAway : 0;
+    const swappedScore = Math.min(swappedHome, swappedAway) >= 80 ? swappedHome + swappedAway : 0;
     const score = Math.max(directScore, swappedScore);
     if (!score) continue;
 
     const candidate = {
       score,
-      distance,
+      distance: Math.abs(new Date(game.commenceTime).getTime() - sourceTime),
       match: { game, swapped: swappedScore > directScore }
     };
     if (!best || candidate.score > best.score || (candidate.score === best.score && candidate.distance < best.distance)) {

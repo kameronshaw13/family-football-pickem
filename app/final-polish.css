@@ -1,4 +1,4 @@
-/* Final shared polish pass: stable visual corrections without changing card geometry. */
+/* Final shared polish pass: visual-only corrections without changing card geometry. */
 
 /* Pending Offers / Offer History use a strong outer frame, while the internal
    divider between the heading and its first row stays at the normal line tone. */
@@ -14,6 +14,7 @@
   border-block-color: var(--line-strong);
 }
 
+
 /* Empty Picks sections should end with the same strong boundary as populated cards. */
 .card-panel .card-empty-picks,
 .card-panel .group-empty-picks {
@@ -26,7 +27,9 @@
   border-bottom: 0;
 }
 
-/* Dropdown options use clean, divider-free 38px cells everywhere. */
+/* Dropdown options use clean, divider-free 38px cells everywhere. Removing the
+   option border does not change row height, so every selectable cell keeps the
+   same visual space and selected blue backgrounds fill the entire cell. */
 .custom-select-menu {
   row-gap: 0;
   background: var(--panel);
@@ -35,11 +38,17 @@
   border-top: 0;
 }
 
+/* Conference options, including ALL CONF., are explicitly fixed to the same
+   38px selectable cell height. */
 .context-select .custom-select-option {
   height: 38px;
   min-height: 38px;
 }
 
+/* Conference section labels remain distinct without changing any row height.
+   The divider above Power 4 / Group of 6 is painted by the final option in the
+   preceding section, so selected ALL CONF. and SEC backgrounds run completely
+   flush into that divider. The header itself owns only its bottom divider. */
 .context-select .custom-select-section:not(:last-child) > .custom-select-option:last-child {
   position: relative;
 }
@@ -72,42 +81,23 @@
   pointer-events: none;
 }
 
+/* Keep the app from rubber-banding downward when the user reaches the top of
+   Pick Board / Side Bets on browsers that support overscroll-behavior. */
 html,
 body,
 .app-shell {
   overscroll-behavior-y: none;
 }
 
-/* Specific non-card text surfaces that need a slightly taller natural line box. */
-.bank-result-player,
-.side-bet-list-section > h3,
-.card-progress-copy strong,
-.card-progress-count {
-  line-height: 1.3;
-}
-
-/* Pick Board team names keep full Roboto Slab descenders. */
-.team-name-line .responsive-text,
-.team-name-line .responsive-text-value {
-  line-height: 1.3;
-}
-
-/* Legacy content-specific optical nudges are disabled; AppUiCoordinator owns vertical placement. */
-.confidence-card-chip,
-.pick-card .dog-separator,
-.pick-card .dog-tag,
-.visible-pick .dog-separator,
-.visible-pick .dog-tag,
-.bank-game-result .dog-separator,
-.bank-game-result .dog-tag {
-  transform: none;
-}
-
+/* Preserve right-side market wrapping without overriding the shared responsive
+   sizing: team names and markets are 16px by default and 15px on mobile. */
 .team-spread,
 .team-board-market {
   white-space: nowrap;
 }
 
+/* Side-bet money sits on the exact vertical centerline used by the centered
+   team logo in Pending Offers, Offer History, and the Side Bet Ledger. */
 .side-bet-offer-amount,
 .side-bet-ledger-amount {
   display: flex;
@@ -117,6 +107,7 @@ body,
   align-self: stretch;
 }
 
+/* Real and preview Pick Board use the same score-based selected-side treatment. */
 .picks-panel .stacked-matchup .team-row.picked-win {
   background: linear-gradient(var(--green), var(--green)) left top / 4px 100% no-repeat, var(--win-soft);
 }
@@ -134,315 +125,6 @@ body,
   column-gap: var(--card-logo-gap);
 }
 .pick-row-actions, .visible-pick-actions { align-self: center; }
-
-/* Card section headers own the strong divider everywhere. */
-.card-panel .pick-section > h3,
-.card-panel .group-card > h3 {
-  border-top-color: var(--line-strong);
-}
-
-/* Canonical card/result typography. AppUiCoordinator is the only system allowed
-   to move these lines vertically. These rules never add vertical padding, margins,
-   transforms, clip-paths, or overflow clipping. */
-.card-panel .pick-section .pick-card .pick-copy,
-.card-panel .group-card .visible-pick-copy,
-.bank-game-result > div,
-.side-bet-offer-copy {
-  min-width: 0;
-  overflow: visible;
-}
-
-.card-panel .pick-section .pick-card .pick-title,
-.card-panel .group-card .visible-pick-copy > strong,
-.bank-game-result .bank-game-pick-title,
-.side-bet-offer-copy > strong {
-  min-width: 0;
-  overflow: visible;
-  line-height: 1.25;
-}
-
-.card-panel .pick-section .pick-card .pick-title-team,
-.card-panel .pick-section .pick-card .pick-title-market,
-.card-panel .group-card .visible-pick-copy > strong .pick-title-team,
-.card-panel .group-card .visible-pick-copy > strong .pick-title-market,
-.bank-game-result .bank-game-pick-title .pick-title-team,
-.bank-game-result .bank-game-pick-title .pick-title-market,
-.side-bet-offer-copy > strong .responsive-text,
-.card-panel .pick-section .pick-card .responsive-text,
-.card-panel .group-card .visible-pick-copy .responsive-text,
-.bank-game-result .responsive-text {
-  min-width: 0;
-  overflow: visible;
-  line-height: inherit;
-  text-overflow: clip;
-  white-space: nowrap;
-}
-
-.card-panel .pick-section .pick-card .responsive-text-value,
-.card-panel .group-card .visible-pick-copy .responsive-text-value,
-.bank-game-result .responsive-text-value,
-.side-bet-offer-copy .responsive-text-value,
-.card-panel .pick-section .pick-card .pick-title .numeric-token,
-.card-panel .pick-section .pick-card .pick-title .numeric-fragment,
-.card-panel .pick-section .pick-card .pick-title .numeric-symbol,
-.card-panel .group-card .visible-pick-copy > strong .numeric-token,
-.card-panel .group-card .visible-pick-copy > strong .numeric-fragment,
-.card-panel .group-card .visible-pick-copy > strong .numeric-symbol,
-.bank-game-result .bank-game-pick-title .numeric-token,
-.bank-game-result .bank-game-pick-title .numeric-fragment,
-.bank-game-result .bank-game-pick-title .numeric-symbol {
-  overflow: visible;
-  line-height: inherit;
-}
-
-.card-panel .pick-section .pick-card .pick-meta,
-.card-panel .group-card .visible-pick-copy > p,
-.bank-game-result > div > p,
-.side-bet-offer-copy > p {
-  overflow: visible;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.confirmation-kickoff {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-/* Standings numbers keep one shared natural line-box treatment. */
-.standings-panel .leaderboard-row > .leaderboard-rank,
-.standings-panel .leaderboard-row > .leaderboard-player,
-.standings-panel .leaderboard-row > .leaderboard-stat,
-.standings-panel .leaderboard-row > .leaderboard-pct,
-.standings-panel .leaderboard-row > .leaderboard-points {
-  height: 100%;
-  align-self: stretch;
-  align-items: center;
-  transform: none;
-}
-.standings-panel .leaderboard-row > .leaderboard-rank,
-.standings-panel .leaderboard-row > .leaderboard-stat,
-.standings-panel .leaderboard-row > .leaderboard-pct,
-.standings-panel .leaderboard-row > .leaderboard-points {
-  line-height: normal;
-  overflow: visible;
-}
-.standings-panel .leaderboard-row > .leaderboard-rank {
-  display: flex;
-  justify-content: center;
-}
-.standings-panel .leaderboard-row > .leaderboard-rank .numeric-token,
-.standings-panel .leaderboard-row > .leaderboard-rank .numeric-fragment,
-.standings-panel .leaderboard-row > .leaderboard-stat .numeric-token,
-.standings-panel .leaderboard-row > .leaderboard-stat .numeric-fragment,
-.standings-panel .leaderboard-row > .leaderboard-pct .numeric-token,
-.standings-panel .leaderboard-row > .leaderboard-pct .numeric-fragment,
-.standings-panel .leaderboard-row > .leaderboard-points .numeric-token,
-.standings-panel .leaderboard-row > .leaderboard-points .numeric-fragment {
-  display: inline;
-  line-height: inherit;
-  overflow: visible;
-  padding: 0;
-  transform: none;
-}
-
-/* Accepted existing exception: game time already renders correctly on iOS. */
-.game-card .game-head .game-time {
-  display: inline-flex;
-  align-items: center;
-  line-height: 1.4;
-  padding-block: 3px;
-  margin-block: -3px;
-  overflow: visible;
-}
-.game-card .game-head .game-time > .numeric-token,
-.game-card .game-head .game-time .numeric-fragment,
-.game-card .game-head .game-time .numeric-symbol {
-  line-height: 1.4;
-  overflow: visible;
-}
-
-/* Static rules formerly injected by Batch1UiEnhancements. */
-.rule-item summary {
-  min-height: 50px;
-  padding-top: 4px;
-  padding-bottom: 4px;
-}
-.rule-item[open] .rule-copy {
-  padding-top: 5px;
-}
-.notification-badge {
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
-  font-size: 8.5px;
-  line-height: 1;
-}
-.notification-badge > .numeric-token {
-  display: grid;
-  width: 100%;
-  height: 100%;
-  place-items: center;
-  transform: none;
-  line-height: 1;
-}
-.notification-badge .numeric-fragment {
-  display: block;
-  line-height: 1;
-}
-.nav-notification-badge {
-  top: -6px;
-  right: -9px;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
-  border: 0;
-  box-shadow: 0 0 0 2px var(--graphite);
-}
-.game-final-status {
-  text-transform: none;
-}
-.game-card.final-outcome .team-row.outcome-loss .team-name,
-.game-card.final-outcome .team-row.outcome-loss .team-board-market,
-.game-card.final-outcome .team-row.outcome-loss .team-result-score {
-  color: var(--header-muted);
-  -webkit-text-fill-color: var(--header-muted);
-}
-.game-card.final-outcome .team-row.outcome-loss .team-logo,
-.score-bug-team.outcome-loss .team-logo {
-  opacity: 1;
-  filter: none;
-}
-.score-bug-team.outcome-loss .score-bug-score {
-  color: var(--header-muted);
-}
-
-/* Static side-bet/manual-lock rules formerly injected by Batch1bSideBetStyles. */
-.side-bet-card:has(> .clear-offer-actions) {
-  display: block !important;
-  height: auto !important;
-  min-height: 111px !important;
-  padding-bottom: 10px !important;
-}
-.side-bet-card:has(> .clear-offer-actions) > .clear-offer-actions {
-  display: flex !important;
-  position: static !important;
-  z-index: 2;
-  margin-top: 8px !important;
-  justify-content: flex-end !important;
-  pointer-events: auto;
-}
-.side-bet-card:has(> .clear-offer-actions) > .clear-offer-actions .btn {
-  position: relative;
-  z-index: 3;
-  pointer-events: auto;
-}
-.manual-pick-lock {
-  height: 30px !important;
-  min-height: 30px !important;
-  min-width: 62px !important;
-  font-size: 11px !important;
-  font-weight: 800 !important;
-  line-height: 1.2 !important;
-}
-.manual-pick-lock svg {
-  width: 13px !important;
-  height: 13px !important;
-}
-.manual-lock-review .confirmation-matchup {
-  margin-top: 0 !important;
-  border-top: 0 !important;
-  border-bottom: 1px solid var(--line-strong) !important;
-}
-.manual-lock-review .confirmation-matchup > div.manual-lock-pick-cell {
-  background: var(--panel) !important;
-  box-shadow: none !important;
-}
-.manual-lock-review .manual-lock-pick-cell > .team-name,
-.manual-lock-review .manual-lock-pick-cell > .team-spread {
-  line-height: 1.3 !important;
-}
-.manual-lock-review .confirmation-kickoff.manual-lock-meta {
-  border-top: 0 !important;
-  border-bottom: 1px solid var(--line-strong) !important;
-  color: var(--header-muted) !important;
-  letter-spacing: 0;
-  line-height: 1.25 !important;
-}
-.manual-lock-review .manual-lock-note {
-  color: var(--ink) !important;
-  font-weight: 600 !important;
-  line-height: 1.4 !important;
-}
-
-/* Static rules formerly injected by AppPassFixes. */
-.pick-lock-indicator {
-  display: grid !important;
-  width: 30px !important;
-  min-width: 30px !important;
-  height: 30px !important;
-  min-height: 30px !important;
-  place-items: center !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  color: var(--muted) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  font-size: 0 !important;
-  line-height: 1 !important;
-}
-.pick-lock-indicator svg {
-  display: block;
-  width: 18px;
-  height: 18px;
-  stroke: currentColor;
-  stroke-width: 2;
-  fill: none;
-}
-.pick-lock-indicator.app-pass-lock-hidden {
-  display: none !important;
-}
-.side-bet-card.mode-sent .side-bet-response.pending {
-  color: var(--blue-dark) !important;
-  -webkit-text-fill-color: var(--blue-dark) !important;
-}
-.card-panel .group-card > h3 + .group-empty-picks,
-.card-panel .group-card > h3 + .admin-no-submission-row {
-  margin-top: 0 !important;
-}
-.card-panel .group-card > h3 + .group-empty-picks {
-  border-top: 0 !important;
-  background: var(--panel) !important;
-  box-shadow: none !important;
-}
-.card-panel .group-card > h3 + .admin-no-submission-row {
-  border-top: 0 !important;
-  background: var(--panel) !important;
-  box-shadow: none !important;
-}
-.card-panel .group-card > h3 + .admin-no-submission-row::before {
-  display: none !important;
-}
-.side-bet-center.app-pass-week-complete .side-bet-list-section[aria-labelledby="pending-offers-title"] {
-  display: none !important;
-}
-.side-bet-center.app-pass-week-complete .side-bet-filter-row.make-offer {
-  grid-template-columns: minmax(0, 120px) !important;
-}
-.side-bet-center.app-pass-week-complete .side-bet-filter-row.make-offer > .compact-select:not(:first-child) {
-  display: none !important;
-}
-.side-bet-center.app-pass-week-complete .side-bet-sportsbook-board > :not(.app-pass-week-complete-message) {
-  display: none !important;
-}
-.side-bet-center.app-pass-week-complete .side-bet-slip-bar,
-.side-bet-center.app-pass-week-complete .side-bet-slip-sheet {
-  display: none !important;
-}
 
 /* Keep compact icon buttons visually unchanged while giving fingers a roughly
    44px touch target on phones/tablets. */

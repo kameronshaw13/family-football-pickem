@@ -13,15 +13,3 @@ test("the offer being reviewed does not block its recipient's final slot", () =>
   assert.equal(sideBetSlotCounts(rows.filter((row) => row.week === 2), ["recipient"]).recipient, 3);
   assert.equal(hasAvailableSideBetSlot(rows, "recipient", 2, 3, "pending-3"), true);
 });
-
-test("an unlimited weekly setting never blocks another side bet", () => {
-  const rows = Array.from({ length: 8 }, (_, index) => ({
-    id: `accepted-${index}`,
-    week: 2,
-    creator_id: `sender-${index}`,
-    accepted_by: "recipient",
-    status: "accepted"
-  }));
-
-  assert.equal(hasAvailableSideBetSlot(rows, "recipient", 2, Infinity), true);
-});

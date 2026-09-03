@@ -1,8 +1,8 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
-**Last updated:** 2026-09-03  
-**Current app-code production baseline:** `2a64303f3f665fa2ca5c877fc84a173725bb6c5e`
-**Production status:** Vercel READY
+**Last updated:** 2026-09-01  
+**Current production baseline when this file was created:** `79ef0c88b7377cbf1fc9ae3d3f0c93a854791885`  
+**Production status at creation:** Vercel READY
 
 > **Codex / future sessions:** Read this file before changing the app. Treat it as the running source of truth. After a task is completed, update the relevant status here in the same work session. Do not rely only on chat history.
 
@@ -33,108 +33,44 @@
 
 ## 2. Current production state
 
-Current app-code baseline:
+Current live baseline at the time this file was created:
 
-- app-code commit: `2a64303f3f665fa2ca5c877fc84a173725bb6c5e`
-- commit message: **Restore font centering and patch game time clipping**
-- Vercel production for that app-code commit: **READY**
-- latest implementation branch: `fix/my-card-matchup-locked-icon-2026-09-03`
-- latest rollback branch: `backup/pre-my-card-matchup-locked-icon-2026-09-03`
-- prior implementation branch: `fix/my-card-icons-unlimited-side-bets-2026-09-03`
-- prior rollback branch: `backup/pre-my-card-icons-unlimited-side-bets-2026-09-03`
-- prior implementation branch: `fix/shared-natural-lineboxes-2026-09-02`
-- prior rollback branch: `backup/pre-shared-natural-lineboxes-2026-09-02`
-- prior implementation branch: `fix/standings-bank-linebox-2026-09-02`
-- prior rollback branch: `backup/pre-standings-bank-linebox-2026-09-02`
-- prior implementation branch: `fix/typography-breathing-room-weekly-locks-2026-09-02`
-- prior rollback branch: `backup/pre-typography-breathing-room-weekly-locks-2026-09-02`
-- prior implementation branch: `fix/standings-shared-numeric-rendering-2026-09-02`
-- prior rollback branch: `backup/pre-standings-shared-numeric-rendering-2026-09-02`
-- prior implementation branch: `fix/standings-digit-baseline-2026-09-02`
-- prior rollback branch: `backup/pre-standings-digit-baseline-2026-09-02`
-- prior implementation branch: `fix/standings-text-clipping-2026-09-02`
-- prior rollback branch: `backup/pre-standings-text-clipping-2026-09-02`
-- prior implementation branch: `fix/league-card-empty-row-2026-09-02`
-- prior rollback branch: `backup/pre-league-card-empty-row-2026-09-02`
-- prior implementation branch: `fix/app-pass-1-7-2026-09-01`
-- prior rollback branches: `backup/pre-app-pass-1-7-2026-09-01` and `backup/pre-app-pass-stabilize-2026-09-01`
+- `main`: `79ef0c88b7377cbf1fc9ae3d3f0c93a854791885`
+- Commit message: **Restore base league empty row styling and lock weight**
+- Vercel production: **READY**
 
-A later worklog-only commit may make the literal `main` SHA newer than the app-code baseline above without changing runtime behavior.
-
-New targeted compatibility layer: `components/AppPassFixes.tsx`.
-
-It currently owns the latest seven-item app pass behavior:
-
-- restores the My Card progress/status card when all currently submitted picks are locked but the required card is still incomplete
-- removes that fallback once the full required card is locked or the shared Sat–Mon weekend lock has arrived
-- renders pending locked picks with a slightly larger dark closed padlock before the shared weekend lock while pending unlocked picks remain blank
-- hides the locked-pick indicator after the shared weekend lock
-- tags administrative no-submission rows explicitly and removes any top spacer/banding at the player-header boundary
-- expands text paint/clipping room without padding or fixed-row geometry changes
-- changes completed-week Side Bets to history-only behavior and a `Week is complete` Make Offer state
-
-Stabilization note:
-
-- the fallback progress card only creates its internal DOM once and then updates changed text/progress values in place; this avoids MutationObserver churn/re-render loops while preserving the same visual structure
-
-Important effective styling in `components/Batch1bSideBetStyles.tsx` remains:
+Important effective styling in `components/Batch1bSideBetStyles.tsx`:
 
 - gold manual Lock control is 30px tall
 - effective Lock font weight is **800**
 - Lock icon is 13px
 - lock review team/spread row is neutral/white through overrides
 - lock review matchup/date uses gray hierarchy text and weight 700
-- game time/final/live status use inline-flex + `line-height: 1.3` + `overflow: visible`
+- game time/final/live status currently use inline-flex + `line-height: 1.3` + `overflow: visible` to avoid clipping without padding-based spacing changes
 - Clear-history cards are explicitly tagged with `has-clear-offer-action` instead of relying on CSS `:has()` for sizing
 
 ---
 
 ## 3. Immediate UI items — USER VERIFICATION / FIX NEXT
 
-### A. My Card — partial manual-lock progress state
+### Root-cause UI regression batch
 
-**Status: IMPLEMENTED 2026-09-01; NEEDS USER VERIFICATION.**
+**Status: IMPLEMENTED ON `fix/root-cause-ui-regressions`; NEEDS USER VERIFICATION.**
 
-Reported problem:
+- removed the full-document font measurement/translation loop that ran after every DOM mutation
+- moved Roboto Slab from a runtime Google stylesheet to `next/font` so its metrics are available without a late network font swap
+- removed client-rendered style strings that caused React to discard and rebuild the server-rendered page during hydration
+- moved clear-offer state into React markup and removed two DOM/style patch components
+- standardized all notification bubbles at 17px with 10px centered numerals
+- changed side-bet offer badges to clear when Offers is viewed while leaving the offer actionable
+- moved push delivery into Vercel background work so Accept/Decline responses do not wait on push retries
+- switched shared team logos to `next/image` with explicit high-resolution sizing and ESPN image configuration
 
-- if the user had only one submitted pick and manually locked it, the large My Card progress/status card disappeared
-- root cause: base `cardIsLocked` treats every currently existing pick being locked as a fully locked card, even when the required card is incomplete
+No row heights or broad padding values were changed for the text-clipping fix. The shared runtime translations that moved glyphs into clipped containers were removed instead.
 
-Current behavior added in `AppPassFixes.tsx`:
+### A. League Cards — empty / no-submission row
 
-- if the native progress card disappears only because every currently submitted pick is locked, restore the same `card-progress` presentation
-- keep it visible while the required card is incomplete
-- remove it when all required selections are locked
-- also remove it once the shared Sat–Mon weekend lock has occurred
-- do not manually test this by locking another real production pick without explicit authorization
-
-### B. My Card / League Cards — locked-pick right-side icon
-
-**Status: IMPLEMENTED 2026-09-01; NEEDS USER VERIFICATION.**
-
-Desired behavior:
-
-Before the shared Saturday 11:00 AM America/Chicago lock:
-
-- a locked pending pick shows a lock icon in the 30px right-side action position
-- My Card uses the same position previously occupied by the red X/remove control
-- League Cards show the lock icon for locked picks and nothing for unlocked picks
-- do not show the old gray dash
-
-After the shared Saturday 11:00 AM lock:
-
-- the pending locked-pick indicator is blank on the right
-
-Implementation notes:
-
-- the shared lock is derived from the selected week's actual Sat–Mon game `lock_time` values rather than the device weekday
-- live/final scorebugs and graded result badges are not replaced by the lock icon
-- the immediate post-lock `manual-lock-confirmed` state is also normalized to the icon so behavior does not depend on a page refresh
-- pending locked picks in expandable Weekly Results now render the same shared lock-state element, so they show the icon before the shared weekend lock and remain blank after it
-
-### C. League Cards — empty / no-submission row
-
-**Status: REBUILT 2026-09-02; NEEDS USER VERIFICATION.**
+**Status: NEEDS USER VERIFICATION. Do not assume fixed.**
 
 The user repeatedly saw gray space/banding above the white no-picks row.
 
@@ -142,15 +78,9 @@ Current important distinction:
 
 - normal empty League Cards state in `PickemAppBase.tsx` is `.group-empty-picks` and renders `No visible picks yet.` before CSS presentation changes
 - finalized missing-pick rows are a different system using synthetic picks/games and `public/admin-no-submission.svg`, with styling in `app/admin-no-submission.css`
-- the desired empty row should remain **thin/compact**, not be expanded to the same height as a normal selected team row merely to hide a gap
+- the user clarified that the desired empty row should remain **thin/compact**, not be the same height as a normal selected team row
 
-Latest targeted pass:
-
-- confirmed every League Card is built from the same complete group-member list and the selected week's picks are returned consistently to each group member
-- replaced the League Card's hidden `No visible picks yet.` text plus CSS-generated pseudo-element message with real `No picks submitted.` row content
-- removed the `font-size: 0` / `::after` text path so the browser measures the same visible line box it actually renders
-- retained the existing compact `group-empty-picks` row geometry, white/panel background, dividers, and normal spacing between player sections
-- explicitly tags finalized rows containing `admin-no-submission.svg` as `.admin-no-submission-row`; that separate synthetic finalization path remains unchanged
+Latest production commit `79ef0c88...` removed the added 39px `.group-empty-picks` override and restored the base League Cards empty-row styling.
 
 **Desired visual:**
 
@@ -160,89 +90,32 @@ Latest targeted pass:
 - no thick gray band / no extra gray spacer
 - normal spacing between different players' sections must remain
 
-If the user still sees the band, determine from the live DOM whether it is the normal `.group-empty-picks` state or `.admin-no-submission-row` before making another change.
+**Before changing this again:** identify whether the visible row the user is pointing to is:
 
-### D. Text clipping / line boxes
+1. `.group-empty-picks`, or
+2. a synthetic admin `No Pick Submitted` row using `admin-no-submission.svg`.
 
-**Status: USER VERIFIED 2026-09-03 — clipping is gone.**
+Do not keep layering CSS on the wrong one.
+
+### B. Text clipping / line boxes
+
+**Status: NEEDS USER VERIFICATION / likely more targeted cleanup.**
+
+User has seen text barely clipped at the bottom in multiple places, especially compact game-time/status text.
 
 User requirement:
 
 - text must never be clipped at top/bottom
-- **original vertical spacing/alignment must remain**
+- **but original vertical spacing/alignment must remain**
 - do not fix clipping by adding broad padding that pushes nearby elements around
 
-Known examples from the latest app pass:
+Current production reverted the broad padding/margin experiments and now only has a targeted game-time/status rule:
 
-- bottoms of standings rank `1 / 2 / 3`
-- game time in the top-left of Pick Board games
-- matchup/time line in My Card / League Card pick rows
+`display:inline-flex; align-items:center; line-height:1.3; overflow:visible`
 
-Latest standings replacement in `AppPassFixes.tsx`:
+If more clipping is reported, fix the exact selector/line box rather than applying one large global padding rule.
 
-- the earlier forced `1.3` standings line height and 1px numeric bottom inset did not solve the user's visual issue and have been removed
-- Season and Weekly Standings numeric cells now use the same natural, unpadded line-box behavior as the working Bank values (`line-height: normal`, inline numeric wrappers, no bottom padding)
-- row heights, row padding, columns, and dividers remain unchanged
-- the Place header and every place number are explicitly centered within the first grid column
-- the Place number and adjacent player name now share the exact same 14px/700/natural line-box metrics, so their visible centers align without a manual pixel translation
-- Season Standings player names remain clickable for profiles, but the blue profile-link underline is suppressed inside the standings table
-- rank and W/L/P values continue using the shared `NumericText` rendering path already used by Bank values, win percentage, points, spreads, scores, and times
-
-Pending Offers replacement:
-
-- the team/spread line no longer combines a clipped `1.25` parent with a taller `1.3` responsive child
-- it now uses the same natural, unpadded single-line treatment as the working pick titles, with a small paint-only clip margin so ellipsis behavior remains without cutting off glyph bottoms
-- nested number/spread wrappers inherit that line box and have no manual bottom padding or transform
-- Pending Offer row height, logo placement, amount column, and action spacing are unchanged
-
-Weekly Results behavior from the prior pass remains:
-
-- Weekly Results pick titles use clip-margin paint room and `1.3` line height; their spread token also has the real 1px bottom inset
-- game time/final/live status and numeric fragments remain overflow-visible
-- pick matchup/meta text keeps the existing `1.4` line-height and uses `overflow: clip` plus a small `overflow-clip-margin` so glyph bottoms can paint without padding/margin geometry changes
-- no fixed row heights, card spacing, or broad vertical padding were changed
-
-If any clipping remains, fix only the exact remaining selector/line box.
-
-### E. My Card abbreviations / pending lock-state icons
-
-**Status: DEPLOYED 2026-09-03; NEEDS USER VISUAL VERIFICATION.**
-
-- My Card selected-team labels use the existing team abbreviation
-- My Card's matchup/time line also always uses abbreviated matchup names so it stays clear of the Lock/remove action area
-- the full matchup remains available to assistive technology, browser title text, and the manual-lock review dialog
-- before the shared Saturday 11:00 AM America/Chicago lock, pending locked picks use an 18px closed padlock in My Card, League Cards, and Weekly Results
-- pending unlocked picks remain blank in read-only League Cards and Weekly Results; My Card retains its functional Lock and remove controls
-- the closed padlock uses the same dark `var(--ink)` color as team-name text
-- after the shared weekend lock, the pending locked-pick indicator remains blank; live/final scorebugs and graded results still take precedence
-
-### F. Shaw side bets — unlimited weekly count
-
-**Status: DEPLOYED AND LIVE RULE VERIFIED 2026-09-03.**
-
-- the current Shaw season has `rules.sideBets.maxPerWeek = null`, meaning unlimited side bets per week
-- the existing per-bet maximum remains `$20`; enabled state and kickoff/acceptance rules are unchanged
-- frontend creation, recipient availability, and acceptance checks now use each group's configured `sideBetSettings.maxPerWeek` instead of a hard-coded limit of 3
-- `null` is intentionally treated as unlimited; numeric limits remain supported for any group that uses one later
-- live Supabase verification confirmed `shaw-family`, `friends`, and `other-family` currently return `maxPerWeek: null`
-- rule update is documented in `supabase/shaw_unlimited_side_bets.sql`
-
-### G. Side Bets — completed week behavior
-
-**Status: IMPLEMENTED 2026-09-01; NEEDS USER VERIFICATION ON A COMPLETED WEEK.**
-
-Once every game in the selected week is final:
-
-- hide the **Pending Offers** section entirely
-- keep **Offer History**
-- Make Offer should not show CFB/NFL/conference game options
-- do not show the weekly side-bet-slot-limit message instead
-- show a simple **Week is complete** state
-- hide any stale bet-slip bar/sheet if one was left selected before the week completed
-
-The completed-week state is derived from the selected week's actual game completion data and recalculates when the selected week/DOM changes.
-
-### H. Manual Lock control / review modal
+### C. Manual Lock control / review modal
 
 **Status: mostly complete; verify visually before more changes.**
 
@@ -260,7 +133,7 @@ Current intended state:
 - team display should be school/team display name, not raw nickname string when possible
 - spread should remain on the far right
 
-### I. Offer History Clear button
+### D. Offer History Clear button
 
 **Status: IMPLEMENTED, BUT USER SHOULD RE-VERIFY declined/canceled cases.**
 
@@ -411,17 +284,6 @@ Small visual regressions matter. Do not make broad CSS changes to solve one row.
 
 Do not move/delete existing backups. Key recent examples include:
 
-- `backup/pre-my-card-matchup-locked-icon-2026-09-03`
-- `backup/pre-my-card-icons-unlimited-side-bets-2026-09-03`
-- `backup/pre-typography-breathing-room-weekly-locks-2026-09-02`
-- `backup/pre-shared-natural-lineboxes-2026-09-02`
-- `backup/pre-standings-bank-linebox-2026-09-02`
-- `backup/pre-standings-shared-numeric-rendering-2026-09-02`
-- `backup/pre-standings-digit-baseline-2026-09-02`
-- `backup/pre-standings-text-clipping-2026-09-02`
-- `backup/pre-league-card-empty-row-2026-09-02`
-- `backup/pre-app-pass-stabilize-2026-09-01`
-- `backup/pre-app-pass-1-7-2026-09-01`
 - `backup/pre-white-empty-row-layout-neutral-text-2026-09-01`
 - `backup/pre-text-clipping-divider-polish-2026-09-01`
 - `backup/pre-lock-review-card-spacing-text-safety-2026-09-01`
@@ -443,43 +305,10 @@ There may be additional backups. Search refs before creating a similarly named o
 
 After each completed task, update at least:
 
-1. **Current production state** with the new app-code SHA if production behavior changed.
+1. **Current production state** with the new `main` SHA if production changed.
 2. The relevant item under **Immediate UI items** or **Backlog**.
 3. Move truly finished items to **Completed / already shipped** only after build/production verification and, for visual issues, ideally after user verification.
 4. Add any new rollback branch that is important to preserve.
 5. Add newly reported user issues verbatim enough that another session understands the desired visual/behavioral result.
 
 If the user says something is still wrong, change its status back to **NEEDS FIX** instead of stacking another “completed” note on top.
-
----
-
-## 11. Deferred wholesale typography cleanup — DO NOT PIECE-MEAL
-
-**Status: DEFERRED by user on 2026-09-03. Current production intentionally keeps the existing JavaScript font-centering system.**
-
-What happened:
-
-- commit `9e5e52fa2bef20284949eae674bd0cc273ccadd1` removed the runtime font-metric translations from `components/AppUiCoordinator.tsx`
-- commit `6e332c8a26786d044ada4324e1ac8a424249ef20` then tried to make typography purely layout/CSS driven
-- that wholesale direction changed where text was visually output across the app and the user asked to restore the prior system
-- production commit `2a64303f3f665fa2ca5c877fc84a173725bb6c5e` restores the pre-change `AppUiCoordinator.tsx`, restores the supporting `stable-font-metrics.css`, and restores `LatestUiFixes`
-
-Current targeted game-time treatment:
-
-- keep the existing runtime optical centering
-- the top-left `.game-time` in Pick Board game cards gets symmetric 2px paint breathing room via padding/negative margin plus visible overflow
-- this is intended to prevent clipping without changing the font size, game-header height, or intended optical position
-- do not broaden this selector unless the user reports another exact clipping surface
-
-Future typography project, when explicitly resumed:
-
-- treat removal/replacement of runtime font centering as a dedicated app-wide project, not a one-off cleanup
-- inventory every selector currently covered by `OPTICALLY_CENTERED_TEXT_SELECTOR` and the two-line block system
-- define one replacement baseline/line-box strategy for normal text, responsive text, numeric text, standings, pick cards, side bets, game headers, and future UI
-- verify the entire app on iOS/Safari-sized mobile layouts before removing the current system or deleting targeted clipping patches
-- preserve existing visual positions as the acceptance baseline; do not assume mathematically simpler CSS is visually equivalent
-- only remove legacy patches after the replacement system has been visually verified across all affected surfaces
-
-Unrelated systems to preserve during that future work:
-
-- ESPN remains the canonical FBS/FCS abbreviation source; the typography rollback does **not** revert the ESPN abbreviation work

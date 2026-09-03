@@ -1,0 +1,40 @@
+/* Component-owned styles live in the static CSS pipeline so server and client
+   render identical markup during hydration. */
+.rule-item summary { min-height: 50px; padding-top: 4px; padding-bottom: 4px; }
+.rule-item[open] .rule-copy { padding-top: 5px; }
+.game-final-status { text-transform: none; }
+.game-card.final-outcome .team-row.outcome-loss .team-name,
+.game-card.final-outcome .team-row.outcome-loss .team-board-market,
+.game-card.final-outcome .team-row.outcome-loss .team-result-score { color: var(--header-muted); -webkit-text-fill-color: var(--header-muted); }
+.game-card.final-outcome .team-row.outcome-loss .team-logo,
+.score-bug-team.outcome-loss .team-logo { opacity: 1; filter: none; }
+.score-bug-team.outcome-loss .score-bug-score { color: var(--header-muted); }
+
+.side-bet-card.has-clear-offer-action { display: block; height: auto; min-height: 111px; padding-bottom: 10px; }
+.side-bet-card.has-clear-offer-action > .clear-offer-actions { position: static; z-index: 2; display: flex; justify-content: flex-end; margin-top: 8px; pointer-events: auto; }
+.side-bet-card.has-clear-offer-action > .clear-offer-actions .btn { position: relative; z-index: 3; pointer-events: auto; }
+
+.manual-pick-lock { display: inline-flex; min-width: 62px; height: 30px; min-height: 30px; align-items: center; justify-content: center; gap: 5px; padding: 0 8px; border: 1px solid #b88912; border-radius: 4px; color: var(--ink); background: var(--gold); font-family: var(--font-display); font-size: 11px; font-weight: 800; line-height: 1.2; cursor: pointer; }
+.manual-pick-lock svg { width: 13px; height: 13px; stroke-width: 2.2; color: var(--ink); }
+.manual-pick-lock:disabled { cursor: default; opacity: .55; }
+.manual-lock-confirmed { display: inline-flex; min-width: 42px; height: 28px; align-items: center; justify-content: center; color: var(--muted); font-size: 9px; font-weight: 800; }
+.manual-lock-toast { position: fixed; right: 12px; bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 12px); left: 12px; z-index: 65; display: flex; min-height: 44px; align-items: center; justify-content: center; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--ink); background: var(--panel); box-shadow: var(--shadow); font-size: 12px; font-weight: 800; text-align: center; }
+.manual-lock-toast.error { color: var(--red); }
+.manual-lock-review .confirmation-heading { margin-top: 0; margin-bottom: 0; }
+.manual-lock-review .confirmation-heading h2 { margin: 0; }
+.manual-lock-review .confirmation-matchup { grid-template-columns: 1fr; margin-top: 0; border-top: 0; border-bottom: 1px solid var(--line-strong); }
+.manual-lock-review .confirmation-matchup > div.manual-lock-pick-cell { display: grid; width: 100%; height: var(--data-row-height); min-height: var(--data-row-height); grid-template-columns: 38px minmax(0, 1fr) 68px; align-items: center; gap: var(--space-3); padding: 10px var(--pick-content-inset); border: 0; color: var(--ink); background: var(--panel); box-shadow: none; text-align: left; cursor: default; transition: none; }
+.manual-lock-review .manual-lock-pick-cell > .team-logo { width: 34px; height: 34px; }
+.manual-lock-review .manual-lock-pick-cell > .team-name,
+.manual-lock-review .manual-lock-pick-cell > .team-spread { min-width: 0; color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 700; line-height: 1.3; text-transform: none; white-space: nowrap; -webkit-text-fill-color: var(--ink); }
+.manual-lock-review .manual-lock-pick-cell > .team-name { overflow: hidden; text-overflow: ellipsis; }
+.manual-lock-review .manual-lock-pick-cell > .team-spread { display: inline-flex; width: 100%; align-items: center; justify-content: flex-end; font-variant-numeric: tabular-nums; text-align: right; }
+.manual-lock-review .confirmation-kickoff.manual-lock-meta { display: flex; min-height: 30px; align-items: center; justify-content: center; margin: 0; padding: 5px 8px; border-top: 0; border-bottom: 1px solid var(--line-strong); color: var(--header-muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.25; text-align: center; }
+.manual-lock-review .manual-lock-note { margin: 8px 2px 12px; color: var(--ink); font-size: 11px; font-weight: 600; line-height: 1.4; text-align: center; }
+.manual-lock-review .confirmation-actions { grid-template-columns: 1fr 1fr; }
+.manual-lock-review .manual-lock-confirm-btn { display: flex; align-items: center; justify-content: center; border-color: #b88912; color: var(--ink); background: var(--gold); }
+
+.game-time,
+.game-final-status,
+.game-live-status,
+.game-live-situation { display: inline-flex; align-items: center; overflow: visible; line-height: 1.3; }

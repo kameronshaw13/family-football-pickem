@@ -124,3 +124,12 @@
   font-weight: 800;
 }
 
+/* Keep the existing League Cards empty-row treatment, but make the message explicit. */
+.group-empty-picks {
+  font-size: 0;
+}
+.group-empty-picks::after {
+  content: "No picks submitted.";
+  font-size: 12px;
+  font-weight: 600;
+}

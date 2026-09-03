@@ -6,13 +6,23 @@ import "./group-themes.css";
 import "./requested-fixes.css";
 import "./pending-side-bets.css";
 import "./friends-eight-player.css";
+import "./universal-card-dividers.css";
 import "./final-polish.css";
 import "./admin-no-submission.css";
+import "./component-styles.css";
 import type { Metadata, Viewport } from "next";
+import { Roboto_Slab } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
 import DogPickAdjustmentAlerts from "@/components/DogPickAdjustmentAlerts";
 import PlayerProfiles from "@/components/PlayerProfiles";
+
+const robotoSlab = Roboto_Slab({
+  subsets: ["latin"],
+  variable: "--font-roboto-slab",
+  display: "swap",
+  preload: true
+});
 
 export const metadata: Metadata = {
   title: "Family Football Pick'em",
@@ -127,15 +137,12 @@ declare global {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light">
+    <html lang="en" data-theme="light" className={robotoSlab.variable}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: SESSION_RECOVERY_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: APP_DATA_STARTUP_GUARD_SCRIPT }} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preload" href="/header-wordmark.png" as="image" type="image/png" />
         <link rel="preload" href="/football-pickem-wordmark.png" as="image" type="image/png" />
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;500;600;700;800;900&display=swap" />
       </head>
       <body>{children}<AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /></body>
     </html>

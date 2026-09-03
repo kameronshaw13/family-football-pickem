@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       if (error) throw new Error(error.message);
     }
     if (body.action === "read") {
-      const { error } = await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("group_id", context.group.id).eq("user_id", auth.profile.id).eq("destination", body.destination as NotificationDestination).eq("action_required", false).is("read_at", null).is("resolved_at", null);
+      const { error } = await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("group_id", context.group.id).eq("user_id", auth.profile.id).eq("destination", body.destination as NotificationDestination).is("read_at", null).is("resolved_at", null);
       if (error) throw new Error(error.message);
     }
     if (body.action === "resolveDogAdjustments") {

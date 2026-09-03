@@ -13,26 +13,6 @@ const FULL_GAME_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Chicago"
 });
 
-const STYLES = `
-.manual-pick-lock{display:inline-flex;min-width:60px;height:28px;align-items:center;justify-content:center;gap:5px;padding:0 8px;border:1px solid #b88912;border-radius:4px;color:var(--ink);background:var(--gold);font-family:var(--font-display);font-size:10px;font-weight:900;line-height:1;cursor:pointer}
-.manual-pick-lock svg{width:12px;height:12px;stroke-width:2.2;color:var(--ink)}
-.manual-pick-lock:disabled{cursor:default;opacity:.55}
-.manual-lock-confirmed{display:inline-flex;min-width:42px;height:28px;align-items:center;justify-content:center;color:var(--muted);font-size:9px;font-weight:800}
-.manual-lock-toast{position:fixed;right:12px;bottom:calc(var(--nav-height) + env(safe-area-inset-bottom) + 12px);left:12px;z-index:65;display:flex;min-height:44px;align-items:center;justify-content:center;padding:9px 12px;border:1px solid var(--line-strong);border-radius:5px;background:var(--panel);box-shadow:var(--shadow);color:var(--ink);font-size:12px;font-weight:800;text-align:center}
-.manual-lock-toast.error{color:var(--red)}
-.manual-lock-review .confirmation-heading{margin-top:0;margin-bottom:0}
-.manual-lock-review .confirmation-heading h2{margin:0}
-.manual-lock-review .confirmation-matchup{grid-template-columns:1fr;margin-top:8px;border-block:1px solid var(--line-strong)}
-.manual-lock-review .confirmation-matchup>div.manual-lock-pick-cell{display:grid;width:100%;height:var(--data-row-height);min-height:var(--data-row-height);grid-template-columns:38px minmax(0,1fr) 68px;align-items:center;gap:var(--space-3);padding:10px var(--pick-content-inset);border:0;color:var(--ink);background:var(--blue-soft);box-shadow:inset 4px 0 0 var(--blue);text-align:left;cursor:default;transition:none}
-.manual-lock-review .manual-lock-pick-cell>.team-logo{width:34px;height:34px}
-.manual-lock-review .manual-lock-pick-cell>.team-name{min-width:0;overflow:hidden;color:var(--ink);font-family:var(--font-display);font-size:16px;font-weight:700;line-height:1.2;text-overflow:ellipsis;text-transform:none;white-space:nowrap;-webkit-text-fill-color:var(--ink)}
-.manual-lock-review .manual-lock-pick-cell>.team-spread{display:inline-flex;width:100%;align-items:center;justify-content:flex-end;color:var(--ink);font-family:var(--font-display);font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;text-transform:none;white-space:nowrap;-webkit-text-fill-color:var(--ink)}
-.manual-lock-review .confirmation-kickoff.manual-lock-meta{display:flex;min-height:30px;align-items:center;justify-content:center;margin:0;padding:5px 8px;border-bottom:1px solid var(--line-strong);color:var(--header-muted);background:var(--surface-muted);font-variant-numeric:tabular-nums;line-height:1.2;text-align:center}
-.manual-lock-review .manual-lock-note{margin:8px 2px 12px;color:var(--muted);font-size:11px;font-weight:700;line-height:1.35;text-align:center}
-.manual-lock-review .confirmation-actions{grid-template-columns:1fr 1fr}
-.manual-lock-review .manual-lock-confirm-btn{display:flex;align-items:center;justify-content:center;color:var(--ink);background:var(--gold);border-color:#b88912}
-`;
-
 type CachedGame = {
   commence_time?: string | null;
   away_team?: string | null;
@@ -137,8 +117,7 @@ function buildReviewLogo(card: HTMLElement, selectedTeam: string) {
 }
 
 function reviewTeamName(card: HTMLElement, selectedTeam: string) {
-  const visible = card.querySelector<HTMLElement>(".pick-title-team")?.getAttribute("aria-label")?.trim()
-    || card.querySelector<HTMLElement>(".pick-title-team .responsive-text-value")?.textContent?.trim()
+  const visible = card.querySelector<HTMLElement>(".pick-title-team .responsive-text-value")?.textContent?.trim()
     || card.querySelector<HTMLElement>(".pick-title-team")?.textContent?.trim();
   return visible || selectedTeam;
 }
@@ -341,14 +320,23 @@ export default function WeekScopeAndManualLockEnhancements({ appSlug }: { appSlu
       }
     };
 
+    let frame = 0;
+    const schedule = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        apply();
+      });
+    };
     apply();
-    const observer = new MutationObserver(() => window.requestAnimationFrame(apply));
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    const observer = new MutationObserver(schedule);
+    observer.observe(document.body, { childList: true, subtree: true });
     return () => {
+      if (frame) window.cancelAnimationFrame(frame);
       observer.disconnect();
       closeReview();
     };
   }, [appSlug]);
 
-  return <style>{STYLES}</style>;
+  return null;
 }

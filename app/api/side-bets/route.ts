@@ -7,8 +7,16 @@ import { GET as baseGET, POST as basePOST } from "./routeBase";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+async function filterResponseToWeek(response: Response, week: number | null) {
+  if (!response.ok || week == null || !Number.isInteger(week)) return response;
+  const payload = await response.json();
+  if (Array.isArray(payload.sideBets)) payload.sideBets = payload.sideBets.filter((bet: any) => Number(bet.week) === week);
+  return NextResponse.json(payload, { status: response.status, headers: { "Cache-Control": "no-store, max-age=0" } });
+}
+
 export async function GET(req: NextRequest) {
-  return baseGET(req);
+  const parsedWeek = Number(req.nextUrl.searchParams.get("week"));
+  return filterResponseToWeek(await baseGET(req), Number.isInteger(parsedWeek) ? parsedWeek : null);
 }
 
 export async function POST(req: NextRequest) {
@@ -19,7 +27,11 @@ export async function POST(req: NextRequest) {
     return basePOST(req);
   }
 
-  if (body?.action !== "clear" || typeof body?.sideBetId !== "string") return basePOST(req);
+  if (body?.action !== "clear" || typeof body?.sideBetId !== "string") {
+    const response = await basePOST(req);
+    const viewWeek = Number(body?.viewWeek);
+    return filterResponseToWeek(response, Number.isInteger(viewWeek) ? viewWeek : null);
+  }
 
   try {
     const auth = await getProfileFromRequest(req);
@@ -34,7 +46,11 @@ export async function POST(req: NextRequest) {
       .eq("id", body.sideBetId)
       .maybeSingle();
 
-    if (error || !sideBet || sideBet.status !== "expired") return basePOST(req);
+    if (error || !sideBet || sideBet.status !== "expired") {
+      const response = await basePOST(req);
+      const viewWeek = Number(body?.viewWeek);
+      return filterResponseToWeek(response, Number.isInteger(viewWeek) ? viewWeek : null);
+    }
     const involved = sideBet.creator_id === auth.profile.id || sideBet.targets?.some((target: any) => target.recipient_id === auth.profile.id);
     if (!involved) return NextResponse.json({ ok: false, error: "This offer is not in your history." }, { status: 403 });
 
@@ -50,7 +66,7 @@ export async function POST(req: NextRequest) {
     url.search = "";
     const viewWeek = Number(body.viewWeek ?? sideBet.week);
     url.searchParams.set("week", String(viewWeek));
-    return baseGET(new NextRequest(url, { method: "GET", headers: req.headers }));
+    return filterResponseToWeek(await baseGET(new NextRequest(url, { method: "GET", headers: req.headers })), viewWeek);
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }

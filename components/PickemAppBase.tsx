@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
-import { MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
+import { MAX_SIDE_BETS_PER_WEEK, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
@@ -98,6 +99,7 @@ type SideBetSnapshot = {
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
 const APP_DATA_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
 const EMPTY_NOTIFICATION_COUNTS: NotificationCounts = { side_bets_received: 0, side_bets_sent: 0, my_card: 0, league_cards: 0, side_bet_ledger: 0, total: 0 };
+const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 const CENTRAL_WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/Chicago" });
 const CENTRAL_FULL_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/Chicago" });
@@ -147,13 +149,13 @@ function matchupTextVariants(game: Game, options: { spreadTeam?: string; spread?
   };
 }
 
-function ResponsiveText({ full, intermediate, compact, className = "", accessibleText }: { full: string; intermediate?: string; compact: string; className?: string; accessibleText?: string }) {
+function ResponsiveText({ full, intermediate, compact, className = "" }: { full: string; intermediate?: string; compact: string; className?: string }) {
   const hostRef = useRef<HTMLSpanElement>(null);
   const fullMeasureRef = useRef<HTMLSpanElement>(null);
   const intermediateMeasureRef = useRef<HTMLSpanElement>(null);
   const [variant, setVariant] = useState<"full" | "intermediate" | "compact">("full");
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     const host = hostRef.current;
     const fullMeasure = fullMeasureRef.current;
     const intermediateMeasure = intermediateMeasureRef.current;
@@ -188,8 +190,7 @@ function ResponsiveText({ full, intermediate, compact, className = "", accessibl
 
   const value = variant === "full" ? full : variant === "intermediate" && intermediate ? intermediate : compact;
 
-  const label = accessibleText || full;
-  return <span ref={hostRef} className={`responsive-text ${className}`.trim()} aria-label={label} title={label === value ? undefined : label}>
+  return <span ref={hostRef} className={`responsive-text ${className}`.trim()} aria-label={full} title={variant === "full" ? undefined : full}>
     <span ref={fullMeasureRef} className="responsive-text-measure" aria-hidden="true">{full}</span>
     {intermediate && <span ref={intermediateMeasureRef} className="responsive-text-measure" aria-hidden="true">{intermediate}</span>}
     <span className="responsive-text-value"><NumericText text={value} /></span>
@@ -211,7 +212,7 @@ function SideBetResponseLine({ summary, teamFull, teamCompact, spread, date }: {
     team: value === "full" || value === "names" ? teamFull : value === "team" ? teamCompact : ""
   });
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     const host = hostRef.current;
     if (!host) return;
 
@@ -258,11 +259,6 @@ function SideBetResponseLine({ summary, teamFull, teamCompact, spread, date }: {
 
 function ResponsiveTeamName({ game, team, className = "" }: { game: Game; team: string; className?: string }) {
   return <ResponsiveText full={displayTeamName(game, team)} compact={abbreviatedTeamName(game, team)} className={className} />;
-}
-
-function AbbreviatedTeamName({ game, team, className = "" }: { game: Game; team: string; className?: string }) {
-  const fullName = displayTeamName(game, team);
-  return <span className={className} aria-label={fullName} title={fullName}>{abbreviatedTeamName(game, team)}</span>;
 }
 
 function dogBonusText(value: number | string, pointsMode: boolean) {
@@ -949,6 +945,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [sessionValidated, setSessionValidated] = useState(false);
   const [message, setMessage] = useState("");
   const [savingPicks, setSavingPicks] = useState(false);
+  const [savingBet, setSavingBet] = useState(false);
+  const [savingBetId, setSavingBetId] = useState<string | null>(null);
   const [sideBetLedger, setSideBetLedger] = useState<SideBet[]>([]);
   const [sideBetLedgerReady, setSideBetLedgerReady] = useState(false);
   const [stagedPicks, setStagedPicks] = useState<Pick[] | null>(null);
@@ -1036,13 +1034,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       });
       if (!response.ok) return;
       const payload = await response.json() as SideBetSnapshot;
-      const nextSideBets = payload.sideBets || [];
-      const sideBetsChanged = sideBetSyncSignature(current.sideBets) !== sideBetSyncSignature(nextSideBets);
-      const slotCountsChanged = JSON.stringify(current.sideBetSlotCounts || {}) !== JSON.stringify(payload.sideBetSlotCounts || {});
-      if (sideBetsChanged || slotCountsChanged) {
-        applySideBetSnapshot({ ...payload, sideBets: nextSideBets }, requestId);
-      }
-      if (sideBetsChanged) void refreshNotificationCounts();
+      const changed = sideBetSyncSignature(current.sideBets) !== sideBetSyncSignature(payload.sideBets || []);
+      applySideBetSnapshot({ ...payload, sideBets: payload.sideBets || [] }, requestId);
+      if (changed) void refreshNotificationCounts();
     } catch {
       // Keep the current offers visible and retry on the next foreground refresh.
     } finally {
@@ -1075,6 +1069,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const markNotificationsSeen = useCallback(async (destination: NotificationDestination) => {
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) return;
+    setNotificationCounts((current) => ({
+      ...current,
+      [destination]: 0,
+      total: Math.max(0, current.total - current[destination])
+    }));
     try {
       const response = await fetch("/api/notifications", {
         method: "POST",
@@ -1185,7 +1184,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     if (!data?.currentUser.id) return;
     setSideBetLedger([]);
     setSideBetLedgerReady(false);
-  }, [data?.activeGroup?.id, data?.currentUser.id]);
+    void refreshSideBetLedger();
+  }, [data?.activeGroup?.id, data?.currentUser.id, refreshSideBetLedger]);
   useEffect(() => {
     if (!data || testWeekActive) return;
     const offersVisible = tab === "picks" && picksView === "sideBets";
@@ -1199,7 +1199,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     };
 
     refreshVisibleSideBets();
-    const timer = window.setInterval(refreshVisibleSideBets, 10000);
+    const timer = window.setInterval(refreshVisibleSideBets, 2500);
     window.addEventListener("focus", refreshVisibleSideBets);
     window.addEventListener("online", refreshVisibleSideBets);
     document.addEventListener("visibilitychange", refreshVisibleSideBets);
@@ -1241,8 +1241,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     else if (tab === "card" && cardView === "mine") destination = "my_card";
     else if (tab === "card" && cardView === "group") destination = "league_cards";
     else if (tab === "standings" && standingsView === "bank") destination = "side_bet_ledger";
+    if (tab === "picks" && picksView === "sideBets" && betView === "offers") {
+      if (notificationCounts.side_bets_received > 0) void markNotificationsSeen("side_bets_received");
+      if (notificationCounts.side_bets_sent > 0) void markNotificationsSeen("side_bets_sent");
+      return;
+    }
     if (destination && notificationCounts[destination] > 0) void markNotificationsSeen(destination);
-  }, [betView, cardView, data, markNotificationsSeen, notificationCounts.league_cards, notificationCounts.my_card, notificationCounts.side_bet_ledger, notificationCounts.side_bets_sent, picksView, standingsView, tab, testWeekActive]);
+  }, [betView, cardView, data, markNotificationsSeen, notificationCounts.league_cards, notificationCounts.my_card, notificationCounts.side_bet_ledger, notificationCounts.side_bets_received, notificationCounts.side_bets_sent, picksView, standingsView, tab, testWeekActive]);
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 30_000);
     return () => window.clearInterval(timer);
@@ -1387,9 +1392,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       window.location.href = loginPath;
       return false;
     }
-    if (sideBetMutationInFlightRef.current) return false;
     sideBetMutationInFlightRef.current = true;
     const requestId = ++sideBetRequestSequenceRef.current;
+    setSavingBet(true);
+    setSavingBetId(body.sideBetId || null);
     try {
       const response = await fetch("/api/side-bets", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, body: JSON.stringify({ ...body, viewWeek: data?.week }) });
       const payload = await response.json();
@@ -1410,6 +1416,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       return false;
     } finally {
       sideBetMutationInFlightRef.current = false;
+      setSavingBet(false);
+      setSavingBetId(null);
     }
   }
 
@@ -1467,9 +1475,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return [profile.id, entries.length ? entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : null];
   })) : {};
   const weekIsOpen = !previewActive && (!data.weekOpenTime || new Date(data.weekOpenTime) <= new Date());
-  const incomingOffers = sideBets.filter((bet) => bet.creator_id !== currentUser.id && bet.targets?.some((target) => target.recipient_id === currentUser.id));
-  const pendingOfferCount = incomingOffers.filter((bet) => bet.status === "open" && bet.targets?.some((target) => target.recipient_id === currentUser.id && target.response === "pending")).length;
-  const receivedNotificationCount = previewActive ? 1 : Math.max(pendingOfferCount, notificationCounts.side_bets_received);
+  const receivedNotificationCount = previewActive ? 1 : notificationCounts.side_bets_received;
   const sentNotificationCount = previewActive ? 1 : notificationCounts.side_bets_sent;
   const myCardNotificationCount = previewActive ? 1 : notificationCounts.my_card;
   const leagueCardsNotificationCount = previewActive ? 1 : notificationCounts.league_cards;
@@ -1601,12 +1607,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       notify(`Side bets are capped at $${MAX_SIDE_BET_AMOUNT}.`, "error");
       return false;
     }
-    const maxPerWeek = data?.sideBetSettings?.maxPerWeek;
-    if (maxPerWeek != null && (data?.sideBetSlotCounts?.[currentUser.id] || 0) >= maxPerWeek) {
-      notify(`You already have ${maxPerWeek} accepted or pending side bets this week.`, "error");
+    if ((data?.sideBetSlotCounts?.[currentUser.id] || 0) >= MAX_SIDE_BETS_PER_WEEK) {
+      notify(`You already have ${MAX_SIDE_BETS_PER_WEEK} accepted or pending side bets this week.`, "error");
       return false;
     }
-    const fullRecipient = maxPerWeek == null ? undefined : profiles.find((profile) => betRecipients.includes(profile.id) && (data?.sideBetSlotCounts?.[profile.id] || 0) >= maxPerWeek);
+    const fullRecipient = profiles.find((profile) => betRecipients.includes(profile.id) && (data?.sideBetSlotCounts?.[profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK);
     if (fullRecipient) {
       notify(`${fullRecipient.display_name} has reached the weekly side bet limit.`, "error");
       return false;
@@ -1685,7 +1690,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           profiles={profiles}
           sideBets={sideBets}
           slotCounts={data.sideBetSlotCounts || {}}
-          maxPerWeek={data.sideBetSettings?.maxPerWeek ?? null}
           weekIsOpen={weekIsOpen}
           openGames={openBetGames}
           gameLeague={betLeagueFilter}
@@ -1694,6 +1698,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           selectedCreatorTeam={selectedCreatorTeam}
           amount={betAmount}
           recipients={betRecipients}
+          saving={savingBet}
+          savingBetId={savingBetId}
           offerNotificationCount={receivedNotificationCount + sentNotificationCount}
           setGame={(gameId) => { setBetGameId(gameId); setBetCreatorTeam(""); }}
           setGameLeague={(nextLeague) => { setBetLeagueFilter(nextLeague); setBetConferenceFilter("ALL"); setBetGameId(""); setBetCreatorTeam(""); }}
@@ -1736,7 +1742,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             const playerPicks = orderCardPicks(viewedPicks.filter((pick) => pick.user_id === profile.id), viewedGames, pointsMode);
             return <div key={profile.id} className="group-card">
               <h3>{profile.display_name}</h3>
-              {playerPicks.length === 0 && <p className="muted group-empty-picks">No picks submitted.</p>}
+              {playerPicks.length === 0 && <p className="muted group-empty-picks">No visible picks yet.</p>}
               {playerPicks.map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} pointsMode={pointsMode} />)}
             </div>;
           })}
@@ -1829,7 +1835,7 @@ function ConferenceFilter({ value, onChange }: { value: string; onChange: (value
 
 function RankNumber({ rank, className }: { rank: number; className: string }) {
   const labels: Record<number, string> = { 1: "First place", 2: "Second place", 3: "Third place" };
-  return <span className={`${className} rank-${rank}`} aria-label={labels[rank]}><NumericText text={rank} /></span>;
+  return <span className={`${className} rank-${rank}`} aria-label={labels[rank]}>{rank}</span>;
 }
 
 function BankWeekResults({ rows, picks, games, amounts, pointsMode }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null>; pointsMode: boolean }) {
@@ -1851,13 +1857,12 @@ function BankWeekResults({ rows, picks, games, amounts, pointsMode }: { rows: Ar
       {!playerPicks.length && <p className="muted">No visible picks yet.</p>}
       {playerPicks.map((pick) => {
         const game = games.find((item) => item.id === pick.game_id) || pick.game;
-        const locked = pick.status === "locked" || Boolean(game && isClosed(game));
         const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
         const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
           <div><strong className="bank-game-pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{game && <p><ResponsiveText full={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} compact={`${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} /></p>}</div>
-          {game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}
+          {game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : <span className="test-result pending">—</span>}
         </div>;
       })}
     </details>;
@@ -1881,9 +1886,9 @@ function Leaderboard({ rows, pointsMode }: { rows: Array<Standing & { rank?: num
         <RankNumber rank={rank} className="leaderboard-rank" />
         <div className="leaderboard-player"><strong>{row.display_name}</strong></div>
         {pointsMode ? <strong className="leaderboard-points"><NumericText text={Number(row.points || 0)} /></strong> : <>
-          <span className="leaderboard-stat"><NumericText text={row.wins} /></span>
-          <span className="leaderboard-stat"><NumericText text={row.losses} /></span>
-          <span className="leaderboard-stat"><NumericText text={row.pushes} /></span>
+          <span className="leaderboard-stat">{row.wins}</span>
+          <span className="leaderboard-stat">{row.losses}</span>
+          <span className="leaderboard-stat">{row.pushes}</span>
           <strong className={`leaderboard-pct ${pctTone}`}><NumericText text={pctText(row.win_pct)} /></strong>
         </>}
       </div>;
@@ -1947,14 +1952,13 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
   profiles: Profile[];
   sideBets: SideBet[];
   slotCounts: Record<string, number>;
-  maxPerWeek: number | null;
   weekIsOpen: boolean;
   openGames: Game[];
   gameLeague: SideBetLeagueFilter;
@@ -1963,6 +1967,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   selectedCreatorTeam: string;
   amount: string;
   recipients: string[];
+  saving: boolean;
+  savingBetId: string | null;
   offerNotificationCount: number;
   setGame: (value: string) => void;
   setGameLeague: (value: SideBetLeagueFilter) => void;
@@ -1974,50 +1980,14 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean>;
 }) {
   const [confirmingBetId, setConfirmingBetId] = useState<string | null>(null);
-  const [pendingMutation, setPendingMutation] = useState<{ action: "create" | "accept" | "decline" | "cancel" | "clear"; sideBetId: string | null } | null>(null);
-  const [optimisticActions, setOptimisticActions] = useState<Record<string, "accept" | "decline" | "cancel" | "clear">>({});
   const [slipExpanded, setSlipExpanded] = useState(false);
   const [slipClosing, setSlipClosing] = useState(false);
   const slipSheetRef = useRef<HTMLElement>(null);
   const slipSwipeStartY = useRef<number | null>(null);
   const slipCloseTimer = useRef<number | null>(null);
   const slipClosingRef = useRef(false);
-  const saving = pendingMutation !== null;
-  const savingBetId = pendingMutation?.sideBetId ?? null;
-  const presentedSideBets: SideBet[] = sideBets.flatMap((bet): SideBet[] => {
-    const action = optimisticActions[bet.id];
-    if (!action) return [bet];
-    if (action === "clear") return [];
-    const nowIso = new Date().toISOString();
-    if (action === "accept") {
-      return [{
-        ...bet,
-        status: "accepted",
-        accepted_by: currentUser.id,
-        accepted_at: nowIso,
-        updated_at: nowIso,
-        accepted_by_profile: { id: currentUser.id, display_name: currentUser.display_name },
-        targets: bet.targets?.map((target) => target.recipient_id === currentUser.id
-          ? { ...target, response: "accepted" as const, responded_at: nowIso }
-          : target.response === "pending" ? { ...target, response: "closed" as const, responded_at: nowIso } : target)
-      }];
-    }
-    if (action === "decline") {
-      const nextTargets = bet.targets?.map((target) => target.recipient_id === currentUser.id
-        ? { ...target, response: "declined" as const, responded_at: nowIso }
-        : target);
-      const stillPending = Boolean(nextTargets?.some((target) => target.response === "pending"));
-      return [{ ...bet, status: stillPending ? bet.status : "declined", updated_at: nowIso, targets: nextTargets }];
-    }
-    return [{
-      ...bet,
-      status: "cancelled",
-      updated_at: nowIso,
-      targets: bet.targets?.map((target) => target.response === "pending" ? { ...target, response: "closed" as const, responded_at: nowIso } : target)
-    }];
-  });
-  const received = sideBetsForView(presentedSideBets, currentUser.id, "received");
-  const sent = sideBetsForView(presentedSideBets, currentUser.id, "sent");
+  const received = sideBetsForView(sideBets, currentUser.id, "received");
+  const sent = sideBetsForView(sideBets, currentUser.id, "sent");
   const offers = [...received, ...sent];
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
@@ -2025,8 +1995,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const selectedMatchup = selectedGame ? matchupTextVariants(selectedGame) : null;
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
   const slotCount = slotCounts[currentUser.id] || 0;
-  const weeklyLimit = maxPerWeek == null ? Infinity : maxPerWeek;
-  const limitReached = Number.isFinite(weeklyLimit) && slotCount >= weeklyLimit;
+  const limitReached = slotCount >= MAX_SIDE_BETS_PER_WEEK;
   const filteredOpenGames = openGames
     .filter((game) => game.league === gameLeague && (gameLeague === "NFL" || gameConference === "ALL" || gameConferences(game).includes(gameConference)))
     .sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
@@ -2038,27 +2007,6 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     return groups;
   }, []);
   const hasSlip = Boolean(selectedGame && selectedCreatorTeam);
-
-  useEffect(() => {
-    setOptimisticActions((current) => {
-      let changed = false;
-      const next = { ...current };
-      for (const [sideBetId, action] of Object.entries(current)) {
-        const bet = sideBets.find((item) => item.id === sideBetId);
-        const target = bet?.targets?.find((item) => item.recipient_id === currentUser.id);
-        const confirmed = !bet ||
-          (action === "accept" && bet.status === "accepted" && bet.accepted_by === currentUser.id) ||
-          (action === "decline" && (target?.response === "declined" || bet.status === "declined")) ||
-          (action === "cancel" && bet.status === "cancelled") ||
-          (action === "clear" && !bet);
-        if (confirmed) {
-          delete next[sideBetId];
-          changed = true;
-        }
-      }
-      return changed ? next : current;
-    });
-  }, [currentUser.id, sideBets]);
 
   const collapseSlip = useCallback(() => {
     if (!slipExpanded || slipClosingRef.current) return;
@@ -2136,41 +2084,14 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   }
 
   async function sendOffer() {
-    if (pendingMutation) return;
-    setPendingMutation({ action: "create", sideBetId: null });
-    try {
-      const sentOffer = await createBet();
-      if (sentOffer) setSlipExpanded(false);
-    } finally {
-      setPendingMutation(null);
-    }
-  }
-
-  async function runResponse(action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) {
-    if (pendingMutation) return false;
-    setPendingMutation({ action, sideBetId });
-    setOptimisticActions((current) => ({ ...current, [sideBetId]: action }));
-    try {
-      const ok = await respond(action, sideBetId);
-      if (!ok) {
-        setOptimisticActions((current) => {
-          const next = { ...current };
-          delete next[sideBetId];
-          return next;
-        });
-      }
-      return ok;
-    } finally {
-      setPendingMutation(null);
-    }
+    const sentOffer = await createBet();
+    if (sentOffer) setSlipExpanded(false);
   }
 
   async function acceptConfirmedBet() {
     if (!confirmingBetId) return;
-    const sideBetId = confirmingBetId;
-    setConfirmingBetId(null);
-    const accepted = await runResponse("accept", sideBetId);
-    if (!accepted) setConfirmingBetId(sideBetId);
+    const accepted = await respond("accept", confirmingBetId);
+    if (accepted) setConfirmingBetId(null);
   }
 
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
@@ -2193,7 +2114,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     </div>
 
     {view === "new" && <div className="side-bet-sportsbook-board">
-      {limitReached && <div className="empty-state side-bet-empty-state"><NumericText text={`Your ${weeklyLimit} side bet slots are accepted or pending this week.`} /></div>}
+      {limitReached && <div className="empty-state side-bet-empty-state"><NumericText text={`Your ${MAX_SIDE_BETS_PER_WEEK} side bet slots are accepted or pending this week.`} /></div>}
       {!limitReached && openGames.length === 0 && <div className="empty-state side-bet-empty-state">No games with a spread are available before kickoff.</div>}
       {!limitReached && openGames.length > 0 && filteredOpenGames.length === 0 && <div className="empty-state side-bet-empty-state">No available games.</div>}
       {!limitReached && filteredOpenGames.length > 0 && <div className="game-days side-bet-game-days">{sideBetGameGroups.map((group) => <section key={group.key} className="game-day-section">
@@ -2234,7 +2155,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         <section className="side-bet-slip-section">
           <div className="side-bet-slip-section-head"><span>Send to</span></div>
           <fieldset aria-label="Send side bet to"><div className="side-bet-recipient-grid">{otherPlayers.map((profile) => {
-            const recipientFull = Number.isFinite(weeklyLimit) && (slotCounts[profile.id] || 0) >= weeklyLimit;
+            const recipientFull = (slotCounts[profile.id] || 0) >= MAX_SIDE_BETS_PER_WEEK;
             return <label key={profile.id} className={`${recipients.includes(profile.id) ? "checked" : ""} ${recipientFull ? "disabled" : ""}`.trim()}><input type="checkbox" disabled={recipientFull} checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}</span><small>{recipientFull ? "Unavailable" : recipients.includes(profile.id) ? "Selected" : "Available"}</small></label>;
           })}</div></fieldset>
         </section>
@@ -2246,9 +2167,9 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
       </section>}
 
-    {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty="No side bet offers yet." saving={saving} savingBetId={savingBetId} canAccept={(bet) => weekIsOpen && hasAvailableSideBetSlot(presentedSideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={runResponse} />}
+    {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty="No side bet offers yet." saving={saving} savingBetId={savingBetId} canAccept={(bet) => weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, MAX_SIDE_BETS_PER_WEEK, bet.id)} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
 
-    {confirmingBet && <div className="confirmation-backdrop" onClick={() => { if (!saving) setConfirmingBetId(null); }}>
+    {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
         <div className="confirmation-icon"><CircleDollarSign size={22} /></div>
         <div className="confirmation-heading"><span>Review side bet</span><h2 id="accept-bet-title">Accept <NumericText text={stakeMoney(Number(confirmingBet.amount))} /> bet?</h2></div>
@@ -2325,7 +2246,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
     ? target?.response === "declined" || bet.status === "cancelled"
     : ["declined", "cancelled"].includes(bet.status);
 
-  return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""}`}>
+  return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${saving && !working ? "background-busy" : ""} ${canClearOffer ? "has-clear-offer-action" : ""}`.trim()}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, perspectiveTeam) : null} name={perspectiveTeam} />
       <div className="side-bet-offer-copy"><strong><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} /></strong><SideBetResponseLine summary={responseSummary} teamFull={offeredSideName} teamCompact={offeredSideCompact} spread={responseSpread} date={game ? dt(game.commence_time) : undefined} /></div>
@@ -2494,7 +2415,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
 
 function TeamLogo({ url, name, className = "" }: { url?: string | null; name: string; className?: string }) {
   const classes = `team-logo ${className}`.trim();
-  if (url) return <img src={url} alt="" className={classes} width={34} height={34} loading="lazy" decoding="async" />;
+  if (url) return <Image src={url} alt="" className={classes} width={68} height={68} sizes="34px" quality={100} loading="eager" />;
   return <div className={`${classes} fallback`}>{name.slice(0, 1)}</div>;
 }
 
@@ -2579,7 +2500,7 @@ function PickList({ picks, games, title, pointsMode, removePick, headerContent }
     const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <AbbreviatedTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip">· <NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={compactMetaText} compact={compactMetaText} accessibleText={metaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip">· <NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <span className="badge pick-status-locked" aria-label="Locked">—</span> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
