@@ -11,39 +11,14 @@ const STYLES = `
 .pick-lock-indicator svg{display:block;width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none}
 .pick-lock-indicator.app-pass-lock-hidden{display:none!important}
 
-/* My Card keeps the normal title size; the selected team abbreviates when the row is too tight. */
-.card-panel .pick-section .pick-card .pick-title-team.app-pass-full-team{max-width:100%;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:inherit!important}
-
 /* Sent offer status stays visibly blue. */
-.side-bet-card.mode-sent .side-bet-response.pending{color:var(--blue-dark)!important}
+.side-bet-card.mode-sent .side-bet-response.pending{color:var(--blue-dark)!important;-webkit-text-fill-color:var(--blue-dark)!important}
 
 /* An empty League Card row must start immediately below the player header. */
 .card-panel .group-card>h3+.group-empty-picks,.card-panel .group-card>h3+.admin-no-submission-row{margin-top:0!important}
 .card-panel .group-card>h3+.group-empty-picks{border-top:0!important;background:var(--panel)!important;box-shadow:none!important}
 .card-panel .group-card>h3+.admin-no-submission-row{border-top:0!important;background:var(--panel)!important;box-shadow:none!important}
 .card-panel .group-card>h3+.admin-no-submission-row::before{display:none!important}
-
-/* Standings numbers use the same natural, unpadded line box as Bank values. */
-.leaderboard-row>.leaderboard-rank,.leaderboard-row>.leaderboard-stat,.leaderboard-row>.leaderboard-pct,.leaderboard-row>.leaderboard-points{line-height:normal!important;overflow:visible!important}
-.leaderboard-row>.leaderboard-rank .numeric-token,.leaderboard-row>.leaderboard-rank .numeric-fragment,.leaderboard-row>.leaderboard-stat .numeric-token,.leaderboard-row>.leaderboard-stat .numeric-fragment,.leaderboard-row>.leaderboard-pct .numeric-token,.leaderboard-row>.leaderboard-pct .numeric-fragment,.leaderboard-row>.leaderboard-points .numeric-token,.leaderboard-row>.leaderboard-points .numeric-fragment{display:inline;line-height:inherit!important;overflow:visible!important;padding-bottom:0!important}
-
-/* The Place value and player name share identical type metrics, so flex centering aligns their visible centers. */
-.leaderboard-row>.leaderboard-rank,.leaderboard-row>.leaderboard-player>strong{font-size:14px!important;font-weight:700!important;line-height:normal!important}
-.leaderboard-labels>span:first-child,.leaderboard-row>.leaderboard-rank{justify-content:center!important;padding-left:0!important;text-align:center!important}
-.leaderboard-row>.leaderboard-rank{width:100%}
-.standings-panel .leaderboard-player .player-profile-link{text-decoration:none!important}
-
-/* Pending Offers use the same natural, unpadded single-line treatment as working pick titles. */
-.side-bet-offer-copy>strong{overflow:clip!important;overflow-clip-margin:2px;line-height:normal!important}
-.side-bet-offer-copy>strong .responsive-text,.side-bet-offer-copy>strong .responsive-text-value{line-height:inherit!important;overflow:clip!important;overflow-clip-margin:2px}
-.side-bet-offer-copy>strong .numeric-token,.side-bet-offer-copy>strong .numeric-fragment{display:inline;line-height:inherit!important;overflow:visible!important;padding-bottom:0!important}
-.bank-game-result .bank-game-pick-title{overflow:clip!important;overflow-clip-margin:2px;line-height:1.3!important}
-.bank-game-result .bank-game-pick-title .pick-title-market,.bank-game-result .bank-game-pick-title .numeric-token,.bank-game-result .bank-game-pick-title .numeric-fragment{line-height:inherit!important;overflow:visible!important}
-.bank-game-result .bank-game-pick-title .pick-title-market>.numeric-token{display:inline-block;padding-bottom:1px}
-.game-time,.game-final-status,.game-live-status,.game-live-situation{line-height:1.3!important;overflow:visible!important}
-.game-time .numeric-token,.game-time .numeric-fragment,.game-final-status .numeric-token,.game-final-status .numeric-fragment,.game-live-status .numeric-token,.game-live-status .numeric-fragment,.game-live-situation .numeric-token,.game-live-situation .numeric-fragment{line-height:inherit!important;overflow:visible!important}
-.pick-meta,.visible-pick-copy>p{overflow:clip!important;overflow-clip-margin:2px;line-height:1.4!important}
-.pick-meta .responsive-text,.pick-meta .responsive-text-value,.visible-pick-copy>p .responsive-text,.visible-pick-copy>p .responsive-text-value{overflow:clip!important;overflow-clip-margin:2px;line-height:1.4!important}
 
 /* A completed week has history only and no new-offer controls. */
 .side-bet-center.app-pass-week-complete .side-bet-list-section[aria-labelledby="pending-offers-title"]{display:none!important}
@@ -153,89 +128,6 @@ function enhanceLockIndicator(element: HTMLElement, universalLockReached: boolea
     element.dataset.appPassLockIcon = "locked";
     element.innerHTML = lockIconMarkup();
   }
-}
-
-function textWidth(text: string, element: HTMLElement) {
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  if (!context) return Number.POSITIVE_INFINITY;
-  const style = window.getComputedStyle(element);
-  const size = Number.parseFloat(style.fontSize) || 14;
-  context.font = `${style.fontStyle} ${style.fontWeight} ${size}px ${style.fontFamily}`;
-  const spacing = Number.parseFloat(style.letterSpacing);
-  return context.measureText(text).width + (Number.isFinite(spacing) ? Math.max(0, text.length - 1) * spacing : 0);
-}
-
-function fitPickTeam(team: HTMLElement, title: HTMLElement, market: HTMLElement | null, fullTeam: string, compactTeam: string) {
-  team.classList.add("app-pass-full-team");
-  team.style.removeProperty("font-size");
-  const titleStyle = window.getComputedStyle(title);
-  const gap = Number.parseFloat(titleStyle.columnGap || titleStyle.gap) || 4;
-  const marketWidth = market?.getBoundingClientRect().width || 0;
-  const available = Math.max(0, title.clientWidth - marketWidth - (market ? gap : 0));
-  const chosen = available > 0 && textWidth(fullTeam, team) <= available + 0.5 ? fullTeam : compactTeam;
-  if (team.textContent?.trim() !== chosen) team.textContent = chosen;
-}
-
-function splitMetaText(text: string) {
-  const divider = " · ";
-  const index = text.indexOf(divider);
-  return index < 0
-    ? { matchup: text.trim(), suffix: "" }
-    : { matchup: text.slice(0, index).trim(), suffix: text.slice(index) };
-}
-
-function splitMatchup(text: string) {
-  const marker = " at ";
-  const index = text.indexOf(marker);
-  return index < 0 ? null : { away: text.slice(0, index).trim(), home: text.slice(index + marker.length).trim() };
-}
-
-function syncMyCardText() {
-  document.querySelectorAll<HTMLElement>(".card-panel .pick-section .pick-card").forEach((row) => {
-    const title = row.querySelector<HTMLElement>(".pick-title");
-    const team = title?.querySelector<HTMLElement>(".pick-title-team");
-    const market = title?.querySelector<HTMLElement>(".pick-title-market") || null;
-    if (!title || !team) return;
-
-    const renderedTeam = team.textContent?.trim() || "";
-    const fullTeam = team.getAttribute("aria-label")?.trim() || team.dataset.appPassFullTeam || renderedTeam;
-    if (!fullTeam) return;
-    const compactTeam = team.dataset.appPassCompactTeam || (renderedTeam && renderedTeam !== fullTeam ? renderedTeam : fullTeam);
-    team.dataset.appPassFullTeam = fullTeam;
-    team.dataset.appPassCompactTeam = compactTeam;
-    fitPickTeam(team, title, market, fullTeam, compactTeam);
-
-    const responsive = row.querySelector<HTMLElement>(".pick-meta .responsive-text");
-    const value = responsive?.querySelector<HTMLElement>(".responsive-text-value");
-    if (!responsive || !value) return;
-
-    const fullMeta = responsive.getAttribute("aria-label")?.trim() || "";
-    if (!fullMeta) return;
-    const fullParts = splitMetaText(fullMeta);
-    const fullMatchup = splitMatchup(fullParts.matchup);
-    if (!fullMatchup) return;
-
-    const initialCompactMeta = responsive.dataset.appPassCompactMeta || value.textContent?.trim() || fullMeta;
-    responsive.dataset.appPassCompactMeta = initialCompactMeta;
-    const compactParts = splitMetaText(initialCompactMeta);
-    const compactMatchup = splitMatchup(compactParts.matchup);
-    if (!compactMatchup) return;
-
-    const selectedAway = fullTeam === fullMatchup.away;
-    const selectedHome = fullTeam === fullMatchup.home;
-    const intermediateMatchup = selectedAway
-      ? `${fullMatchup.away} at ${compactMatchup.home}`
-      : selectedHome
-        ? `${compactMatchup.away} at ${fullMatchup.home}`
-        : `${fullMatchup.away} at ${compactMatchup.home}`;
-    const intermediateMeta = `${intermediateMatchup}${fullParts.suffix}`;
-    const compactMeta = `${compactMatchup.away} at ${compactMatchup.home}${fullParts.suffix}`;
-    const available = responsive.clientWidth + 0.5;
-    const candidates = [fullMeta, intermediateMeta, compactMeta];
-    const chosen = candidates.find((candidate) => textWidth(candidate, value) <= available) || compactMeta;
-    if (value.textContent?.trim() !== chosen) value.textContent = chosen;
-  });
 }
 
 function responseChildren(container: HTMLElement) {
@@ -387,7 +279,6 @@ export default function AppPassFixes({ appSlug }: { appSlug: AppSlug }) {
         const universalLockReached = universalLock != null && universalLock <= now;
 
         document.querySelectorAll<HTMLElement>(".pick-status-locked,.manual-lock-confirmed").forEach((element) => enhanceLockIndicator(element, universalLockReached));
-        syncMyCardText();
         syncSideBetResponseOrder();
 
         const sideBetCenter = document.querySelector<HTMLElement>(".side-bet-center");
