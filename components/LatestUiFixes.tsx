@@ -13,16 +13,26 @@ const STYLES = `
 .card-panel .pick-section .pick-card .pick-meta .responsive-text,
 .card-panel .pick-section .pick-card .pick-meta .responsive-text-value{overflow:clip!important;overflow-clip-margin:5px!important;line-height:1.45!important}
 
-/* Standings cells are vertically centered by the same row mechanics. No optical nudges.
-   Rank uses the exact same 1.2 line box as the adjacent player name. */
+/* Standings cells share the same row mechanics. Place now uses the exact same
+   line-box/numeric-wrapper treatment as W/L/P; only its rank color differs. */
 .standings-panel .leaderboard-row>.leaderboard-rank,
 .standings-panel .leaderboard-row>.leaderboard-player,
 .standings-panel .leaderboard-row>.leaderboard-stat,
 .standings-panel .leaderboard-row>.leaderboard-pct,
 .standings-panel .leaderboard-row>.leaderboard-points{height:100%!important;align-self:stretch!important;align-items:center!important;transform:none!important}
-.standings-panel .leaderboard-row>.leaderboard-rank{display:flex!important;justify-content:center!important;line-height:1.2!important}
+.standings-panel .leaderboard-row>.leaderboard-rank,
+.standings-panel .leaderboard-row>.leaderboard-stat,
+.standings-panel .leaderboard-row>.leaderboard-pct,
+.standings-panel .leaderboard-row>.leaderboard-points{line-height:normal!important;overflow:visible!important}
+.standings-panel .leaderboard-row>.leaderboard-rank{display:flex!important;justify-content:center!important}
 .standings-panel .leaderboard-row>.leaderboard-rank .numeric-token,
-.standings-panel .leaderboard-row>.leaderboard-rank .numeric-fragment{display:inline!important;line-height:1.2!important;padding:0!important;transform:none!important}
+.standings-panel .leaderboard-row>.leaderboard-rank .numeric-fragment,
+.standings-panel .leaderboard-row>.leaderboard-stat .numeric-token,
+.standings-panel .leaderboard-row>.leaderboard-stat .numeric-fragment,
+.standings-panel .leaderboard-row>.leaderboard-pct .numeric-token,
+.standings-panel .leaderboard-row>.leaderboard-pct .numeric-fragment,
+.standings-panel .leaderboard-row>.leaderboard-points .numeric-token,
+.standings-panel .leaderboard-row>.leaderboard-points .numeric-fragment{display:inline!important;line-height:inherit!important;overflow:visible!important;padding:0!important;transform:none!important}
 
 /* Keep the restored runtime optical centering. Give the top-left kickoff time a
    genuinely taller line box plus paint room so the bottoms of Roboto Slab and
