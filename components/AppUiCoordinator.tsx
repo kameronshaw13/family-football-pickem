@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 type FontGeometry = { baseline: number; lineHeight: number };
 
@@ -177,8 +177,22 @@ function canvasFont(style: CSSStyleDeclaration) {
   return `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
 }
 
+function splitMetaText(text: string) {
+  const divider = " · ";
+  const index = text.indexOf(divider);
+  return index < 0
+    ? { matchup: text.trim(), suffix: "" }
+    : { matchup: text.slice(0, index).trim(), suffix: text.slice(index) };
+}
+
+function splitMatchup(text: string) {
+  const marker = " at ";
+  const index = text.indexOf(marker);
+  return index < 0 ? null : { away: text.slice(0, index).trim(), home: text.slice(index + marker.length).trim() };
+}
+
 export default function AppUiCoordinator() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     let active = true;
     let frame = 0;
     let bankWasActive = false;
@@ -257,6 +271,76 @@ export default function AppUiCoordinator() {
       const shift = precise((geometry.lineHeight / 2) - fontCenterInLine);
       shiftCache.set(key, shift);
       return shift;
+    }
+
+    function textWidth(text: string, element: HTMLElement) {
+      if (!context) return Number.POSITIVE_INFINITY;
+      const style = window.getComputedStyle(element);
+      context.font = canvasFont(style);
+      const spacing = Number.parseFloat(style.letterSpacing);
+      return context.measureText(text).width + (Number.isFinite(spacing) ? Math.max(0, text.length - 1) * spacing : 0);
+    }
+
+    function fitMyCardText() {
+      document.querySelectorAll<HTMLElement>(".card-panel .pick-section .pick-card").forEach((row) => {
+        const title = row.querySelector<HTMLElement>(".pick-title");
+        const team = title?.querySelector<HTMLElement>(".pick-title-team");
+        const market = title?.querySelector<HTMLElement>(".pick-title-market") || null;
+        if (!title || !team) return;
+
+        const renderedTeam = team.textContent?.trim() || "";
+        const fullTeam = team.getAttribute("aria-label")?.trim() || team.dataset.appPassFullTeam || renderedTeam;
+        if (!fullTeam) return;
+        const compactTeam = team.dataset.appPassCompactTeam || (renderedTeam && renderedTeam !== fullTeam ? renderedTeam : fullTeam);
+        team.dataset.appPassFullTeam = fullTeam;
+        team.dataset.appPassCompactTeam = compactTeam;
+
+        const titleStyle = window.getComputedStyle(title);
+        const titleGap = Number.parseFloat(titleStyle.columnGap || titleStyle.gap) || 4;
+        const marketWidth = market?.getBoundingClientRect().width || 0;
+        const teamWidth = Math.max(0, title.clientWidth - marketWidth - (market ? titleGap : 0));
+        const chosenTeam = teamWidth > 0 && textWidth(fullTeam, team) <= teamWidth + 0.5 ? fullTeam : compactTeam;
+        if (team.textContent?.trim() !== chosenTeam) team.textContent = chosenTeam;
+
+        const responsive = row.querySelector<HTMLElement>(".pick-meta .responsive-text");
+        const value = responsive?.querySelector<HTMLElement>(".responsive-text-value");
+        if (!responsive || !value) return;
+
+        const fullMeta = responsive.getAttribute("aria-label")?.trim() || "";
+        if (!fullMeta) return;
+        const fullParts = splitMetaText(fullMeta);
+        const fullMatchup = splitMatchup(fullParts.matchup);
+        if (!fullMatchup) return;
+
+        const initialCompactMeta = responsive.dataset.appPassCompactMeta || value.textContent?.trim() || fullMeta;
+        responsive.dataset.appPassCompactMeta = initialCompactMeta;
+        const compactParts = splitMetaText(initialCompactMeta);
+        const compactMatchup = splitMatchup(compactParts.matchup);
+        if (!compactMatchup) return;
+
+        const selectedAway = fullTeam === fullMatchup.away;
+        const selectedHome = fullTeam === fullMatchup.home;
+        const intermediateMatchup = selectedAway
+          ? `${fullMatchup.away} at ${compactMatchup.home}`
+          : selectedHome
+            ? `${compactMatchup.away} at ${fullMatchup.home}`
+            : `${fullMatchup.away} at ${compactMatchup.home}`;
+        const intermediateMeta = `${intermediateMatchup}${fullParts.suffix}`;
+        const compactMeta = `${compactMatchup.away} at ${compactMatchup.home}${fullParts.suffix}`;
+
+        const actions = row.querySelector<HTMLElement>(".pick-row-actions");
+        const responsiveRect = responsive.getBoundingClientRect();
+        const actionsRect = actions?.getBoundingClientRect();
+        const top = row.querySelector<HTMLElement>(".pick-top");
+        const topStyle = top ? window.getComputedStyle(top) : null;
+        const gridGap = Number.parseFloat(topStyle?.columnGap || topStyle?.gap || "0") || 0;
+        const available = actionsRect
+          ? Math.max(0, actionsRect.left - gridGap - responsiveRect.left) + 0.5
+          : responsive.clientWidth + 0.5;
+        const candidates = [fullMeta, intermediateMeta, compactMeta];
+        const chosenMeta = candidates.find((candidate) => textWidth(candidate, value) <= available) || compactMeta;
+        if (value.textContent?.trim() !== chosenMeta) value.textContent = chosenMeta;
+      });
     }
 
     function firstVisibleMatch(block: HTMLElement, selectors: readonly string[]) {
@@ -391,6 +475,7 @@ export default function AppUiCoordinator() {
 
     function run() {
       if (!active) return;
+      fitMyCardText();
       makeSeasonNamesInteractive();
       applyStableTextCentering();
       const bankActive = bankPanelIsActive();
@@ -415,16 +500,21 @@ export default function AppUiCoordinator() {
       fontGeometryCache.clear();
       shiftCache.clear();
       visibleGlyphMetricCache.clear();
+      fitMyCardText();
       schedule();
     }
 
-    const observer = new MutationObserver(schedule);
+    const observer = new MutationObserver(() => {
+      fitMyCardText();
+      schedule();
+    });
     observer.observe(document.body, { childList: true, characterData: true, subtree: true });
     document.addEventListener("keydown", onKey);
     window.addEventListener("focus", schedule);
     window.addEventListener("resize", schedule);
     document.fonts?.addEventListener?.("loadingdone", onFontsLoaded);
     void document.fonts?.ready.then(onFontsLoaded);
+    fitMyCardText();
     schedule();
 
     return () => {
