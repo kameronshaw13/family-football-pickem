@@ -3,69 +3,58 @@
 import { useEffect } from "react";
 
 const STYLES = `
-/* Keep My Card text inside its center grid column without using overflow:hidden
-   on the whole copy block. The clip path contains left/right paint at the column
-   edges while allowing extra vertical paint room for Roboto Slab glyphs. */
-.card-panel .pick-section .pick-card .pick-copy{overflow:visible!important;clip-path:inset(-6px 0 -6px 0)}
-.card-panel .pick-section .pick-card .pick-title{overflow:visible!important;line-height:1.45!important;padding-block:2px!important;margin-block:-2px!important}
-.card-panel .pick-section .pick-card .pick-title-team{overflow:hidden!important;line-height:1.45!important;padding-block:2px!important;margin-block:-2px!important;text-overflow:ellipsis!important;white-space:nowrap!important}
-.card-panel .pick-section .pick-card .pick-title-market{overflow:visible!important;line-height:1.45!important;padding-block:2px!important;margin-block:-2px!important}
+.card-panel .pick-section .pick-card .pick-copy,
+.card-panel .group-card .visible-pick-copy,
+.bank-game-result>div,
+.side-bet-offer-copy{min-width:0!important;overflow:visible!important;clip-path:inset(-6px 0 -6px 0)}
+
+.card-panel .pick-section .pick-card .pick-title,
+.card-panel .group-card .visible-pick-copy>strong,
+.bank-game-result .bank-game-pick-title,
+.side-bet-offer-copy>strong{overflow:visible!important;line-height:1.25!important;padding-block:0!important;margin-block:0!important}
+
+.card-panel .pick-section .pick-card .pick-title-team,
+.card-panel .pick-section .pick-card .pick-title-team.app-pass-full-team,
+.card-panel .pick-section .pick-card .pick-title-market,
+.card-panel .group-card .visible-pick-copy>strong .pick-title-team,
+.card-panel .group-card .visible-pick-copy>strong .pick-title-market,
+.bank-game-result .bank-game-pick-title .pick-title-team,
+.bank-game-result .bank-game-pick-title .pick-title-market,
+.card-panel .pick-section .pick-card .pick-title-team.responsive-text,
+.card-panel .pick-section .pick-card .pick-title-team.responsive-text .responsive-text-value,
+.card-panel .group-card .visible-pick-copy>strong .pick-title-team.responsive-text,
+.card-panel .group-card .visible-pick-copy>strong .pick-title-team.responsive-text .responsive-text-value,
+.bank-game-result .bank-game-pick-title .pick-title-team.responsive-text,
+.bank-game-result .bank-game-pick-title .pick-title-team.responsive-text .responsive-text-value,
+.side-bet-offer-copy>strong .responsive-text,
+.side-bet-offer-copy>strong .responsive-text-value{overflow:visible!important;line-height:inherit!important;padding-block:0!important;margin-block:0!important;text-overflow:clip!important}
+
 .card-panel .pick-section .pick-card .pick-title .numeric-token,
 .card-panel .pick-section .pick-card .pick-title .numeric-fragment,
-.card-panel .pick-section .pick-card .pick-title .numeric-symbol{line-height:inherit!important;overflow:visible!important}
-.card-panel .pick-section .pick-card .pick-meta{overflow:visible!important;line-height:1.45!important}
-.card-panel .pick-section .pick-card .pick-meta .responsive-text,
-.card-panel .pick-section .pick-card .pick-meta .responsive-text-value{overflow:hidden!important;line-height:1.45!important;text-overflow:ellipsis!important;white-space:nowrap!important}
-
-/* Persistent grey matchup/date metadata uses one exact treatment anywhere the
-   pick/card result rows output it: My Card, League Cards, weekly results and side bets. */
-.card-panel .pick-section .pick-card .pick-meta,
-.card-panel .group-card .visible-pick-copy>p,
-.bank-game-result>div>p,
-.side-bet-offer-copy>p{font-family:var(--font-display)!important;font-size:11px!important;font-weight:600!important}
-
-/* League Card / Weekly Result copy needs the same horizontal containment without
-   vertically clipping team names or spread numerals. Keep spreads beside the team. */
-.card-panel .group-card .visible-pick-copy,
-.bank-game-result>div{overflow:visible!important;clip-path:inset(-6px 0 -6px 0)}
-.card-panel .group-card .visible-pick-copy>strong,
-.bank-game-result .bank-game-pick-title{overflow:visible!important;line-height:1.45!important;padding-block:2px!important;margin-block:-2px!important}
-.card-panel .group-card .visible-pick-copy>strong .pick-title-team,
-.bank-game-result .bank-game-pick-title .pick-title-team{overflow:hidden!important;line-height:1.45!important;padding-block:2px!important;margin-block:-2px!important;text-overflow:ellipsis!important;white-space:nowrap!important}
-.card-panel .group-card .visible-pick-copy>strong .pick-title-market,
-.bank-game-result .bank-game-pick-title .pick-title-market{overflow:visible!important;line-height:1.45!important;padding-block:2px!important;margin-block:-2px!important}
+.card-panel .pick-section .pick-card .pick-title .numeric-symbol,
 .card-panel .group-card .visible-pick-copy>strong .numeric-token,
 .card-panel .group-card .visible-pick-copy>strong .numeric-fragment,
 .card-panel .group-card .visible-pick-copy>strong .numeric-symbol,
 .bank-game-result .bank-game-pick-title .numeric-token,
 .bank-game-result .bank-game-pick-title .numeric-fragment,
-.bank-game-result .bank-game-pick-title .numeric-symbol{line-height:inherit!important;overflow:visible!important}
+.bank-game-result .bank-game-pick-title .numeric-symbol{line-height:inherit!important;overflow:visible!important;padding-block:0!important;margin-block:0!important}
 
-/* League Card selected-team titles use ResponsiveText, whose generic wrapper clips
-   its own glyph box. Open only those inner wrappers vertically and give the spread
-   numerals explicit paint room; the outer grid/copy boundary still contains the row. */
-.card-panel .group-card .visible-pick-copy>strong .pick-title-team.responsive-text,
-.card-panel .group-card .visible-pick-copy>strong .pick-title-team.responsive-text .responsive-text-value{overflow:visible!important;line-height:1.45!important;padding-block:3px!important;margin-block:-3px!important;text-overflow:clip!important}
-.card-panel .group-card .visible-pick-copy>strong .pick-title-market,
-.card-panel .group-card .visible-pick-copy>strong .pick-title-market .numeric-token,
-.card-panel .group-card .visible-pick-copy>strong .pick-title-market .numeric-fragment,
-.card-panel .group-card .visible-pick-copy>strong .pick-title-market .numeric-symbol{line-height:1.45!important;overflow:visible!important;padding-block:3px!important;margin-block:-3px!important}
+.card-panel .pick-section .pick-card .pick-meta,
+.card-panel .group-card .visible-pick-copy>p,
+.bank-game-result>div>p{overflow:visible!important;font-family:var(--font-display)!important;font-size:11px!important;font-weight:600!important;line-height:1.4!important;padding-block:0!important;margin-bottom:0!important}
+.card-panel .pick-section .pick-card .pick-meta .responsive-text,
+.card-panel .pick-section .pick-card .pick-meta .responsive-text-value,
+.card-panel .group-card .visible-pick-copy>p .responsive-text,
+.card-panel .group-card .visible-pick-copy>p .responsive-text-value,
+.bank-game-result>div>p .responsive-text,
+.bank-game-result>div>p .responsive-text-value{overflow:visible!important;line-height:inherit!important;padding-block:0!important;margin-block:0!important;text-overflow:clip!important}
 
-/* Only the League Card and Weekly Results spread tokens need extra descender paint
-   room. The matching negative margin preserves the exact baseline, row height and
-   two-line-block centering while keeping the bottom of Roboto Slab numerals visible. */
-.card-panel .group-card .visible-pick-copy>strong .pick-title-market>.numeric-token,
-.bank-game-result .bank-game-pick-title .pick-title-market>.numeric-token{display:inline-block!important;line-height:1.45!important;overflow:visible!important;padding-bottom:3px!important;margin-bottom:-3px!important}
-.card-panel .group-card .visible-pick-copy>strong .pick-title-market>.numeric-token .numeric-fragment,
-.card-panel .group-card .visible-pick-copy>strong .pick-title-market>.numeric-token .numeric-symbol,
-.bank-game-result .bank-game-pick-title .pick-title-market>.numeric-token .numeric-fragment,
-.bank-game-result .bank-game-pick-title .pick-title-market>.numeric-token .numeric-symbol{line-height:inherit!important;overflow:visible!important;padding-bottom:2px!important;margin-bottom:-2px!important}
+.side-bet-offer-copy>p{overflow:visible!important;font-family:var(--font-display)!important;font-size:11px!important;font-weight:600!important;line-height:1.35!important;padding-block:0!important;margin-bottom:0!important}
+.side-bet-offer-copy .side-bet-response-line,
+.side-bet-offer-copy .side-bet-response-value{overflow:visible!important;padding-block:0!important;margin-block:0!important}
 
-/* Lock Pick and Review & Accept popup matchup/date lines use the same treatment. */
 .confirmation-kickoff{font-family:var(--font-display)!important;font-size:12px!important;font-weight:700!important}
 
-/* Standings cells share the same row mechanics. Place now uses the exact same
-   line-box/numeric-wrapper treatment as W/L/P; only its rank color differs. */
 .standings-panel .leaderboard-row>.leaderboard-rank,
 .standings-panel .leaderboard-row>.leaderboard-player,
 .standings-panel .leaderboard-row>.leaderboard-stat,
@@ -85,9 +74,6 @@ const STYLES = `
 .standings-panel .leaderboard-row>.leaderboard-points .numeric-token,
 .standings-panel .leaderboard-row>.leaderboard-points .numeric-fragment{display:inline!important;line-height:inherit!important;overflow:visible!important;padding:0!important;transform:none!important}
 
-/* Keep the restored runtime optical centering. Give the top-left kickoff time a
-   genuinely taller line box plus paint room so the bottoms of Roboto Slab and
-   numeric glyphs render fully on iOS without changing the game-head height. */
 .game-card .game-head .game-time{display:inline-flex!important;align-items:center!important;line-height:1.4!important;padding-block:3px!important;margin-block:-3px!important;overflow:visible!important}
 .game-card .game-head .game-time>.numeric-token,
 .game-card .game-head .game-time .numeric-fragment,
