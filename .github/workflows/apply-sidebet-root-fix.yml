@@ -80,110 +80,167 @@ jobs:
           }'''
           text = replace_once(text, old, new, 'week-scoped side bet query')
 
-          old = '''          let rows = await allGroupBets(supabase, context.group.id, context.seasonYear);'''
-          new = '''          let rows = await allGroupBets(supabase, context.group.id, context.seasonYear, week);'''
-          text = replace_once(text, old, new, 'snapshot query scope')
+          lines = text.splitlines()
+          found = {
+              'snapshot': 0,
+              'raw_counts': 0,
+              'dismissed': 0,
+              'create_limit': 0,
+              'accept_limit': 0,
+          }
+          for i, line in enumerate(lines):
+              stripped = line.strip()
+              indent = line[:len(line) - len(line.lstrip())]
+              if stripped == 'let rows = await allGroupBets(supabase, context.group.id, context.seasonYear);':
+                  lines[i] = indent + 'let rows = await allGroupBets(supabase, context.group.id, context.seasonYear, week);'
+                  found['snapshot'] += 1
+              elif stripped == 'const rawCounts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === week), context.members.map((member: any) => member.id));':
+                  lines[i] = indent + 'const rawCounts = sideBetSlotCounts(rows, context.members.map((member: any) => member.id));'
+                  found['raw_counts'] += 1
+              elif stripped == 'const dismissed = await dismissedSideBetIds(supabase, context.group.id, profileId);':
+                  lines[i] = indent + 'const dismissed = await dismissedSideBetIds(supabase, context.group.id, profileId, rows.map((bet: any) => bet.id));'
+                  found['dismissed'] += 1
+              elif 'const counts = sideBetSlotCounts(rows.filter' in stripped and 'Number(game.week)' in stripped:
+                  previous = lines[i - 1]
+                  if previous.strip() != 'const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);':
+                      raise SystemExit('create limit query: unexpected previous line')
+                  prev_indent = previous[:len(previous) - len(previous.lstrip())]
+                  lines[i - 1] = prev_indent + 'const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, Number(game.week));'
+                  lines[i] = indent + 'const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id));'
+                  found['create_limit'] += 1
+              elif 'const counts = sideBetSlotCounts(rows.filter' in stripped and 'Number(sideBet.week)' in stripped:
+                  previous = lines[i - 1]
+                  if previous.strip() != 'const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);':
+                      raise SystemExit('accept limit query: unexpected previous line')
+                  prev_indent = previous[:len(previous) - len(previous.lstrip())]
+                  lines[i - 1] = prev_indent + 'const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, Number(sideBet.week));'
+                  lines[i] = indent + 'const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id), sideBet.id);'
+                  found['accept_limit'] += 1
 
-          old = '''          const rawCounts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === week), context.members.map((member: any) => member.id));
-          const dismissed = await dismissedSideBetIds(supabase, context.group.id, profileId);'''
-          new = '''          const rawCounts = sideBetSlotCounts(rows, context.members.map((member: any) => member.id));
-          const dismissed = await dismissedSideBetIds(supabase, context.group.id, profileId, rows.map((bet: any) => bet.id));'''
-          text = replace_once(text, old, new, 'snapshot counts and dismissals')
+          if any(value != 1 for value in found.values()):
+              raise SystemExit(f'week-scoped query edits incomplete: {found}')
 
-          old = '''              const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
-              const counts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === Number(game.week)), context.members.map((member) => member.id));'''
-          new = '''              const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, Number(game.week));
-              const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id));'''
-          text = replace_once(text, old, new, 'create limit query')
+          # Move notification bookkeeping alongside the response snapshot instead of
+          # serializing it in front of the user-visible accept/decline response.
+          moved = 0
+          cancel_parallel = 0
+          out = []
+          pending_resolver = None
+          skip_next = False
+          for i, line in enumerate(lines):
+              if skip_next:
+                  skip_next = False
+                  continue
+              stripped = line.strip()
+              next_stripped = lines[i + 1].strip() if i + 1 < len(lines) else ''
+              if stripped.startswith('await resolveSideBetOfferNotifications(') and next_stripped.startswith('const [nextSnapshot] = await Promise.all(['):
+                  pending_resolver = stripped.removeprefix('await ').removesuffix(';')
+                  moved += 1
+                  continue
+              if stripped == 'await resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id);' and next_stripped == 'return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });':
+                  indent = line[:len(line) - len(line.lstrip())]
+                  out.extend([
+                      indent + 'const [nextSnapshot] = await Promise.all([',
+                      indent + '  snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),',
+                      indent + '  resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id)',
+                      indent + ']);',
+                      indent + 'return NextResponse.json({ ok: true, ...nextSnapshot });'
+                  ])
+                  cancel_parallel += 1
+                  skip_next = True
+                  continue
+              out.append(line)
+              if pending_resolver and 'snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),' in stripped:
+                  indent = line[:len(line) - len(line.lstrip())]
+                  out.append(indent + pending_resolver + ',')
+                  pending_resolver = None
 
-          old = '''            await resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id);
-            return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });'''
-          new = '''            const [nextSnapshot] = await Promise.all([
-              snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
-              resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id)
-            ]);
-            return NextResponse.json({ ok: true, ...nextSnapshot });'''
-          text = replace_once(text, old, new, 'cancel response parallelism')
-
-          old = '''              await resolveSideBetOfferNotifications(supabase, [sideBet.id], auth.profile.id, context.group.id);
-              const [nextSnapshot] = await Promise.all([
-                snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
-                createNotificationSafely(supabase, {'''
-          new = '''              const [nextSnapshot] = await Promise.all([
-                snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
-                resolveSideBetOfferNotifications(supabase, [sideBet.id], auth.profile.id, context.group.id),
-                createNotificationSafely(supabase, {'''
-          text = replace_once(text, old, new, 'decline response parallelism')
-
-          old = '''              const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
-              const counts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === Number(sideBet.week)), context.members.map((member) => member.id), sideBet.id);'''
-          new = '''              const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, Number(sideBet.week));
-              const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id), sideBet.id);'''
-          text = replace_once(text, old, new, 'accept limit query')
-
-          old = '''            await resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id);
-            const [nextSnapshot] = await Promise.all([
-              snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
-              createNotificationSafely(supabase, {'''
-          new = '''            const [nextSnapshot] = await Promise.all([
-              snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week),
-              resolveSideBetOfferNotifications(supabase, [sideBet.id], undefined, context.group.id),
-              createNotificationSafely(supabase, {'''
-          text = replace_once(text, old, new, 'accept response parallelism')
-          route.write_text(text)
+          if pending_resolver is not None or moved != 2 or cancel_parallel != 1:
+              raise SystemExit(f'notification parallelism edits incomplete: moved={moved}, cancel={cancel_parallel}, pending={pending_resolver}')
+          route.write_text('\n'.join(out) + '\n')
 
           wrapper = Path('app/api/side-bets/route.ts')
-          text = wrapper.read_text()
-          old = '''          async function filterResponseToWeek(response: Response, week: number | null) {
-            if (!response.ok || week == null || !Number.isInteger(week)) return response;
-            const payload = await response.json();
-            if (Array.isArray(payload.sideBets)) payload.sideBets = payload.sideBets.filter((bet: any) => Number(bet.week) === week);
-            return NextResponse.json(payload, { status: response.status, headers: { "Cache-Control": "no-store, max-age=0" } });
-          }
+          wrapper.write_text('''import { NextRequest, NextResponse } from "next/server";
+          import { getProfileFromRequest } from "@/lib/authServer";
+          import { requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+          import { getSupabaseAdmin } from "@/lib/supabaseServer";
+          import { GET as baseGET, POST as basePOST } from "./routeBase";
+
+          export const dynamic = "force-dynamic";
+          export const revalidate = 0;
 
           export async function GET(req: NextRequest) {
-            const parsedWeek = Number(req.nextUrl.searchParams.get("week"));
-            return filterResponseToWeek(await baseGET(req), Number.isInteger(parsedWeek) ? parsedWeek : null);
-          }'''
-          new = '''          export async function GET(req: NextRequest) {
             return baseGET(req);
-          }'''
-          text = replace_once(text, old, new, 'remove response re-filtering')
+          }
 
-          old = '''              const response = await basePOST(req);
-              const viewWeek = Number(body?.viewWeek);
-              return filterResponseToWeek(response, Number.isInteger(viewWeek) ? viewWeek : null);'''
-          new = '''              return basePOST(req);'''
-          text = replace_once(text, old, new, 'direct normal POST response')
+          export async function POST(req: NextRequest) {
+            let body: any = null;
+            try {
+              body = await req.clone().json();
+            } catch {
+              return basePOST(req);
+            }
 
-          old = '''              const response = await basePOST(req);
-              const viewWeek = Number(body?.viewWeek);
-              return filterResponseToWeek(response, Number.isInteger(viewWeek) ? viewWeek : null);'''
-          new = '''              return basePOST(req);'''
-          text = replace_once(text, old, new, 'direct clear fallback response')
+            if (body?.action !== "clear" || typeof body?.sideBetId !== "string") return basePOST(req);
 
-          old = '''            return filterResponseToWeek(await baseGET(new NextRequest(url, { method: "GET", headers: req.headers })), viewWeek);'''
-          new = '''            return baseGET(new NextRequest(url, { method: "GET", headers: req.headers }));'''
-          text = replace_once(text, old, new, 'direct expired clear snapshot')
-          wrapper.write_text(text)
+            try {
+              const auth = await getProfileFromRequest(req);
+              if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
+              const supabase = getSupabaseAdmin();
+              const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
+              const { data: sideBet, error } = await supabase
+                .from("side_bets")
+                .select("id,creator_id,week,status,targets:side_bet_targets(recipient_id)")
+                .eq("group_id", context.group.id)
+                .eq("season_year", context.seasonYear)
+                .eq("id", body.sideBetId)
+                .maybeSingle();
+
+              if (error || !sideBet || sideBet.status !== "expired") return basePOST(req);
+              const involved = sideBet.creator_id === auth.profile.id || sideBet.targets?.some((target: any) => target.recipient_id === auth.profile.id);
+              if (!involved) return NextResponse.json({ ok: false, error: "This offer is not in your history." }, { status: 403 });
+
+              const { error: dismissError } = await supabase.from("side_bet_dismissals").upsert({
+                side_bet_id: sideBet.id,
+                user_id: auth.profile.id,
+                group_id: context.group.id,
+                created_at: new Date().toISOString()
+              }, { onConflict: "side_bet_id,user_id,group_id" });
+              if (dismissError) throw dismissError;
+
+              const url = new URL(req.url);
+              url.search = "";
+              const viewWeek = Number(body.viewWeek ?? sideBet.week);
+              url.searchParams.set("week", String(viewWeek));
+              return baseGET(new NextRequest(url, { method: "GET", headers: req.headers }));
+            } catch (error) {
+              return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
+            }
+          }
+          '''.replace(/^          /gm, ''))
 
           app = Path('components/PickemAppBase.tsx')
-          text = app.read_text()
-          old = '''          const APP_DATA_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;'''
-          new = '''          const APP_DATA_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
-          const SIDE_BET_VISIBLE_REFRESH_MS = 10_000;'''
-          text = replace_once(text, old, new, 'side bet refresh constant')
+          lines = app.read_text().splitlines()
+          found = {'constant': 0, 'timer': 0, 'backdrop': 0, 'sheet': 0}
+          for i, line in enumerate(lines):
+              stripped = line.strip()
+              indent = line[:len(line) - len(line.lstrip())]
+              if stripped == 'const APP_DATA_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;':
+                  lines[i] = line + '\n' + indent + 'const SIDE_BET_VISIBLE_REFRESH_MS = 10_000;'
+                  found['constant'] += 1
+              elif stripped == 'const timer = window.setInterval(refreshVisibleSideBets, 2500);':
+                  lines[i] = indent + 'const timer = window.setInterval(refreshVisibleSideBets, SIDE_BET_VISIBLE_REFRESH_MS);'
+                  found['timer'] += 1
+              elif '{confirmingBet && <div className="confirmation-backdrop">' in line:
+                  lines[i] = line.replace('<div className="confirmation-backdrop">', '<div className="confirmation-backdrop" onClick={() => { if (!saving) setConfirmingBetId(null); }}>')
+                  found['backdrop'] += 1
+                  if i + 1 < len(lines) and 'className="confirmation-sheet"' in lines[i + 1]:
+                      lines[i + 1] = lines[i + 1].replace('aria-labelledby="accept-bet-title">', 'aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>')
+                      found['sheet'] += 1
 
-          old = '''            const timer = window.setInterval(refreshVisibleSideBets, 2500);'''
-          new = '''            const timer = window.setInterval(refreshVisibleSideBets, SIDE_BET_VISIBLE_REFRESH_MS);'''
-          text = replace_once(text, old, new, 'side bet polling cadence')
-
-          old = '''              {confirmingBet && <div className="confirmation-backdrop">
-                <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title">'''
-          new = '''              {confirmingBet && <div className="confirmation-backdrop" onClick={() => { if (!saving) setConfirmingBetId(null); }}>
-                <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>'''
-          text = replace_once(text, old, new, 'confirmation backdrop dismissal')
-          app.write_text(text)
+          if any(value != 1 for value in found.values()):
+              raise SystemExit(f'client side-bet edits incomplete: {found}')
+          app.write_text('\n'.join(lines) + '\n')
           PY
 
       - name: Commit source changes
