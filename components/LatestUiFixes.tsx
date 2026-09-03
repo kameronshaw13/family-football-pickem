@@ -13,11 +13,12 @@ const STYLES = `
 .card-panel .pick-section .pick-card .pick-meta .responsive-text,
 .card-panel .pick-section .pick-card .pick-meta .responsive-text-value{overflow:clip!important;overflow-clip-margin:5px!important;line-height:1.45!important}
 
-/* Locked-card matchup/date text and the side-bet review callouts use one exact
-   typography treatment instead of separate near-matches. */
+/* Keep the persistent grey matchup/date copy one step lighter than popup review text. */
 .card-panel .pick-section .pick-card .pick-meta,
-.side-bet-offer-copy>p,
-.confirmation-kickoff{font-family:var(--font-display)!important;font-size:12px!important;font-weight:700!important}
+.side-bet-offer-copy>p{font-family:var(--font-display)!important;font-size:12px!important;font-weight:600!important}
+
+/* Lock Pick and Review & Accept popup matchup/date lines use the same treatment. */
+.confirmation-kickoff{font-family:var(--font-display)!important;font-size:11px!important;font-weight:700!important}
 
 /* Standings cells share the same row mechanics. Place now uses the exact same
    line-box/numeric-wrapper treatment as W/L/P; only its rank color differs. */
