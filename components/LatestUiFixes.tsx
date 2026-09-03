@@ -13,22 +13,24 @@ const STYLES = `
 .card-panel .pick-section .pick-card .pick-meta .responsive-text,
 .card-panel .pick-section .pick-card .pick-meta .responsive-text-value{overflow:clip!important;overflow-clip-margin:5px!important;line-height:1.45!important}
 
-/* Standings cells are vertically centered by the same row mechanics. No optical nudges. */
+/* Standings cells are vertically centered by the same row mechanics. No optical nudges.
+   Rank uses the exact same 1.2 line box as the adjacent player name. */
 .standings-panel .leaderboard-row>.leaderboard-rank,
 .standings-panel .leaderboard-row>.leaderboard-player,
 .standings-panel .leaderboard-row>.leaderboard-stat,
 .standings-panel .leaderboard-row>.leaderboard-pct,
 .standings-panel .leaderboard-row>.leaderboard-points{height:100%!important;align-self:stretch!important;align-items:center!important;transform:none!important}
-.standings-panel .leaderboard-row>.leaderboard-rank{display:flex!important;justify-content:center!important;line-height:normal!important}
+.standings-panel .leaderboard-row>.leaderboard-rank{display:flex!important;justify-content:center!important;line-height:1.2!important}
 .standings-panel .leaderboard-row>.leaderboard-rank .numeric-token,
-.standings-panel .leaderboard-row>.leaderboard-rank .numeric-fragment{display:inline!important;line-height:inherit!important;padding:0!important;transform:none!important}
+.standings-panel .leaderboard-row>.leaderboard-rank .numeric-fragment{display:inline!important;line-height:1.2!important;padding:0!important;transform:none!important}
 
-/* Keep the restored runtime font centering, but give the top-left kickoff time
-   extra paint room so Roboto Slab/numeric glyphs cannot clip on iOS. This does
-   not change the game-head height, font size, or optical position. */
-.game-card .game-head .game-time{padding-block:2px!important;margin-block:-2px!important;overflow:visible!important}
+/* Keep the restored runtime optical centering. Give the top-left kickoff time a
+   genuinely taller line box plus paint room so the bottoms of Roboto Slab and
+   numeric glyphs render fully on iOS without changing the game-head height. */
+.game-card .game-head .game-time{display:inline-flex!important;align-items:center!important;line-height:1.4!important;padding-block:3px!important;margin-block:-3px!important;overflow:visible!important}
 .game-card .game-head .game-time>.numeric-token,
-.game-card .game-head .game-time .numeric-fragment{overflow:visible!important;line-height:inherit!important}
+.game-card .game-head .game-time .numeric-fragment,
+.game-card .game-head .game-time .numeric-symbol{line-height:1.4!important;overflow:visible!important}
 `;
 
 function syncSentOfferBlue() {
