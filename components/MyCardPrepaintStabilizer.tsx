@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 function textWidth(text: string, element: HTMLElement) {
   const canvas = document.createElement("canvas");
@@ -53,9 +53,6 @@ function metadataWidthBeforeActions(row: HTMLElement, responsive: HTMLElement) {
   const gridGap = Number.parseFloat(topStyle.columnGap || topStyle.gap) || 0;
   const boundaryWidth = Math.max(0, actionsRect.left - gridGap - responsiveRect.left);
 
-  /* Constrain the actual host to the same physical boundary used for fitting.
-     AppPassFixes runs another fitting pass later; because it reads clientWidth,
-     this keeps both passes from ever treating the lock/result column as usable. */
   responsive.style.setProperty("width", "100%");
   responsive.style.setProperty("max-width", `${boundaryWidth}px`);
   return Math.min(responsive.clientWidth, boundaryWidth) + 0.5;
@@ -109,12 +106,9 @@ function stabilizeMyCardText() {
 }
 
 export default function MyCardPrepaintStabilizer() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     stabilizeMyCardText();
 
-    // MutationObserver callbacks run before the browser's next paint. Do the same
-    // fitting AppPassFixes performs here immediately, so entering My Card does not
-    // show an initial text position/abbreviation and then settle one frame later.
     const observer = new MutationObserver(() => stabilizeMyCardText());
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     const onResize = () => stabilizeMyCardText();
