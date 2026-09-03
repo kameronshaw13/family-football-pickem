@@ -11,8 +11,11 @@ const STYLES = `
 .pick-lock-indicator svg{display:block;width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none}
 .pick-lock-indicator.app-pass-lock-hidden{display:none!important}
 
-/* My Card always keeps the selected team at its full display name. JS only scales it down when the available row width requires it. */
-.card-panel .pick-section .pick-card .pick-title-team.app-pass-full-team{max-width:100%;overflow:hidden!important;text-overflow:clip!important;white-space:nowrap!important}
+/* My Card keeps the normal title size; the selected team abbreviates when the row is too tight. */
+.card-panel .pick-section .pick-card .pick-title-team.app-pass-full-team{max-width:100%;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:inherit!important}
+
+/* Sent offer status stays visibly blue. */
+.side-bet-card.mode-sent .side-bet-response.pending{color:var(--blue-dark)!important}
 
 /* An empty League Card row must start immediately below the player header. */
 .card-panel .group-card>h3+.group-empty-picks,.card-panel .group-card>h3+.admin-no-submission-row{margin-top:0!important}
@@ -152,29 +155,26 @@ function enhanceLockIndicator(element: HTMLElement, universalLockReached: boolea
   }
 }
 
-function textWidth(text: string, element: HTMLElement, fontSizeOverride?: number) {
+function textWidth(text: string, element: HTMLElement) {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   if (!context) return Number.POSITIVE_INFINITY;
   const style = window.getComputedStyle(element);
-  const size = fontSizeOverride ?? (Number.parseFloat(style.fontSize) || 14);
+  const size = Number.parseFloat(style.fontSize) || 14;
   context.font = `${style.fontStyle} ${style.fontWeight} ${size}px ${style.fontFamily}`;
   const spacing = Number.parseFloat(style.letterSpacing);
   return context.measureText(text).width + (Number.isFinite(spacing) ? Math.max(0, text.length - 1) * spacing : 0);
 }
 
-function fitFullPickTeam(team: HTMLElement, title: HTMLElement, market: HTMLElement | null, fullTeam: string) {
+function fitPickTeam(team: HTMLElement, title: HTMLElement, market: HTMLElement | null, fullTeam: string, compactTeam: string) {
   team.classList.add("app-pass-full-team");
-  team.style.fontSize = "";
+  team.style.removeProperty("font-size");
   const titleStyle = window.getComputedStyle(title);
   const gap = Number.parseFloat(titleStyle.columnGap || titleStyle.gap) || 4;
   const marketWidth = market?.getBoundingClientRect().width || 0;
   const available = Math.max(0, title.clientWidth - marketWidth - (market ? gap : 0));
-  const baseSize = Number.parseFloat(window.getComputedStyle(team).fontSize) || 14;
-  const naturalWidth = textWidth(fullTeam, team, baseSize);
-  if (available <= 0 || naturalWidth <= available + 0.5) return;
-  const fittedSize = Math.max(10, Math.min(baseSize, baseSize * available / naturalWidth));
-  team.style.fontSize = `${fittedSize.toFixed(2)}px`;
+  const chosen = available > 0 && textWidth(fullTeam, team) <= available + 0.5 ? fullTeam : compactTeam;
+  if (team.textContent?.trim() !== chosen) team.textContent = chosen;
 }
 
 function splitMetaText(text: string) {
@@ -198,11 +198,13 @@ function syncMyCardText() {
     const market = title?.querySelector<HTMLElement>(".pick-title-market") || null;
     if (!title || !team) return;
 
-    const fullTeam = team.dataset.appPassFullTeam || team.getAttribute("aria-label")?.trim() || team.textContent?.trim() || "";
+    const renderedTeam = team.textContent?.trim() || "";
+    const fullTeam = team.getAttribute("aria-label")?.trim() || team.dataset.appPassFullTeam || renderedTeam;
     if (!fullTeam) return;
+    const compactTeam = team.dataset.appPassCompactTeam || (renderedTeam && renderedTeam !== fullTeam ? renderedTeam : fullTeam);
     team.dataset.appPassFullTeam = fullTeam;
-    if (team.textContent?.trim() !== fullTeam) team.textContent = fullTeam;
-    fitFullPickTeam(team, title, market, fullTeam);
+    team.dataset.appPassCompactTeam = compactTeam;
+    fitPickTeam(team, title, market, fullTeam, compactTeam);
 
     const responsive = row.querySelector<HTMLElement>(".pick-meta .responsive-text");
     const value = responsive?.querySelector<HTMLElement>(".responsive-text-value");
@@ -234,6 +236,59 @@ function syncMyCardText() {
     const chosen = candidates.find((candidate) => textWidth(candidate, value) <= available) || compactMeta;
     if (value.textContent?.trim() !== chosen) value.textContent = chosen;
   });
+}
+
+function responseChildren(container: HTMLElement) {
+  return Array.from(container.children).filter((child): child is HTMLElement => child instanceof HTMLElement);
+}
+
+function syncSideBetResponseOrder() {
+  const reorder = (container: HTMLElement, mode: "accepted" | "offered") => {
+    const children = responseChildren(container);
+    const action = children.find((child) => child.classList.contains("side-bet-response"));
+    if (!action) return;
+    const subject = children[0];
+    const recipient = children.find((child) => {
+      const text = child.textContent?.trim() || "";
+      return mode === "accepted" ? text.startsWith("from ") : text.startsWith("to ");
+    });
+    if (!subject || !recipient) return;
+    const date = children.find((child) => (child.textContent?.trim() || "").startsWith("·"));
+    const middle = children.filter((child) => child !== subject && child !== action && child !== recipient && child !== date);
+
+    if (mode === "offered") subject.style.display = "none";
+    const desired = [subject, action, ...middle, recipient, ...(date ? [date] : [])];
+    const current = responseChildren(container);
+    if (desired.length === current.length && desired.every((node, index) => current[index] === node)) return;
+    desired.forEach((node) => container.appendChild(node));
+  };
+
+  document.querySelectorAll<HTMLElement>(".side-bet-card.mode-received .side-bet-response-line").forEach((line) => {
+    const accepted = line.querySelector(".side-bet-response.accepted");
+    if (!accepted) return;
+    line.querySelectorAll<HTMLElement>(":scope > .side-bet-response-measure, :scope > .side-bet-response-value").forEach((container) => reorder(container, "accepted"));
+  });
+
+  document.querySelectorAll<HTMLElement>(".side-bet-card.mode-sent .side-bet-response-line").forEach((line) => {
+    const offered = line.querySelector(".side-bet-response.pending");
+    if (!offered || offered.textContent?.trim() !== "Offered") return;
+    line.querySelectorAll<HTMLElement>(":scope > .side-bet-response-measure, :scope > .side-bet-response-value").forEach((container) => reorder(container, "offered"));
+  });
+}
+
+async function markReceivedSideBetsSeen(appSlug: AppSlug) {
+  const token = window.localStorage.getItem("pickem_session_token");
+  if (!token) return;
+  try {
+    const response = await fetch("/api/notifications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
+      body: JSON.stringify({ action: "read", destination: "side_bets_received" })
+    });
+    if (response.ok) window.dispatchEvent(new Event("focus"));
+  } catch {
+    // The app's normal notification refresh will retry later if this request fails.
+  }
 }
 
 function progressCheckMarkup() {
@@ -317,6 +372,8 @@ export default function AppPassFixes({ appSlug }: { appSlug: AppSlug }) {
   useEffect(() => {
     let applying = false;
     let frame = 0;
+    let offersWereOpen = false;
+    let markingReceivedOffers = false;
 
     const apply = () => {
       if (applying) return;
@@ -331,6 +388,17 @@ export default function AppPassFixes({ appSlug }: { appSlug: AppSlug }) {
 
         document.querySelectorAll<HTMLElement>(".pick-status-locked,.manual-lock-confirmed").forEach((element) => enhanceLockIndicator(element, universalLockReached));
         syncMyCardText();
+        syncSideBetResponseOrder();
+
+        const sideBetCenter = document.querySelector<HTMLElement>(".side-bet-center");
+        const offersAreOpen = Boolean(sideBetCenter && !sideBetCenter.querySelector(".side-bet-filter-row.make-offer"));
+        if (offersAreOpen && !offersWereOpen && !markingReceivedOffers) {
+          markingReceivedOffers = true;
+          void markReceivedSideBetsSeen(appSlug).finally(() => {
+            markingReceivedOffers = false;
+          });
+        }
+        offersWereOpen = offersAreOpen;
 
         document.querySelectorAll<HTMLElement>(".pick-card,.visible-pick,.bank-game-result").forEach((row) => {
           const admin = Boolean(row.querySelector('img[src*="admin-no-submission.svg"]'));
@@ -340,7 +408,7 @@ export default function AppPassFixes({ appSlug }: { appSlug: AppSlug }) {
         syncPartialLockProgress(payload, games, week, universalLockReached, now);
 
         const weekComplete = games.length > 0 && games.every(gameIsFinal);
-        syncCompletedWeek(document.querySelector<HTMLElement>(".side-bet-center"), weekComplete);
+        syncCompletedWeek(sideBetCenter, weekComplete);
       } finally {
         applying = false;
       }
