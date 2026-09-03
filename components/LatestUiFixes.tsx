@@ -22,7 +22,7 @@ const STYLES = `
 .card-panel .pick-section .pick-card .pick-meta,
 .card-panel .group-card .visible-pick-copy>p,
 .bank-game-result>div>p,
-.side-bet-offer-copy>p{font-family:var(--font-display)!important;font-size:12px!important;font-weight:600!important}
+.side-bet-offer-copy>p{font-family:var(--font-display)!important;font-size:11px!important;font-weight:600!important}
 
 /* League Card / Weekly Result copy needs the same horizontal containment without
    vertically clipping team names or spread numerals. Keep spreads beside the team. */
