@@ -1,0 +1,57 @@
+name: One-time side bet optimistic type fix
+
+on:
+  push:
+    branches:
+      - sidebet-optimistic-ui-2026-09-03
+    paths:
+      - .github/workflows/one-time-sidebet-optimistic-type-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
+          cd repo
+          git checkout sidebet-optimistic-ui-2026-09-03
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Preserve response literal types
+        run: |
+          cd repo
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("components/PickemAppBase.tsx")
+          text = path.read_text()
+          old = '? { ...target, response: "accepted", responded_at: nowIso }'
+          if text.count(old) != 1:
+              raise SystemExit(f"accepted literal: expected 1, found {text.count(old)}")
+          text = text.replace(old, '? { ...target, response: "accepted" as const, responded_at: nowIso }', 1)
+          old = '? { ...target, response: "declined", responded_at: nowIso }'
+          if text.count(old) != 1:
+              raise SystemExit(f"declined literal: expected 1, found {text.count(old)}")
+          text = text.replace(old, '? { ...target, response: "declined" as const, responded_at: nowIso }', 1)
+          old = '? { ...target, response: "closed", responded_at: nowIso }'
+          if text.count(old) != 2:
+              raise SystemExit(f"closed literal: expected 2, found {text.count(old)}")
+          text = text.replace(old, '? { ...target, response: "closed" as const, responded_at: nowIso }')
+          path.write_text(text)
+          PY
+          git diff --check -- components/PickemAppBase.tsx
+
+      - name: Commit source only
+        run: |
+          cd repo
+          rm .github/workflows/one-time-sidebet-optimistic-type-fix.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "Preserve optimistic side bet response types"
+          git push origin sidebet-optimistic-ui-2026-09-03
