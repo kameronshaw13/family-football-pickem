@@ -87,6 +87,8 @@ const seasonSchedule = [
 ];
 
 const pickLocks = [
+  "You can manually lock any selected pick early from My Card before its normal lock time.",
+  "Manual Lock is permanent: that pick cannot be changed or removed, and its spread and underdog bonus (if applicable) are frozen at the moment it is locked.",
   "Tuesday–Friday lines freeze 1 hour before kickoff.",
   "Tuesday–Friday picks lock at kickoff.",
   "Saturday–Monday lines freeze Saturday at 10:00 AM CT.",

@@ -7,7 +7,7 @@ function NotificationBadge({ count, className = "" }: { count: number; className
   return <span
     className={`notification-badge ${className}`.trim()}
     aria-label={`${count} unread notification${count === 1 ? "" : "s"}`}
-  ><span className="notification-badge-value" aria-hidden="true">{displayCount}</span></span>;
+  ><span className="notification-badge-value" aria-hidden="true" style={{ transform: "translateY(-1px)" }}>{displayCount}</span></span>;
 }
 
 export default memo(NotificationBadge);
