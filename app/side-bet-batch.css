@@ -18,6 +18,31 @@
   line-height: 1;
 }
 .side-bet-ledger-scope .side-bet-ledger-chevron { display: none; }
+.side-bet-ledger-scope.ledger-scope-menu-select {
+  position: relative;
+  width: var(--week-select-width);
+  min-width: var(--week-select-width);
+  min-height: 36px;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  background: transparent;
+}
+.side-bet-ledger-scope.ledger-scope-menu-select select[hidden] { display: none !important; }
+.ledger-scope-menu-select .custom-select-trigger {
+  min-height: 34px;
+  padding: 5px 23px 5px 5px;
+  color: var(--ink);
+  font-size: 13px;
+  text-transform: none;
+}
+.ledger-scope-menu-select > .custom-select-chevron {
+  position: absolute;
+  right: 1px;
+  color: var(--blue-dark);
+  pointer-events: none;
+}
+.ledger-scope-menu-select.open > .custom-select-chevron { transform: rotate(180deg); }
+.ledger-scope-menu-select .custom-select-option { text-transform: none; }
 .ledger-row.side-bet-ledger-row.ledger-scope-hidden { display: none !important; }
 
 /* Avoid iOS momentum-scroll compositing glitches on the fixed bottom navigation. */
@@ -135,7 +160,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
 .batch-side-bet-toast.error { background: #9f403c; }
 
 @media (max-width: 520px) {
-  .side-bet-ledger-scope select {
+  .side-bet-ledger-scope select:not([hidden]) {
     min-width: 78px;
     font-size: 10px;
   }
