@@ -16,6 +16,7 @@ import { Roboto_Slab } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
 import DogPickAdjustmentAlerts from "@/components/DogPickAdjustmentAlerts";
+import LedgerScopeMenuEnhancement from "@/components/LedgerScopeMenuEnhancement";
 import PlayerProfiles from "@/components/PlayerProfiles";
 import SideBetBatchEnhancements from "@/components/SideBetBatchEnhancements";
 
@@ -146,7 +147,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/header-wordmark.png" as="image" type="image/png" />
         <link rel="preload" href="/football-pickem-wordmark.png" as="image" type="image/png" />
       </head>
-      <body>{children}<AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /><SideBetBatchEnhancements /></body>
+      <body>{children}<AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /><SideBetBatchEnhancements /><LedgerScopeMenuEnhancement /></body>
     </html>
   );
 }
