@@ -135,7 +135,6 @@ export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSect
   if (appSlug === "friends") {
     const prizes = rules.seasonPrizes || {};
     const weekly = rules.weeklyBank || {};
-    const perfectMultiplier = numberValue(weekly.perfectMultiplier, 1.5);
     return [
       { title: "Season Schedule", items: seasonSchedule },
       { title: "Weekly Card", items: [
@@ -152,10 +151,14 @@ export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSect
         "If players remain tied for payout positions, they share the average payout for the positions they occupy."
       ] },
       { title: "Weekly Bank", items: [
-        `Weekly payouts: 1st ${signedMoney(numberValue(weekly.first, 40))}, 2nd ${signedMoney(numberValue(weekly.second, 20))}, 3rd ${signedMoney(numberValue(weekly.third, 0))}, 4th ${signedMoney(numberValue(weekly.fourth, 0))}, 5th ${signedMoney(numberValue(weekly.fifth, 0))}, 6th ${signedMoney(numberValue(weekly.sixth, -10))}, 7th ${signedMoney(numberValue(weekly.seventh, -20))}, 8th ${signedMoney(numberValue(weekly.eighth, -30))}.`,
+        `Normal weekly payouts: 1st ${signedMoney(numberValue(weekly.first, 40))}, 2nd ${signedMoney(numberValue(weekly.second, 20))}, 3rd ${signedMoney(numberValue(weekly.third, 0))}, 4th ${signedMoney(numberValue(weekly.fourth, 0))}, 5th ${signedMoney(numberValue(weekly.fifth, 0))}, 6th ${signedMoney(numberValue(weekly.sixth, -10))}, 7th ${signedMoney(numberValue(weekly.seventh, -20))}, 8th ${signedMoney(numberValue(weekly.eighth, -30))}.`,
         "If players finish a week tied for a payout position, they share the average payout for the positions they occupy."
       ] },
-      { title: "Perfect Week", items: ["Does not apply in Week 1.", `A perfect week multiplies every weekly payment by ${perfectMultiplier}.`] },
+      { title: "Perfect Week", items: [
+        "Does not apply in Week 1.",
+        "A perfect week changes the payouts to: 1st +$60, 2nd +$20, 3rd +$0, 4th +$0, 5th +$0, 6th -$15, 7th -$25, 8th -$40.",
+        "The 1.5× perfect-week bonus applies to first place only; second place remains +$20."
+      ] },
       { title: "Pick Locks", items: pickLocks },
       { title: "Side Bets", items: sideBetItems(rules, true) }
     ];
