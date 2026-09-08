@@ -1,4 +1,4 @@
-export function normalizeSpreadForSelectedTeam(selectedTeam: string, spreadTeam: string | null, spread: number | null) {
+export function normalizeSpreadForSelectedTeam(selectedTeam: string, spreadTeam: string | null | undefined, spread: number | null | undefined) {
   if (spread == null || !spreadTeam) return null;
   return selectedTeam === spreadTeam ? Number(spread) : Number(-spread);
 }
