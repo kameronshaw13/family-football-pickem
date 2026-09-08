@@ -8,34 +8,20 @@
   align-items: center;
   margin-left: auto;
   border: 0;
-  border-bottom: 2px solid var(--line-strong);
   background: transparent;
 }
 .side-bet-ledger-scope select {
-  appearance: none;
+  appearance: auto;
+  -webkit-appearance: menulist;
   width: 100%;
-  padding: 6px 27px 5px 8px;
-  border: 0;
   color: var(--ink);
-  background: transparent;
-  box-shadow: none;
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
   line-height: 1.2;
-  outline: none;
   text-transform: none;
-  -webkit-tap-highlight-color: transparent;
 }
-.side-bet-ledger-scope .side-bet-ledger-chevron {
-  position: absolute;
-  right: 1px;
-  width: 15px;
-  height: 15px;
-  color: var(--blue-dark);
-  pointer-events: none;
-}
-.side-bet-ledger-scope:focus-within { border-bottom-color: var(--blue); }
+.side-bet-ledger-scope .side-bet-ledger-chevron { display: none; }
 .ledger-row.side-bet-ledger-row.ledger-scope-hidden { display: none !important; }
 
 /* Avoid iOS momentum-scroll compositing glitches on the fixed bottom navigation. */
