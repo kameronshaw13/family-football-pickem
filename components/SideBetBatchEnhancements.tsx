@@ -26,7 +26,6 @@ type CachedPayload = {
 };
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
-const LEDGER_SCOPE_KEY = "side_bet_ledger_scope_v1";
 
 function appSlugFromPath(): AppSlug {
   if (window.location.pathname.startsWith("/friends")) return "friends";
@@ -116,7 +115,7 @@ export default function SideBetBatchEnhancements() {
   useEffect(() => {
     const appSlug = appSlugFromPath();
     let selections: BatchSelection[] = [];
-    let ledgerScope: "all" | "mine" = window.sessionStorage.getItem(LEDGER_SCOPE_KEY) === "mine" ? "mine" : "all";
+    let ledgerScope: "all" | "mine" = "all";
     let applying = false;
     let frame = 0;
     let sending = false;
@@ -159,29 +158,45 @@ export default function SideBetBatchEnhancements() {
       let controls = headingRow.querySelector<HTMLElement>(".side-bet-ledger-scope");
       if (!controls) {
         controls = document.createElement("div");
-        controls.className = "side-bet-ledger-scope";
-        controls.setAttribute("role", "group");
-        controls.setAttribute("aria-label", "Filter side bet ledger");
-        (["all", "mine"] as const).forEach((scope) => {
-          const button = document.createElement("button");
-          button.type = "button";
-          button.dataset.ledgerScope = scope;
-          button.textContent = scope === "all" ? "All" : "Mine";
-          button.addEventListener("click", () => {
-            ledgerScope = scope;
-            window.sessionStorage.setItem(LEDGER_SCOPE_KEY, scope);
-            schedule();
-          });
-          controls!.appendChild(button);
+        controls.className = "side-bet-ledger-scope compact-select";
+
+        const select = document.createElement("select");
+        select.setAttribute("aria-label", "Filter side bet ledger");
+        const allOption = document.createElement("option");
+        allOption.value = "all";
+        allOption.textContent = "All";
+        const mineOption = document.createElement("option");
+        mineOption.value = "mine";
+        mineOption.textContent = "My Bets";
+        select.append(allOption, mineOption);
+        select.value = ledgerScope;
+        select.addEventListener("change", () => {
+          ledgerScope = select.value === "mine" ? "mine" : "all";
+          schedule();
         });
+        controls.appendChild(select);
+
+        const chevron = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        chevron.setAttribute("class", "side-bet-ledger-chevron");
+        chevron.setAttribute("viewBox", "0 0 24 24");
+        chevron.setAttribute("width", "15");
+        chevron.setAttribute("height", "15");
+        chevron.setAttribute("fill", "none");
+        chevron.setAttribute("stroke", "currentColor");
+        chevron.setAttribute("stroke-width", "2");
+        chevron.setAttribute("stroke-linecap", "round");
+        chevron.setAttribute("stroke-linejoin", "round");
+        chevron.setAttribute("aria-hidden", "true");
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", "m6 9 6 6 6-6");
+        chevron.appendChild(path);
+        controls.appendChild(chevron);
+
         headingRow.appendChild(controls);
       }
 
-      controls.querySelectorAll<HTMLButtonElement>("button").forEach((button) => {
-        const active = button.dataset.ledgerScope === ledgerScope;
-        button.classList.toggle("active", active);
-        button.setAttribute("aria-pressed", String(active));
-      });
+      const scopeSelect = controls.querySelector<HTMLSelectElement>("select");
+      if (scopeSelect && scopeSelect.value !== ledgerScope) scopeSelect.value = ledgerScope;
 
       const rows = Array.from(list.querySelectorAll<HTMLElement>(".side-bet-ledger-row"));
       let visibleMine = 0;

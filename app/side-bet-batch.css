@@ -1,38 +1,41 @@
 /* Side Bet Ledger scope + multi-selection batch offer enhancements. */
 .side-bet-ledger-scope {
-  display: inline-grid;
-  height: 30px;
-  grid-template-columns: repeat(2, 46px);
+  position: relative;
+  display: inline-flex;
+  width: 100px;
+  min-width: 100px;
+  min-height: var(--data-header-height);
   align-items: center;
-  gap: 1px;
   margin-left: auto;
-  padding: 2px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  background: var(--surface-muted);
-}
-.side-bet-ledger-scope button {
-  display: grid;
-  width: 46px;
-  height: 24px;
-  place-items: center;
-  padding: 0 0 1px;
   border: 0;
-  border-radius: 2px;
-  color: var(--header-muted);
+  border-bottom: 2px solid var(--line-strong);
   background: transparent;
-  font-family: inherit;
-  font-size: 11px;
+}
+.side-bet-ledger-scope select {
+  appearance: none;
+  width: 100%;
+  padding: 6px 27px 5px 8px;
+  border: 0;
+  color: var(--ink);
+  background: transparent;
+  box-shadow: none;
+  font-family: var(--font-display);
+  font-size: 12px;
   font-weight: 700;
-  line-height: 1;
-  text-align: center;
-  text-box: trim-both cap text;
+  line-height: 1.2;
+  outline: none;
   text-transform: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.side-bet-ledger-scope button.active {
-  color: #fff;
-  background: var(--graphite-light);
+.side-bet-ledger-scope .side-bet-ledger-chevron {
+  position: absolute;
+  right: 1px;
+  width: 15px;
+  height: 15px;
+  color: var(--blue-dark);
+  pointer-events: none;
 }
+.side-bet-ledger-scope:focus-within { border-bottom-color: var(--blue); }
 .ledger-row.side-bet-ledger-row.ledger-scope-hidden { display: none !important; }
 
 /* Avoid iOS momentum-scroll compositing glitches on the fixed bottom navigation. */
@@ -151,9 +154,8 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
 
 @media (max-width: 520px) {
   .side-bet-ledger-scope {
-    height: 28px;
-    grid-template-columns: repeat(2, 43px);
+    width: 94px;
+    min-width: 94px;
   }
-  .side-bet-ledger-scope button { width: 43px; height: 22px; }
   .batch-side-bet-toast { right: 9px; left: 9px; }
 }
