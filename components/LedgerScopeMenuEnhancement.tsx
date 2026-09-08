@@ -87,8 +87,8 @@ function enhance(root: HTMLElement) {
   if (!select) return;
 
   root.dataset.ledgerMenuEnhanced = "1";
-  root.classList.remove("compact-select");
-  root.classList.add("custom-select", "week-select-wrap", "header-menu-select", "ledger-scope-menu-select");
+  root.classList.add("custom-select", "compact-select", "ledger-scope-menu-select");
+  root.classList.remove("week-select-wrap", "header-menu-select");
   select.hidden = true;
   root.querySelector<HTMLElement>(".side-bet-ledger-chevron")?.setAttribute("hidden", "");
 
