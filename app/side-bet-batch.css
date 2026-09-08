@@ -1,8 +1,9 @@
 /* Side Bet Ledger scope + multi-selection batch offer enhancements. */
-.week-select-wrap {
-  border-bottom-width: 2px;
+.scoreboard-header .week-select-wrap {
+  border: 0;
+  border-bottom: 2px solid var(--line-strong);
 }
-.week-select-wrap.open {
+.scoreboard-header .week-select-wrap.open {
   border-bottom-color: var(--blue);
 }
 .side-bet-ledger-scope {
@@ -29,12 +30,7 @@
   width: var(--week-select-width);
   min-width: var(--week-select-width);
   min-height: 36px;
-  border: 0;
-  border-bottom: 2px solid var(--line-strong);
   background: transparent;
-}
-.side-bet-ledger-scope.ledger-scope-menu-select.open {
-  border-bottom-color: var(--blue);
 }
 .side-bet-ledger-scope.ledger-scope-menu-select select[hidden] { display: none !important; }
 .ledger-scope-menu-select .custom-select-trigger {
