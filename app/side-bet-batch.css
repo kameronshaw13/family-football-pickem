@@ -1,24 +1,24 @@
 /* Side Bet Ledger scope + multi-selection batch offer enhancements. */
 .side-bet-ledger-scope {
-  display: inline-flex;
+  display: inline-grid;
   height: 30px;
+  grid-template-columns: repeat(2, 46px);
   align-items: center;
-  gap: 2px;
+  gap: 1px;
   margin-left: auto;
   padding: 2px;
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--surface-muted);
 }
 .side-bet-ledger-scope button {
-  display: flex;
-  min-width: 46px;
+  display: grid;
+  width: 46px;
   height: 24px;
-  align-items: center;
-  justify-content: center;
-  padding: 0 10px;
+  place-items: center;
+  padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: 2px;
   color: var(--header-muted);
   background: transparent;
   font-family: inherit;
@@ -33,7 +33,7 @@
   background: var(--graphite-light);
 }
 .bank-section:has(.side-bet-ledger-scope button[data-ledger-scope="all"].active) .ledger-row.side-bet-ledger-row.is-user-side-bet {
-  background: color-mix(in srgb, var(--graphite-light) 10%, var(--panel)) !important;
+  background: color-mix(in srgb, var(--graphite-light) 12%, #f4f7f8) !important;
   box-shadow: none !important;
 }
 .ledger-row.side-bet-ledger-row.ledger-scope-hidden { display: none !important; }
@@ -147,7 +147,10 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
 .batch-side-bet-toast.error { background: #9f403c; }
 
 @media (max-width: 520px) {
-  .side-bet-ledger-scope { height: 28px; }
-  .side-bet-ledger-scope button { min-width: 43px; height: 22px; padding: 0 9px; }
+  .side-bet-ledger-scope {
+    height: 28px;
+    grid-template-columns: repeat(2, 43px);
+  }
+  .side-bet-ledger-scope button { width: 43px; height: 22px; }
   .batch-side-bet-toast { right: 9px; left: 9px; }
 }
