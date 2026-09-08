@@ -1,25 +1,21 @@
 /* Side Bet Ledger scope + multi-selection batch offer enhancements. */
 .side-bet-ledger-scope {
-  position: relative;
-  display: inline-flex;
-  width: 100px;
-  min-width: 100px;
-  min-height: var(--data-header-height);
+  display: flex;
   align-items: center;
   margin-left: auto;
-  border: 0;
-  background: transparent;
 }
 .side-bet-ledger-scope select {
-  appearance: auto;
-  -webkit-appearance: menulist;
-  width: 100%;
+  height: 31px;
+  min-width: 84px;
+  padding: 0 26px 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
   color: var(--ink);
+  background: var(--panel);
   font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.2;
-  text-transform: none;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
 }
 .side-bet-ledger-scope .side-bet-ledger-chevron { display: none; }
 .ledger-row.side-bet-ledger-row.ledger-scope-hidden { display: none !important; }
@@ -139,9 +135,9 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
 .batch-side-bet-toast.error { background: #9f403c; }
 
 @media (max-width: 520px) {
-  .side-bet-ledger-scope {
-    width: 94px;
-    min-width: 94px;
+  .side-bet-ledger-scope select {
+    min-width: 78px;
+    font-size: 10px;
   }
   .batch-side-bet-toast { right: 9px; left: 9px; }
 }
