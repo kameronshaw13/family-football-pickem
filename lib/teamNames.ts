@@ -8,7 +8,8 @@ export { normalizeTeamNameKey };
 
 const DISPLAY_OVERRIDES: Record<string, string> = {
   "boston college": "Boston College",
-  "boston college eagles": "Boston College"
+  "boston college eagles": "Boston College",
+  "no washington td": "No Washington TD"
 };
 
 const ABBREVIATION_OVERRIDES: Record<string, string> = {
@@ -59,7 +60,8 @@ const ABBREVIATION_OVERRIDES: Record<string, string> = {
   "texas tech": "TTU",
   "vanderbilt": "Vandy",
   "west virginia": "WVU",
-  "west virginia mountaineers": "WVU"
+  "west virginia mountaineers": "WVU",
+  "no washington td": "No Washington TD"
 };
 
 function restoreStateDisplay(team: string, displayName: string) {
