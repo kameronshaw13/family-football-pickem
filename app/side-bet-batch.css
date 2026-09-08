@@ -22,7 +22,7 @@
   color: var(--header-muted);
   background: transparent;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
   text-align: center;
@@ -32,12 +32,6 @@
 .side-bet-ledger-scope button.active {
   color: #fff;
   background: var(--graphite-light);
-}
-.bank-section:has(.side-bet-ledger-scope button[data-ledger-scope="all"].active) .ledger-row.side-bet-ledger-row.is-user-side-bet {
-  background:
-    linear-gradient(var(--graphite), var(--graphite)) left top / 3px 100% no-repeat,
-    var(--panel) !important;
-  box-shadow: none !important;
 }
 .ledger-row.side-bet-ledger-row.ledger-scope-hidden { display: none !important; }
 
