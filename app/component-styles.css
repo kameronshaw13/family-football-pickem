@@ -41,3 +41,12 @@
 .pick-lock-indicator svg { display: block; width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; }
 
 .confirmation-sheet:not(.manual-lock-review) .confirmation-kickoff { font-size: 11px; }
+
+/* One-off manual Washington live-TD prop: preserve real team logos while showing prop wording. */
+.side-bet-card:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-offer-copy > strong > .responsive-text { display: none; }
+.side-bet-card:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-offer-copy > strong::after { content: "No Washington TD"; }
+.side-bet-card:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-response-line > * { display: none !important; }
+.side-bet-card.mode-sent:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-response-line::after { content: "Mike accepted No TD"; }
+.side-bet-card.mode-received:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-response-line::after { content: "You accepted No TD"; }
+.side-bet-ledger-row:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-ledger-title > .responsive-text { display: none; }
+.side-bet-ledger-row:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-ledger-title::after { content: "No Washington TD"; }
