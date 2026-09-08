@@ -1,0 +1,149 @@
+/* Side Bet Ledger scope + multi-selection batch offer enhancements. */
+.side-bet-ledger-scope {
+  display: flex;
+  height: 100%;
+  align-items: stretch;
+  gap: 14px;
+  margin-left: auto;
+}
+.side-bet-ledger-scope button {
+  position: relative;
+  min-width: 34px;
+  padding: 0 1px;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.side-bet-ledger-scope button::after {
+  position: absolute;
+  right: 0;
+  bottom: 3px;
+  left: 0;
+  height: 2px;
+  background: transparent;
+  content: "";
+}
+.side-bet-ledger-scope button.active { color: var(--ink); }
+.side-bet-ledger-scope button.active::after { background: var(--blue); }
+.ledger-row.side-bet-ledger-row.is-user-side-bet {
+  box-shadow: inset 3px 0 0 var(--blue);
+}
+.ledger-row.side-bet-ledger-row.ledger-scope-hidden { display: none !important; }
+
+/* Every selected side in a batch keeps the normal picked-side treatment. */
+body.side-bet-batch-active .side-bet-game-card .team-row.batch-picked-side {
+  background:
+    linear-gradient(var(--blue), var(--blue)) left top / 4px 100% no-repeat,
+    var(--blue-soft);
+  box-shadow: none;
+}
+body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-picked-side) {
+  background: var(--panel);
+  box-shadow: none;
+}
+.side-bet-slip-bar[data-batch-count] .side-bet-slip-copy::after {
+  flex: 0 0 auto;
+  color: var(--blue-dark);
+  content: "· " attr(data-batch-count) " BETS";
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.side-bet-slip-sheet.batch-mode > .side-bet-slip-selection,
+.side-bet-slip-sheet.batch-mode > .side-bet-slip-summary {
+  display: none;
+}
+.side-bet-batch-list {
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--panel);
+}
+.side-bet-batch-head strong {
+  margin-left: auto;
+  color: var(--blue-dark);
+  font-size: 10px;
+  font-weight: 800;
+}
+.side-bet-batch-row {
+  display: grid;
+  min-height: 54px;
+  grid-template-columns: 38px minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px var(--pick-content-inset);
+  border-bottom: 1px solid var(--line);
+}
+.side-bet-batch-row:last-child { border-bottom: 0; }
+.side-bet-batch-row > .team-logo {
+  width: 34px;
+  height: 34px;
+}
+.side-bet-batch-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.side-bet-batch-copy strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-bet-batch-copy span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-bet-batch-remove {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0 0 2px;
+  border: 1px solid #d6aaa6;
+  border-radius: 4px;
+  color: var(--red);
+  background: var(--red-soft);
+  font-family: Arial, sans-serif;
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 1;
+}
+.batch-side-bet-toast {
+  position: fixed;
+  right: max(12px, calc((100vw - 736px) / 2));
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 10px);
+  left: max(12px, calc((100vw - 736px) / 2));
+  z-index: 80;
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 14px;
+  border-radius: 7px;
+  color: #fff;
+  background: var(--green);
+  box-shadow: 0 12px 30px rgba(20, 33, 43, .25);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+.batch-side-bet-toast.error { background: #9f403c; }
+
+@media (max-width: 520px) {
+  .side-bet-ledger-scope { gap: 11px; }
+  .batch-side-bet-toast { right: 9px; left: 9px; }
+}
