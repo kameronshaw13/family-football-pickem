@@ -44,6 +44,6 @@
 
 /* One-off manual Washington live-TD prop: preserve real team logos while showing prop wording. */
 .side-bet-card:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-offer-copy > strong > .responsive-text { display: none; }
-.side-bet-card:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-offer-copy > strong::after { content: "No Washington TD"; }
+.side-bet-card:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-offer-copy > strong::after { content: "No Washington Touchdown"; }
 .side-bet-ledger-row:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-ledger-title > .responsive-text { display: none; }
-.side-bet-ledger-row:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-ledger-title::after { content: "No Washington TD"; }
+.side-bet-ledger-row:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-ledger-title::after { content: "No Washington Touchdown"; }
