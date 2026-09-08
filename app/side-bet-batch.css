@@ -34,10 +34,16 @@
   background: var(--graphite-light);
 }
 .bank-section:has(.side-bet-ledger-scope button[data-ledger-scope="all"].active) .ledger-row.side-bet-ledger-row.is-user-side-bet {
-  background: color-mix(in srgb, var(--blue-dark) 10%, #f4f7f8) !important;
+  background: color-mix(in srgb, var(--blue-dark) 7%, #f4f7f8) !important;
   box-shadow: none !important;
 }
 .ledger-row.side-bet-ledger-row.ledger-scope-hidden { display: none !important; }
+
+/* Avoid iOS momentum-scroll compositing glitches on the fixed bottom navigation. */
+.primary-nav {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
 
 /* Every selected side in a batch keeps the normal picked-side treatment. */
 body.side-bet-batch-active .side-bet-game-card .team-row.batch-picked-side {
