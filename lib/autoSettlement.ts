@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeGroupStandings, rankedPayoutSettlement, winnerTakeAllSettlement } from "@/lib/groupScoring";
 import { computeWeeklySettlement } from "@/lib/weeklyBank";
 import { getWeekRule } from "@/lib/weekRules";
+import { friendsWeeklyPositionPayouts } from "@/lib/friendsWeeklyPayouts";
 
 export type AutoSettlementResult = {
   settled: boolean;
@@ -54,7 +55,7 @@ export async function settleWeekIfReady(supabase: SupabaseClient, week: number, 
       const card = (picks || []).filter((pick: any) => pick.user_id === profile.id);
       const regularCount = card.filter((pick: any) => pick.pick_type === "regular").length;
       const dogCount = card.filter((pick: any) => pick.pick_type === "underdog").length;
-      if (regularCount !== rule.regularTotal || dogCount !== rule.underdogTotal) {
+      if (regularCount !== rule.regularTotal || dogCount > rule.underdogTotal) {
         lastReason = `${profile.display_name}'s card is incomplete.`;
         ready = false;
         break;
@@ -86,22 +87,7 @@ export async function settleWeekIfReady(supabase: SupabaseClient, week: number, 
       settlement = winnerTakeAllSettlement(standings, Number(moneyRow?.winner_take_all_amount || 0));
     } else if (bankRules.mode === "friends_weekly") {
       const perfect = rule.perfectBonus && standings[0]?.losses === 0 && standings[0]?.wins >= 5;
-      const configuredPerfectMultiplier = Number(bankRules.perfectMultiplier ?? 1.5);
-      const perfectMultiplier = Number.isFinite(configuredPerfectMultiplier) && configuredPerfectMultiplier > 0
-        ? configuredPerfectMultiplier
-        : 1.5;
-      const multiplier = perfect ? perfectMultiplier : 1;
-      const configuredPayouts = [
-        Number(bankRules.first ?? bankRules.winner ?? 40),
-        Number(bankRules.second ?? 20),
-        Number(bankRules.third ?? 0),
-        Number(bankRules.fourth ?? 0),
-        Number(bankRules.fifth ?? 0),
-        Number(bankRules.sixth ?? -10),
-        Number(bankRules.seventh ?? -20),
-        Number(bankRules.eighth ?? -30)
-      ];
-      const payouts = standings.map((_, index) => Number(configuredPayouts[index] ?? 0) * multiplier);
+      const payouts = friendsWeeklyPositionPayouts(bankRules, perfect);
       settlement = { ...rankedPayoutSettlement(standings, payouts, `Week ${week} payout${perfect ? " · perfect week" : ""}`), perfect };
       anyPerfect ||= perfect;
     } else {
