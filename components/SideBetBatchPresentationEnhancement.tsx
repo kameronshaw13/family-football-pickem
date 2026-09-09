@@ -181,27 +181,7 @@ function updateHeader(sheet: HTMLElement, infos: SelectionInfo[]) {
   heading.textContent = multiple ? "Side Bets" : infos[0].matchup;
   lines.appendChild(heading);
 
-  if (multiple) {
-    infos.forEach((info) => {
-      const line = document.createElement("div");
-      line.className = "side-bet-batch-header-line";
-      const matchup = document.createElement("span");
-      matchup.className = "side-bet-batch-header-matchup";
-      matchup.textContent = info.matchup;
-      line.appendChild(matchup);
-      if (info.dateTime) {
-        const separator = document.createElement("span");
-        separator.className = "side-bet-batch-header-separator";
-        separator.textContent = " · ";
-        const dateTime = document.createElement("span");
-        dateTime.className = "side-bet-batch-header-datetime";
-        dateTime.textContent = info.dateTime;
-        line.append(separator, dateTime);
-      }
-      lines!.appendChild(line);
-    });
-    return;
-  }
+  if (multiple) return;
 
   if (infos[0].dateTime) {
     const line = document.createElement("div");
@@ -211,6 +191,36 @@ function updateHeader(sheet: HTMLElement, infos: SelectionInfo[]) {
     dateTime.textContent = infos[0].dateTime;
     line.appendChild(dateTime);
     lines.appendChild(line);
+  }
+}
+
+function placeGameMeta(row: HTMLElement, info: SelectionInfo) {
+  const previous = row.previousElementSibling instanceof HTMLElement ? row.previousElementSibling : null;
+  let meta = previous?.classList.contains("side-bet-batch-game-meta") ? previous : null;
+  if (!meta) {
+    meta = document.createElement("div");
+    meta.className = "side-bet-batch-game-meta";
+    row.insertAdjacentElement("beforebegin", meta);
+  }
+
+  const signature = `${info.matchup}|${info.dateTime}`;
+  if (meta.dataset.signature === signature) return;
+  meta.dataset.signature = signature;
+  meta.replaceChildren();
+
+  const matchup = document.createElement("span");
+  matchup.className = "side-bet-batch-header-matchup";
+  matchup.textContent = info.matchup;
+  meta.appendChild(matchup);
+
+  if (info.dateTime) {
+    const separator = document.createElement("span");
+    separator.className = "side-bet-batch-header-separator";
+    separator.textContent = " · ";
+    const dateTime = document.createElement("span");
+    dateTime.className = "side-bet-batch-header-datetime";
+    dateTime.textContent = info.dateTime;
+    meta.append(separator, dateTime);
   }
 }
 
@@ -305,15 +315,15 @@ export default function SideBetBatchPresentationEnhancement() {
 
     function applyPresentation() {
       const payload = readCachedPayload(appSlug);
-      document.querySelectorAll(".side-bet-batch-game-meta, .side-bet-batch-terms").forEach((node) => node.remove());
+      document.querySelectorAll(".side-bet-batch-terms").forEach((node) => node.remove());
 
       const rows = Array.from(document.querySelectorAll<HTMLElement>(".side-bet-batch-row"));
-      const infos: SelectionInfo[] = [];
+      const rowInfos: Array<{ row: HTMLElement; info: SelectionInfo }> = [];
       rows.forEach((row) => {
         const copy = row.querySelector<HTMLElement>(".side-bet-batch-copy, .side-bet-batch-native-choice");
         if (!copy) return;
         const info = selectionInfo(row, payload);
-        infos.push(info);
+        rowInfos.push({ row, info });
 
         if (!row.classList.contains("side-bet-batch-native-row")) {
           row.classList.add("team-row", "side-bet-slip-selection", "side-bet-batch-native-row");
@@ -334,9 +344,17 @@ export default function SideBetBatchPresentationEnhancement() {
       });
 
       const sheet = document.querySelector<HTMLElement>(".side-bet-slip-sheet.batch-mode");
-      if (sheet && infos.length) {
+      if (sheet && rowInfos.length) {
+        const infos = rowInfos.map(({ info }) => info);
         updateHeader(sheet, infos);
+        if (rowInfos.length > 1) {
+          rowInfos.forEach(({ row, info }) => placeGameMeta(row, info));
+        } else {
+          sheet.querySelectorAll(".side-bet-batch-game-meta").forEach((node) => node.remove());
+        }
         updateSummary(sheet, infos);
+      } else {
+        document.querySelectorAll(".side-bet-batch-game-meta").forEach((node) => node.remove());
       }
 
       document.querySelectorAll<HTMLElement>(".side-bet-slip-bar[data-batch-count]").forEach(updateCollapsedMore);
