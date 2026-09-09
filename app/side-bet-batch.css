@@ -32,12 +32,15 @@
   position: relative;
   overflow: visible;
 }
-/* Match the Week trigger's vertical geometry to the board dropdowns. Header-only
-   differences stay limited to width, horizontal padding, and colors. */
+/* Week and context labels need the same one-pixel optical drop without changing
+   control height, so the text-to-underline spacing reads consistently. */
+.header-menu-select .custom-select-trigger,
+.context-select .custom-select-trigger {
+  padding-top: 7px;
+  padding-bottom: 4px;
+}
 .header-menu-select .custom-select-trigger {
   min-height: 30px;
-  padding-top: 6px;
-  padding-bottom: 5px;
   font-size: 12px;
 }
 .custom-select-trigger::before {
