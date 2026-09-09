@@ -26,6 +26,7 @@ type CachedPayload = {
 };
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
+const MAX_BATCH_SELECTIONS = 4;
 
 function appSlugFromPath(): AppSlug {
   if (window.location.pathname.startsWith("/friends")) return "friends";
@@ -120,8 +121,57 @@ export default function SideBetBatchEnhancements() {
     let frame = 0;
     let sending = false;
     let suppressSelectionCapture = false;
+    let pendingNativeSync = false;
 
     const selectionKey = (selection: BatchSelection) => `${selection.gameId}::${selection.creatorTeam}`;
+    const sameSelection = (left: BatchSelection | null, right: BatchSelection | null) => Boolean(left && right && left.gameId === right.gameId && left.creatorTeam === right.creatorTeam);
+
+    function currentNativeSelection(): BatchSelection | null {
+      const row = document.querySelector<HTMLButtonElement>(".side-bet-game-card .team-row.picked-side");
+      const card = row?.closest<HTMLElement>(".side-bet-game-card");
+      const gameId = card?.dataset.batchGameId || "";
+      const creatorTeam = row?.dataset.batchTeam || "";
+      return gameId && creatorTeam ? { gameId, creatorTeam } : null;
+    }
+
+    function nativeSelectionIsCurrent() {
+      const current = currentNativeSelection();
+      return Boolean(current && selections.some((selection) => sameSelection(selection, current)));
+    }
+
+    function rowForSelection(selection: BatchSelection) {
+      return Array.from(document.querySelectorAll<HTMLButtonElement>(".side-bet-game-card .team-row"))
+        .find((row) => row.closest<HTMLElement>(".side-bet-game-card")?.dataset.batchGameId === selection.gameId && row.dataset.batchTeam === selection.creatorTeam) || null;
+    }
+
+    function syncNativeSelection() {
+      const current = currentNativeSelection();
+      if (!selections.length) {
+        pendingNativeSync = false;
+        if (current) {
+          const currentRow = rowForSelection(current);
+          if (currentRow) {
+            suppressSelectionCapture = true;
+            currentRow.click();
+            suppressSelectionCapture = false;
+          }
+        }
+        return;
+      }
+
+      if (current && selections.some((selection) => sameSelection(selection, current))) {
+        pendingNativeSync = false;
+        return;
+      }
+
+      const desired = selections[selections.length - 1];
+      const desiredRow = rowForSelection(desired);
+      if (!desiredRow) return;
+      suppressSelectionCapture = true;
+      desiredRow.click();
+      suppressSelectionCapture = false;
+      pendingNativeSync = false;
+    }
 
     function annotateSideBetBoard(payload: CachedPayload | null) {
       document.querySelectorAll<HTMLElement>(".side-bet-game-card").forEach((card) => {
@@ -221,7 +271,9 @@ export default function SideBetBatchEnhancements() {
     }
 
     function buildBatchList(sheet: HTMLElement, payload: CachedPayload | null) {
-      if (selections.length <= 1) {
+      const staleSingle = selections.length === 1 && !nativeSelectionIsCurrent();
+      const needsBatchPresentation = selections.length > 1 || staleSingle;
+      if (!needsBatchPresentation) {
         sheet.classList.remove("batch-mode");
         sheet.querySelector(".side-bet-batch-list")?.remove();
         return;
@@ -288,9 +340,12 @@ export default function SideBetBatchEnhancements() {
         remove.addEventListener("click", (event) => {
           event.preventDefault();
           event.stopPropagation();
+          const nativeBefore = currentNativeSelection();
+          const removedWasNative = sameSelection(nativeBefore, selection);
           selections = selections.filter((candidate) => selectionKey(candidate) !== selectionKey(selection));
+          pendingNativeSync = removedWasNative && selections.length > 0;
+          if (!selections.length) syncNativeSelection();
           schedule();
-          window.requestAnimationFrame(syncNativeSelection);
         });
 
         row.append(copy, remove);
@@ -303,8 +358,10 @@ export default function SideBetBatchEnhancements() {
       annotateRecipients(payload);
       applyLedgerScope();
 
+      const staleSingle = selections.length === 1 && !nativeSelectionIsCurrent();
+      const batchPresentationActive = selections.length > 1 || staleSingle;
       const boardVisible = Boolean(document.querySelector(".side-bet-sportsbook-board"));
-      document.body.classList.toggle("side-bet-batch-active", boardVisible && selections.length > 1);
+      document.body.classList.toggle("side-bet-batch-active", boardVisible && batchPresentationActive);
 
       const bar = document.querySelector<HTMLElement>(".side-bet-slip-bar");
       if (bar) {
@@ -314,36 +371,14 @@ export default function SideBetBatchEnhancements() {
 
       const sheet = document.querySelector<HTMLElement>(".side-bet-slip-sheet");
       if (sheet) buildBatchList(sheet, payload);
-    }
 
-    function syncNativeSelection() {
-      if (selections.length > 1) return;
-      const current = document.querySelector<HTMLButtonElement>(".side-bet-game-card .team-row.picked-side");
-      if (!selections.length) {
-        if (current) {
-          suppressSelectionCapture = true;
-          current.click();
-          suppressSelectionCapture = false;
-        }
-        return;
-      }
-
-      const desiredSelection = selections[0];
-      const desired = Array.from(document.querySelectorAll<HTMLButtonElement>(".side-bet-game-card .team-row"))
-        .find((row) => row.closest<HTMLElement>(".side-bet-game-card")?.dataset.batchGameId === desiredSelection.gameId && row.dataset.batchTeam === desiredSelection.creatorTeam);
-      if (desired && !desired.classList.contains("picked-side")) {
-        suppressSelectionCapture = true;
-        desired.click();
-        suppressSelectionCapture = false;
-      } else if (!desired && current) {
-        suppressSelectionCapture = true;
-        current.click();
-        suppressSelectionCapture = false;
+      if (pendingNativeSync && !sheet) {
+        syncNativeSelection();
       }
     }
 
     async function sendBatch() {
-      if (sending || selections.length <= 1) return;
+      if (sending || selections.length < 1) return;
       const payload = readCachedPayload(appSlug);
       const token = window.localStorage.getItem("pickem_session_token");
       if (!payload || !token) {
@@ -380,9 +415,10 @@ export default function SideBetBatchEnhancements() {
 
         const sentCount = Number(result.createdCount || selections.length);
         selections = [];
+        pendingNativeSync = false;
+        syncNativeSelection();
         schedule();
-        window.requestAnimationFrame(syncNativeSelection);
-        showBatchMessage(`${sentCount} side bet offers sent.`, "success");
+        showBatchMessage(`${sentCount} side bet offer${sentCount === 1 ? "" : "s"} sent.`, "success");
         window.setTimeout(openOffersView, 120);
       } catch (error) {
         showBatchMessage(error instanceof Error ? error.message : "The side bet batch could not be sent.", "error");
@@ -411,7 +447,7 @@ export default function SideBetBatchEnhancements() {
       if (!(target instanceof Element)) return;
 
       const submit = target.closest<HTMLButtonElement>(".side-bet-slip-submit");
-      if (submit && selections.length > 1) {
+      if (submit && (selections.length > 1 || (selections.length === 1 && !nativeSelectionIsCurrent()))) {
         event.preventDefault();
         event.stopPropagation();
         void sendBatch();
@@ -427,24 +463,27 @@ export default function SideBetBatchEnhancements() {
       const team = rawTeamForRow(row, game);
       if (!team) return;
 
+      const clickedSelection = { gameId: game.id, creatorTeam: team };
+      const nativeBefore = currentNativeSelection();
       const existingIndex = selections.findIndex((selection) => selection.gameId === game.id);
       if (existingIndex >= 0 && selections[existingIndex].creatorTeam === team) {
         selections = selections.filter((_, index) => index !== existingIndex);
+        pendingNativeSync = sameSelection(nativeBefore, clickedSelection) && selections.length > 0;
       } else if (existingIndex >= 0) {
-        selections = selections.map((selection, index) => index === existingIndex ? { gameId: game.id, creatorTeam: team } : selection);
+        selections = selections.map((selection, index) => index === existingIndex ? clickedSelection : selection);
+        pendingNativeSync = false;
       } else {
-        if (selections.length >= 10) {
+        if (selections.length >= MAX_BATCH_SELECTIONS) {
           event.preventDefault();
           event.stopPropagation();
-          showBatchMessage("A batch can include up to 10 side bets.", "error");
+          showBatchMessage(`You can select up to ${MAX_BATCH_SELECTIONS} side bets at a time.`, "error");
           return;
         }
-        selections = [...selections, { gameId: game.id, creatorTeam: team }];
+        selections = [...selections, clickedSelection];
+        pendingNativeSync = false;
       }
       schedule();
-      window.requestAnimationFrame(() => {
-        if (selections.length <= 1) syncNativeSelection();
-      });
+      window.requestAnimationFrame(schedule);
     }
 
     const observer = new MutationObserver(schedule);
