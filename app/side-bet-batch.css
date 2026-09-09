@@ -32,9 +32,13 @@
   position: relative;
   overflow: visible;
 }
+/* Match the Week trigger's vertical geometry to the board dropdowns. Header-only
+   differences stay limited to width, horizontal padding, and colors. */
 .header-menu-select .custom-select-trigger {
+  min-height: 30px;
   padding-top: 6px;
   padding-bottom: 5px;
+  font-size: 12px;
 }
 .custom-select-trigger::before {
   position: absolute;
