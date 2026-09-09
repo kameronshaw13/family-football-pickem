@@ -1,6 +1,6 @@
 /* Side Bet Ledger scope + multi-selection batch offer enhancements. */
 
-/* Shared dropdown interaction: one close underline, blue while open, generous tap target. */
+/* Shared dropdown interaction: one close underline, exact app blue while open, generous tap target. */
 .compact-select,
 .week-select-wrap {
   min-height: 30px;
@@ -12,9 +12,12 @@
 .week-select-wrap.open {
   border-bottom-color: var(--blue) !important;
 }
+.scoreboard-header .week-select-wrap {
+  width: 120px;
+  min-width: 120px;
+}
 .custom-select-trigger,
-.header-menu-select .custom-select-trigger,
-.ledger-scope-menu-select .custom-select-trigger {
+.header-menu-select .custom-select-trigger {
   position: relative;
   min-height: 29px;
   padding: 3px 27px 2px 8px;
@@ -32,45 +35,43 @@
   padding-bottom: 2px;
 }
 
+/* Side Bet Ledger uses a centered rounded segmented toggle, not a dropdown. */
 .side-bet-ledger-scope {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 70px);
   align-items: center;
+  gap: 2px;
   margin-left: auto;
-}
-.side-bet-ledger-scope select {
-  height: 31px;
-  min-width: 84px;
-  padding: 0 26px 0 10px;
+  padding: 2px;
   border: 1px solid var(--line-strong);
-  border-radius: 5px;
-  color: var(--ink);
-  background: var(--panel);
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+.side-bet-ledger-scope select[hidden],
+.side-bet-ledger-scope .side-bet-ledger-chevron[hidden] {
+  display: none !important;
+}
+.side-bet-ledger-scope-button {
+  display: grid;
+  width: 70px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  color: var(--header-muted);
+  background: transparent;
   font-family: var(--font-display);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1;
+  text-align: center;
+  white-space: nowrap;
 }
-.side-bet-ledger-scope .side-bet-ledger-chevron { display: none; }
-.side-bet-ledger-scope.ledger-scope-menu-select {
-  position: relative;
-  width: var(--week-select-width);
-  min-width: var(--week-select-width);
-  min-height: 30px;
-  background: transparent;
+.side-bet-ledger-scope-button.active {
+  color: #fff;
+  background: var(--graphite-light);
 }
-.side-bet-ledger-scope.ledger-scope-menu-select select[hidden] { display: none !important; }
-.ledger-scope-menu-select .custom-select-trigger {
-  color: var(--ink);
-  text-transform: none;
-}
-.ledger-scope-menu-select > .custom-select-chevron {
-  position: absolute;
-  right: 1px;
-  color: var(--blue-dark);
-  pointer-events: none;
-}
-.ledger-scope-menu-select.open > .custom-select-chevron { transform: rotate(180deg); }
-.ledger-scope-menu-select .custom-select-option { text-transform: none; }
 .ledger-row.side-bet-ledger-row.ledger-scope-hidden { display: none !important; }
 
 /* Avoid iOS momentum-scroll compositing glitches on the fixed bottom navigation. */
@@ -188,9 +189,11 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
 .batch-side-bet-toast.error { background: #9f403c; }
 
 @media (max-width: 520px) {
-  .side-bet-ledger-scope select:not([hidden]) {
-    min-width: 78px;
-    font-size: 10px;
+  .side-bet-ledger-scope {
+    grid-template-columns: repeat(2, 66px);
+  }
+  .side-bet-ledger-scope-button {
+    width: 66px;
   }
   .batch-side-bet-toast { right: 9px; left: 9px; }
 }
