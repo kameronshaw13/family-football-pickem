@@ -21,7 +21,7 @@
 }
 .compact-select.open::after,
 .week-select-wrap.open::after {
-  background: var(--blue-dark);
+  background: var(--blue);
 }
 .custom-select-trigger,
 .header-menu-select .custom-select-trigger {
