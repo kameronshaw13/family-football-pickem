@@ -12,10 +12,6 @@
 .week-select-wrap.open {
   border-bottom-color: var(--blue) !important;
 }
-.scoreboard-header .week-select-wrap {
-  width: 120px;
-  min-width: 120px;
-}
 .custom-select-trigger,
 .header-menu-select .custom-select-trigger {
   position: relative;
