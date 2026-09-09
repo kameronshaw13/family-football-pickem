@@ -12,7 +12,7 @@ const bodySchema = z.object({
   selections: z.array(z.object({
     gameId: z.string().min(1),
     creatorTeam: z.string().min(1)
-  })).min(2).max(4),
+  })).min(1).max(4),
   amount: z.number().positive(),
   recipientIds: z.array(z.string().uuid()).min(1).max(10),
   viewWeek: z.number().int().nonnegative().optional()
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
 
     const parsed = bodySchema.safeParse(await req.json());
-    if (!parsed.success) return NextResponse.json({ ok: false, error: "Choose 2 to 4 valid side bets and at least one recipient." }, { status: 400 });
+    if (!parsed.success) return NextResponse.json({ ok: false, error: "Choose 1 to 4 valid side bets and at least one recipient." }, { status: 400 });
     const body = parsed.data;
 
     const supabase = getSupabaseAdmin();
