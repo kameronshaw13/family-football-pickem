@@ -11,8 +11,8 @@
   background: var(--panel);
 }
 
-/* Keep the normal top slip-header region. With multiple selections, show one
-   normal-sized Side Bets title followed by smaller matchup/date rows. */
+/* Keep the normal top slip-header region. With multiple selections, the header
+   itself only says Side Bets; each game's matchup/date lives above its pick cell. */
 .side-bet-batch-header-lines {
   display: none;
 }
@@ -66,6 +66,32 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.15;
+}
+
+/* Small gray matchup strip directly above each selected batch pick cell. */
+.side-bet-batch-game-meta {
+  display: flex;
+  width: 100%;
+  min-height: 26px;
+  align-items: center;
+  padding: 5px var(--pick-content-inset);
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-muted);
+  white-space: nowrap;
+}
+
+.side-bet-batch-game-meta .side-bet-batch-header-matchup {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.side-bet-batch-game-meta .side-bet-batch-header-separator,
+.side-bet-batch-game-meta .side-bet-batch-header-datetime {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
 }
 
 .side-bet-batch-row.side-bet-batch-native-row {
