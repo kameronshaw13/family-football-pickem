@@ -29,15 +29,32 @@
 }
 
 .side-bet-batch-header-line {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.side-bet-batch-header-line > strong {
   min-width: 0;
   overflow: hidden;
   color: #fff;
-  font-size: 10.5px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.side-bet-batch-header-separator,
+.side-bet-batch-header-datetime {
+  flex: 0 0 auto;
+  color: #c8d4da;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
 .side-bet-batch-row.side-bet-batch-native-row {
@@ -152,20 +169,24 @@
   margin: 0;
 }
 
-/* The collapsed slip shows the latest selection, then the exact number of
-   other selected bets. Keep +N More the same size and black like the pick text. */
-.side-bet-slip-bar[data-batch-more] .side-bet-slip-copy::after {
+/* The collapsed slip shows the selected pick plus the exact number of other
+   selected bets. Use a real element instead of generated content so the number
+   cannot get lost during rerenders. */
+.side-bet-slip-bar[data-batch-count] .side-bet-slip-copy::after {
+  content: none !important;
+}
+
+.side-bet-batch-more {
   flex: 0 0 auto;
-  color: var(--ink);
-  content: "· +" attr(data-batch-more) " More";
+  color: var(--blue);
   font-size: 16px;
   font-weight: 700;
   line-height: 1.3;
   white-space: nowrap;
 }
 
-/* Player-profile year selector must remain pinned to the right side of the
-   profile header. This intentionally overrides the later compact-select rule. */
+/* Position only. All sizing, centering, underline thickness, and open-state
+   color come from the same compact-select rules used by the Pick Card controls. */
 .profile-year-select {
   position: absolute;
   top: 50%;
@@ -177,32 +198,16 @@
 }
 
 .profile-year-select .custom-select-trigger {
-  min-height: 30px;
-  padding: 6px 23px 5px 6px;
   color: #fff;
-  font-size: 12px;
   text-transform: none;
 }
 
 .profile-year-select > svg {
-  right: 1px;
-  color: #fff;
+  color: var(--blue);
 }
 
 .profile-year-select .custom-select-option {
   text-transform: none;
-}
-
-.player-profile-loading-body {
-  display: grid;
-  min-height: 238px;
-  place-items: center;
-  color: var(--muted);
-  background: var(--panel);
-}
-
-.player-profile-loading-body svg {
-  animation: spin .8s linear infinite;
 }
 
 @media (max-width: 520px) {
@@ -218,7 +223,7 @@
 
   .side-bet-batch-native-choice .team-name,
   .side-bet-batch-native-choice .team-spread,
-  .side-bet-slip-bar[data-batch-more] .side-bet-slip-copy::after {
+  .side-bet-batch-more {
     font-size: 15px;
   }
 
