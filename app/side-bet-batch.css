@@ -17,9 +17,9 @@
 .ledger-scope-menu-select .custom-select-trigger {
   position: relative;
   min-height: 29px;
-  padding-top: 3px;
-  padding-bottom: 2px;
+  padding: 3px 27px 2px 8px;
   overflow: visible;
+  font-size: 12px;
 }
 .custom-select-trigger::before {
   position: absolute;
@@ -60,10 +60,7 @@
 }
 .side-bet-ledger-scope.ledger-scope-menu-select select[hidden] { display: none !important; }
 .ledger-scope-menu-select .custom-select-trigger {
-  padding-right: 23px;
-  padding-left: 5px;
   color: var(--ink);
-  font-size: 13px;
   text-transform: none;
 }
 .ledger-scope-menu-select > .custom-select-chevron {
