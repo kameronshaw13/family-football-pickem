@@ -27,7 +27,7 @@
 }
 
 .side-bet-batch-row.side-bet-batch-native-row:last-child {
-  border-bottom: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
 }
 
 .side-bet-batch-native-row > .team-logo {
