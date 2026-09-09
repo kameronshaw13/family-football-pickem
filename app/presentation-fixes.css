@@ -11,25 +11,30 @@
   background: var(--panel);
 }
 
-/* In batch mode, remove the old single-game matchup/date title. Each selected
-   game owns its matchup/date line directly above its selection cell instead. */
-.side-bet-slip-sheet.batch-mode .side-bet-slip-title {
+/* Keep matchup/date information in the normal top slip header. In batch mode,
+   each selected game's matchup + date + time gets one line in that same spot. */
+.side-bet-batch-header-lines {
   display: none;
 }
 
-.side-bet-slip-sheet.batch-mode .side-bet-slip-sheet-head {
-  justify-content: flex-end;
+.side-bet-slip-sheet.batch-mode .side-bet-slip-title > h2,
+.side-bet-slip-sheet.batch-mode .side-bet-slip-title > p {
+  display: none;
 }
 
-.side-bet-batch-game-meta {
+.side-bet-slip-sheet.batch-mode .side-bet-batch-header-lines {
+  display: grid;
   min-width: 0;
-  padding: 7px var(--pick-content-inset) 6px;
+  gap: 3px;
+}
+
+.side-bet-batch-header-line {
+  min-width: 0;
   overflow: hidden;
-  border-bottom: 1px solid var(--line);
-  color: var(--muted);
-  background: var(--surface-soft);
-  font-size: 10px;
+  color: #fff;
+  font-size: 10.5px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -89,19 +94,37 @@
   white-space: nowrap;
 }
 
-/* Keep both sides of every selected game on one compact line. */
-.side-bet-batch-terms {
+/* Keep the normal two summary sections: You keep and They get. Each section
+   gets every selected game's side on one line, separated by dots. */
+.side-bet-slip-sheet.batch-mode > .side-bet-slip-summary {
+  display: block !important;
+}
+
+.side-bet-slip-sheet.batch-mode > .side-bet-slip-summary > div > strong:not(.side-bet-batch-summary-value) {
+  display: none;
+}
+
+.side-bet-batch-summary-value {
+  display: none;
+}
+
+.side-bet-slip-sheet.batch-mode .side-bet-batch-summary-value {
+  display: block;
   min-width: 0;
-  padding: 6px var(--pick-content-inset) 7px;
-  overflow: hidden;
-  border-bottom: 1px solid var(--line-strong);
-  color: var(--header-muted);
-  background: var(--panel);
-  font-size: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.2;
-  text-overflow: ellipsis;
+  text-align: right;
+  text-overflow: clip;
   white-space: nowrap;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.side-bet-slip-sheet.batch-mode .side-bet-batch-summary-value::-webkit-scrollbar {
+  display: none;
 }
 
 /* Use the exact same clear control styling as the normal one-team slip row. */
@@ -130,10 +153,10 @@
 }
 
 /* The collapsed slip shows the latest selection, then the exact number of
-   additional selections. Keep +N More the same visual size as the pick text. */
+   other selected bets. Keep +N More the same size and black like the pick text. */
 .side-bet-slip-bar[data-batch-more] .side-bet-slip-copy::after {
   flex: 0 0 auto;
-  color: var(--blue-dark);
+  color: var(--ink);
   content: "· +" attr(data-batch-more) " More";
   font-size: 16px;
   font-weight: 700;
@@ -141,11 +164,16 @@
   white-space: nowrap;
 }
 
-/* Player-profile year selector is its own compact control, not a Week selector.
-   Keep it stable even if the top Week control changes again later. */
+/* Player-profile year selector must remain pinned to the right side of the
+   profile header. This intentionally overrides the later compact-select rule. */
 .profile-year-select {
+  position: absolute;
+  top: 50%;
+  right: 58px;
   width: 88px;
   min-width: 88px;
+  z-index: 8;
+  transform: translateY(-50%);
 }
 
 .profile-year-select .custom-select-trigger {
@@ -165,6 +193,18 @@
   text-transform: none;
 }
 
+.player-profile-loading-body {
+  display: grid;
+  min-height: 238px;
+  place-items: center;
+  color: var(--muted);
+  background: var(--panel);
+}
+
+.player-profile-loading-body svg {
+  animation: spin .8s linear infinite;
+}
+
 @media (max-width: 520px) {
   .side-bet-batch-row.side-bet-batch-native-row {
     grid-template-columns: 34px minmax(0, 1fr) 64px;
@@ -180,5 +220,9 @@
   .side-bet-batch-native-choice .team-spread,
   .side-bet-slip-bar[data-batch-more] .side-bet-slip-copy::after {
     font-size: 15px;
+  }
+
+  .profile-year-select {
+    right: 56px;
   }
 }
