@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
-import { teamDisplayName } from "@/lib/teamNames";
+import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 
 type AppSlug = "shaw-family" | "other-family" | "friends";
 type CachedGame = {
@@ -21,8 +21,10 @@ type SelectionInfo = {
   dateTime: string;
   selectedTeam: string | null;
   selectedDisplay: string;
+  selectedCompact: string;
   selectedSpread: string;
   offeredDisplay: string;
+  offeredCompact: string;
   offeredSpread: string;
 };
 
@@ -142,6 +144,7 @@ function selectionInfo(row: HTMLElement, payload: CachedPayload | null): Selecti
   const offeredTeam = game && selectedTeam
     ? (selectedTeam === game.home_team ? game.away_team : game.home_team)
     : null;
+  const offeredDisplay = game && offeredTeam ? teamDisplayName(game.league, offeredTeam) : "";
 
   return {
     game,
@@ -149,15 +152,17 @@ function selectionInfo(row: HTMLElement, payload: CachedPayload | null): Selecti
     dateTime: game ? gameDateTime(game) : "",
     selectedTeam,
     selectedDisplay,
+    selectedCompact: game && selectedTeam ? teamAbbreviatedName(game.league, selectedTeam) : selectedDisplay,
     selectedSpread: row.dataset.batchSpread || spreadText(creatorSpread),
-    offeredDisplay: game && offeredTeam ? teamDisplayName(game.league, offeredTeam) : "",
+    offeredDisplay,
+    offeredCompact: game && offeredTeam ? teamAbbreviatedName(game.league, offeredTeam) : offeredDisplay,
     offeredSpread: creatorSpread == null ? "" : spreadText(-creatorSpread)
   };
 }
 
 function updateHeader(sheet: HTMLElement, infos: SelectionInfo[]) {
   const title = sheet.querySelector<HTMLElement>(".side-bet-slip-title");
-  if (!title) return;
+  if (!title || !infos.length) return;
   let lines = title.querySelector<HTMLElement>(".side-bet-batch-header-lines");
   if (!lines) {
     lines = document.createElement("div");
@@ -165,27 +170,70 @@ function updateHeader(sheet: HTMLElement, infos: SelectionInfo[]) {
     title.appendChild(lines);
   }
 
-  const signature = infos.map((info) => `${info.matchup}|${info.dateTime}`).join("\n");
+  const multiple = infos.length > 1;
+  const signature = `${multiple ? "multi" : "single"}|${infos.map((info) => `${info.matchup}|${info.dateTime}`).join("\n")}`;
   if (lines.dataset.signature === signature) return;
   lines.dataset.signature = signature;
   lines.replaceChildren();
 
-  infos.forEach((info) => {
+  const heading = document.createElement("strong");
+  heading.className = "side-bet-batch-title";
+  heading.textContent = multiple ? "Side Bets" : infos[0].matchup;
+  lines.appendChild(heading);
+
+  if (multiple) {
+    infos.forEach((info) => {
+      const line = document.createElement("div");
+      line.className = "side-bet-batch-header-line";
+      const matchup = document.createElement("span");
+      matchup.className = "side-bet-batch-header-matchup";
+      matchup.textContent = info.matchup;
+      line.appendChild(matchup);
+      if (info.dateTime) {
+        const separator = document.createElement("span");
+        separator.className = "side-bet-batch-header-separator";
+        separator.textContent = " · ";
+        const dateTime = document.createElement("span");
+        dateTime.className = "side-bet-batch-header-datetime";
+        dateTime.textContent = info.dateTime;
+        line.append(separator, dateTime);
+      }
+      lines!.appendChild(line);
+    });
+    return;
+  }
+
+  if (infos[0].dateTime) {
     const line = document.createElement("div");
     line.className = "side-bet-batch-header-line";
-    const matchup = document.createElement("strong");
-    matchup.textContent = info.matchup;
-    line.appendChild(matchup);
-    if (info.dateTime) {
-      const separator = document.createElement("span");
-      separator.className = "side-bet-batch-header-separator";
-      separator.textContent = " · ";
-      const dateTime = document.createElement("span");
-      dateTime.className = "side-bet-batch-header-datetime";
-      dateTime.textContent = info.dateTime;
-      line.append(separator, dateTime);
+    const dateTime = document.createElement("span");
+    dateTime.className = "side-bet-batch-header-datetime";
+    dateTime.textContent = infos[0].dateTime;
+    line.appendChild(dateTime);
+    lines.appendChild(line);
+  }
+}
+
+function setSummaryValue(section: HTMLElement, fullText: string, compactText: string) {
+  let value = section.querySelector<HTMLElement>(".side-bet-batch-summary-value");
+  if (!value) {
+    value = document.createElement("strong");
+    value.className = "side-bet-batch-summary-value";
+    section.appendChild(value);
+  }
+
+  const signature = `${fullText}|${compactText}`;
+  if (value.dataset.summarySignature !== signature) {
+    value.dataset.summarySignature = signature;
+    value.textContent = fullText;
+  }
+
+  const target = value;
+  window.requestAnimationFrame(() => {
+    if (!target.isConnected) return;
+    if (target.scrollWidth > target.clientWidth + 1 && compactText && target.textContent !== compactText) {
+      target.textContent = compactText;
     }
-    lines!.appendChild(line);
   });
 }
 
@@ -199,20 +247,21 @@ function updateSummary(sheet: HTMLElement, infos: SelectionInfo[]) {
     .map((info) => `${info.selectedDisplay} ${info.selectedSpread}`.trim())
     .filter(Boolean)
     .join(" · ");
+  const compactKeepText = infos
+    .map((info) => `${info.selectedCompact} ${info.selectedSpread}`.trim())
+    .filter(Boolean)
+    .join(" · ");
   const getText = infos
     .map((info) => `${info.offeredDisplay} ${info.offeredSpread}`.trim())
     .filter(Boolean)
     .join(" · ");
+  const compactGetText = infos
+    .map((info) => `${info.offeredCompact} ${info.offeredSpread}`.trim())
+    .filter(Boolean)
+    .join(" · ");
 
-  [keepText, getText].forEach((text, index) => {
-    let value = sections[index].querySelector<HTMLElement>(".side-bet-batch-summary-value");
-    if (!value) {
-      value = document.createElement("strong");
-      value.className = "side-bet-batch-summary-value";
-      sections[index].appendChild(value);
-    }
-    if (value.textContent !== text) value.textContent = text;
-  });
+  setSummaryValue(sections[0], keepText, compactKeepText);
+  setSummaryValue(sections[1], getText, compactGetText);
 }
 
 function updateCollapsedMore(bar: HTMLElement) {
