@@ -5,7 +5,7 @@
 .week-select-wrap {
   min-height: 30px;
   border: 0 !important;
-  border-bottom: 1px solid var(--line-strong) !important;
+  border-bottom: 1.5px solid var(--line-strong) !important;
   background: transparent;
 }
 .compact-select.open,
