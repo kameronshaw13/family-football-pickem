@@ -165,15 +165,26 @@ function updateHeader(sheet: HTMLElement, infos: SelectionInfo[]) {
     title.appendChild(lines);
   }
 
-  const textLines = infos.map((info) => [info.matchup, info.dateTime].filter(Boolean).join(" · "));
-  const signature = textLines.join("\n");
+  const signature = infos.map((info) => `${info.matchup}|${info.dateTime}`).join("\n");
   if (lines.dataset.signature === signature) return;
   lines.dataset.signature = signature;
   lines.replaceChildren();
-  textLines.forEach((text) => {
+
+  infos.forEach((info) => {
     const line = document.createElement("div");
     line.className = "side-bet-batch-header-line";
-    line.textContent = text;
+    const matchup = document.createElement("strong");
+    matchup.textContent = info.matchup;
+    line.appendChild(matchup);
+    if (info.dateTime) {
+      const separator = document.createElement("span");
+      separator.className = "side-bet-batch-header-separator";
+      separator.textContent = " · ";
+      const dateTime = document.createElement("span");
+      dateTime.className = "side-bet-batch-header-datetime";
+      dateTime.textContent = info.dateTime;
+      line.append(separator, dateTime);
+    }
     lines!.appendChild(line);
   });
 }
@@ -202,6 +213,29 @@ function updateSummary(sheet: HTMLElement, infos: SelectionInfo[]) {
     }
     if (value.textContent !== text) value.textContent = text;
   });
+}
+
+function updateCollapsedMore(bar: HTMLElement) {
+  const total = Number(bar.dataset.batchCount || 0);
+  const more = Math.max(0, total - 1);
+  const copy = bar.querySelector<HTMLElement>(".side-bet-slip-copy");
+  if (!copy) return;
+
+  let label = copy.querySelector<HTMLElement>(".side-bet-batch-more");
+  if (more <= 0) {
+    label?.remove();
+    delete bar.dataset.batchMore;
+    return;
+  }
+
+  if (!label) {
+    label = document.createElement("span");
+    label.className = "side-bet-batch-more";
+    copy.appendChild(label);
+  }
+  const text = `+${more} More`;
+  if (label.textContent !== text) label.textContent = text;
+  bar.dataset.batchMore = String(more);
 }
 
 function showBatchLimitError() {
@@ -251,20 +285,13 @@ export default function SideBetBatchPresentationEnhancement() {
       });
 
       const sheet = document.querySelector<HTMLElement>(".side-bet-slip-sheet.batch-mode");
-      if (sheet && infos.length > 1) {
+      if (sheet && infos.length) {
         updateHeader(sheet, infos);
         updateSummary(sheet, infos);
       }
 
-      document.querySelectorAll<HTMLElement>(".side-bet-slip-bar[data-batch-count]").forEach((bar) => {
-        const total = Number(bar.dataset.batchCount || 0);
-        const more = total > 1 ? String(total - 1) : "";
-        if (more) {
-          if (bar.dataset.batchMore !== more) bar.dataset.batchMore = more;
-        } else {
-          delete bar.dataset.batchMore;
-        }
-      });
+      document.querySelectorAll<HTMLElement>(".side-bet-slip-bar[data-batch-count]").forEach(updateCollapsedMore);
+      document.querySelectorAll<HTMLElement>(".side-bet-slip-bar:not([data-batch-count]) .side-bet-batch-more").forEach((node) => node.remove());
     }
 
     function schedule() {
@@ -297,27 +324,15 @@ export default function SideBetBatchPresentationEnhancement() {
       showBatchLimitError();
     }
 
-    function clearStaleNativeSelection(event: MouseEvent) {
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      const remove = target.closest<HTMLButtonElement>(".side-bet-batch-remove");
-      if (!remove) return;
-      const sheet = remove.closest<HTMLElement>(".side-bet-slip-sheet");
-      const nativeClear = sheet?.querySelector<HTMLButtonElement>(":scope > .side-bet-slip-selection .side-bet-selection-clear:not(.side-bet-batch-remove)");
-      nativeClear?.click();
-    }
-
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "data-batch-count"] });
     window.addEventListener("click", enforceFourGameLimit, true);
-    window.addEventListener("click", clearStaleNativeSelection, true);
     schedule();
 
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("click", enforceFourGameLimit, true);
-      window.removeEventListener("click", clearStaleNativeSelection, true);
     };
   }, []);
 
