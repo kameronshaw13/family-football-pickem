@@ -19,30 +19,27 @@
   content: "";
   pointer-events: none;
 }
+.week-select-wrap::after {
+  height: 1.5px;
+}
 .compact-select.open::after,
 .week-select-wrap.open::after {
   background: var(--blue);
 }
-.custom-select-trigger,
-.header-menu-select .custom-select-trigger {
+
+/* Keep the app's normal optical text alignment instead of forcing flex centering. */
+.custom-select-trigger {
   position: relative;
-  display: flex;
-  min-height: 29px;
-  align-items: center;
-  padding: 0 27px 0 8px;
   overflow: visible;
-  font-size: 12px;
-  line-height: 1.2;
+}
+.header-menu-select .custom-select-trigger {
+  padding-top: 6px;
+  padding-bottom: 5px;
 }
 .custom-select-trigger::before {
   position: absolute;
   inset: -7px 0;
   content: "";
-}
-.compact-select select {
-  min-height: 29px;
-  padding-top: 3px;
-  padding-bottom: 2px;
 }
 
 /* Side Bet Ledger uses a centered rounded segmented toggle, not a dropdown. */
