@@ -164,11 +164,16 @@ function updateHeader(sheet: HTMLElement, infos: SelectionInfo[]) {
     lines.className = "side-bet-batch-header-lines";
     title.appendChild(lines);
   }
+
+  const textLines = infos.map((info) => [info.matchup, info.dateTime].filter(Boolean).join(" · "));
+  const signature = textLines.join("\n");
+  if (lines.dataset.signature === signature) return;
+  lines.dataset.signature = signature;
   lines.replaceChildren();
-  infos.forEach((info) => {
+  textLines.forEach((text) => {
     const line = document.createElement("div");
     line.className = "side-bet-batch-header-line";
-    line.textContent = [info.matchup, info.dateTime].filter(Boolean).join(" · ");
+    line.textContent = text;
     lines!.appendChild(line);
   });
 }
@@ -195,7 +200,7 @@ function updateSummary(sheet: HTMLElement, infos: SelectionInfo[]) {
       value.className = "side-bet-batch-summary-value";
       sections[index].appendChild(value);
     }
-    value.textContent = text;
+    if (value.textContent !== text) value.textContent = text;
   });
 }
 
