@@ -1,16 +1,27 @@
 /* Side Bet Ledger scope + multi-selection batch offer enhancements. */
 
-/* Shared dropdown interaction: same underline weight and active blue everywhere. */
+/* Shared dropdown interaction: one dedicated underline layer for every dropdown. */
 .compact-select,
 .week-select-wrap {
+  position: relative;
   min-height: 30px;
   border: 0 !important;
-  border-bottom: 1.5px solid var(--line-strong) !important;
   background: transparent;
 }
-.compact-select.open,
-.week-select-wrap.open {
-  border-bottom-color: var(--blue) !important;
+.compact-select::after,
+.week-select-wrap::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1.5px;
+  background: var(--line-strong);
+  content: "";
+  pointer-events: none;
+}
+.compact-select.open::after,
+.week-select-wrap.open::after {
+  background: var(--blue-dark);
 }
 .custom-select-trigger,
 .header-menu-select .custom-select-trigger {
