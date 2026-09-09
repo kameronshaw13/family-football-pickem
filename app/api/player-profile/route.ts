@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { normalizeTeamNameKey, teamDisplayName } from "@/lib/teamNames";
 import { computeWeeklyStandings } from "@/lib/weeklyBank";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,20 @@ function dogBonusWins(pick: any) {
   if (spread >= 7) return 1;
   return 0;
 }
+function displayPickedTeam(pick: any) {
+  const selected = String(pick?.selected_team || "").trim();
+  const game = pick?.game;
+  if (!selected || !game) return null;
+  const selectedKey = normalizeTeamNameKey(selected);
+  const matched = [game.away_team, game.home_team]
+    .filter(Boolean)
+    .find((team) => {
+      const raw = String(team);
+      return normalizeTeamNameKey(raw) === selectedKey
+        || normalizeTeamNameKey(teamDisplayName(game.league, raw)) === selectedKey;
+    });
+  return matched ? teamDisplayName(game.league, String(matched)) : null;
+}
 
 export async function GET(req: NextRequest) {
   const auth = await getProfileFromRequest(req);
@@ -49,7 +64,7 @@ export async function GET(req: NextRequest) {
     if (!player) return NextResponse.json({ ok: false, error: "Player not found in this Pick'em group." }, { status: 404 });
 
     const [picksResult, sideBetsResult, historyResult] = await Promise.all([
-      supabase.from("picks").select("*, game:games(id,commence_time,away_team,home_team)").eq("group_id", context.group.id).order("created_at", { ascending: true }),
+      supabase.from("picks").select("*, game:games(id,commence_time,league,away_team,home_team)").eq("group_id", context.group.id).order("created_at", { ascending: true }),
       supabase.from("side_bets").select("id,group_id,season_year,creator_id,accepted_by,amount,status,result,winner_id,week,created_at").eq("group_id", context.group.id),
       supabase.from("group_season_results").select("season_year,is_champion").eq("group_id", context.group.id).eq("profile_id", player.id)
     ]);
@@ -73,10 +88,26 @@ export async function GET(req: NextRequest) {
 
     const completedDogs = playerPicks.filter((pick: any) => pick.pick_type === "underdog" && pick.result !== "pending");
     const longestDog = completedDogs.filter((pick: any) => pick.result === "win" && Number(pick.locked_spread) > 0).sort((a: any, b: any) => Number(b.locked_spread) - Number(a.locked_spread))[0] || null;
-    const mostPickedTeam = mostCommon(playerPicks.map((pick: any) => pick.selected_team));
-    const favoriteTeamCompletedPicks = mostPickedTeam ? playerPicks.filter((pick: any) => pick.selected_team === mostPickedTeam && pick.result !== "pending") : [];
+
+    const regularSpreadPicks = playerPicks
+      .filter((pick: any) => pick.pick_type === "regular")
+      .map((pick: any) => ({ pick, team: displayPickedTeam(pick) }))
+      .filter((entry: any) => Boolean(entry.team));
+    const mostPickedTeam = mostCommon(regularSpreadPicks.map((entry: any) => entry.team as string));
+    const favoriteTeamCompletedPicks = mostPickedTeam
+      ? regularSpreadPicks
+        .filter((entry: any) => entry.team === mostPickedTeam && entry.pick.result !== "pending")
+        .map((entry: any) => entry.pick)
+      : [];
     const mostPickedTeamRecord = mostPickedTeam ? recordFor(favoriteTeamCompletedPicks) : null;
-    const longestDogOpponent = longestDog?.game ? longestDog.selected_team === longestDog.game.away_team ? longestDog.game.home_team : longestDog.game.away_team : null;
+
+    const longestDogTeam = longestDog ? displayPickedTeam(longestDog) : null;
+    const longestDogOpponentRaw = longestDog?.game
+      ? longestDog.selected_team === longestDog.game.away_team ? longestDog.game.home_team : longestDog.game.away_team
+      : null;
+    const longestDogOpponent = longestDogOpponentRaw && longestDog?.game
+      ? teamDisplayName(longestDog.game.league, longestDogOpponentRaw)
+      : null;
 
     const settledSideBets = allSideBets.filter((bet: any) => bet.status === "settled" && (bet.creator_id === player.id || bet.accepted_by === player.id) && (selectedYear == null || Number(bet.season_year) === selectedYear));
     let sideBetWins = 0, sideBetLosses = 0, sideBetPushes = 0, sideBetNet = 0;
@@ -101,7 +132,12 @@ export async function GET(req: NextRequest) {
       season: { wins: standing.wins, losses: standing.losses, pushes: standing.pushes, winPct: standing.win_pct },
       legacy: { titles: titlesTracked ? titles : null, titlesTracked },
       signature: {
-        longestDog: longestDog ? { team: longestDog.selected_team, spread: Number(longestDog.locked_spread), opponent: longestDogOpponent, bonusWins: dogBonusWins(longestDog) } : null,
+        longestDog: longestDog ? {
+          team: longestDogTeam || teamDisplayName(longestDog.game?.league, longestDog.selected_team),
+          spread: Number(longestDog.locked_spread),
+          opponent: longestDogOpponent,
+          bonusWins: dogBonusWins(longestDog)
+        } : null,
         mostPickedTeam,
         mostPickedTeamRecord
       },
