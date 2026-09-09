@@ -9,6 +9,12 @@ export { normalizeTeamNameKey };
 const DISPLAY_OVERRIDES: Record<string, string> = {
   "boston college": "Boston College",
   "boston college eagles": "Boston College",
+  "richmond spiders": "Richmond",
+  "wagner seahawks": "Wagner",
+  "gardner webb runnin bulldogs": "Gardner-Webb",
+  "gardner webb running bulldogs": "Gardner-Webb",
+  "gardner webb runnin": "Gardner-Webb",
+  "gardner webb running": "Gardner-Webb",
   "no washington td": "No Washington TD"
 };
 
