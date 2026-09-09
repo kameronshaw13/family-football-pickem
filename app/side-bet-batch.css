@@ -1,6 +1,6 @@
 /* Side Bet Ledger scope + multi-selection batch offer enhancements. */
 
-/* Shared dropdown interaction: one close underline, exact app blue while open, generous tap target. */
+/* Shared dropdown interaction: same underline weight and active blue everywhere. */
 .compact-select,
 .week-select-wrap {
   min-height: 30px;
@@ -11,14 +11,6 @@
 .compact-select.open,
 .week-select-wrap.open {
   border-bottom-color: var(--blue) !important;
-}
-/* Safari rasterizes the fractional border inside the fixed dark header more lightly.
-   Slight optical compensation keeps the compact Week control visually matched to board filters. */
-.scoreboard-header .week-select-wrap {
-  border-bottom-width: 1.75px !important;
-}
-.scoreboard-header .week-select-wrap.open {
-  border-bottom-color: #4384aa !important;
 }
 .custom-select-trigger,
 .header-menu-select .custom-select-trigger {
