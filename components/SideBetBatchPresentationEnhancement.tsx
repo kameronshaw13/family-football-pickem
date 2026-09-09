@@ -15,6 +15,16 @@ type CachedGame = {
   current_spread?: number | null;
 };
 type CachedPayload = { games?: CachedGame[] };
+type SelectionInfo = {
+  game: CachedGame | null;
+  matchup: string;
+  dateTime: string;
+  selectedTeam: string | null;
+  selectedDisplay: string;
+  selectedSpread: string;
+  offeredDisplay: string;
+  offeredSpread: string;
+};
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
 const CENTRAL_DATE = new Intl.DateTimeFormat("en-US", {
@@ -111,36 +121,82 @@ function ensureNativeRemoveButton(row: HTMLElement) {
   remove.replaceChildren(svg);
 }
 
-function ensureGameMeta(row: HTMLElement, game: CachedGame | null, matchup: string) {
-  let meta = row.previousElementSibling instanceof HTMLElement && row.previousElementSibling.classList.contains("side-bet-batch-game-meta")
-    ? row.previousElementSibling
+function selectionInfo(row: HTMLElement, payload: CachedPayload | null): SelectionInfo {
+  const copy = row.querySelector<HTMLElement>(".side-bet-batch-copy, .side-bet-batch-native-choice");
+  const team = copy?.querySelector<HTMLElement>("strong, .team-name") || null;
+  const market = copy?.querySelector<HTMLElement>("span, .team-spread") || null;
+  const rawMarket = market?.textContent || "";
+
+  if (!row.dataset.batchSpread) row.dataset.batchSpread = spreadOnly(rawMarket);
+  if (!row.dataset.batchMatchup) row.dataset.batchMatchup = matchupOnly(rawMarket);
+
+  const matchup = row.dataset.batchMatchup || "";
+  const game = payload?.games?.find((candidate) => gameLabel(candidate) === matchup) || null;
+  const selectedDisplay = team?.textContent?.trim() || "";
+  const selectedTeam = game
+    ? [game.away_team, game.home_team].find((candidate) => teamDisplayName(game.league, candidate) === selectedDisplay) || null
     : null;
-  if (!meta) {
-    meta = document.createElement("div");
-    meta.className = "side-bet-batch-game-meta";
-    row.insertAdjacentElement("beforebegin", meta);
-  }
-  const dateTime = game ? gameDateTime(game) : "";
-  meta.textContent = [matchup, dateTime].filter(Boolean).join(" · ");
+  const creatorSpread = game && selectedTeam
+    ? normalizeSpreadForSelectedTeam(selectedTeam, game.current_spread_team, game.current_spread)
+    : null;
+  const offeredTeam = game && selectedTeam
+    ? (selectedTeam === game.home_team ? game.away_team : game.home_team)
+    : null;
+
+  return {
+    game,
+    matchup,
+    dateTime: game ? gameDateTime(game) : "",
+    selectedTeam,
+    selectedDisplay,
+    selectedSpread: row.dataset.batchSpread || spreadText(creatorSpread),
+    offeredDisplay: game && offeredTeam ? teamDisplayName(game.league, offeredTeam) : "",
+    offeredSpread: creatorSpread == null ? "" : spreadText(-creatorSpread)
+  };
 }
 
-function ensureTerms(row: HTMLElement, game: CachedGame | null, selectedTeam: string | null) {
-  let terms = row.nextElementSibling instanceof HTMLElement && row.nextElementSibling.classList.contains("side-bet-batch-terms")
-    ? row.nextElementSibling
-    : null;
-  if (!terms) {
-    terms = document.createElement("div");
-    terms.className = "side-bet-batch-terms";
-    row.insertAdjacentElement("afterend", terms);
+function updateHeader(sheet: HTMLElement, infos: SelectionInfo[]) {
+  const title = sheet.querySelector<HTMLElement>(".side-bet-slip-title");
+  if (!title) return;
+  let lines = title.querySelector<HTMLElement>(".side-bet-batch-header-lines");
+  if (!lines) {
+    lines = document.createElement("div");
+    lines.className = "side-bet-batch-header-lines";
+    title.appendChild(lines);
   }
+  lines.replaceChildren();
+  infos.forEach((info) => {
+    const line = document.createElement("div");
+    line.className = "side-bet-batch-header-line";
+    line.textContent = [info.matchup, info.dateTime].filter(Boolean).join(" · ");
+    lines!.appendChild(line);
+  });
+}
 
-  if (!game || !selectedTeam) {
-    terms.textContent = "";
-    return;
-  }
-  const offeredTeam = selectedTeam === game.home_team ? game.away_team : game.home_team;
-  const creatorSpread = normalizeSpreadForSelectedTeam(selectedTeam, game.current_spread_team, game.current_spread);
-  terms.textContent = `You get ${teamDisplayName(game.league, selectedTeam)} ${spreadText(creatorSpread)} · They keep ${teamDisplayName(game.league, offeredTeam)} ${spreadText(creatorSpread == null ? null : -creatorSpread)}`;
+function updateSummary(sheet: HTMLElement, infos: SelectionInfo[]) {
+  const summary = sheet.querySelector<HTMLElement>(":scope > .side-bet-slip-summary");
+  if (!summary) return;
+  const sections = Array.from(summary.children).filter((node): node is HTMLElement => node instanceof HTMLElement);
+  if (sections.length < 2) return;
+
+  const keepText = infos
+    .map((info) => `${info.selectedDisplay} ${info.selectedSpread}`.trim())
+    .filter(Boolean)
+    .join(" · ");
+  const getText = infos
+    .map((info) => `${info.offeredDisplay} ${info.offeredSpread}`.trim())
+    .filter(Boolean)
+    .join(" · ");
+
+  [keepText, getText].forEach((text, index) => {
+    let value = sections[index].querySelector<HTMLElement>(".side-bet-batch-summary-value");
+    if (!value) {
+      value = document.createElement("strong");
+      value.className = "side-bet-batch-summary-value";
+      sections[index].appendChild(value);
+    }
+    value.textContent = text;
+  });
 }
 
 function showBatchLimitError() {
@@ -161,23 +217,15 @@ export default function SideBetBatchPresentationEnhancement() {
 
     function applyPresentation() {
       const payload = readCachedPayload(appSlug);
-      document.querySelectorAll<HTMLElement>(".side-bet-batch-row").forEach((row) => {
+      document.querySelectorAll(".side-bet-batch-game-meta, .side-bet-batch-terms").forEach((node) => node.remove());
+
+      const rows = Array.from(document.querySelectorAll<HTMLElement>(".side-bet-batch-row"));
+      const infos: SelectionInfo[] = [];
+      rows.forEach((row) => {
         const copy = row.querySelector<HTMLElement>(".side-bet-batch-copy, .side-bet-batch-native-choice");
         if (!copy) return;
-
-        const team = copy.querySelector<HTMLElement>("strong, .team-name");
-        const market = copy.querySelector<HTMLElement>("span, .team-spread");
-        const rawMarket = market?.textContent || "";
-        if (!row.dataset.batchSpread) row.dataset.batchSpread = spreadOnly(rawMarket);
-        if (!row.dataset.batchMatchup) row.dataset.batchMatchup = matchupOnly(rawMarket);
-        const matchup = row.dataset.batchMatchup || "";
-        const game = payload?.games?.find((candidate) => gameLabel(candidate) === matchup) || null;
-        const selectedDisplay = team?.textContent?.trim() || "";
-        const selectedTeam = game
-          ? [game.away_team, game.home_team].find((candidate) => teamDisplayName(game.league, candidate) === selectedDisplay) || null
-          : null;
-
-        ensureGameMeta(row, game, matchup);
+        const info = selectionInfo(row, payload);
+        infos.push(info);
 
         if (!row.classList.contains("side-bet-batch-native-row")) {
           row.classList.add("team-row", "side-bet-slip-selection", "side-bet-batch-native-row");
@@ -185,16 +233,23 @@ export default function SideBetBatchPresentationEnhancement() {
         if (!copy.classList.contains("side-bet-batch-native-choice")) {
           copy.className = "side-bet-slip-team-choice side-bet-batch-native-choice";
         }
+
+        const team = copy.querySelector<HTMLElement>("strong, .team-name");
+        const market = copy.querySelector<HTMLElement>("span, .team-spread");
         if (team && !team.classList.contains("team-name")) team.classList.add("team-name");
         if (market) {
-          const nextText = row.dataset.batchSpread || spreadOnly(rawMarket);
+          const nextText = row.dataset.batchSpread || spreadOnly(market.textContent || "");
           if (market.textContent !== nextText) market.textContent = nextText;
           if (!market.classList.contains("team-spread")) market.classList.add("team-spread");
         }
-
         ensureNativeRemoveButton(row);
-        ensureTerms(row, game, selectedTeam);
       });
+
+      const sheet = document.querySelector<HTMLElement>(".side-bet-slip-sheet.batch-mode");
+      if (sheet && infos.length > 1) {
+        updateHeader(sheet, infos);
+        updateSummary(sheet, infos);
+      }
 
       document.querySelectorAll<HTMLElement>(".side-bet-slip-bar[data-batch-count]").forEach((bar) => {
         const total = Number(bar.dataset.batchCount || 0);
@@ -237,15 +292,27 @@ export default function SideBetBatchPresentationEnhancement() {
       showBatchLimitError();
     }
 
+    function clearStaleNativeSelection(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const remove = target.closest<HTMLButtonElement>(".side-bet-batch-remove");
+      if (!remove) return;
+      const sheet = remove.closest<HTMLElement>(".side-bet-slip-sheet");
+      const nativeClear = sheet?.querySelector<HTMLButtonElement>(":scope > .side-bet-slip-selection .side-bet-selection-clear:not(.side-bet-batch-remove)");
+      nativeClear?.click();
+    }
+
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "data-batch-count"] });
     window.addEventListener("click", enforceFourGameLimit, true);
+    window.addEventListener("click", clearStaleNativeSelection, true);
     schedule();
 
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("click", enforceFourGameLimit, true);
+      window.removeEventListener("click", clearStaleNativeSelection, true);
     };
   }, []);
 
