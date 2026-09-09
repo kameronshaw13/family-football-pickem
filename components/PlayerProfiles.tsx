@@ -139,7 +139,7 @@ export default function PlayerProfiles() {
           <div className="player-profile-head-copy"><span>Player Profile</span><h2 id="player-profile-title">{profile.player.displayName}</h2></div>
           <MenuSelect
             ariaLabel="Select profile year"
-            className="week-select-wrap header-menu-select profile-year-select"
+            className="compact-select profile-year-select"
             value={period}
             loading={loading}
             sections={[{ options: periodOptions }]}
@@ -168,9 +168,9 @@ export default function PlayerProfiles() {
             </div>
             <div className="player-profile-highlight-stack">
               <div>
-                <span>Favorite Team Used</span>
+                <span>Favorite Team</span>
                 <strong>{profile.signature.mostPickedTeam || "—"}</strong>
-                {profile.signature.mostPickedTeam && favoriteRecord && <small>{favoriteRecord} record</small>}
+                {profile.signature.mostPickedTeam && favoriteRecord && <small>{favoriteRecord} spread record</small>}
               </div>
               <div><span>Biggest Dog Won</span><strong>{biggestDogText}</strong></div>
             </div>
