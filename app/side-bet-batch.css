@@ -12,6 +12,14 @@
 .week-select-wrap.open {
   border-bottom-color: var(--blue) !important;
 }
+/* Safari rasterizes the fractional border inside the fixed dark header more lightly.
+   Slight optical compensation keeps the compact Week control visually matched to board filters. */
+.scoreboard-header .week-select-wrap {
+  border-bottom-width: 1.75px !important;
+}
+.scoreboard-header .week-select-wrap.open {
+  border-bottom-color: #4384aa !important;
+}
 .custom-select-trigger,
 .header-menu-select .custom-select-trigger {
   position: relative;
