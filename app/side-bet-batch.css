@@ -1,11 +1,37 @@
 /* Side Bet Ledger scope + multi-selection batch offer enhancements. */
-.scoreboard-header .week-select-wrap {
-  border: 0;
-  border-bottom: 2px solid var(--line-strong);
+
+/* Shared dropdown interaction: one close underline, blue while open, generous tap target. */
+.compact-select,
+.week-select-wrap {
+  min-height: 30px;
+  border: 0 !important;
+  border-bottom: 1px solid var(--line-strong) !important;
+  background: transparent;
 }
-.scoreboard-header .week-select-wrap.open {
-  border-bottom-color: var(--blue);
+.compact-select.open,
+.week-select-wrap.open {
+  border-bottom-color: var(--blue) !important;
 }
+.custom-select-trigger,
+.header-menu-select .custom-select-trigger,
+.ledger-scope-menu-select .custom-select-trigger {
+  position: relative;
+  min-height: 29px;
+  padding-top: 3px;
+  padding-bottom: 2px;
+  overflow: visible;
+}
+.custom-select-trigger::before {
+  position: absolute;
+  inset: -7px 0;
+  content: "";
+}
+.compact-select select {
+  min-height: 29px;
+  padding-top: 3px;
+  padding-bottom: 2px;
+}
+
 .side-bet-ledger-scope {
   display: flex;
   align-items: center;
@@ -29,13 +55,13 @@
   position: relative;
   width: var(--week-select-width);
   min-width: var(--week-select-width);
-  min-height: 36px;
+  min-height: 30px;
   background: transparent;
 }
 .side-bet-ledger-scope.ledger-scope-menu-select select[hidden] { display: none !important; }
 .ledger-scope-menu-select .custom-select-trigger {
-  min-height: 34px;
-  padding: 5px 23px 5px 5px;
+  padding-right: 23px;
+  padding-left: 5px;
   color: var(--ink);
   font-size: 13px;
   text-transform: none;
