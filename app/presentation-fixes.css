@@ -11,8 +11,8 @@
   background: var(--panel);
 }
 
-/* Keep matchup/date information in the normal top slip header. In batch mode,
-   each selected game's matchup + date + time gets one line in that same spot. */
+/* Keep the normal top slip-header region. With multiple selections, show one
+   normal-sized Side Bets title followed by smaller matchup/date rows. */
 .side-bet-batch-header-lines {
   display: none;
 }
@@ -25,18 +25,10 @@
 .side-bet-slip-sheet.batch-mode .side-bet-batch-header-lines {
   display: grid;
   min-width: 0;
-  gap: 3px;
+  gap: 2px;
 }
 
-.side-bet-batch-header-line {
-  display: flex;
-  min-width: 0;
-  align-items: baseline;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.side-bet-batch-header-line > strong {
+.side-bet-batch-title {
   min-width: 0;
   overflow: hidden;
   color: #fff;
@@ -47,14 +39,33 @@
   white-space: nowrap;
 }
 
+.side-bet-batch-header-line {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.side-bet-batch-header-matchup {
+  min-width: 0;
+  overflow: hidden;
+  color: #dce5e9;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .side-bet-batch-header-separator,
 .side-bet-batch-header-datetime {
   flex: 0 0 auto;
   color: #c8d4da;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .side-bet-batch-row.side-bet-batch-native-row {
@@ -170,23 +181,22 @@
 }
 
 /* The collapsed slip shows the selected pick plus the exact number of other
-   selected bets. Use a real element instead of generated content so the number
-   cannot get lost during rerenders. */
+   selected bets. Use the same medium app blue as selected Pick Board accents. */
 .side-bet-slip-bar[data-batch-count] .side-bet-slip-copy::after {
   content: none !important;
 }
 
 .side-bet-batch-more {
   flex: 0 0 auto;
-  color: var(--blue);
+  color: var(--blue) !important;
   font-size: 16px;
   font-weight: 700;
   line-height: 1.3;
   white-space: nowrap;
 }
 
-/* Position only. All sizing, centering, underline thickness, and open-state
-   color come from the same compact-select rules used by the Pick Card controls. */
+/* Position the profile year selector on the right, but use the same compact
+   dropdown text/open-state styling as the Pick Card controls. */
 .profile-year-select {
   position: absolute;
   top: 50%;
@@ -195,6 +205,12 @@
   min-width: 88px;
   z-index: 8;
   transform: translateY(-50%);
+}
+
+/* The profile year underline is intentionally the same 1.5px weight as the
+   compact Week selector rather than the 1.75px main board filters. */
+.profile-year-select::after {
+  height: 1.5px !important;
 }
 
 .profile-year-select .custom-select-trigger {
