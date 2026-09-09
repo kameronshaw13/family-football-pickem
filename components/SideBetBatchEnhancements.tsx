@@ -446,6 +446,14 @@ export default function SideBetBatchEnhancements() {
       const target = event.target;
       if (!(target instanceof Element)) return;
 
+      const nativeClear = target.closest<HTMLButtonElement>(".side-bet-slip-selection .side-bet-selection-clear:not(.side-bet-batch-remove)");
+      if (nativeClear) {
+        selections = [];
+        pendingNativeSync = false;
+        schedule();
+        return;
+      }
+
       const submit = target.closest<HTMLButtonElement>(".side-bet-slip-submit");
       if (submit && (selections.length > 1 || (selections.length === 1 && !nativeSelectionIsCurrent()))) {
         event.preventDefault();
