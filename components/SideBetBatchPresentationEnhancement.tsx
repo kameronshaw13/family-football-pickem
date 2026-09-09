@@ -6,6 +6,32 @@ function spreadOnly(value: string) {
   return value.split("·")[0]?.trim() || value.trim();
 }
 
+function ensureNativeRemoveButton(row: HTMLElement) {
+  const remove = row.querySelector<HTMLButtonElement>(".side-bet-batch-remove");
+  if (!remove) return;
+
+  remove.className = "slip-icon-btn side-bet-selection-clear side-bet-batch-remove";
+  if (remove.querySelector("svg")) return;
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "18");
+  svg.setAttribute("height", "18");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("aria-hidden", "true");
+
+  const first = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  first.setAttribute("d", "M18 6 6 18");
+  const second = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  second.setAttribute("d", "m6 6 12 12");
+  svg.append(first, second);
+  remove.replaceChildren(svg);
+}
+
 export default function SideBetBatchPresentationEnhancement() {
   useEffect(() => {
     let frame = 0;
@@ -32,6 +58,8 @@ export default function SideBetBatchPresentationEnhancement() {
           if (market.textContent !== nextText) market.textContent = nextText;
           if (!market.classList.contains("team-spread")) market.classList.add("team-spread");
         }
+
+        ensureNativeRemoveButton(row);
       });
 
       document.querySelectorAll<HTMLElement>(".side-bet-slip-bar[data-batch-count]").forEach((bar) => {
