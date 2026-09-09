@@ -1,0 +1,120 @@
+/* Final presentation fixes that intentionally sit after the batch dropdown styles. */
+
+/* Multi-side-bet selections should look like the normal selected-team cell: no
+   batch header, no count badge, no remove button, and no second-line matchup. */
+.side-bet-batch-head,
+.side-bet-batch-remove {
+  display: none !important;
+}
+
+.side-bet-batch-list {
+  border: 0 !important;
+  background: var(--panel);
+}
+
+.side-bet-batch-row.side-bet-batch-native-row {
+  display: grid;
+  width: 100%;
+  min-height: var(--data-row-height);
+  grid-template-columns: 38px minmax(0, 1fr) 68px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px var(--pick-content-inset);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  background: var(--panel);
+}
+
+.side-bet-batch-row.side-bet-batch-native-row:last-child {
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.side-bet-batch-native-row > .team-logo {
+  width: 34px;
+  height: 34px;
+}
+
+.side-bet-batch-native-choice {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.side-bet-batch-native-choice .team-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-bet-batch-native-choice .team-spread {
+  display: inline-flex;
+  width: auto;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-start;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+/* The collapsed slip shows the latest selection, then only how many additional
+   selections are included. */
+.side-bet-slip-bar[data-batch-more] .side-bet-slip-copy::after {
+  flex: 0 0 auto;
+  color: var(--blue-dark);
+  content: "· +" attr(data-batch-more) " More";
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Player-profile year selector is its own compact control, not a Week selector.
+   Keep it stable even if the top Week control changes again later. */
+.profile-year-select {
+  width: 88px;
+  min-width: 88px;
+}
+
+.profile-year-select .custom-select-trigger {
+  min-height: 30px;
+  padding: 6px 23px 5px 6px;
+  color: #fff;
+  font-size: 12px;
+  text-transform: none;
+}
+
+.profile-year-select > svg {
+  right: 1px;
+  color: #fff;
+}
+
+.profile-year-select .custom-select-option {
+  text-transform: none;
+}
+
+@media (max-width: 520px) {
+  .side-bet-batch-row.side-bet-batch-native-row {
+    grid-template-columns: 34px minmax(0, 1fr) 64px;
+    gap: var(--space-2);
+  }
+
+  .side-bet-batch-native-row > .team-logo {
+    width: 31px;
+    height: 31px;
+  }
+
+  .side-bet-batch-native-choice .team-name,
+  .side-bet-batch-native-choice .team-spread {
+    font-size: 15px;
+  }
+}
