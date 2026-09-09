@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { LoaderCircle, X } from "lucide-react";
 import MenuSelect from "@/components/MenuSelect";
 
 type ProfilePayload = {
@@ -38,11 +38,21 @@ export default function PlayerProfiles() {
   const [period, setPeriod] = useState(currentPickemSeason);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const profileCache = useRef(new Map<string, ProfilePayload>());
 
   async function loadProfile(name: string, nextPeriod: string, initial = false) {
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token || !name) return;
-    if (initial) setProfile(null);
+
+    const cacheKey = `${name}::${nextPeriod}`;
+    const cached = profileCache.current.get(cacheKey);
+    if (cached) {
+      setProfile(cached);
+      setPeriod(cached.period.selected);
+    } else if (initial) {
+      setProfile(null);
+    }
+
     setLoading(true);
     setError("");
     try {
@@ -52,8 +62,10 @@ export default function PlayerProfiles() {
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Could not load player profile.");
-      setProfile(payload as ProfilePayload);
-      setPeriod((payload as ProfilePayload).period.selected);
+      const nextProfile = payload as ProfilePayload;
+      profileCache.current.set(cacheKey, nextProfile);
+      setProfile(nextProfile);
+      setPeriod(nextProfile.period.selected);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not load player profile.");
       if (profile) setPeriod(profile.period.selected);
@@ -98,7 +110,7 @@ export default function PlayerProfiles() {
   }, []);
 
   useEffect(() => {
-    if (!profile) return;
+    if (!activeName) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setProfile(null);
@@ -107,7 +119,7 @@ export default function PlayerProfiles() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [profile]);
+  }, [activeName]);
 
   const periodOptions = profile
     ? [{ value: "all", label: "All Time" }, ...profile.period.availableYears.map((year) => ({ value: String(year), label: String(year) }))]
@@ -133,11 +145,11 @@ export default function PlayerProfiles() {
 
   return <>
     {error && <div className="profile-loading-toast profile-error-toast" role="alert">{error}</div>}
-    {profile && <div className="player-profile-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) closeProfile(); }}>
+    {activeName && <div className="player-profile-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) closeProfile(); }}>
       <section className="player-profile-sheet" role="dialog" aria-modal="true" aria-labelledby="player-profile-title">
         <header className="player-profile-head">
-          <div className="player-profile-head-copy"><span>Player Profile</span><h2 id="player-profile-title">{profile.player.displayName}</h2></div>
-          <MenuSelect
+          <div className="player-profile-head-copy"><span>Player Profile</span><h2 id="player-profile-title">{profile?.player.displayName || activeName}</h2></div>
+          {profile && <MenuSelect
             ariaLabel="Select profile year"
             className="compact-select profile-year-select"
             value={period}
@@ -147,42 +159,44 @@ export default function PlayerProfiles() {
               setPeriod(value);
               void loadProfile(activeName, value);
             }}
-          />
+          />}
           <div className="pick-row-actions player-profile-close-wrap"><button type="button" className="icon-btn" aria-label="Close profile" onClick={closeProfile}><X size={16} /></button></div>
         </header>
 
         <div className="player-profile-content">
-          <section className="player-profile-block player-profile-performance">
-            <div className="player-profile-section-heading"><h3>{periodHeading}</h3></div>
-            <div className="player-profile-performance-row">
-              <div className="player-profile-record-mark"><span>Record</span><strong>{seasonRecord}</strong></div>
-              <div className="player-profile-win-mark"><span>Win Rate</span><strong>{(profile.season.winPct * 100).toFixed(1)}%</strong></div>
-            </div>
-          </section>
-
-          <section className="player-profile-block player-profile-highlights">
-            <div className="player-profile-section-heading"><h3>Pick&apos;em Highlights</h3></div>
-            <div className="player-profile-legacy-row">
-              <div><span>Career Titles</span><small>{profile.group.titleLabel}</small></div>
-              <strong>{titleCount}</strong>
-            </div>
-            <div className="player-profile-highlight-stack">
-              <div>
-                <span>Favorite Team</span>
-                <strong>{profile.signature.mostPickedTeam || "—"}</strong>
-                {profile.signature.mostPickedTeam && favoriteRecord && <small>{favoriteRecord} spread record</small>}
+          {profile ? <>
+            <section className="player-profile-block player-profile-performance">
+              <div className="player-profile-section-heading"><h3>{periodHeading}</h3></div>
+              <div className="player-profile-performance-row">
+                <div className="player-profile-record-mark"><span>Record</span><strong>{seasonRecord}</strong></div>
+                <div className="player-profile-win-mark"><span>Win Rate</span><strong>{(profile.season.winPct * 100).toFixed(1)}%</strong></div>
               </div>
-              <div><span>Biggest Dog Won</span><strong>{biggestDogText}</strong></div>
-            </div>
-          </section>
+            </section>
 
-          <section className="player-profile-block player-profile-side-bets">
-            <div className="player-profile-section-heading"><h3>{sideBetHeading}</h3></div>
-            <div className="player-profile-side-bet-metrics">
-              <div><span>Record</span><strong>{sideBetRecord}</strong></div>
-              <div><span>Net $</span><strong className={profile.sideBets.net > 0 ? "money-pos" : profile.sideBets.net < 0 ? "money-neg" : ""}>{profile.sideBets.netText}</strong></div>
-            </div>
-          </section>
+            <section className="player-profile-block player-profile-highlights">
+              <div className="player-profile-section-heading"><h3>Pick&apos;em Highlights</h3></div>
+              <div className="player-profile-legacy-row">
+                <div><span>Career Titles</span><small>{profile.group.titleLabel}</small></div>
+                <strong>{titleCount}</strong>
+              </div>
+              <div className="player-profile-highlight-stack">
+                <div>
+                  <span>Favorite Team</span>
+                  <strong>{profile.signature.mostPickedTeam || "—"}</strong>
+                  {profile.signature.mostPickedTeam && favoriteRecord && <small>{favoriteRecord} spread record</small>}
+                </div>
+                <div><span>Biggest Dog Won</span><strong>{biggestDogText}</strong></div>
+              </div>
+            </section>
+
+            <section className="player-profile-block player-profile-side-bets">
+              <div className="player-profile-section-heading"><h3>{sideBetHeading}</h3></div>
+              <div className="player-profile-side-bet-metrics">
+                <div><span>Record</span><strong>{sideBetRecord}</strong></div>
+                <div><span>Net $</span><strong className={profile.sideBets.net > 0 ? "money-pos" : profile.sideBets.net < 0 ? "money-neg" : ""}>{profile.sideBets.netText}</strong></div>
+              </div>
+            </section>
+          </> : <div className="player-profile-loading-body" role="status" aria-label="Loading player profile">{error ? <span>{error}</span> : <LoaderCircle size={22} />}</div>}
         </div>
       </section>
     </div>}
