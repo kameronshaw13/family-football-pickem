@@ -5,7 +5,8 @@ import PickemAppBase from "@/components/PickemAppBase";
 import WeekScopeAndManualLockEnhancements from "@/components/WeekScopeAndManualLockEnhancements";
 import PickemUiCorrections from "@/components/PickemUiCorrections";
 import LockedPickIconSync from "@/components/LockedPickIconSync";
+import GroupLockedPickIconSync from "@/components/GroupLockedPickIconSync";
 
 export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSlug }) {
-  return <><PickemAppBase appSlug={appSlug} /><WeekScopeAndManualLockEnhancements appSlug={appSlug} /><PickemUiCorrections appSlug={appSlug} /><LockedPickIconSync appSlug={appSlug} /></>;
+  return <><PickemAppBase appSlug={appSlug} /><WeekScopeAndManualLockEnhancements appSlug={appSlug} /><PickemUiCorrections appSlug={appSlug} /><LockedPickIconSync appSlug={appSlug} /><GroupLockedPickIconSync appSlug={appSlug} /></>;
 }
