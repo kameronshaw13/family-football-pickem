@@ -20,14 +20,22 @@ export async function GET(req: NextRequest) {
     const lockResult = await lockDuePicks(supabase);
     const now = new Date();
     const oldestRelevantKickoff = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString();
-    const { data, error } = await supabase
-      .from("games")
-      .select("*")
-      .gte("commence_time", oldestRelevantKickoff)
-      .lte("commence_time", now.toISOString())
-      .or("final_home_score.is.null,final_away_score.is.null")
-      .order("commence_time", { ascending: true });
+    const [{ data, error }, { data: recentWeekRows, error: recentWeekError }] = await Promise.all([
+      supabase
+        .from("games")
+        .select("*")
+        .gte("commence_time", oldestRelevantKickoff)
+        .lte("commence_time", now.toISOString())
+        .or("final_home_score.is.null,final_away_score.is.null")
+        .order("commence_time", { ascending: true }),
+      supabase
+        .from("games")
+        .select("week")
+        .gte("commence_time", oldestRelevantKickoff)
+        .lte("commence_time", now.toISOString())
+    ]);
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    if (recentWeekError) return NextResponse.json({ ok: false, error: recentWeekError.message }, { status: 500 });
 
     const games = (data || []) as Game[];
     let gamesFinalized = 0;
@@ -54,7 +62,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    for (const week of Array.from(weeksFinalized)) {
+    // Settlement must be retried even when the final scores were already stored
+    // in an earlier run. Otherwise a week that was temporarily blocked by a
+    // stranded/pending pick can remain unfinalized forever after that pick is fixed.
+    const weeksToSettle = new Set<number>([
+      ...Array.from(weeksFinalized),
+      ...(recentWeekRows || []).map((row: any) => Number(row.week)).filter((week: number) => Number.isInteger(week) && week >= 0)
+    ]);
+    for (const week of Array.from(weeksToSettle)) {
       const settlement = await settleWeekIfReady(supabase, week);
       if (settlement.settled) weeksSettled.add(week);
     }
@@ -67,6 +82,7 @@ export async function GET(req: NextRequest) {
       gamesFinalized,
       picksGraded,
       sideBetsGraded,
+      weeksCheckedForSettlement: Array.from(weeksToSettle),
       weeksSettled: Array.from(weeksSettled),
       seasonSettled: seasonSettlement.settled,
       seasonSettlementReason: seasonSettlement.reason || null
