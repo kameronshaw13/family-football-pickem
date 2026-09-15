@@ -10,6 +10,7 @@ export type LockDuePicksResult = {
 };
 
 const LOCK_SCAN_HORIZON_MS = 7 * 24 * 60 * 60 * 1000;
+const GAME_SELECT = "id,league,commence_time,lock_time,home_team,away_team,current_spread_team,current_spread,is_locked";
 
 export async function lockDuePicks(
   supabase: SupabaseClient,
@@ -17,19 +18,45 @@ export async function lockDuePicks(
 ): Promise<LockDuePicksResult> {
   const now = currentTime.toISOString();
   const horizon = new Date(currentTime.getTime() + LOCK_SCAN_HORIZON_MS).toISOString();
-  const { data: games, error: gameError } = await supabase
-    .from("games")
-    .select("id,league,commence_time,lock_time,home_team,away_team,current_spread_team,current_spread")
-    .eq("is_locked", false)
-    .lte("commence_time", horizon);
-  if (gameError) throw new Error(gameError.message);
 
-  const results = await Promise.all((games || []).map(async (game) => {
+  const [{ data: unlockedGames, error: gameError }, { data: draftRows, error: draftError }] = await Promise.all([
+    supabase
+      .from("games")
+      .select(GAME_SELECT)
+      .eq("is_locked", false)
+      .lte("commence_time", horizon),
+    supabase
+      .from("picks")
+      .select("game_id")
+      .eq("status", "draft")
+  ]);
+  if (gameError) throw new Error(gameError.message);
+  if (draftError) throw new Error(draftError.message);
+
+  // Recovery path: an odds refresh used to be able to mark a game locked before
+  // this routine locked its draft picks. Include already-locked games that still
+  // have draft picks so those picks can never be stranded as pending forever.
+  const draftGameIds = Array.from(new Set((draftRows || []).map((row: any) => row.game_id).filter(Boolean)));
+  const { data: lockedGamesWithDrafts, error: lockedGameError } = draftGameIds.length
+    ? await supabase
+        .from("games")
+        .select(GAME_SELECT)
+        .in("id", draftGameIds)
+        .eq("is_locked", true)
+        .lte("commence_time", horizon)
+    : { data: [], error: null };
+  if (lockedGameError) throw new Error(lockedGameError.message);
+
+  const gamesById = new Map<string, any>();
+  for (const game of [...(unlockedGames || []), ...(lockedGamesWithDrafts || [])]) gamesById.set(game.id, game);
+  const games = Array.from(gamesById.values());
+
+  const results = await Promise.all(games.map(async (game) => {
     const effectiveLockTime = getGameLockTime(game.commence_time);
     const effectiveLockTimeIso = effectiveLockTime.toISOString();
 
     if (effectiveLockTime > currentTime) {
-      if (game.lock_time !== effectiveLockTimeIso) {
+      if (!game.is_locked && game.lock_time !== effectiveLockTimeIso) {
         const { error } = await supabase
           .from("games")
           .update({ lock_time: effectiveLockTimeIso, updated_at: now })
@@ -40,17 +67,21 @@ export async function lockDuePicks(
       return { gamesLocked: 0, picksLocked: 0, picksRemoved: 0 };
     }
 
-    // Several open phones can hit the live-score route at the same time. Claim
-    // the game once so only one request performs the draft-pick locking work.
-    const { data: claimed, error: updateGameError } = await supabase
-      .from("games")
-      .update({ is_locked: true, lock_time: effectiveLockTimeIso, updated_at: now })
-      .eq("id", game.id)
-      .eq("is_locked", false)
-      .select("id")
-      .maybeSingle();
-    if (updateGameError) throw new Error(updateGameError.message);
-    if (!claimed) return { gamesLocked: 0, picksLocked: 0, picksRemoved: 0 };
+    let gamesLocked = 0;
+    if (!game.is_locked) {
+      // Several open phones can hit the live-score route at the same time. Claim
+      // the game once, but still continue below even if another request claimed
+      // it first so any stranded draft picks are recovered idempotently.
+      const { data: claimed, error: updateGameError } = await supabase
+        .from("games")
+        .update({ is_locked: true, lock_time: effectiveLockTimeIso, updated_at: now })
+        .eq("id", game.id)
+        .eq("is_locked", false)
+        .select("id")
+        .maybeSingle();
+      if (updateGameError) throw new Error(updateGameError.message);
+      gamesLocked = claimed ? 1 : 0;
+    }
 
     const { data: draftPicks, error: pickError } = await supabase
       .from("picks")
@@ -69,13 +100,15 @@ export async function lockDuePicks(
     const pickResults = await Promise.all((draftPicks || []).map(async (pick) => {
       const rules = rulesBySeason.get(`${pick.group_id}:${pick.season_year}`) || {};
       if (!isGameAllowedByRules(rules, game)) {
-        const { error } = await supabase
+        const { data: deleted, error } = await supabase
           .from("picks")
           .delete()
           .eq("id", pick.id)
-          .eq("status", "draft");
+          .eq("status", "draft")
+          .select("id")
+          .maybeSingle();
         if (error) throw new Error(error.message);
-        return { picksLocked: 0, picksRemoved: 1 };
+        return { picksLocked: 0, picksRemoved: deleted ? 1 : 0 };
       }
 
       const lockedSpread = normalizeSpreadForSelectedTeam(
@@ -86,24 +119,26 @@ export async function lockDuePicks(
       const dogValue = pick.pick_type === "underdog"
         ? getUnderdogBonusForRules(rules, lockedSpread)
         : null;
-      const { error } = await supabase
+      const { data: lockedPick, error } = await supabase
         .from("picks")
         .update({
           status: "locked",
-          locked_at: now,
+          locked_at: effectiveLockTimeIso,
           locked_spread: lockedSpread,
           locked_spread_team: pick.selected_team,
           underdog_win_value: dogValue,
           updated_at: now
         })
         .eq("id", pick.id)
-        .eq("status", "draft");
+        .eq("status", "draft")
+        .select("id")
+        .maybeSingle();
       if (error) throw new Error(error.message);
-      return { picksLocked: 1, picksRemoved: 0 };
+      return { picksLocked: lockedPick ? 1 : 0, picksRemoved: 0 };
     }));
 
     return {
-      gamesLocked: 1,
+      gamesLocked,
       picksLocked: pickResults.reduce((sum, result) => sum + result.picksLocked, 0),
       picksRemoved: pickResults.reduce((sum, result) => sum + result.picksRemoved, 0)
     };
