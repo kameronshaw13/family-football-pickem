@@ -22,22 +22,39 @@ function applyFriendsAmountLabels() {
   });
 }
 
-function patchedFriendsFetch(originalFetch: typeof window.fetch) {
+function patchedSideBetFetch(originalFetch: typeof window.fetch, appSlug: AppSlug) {
   return (async (input: RequestInfo | URL, init?: RequestInit) => {
+    let isSingleCreate = false;
+    let nextInit = init;
+
     try {
       const rawUrl = typeof input === "string" || input instanceof URL ? String(input) : input.url;
       const url = new URL(rawUrl, window.location.origin);
       if (url.pathname === "/api/side-bets" && typeof init?.body === "string") {
         const body = JSON.parse(init.body) as { action?: string; amount?: number };
-        const mapped = body.action === "create" ? FRIEND_REQUEST_AMOUNT_MAP[String(body.amount)] : undefined;
-        if (mapped != null) {
-          init = { ...init, body: JSON.stringify({ ...body, amount: mapped }) };
+        isSingleCreate = body.action === "create";
+
+        if (appSlug === "friends" && isSingleCreate) {
+          const mapped = FRIEND_REQUEST_AMOUNT_MAP[String(body.amount)];
+          if (mapped != null) {
+            nextInit = { ...init, body: JSON.stringify({ ...body, amount: mapped }) };
+          }
         }
       }
     } catch {
       // If a request is not JSON or is unrelated, leave it untouched.
     }
-    return originalFetch(input, init);
+
+    const response = await originalFetch(input, nextInit);
+
+    if (isSingleCreate && response.ok) {
+      // Clear the native selection before createBet switches back to Offers.
+      // SideBetBatchEnhancements listens to this same clear button, so one
+      // click resets both React's selected game and its private batch array.
+      document.querySelector<HTMLButtonElement>(".side-bet-slip-selection .side-bet-selection-clear")?.click();
+    }
+
+    return response;
   }) as typeof window.fetch;
 }
 
@@ -46,8 +63,8 @@ export default function PickemUiCorrections({ appSlug }: { appSlug: AppSlug }) {
     let frame = 0;
     let applying = false;
     const originalFetch = window.fetch;
-    const friendsFetch = appSlug === "friends" ? patchedFriendsFetch(originalFetch.bind(window)) : null;
-    if (friendsFetch) window.fetch = friendsFetch;
+    const sideBetFetch = patchedSideBetFetch(originalFetch.bind(window), appSlug);
+    window.fetch = sideBetFetch;
 
     // Remove any lock icons left behind by the previous correction layer.
     // PickemAppBase is the sole source of truth for lock indicators now and
@@ -78,7 +95,7 @@ export default function PickemUiCorrections({ appSlug }: { appSlug: AppSlug }) {
       if (frame) window.cancelAnimationFrame(frame);
       observer.disconnect();
       document.querySelectorAll(".ui-correction-lock-icon").forEach((icon) => icon.remove());
-      if (friendsFetch && window.fetch === friendsFetch) window.fetch = originalFetch;
+      if (window.fetch === sideBetFetch) window.fetch = originalFetch;
     };
   }, [appSlug]);
 
