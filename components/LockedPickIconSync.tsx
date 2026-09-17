@@ -15,6 +15,7 @@ type CachedPick = {
   week?: number | null;
   selected_team?: string | null;
   status?: string | null;
+  locked_spread?: number | null;
 };
 
 type CachedPayload = {
@@ -56,7 +57,7 @@ function readCachedPayload(appSlug: AppSlug): CachedPayload | null {
   return null;
 }
 
-function writeLockedStatusToCache(appSlug: AppSlug, selectedTeam: string, week: number | null) {
+function writeLockedStatusToCache(appSlug: AppSlug, selectedTeam: string, week: number | null, lockedSpread?: number | null) {
   for (const key of cacheKeys(appSlug)) {
     try {
       const raw = window.sessionStorage.getItem(key);
@@ -69,9 +70,10 @@ function writeLockedStatusToCache(appSlug: AppSlug, selectedTeam: string, week: 
       payload.picks = payload.picks.map((pick) => {
         const sameUser = !currentUserId || pick.user_id === currentUserId;
         const sameWeek = week == null || pick.week == null || Number(pick.week) === week;
-        if (sameUser && sameWeek && pick.selected_team === selectedTeam && pick.status !== "locked") {
-          changed = true;
-          return { ...pick, status: "locked" };
+        if (sameUser && sameWeek && pick.selected_team === selectedTeam) {
+          const nextLockedSpread = lockedSpread ?? pick.locked_spread ?? null;
+          if (pick.status !== "locked" || pick.locked_spread !== nextLockedSpread) changed = true;
+          return { ...pick, status: "locked", locked_spread: nextLockedSpread };
         }
         return pick;
       });
@@ -149,18 +151,22 @@ export default function LockedPickIconSync({ appSlug }: { appSlug: AppSlug }) {
         const universalLockAt = universalWeekendLockTime(payload?.games || []);
         const universalLockReached = universalLockAt != null && Date.now() >= universalLockAt;
 
+        // This component owns only the current user's My Card indicators.
+        // Group-card indicators are handled separately and must be keyed to
+        // the actual player/pick status, never inferred from the current user.
+        document.querySelectorAll<HTMLElement>(".visible-pick .lock-sync-indicator").forEach((icon) => icon.remove());
         document.querySelectorAll<HTMLElement>(".lock-sync-indicator").forEach((icon) => {
           if (universalLockReached) icon.remove();
         });
         if (universalLockReached) return;
 
-        document.querySelectorAll<HTMLElement>(".pick-card, .visible-pick").forEach((row) => {
+        document.querySelectorAll<HTMLElement>(".pick-card").forEach((row) => {
           const displayedTeam = displayedTeamForRow(row);
           if (!displayedTeam) return;
           const lockedTeam = Array.from(lockedTeams).find((team) => teamMatches(team, displayedTeam));
           if (!lockedTeam) return;
 
-          const actions = row.querySelector<HTMLElement>(".pick-row-actions, .visible-pick-actions");
+          const actions = row.querySelector<HTMLElement>(".pick-row-actions");
           if (!actions) return;
 
           actions.querySelector<HTMLButtonElement>('button[aria-label^="Remove "]')?.style.setProperty("display", "none");
@@ -185,9 +191,10 @@ export default function LockedPickIconSync({ appSlug }: { appSlug: AppSlug }) {
         const url = new URL(rawUrl, window.location.origin);
         if (url.pathname === "/api/picks/lock" && response.ok && typeof init?.body === "string") {
           const body = JSON.parse(init.body) as { selectedTeam?: string; week?: number };
+          const responsePayload = await response.clone().json() as { pick?: { locked_spread?: number | null } };
           if (body.selectedTeam) {
             confirmedThisSession.add(body.selectedTeam);
-            writeLockedStatusToCache(appSlug, body.selectedTeam, body.week ?? selectedWeekFromHeader());
+            writeLockedStatusToCache(appSlug, body.selectedTeam, body.week ?? selectedWeekFromHeader(), responsePayload.pick?.locked_spread ?? null);
             schedule();
           }
         }
