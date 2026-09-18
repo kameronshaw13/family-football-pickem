@@ -14,10 +14,16 @@ export function getGameLockTime(commenceTimeIso: string, timezone = APP_TIMEZONE
     return kickoffUtc;
   }
 
-  // Saturday/Sunday/Monday games lock Saturday at 11:00 AM CT for that football weekend.
+  // Saturday/Sunday/Monday games normally lock Saturday at 11:00 AM CT.
+  // If a Saturday game kicks off before 11:00 AM, it must lock at kickoff
+  // instead of being pushed back to the previous Saturday.
   const saturdayLocal = setDay(kickoffLocal, 6, { weekStartsOn: 1 });
   const lockLocal = new Date(saturdayLocal);
   lockLocal.setHours(11, 0, 0, 0);
+
+  if (day === 6 && kickoffLocal.getTime() < lockLocal.getTime()) {
+    return kickoffUtc;
+  }
 
   if (lockLocal.getTime() > kickoffLocal.getTime()) {
     lockLocal.setDate(lockLocal.getDate() - 7);
