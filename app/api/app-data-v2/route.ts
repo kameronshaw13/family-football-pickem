@@ -104,6 +104,9 @@ export async function GET(req: NextRequest) {
       !dismissedSideBetIds.has(bet.id) &&
       (bet.creator_id === auth.profile.id || bet.accepted_by === auth.profile.id || bet.targets?.some((target: any) => target.recipient_id === auth.profile.id))
     );
+    const sideBetLedger = allSideBets.filter((bet: any) =>
+      Number(bet.week) === week && (bet.status === "accepted" || bet.status === "settled")
+    );
     const rawSideBetSlotCounts = sideBetSlotCounts(allSideBets.filter((bet: any) => Number(bet.week) === week), profiles.map((profile) => profile.id));
     const sideBetSlotCountsByPlayer = Number.isFinite(sideBetSettings.maxPerWeek)
       ? rawSideBetSlotCounts
@@ -153,6 +156,7 @@ export async function GET(req: NextRequest) {
       },
       bankEntries: bankResult.data || [],
       sideBets,
+      sideBetLedger,
       sideBetSlotCounts: sideBetSlotCountsByPlayer,
       sideBetBankTotals,
       week,

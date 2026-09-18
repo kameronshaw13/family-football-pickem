@@ -75,6 +75,7 @@ type AppData = {
   bankSettings: BankSettings;
   bankEntries: BankEntry[];
   sideBets: SideBet[];
+  sideBetLedger: SideBet[];
   sideBetSlotCounts: Record<string, number>;
   sideBetBankTotals: Record<string, number>;
   week: number;
@@ -95,7 +96,7 @@ type SideBetSnapshot = {
   sideBetSlotCounts?: Record<string, number>;
 };
 
-const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
+const APP_DATA_CACHE_PREFIX = "pickem_app_data_v2";
 const APP_DATA_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
 const EMPTY_NOTIFICATION_COUNTS: NotificationCounts = { side_bets_received: 0, side_bets_sent: 0, my_card: 0, league_cards: 0, side_bet_ledger: 0, total: 0 };
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -1139,7 +1140,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     if (!token) return;
     sideBetLedgerRefreshInFlightRef.current = true;
     try {
-      const response = await fetch("/api/side-bet-ledger", {
+      const current = dataRef.current;
+      if (!current) return;
+      const response = await fetch(`/api/side-bet-ledger?week=${current.week}`, {
         headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
         cache: "no-store"
       });
@@ -1273,10 +1276,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   useEffect(() => { dataRef.current = data; }, [data]);
   useEffect(() => {
     if (!data?.currentUser.id) return;
-    setSideBetLedger([]);
-    setSideBetLedgerReady(false);
-    void refreshSideBetLedger();
-  }, [data?.activeGroup?.id, data?.currentUser.id, refreshSideBetLedger]);
+    const nextLedger = Array.isArray(data.sideBetLedger) ? data.sideBetLedger : [];
+    setSideBetLedger((current) => sideBetLedgerSignature(current) === sideBetLedgerSignature(nextLedger) ? current : nextLedger);
+    setSideBetLedgerReady(true);
+  }, [data?.activeGroup?.id, data?.currentUser.id, data?.sideBetLedger, data?.week]);
   useEffect(() => {
     if (!data || testWeekActive) return;
     const offersVisible = tab === "picks" && picksView === "sideBets";
