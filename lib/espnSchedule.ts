@@ -171,9 +171,13 @@ function situationYardsToGoal(situation: any, possessionSide: "home" | "away" | 
 }
 
 function compactDate(date: Date) {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
+  // ESPN football scoreboards group games by the U.S. football calendar date,
+  // not the UTC date. A Thursday 8:15 PM ET NFL kickoff is already Friday in
+  // UTC, so using UTC here can make the entire event disappear from the feed.
+  const eastern = toZonedTime(date, "America/New_York");
+  const year = eastern.getFullYear();
+  const month = String(eastern.getMonth() + 1).padStart(2, "0");
+  const day = String(eastern.getDate()).padStart(2, "0");
   return `${year}${month}${day}`;
 }
 

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { fetchEspnSchedule, findEspnScheduleMatch } from "@/lib/espnSchedule";
 import { finalizeGame } from "@/lib/finalizeGame";
-import { lockDuePicks } from "@/lib/lockDuePicks";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import type { Game, League } from "@/lib/types";
 
@@ -52,8 +51,6 @@ export async function POST(req: NextRequest) {
         { headers: NO_STORE_HEADERS }
       );
     }
-
-    await lockDuePicks(supabase);
 
     const schedules = new Map<string, Awaited<ReturnType<typeof fetchEspnSchedule>>>();
     await Promise.all((["CFB", "NFL"] as const).map(async (league) => {
