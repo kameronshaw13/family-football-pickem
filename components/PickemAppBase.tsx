@@ -1314,18 +1314,42 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   useEffect(() => {
     if (week == null || !hasActiveGames) return;
     let cancelled = false;
+    let scoreRefreshInFlight = false;
+    let finalizationInFlight = false;
 
-    async function refreshLiveScores() {
-      if (document.visibilityState === "hidden") return;
+    async function finalizeCompletedGames() {
+      if (finalizationInFlight) return;
       const token = window.localStorage.getItem("pickem_session_token");
       if (!token) return;
+      finalizationInFlight = true;
       try {
-        const response = await fetch(`/api/live-scores?week=${week}`, {
-          headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
+        const response = await fetch("/api/live-finalize?week=" + week, {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token, "x-pickem-group": appSlug },
           cache: "no-store"
         });
         if (!response.ok) return;
-        const payload = await response.json() as { games?: LiveScoreUpdate[]; resultsUpdated?: boolean };
+        const payload = await response.json() as { resultsUpdated?: boolean };
+        if (payload.resultsUpdated) void load(week);
+      } catch {
+        // The daily results cron remains the fallback if a finalization request fails.
+      } finally {
+        finalizationInFlight = false;
+      }
+    }
+
+    async function refreshLiveScores() {
+      if (document.visibilityState === "hidden" || scoreRefreshInFlight) return;
+      const token = window.localStorage.getItem("pickem_session_token");
+      if (!token) return;
+      scoreRefreshInFlight = true;
+      try {
+        const response = await fetch("/api/live-scores?week=" + week, {
+          headers: { Authorization: "Bearer " + token, "x-pickem-group": appSlug },
+          cache: "no-store"
+        });
+        if (!response.ok) return;
+        const payload = await response.json() as { games?: LiveScoreUpdate[]; needsFinalization?: boolean };
         if (cancelled || !payload.games?.length) return;
         const scoresById = new Map(payload.games.map((game) => [game.id, game]));
         const current = dataRef.current;
@@ -1339,14 +1363,16 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         dataRef.current = nextData;
         setData(nextData);
         if (alert) setToast(alert);
-        if (payload.resultsUpdated) void load(week);
+        if (payload.needsFinalization) void finalizeCompletedGames();
       } catch {
         // Keep the last known score visible through brief network interruptions.
+      } finally {
+        scoreRefreshInFlight = false;
       }
     }
 
     void refreshLiveScores();
-    const timer = window.setInterval(refreshLiveScores, 20_000);
+    const timer = window.setInterval(refreshLiveScores, 5_000);
     const refreshOnResume = () => void refreshLiveScores();
     window.addEventListener("focus", refreshOnResume);
     window.addEventListener("online", refreshOnResume);

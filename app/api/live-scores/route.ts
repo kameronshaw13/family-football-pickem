@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
-import { fetchEspnSchedule, fetchEspnWinProbability, findEspnScheduleMatch } from "@/lib/espnSchedule";
-import { finalizeGame } from "@/lib/finalizeGame";
-import { lockDuePicks } from "@/lib/lockDuePicks";
+import { fetchEspnSchedule, findEspnScheduleMatch } from "@/lib/espnSchedule";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
-import type { Game } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -32,7 +29,7 @@ export async function GET(req: NextRequest) {
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from("games")
-      .select("*")
+      .select("id,week,league,commence_time,home_team,away_team,final_home_score,final_away_score")
       .eq("week", week);
 
     if (error) throw error;
@@ -43,12 +40,15 @@ export async function GET(req: NextRequest) {
       return game.final_home_score == null &&
         game.final_away_score == null &&
         start <= now &&
-        start >= now - 12 * 60 * 60 * 1000 &&
+        start >= now - 18 * 60 * 60 * 1000 &&
         (game.league === "CFB" || game.league === "NFL");
     });
 
     if (!candidates.length) {
-      return NextResponse.json({ ok: true, games: [] }, { headers: NO_STORE_HEADERS });
+      return NextResponse.json(
+        { ok: true, games: [], needsFinalization: false },
+        { headers: NO_STORE_HEADERS }
+      );
     }
 
     const schedules = new Map<string, Awaited<ReturnType<typeof fetchEspnSchedule>>>();
@@ -56,40 +56,27 @@ export async function GET(req: NextRequest) {
       const leagueGames = candidates.filter((game) => game.league === league);
       if (!leagueGames.length) return;
       try {
-        schedules.set(league, await fetchEspnSchedule(
+        schedules.set(
           league,
-          leagueGames.map((game) => game.commence_time),
-          10
-        ));
+          await fetchEspnSchedule(
+            league,
+            leagueGames.map((game) => game.commence_time),
+            true,
+            0
+          )
+        );
       } catch {
         schedules.set(league, []);
       }
     }));
 
     const games = [];
-    let resultsUpdated = false;
-    await lockDuePicks(supabase);
+    let needsFinalization = false;
 
-    const matchedCandidates = candidates.flatMap((game) => {
+    for (const game of candidates) {
       const match = findEspnScheduleMatch(game, schedules.get(game.league) || []);
-      return match ? [{ game, match }] : [];
-    });
-    const candidateIds = matchedCandidates.map(({ game }) => game.id);
-    const { data: dogPicks } = candidateIds.length
-      ? await supabase.from("picks").select("game_id").eq("week", week).eq("pick_type", "underdog").in("game_id", candidateIds)
-      : { data: [] };
-    const dogGameIds = new Set((dogPicks || []).map((pick) => pick.game_id));
-    const winProbabilities = new Map<string, Awaited<ReturnType<typeof fetchEspnWinProbability>>>();
-    await Promise.all(matchedCandidates.filter(({ game }) => dogGameIds.has(game.id)).map(async ({ game, match }) => {
-      try {
-        winProbabilities.set(game.id, await fetchEspnWinProbability(game.league, match.game.id, 10));
-      } catch {
-        winProbabilities.set(game.id, null);
-      }
-    }));
+      if (!match || match.game.homeScore == null || match.game.awayScore == null) continue;
 
-    for (const { game, match } of matchedCandidates) {
-      if (match.game.homeScore == null || match.game.awayScore == null) continue;
       const homeScore = match.swapped ? match.game.awayScore : match.game.homeScore;
       const awayScore = match.swapped ? match.game.homeScore : match.game.awayScore;
       const possessionTeam = match.game.possessionSide === "home"
@@ -99,13 +86,9 @@ export async function GET(req: NextRequest) {
           : null;
       const homeTimeouts = match.swapped ? match.game.awayTimeouts : match.game.homeTimeouts;
       const awayTimeouts = match.swapped ? match.game.homeTimeouts : match.game.awayTimeouts;
-      const winProbability = winProbabilities.get(game.id);
-      const homeWinProbability = winProbability ? (match.swapped ? winProbability.away : winProbability.home) : null;
-      const awayWinProbability = winProbability ? (match.swapped ? winProbability.home : winProbability.away) : null;
-      if (match.game.completed) {
-        await finalizeGame(supabase, game as Game, homeScore, awayScore);
-        resultsUpdated = true;
-      }
+
+      if (match.game.completed) needsFinalization = true;
+
       games.push({
         id: game.id,
         final_home_score: match.game.completed ? homeScore : null,
@@ -122,13 +105,14 @@ export async function GET(req: NextRequest) {
         live_distance: match.game.distance,
         live_yards_to_goal: match.game.yardsToGoal,
         live_home_timeouts: homeTimeouts,
-        live_away_timeouts: awayTimeouts,
-        live_home_win_probability: homeWinProbability,
-        live_away_win_probability: awayWinProbability
+        live_away_timeouts: awayTimeouts
       });
     }
 
-    return NextResponse.json({ ok: true, games, resultsUpdated }, { headers: NO_STORE_HEADERS });
+    return NextResponse.json(
+      { ok: true, games, needsFinalization },
+      { headers: NO_STORE_HEADERS }
+    );
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Could not load live scores." },

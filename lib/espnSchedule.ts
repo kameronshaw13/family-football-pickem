@@ -202,19 +202,23 @@ export async function fetchEspnWinProbability(league: "NFL" | "CFB", eventId: st
   return null;
 }
 
-export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string[], freshness: boolean | number = false) {
+export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string[], freshness: boolean | number = false, paddingDays = 3) {
   const parsedDates = dateHints.map((date) => new Date(date)).filter((date) => !Number.isNaN(date.getTime()));
   if (!parsedDates.length) return [];
 
   const min = new Date(Math.min(...parsedDates.map((date) => date.getTime())));
   const max = new Date(Math.max(...parsedDates.map((date) => date.getTime())));
-  min.setUTCDate(min.getUTCDate() - 3);
-  max.setUTCDate(max.getUTCDate() + 3);
+  if (paddingDays > 0) {
+    min.setUTCDate(min.getUTCDate() - paddingDays);
+    max.setUTCDate(max.getUTCDate() + paddingDays);
+  }
 
   const sportPath = league === "NFL" ? "nfl" : "college-football";
   const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/scoreboard`);
   url.searchParams.set("limit", "1000");
-  url.searchParams.set("dates", `${compactDate(min)}-${compactDate(max)}`);
+  const minDate = compactDate(min);
+  const maxDate = compactDate(max);
+  url.searchParams.set("dates", minDate === maxDate ? minDate : `${minDate}-${maxDate}`);
 
   const response = await fetch(url.toString(), freshness === true
     ? { cache: "no-store" }
