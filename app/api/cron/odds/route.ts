@@ -163,10 +163,16 @@ async function refreshOdds() {
     const supabase = getSupabaseAdmin();
     const startedAt = Date.now();
     const now = new Date();
-    const { data: knownGames, error: knownGamesError } = await supabase.from("games").select("id,current_spread_team,current_spread");
+    const { data: knownGames, error: knownGamesError } = await supabase.from("games").select("id,espn_event_id,current_spread_team,current_spread");
     if (knownGamesError) return NextResponse.json({ ok: false, error: "Could not read existing games.", details: knownGamesError.message }, { status: 500 });
     const knownGameIds = new Set((knownGames || []).map((game) => game.id));
     const previousGames = new Map((knownGames || []).map((game) => [game.id, game]));
+    const canonicalGameIdByEspnId = new Map<string, string>();
+    for (const game of knownGames || []) {
+      if (game.espn_event_id && !canonicalGameIdByEspnId.has(game.espn_event_id)) {
+        canonicalGameIdByEspnId.set(game.espn_event_id, game.id);
+      }
+    }
 
     const preparedSports = await Promise.all(SPORTS.map(async (sport): Promise<PreparedSport> => {
       const oddsUrl = new URL(`https://api.the-odds-api.com/v4/sports/${sport.key}/odds`);
@@ -223,11 +229,16 @@ async function refreshOdds() {
         const week = getFootballWeek(official.commenceTime);
         const lockTime = getGameLockTime(official.commenceTime).toISOString();
         const spreadFreezeTime = getSpreadFreezeTime(official.commenceTime).toISOString();
-        const isKnownGame = knownGameIds.has(event.id);
+        const espnEventId = scheduleMatch.game.id;
+        const canonicalGameId = canonicalGameIdByEspnId.get(espnEventId) || event.id;
+        if (espnEventId && !canonicalGameIdByEspnId.has(espnEventId)) {
+          canonicalGameIdByEspnId.set(espnEventId, canonicalGameId);
+        }
+        const isKnownGame = knownGameIds.has(canonicalGameId);
         const updateSpread = !isKnownGame || canRefreshSpread(official.commenceTime, now);
         const gameBase = {
-          id: event.id,
-          espn_event_id: scheduleMatch.game.id,
+          id: canonicalGameId,
+          espn_event_id: espnEventId,
           week,
           league: sport.league,
           commence_time: official.commenceTime,
@@ -249,7 +260,7 @@ async function refreshOdds() {
         if (updateSpread) {
           spreadGames.push(game);
           snapshots.push({
-            game_id: event.id,
+            game_id: canonicalGameId,
             league: sport.league,
             spread_team: spread.team,
             spread: spread.spread,
@@ -276,9 +287,10 @@ async function refreshOdds() {
       };
     }));
 
-    // The Odds API may expose an FBS-vs-FCS event under both college-football
-    // sport keys during migration periods. Deduplicate before writing so one
-    // event can never cause a duplicate ON CONFLICT update in Supabase.
+    // The Odds API can change an event ID or expose the same matchup under multiple
+    // college-football sport keys. ESPN event IDs are stable for the real game,
+    // so canonicalize to the existing ESPN-backed game before writing. This keeps
+    // one sportsbook event-ID change from creating a second pickable game.
     const spreadGames = uniqueByKey(preparedSports.flatMap((result) => result.spreadGames), (game) => game.id);
     const frozenGames = uniqueByKey(preparedSports.flatMap((result) => result.frozenGames), (game) => game.id);
     const gameWrites = [
