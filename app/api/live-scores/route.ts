@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { fetchEspnSchedule, findEspnScheduleMatch } from "@/lib/espnSchedule";
+import { lockDuePicks } from "@/lib/lockDuePicks";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +29,15 @@ export async function GET(req: NextRequest) {
 
   try {
     const supabase = getSupabaseAdmin();
+
+    // Keep the score response fast, but still enforce kickoff locks while users
+    // have the app open. Vercel continues this work after the response is sent.
+    waitUntil(
+      lockDuePicks(supabase).catch((error) => {
+        console.error("Background pick lock failed:", error);
+      })
+    );
+
     const { data, error } = await supabase
       .from("games")
       .select("id,week,league,commence_time,home_team,away_team,final_home_score,final_away_score")
