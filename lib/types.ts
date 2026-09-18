@@ -5,6 +5,7 @@ export type PickType = "regular" | "underdog";
 
 export type Game = {
   id: string;
+  espn_event_id?: string | null;
   week: number;
   league: League;
   commence_time: string;

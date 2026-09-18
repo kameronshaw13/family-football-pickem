@@ -1,9 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game } from "@/lib/types";
 import { settleWeekIfReady } from "@/lib/autoSettlement";
-import { gradeAgainstSpread, gradeUnderdogOutright } from "@/lib/spreads";
+import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { createNotificationSafely } from "@/lib/notifications";
 import { notificationTeamName } from "@/lib/notificationTeamName";
+import { getGameLockTime } from "@/lib/lockRules";
+import { getUnderdogBonusForRules, isGameAllowedByRules } from "@/lib/groupContext";
 
 async function groupInfo(supabase: SupabaseClient, groupId: string, cache: Map<string, { slug: string; members: Array<{ id: string; display_name: string }> }>) {
   const cached = cache.get(groupId);
@@ -23,8 +25,48 @@ async function groupInfo(supabase: SupabaseClient, groupId: string, cache: Map<s
   return info;
 }
 
+async function lockDraftPicksForGame(supabase: SupabaseClient, game: Game, updatedAt: string) {
+  const { data: drafts, error: draftError } = await supabase
+    .from("picks")
+    .select("id,selected_team,pick_type,group_id,season_year")
+    .eq("game_id", game.id)
+    .eq("status", "draft");
+  if (draftError) throw new Error(draftError.message);
+  if (!drafts?.length) return;
+
+  const groupIds = Array.from(new Set(drafts.map((pick: any) => pick.group_id).filter(Boolean)));
+  const { data: seasons, error: seasonError } = groupIds.length
+    ? await supabase.from("group_seasons").select("group_id,season_year,rules").in("group_id", groupIds)
+    : { data: [], error: null };
+  if (seasonError) throw new Error(seasonError.message);
+  const rulesBySeason = new Map((seasons || []).map((season: any) => [`${season.group_id}:${season.season_year}`, season.rules || {}]));
+  const lockedAt = getGameLockTime(game.commence_time).toISOString();
+
+  for (const pick of drafts) {
+    const rules = rulesBySeason.get(`${pick.group_id}:${pick.season_year}`) || {};
+    if (!isGameAllowedByRules(rules, game)) {
+      const { error } = await supabase.from("picks").delete().eq("id", pick.id).eq("status", "draft");
+      if (error) throw new Error(error.message);
+      continue;
+    }
+    const lockedSpread = normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread);
+    if (lockedSpread == null) continue;
+    const dogValue = pick.pick_type === "underdog" ? getUnderdogBonusForRules(rules, lockedSpread) : null;
+    const { error } = await supabase.from("picks").update({
+      status: "locked",
+      locked_at: lockedAt,
+      locked_spread: lockedSpread,
+      locked_spread_team: pick.selected_team,
+      underdog_win_value: dogValue,
+      updated_at: updatedAt
+    }).eq("id", pick.id).eq("status", "draft");
+    if (error) throw new Error(error.message);
+  }
+}
+
 export async function finalizeGame(supabase: SupabaseClient, game: Game, homeScore: number, awayScore: number, settleWeek = true) {
   const updatedAt = new Date().toISOString();
+  await lockDraftPicksForGame(supabase, game, updatedAt);
   const gameResult = await supabase.from("games").update({ final_home_score: homeScore, final_away_score: awayScore, updated_at: updatedAt }).eq("id", game.id);
   if (gameResult.error) throw new Error(gameResult.error.message);
 

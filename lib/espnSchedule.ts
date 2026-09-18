@@ -42,6 +42,7 @@ export type EspnWinProbability = {
 };
 
 type Matchup = {
+  espn_event_id?: string | null;
   commence_time: string;
   home_team: string;
   away_team: string;
@@ -288,8 +289,31 @@ export function resolveEspnCommenceTime(match: EspnScheduleMatch, fallbackIso: s
 
 export function findEspnScheduleMatch(matchup: Matchup, schedule: EspnScheduleGame[], options: { allowOneSided?: boolean } = {}): EspnScheduleMatch | null {
   const allowOneSided = options.allowOneSided !== false;
-  let best: { score: number; distance: number; match: EspnScheduleMatch } | null = null;
   const sourceTime = new Date(matchup.commence_time).getTime();
+
+  // Games imported from the odds job already have a verified ESPN event id.
+  // Prefer that stable identity over dates/team-name heuristics whenever it is available.
+  if (matchup.espn_event_id) {
+    const exact = schedule.find((game) => game.id === matchup.espn_event_id);
+    if (exact) {
+      const distance = Math.abs(new Date(exact.commenceTime).getTime() - sourceTime);
+      const directScore = alignmentScore(
+        identityScore(matchup.home_team, exact.homeTeam),
+        identityScore(matchup.away_team, exact.awayTeam),
+        distance,
+        true
+      );
+      const swappedScore = alignmentScore(
+        identityScore(matchup.home_team, exact.awayTeam),
+        identityScore(matchup.away_team, exact.homeTeam),
+        distance,
+        true
+      );
+      return { game: exact, swapped: swappedScore > directScore };
+    }
+  }
+
+  let best: { score: number; distance: number; match: EspnScheduleMatch } | null = null;
 
   for (const game of schedule) {
     const distance = Math.abs(new Date(game.commenceTime).getTime() - sourceTime);

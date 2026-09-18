@@ -310,6 +310,9 @@ export default function WeekScopeAndManualLockEnhancements({ appSlug }: { appSlu
                 const payload = await response.json();
                 if (!response.ok) throw new Error(payload.error || "Pick could not be locked.");
                 manuallyLocked.add(selectedTeam);
+                window.dispatchEvent(new CustomEvent("pickem:pick-locked", {
+                  detail: { appSlug, week, pick: payload.pick || null }
+                }));
                 closeReview();
                 apply();
                 showMessage(`${reviewTeamName(card, selectedTeam)} locked at the current spread.`);

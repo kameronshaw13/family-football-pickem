@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { waitUntil } from "@vercel/functions";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { fetchEspnSchedule, findEspnScheduleMatch } from "@/lib/espnSchedule";
-import { lockDuePicks } from "@/lib/lockDuePicks";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
@@ -29,33 +27,25 @@ export async function GET(req: NextRequest) {
 
   try {
     const supabase = getSupabaseAdmin();
+    const now = Date.now();
+    const nowIso = new Date(now).toISOString();
+    const lookbackIso = new Date(now - 18 * 60 * 60 * 1000).toISOString();
 
-    // Keep the score response fast, but still enforce kickoff locks while users
-    // have the app open. Vercel continues this work after the response is sent.
-    waitUntil(
-      lockDuePicks(supabase).catch((error) => {
-        console.error("Background pick lock failed:", error);
-      })
-    );
-
-    const { data, error } = await supabase
+    // This endpoint is deliberately read-only. Score polling must never wait on
+    // pick locking, grading, notifications, settlement, or unrelated database writes.
+    const { data: candidates, error } = await supabase
       .from("games")
-      .select("id,week,league,commence_time,home_team,away_team,final_home_score,final_away_score")
-      .eq("week", week);
+      .select("id,espn_event_id,week,league,commence_time,home_team,away_team,final_home_score,final_away_score")
+      .eq("week", week)
+      .is("final_home_score", null)
+      .is("final_away_score", null)
+      .lte("commence_time", nowIso)
+      .gte("commence_time", lookbackIso)
+      .in("league", ["CFB", "NFL"]);
 
     if (error) throw error;
 
-    const now = Date.now();
-    const candidates = (data || []).filter((game) => {
-      const start = new Date(game.commence_time).getTime();
-      return game.final_home_score == null &&
-        game.final_away_score == null &&
-        start <= now &&
-        start >= now - 18 * 60 * 60 * 1000 &&
-        (game.league === "CFB" || game.league === "NFL");
-    });
-
-    if (!candidates.length) {
+    if (!(candidates || []).length) {
       return NextResponse.json(
         { ok: true, games: [], needsFinalization: false },
         { headers: NO_STORE_HEADERS }
@@ -64,7 +54,7 @@ export async function GET(req: NextRequest) {
 
     const schedules = new Map<string, Awaited<ReturnType<typeof fetchEspnSchedule>>>();
     await Promise.all((["CFB", "NFL"] as const).map(async (league) => {
-      const leagueGames = candidates.filter((game) => game.league === league);
+      const leagueGames = (candidates || []).filter((game) => game.league === league);
       if (!leagueGames.length) return;
       try {
         schedules.set(
@@ -84,7 +74,7 @@ export async function GET(req: NextRequest) {
     const games = [];
     let needsFinalization = false;
 
-    for (const game of candidates) {
+    for (const game of candidates || []) {
       const match = findEspnScheduleMatch(game, schedules.get(game.league) || []);
       if (!match || match.game.homeScore == null || match.game.awayScore == null) continue;
 

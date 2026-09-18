@@ -227,6 +227,7 @@ async function refreshOdds() {
         const updateSpread = !isKnownGame || canRefreshSpread(official.commenceTime, now);
         const gameBase = {
           id: event.id,
+          espn_event_id: scheduleMatch.game.id,
           week,
           league: sport.league,
           commence_time: official.commenceTime,

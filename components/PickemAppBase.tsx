@@ -1024,8 +1024,46 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       game.final_away_score == null &&
       !game.live_completed &&
       start <= clock &&
-      start >= clock - 12 * 60 * 60 * 1000;
+      start >= clock - 18 * 60 * 60 * 1000;
   }));
+
+  useEffect(() => {
+    const handlePickLocked = (event: Event) => {
+      const detail = (event as CustomEvent<{ appSlug?: AppSlug; week?: number; pick?: Partial<Pick> | null }>).detail;
+      if (!detail || detail.appSlug !== appSlug || !detail.pick?.selected_team) return;
+
+      setData((current) => {
+        if (!current || (detail.week != null && Number(detail.week) !== Number(current.week))) return current;
+        let changed = false;
+        const nextPicks = current.picks.map((pick) => {
+          if (pick.user_id !== current.currentUser.id ||
+              Number(pick.week) !== Number(current.week) ||
+              pick.selected_team !== detail.pick?.selected_team) return pick;
+          changed = true;
+          return {
+            ...pick,
+            status: "locked" as const,
+            locked_spread: detail.pick?.locked_spread ?? pick.locked_spread,
+            locked_at: detail.pick?.locked_at ?? pick.locked_at
+          };
+        });
+        if (!changed) return current;
+        const nextData = { ...current, picks: nextPicks };
+        dataRef.current = nextData;
+        writeCachedAppData(appSlug, nextData.week, nextData);
+        return nextData;
+      });
+
+      setStagedPicks((current) => current?.map((pick) =>
+        pick.selected_team === detail.pick?.selected_team
+          ? { ...pick, status: "locked" as const, locked_spread: detail.pick?.locked_spread ?? pick.locked_spread, locked_at: detail.pick?.locked_at ?? pick.locked_at }
+          : pick
+      ) ?? current);
+    };
+
+    window.addEventListener("pickem:pick-locked", handlePickLocked);
+    return () => window.removeEventListener("pickem:pick-locked", handlePickLocked);
+  }, [appSlug]);
 
   const updateNotificationCounts = useCallback((next: Record<string, number>) => {
     setNotificationCounts({
