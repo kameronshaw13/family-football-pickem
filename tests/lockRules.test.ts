@@ -16,6 +16,12 @@ test("Saturday uses 10 AM freeze and 11 AM lock", () => {
   assert.equal(getGameLockTime(kickoff, timezone).toISOString(), "2026-09-05T16:00:00.000Z");
 });
 
+test("Saturday games before 11 AM lock at kickoff instead of the prior Saturday", () => {
+  const kickoff = "2026-09-19T15:30:00.000Z"; // 10:30 AM CT
+  assert.equal(getSpreadFreezeTime(kickoff, timezone).toISOString(), "2026-09-19T15:00:00.000Z");
+  assert.equal(getGameLockTime(kickoff, timezone).toISOString(), kickoff);
+});
+
 test("Sunday and Monday use preceding Saturday deadline", () => {
   for (const kickoff of ["2026-09-06T17:00:00.000Z", "2026-09-08T00:15:00.000Z"]) {
     assert.equal(getSpreadFreezeTime(kickoff, timezone).toISOString(), "2026-09-05T15:00:00.000Z");
