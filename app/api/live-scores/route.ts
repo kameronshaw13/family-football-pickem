@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
-import { fetchEspnSchedule, findEspnScheduleMatch } from "@/lib/espnSchedule";
+import { fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
     let needsFinalization = false;
 
     for (const game of candidates || []) {
-      const match = findEspnScheduleMatch(game, schedules.get(game.league) || []);
+      const match = await resolveEspnScheduleMatch(game, schedules.get(game.league) || [], game.league as "CFB" | "NFL", { freshness: true });
       if (!match || match.game.homeScore == null || match.game.awayScore == null) continue;
 
       const homeScore = match.swapped ? match.game.awayScore : match.game.homeScore;
