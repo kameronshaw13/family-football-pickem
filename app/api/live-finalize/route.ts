@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
-import { fetchEspnSchedule, findEspnScheduleMatch } from "@/lib/espnSchedule";
+import { fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
 import { finalizeGame } from "@/lib/finalizeGame";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import type { Game, League } from "@/lib/types";
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       const leagueGames = candidates.filter((game) => game.league === league);
       const schedule = schedules.get(league) || [];
       for (const game of leagueGames) {
-        const match = findEspnScheduleMatch(game, schedule);
+        const match = await resolveEspnScheduleMatch(game, schedule, league, { freshness: true });
         if (!match?.game.completed || match.game.homeScore == null || match.game.awayScore == null) continue;
         const homeScore = match.swapped ? match.game.awayScore : match.game.homeScore;
         const awayScore = match.swapped ? match.game.homeScore : match.game.awayScore;
