@@ -209,6 +209,62 @@ export async function fetchEspnWinProbability(league: "NFL" | "CFB", eventId: st
   return null;
 }
 
+export async function fetchEspnEvent(
+  league: "NFL" | "CFB",
+  eventId: string,
+  freshness: boolean | number = true
+): Promise<EspnScheduleGame | null> {
+  const sportPath = league === "NFL" ? "nfl" : "college-football";
+  const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/summary`);
+  url.searchParams.set("event", eventId);
+  const response = await fetch(url.toString(), freshness === true
+    ? { cache: "no-store" }
+    : { next: { revalidate: typeof freshness === "number" ? freshness : 10 } });
+  if (!response.ok) return null;
+
+  const payload = await response.json();
+  const competition = payload?.header?.competitions?.[0];
+  const home = competition?.competitors?.find((competitor: any) => competitor.homeAway === "home");
+  const away = competition?.competitors?.find((competitor: any) => competitor.homeAway === "away");
+  const commenceTime = competition?.date || payload?.header?.date;
+  if (!competition || !home || !away || !commenceTime) return null;
+
+  const possessionId = String(competition?.situation?.possession || "");
+  const possessionSide = possessionId && possessionId === String(home?.team?.id)
+    ? "home"
+    : possessionId && possessionId === String(away?.team?.id)
+      ? "away"
+      : null;
+  const situation = competition?.situation;
+  const situationText = situation?.downDistanceText || situation?.shortDownDistanceText || null;
+  const yardsToGoal = situationYardsToGoal(situation, possessionSide, home, away);
+  const parsedDown = situationText?.match(/^(\d)(?:st|nd|rd|th)\b/i)?.[1];
+  const parsedDistance = situationText?.match(/&\s*(\d+)\b/i)?.[1];
+  const down = finiteSituationNumber(situation?.down ?? parsedDown);
+  const distance = finiteSituationNumber(situation?.distance ?? parsedDistance) ?? (/&\s*goal\b/i.test(situationText || "") ? yardsToGoal : null);
+
+  return {
+    id: String(payload?.header?.id || eventId),
+    commenceTime,
+    timeValid: competition?.timeValid !== false,
+    completed: Boolean(competition?.status?.type?.completed),
+    homeScore: scoreFromCompetitor(home),
+    awayScore: scoreFromCompetitor(away),
+    statusDetail: competition?.status?.type?.shortDetail || competition?.status?.type?.detail || null,
+    statusState: competition?.status?.type?.state || null,
+    possessionSide,
+    situationText,
+    redZone: Boolean(situation?.isRedZone),
+    down,
+    distance,
+    yardsToGoal,
+    homeTimeouts: finiteSituationNumber(situation?.homeTimeouts),
+    awayTimeouts: finiteSituationNumber(situation?.awayTimeouts),
+    homeTeam: teamFromCompetitor(home),
+    awayTeam: teamFromCompetitor(away)
+  };
+}
+
 export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string[], freshness: boolean | number = false, paddingDays = 3) {
   const parsedDates = dateHints.map((date) => new Date(date)).filter((date) => !Number.isNaN(date.getTime()));
   if (!parsedDates.length) return [];
@@ -349,4 +405,20 @@ export function findEspnScheduleMatch(matchup: Matchup, schedule: EspnScheduleGa
   }
 
   return best?.match || null;
+}
+
+export async function resolveEspnScheduleMatch(
+  matchup: Matchup,
+  schedule: EspnScheduleGame[],
+  league: "NFL" | "CFB",
+  options: { allowOneSided?: boolean; freshness?: boolean | number } = {}
+): Promise<EspnScheduleMatch | null> {
+  const match = findEspnScheduleMatch(matchup, schedule, options);
+  if (match || !matchup.espn_event_id) return match;
+
+  // The date scoreboard occasionally omits individual games. When we already
+  // know ESPN's event id, query that exact event instead of guessing from a
+  // different matchup or leaving a valid game stuck on "Score updating."
+  const exact = await fetchEspnEvent(league, matchup.espn_event_id, options.freshness ?? true);
+  return exact ? findEspnScheduleMatch(matchup, [exact], options) : null;
 }
