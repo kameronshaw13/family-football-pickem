@@ -60,7 +60,9 @@ function normalize(value: string | null | undefined) {
     .replace(/&/g, "and")
     .replace(/hawai[\s'’`-]*i/g, "hawaii")
     .replace(/\bst\.?\b/g, "state")
-    .replace(/\bmississippi\b/g, "miss")
+    .replace(/\bmiss(?:issippi)?\s+state\b/g, "mississippi state")
+    .replace(/\bmiss\s+valley\s+state\b/g, "mississippi valley state")
+    .replace(/\bsouthern mississippi\b/g, "southern miss")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
@@ -221,6 +223,10 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
   const sportPath = league === "NFL" ? "nfl" : "college-football";
   const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/scoreboard`);
   url.searchParams.set("limit", "1000");
+  // ESPN's unfiltered college-football scoreboard can default to a ranked-game
+  // subset. Request the FBS group so unranked FBS matchups remain available for
+  // exact event-id score lookups.
+  if (league === "CFB") url.searchParams.set("groups", "80");
   const minDate = compactDate(min);
   const maxDate = compactDate(max);
   url.searchParams.set("dates", minDate === maxDate ? minDate : `${minDate}-${maxDate}`);
@@ -311,6 +317,12 @@ export function findEspnScheduleMatch(matchup: Matchup, schedule: EspnScheduleGa
       );
       return { game: exact, swapped: swappedScore > directScore };
     }
+
+    // A stored ESPN event id is the stable identity for this game. If that
+    // event is temporarily absent from the provider response, fail closed and
+    // wait for the next poll instead of attaching a different game's score via
+    // a fuzzy team-name fallback.
+    return null;
   }
 
   let best: { score: number; distance: number; match: EspnScheduleMatch } | null = null;
