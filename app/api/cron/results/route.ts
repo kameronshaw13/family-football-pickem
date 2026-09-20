@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { settleWeekIfReady } from "@/lib/autoSettlement";
-import { fetchEspnSchedule, findEspnScheduleMatch } from "@/lib/espnSchedule";
+import { fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
 import { finalizeGame } from "@/lib/finalizeGame";
 import { lockDuePicks } from "@/lib/lockDuePicks";
 import { settleSeasonIfReady } from "@/lib/seasonSettlement";
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
       const schedule = await fetchEspnSchedule(league, leagueGames.map((game) => game.commence_time), true);
 
       for (const game of leagueGames) {
-        const match = findEspnScheduleMatch(game, schedule);
+        const match = await resolveEspnScheduleMatch(game, schedule, league, { freshness: true });
         if (!match?.game.completed || match.game.homeScore == null || match.game.awayScore == null) continue;
         const homeScore = match.swapped ? match.game.awayScore : match.game.homeScore;
         const awayScore = match.swapped ? match.game.homeScore : match.game.awayScore;
