@@ -162,7 +162,7 @@ function abbreviatedTeamName(game: Game, team: string) {
   return teamAbbreviatedName(game.league, team);
 }
 
-function matchupTextVariants(game: Game, options: { spreadTeam?: string; spread?: number | null; suffix?: string; intermediateSuffix?: string; compactSuffix?: string } = {}) {
+function matchupTextVariants(game: Game, options: { spreadTeam?: string; spread?: number | null; marketText?: string; suffix?: string; intermediateSuffix?: string; compactSuffix?: string } = {}) {
   const awayFull = displayTeamName(game, game.away_team);
   const homeFull = displayTeamName(game, game.home_team);
   const awayCompact = abbreviatedTeamName(game, game.away_team);
@@ -183,9 +183,11 @@ function matchupTextVariants(game: Game, options: { spreadTeam?: string; spread?
     : homeCompact !== homeFull;
   const firstTeamToCompact = preferredCanCompact || !alternateCanCompact ? preferredTeamToCompact : alternateTeam;
   const spread = options.spread ?? null;
+  const marketText = options.marketText;
   const format = (away: string, home: string, suffix: string) => {
-    const awayMarket = spreadTeam === game.away_team ? ` ${spreadText(spread)}` : "";
-    const homeMarket = spreadTeam === game.home_team ? ` ${spreadText(spread)}` : "";
+    const teamMarket = marketText ?? spreadText(spread);
+    const awayMarket = spreadTeam === game.away_team ? ` ${teamMarket}` : "";
+    const homeMarket = spreadTeam === game.home_team ? ` ${teamMarket}` : "";
     return `${away}${awayMarket} at ${home}${homeMarket}${suffix}`;
   };
 
@@ -2589,11 +2591,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   const perspectiveMarket = sideBetLineText(bet, perspectiveTeam);
   const matchup = game
     ? bet.market_type === "moneyline"
-      ? matchupTextVariants(game, {
-          suffix: ` · ${displayTeamName(game, perspectiveTeam)} ${perspectiveMarket}`,
-          intermediateSuffix: ` · ${abbreviatedTeamName(game, perspectiveTeam)} ${perspectiveMarket}`,
-          compactSuffix: ` · ${abbreviatedTeamName(game, perspectiveTeam)} ${perspectiveMarket}`
-        })
+      ? matchupTextVariants(game, { spreadTeam: perspectiveTeam, marketText: perspectiveMarket })
       : matchupTextVariants(game, { spreadTeam: perspectiveTeam, spread: perspectiveSpread, suffix: sideBetOddsSuffix(bet, perspectiveTeam) })
     : { full: `${perspectiveTeam} ${perspectiveMarket}`, intermediate: undefined, compact: `${perspectiveTeam} ${perspectiveMarket}` };
   const responseSummary = sideBetResponseSummary(bet, currentUser.id, mode);
@@ -2642,11 +2640,7 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   const market = sideBetLineText(bet, displayTeam);
   const matchup = game
     ? bet.market_type === "moneyline"
-      ? matchupTextVariants(game, {
-          suffix: ` · ${displayTeamName(game, displayTeam)} ${market}`,
-          intermediateSuffix: ` · ${abbreviatedTeamName(game, displayTeam)} ${market}`,
-          compactSuffix: ` · ${abbreviatedTeamName(game, displayTeam)} ${market}`
-        })
+      ? matchupTextVariants(game, { spreadTeam: displayTeam, marketText: market })
       : matchupTextVariants(game, { spreadTeam: displayTeam, spread: displaySpread, suffix: sideBetOddsSuffix(bet, displayTeam) })
     : { full: `${displayTeam} ${market} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}`, intermediate: undefined, compact: `${displayTeam} ${market} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}` };
   const winner = bet.winner_id === creator.id ? creator : bet.winner_id === acceptor.id ? acceptor : null;
