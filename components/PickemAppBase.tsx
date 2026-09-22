@@ -13,6 +13,7 @@ import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, P
 import MenuSelect from "@/components/MenuSelect";
 import NumericText from "@/components/NumericText";
 import NotificationBadge from "@/components/NotificationBadge";
+import MatchupPreview from "@/components/MatchupPreview";
 import PushNotificationControls from "@/components/PushNotificationControls";
 import GroupMoneyControls from "@/components/GroupMoneyControls";
 import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoints";
@@ -1040,6 +1041,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [dogValueFilter, setDogValueFilter] = useState<DogValueFilter>("ALL");
   const [statusFilterTouched, setStatusFilterTouched] = useState(false);
   const [data, setData] = useState<AppData | null>(null);
+  const [matchupPreviewGame, setMatchupPreviewGame] = useState<Game | null>(null);
   const [week, setWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -1869,7 +1871,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           <div className="game-days">
             {gameGroups.map((group) => <div className={`game-day-group ${statusFilter === "FINAL" ? "past-day-group" : ""}`} key={group.key}>
               <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong></div>
-              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} statusFilter={statusFilter} leagueFilter={leagueFilter} weekIsOpen={weekIsOpen} now={clock} pointsMode={pointsMode} addPick={addPick} />)}</div>
+              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} statusFilter={statusFilter} leagueFilter={leagueFilter} weekIsOpen={weekIsOpen} now={clock} pointsMode={pointsMode} addPick={addPick} openPreview={setMatchupPreviewGame} />)}</div>
             </div>)}
           </div>
         </>}
@@ -2000,6 +2002,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         </div>
       </section>}
     </main>
+    {matchupPreviewGame && <MatchupPreview game={matchupPreviewGame} onClose={() => setMatchupPreviewGame(null)} />}
     {!previewActive && stagedPicks !== null && autosaveBlockedSignatureRef.current !== pickCardSignature(stagedPicks) && !toast && <div className="autosave-toast" role="status" aria-live="polite"><LoaderCircle size={18} /><span>Saving…</span></div>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span><NumericText text={toast.message} /></span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
   </div>;
@@ -2622,7 +2625,7 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   </div>;
 }
 
-function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, pointsMode, addPick }: { game: Game; picks: Pick[]; statusFilter: GameStatusFilter; leagueFilter: LeagueFilter; weekIsOpen: boolean; now: number; pointsMode: boolean; addPick: (game: Game, team: string, pickType: PickType) => void }) {
+function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, pointsMode, addPick, openPreview }: { game: Game; picks: Pick[]; statusFilter: GameStatusFilter; leagueFilter: LeagueFilter; weekIsOpen: boolean; now: number; pointsMode: boolean; addPick: (game: Game, team: string, pickType: PickType) => void; openPreview: (game: Game) => void }) {
   const closed = isClosed(game) || !weekIsOpen;
   const hasFinalScore = game.final_away_score != null && game.final_home_score != null;
   const hasLiveScore = game.live_state !== "pre" && game.live_away_score != null && game.live_home_score != null;
@@ -2724,6 +2727,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
     <div className="game-head compact-game-head">
       <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status"><NumericText text={livePeriodStatus(game)} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}</div>
       {statusFilter !== "OPEN" && gameIsLive && liveSituation && <div className="game-live-situation"><LiveSituationText game={game} /></div>}
+      {game.league === "CFB" && <button type="button" className="matchup-preview-trigger" onClick={() => openPreview(game)}>Preview</button>}
     </div>
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
