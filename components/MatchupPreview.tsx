@@ -403,7 +403,7 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
   return createPortal(<div className="matchup-preview-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="matchup-preview-sheet" role="dialog" aria-modal="true" aria-label={`${awayName} at ${homeName} matchup preview`} onMouseDown={(event) => event.stopPropagation()}>
       <header className="matchup-preview-header">
-        <div><span>CFB MATCHUP PREVIEW</span><strong>Week {game.week}</strong></div>
+        <div><span>MATCHUP PREVIEW</span></div>
         <button type="button" className="matchup-preview-close" onClick={onClose} aria-label="Close matchup preview"><X size={20} /></button>
       </header>
 
@@ -413,7 +413,7 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
           <strong>{awayName}</strong>
           <span>{spreadText(awaySpread)}</span>
         </div>
-        <div className="matchup-preview-at"><span>AT</span><small>{payload ? `${payload.season} · THROUGH WK ${payload.throughWeek}` : "MATCHUP"}</small></div>
+        <div className="matchup-preview-at"><span>AT</span></div>
         <div className="matchup-preview-team">
           {game.home_logo_url ? <img src={game.home_logo_url} alt="" width={52} height={52} /> : <span className="matchup-logo-fallback" />}
           <strong>{homeName}</strong>

@@ -2067,7 +2067,7 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
         const weekTotal = Number(week.weeklyAmount || 0) + week.games.reduce((sum, game) => sum + game.playerAmount, 0);
         return <details className="bank-history-week" key={week.week}>
         <summary>
-          <strong>Week <NumericText text={String(week.week)} /></strong>
+          <strong className="bank-history-week-label"><span>Week</span><NumericText text={String(week.week)} /></strong>
           <span className={weekTotal > 0 ? "money-pos" : weekTotal < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(weekTotal)} /></span>
           <ChevronDown size={16} />
         </summary>
@@ -2482,7 +2482,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         </div>
       </section>}
 
-    {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty={weekConcluded ? "No side bet history yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Opens Tue 9:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
+    {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty={weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
