@@ -10,6 +10,7 @@ const DISPLAY_OVERRIDES: Record<string, string> = {
   "boston college": "Boston College",
   "boston college eagles": "Boston College",
   "richmond spiders": "Richmond",
+  "montana grizzlies": "Montana",
   "wagner seahawks": "Wagner",
   "gardner webb runnin bulldogs": "Gardner-Webb",
   "gardner webb running bulldogs": "Gardner-Webb",
