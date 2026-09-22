@@ -5,15 +5,19 @@ import { getGroupSideBetSettings, isGameAllowedForGroup, requestedGroupFromReque
 import { createNotificationInBackground } from "@/lib/notifications";
 import { sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
+import { americanOddsText, oppositeAmericanOdds, profitForRisk, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { notificationTeamName } from "@/lib/notificationTeamName";
 
 const bodySchema = z.object({
   selections: z.array(z.object({
     gameId: z.string().min(1),
-    creatorTeam: z.string().min(1)
+    creatorTeam: z.string().min(1),
+    creatorSpread: z.number().finite().min(-100).max(100).optional()
   })).min(1).max(4),
   amount: z.number().positive(),
+  marketType: z.enum(["spread", "moneyline"]).optional(),
+  creatorOdds: z.number().int().optional(),
   recipientIds: z.array(z.string().uuid()).min(1).max(10),
   viewWeek: z.number().int().nonnegative().optional()
 });
@@ -62,6 +66,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: `Side bets are capped at $${settings.maxAmount}.` }, { status: 409 });
     }
 
+    const marketType = body.marketType || "spread";
+    const creatorOdds = body.creatorOdds ?? 100;
+    if (!validAmericanOdds(creatorOdds)) {
+      return NextResponse.json({ ok: false, error: "American odds must be -100 or lower, or +100 or higher." }, { status: 400 });
+    }
+
     const memberIds = new Set(context.members.map((member) => member.id));
     const recipientIds = Array.from(new Set(body.recipientIds)).filter((id) => id !== auth.profile.id && memberIds.has(id));
     if (!recipientIds.length) return NextResponse.json({ ok: false, error: "Choose at least one other player in this group." }, { status: 400 });
@@ -85,8 +95,9 @@ export async function POST(req: NextRequest) {
       if (!isGameAllowedForGroup(context, game)) return NextResponse.json({ ok: false, error: "One of those games is not available in this Pick'em group." }, { status: 409 });
       if (new Date(game.commence_time) <= now) return NextResponse.json({ ok: false, error: "Every side bet in the batch must be sent before kickoff." }, { status: 409 });
       if (![game.away_team, game.home_team].includes(selection.creatorTeam)) return NextResponse.json({ ok: false, error: "Choose one valid side from each game." }, { status: 400 });
-      const creatorSpread = normalizeSpreadForSelectedTeam(selection.creatorTeam, game.current_spread_team, game.current_spread);
-      if (creatorSpread == null) return NextResponse.json({ ok: false, error: "Every selected game must have a spread available." }, { status: 409 });
+      const currentCreatorSpread = normalizeSpreadForSelectedTeam(selection.creatorTeam, game.current_spread_team, game.current_spread);
+      const creatorSpread = marketType === "moneyline" ? 0 : (selection.creatorSpread ?? currentCreatorSpread);
+      if (marketType === "spread" && creatorSpread == null) return NextResponse.json({ ok: false, error: "Every selected spread bet must have a line." }, { status: 409 });
       prepared.push({
         game,
         creatorTeam: selection.creatorTeam,
@@ -126,6 +137,8 @@ export async function POST(req: NextRequest) {
       offered_team: offeredTeam,
       creator_spread: creatorSpread,
       offered_spread: -creatorSpread,
+      market_type: marketType,
+      creator_odds: creatorOdds,
       amount,
       status: "open",
       result: "pending"
@@ -155,7 +168,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-offer:${sideBet.id}`,
           title: `Side bet from ${auth.profile.display_name}`,
-          body: `$${amount} · ${notificationTeamName(selection.offeredTeam, selection.game.league)} ${notificationSpread(-selection.creatorSpread)}`,
+          body: `Risk ${profitForRisk(amount, creatorOdds)} · ${notificationTeamName(selection.offeredTeam, selection.game.league)} ${marketType === "moneyline" ? "ML" : notificationSpread(-selection.creatorSpread)} ${americanOddsText(oppositeAmericanOdds(creatorOdds))}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_received"),
           actionRequired: true
         });
