@@ -2206,6 +2206,14 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     if (view !== "new" || !selectedGame || !selectedCreatorTeam) setSlipExpanded(false);
   }, [view, selectedGame, selectedCreatorTeam]);
 
+  useEffect(() => {
+    if (!selectedGame || !selectedCreatorTeam) return;
+    const initialSpread = normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread);
+    setCustomSpread(initialSpread == null ? "" : String(initialSpread));
+    setMarketType("spread");
+    setOddsInput("100");
+  }, [selectedGame?.id, selectedCreatorTeam]);
+
   useEffect(() => () => {
     if (slipCloseTimer.current != null) window.clearTimeout(slipCloseTimer.current);
   }, []);
@@ -2244,6 +2252,9 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     setSlipExpanded(false);
     setGame("");
     setCreatorTeam("");
+    setMarketType("spread");
+    setCustomSpread("");
+    setOddsInput("100");
   }
 
   function beginSlipSwipe(event: ReactPointerEvent<HTMLDivElement>) {
@@ -2266,7 +2277,13 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   }
 
   async function sendOffer() {
-    const sentOffer = await createBet();
+    if (!validAmericanOdds(creatorOdds)) return;
+    if (marketType === "spread" && creatorSpread == null) return;
+    const sentOffer = await createBet({
+      marketType,
+      creatorSpread: marketType === "moneyline" ? 0 : Number(creatorSpread),
+      creatorOdds
+    });
     if (sentOffer) setSlipExpanded(false);
   }
 
