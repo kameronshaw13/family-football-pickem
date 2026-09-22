@@ -745,13 +745,16 @@ function stakeMoney(value: number) {
   return `$${Math.abs(Number(value)).toFixed(Number.isInteger(Number(value)) ? 0 : 2)}`;
 }
 function sideBetAmountForUser(bet: SideBet, userId: string) {
-  const risk = stakeMoney(sideBetRiskForUser(bet, userId));
-  const win = stakeMoney(sideBetProfitForUser(bet, userId));
+  const riskValue = sideBetRiskForUser(bet, userId);
+  const winValue = sideBetProfitForUser(bet, userId);
+  const risk = stakeMoney(riskValue);
+  const win = stakeMoney(winValue);
+  const evenPayout = Math.abs(riskValue - winValue) < 0.005;
   if (bet.status !== "settled") {
-    return { settled: false, text: "", risk, win, tone: "money-neutral" };
+    return { settled: false, text: evenPayout ? risk : "", risk, win, evenPayout, tone: "money-neutral" };
   }
   if (bet.result === "push") {
-    return { settled: true, text: "$0", risk, win, tone: "money-neutral" };
+    return { settled: true, text: "$0", risk, win, evenPayout, tone: "money-neutral" };
   }
   const net = sideBetNetForUser(bet, userId);
   return {
@@ -759,16 +762,32 @@ function sideBetAmountForUser(bet: SideBet, userId: string) {
     text: money(net),
     risk,
     win,
+    evenPayout,
     tone: net > 0 ? "money-pos" : net < 0 ? "money-neg" : "money-neutral"
   };
 }
 
+function sideBetMarketText(marketType: SideBetMarketType, spread: number | null, odds: number) {
+  const base = marketType === "moneyline" ? "ML" : spreadText(spread);
+  return odds === 100 ? base : `${base} · ${americanOddsText(odds)}`;
+}
+
+function sideBetOddsForTeam(bet: SideBet, team: string) {
+  return team === bet.creator_team
+    ? Number(bet.creator_odds ?? 100)
+    : oppositeAmericanOdds(Number(bet.creator_odds ?? 100));
+}
+
+function sideBetOddsSuffix(bet: SideBet, team: string) {
+  const odds = sideBetOddsForTeam(bet, team);
+  return odds === 100 ? "" : ` · ${americanOddsText(odds)}`;
+}
+
 function sideBetLineText(bet: SideBet, team: string) {
   const creatorSide = team === bet.creator_team;
-  const odds = creatorSide ? Number(bet.creator_odds ?? 100) : oppositeAmericanOdds(Number(bet.creator_odds ?? 100));
-  if (bet.market_type === "moneyline") return `ML · ${americanOddsText(odds)}`;
-  const spread = Number(creatorSide ? bet.creator_spread : bet.offered_spread);
-  return `${spreadText(spread)} · ${americanOddsText(odds)}`;
+  const odds = sideBetOddsForTeam(bet, team);
+  const spread = bet.market_type === "moneyline" ? null : Number(creatorSide ? bet.creator_spread : bet.offered_spread);
+  return sideBetMarketText(bet.market_type, spread, odds);
 }
 function pctText(value: number) {
   return `${(Number(value || 0) * 100).toFixed(1)}%`;
@@ -2175,12 +2194,9 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const creatorRisk = Math.max(0, Number(amount) || 0);
   const creatorWin = validAmericanOdds(creatorOdds) ? profitForRisk(creatorRisk, creatorOdds) : 0;
   const offeredRisk = creatorWin;
-  const selectedMarketText = marketType === "moneyline"
-    ? `ML · ${americanOddsText(creatorOdds)}`
-    : `${spreadText(creatorSpread)} · ${americanOddsText(creatorOdds)}`;
-  const offeredMarketText = marketType === "moneyline"
-    ? `ML · ${americanOddsText(offeredOdds)}`
-    : `${spreadText(creatorSpread == null ? null : -creatorSpread)} · ${americanOddsText(offeredOdds)}`;
+  const selectedMarketText = sideBetMarketText(marketType, marketType === "moneyline" ? null : creatorSpread, creatorOdds);
+  const offeredMarketText = sideBetMarketText(marketType, marketType === "moneyline" ? null : (creatorSpread == null ? null : -creatorSpread), offeredOdds);
+  const evenPayout = Math.abs(creatorRisk - creatorWin) < 0.005;
   const amountOptions = maxAmount >= 40 ? ["40", "30", "20", "10"] : ["20", "15", "10", "5"];
   const selectedMatchup = selectedGame ? matchupTextVariants(selectedGame) : null;
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
@@ -2373,10 +2389,10 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
           <div className="side-bet-slip-section-head"><span>Risk</span><small>Max <NumericText text={stakeMoney(maxAmount)} /></small></div>
           <div className="side-bet-amount-grid">{amountOptions.map((value) => <button type="button" key={value} className={amount === value ? "active" : ""} aria-pressed={amount === value} onClick={() => setAmount(value)}><NumericText text={`${value}`} /></button>)}</div>
           {manualAmount && <label className="side-bet-risk-field"><span>Custom risk</span><div><span>$</span><input className="side-bet-risk-input" type="number" min="1" max={maxAmount} step="1" value={amount} onChange={(event) => setAmount(event.target.value)} /></div></label>}
-          <div className="side-bet-payout-preview">
+          {!evenPayout && <div className="side-bet-payout-preview">
             <span>You risk <strong><NumericText text={stakeMoney(creatorRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorWin)} /></strong></span>
             <span>They risk <strong><NumericText text={stakeMoney(offeredRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorRisk)} /></strong></span>
-          </div>
+          </div>}
         </section>
 
         <section className="side-bet-slip-section">
@@ -2400,7 +2416,9 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
         <div className="confirmation-icon"><CircleDollarSign size={22} /></div>
-        <div className="confirmation-heading"><span>Review side bet</span><h2 id="accept-bet-title">Risk <NumericText text={stakeMoney(sideBetRiskForUser(confirmingBet, currentUser.id))} /> to win <NumericText text={stakeMoney(sideBetProfitForUser(confirmingBet, currentUser.id))} />?</h2></div>
+        <div className="confirmation-heading"><span>Review side bet</span><h2 id="accept-bet-title">{Math.abs(sideBetRiskForUser(confirmingBet, currentUser.id) - sideBetProfitForUser(confirmingBet, currentUser.id)) < 0.005
+          ? <>Risk <NumericText text={stakeMoney(sideBetRiskForUser(confirmingBet, currentUser.id))} />?</>
+          : <>Risk <NumericText text={stakeMoney(sideBetRiskForUser(confirmingBet, currentUser.id))} /> to win <NumericText text={stakeMoney(sideBetProfitForUser(confirmingBet, currentUser.id))} />?</>}</h2></div>
         <div className="confirmation-matchup">
           <div><span>You take</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.offered_team)} ${sideBetLineText(confirmingBet, confirmingBet.offered_team)}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.offered_team)} ${sideBetLineText(confirmingBet, confirmingBet.offered_team)}`} /> : <>{confirmingBet.offered_team} <NumericText text={sideBetLineText(confirmingBet, confirmingBet.offered_team)} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.offered_team) : null} name={confirmingBet.offered_team} /></div>
           <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.creator_team)} ${sideBetLineText(confirmingBet, confirmingBet.creator_team)}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.creator_team)} ${sideBetLineText(confirmingBet, confirmingBet.creator_team)}`} /> : <>{confirmingBet.creator_team} <NumericText text={sideBetLineText(confirmingBet, confirmingBet.creator_team)} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.creator_team) : null} name={confirmingBet.creator_team} /></div>
@@ -2468,7 +2486,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   const matchup = game
     ? bet.market_type === "moneyline"
       ? matchupTextVariants(game, { suffix: ` · ${displayTeamName(game, perspectiveTeam)} ${perspectiveMarket}` })
-      : matchupTextVariants(game, { spreadTeam: perspectiveTeam, spread: perspectiveSpread, suffix: ` · ${americanOddsText(perspectiveTeam === bet.creator_team ? Number(bet.creator_odds ?? 100) : oppositeAmericanOdds(Number(bet.creator_odds ?? 100)))}` })
+      : matchupTextVariants(game, { spreadTeam: perspectiveTeam, spread: perspectiveSpread, suffix: sideBetOddsSuffix(bet, perspectiveTeam) })
     : { full: `${perspectiveTeam} ${perspectiveMarket}`, intermediate: undefined, compact: `${perspectiveTeam} ${perspectiveMarket}` };
   const responseSummary = sideBetResponseSummary(bet, currentUser.id, mode);
   const responseSpread = sideBetLineText(bet, bet.offered_team);
@@ -2483,7 +2501,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, perspectiveTeam) : null} name={perspectiveTeam} />
       <div className="side-bet-offer-copy"><strong><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} /></strong><SideBetResponseLine summary={responseSummary} teamFull={offeredSideName} teamCompact={offeredSideCompact} spread={responseSpread} date={game ? dt(game.commence_time) : undefined} /></div>
-      {amountDisplay.settled
+      {amountDisplay.settled || amountDisplay.evenPayout
         ? <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
         : <div className="side-bet-offer-amount side-bet-offer-payout" aria-label={`Risk ${amountDisplay.risk} to win ${amountDisplay.win}`}>
             <span><small>Risk</small><strong><NumericText text={amountDisplay.risk} /></strong></span>
@@ -2510,16 +2528,21 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   const matchup = game
     ? bet.market_type === "moneyline"
       ? matchupTextVariants(game, { suffix: ` · ${displayTeamName(game, displayTeam)} ${market}` })
-      : matchupTextVariants(game, { spreadTeam: displayTeam, spread: displaySpread, suffix: ` · ${americanOddsText(displayTeam === bet.creator_team ? Number(bet.creator_odds ?? 100) : oppositeAmericanOdds(Number(bet.creator_odds ?? 100)))}` })
+      : matchupTextVariants(game, { spreadTeam: displayTeam, spread: displaySpread, suffix: sideBetOddsSuffix(bet, displayTeam) })
     : { full: `${displayTeam} ${market} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}`, intermediate: undefined, compact: `${displayTeam} ${market} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}` };
   const winner = bet.winner_id === creator.id ? creator : bet.winner_id === acceptor.id ? acceptor : null;
   const status = bet.status === "accepted" ? "" : bet.result === "push" ? "Push" : winner ? `${displayPerson(winner)} Won` : "Settled";
   const bettors = `${displayPerson(sideBetBettorForTeam(bet, awayTeam))} vs ${displayPerson(sideBetBettorForTeam(bet, homeTeam))}`;
-  const amountDisplay = perspective.involvesUser ? sideBetAmountForUser(bet, currentUser.id) : { text: stakeMoney(Number(bet.amount)), tone: "money-neutral" };
+  const amountDisplay = perspective.involvesUser ? sideBetAmountForUser(bet, currentUser.id) : { settled: true, text: stakeMoney(Number(bet.amount)), risk: "", win: "", evenPayout: true, tone: "money-neutral" };
   return <div className={`ledger-row side-bet-ledger-row ${bet.status === "accepted" ? "accepted" : ""}`}>
     <TeamLogo url={game ? logoForTeam(game, displayTeam) : null} name={displayTeam} />
     <div className="side-bet-ledger-copy"><strong className="side-bet-ledger-title"><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} className="side-bet-ledger-matchup" /></strong><p>{bettors}{status ? <> · {status}</> : null}</p></div>
-    <strong className={`side-bet-ledger-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
+    {amountDisplay.settled || amountDisplay.evenPayout
+      ? <strong className={`side-bet-ledger-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
+      : <div className="side-bet-ledger-amount side-bet-offer-payout" aria-label={`Risk ${amountDisplay.risk} to win ${amountDisplay.win}`}>
+          <span><small>Risk</small><strong><NumericText text={amountDisplay.risk} /></strong></span>
+          <span><small>Win</small><strong><NumericText text={amountDisplay.win} /></strong></span>
+        </div>}
   </div>;
 }
 
