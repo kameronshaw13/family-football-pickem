@@ -247,3 +247,111 @@
     right: 56px;
   }
 }
+
+
+/* Side bet history/ledger polish: 2026-09-22 */
+
+/* Keep the restored All Bets / My Bets control compact and vertically aligned
+   with the Side Bet Ledger heading. */
+.side-bet-ledger-heading-row {
+  align-items: center;
+  gap: 10px;
+}
+.side-bet-ledger-heading-row > h2 {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.side-bet-ledger-scope-toggle {
+  display: grid;
+  width: 142px;
+  height: 30px;
+  flex: 0 0 142px;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  background: var(--surface-muted);
+}
+.side-bet-ledger-scope-toggle button {
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  color: var(--muted);
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.side-bet-ledger-scope-toggle button:last-child {
+  border-right: 0;
+}
+.side-bet-ledger-scope-toggle button.active {
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+}
+
+/* Risk / Win reads more cleanly as one horizontal amount block than as two
+   stacked mini rows. */
+.side-bet-offer-amount.side-bet-offer-payout,
+.side-bet-ledger-amount.side-bet-offer-payout {
+  display: flex;
+  width: max-content;
+  min-width: 0;
+  height: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  align-self: stretch;
+  gap: 6px;
+  white-space: nowrap;
+}
+.side-bet-offer-payout > span {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  line-height: 1;
+}
+.side-bet-offer-payout > span + span {
+  padding-left: 6px;
+  border-left: 1px solid var(--line);
+}
+.side-bet-offer-payout small,
+.side-bet-offer-payout strong {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+/* Bank-history week dropdowns, game rows, and ledger rows all share the same
+   vertical centerline. */
+.bank-balance-player > summary > *,
+.bank-history-week > summary > *,
+.bank-history-line > *,
+.side-bet-ledger-row > * {
+  align-self: center;
+}
+.bank-history-week > summary > strong,
+.bank-history-week > summary > span,
+.bank-history-line > strong {
+  display: flex;
+  height: 100%;
+  align-items: center;
+}
+.bank-history-week > summary > span,
+.bank-history-line > strong {
+  justify-content: flex-end;
+}
+.bank-history-game-copy {
+  align-items: center;
+}
+.side-bet-ledger-copy {
+  height: 100%;
+  align-content: center;
+}
