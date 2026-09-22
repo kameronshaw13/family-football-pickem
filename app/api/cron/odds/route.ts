@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { findEspnLogo, fetchEspnLogoMap } from "@/lib/espnLogos";
 import { espnRankForLogo, fetchEspnCfbRankMap } from "@/lib/espnRankings";
@@ -42,6 +43,16 @@ type PreparedSport = {
   creditsUsed: number | null;
   creditsLast: number | null;
 };
+
+const SUPABASE_ODDS_CRON_TOKEN_SHA256 = "e899f43d69b2e45353be55f58ed6e81aedec37dfc199e341d93ac9ecddb252c7";
+
+function hasValidSupabaseOddsCronToken(req: NextRequest) {
+  const token = req.headers.get("x-odds-cron-token");
+  if (!token) return false;
+  const actual = Buffer.from(createHash("sha256").update(token).digest("hex"), "hex");
+  const expected = Buffer.from(SUPABASE_ODDS_CRON_TOKEN_SHA256, "hex");
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
 
 function unauthorized() {
   return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
@@ -432,11 +443,15 @@ function isChicagoOddsRefreshWindow(date = new Date()) {
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get("authorization")?.replace("Bearer ", "") || req.nextUrl.searchParams.get("secret");
-  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) return unauthorized();
+  const hasValidVercelSecret = Boolean(process.env.CRON_SECRET && secret === process.env.CRON_SECRET);
+  const hasValidSupabaseSecret = hasValidSupabaseOddsCronToken(req);
+  if (!hasValidVercelSecret && !hasValidSupabaseSecret) return unauthorized();
 
-  // The Vercel schedule fires hourly at :50. This local-time guard keeps
-  // Odds API usage to the useful pick'em window and handles CDT/CST automatically.
-  if (req.headers.get("x-vercel-cron-schedule") && !isChicagoOddsRefreshWindow()) {
+  // Scheduled calls (Vercel fallback or Supabase Cron) only spend Odds API
+  // credits during the useful pick'em refresh window. Manual CRON_SECRET calls
+  // remain available for explicit refreshes and troubleshooting.
+  const isScheduledCall = Boolean(req.headers.get("x-vercel-cron-schedule")) || hasValidSupabaseSecret;
+  if (isScheduledCall && !isChicagoOddsRefreshWindow()) {
     return NextResponse.json({ ok: true, skipped: true, reason: "Outside active CT odds refresh window." });
   }
 
