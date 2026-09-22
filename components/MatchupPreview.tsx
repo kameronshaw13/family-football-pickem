@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { LoaderCircle, X } from "lucide-react";
+import { Info, LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { teamDisplayName } from "@/lib/teamNames";
@@ -172,10 +172,53 @@ function espnTeamIdFromLogo(url: string | null | undefined) {
   return url.match(/\/(\d+)\.(?:png|svg|webp)(?:\?|$)/i)?.[1] || null;
 }
 
+const ADVANCED_METRIC_INFO: Record<string, string> = {
+  "Value / Play (EPA)": "Expected Points Added per play. Positive means the offense creates scoring value; higher is better.",
+  "Value / Play (PPA)": "Predicted Points Added per play. It estimates scoring value created on each snap; higher is better.",
+  "Successful Plays": "The share of plays that gain enough for the down and distance. Higher means the offense stays on schedule more often.",
+  "Pass Value / Play": "Scoring value created on passing plays. Positive and higher values indicate more efficient passing.",
+  "Run Value / Play": "Scoring value created on rushing plays. Positive and higher values indicate more efficient rushing.",
+  "Successful Pass Plays": "The percentage of pass plays graded successful for the situation.",
+  "Successful Run Plays": "The percentage of run plays graded successful for the situation.",
+  "Explosive Play Rate": "How often the offense creates a big-gain play. Higher means more home-run potential.",
+  "Yards / Play": "Average yards gained per offensive snap.",
+  "OL Run Push / Carry": "Line yards per carry, estimating rushing production created by the offensive line.",
+  "Early-Down Value / Play": "Scoring value per play on early downs. Strong numbers help avoid obvious passing situations.",
+  "Late-Down Value / Play": "Scoring value per play on later downs, when conversion pressure is higher.",
+  "3rd-Down Success": "How often the offense succeeds on third down.",
+  "Red-Zone Success": "How effectively the offense converts red-zone opportunities into successful plays and scoring chances.",
+  "Short-Yardage Run Success": "Success rate on power-running situations where only a short gain is needed.",
+  "Runs Stopped at Line": "The share of runs stopped at or behind the line. Lower is better for the offense.",
+  "Pts / Opportunity": "Average points scored after creating a quality scoring opportunity.",
+  "Adjusted Defense EPA": "Opponent-adjusted defensive EPA per play. It estimates defensive efficiency after accounting for schedule strength.",
+  "FPI Defense Rating": "ESPN FPI's defensive efficiency component. The rank is usually the easiest way to compare it.",
+  "Defense Rank": "National defensive unit rank. #1 is best.",
+  "Drive Stop Rate": "How often the defense ends an opponent drive without allowing points. Higher is better.",
+  "Adj EPA / Play": "Opponent-adjusted EPA per play for the offense or defense shown.",
+  "FPI Efficiency": "ESPN FPI unit efficiency. Use it together with unit rank rather than reading the raw number alone.",
+  "Unit Rank": "National rank for the offense or defense shown. #1 is best.",
+  "Success / Drive Stop": "Offensive success rate on the left compared with the opposing defense's drive-stop rate on the right.",
+  "Havoc Rate": "How often the defense creates a disruptive play such as a sack, tackle for loss, forced fumble, or interception.",
+  "Passing-Play Havoc": "Defensive havoc created specifically against passing plays.",
+  "Run-Play Havoc": "Defensive havoc created specifically against rushing plays.",
+  "Sack Rate": "The percentage of opponent pass plays ending in a sack.",
+  "Tackle-for-Loss Rate": "The percentage of plays where the defense tackles the ball carrier behind the line.",
+  "Front 7 Havoc": "Disruptive-play rate created by defensive linemen and linebackers.",
+  "DB Havoc": "Disruptive-play rate created by defensive backs."
+};
+
+function MetricInfo({ label, text }: { label: string; text: string }) {
+  return <details className="matchup-metric-info">
+    <summary aria-label={`Explain ${label}`}><Info size={11} aria-hidden="true" /></summary>
+    <span className="matchup-metric-info-popover"><strong>{label}</strong>{text}</span>
+  </details>;
+}
+
 function MetricRow({ label, away, home }: { label: string; away: string; home: string }) {
+  const info = ADVANCED_METRIC_INFO[label];
   return <div className="matchup-metric-row">
     <strong>{away}</strong>
-    <span>{label}</span>
+    <span className="matchup-metric-label"><span>{label}</span>{info ? <MetricInfo label={label} text={info} /> : null}</span>
     <strong>{home}</strong>
   </div>;
 }
@@ -288,15 +331,9 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
         <span>WHEN {home.name.toUpperCase()} HAS THE BALL</span>
         <strong>{homeVsAway}</strong>
       </div>
-      <div className="matchup-advanced-key">
-        <span><b>EPA / play</b> = value created on each snap</span>
-        <span><b>Success rate</b> = how often an offense stays on schedule</span>
-        <span><b>Havoc</b> = sacks, tackles for loss and other disruptive plays</span>
-        <span><b>Drive stop</b> = how often the defense ends a drive without points</span>
-      </div>
     </section>
     <section className="matchup-comparison-block">
-      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>OFFENSIVE EFFICIENCY</strong><small>How consistently each offense creates value and stays on schedule.</small></div><span>{sourceLabel}</span></div>
+      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>OFFENSIVE EFFICIENCY</strong><small>Efficiency and consistency on every snap.</small></div><span>{sourceLabel}</span></div>
       <MetricRow label={useEpa ? "Value / Play (EPA)" : "Value / Play (PPA)"} away={fmtSigned(efficiencyAway, 3)} home={fmtSigned(efficiencyHome, 3)} />
       <MetricRow label="Successful Plays" away={fmtPct(awayOffense?.successRate)} home={fmtPct(homeOffense?.successRate)} />
       <MetricRow label="Pass Value / Play" away={fmtSigned(awayOffense?.passEpaPerPlay, 3)} home={fmtSigned(homeOffense?.passEpaPerPlay, 3)} />
@@ -309,7 +346,7 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
     </section>
 
     <section className="matchup-comparison-block">
-      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>SITUATIONAL OFFENSE</strong><small>How well the offense handles important downs and scoring chances.</small></div></div>
+      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>SITUATIONAL OFFENSE</strong><small>Performance in high-leverage situations.</small></div></div>
       <MetricRow label="Early-Down Value / Play" away={fmtSigned(awayOffense?.earlyDownEpaPerPlay, 3)} home={fmtSigned(homeOffense?.earlyDownEpaPerPlay, 3)} />
       <MetricRow label="Late-Down Value / Play" away={fmtSigned(awayOffense?.lateDownEpaPerPlay, 3)} home={fmtSigned(homeOffense?.lateDownEpaPerPlay, 3)} />
       <MetricRow label="3rd-Down Success" away={fmtPct(awayOffense?.thirdDownSuccessRate)} home={fmtPct(homeOffense?.thirdDownSuccessRate)} />
@@ -321,7 +358,7 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
     </section>
 
     <section className="matchup-comparison-block">
-      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>DEFENSIVE EFFICIENCY</strong><small>Overall defensive strength. Use the rank for the fastest read.</small></div></div>
+      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>DEFENSIVE EFFICIENCY</strong><small>Overall opponent-adjusted defensive strength.</small></div></div>
       <MetricRow label="Adjusted Defense EPA" away={fmtSigned(away.power?.adjustedDefEpa, 3)} home={fmtSigned(home.power?.adjustedDefEpa, 3)} />
       <MetricRow label="FPI Defense Rating" away={fmt(awayDefEfficiency, 1)} home={fmt(homeDefEfficiency, 1)} />
       <MetricRow label="Defense Rank" away={rank(awayDefRank)} home={rank(homeDefRank)} />
@@ -345,7 +382,7 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
     </section>
 
     <section className="matchup-comparison-block">
-      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>DEFENSIVE DISRUPTION</strong><small>How often the defense creates negative plays or kills drives.</small></div></div>
+      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>DEFENSIVE DISRUPTION</strong><small>Pressure, negative plays and drive-ending ability.</small></div></div>
       <MetricRow label="Havoc Rate" away={fmtPct(awayDefense?.havocRate)} home={fmtPct(homeDefense?.havocRate)} />
       <MetricRow label="Passing-Play Havoc" away={fmtPct(awayDefense?.passHavocRate)} home={fmtPct(homeDefense?.passHavocRate)} />
       <MetricRow label="Run-Play Havoc" away={fmtPct(awayDefense?.rushHavocRate)} home={fmtPct(homeDefense?.rushHavocRate)} />

@@ -840,3 +840,125 @@
     font-size: 10px;
   }
 }
+
+
+/* Advanced metrics: compact hierarchy with tap-to-explain definitions. */
+.matchup-metric-label {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.matchup-metric-info {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.matchup-metric-info > summary {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--header-muted);
+  background: #fff;
+  cursor: pointer;
+  list-style: none;
+}
+
+.matchup-metric-info > summary::-webkit-details-marker {
+  display: none;
+}
+
+.matchup-metric-info[open] > summary {
+  border-color: var(--graphite);
+  color: #fff;
+  background: var(--graphite);
+}
+
+.matchup-metric-info-popover {
+  position: absolute;
+  z-index: 30;
+  top: 21px;
+  left: 50%;
+  display: grid;
+  width: min(224px, calc(100vw - 56px));
+  transform: translateX(-50%);
+  gap: 3px;
+  padding: 8px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 7px 20px rgb(0 0 0 / 14%);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.matchup-metric-info-popover strong {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.matchup-advanced-guide-head {
+  min-height: 34px;
+}
+
+.matchup-advanced-read {
+  padding-block: 8px;
+}
+
+.matchup-advanced-read > strong {
+  font-size: 11px;
+}
+
+.matchup-explained-heading {
+  min-height: 39px;
+}
+
+.matchup-explained-heading > div > small {
+  font-size: 9px;
+}
+
+.matchup-team-section-title strong {
+  font-size: 12px;
+}
+
+.matchup-result-row > div strong {
+  font-size: 11px;
+}
+
+@media (max-width: 680px) {
+  .matchup-preview-team strong {
+    font-size: 13px;
+  }
+
+  .matchup-preview-team span {
+    font-size: 11px;
+  }
+
+  .matchup-preview-tabs button {
+    font-size: 9.5px;
+  }
+
+  .matchup-metric-row strong {
+    font-size: 11px;
+  }
+
+  .matchup-metric-label {
+    font-size: 10px;
+  }
+}

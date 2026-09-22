@@ -739,3 +739,44 @@ fieldset .field-label { padding: 0; }
   color: var(--ink);
   font-weight: 850;
 }
+
+
+.kameron-model-strip {
+  display: grid;
+  min-height: 31px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px var(--pick-content-inset);
+  border-bottom: 1px solid var(--line);
+  background: #f8f8f5;
+}
+
+.kameron-model-label {
+  color: var(--header-muted);
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .05em;
+}
+
+.kameron-model-strip > strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kameron-model-spread {
+  min-width: 0;
+  color: var(--graphite);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 900;
+  text-align: right;
+  white-space: nowrap;
+}
