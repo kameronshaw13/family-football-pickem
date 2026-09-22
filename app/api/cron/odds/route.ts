@@ -333,6 +333,11 @@ async function refreshOdds() {
       spreadsUpdated: result.spreadGames.length
     }));
 
+    console.log("[cron/odds] refresh complete", JSON.stringify({
+      gamesUpdated: spreadGames.length,
+      sportResults
+    }));
+
     return NextResponse.json({
       ok: true,
       gamesUpdated: spreadGames.length,
