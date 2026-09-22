@@ -109,7 +109,8 @@ body,
 
 /* Risk must sit above Win in open side-bet cards. This intentionally
    overrides the generic centered amount flex rule above. */
-.side-bet-offer-amount.side-bet-offer-payout {
+.side-bet-offer-amount.side-bet-offer-payout,
+.side-bet-ledger-amount.side-bet-offer-payout {
   display: grid;
   height: auto;
   grid-template-columns: 1fr;
