@@ -28,7 +28,7 @@ type SelectionInfo = {
   offeredSpread: string;
 };
 
-const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
+const APP_DATA_CACHE_PREFIX = "pickem_app_data_v2";
 const CENTRAL_DATE = new Intl.DateTimeFormat("en-US", {
   weekday: "short",
   month: "short",
