@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findEspnLogo, fetchEspnLogoMap } from "@/lib/espnLogos";
+import { espnRankForLogo, fetchEspnCfbRankMap } from "@/lib/espnRankings";
 import { fetchEspnSchedule, findEspnScheduleMatch, resolveEspnCommenceTime } from "@/lib/espnSchedule";
 import { canRefreshSpread, getFootballWeek, getGameLockTime, getSpreadFreezeTime } from "@/lib/lockRules";
 import { createNotificationSafely } from "@/lib/notifications";
@@ -164,6 +165,7 @@ async function refreshOdds() {
     const supabase = getSupabaseAdmin();
     const startedAt = Date.now();
     const now = new Date();
+    const cfbRankMap = await fetchEspnCfbRankMap();
     const { data: knownGames, error: knownGamesError } = await supabase.from("games").select("id,espn_event_id,current_spread_team,current_spread");
     if (knownGamesError) return NextResponse.json({ ok: false, error: "Could not read existing games.", details: knownGamesError.message }, { status: 500 });
     const knownGameIds = new Set((knownGames || []).map((game) => game.id));
@@ -259,6 +261,8 @@ async function refreshOdds() {
           away_team: official.awayTeam,
           home_logo_url: official.homeLogoUrl,
           away_logo_url: official.awayLogoUrl,
+          home_rank: sport.league === "CFB" ? espnRankForLogo(cfbRankMap, official.homeLogoUrl) : null,
+          away_rank: sport.league === "CFB" ? espnRankForLogo(cfbRankMap, official.awayLogoUrl) : null,
           lock_time: lockTime,
           is_locked: now >= new Date(lockTime),
           updated_at: now.toISOString()
