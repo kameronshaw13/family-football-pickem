@@ -79,7 +79,7 @@ export function getWeekOpenTimeFromCommenceTimes(commenceTimes: string[], timezo
   const tuesdayLocal = new Date(earliest);
   const daysSinceTuesday = (tuesdayLocal.getDay() - 2 + 7) % 7;
   tuesdayLocal.setDate(tuesdayLocal.getDate() - daysSinceTuesday);
-  tuesdayLocal.setHours(8, 0, 0, 0);
+  tuesdayLocal.setHours(9, 0, 0, 0);
 
   return fromZonedTime(tuesdayLocal, timezone);
 }
