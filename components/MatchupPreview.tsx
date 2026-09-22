@@ -95,6 +95,8 @@ type PreviewPayload = {
     advanced: boolean;
     sp: boolean;
     history: boolean;
+    baseSource?: string;
+    advancedSource?: string | null;
   };
 };
 
@@ -114,6 +116,11 @@ function fmtSigned(value: number | null | undefined, digits = 1) {
 
 function teamLogo(game: Game, side: "away" | "home") {
   return side === "away" ? game.away_logo_url : game.home_logo_url;
+}
+
+function espnTeamIdFromLogo(url: string | null | undefined) {
+  if (!url) return null;
+  return url.match(/\/(\d+)\.(?:png|svg|webp)(?:\?|$)/i)?.[1] || null;
 }
 
 function MetricRow({ label, away, home }: { label: string; away: string; home: string }) {
@@ -155,6 +162,22 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
   const awayDefense = away.advanced?.defense;
   const homeOffense = home.advanced?.offense;
   const homeDefense = home.advanced?.defense;
+  const hasDetailedAdvanced = Boolean(awayOffense || awayDefense || homeOffense || homeDefense);
+
+  if (!hasDetailedAdvanced) {
+    return <div className="matchup-tab-body">
+      <section className="matchup-comparison-block">
+        <div className="matchup-comparison-heading"><strong>EFFICIENCY SNAPSHOT</strong><span>ESPN + pick'em data</span></div>
+        <MetricRow label="Yards / Game" away={fmt(away.regular.yardsPerGame)} home={fmt(home.regular.yardsPerGame)} />
+        <MetricRow label="Pass Yards / Game" away={fmt(away.regular.passYardsPerGame)} home={fmt(home.regular.passYardsPerGame)} />
+        <MetricRow label="Rush Yards / Game" away={fmt(away.regular.rushYardsPerGame)} home={fmt(home.regular.rushYardsPerGame)} />
+        <MetricRow label="3rd Down" away={fmtPct(away.regular.thirdDownPct)} home={fmtPct(home.regular.thirdDownPct)} />
+        <MetricRow label="Turnovers / Game" away={fmt(away.regular.turnoversPerGame)} home={fmt(home.regular.turnoversPerGame)} />
+        <MetricRow label="Avg Scoring Margin" away={fmtSigned(away.scoring.margin)} home={fmtSigned(home.scoring.margin)} />
+      </section>
+      <p className="matchup-data-note">Success rate, PPA, explosiveness, line yards and havoc will layer in when the advanced feed is connected.</p>
+    </div>;
+  }
 
   const block = (title: string, leftName: string, left: Record<string, any> | undefined, rightName: string, right: Record<string, any> | undefined) => <section className="matchup-comparison-block">
     <div className="matchup-comparison-heading"><strong>{title}</strong><span>{leftName} offense vs {rightName} defense</span></div>
@@ -256,6 +279,10 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
           week: String(game.week),
           year: String(new Date(game.commence_time).getUTCFullYear())
         });
+        const awayId = espnTeamIdFromLogo(game.away_logo_url);
+        const homeId = espnTeamIdFromLogo(game.home_logo_url);
+        if (awayId) params.set("awayId", awayId);
+        if (homeId) params.set("homeId", homeId);
         const response = await fetch(`/api/cfb-matchup-preview?${params.toString()}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           cache: "no-store",
