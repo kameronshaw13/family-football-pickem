@@ -1,6 +1,14 @@
 {
   "crons": [
     {
+      "path": "/api/cron/odds",
+      "schedule": "50 13 * * 2"
+    },
+    {
+      "path": "/api/cron/odds",
+      "schedule": "50 14 * * 2"
+    },
+    {
       "path": "/api/cron/results",
       "schedule": "30 6 * * *"
     },
