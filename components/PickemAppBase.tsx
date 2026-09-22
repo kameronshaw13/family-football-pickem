@@ -2042,7 +2042,11 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
       : null;
     const games = week.games
       .filter((game) => Object.prototype.hasOwnProperty.call(game.amounts || {}, player.id))
-      .map((game) => ({ ...game, playerAmount: Number(game.amounts[player.id] || 0) }));
+      .map((game) => ({
+        ...game,
+        playerAmount: Number(game.amounts[player.id] || 0),
+        playerBetCount: Number(game.betCounts?.[player.id] || 0)
+      }));
     return { week: week.week, weeklyAmount, games };
   }).filter((week) => week.weeklyAmount != null || week.games.length > 0);
 
@@ -2054,12 +2058,12 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
     </summary>
     <div className="bank-balance-player-history">
       {!playerWeeks.length && <p className="muted bank-history-empty">No bank history yet.</p>}
-      {playerWeeks.map((week) => <details className="bank-history-week" key={week.week}>
+      {playerWeeks.map((week) => {
+        const weekTotal = Number(week.weeklyAmount || 0) + week.games.reduce((sum, game) => sum + game.playerAmount, 0);
+        return <details className="bank-history-week" key={week.week}>
         <summary>
           <strong>Week <NumericText text={String(week.week)} /></strong>
-          <span><NumericText text={money(
-            Number(week.weeklyAmount || 0) + week.games.reduce((sum, game) => sum + game.playerAmount, 0)
-          )} /></span>
+          <span className={weekTotal > 0 ? "money-pos" : weekTotal < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(weekTotal)} /></span>
           <ChevronDown size={16} />
         </summary>
         <div className="bank-history-week-body">
@@ -2075,13 +2079,14 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
             return <div className="bank-history-line bank-history-game-line" key={game.gameId}>
               <span className="bank-history-game-copy">
                 <ResponsiveText full={`${awayFull} at ${homeFull}`} compact={`${awayCompact} at ${homeCompact}`} />
-                {game.betCount > 1 && <small><NumericText text={`${game.betCount} bets`} /></small>}
+                {game.playerBetCount > 1 && <small><NumericText text={`${game.playerBetCount} bets`} /></small>}
               </span>
               <strong className={game.playerAmount > 0 ? "money-pos" : game.playerAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(game.playerAmount)} /></strong>
             </div>;
           })}
         </div>
-      </details>)}
+      </details>;
+      })}
     </div>
   </details>;
 }
