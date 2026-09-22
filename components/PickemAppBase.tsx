@@ -2414,7 +2414,7 @@ function SideBetGameCard({ game, selectedTeam, disabled, onSelect }: { game: Gam
         onClick={() => onSelect(game, team)}
       >
         <TeamLogo url={logoForTeam(game, team)} name={team} />
-        <ResponsiveTeamName game={game} team={team} className="team-name" />
+        <BoardTeamName game={game} team={team} />
         <span className="team-spread"><NumericText text={spreadForTeam(game, team)} /></span>
       </button>)}
     </div>
@@ -2614,7 +2614,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
         onClick={() => choose(game.away_team)}
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
-        {showScoreValues ? <span className="team-name-line"><ResponsiveTeamName game={game} team={game.away_team} className="team-name" />{awayResultLine && <span className="team-board-market"><NumericText text={awayResultLine} /></span>}</span> : <ResponsiveTeamName game={game} team={game.away_team} className="team-name" />}
+        {showScoreValues ? <span className="team-name-line"><BoardTeamName game={game} team={game.away_team} />{awayResultLine && <span className="team-board-market"><NumericText text={awayResultLine} /></span>}</span> : <BoardTeamName game={game} team={game.away_team} />}
         {showScoreValues ? <span className="team-result-line"><PossessionIcon game={game} team={game.away_team} /><span className="team-result-score"><NumericText text={awayScore ?? "—"} /></span></span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : <NumericText text={sideLine(game.away_team)} />}</span></span>}
       </button>
 
@@ -2625,7 +2625,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
         onClick={() => choose(game.home_team)}
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
-        {showScoreValues ? <span className="team-name-line"><ResponsiveTeamName game={game} team={game.home_team} className="team-name" />{homeResultLine && <span className="team-board-market"><NumericText text={homeResultLine} /></span>}</span> : <ResponsiveTeamName game={game} team={game.home_team} className="team-name" />}
+        {showScoreValues ? <span className="team-name-line"><BoardTeamName game={game} team={game.home_team} />{homeResultLine && <span className="team-board-market"><NumericText text={homeResultLine} /></span>}</span> : <BoardTeamName game={game} team={game.home_team} />}
         {showScoreValues ? <span className="team-result-line"><PossessionIcon game={game} team={game.home_team} /><span className="team-result-score"><NumericText text={homeScore ?? "—"} /></span></span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
       </button>
     </div>
