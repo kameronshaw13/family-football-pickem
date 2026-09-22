@@ -269,31 +269,55 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
   const parsedDates = dateHints.map((date) => new Date(date)).filter((date) => !Number.isNaN(date.getTime()));
   if (!parsedDates.length) return [];
 
-  const min = new Date(Math.min(...parsedDates.map((date) => date.getTime())));
-  const max = new Date(Math.max(...parsedDates.map((date) => date.getTime())));
-  if (paddingDays > 0) {
-    min.setUTCDate(min.getUTCDate() - paddingDays);
-    max.setUTCDate(max.getUTCDate() + paddingDays);
+  const sportPath = league === "NFL" ? "nfl" : "college-football";
+  const fetchScoreboardEvents = async (datesParam: string) => {
+    const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/scoreboard`);
+    url.searchParams.set("limit", "1000");
+    if (league === "CFB") url.searchParams.set("groups", "80");
+    url.searchParams.set("dates", datesParam);
+
+    const response = await fetch(url.toString(), freshness === true
+      ? { cache: "no-store" }
+      : { next: { revalidate: typeof freshness === "number" ? freshness : 60 * 60 } });
+    if (!response.ok) {
+      const details = (await response.text().catch(() => "")).slice(0, 240);
+      throw new Error(`ESPN schedule failed for ${league} (${response.status}) dates=${datesParam}${details ? `: ${details}` : ""}`);
+    }
+    const payload = await response.json();
+    return Array.isArray(payload?.events) ? payload.events : [];
+  };
+
+  // ESPN stopped accepting scoreboard date ranges in September 2026.
+  // Prefer one season-level request, then fall back to exact dates if ESPN
+  // changes or temporarily rejects the season form.
+  const seasonYears = Array.from(new Set(parsedDates.map((date) => {
+    const eastern = toZonedTime(date, "America/New_York");
+    return eastern.getMonth() <= 1 ? eastern.getFullYear() - 1 : eastern.getFullYear();
+  })));
+
+  let events: any[] = [];
+  try {
+    events = (await Promise.all(seasonYears.map((year) => fetchScoreboardEvents(String(year))))).flat();
+    if (!events.length) throw new Error("ESPN season schedule returned no events.");
+  } catch {
+    const exactDates = new Set<string>();
+    const fallbackPaddingDays = Math.min(1, Math.max(0, paddingDays));
+    for (const date of parsedDates) {
+      for (let offset = -fallbackPaddingDays; offset <= fallbackPaddingDays; offset += 1) {
+        const adjusted = new Date(date);
+        adjusted.setUTCDate(adjusted.getUTCDate() + offset);
+        exactDates.add(compactDate(adjusted));
+      }
+    }
+    events = (await Promise.all(Array.from(exactDates).map(fetchScoreboardEvents))).flat();
   }
 
-  const sportPath = league === "NFL" ? "nfl" : "college-football";
-  const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/scoreboard`);
-  url.searchParams.set("limit", "1000");
-  // ESPN's unfiltered college-football scoreboard can default to a ranked-game
-  // subset. Request the FBS group so unranked FBS matchups remain available for
-  // exact event-id score lookups.
-  if (league === "CFB") url.searchParams.set("groups", "80");
-  const minDate = compactDate(min);
-  const maxDate = compactDate(max);
-  url.searchParams.set("dates", minDate === maxDate ? minDate : `${minDate}-${maxDate}`);
+  const uniqueEvents = Array.from(new Map(events.map((event: any) => [
+    String(event?.id || `${event?.date || ""}:${event?.name || ""}`),
+    event
+  ])).values());
 
-  const response = await fetch(url.toString(), freshness === true
-    ? { cache: "no-store" }
-    : { next: { revalidate: typeof freshness === "number" ? freshness : 60 * 60 } });
-  if (!response.ok) throw new Error(`ESPN schedule failed for ${league}.`);
-  const payload = await response.json();
-
-  return (payload?.events || []).flatMap((event: any): EspnScheduleGame[] => {
+  return uniqueEvents.flatMap((event: any): EspnScheduleGame[] => {
     const competition = event?.competitions?.[0];
     const home = competition?.competitors?.find((competitor: any) => competitor.homeAway === "home");
     const away = competition?.competitors?.find((competitor: any) => competitor.homeAway === "away");
