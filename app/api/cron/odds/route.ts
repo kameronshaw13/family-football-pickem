@@ -35,7 +35,6 @@ type PreparedSport = {
   eventsReturned: number;
   scheduleMatched: number;
   eligibleEvents: number;
-  excludedEvents: Array<{ homeTeam: string; awayTeam: string; scheduleMatched: boolean; homeLogoUrl: string | null; awayLogoUrl: string | null }>;
   spreadGames: any[];
   frozenGames: any[];
   snapshots: any[];
@@ -196,7 +195,6 @@ async function refreshOdds() {
       const returned = (await oddsResponse.json()) as OddsEvent[];
       const schedule = await fetchEspnSchedule(sport.league, returned.map((event) => event.commence_time));
       let scheduleMatched = 0;
-      const excludedEvents: PreparedSport["excludedEvents"] = [];
       const data = returned.flatMap((event) => {
         // Prefer ESPN's canonical identity when it is present, but do not let an
         // incomplete ESPN date scoreboard erase legitimate CFB games that already
@@ -224,24 +222,14 @@ async function refreshOdds() {
           homeLogoUrl,
           awayLogoUrl
         };
-        const eligible = isEligibleSeasonGame({
+        return isEligibleSeasonGame({
           league: sport.league,
           commence_time: officialGame.commenceTime,
           home_team: officialGame.homeTeam,
           away_team: officialGame.awayTeam,
           home_logo_url: homeLogoUrl,
           away_logo_url: awayLogoUrl
-        });
-        if (!eligible) {
-          excludedEvents.push({
-            homeTeam: officialGame.homeTeam,
-            awayTeam: officialGame.awayTeam,
-            scheduleMatched: Boolean(scheduleMatch),
-            homeLogoUrl,
-            awayLogoUrl
-          });
-        }
-        return eligible ? [officialGame] : [];
+        }) ? [officialGame] : [];
       });
 
       const spreadGames: any[] = [];
@@ -307,7 +295,6 @@ async function refreshOdds() {
         eventsReturned: returned.length,
         scheduleMatched,
         eligibleEvents: data.length,
-        excludedEvents,
         spreadGames,
         frozenGames,
         snapshots
@@ -362,10 +349,7 @@ async function refreshOdds() {
 
     console.log("[cron/odds] refresh complete", JSON.stringify({
       gamesUpdated: spreadGames.length,
-      sportResults,
-      excludedEvents: preparedSports.flatMap((result) =>
-        result.excludedEvents.map((event) => ({ sport: result.sport, ...event }))
-      )
+      sportResults
     }));
 
     return NextResponse.json({
