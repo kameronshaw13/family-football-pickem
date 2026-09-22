@@ -252,7 +252,7 @@ function espnStat(stats: Map<string, number>, names: string[]) {
   }
   for (const name of names) {
     const key = name.toLowerCase().replace(/[^a-z0-9]/g, "");
-    for (const [candidate, value] of stats) {
+    for (const [candidate, value] of Array.from(stats.entries())) {
       if (candidate.includes(key) || key.includes(candidate)) return value;
     }
   }
