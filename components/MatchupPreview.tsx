@@ -200,6 +200,33 @@ function hasNumber(value: number | null | undefined) {
   return value != null && Number.isFinite(value);
 }
 
+function unitTier(rank: number | null | undefined) {
+  if (!hasNumber(rank)) return "Unranked";
+  const value = Math.round(Number(rank));
+  if (value <= 10) return "Elite";
+  if (value <= 25) return "Top 25";
+  if (value <= 50) return "Strong";
+  if (value <= 85) return "Middle";
+  return "Lower tier";
+}
+
+function unitSummary(name: string, unit: "offense" | "defense", rank: number | null | undefined) {
+  if (!hasNumber(rank)) return `${name} ${unit}: no unit rank available`;
+  return `${name} ${unit}: ${unitTier(rank)} (#${Math.round(Number(rank))})`;
+}
+
+function matchupUnitRead(offenseName: string, offenseRank: number | null | undefined, defenseName: string, defenseRank: number | null | undefined) {
+  if (!hasNumber(offenseRank) || !hasNumber(defenseRank)) {
+    return `${unitSummary(offenseName, "offense", offenseRank)} · ${unitSummary(defenseName, "defense", defenseRank)}`;
+  }
+  const off = Math.round(Number(offenseRank));
+  const def = Math.round(Number(defenseRank));
+  const gap = Math.abs(off - def);
+  const stronger = off < def ? `${offenseName} offense` : def < off ? `${defenseName} defense` : "The two units";
+  const comparison = gap < 8 ? "These units grade very similarly." : `${stronger} grades stronger by unit rank.`;
+  return `${unitSummary(offenseName, "offense", off)} · ${unitSummary(defenseName, "defense", def)}. ${comparison}`;
+}
+
 function advancedSourceLabel(away: TeamPreview, home: TeamPreview) {
   const source = `${away.advanced?.source || ""} ${home.advanced?.source || ""}`;
   if (source.includes("sportsdataverse") && source.includes("cfbd")) return "SportsDataverse / ESPN + CFBD";
@@ -244,43 +271,65 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
   const awayDefEfficiency = away.power?.defenseEfficiency ?? away.sp?.defense?.rating ?? null;
   const homeDefEfficiency = home.power?.defenseEfficiency ?? home.sp?.defense?.rating ?? null;
   const rank = (value: number | null | undefined) => hasNumber(value) ? `#${Math.round(Number(value))}` : "—";
+  const awayVsHome = matchupUnitRead(away.name, awayOffRank, home.name, homeDefRank);
+  const homeVsAway = matchupUnitRead(home.name, homeOffRank, away.name, awayDefRank);
 
   return <div className="matchup-tab-body">
+    <section className="matchup-advanced-guide">
+      <div className="matchup-advanced-guide-head">
+        <strong>QUICK MATCHUP READ</strong>
+        <span>#1 is best</span>
+      </div>
+      <div className="matchup-advanced-read">
+        <span>WHEN {away.name.toUpperCase()} HAS THE BALL</span>
+        <strong>{awayVsHome}</strong>
+      </div>
+      <div className="matchup-advanced-read">
+        <span>WHEN {home.name.toUpperCase()} HAS THE BALL</span>
+        <strong>{homeVsAway}</strong>
+      </div>
+      <div className="matchup-advanced-key">
+        <span><b>EPA / play</b> = value created on each snap</span>
+        <span><b>Success rate</b> = how often an offense stays on schedule</span>
+        <span><b>Havoc</b> = sacks, tackles for loss and other disruptive plays</span>
+        <span><b>Drive stop</b> = how often the defense ends a drive without points</span>
+      </div>
+    </section>
     <section className="matchup-comparison-block">
-      <div className="matchup-comparison-heading"><strong>OFFENSIVE EFFICIENCY</strong><span>{sourceLabel}</span></div>
-      <MetricRow label={efficiencyLabel} away={fmtSigned(efficiencyAway, 3)} home={fmtSigned(efficiencyHome, 3)} />
-      <MetricRow label="Success Rate" away={fmtPct(awayOffense?.successRate)} home={fmtPct(homeOffense?.successRate)} />
-      <MetricRow label="Pass EPA / Play" away={fmtSigned(awayOffense?.passEpaPerPlay, 3)} home={fmtSigned(homeOffense?.passEpaPerPlay, 3)} />
-      <MetricRow label="Rush EPA / Play" away={fmtSigned(awayOffense?.rushEpaPerPlay, 3)} home={fmtSigned(homeOffense?.rushEpaPerPlay, 3)} />
-      <MetricRow label="Pass Success" away={fmtPct(awayOffense?.passSuccessRate)} home={fmtPct(homeOffense?.passSuccessRate)} />
-      <MetricRow label="Rush Success" away={fmtPct(awayOffense?.rushSuccessRate)} home={fmtPct(homeOffense?.rushSuccessRate)} />
+      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>OFFENSIVE EFFICIENCY</strong><small>How consistently each offense creates value and stays on schedule.</small></div><span>{sourceLabel}</span></div>
+      <MetricRow label={useEpa ? "Value / Play (EPA)" : "Value / Play (PPA)"} away={fmtSigned(efficiencyAway, 3)} home={fmtSigned(efficiencyHome, 3)} />
+      <MetricRow label="Successful Plays" away={fmtPct(awayOffense?.successRate)} home={fmtPct(homeOffense?.successRate)} />
+      <MetricRow label="Pass Value / Play" away={fmtSigned(awayOffense?.passEpaPerPlay, 3)} home={fmtSigned(homeOffense?.passEpaPerPlay, 3)} />
+      <MetricRow label="Run Value / Play" away={fmtSigned(awayOffense?.rushEpaPerPlay, 3)} home={fmtSigned(homeOffense?.rushEpaPerPlay, 3)} />
+      <MetricRow label="Successful Pass Plays" away={fmtPct(awayOffense?.passSuccessRate)} home={fmtPct(homeOffense?.passSuccessRate)} />
+      <MetricRow label="Successful Run Plays" away={fmtPct(awayOffense?.rushSuccessRate)} home={fmtPct(homeOffense?.rushSuccessRate)} />
       <MetricRow label="Explosive Play Rate" away={fmtPct(awayOffense?.explosiveRate)} home={fmtPct(homeOffense?.explosiveRate)} />
       <MetricRow label="Yards / Play" away={fmt(awayOffense?.yardsPerPlay, 2)} home={fmt(homeOffense?.yardsPerPlay, 2)} />
-      <MetricRow label="Line Yards / Carry" away={fmt(awayOffense?.lineYardsPerCarry, 2)} home={fmt(homeOffense?.lineYardsPerCarry, 2)} />
+      <MetricRow label="OL Run Push / Carry" away={fmt(awayOffense?.lineYardsPerCarry, 2)} home={fmt(homeOffense?.lineYardsPerCarry, 2)} />
     </section>
 
     <section className="matchup-comparison-block">
-      <div className="matchup-comparison-heading"><strong>SITUATIONAL OFFENSE</strong><span>Down + field-state efficiency</span></div>
-      <MetricRow label="Early Down EPA / Play" away={fmtSigned(awayOffense?.earlyDownEpaPerPlay, 3)} home={fmtSigned(homeOffense?.earlyDownEpaPerPlay, 3)} />
-      <MetricRow label="Late Down EPA / Play" away={fmtSigned(awayOffense?.lateDownEpaPerPlay, 3)} home={fmtSigned(homeOffense?.lateDownEpaPerPlay, 3)} />
-      <MetricRow label="3rd Down Success" away={fmtPct(awayOffense?.thirdDownSuccessRate)} home={fmtPct(homeOffense?.thirdDownSuccessRate)} />
-      <MetricRow label="Red Zone Success" away={fmtPct(awayOffense?.redZoneSuccessRate)} home={fmtPct(homeOffense?.redZoneSuccessRate)} />
-      <MetricRow label="Power Run Success" away={fmtPct(awayOffense?.powerSuccessRate)} home={fmtPct(homeOffense?.powerSuccessRate)} />
-      <MetricRow label="Stuffed Rush Rate" away={fmtPct(awayOffense?.stuffRate)} home={fmtPct(homeOffense?.stuffRate)} />
+      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>SITUATIONAL OFFENSE</strong><small>How well the offense handles important downs and scoring chances.</small></div></div>
+      <MetricRow label="Early-Down Value / Play" away={fmtSigned(awayOffense?.earlyDownEpaPerPlay, 3)} home={fmtSigned(homeOffense?.earlyDownEpaPerPlay, 3)} />
+      <MetricRow label="Late-Down Value / Play" away={fmtSigned(awayOffense?.lateDownEpaPerPlay, 3)} home={fmtSigned(homeOffense?.lateDownEpaPerPlay, 3)} />
+      <MetricRow label="3rd-Down Success" away={fmtPct(awayOffense?.thirdDownSuccessRate)} home={fmtPct(homeOffense?.thirdDownSuccessRate)} />
+      <MetricRow label="Red-Zone Success" away={fmtPct(awayOffense?.redZoneSuccessRate)} home={fmtPct(homeOffense?.redZoneSuccessRate)} />
+      <MetricRow label="Short-Yardage Run Success" away={fmtPct(awayOffense?.powerSuccessRate)} home={fmtPct(homeOffense?.powerSuccessRate)} />
+      <MetricRow label="Runs Stopped at Line" away={fmtPct(awayOffense?.stuffRate)} home={fmtPct(homeOffense?.stuffRate)} />
       {(hasNumber(awayOffense?.pointsPerOpportunity) || hasNumber(homeOffense?.pointsPerOpportunity)) &&
         <MetricRow label="Pts / Opportunity" away={fmt(awayOffense?.pointsPerOpportunity, 2)} home={fmt(homeOffense?.pointsPerOpportunity, 2)} />}
     </section>
 
     <section className="matchup-comparison-block">
-      <div className="matchup-comparison-heading"><strong>DEFENSIVE EFFICIENCY</strong><span>Adjusted + FPI unit strength</span></div>
-      <MetricRow label="Adj Def EPA / Play" away={fmtSigned(away.power?.adjustedDefEpa, 3)} home={fmtSigned(home.power?.adjustedDefEpa, 3)} />
-      <MetricRow label="FPI Def Efficiency" away={fmt(awayDefEfficiency, 1)} home={fmt(homeDefEfficiency, 1)} />
+      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>DEFENSIVE EFFICIENCY</strong><small>Overall defensive strength. Use the rank for the fastest read.</small></div></div>
+      <MetricRow label="Adjusted Defense EPA" away={fmtSigned(away.power?.adjustedDefEpa, 3)} home={fmtSigned(home.power?.adjustedDefEpa, 3)} />
+      <MetricRow label="FPI Defense Rating" away={fmt(awayDefEfficiency, 1)} home={fmt(homeDefEfficiency, 1)} />
       <MetricRow label="Defense Rank" away={rank(awayDefRank)} home={rank(homeDefRank)} />
       <MetricRow label="Drive Stop Rate" away={fmtPct(awayDefense?.driveStoppedRate)} home={fmtPct(homeDefense?.driveStoppedRate)} />
     </section>
 
     <section className="matchup-comparison-block matchup-unit-comparison">
-      <div className="matchup-comparison-heading"><strong>{away.name.toUpperCase()} OFFENSE vs {home.name.toUpperCase()} DEFENSE</strong></div>
+      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>{away.name.toUpperCase()} OFFENSE vs {home.name.toUpperCase()} DEFENSE</strong><small>{awayVsHome}</small></div></div>
       <MetricRow label="Adj EPA / Play" away={fmtSigned(away.power?.adjustedOffEpa, 3)} home={fmtSigned(home.power?.adjustedDefEpa, 3)} />
       <MetricRow label="FPI Efficiency" away={fmt(awayOffEfficiency, 1)} home={fmt(homeDefEfficiency, 1)} />
       <MetricRow label="Unit Rank" away={rank(awayOffRank)} home={rank(homeDefRank)} />
@@ -288,7 +337,7 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
     </section>
 
     <section className="matchup-comparison-block matchup-unit-comparison">
-      <div className="matchup-comparison-heading"><strong>{home.name.toUpperCase()} OFFENSE vs {away.name.toUpperCase()} DEFENSE</strong></div>
+      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>{home.name.toUpperCase()} OFFENSE vs {away.name.toUpperCase()} DEFENSE</strong><small>{homeVsAway}</small></div></div>
       <MetricRow label="Adj EPA / Play" away={fmtSigned(home.power?.adjustedOffEpa, 3)} home={fmtSigned(away.power?.adjustedDefEpa, 3)} />
       <MetricRow label="FPI Efficiency" away={fmt(homeOffEfficiency, 1)} home={fmt(awayDefEfficiency, 1)} />
       <MetricRow label="Unit Rank" away={rank(homeOffRank)} home={rank(awayDefRank)} />
@@ -296,12 +345,12 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
     </section>
 
     <section className="matchup-comparison-block">
-      <div className="matchup-comparison-heading"><strong>DEFENSIVE DISRUPTION</strong><span>Pressure + drive-ending production</span></div>
+      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>DEFENSIVE DISRUPTION</strong><small>How often the defense creates negative plays or kills drives.</small></div></div>
       <MetricRow label="Havoc Rate" away={fmtPct(awayDefense?.havocRate)} home={fmtPct(homeDefense?.havocRate)} />
-      <MetricRow label="Pass Havoc" away={fmtPct(awayDefense?.passHavocRate)} home={fmtPct(homeDefense?.passHavocRate)} />
-      <MetricRow label="Rush Havoc" away={fmtPct(awayDefense?.rushHavocRate)} home={fmtPct(homeDefense?.rushHavocRate)} />
+      <MetricRow label="Passing-Play Havoc" away={fmtPct(awayDefense?.passHavocRate)} home={fmtPct(homeDefense?.passHavocRate)} />
+      <MetricRow label="Run-Play Havoc" away={fmtPct(awayDefense?.rushHavocRate)} home={fmtPct(homeDefense?.rushHavocRate)} />
       <MetricRow label="Sack Rate" away={fmtPct(awayDefense?.sackRate)} home={fmtPct(homeDefense?.sackRate)} />
-      <MetricRow label="TFL Rate" away={fmtPct(awayDefense?.tflRate)} home={fmtPct(homeDefense?.tflRate)} />
+      <MetricRow label="Tackle-for-Loss Rate" away={fmtPct(awayDefense?.tflRate)} home={fmtPct(homeDefense?.tflRate)} />
       <MetricRow label="Drive Stop Rate" away={fmtPct(awayDefense?.driveStoppedRate)} home={fmtPct(homeDefense?.driveStoppedRate)} />
       {(hasNumber(awayDefense?.frontSevenHavocRate) || hasNumber(homeDefense?.frontSevenHavocRate)) &&
         <MetricRow label="Front 7 Havoc" away={fmtPct(awayDefense?.frontSevenHavocRate)} home={fmtPct(homeDefense?.frontSevenHavocRate)} />}
@@ -309,7 +358,7 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
         <MetricRow label="DB Havoc" away={fmtPct(awayDefense?.dbHavocRate)} home={fmtPct(homeDefense?.dbHavocRate)} />}
     </section>
 
-    <p className="matchup-data-note">EPA is expected points added per play. Success rate is the share of plays graded successful by the underlying ESPN-derived model. Lower offensive stuffed-rush rate is better; higher defensive disruption rates are better.</p>
+    <p className="matchup-data-note">Quick rule: higher is generally better for offensive value, success and defensive disruption. For unit strength, use the rank first — #1 is best. Runs stopped at the line is better when lower for the offense.</p>
   </div>;
 }
 

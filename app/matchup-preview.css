@@ -732,3 +732,111 @@
 .matchup-unit-comparison .matchup-comparison-heading strong {
   line-height: 1.25;
 }
+
+
+.matchup-advanced-guide {
+  overflow: hidden;
+  margin-bottom: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  background: #fff;
+}
+
+.matchup-advanced-guide-head {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 11px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.matchup-advanced-guide-head strong {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .04em;
+}
+
+.matchup-advanced-guide-head span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.matchup-advanced-read {
+  display: grid;
+  gap: 3px;
+  padding: 10px 11px;
+  border-bottom: 1px solid var(--line);
+}
+
+.matchup-advanced-read > span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .03em;
+}
+
+.matchup-advanced-read > strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.matchup-advanced-key {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 12px;
+  padding: 10px 11px;
+  background: #f8f8f5;
+}
+
+.matchup-advanced-key span {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.matchup-advanced-key b {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.matchup-explained-heading {
+  height: auto;
+  min-height: 42px;
+  padding-block: 6px;
+}
+
+.matchup-explained-heading > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.matchup-explained-heading > div > small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+@media (max-width: 680px) {
+  .matchup-advanced-key {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .matchup-advanced-read > strong {
+    font-size: 12px;
+  }
+
+  .matchup-explained-heading > div > small {
+    font-size: 10px;
+  }
+}
