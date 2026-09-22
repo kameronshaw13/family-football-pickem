@@ -164,6 +164,7 @@ export async function GET(req: NextRequest) {
       sideBetSlotCounts: sideBetSlotCountsByPlayer,
       sideBetBankTotals,
       week,
+      currentWeek: defaultWeek,
       weekRule: getGroupWeekRule(context, week),
       weekOpenTime: weekOpen ? weekOpen.toISOString() : null,
       availableWeeks: standingsWeeks
