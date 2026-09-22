@@ -35,8 +35,7 @@ export function sideBetRiskForUser(
   userId: string
 ) {
   if (bet.creator_id === userId) return Math.round(Number(bet.amount) * 100) / 100;
-  if (bet.accepted_by === userId) return sideBetCreatorProfit(bet);
-  return Math.round(Number(bet.amount) * 100) / 100;
+  return sideBetCreatorProfit(bet);
 }
 
 export function sideBetProfitForUser(
@@ -44,7 +43,6 @@ export function sideBetProfitForUser(
   userId: string
 ) {
   if (bet.creator_id === userId) return sideBetCreatorProfit(bet);
-  if (bet.accepted_by === userId) return Math.round(Number(bet.amount) * 100) / 100;
   return Math.round(Number(bet.amount) * 100) / 100;
 }
 
