@@ -7,6 +7,7 @@ import { MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimit
 import { americanOddsText, oppositeAmericanOdds, profitForRisk, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
+import type { BankHistoryWeek } from "@/lib/bankHistory";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
 import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, POWER_CONFERENCES } from "@/lib/cfbConferences";
 import MenuSelect from "@/components/MenuSelect";
@@ -75,6 +76,7 @@ type AppData = {
   weeklyStandingsByWeek: Record<string, Standing[]>;
   bankSettings: BankSettings;
   bankEntries: BankEntry[];
+  bankHistory: BankHistoryWeek[];
   sideBets: SideBet[];
   sideBetLedger: SideBet[];
   sideBetSlotCounts: Record<string, number>;
@@ -1608,6 +1610,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const viewedPicks = previewActive ? testWeek!.picks : picks;
   const viewedWeek = previewActive ? 3 : data.week;
   const viewedBankEntries = previewActive ? testWeek!.bankEntries : bankEntries;
+  const viewedBankHistory = previewActive ? [] : data.bankHistory || [];
   const rule = previewActive ? getWeekRule(3) : data.weekRule || getWeekRule(data.week);
   const boardActive = tab === "picks" && picksView === "board";
   const sideBetsActive = tab === "picks" && picksView === "sideBets";
@@ -1976,6 +1979,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             <div className="bank-summary-head"><span>Player</span><span>Balance</span></div>
             {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}><NumericText text={money(row.total)} /></strong></div>)}
           </div>
+          {!previewActive && <div className="subsection bank-section bank-history-section">
+            <div className="standings-heading-row"><h2>Bank History</h2></div>
+            <BankHistoryList weeks={viewedBankHistory} profiles={profiles} currentUserId={currentUser.id} />
+          </div>}
           <div className="subsection bank-section bank-week-section">
             <div className="standings-heading-row">
               <h2>{previewActive ? "Test Weekly Results" : "Weekly Results"}</h2>
@@ -2026,6 +2033,56 @@ function ConferenceFilter({ value, onChange }: { value: string; onChange: (value
 function RankNumber({ rank, className }: { rank: number; className: string }) {
   const labels: Record<number, string> = { 1: "First place", 2: "Second place", 3: "Third place" };
   return <span className={`${className} rank-${rank}`} aria-label={labels[rank]}>{rank}</span>;
+}
+
+function BankHistoryAmounts({ amounts, profiles, currentUserId }: { amounts: Record<string, number>; profiles: Profile[]; currentUserId: string }) {
+  const ordered = [
+    ...profiles.filter((profile) => profile.id === currentUserId),
+    ...profiles.filter((profile) => profile.id !== currentUserId)
+  ].filter((profile) => Object.prototype.hasOwnProperty.call(amounts, profile.id));
+
+  return <div className="bank-history-amounts">{ordered.map((profile) => {
+    const amount = Number(amounts[profile.id] || 0);
+    return <div className="bank-history-player-row" key={profile.id}>
+      <span>{profile.id === currentUserId ? "You" : profile.display_name}</span>
+      <strong className={amount > 0 ? "money-pos" : amount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(amount)} /></strong>
+    </div>;
+  })}</div>;
+}
+
+function BankHistoryList({ weeks, profiles, currentUserId }: { weeks: BankHistoryWeek[]; profiles: Profile[]; currentUserId: string }) {
+  if (!weeks.length) return <div className="bank-history-list"><p className="muted bank-history-empty">No bank history yet.</p></div>;
+
+  return <div className="bank-history-list">{weeks.map((week) => {
+    const weeklyPlayers = Object.keys(week.weeklyAmounts || {}).length;
+    const entryCount = week.games.length + (weeklyPlayers ? 1 : 0);
+    return <details className="bank-history-week" key={week.week}>
+      <summary>
+        <strong>Week <NumericText text={String(week.week)} /></strong>
+        <span><NumericText text={`${entryCount} ${entryCount === 1 ? "entry" : "entries"}`} /></span>
+        <ChevronDown size={16} />
+      </summary>
+      <div className="bank-history-week-body">
+        {weeklyPlayers > 0 && <section className="bank-history-event">
+          <div className="bank-history-event-head"><strong>Weekly Pick’em</strong><span>Weekly result</span></div>
+          <BankHistoryAmounts amounts={week.weeklyAmounts} profiles={profiles} currentUserId={currentUserId} />
+        </section>}
+        {week.games.map((game) => {
+          const awayFull = teamDisplayName(game.league, game.awayTeam);
+          const homeFull = teamDisplayName(game.league, game.homeTeam);
+          const awayCompact = teamAbbreviatedName(game.league, game.awayTeam);
+          const homeCompact = teamAbbreviatedName(game.league, game.homeTeam);
+          return <section className="bank-history-event" key={game.gameId}>
+            <div className="bank-history-event-head">
+              <strong><ResponsiveText full={`${awayFull} at ${homeFull}`} compact={`${awayCompact} at ${homeCompact}`} /></strong>
+              <span><NumericText text={`${game.betCount} ${game.betCount === 1 ? "bet" : "bets"}`} /></span>
+            </div>
+            <BankHistoryAmounts amounts={game.amounts} profiles={profiles} currentUserId={currentUserId} />
+          </section>;
+        })}
+      </div>
+    </details>;
+  })}</div>;
 }
 
 function BankWeekResults({ rows, picks, games, amounts, pointsMode, universalLockReached }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null>; pointsMode: boolean; universalLockReached: boolean }) {
