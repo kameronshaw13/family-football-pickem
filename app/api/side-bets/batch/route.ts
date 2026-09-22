@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
         game,
         creatorTeam: selection.creatorTeam,
         offeredTeam: selection.creatorTeam === game.home_team ? game.away_team : game.home_team,
-        creatorSpread
+        creatorSpread: Number(creatorSpread ?? 0)
       });
     }
 
