@@ -28,6 +28,7 @@ type PicksView = "board" | "sideBets";
 type CardView = "mine" | "group";
 type StandingsView = "standings" | "bank";
 type BetView = "offers" | "new";
+type SideBetLeagueFilter = "CFB" | "NFL";
 type SideBetLedgerScope = "all" | "mine";
 type GameStatusFilter = "OPEN" | "LOCKED" | "FINAL";
 type LeagueFilter = "CFB" | "NFL" | "DOGS";
@@ -1060,6 +1061,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [betCreatorTeam, setBetCreatorTeam] = useState("");
   const [betAmount, setBetAmount] = useState("20");
   const [betRecipients, setBetRecipients] = useState<string[]>([]);
+  const [betLeagueFilter, setBetLeagueFilter] = useState<SideBetLeagueFilter>("CFB");
+  const [betConferenceFilter, setBetConferenceFilter] = useState("ALL");
   const [toast, setToast] = useState<Toast>(null);
   const [testWeekActive, setTestWeekActive] = useState(false);
   const [notificationCounts, setNotificationCounts] = useState<NotificationCounts>(EMPTY_NOTIFICATION_COUNTS);
@@ -1893,6 +1896,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           weekConcluded={weekConcluded}
           weekOpenTime={data.weekOpenTime}
           openGames={openBetGames}
+          gameLeague={betLeagueFilter}
+          gameConference={betConferenceFilter}
           selectedGame={selectedBetGame}
           selectedCreatorTeam={selectedCreatorTeam}
           amount={betAmount}
@@ -1901,6 +1906,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           savingBetId={savingBetId}
           offerNotificationCount={receivedNotificationCount + sentNotificationCount}
           setGame={(gameId) => { setBetGameId(gameId); setBetCreatorTeam(""); }}
+          setGameLeague={(nextLeague) => { setBetLeagueFilter(nextLeague); setBetConferenceFilter("ALL"); setBetGameId(""); setBetCreatorTeam(""); }}
+          setGameConference={(nextConference) => { setBetConferenceFilter(nextConference); setBetGameId(""); setBetCreatorTeam(""); }}
           setCreatorTeam={setBetCreatorTeam}
           setAmount={setBetAmount}
           toggleRecipient={toggleBetRecipient}
@@ -2226,7 +2233,7 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, openGames, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
@@ -2240,6 +2247,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   weekConcluded: boolean;
   weekOpenTime: string | null;
   openGames: Game[];
+  gameLeague: SideBetLeagueFilter;
+  gameConference: string;
   selectedGame?: Game;
   selectedCreatorTeam: string;
   amount: string;
@@ -2248,6 +2257,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   savingBetId: string | null;
   offerNotificationCount: number;
   setGame: (value: string) => void;
+  setGameLeague: (value: SideBetLeagueFilter) => void;
+  setGameConference: (value: string) => void;
   setCreatorTeam: (value: string) => void;
   setAmount: (value: string) => void;
   toggleRecipient: (value: string) => void;
@@ -2286,7 +2297,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const slotCount = slotCounts[currentUser.id] || 0;
   const weeklyLimit = maxPerWeek == null ? Infinity : maxPerWeek;
   const limitReached = Number.isFinite(weeklyLimit) && slotCount >= weeklyLimit;
-  const filteredOpenGames = [...openGames]
+  const filteredOpenGames = openGames
+    .filter((game) => game.league === gameLeague && (gameLeague === "NFL" || gameConference === "ALL" || gameConferences(game).includes(gameConference)))
     .sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
   const sideBetGameGroups = filteredOpenGames.reduce<Array<{ key: string; label: string; shortDay: string; games: Game[] }>>((groups, game) => {
     const key = gameDayKey(game.commence_time);
@@ -2401,8 +2413,22 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   }
 
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
-    <div className={`view-select-row side-bet-filter-row ${view === "new" ? "make-offer" : ""}`.trim()}>
+    <div className={`view-select-row side-bet-filter-row ${view === "new" && weekIsOpen && !weekConcluded ? "make-offer" : ""}`.trim()}>
       <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "offers", label: "Offers", badge: offerNotificationCount }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => { setSlipExpanded(false); setView(value as BetView); }} />
+      {view === "new" && weekIsOpen && !weekConcluded && <MenuSelect
+        ariaLabel="Filter side bet games by league"
+        className="compact-select"
+        value={gameLeague}
+        sections={[{ options: [{ value: "CFB", label: "CFB" }, { value: "NFL", label: "NFL" }] }]}
+        onChange={(value) => { setSlipExpanded(false); setGameLeague(value as SideBetLeagueFilter); }}
+      />}
+      {view === "new" && weekIsOpen && !weekConcluded && gameLeague === "CFB" && <MenuSelect
+        ariaLabel="Filter side bet games by conference"
+        className="compact-select context-select"
+        value={gameConference}
+        sections={conferenceFilterSections("ALL CONF.")}
+        onChange={(value) => { setSlipExpanded(false); setGameConference(value); }}
+      />}
     </div>
 
     {view === "new" && weekConcluded && <div className="side-bet-sportsbook-board"><div className="empty-state side-bet-empty-state">This week has concluded.</div></div>}
