@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, LoaderCircle, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { teamDisplayName } from "@/lib/teamNames";
@@ -200,7 +201,7 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
       <MetricRow label="DB Havoc" away={fmtPct(advancedMetric(awayDefense, ["havoc", "db"]))} home={fmtPct(advancedMetric(homeDefense, ["havoc", "db"]))} />
       <MetricRow label="Stuff Rate" away={fmtPct(advancedMetric(awayDefense, ["stuffRate"]))} home={fmtPct(advancedMetric(homeDefense, ["stuffRate"]))} />
     </section>
-  </div>;
+  </div>, document.body);
 }
 
 function RecentTeam({ game, side, team }: { game: Game; side: "away" | "home"; team: TeamPreview }) {
@@ -230,11 +231,17 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
   const [payload, setPayload] = useState<PreviewPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [mounted, setMounted] = useState(false);
 
   const awayName = teamDisplayName("CFB", game.away_team);
   const homeName = teamDisplayName("CFB", game.home_team);
   const awaySpread = normalizeSpreadForSelectedTeam(game.away_team, game.current_spread_team, game.current_spread);
   const homeSpread = normalizeSpreadForSelectedTeam(game.home_team, game.current_spread_team, game.current_spread);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -315,12 +322,13 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
     ["history", "History"]
   ] as Array<[PreviewTab, string]>), []);
 
-  return <div className="matchup-preview-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section className="matchup-preview-sheet" role="dialog" aria-modal="true" aria-label={`${awayName} at ${homeName} matchup preview`}>
+  if (!mounted) return null;
+
+  return createPortal(<div className="matchup-preview-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="matchup-preview-sheet" role="dialog" aria-modal="true" aria-label={`${awayName} at ${homeName} matchup preview`} onMouseDown={(event) => event.stopPropagation()}>
       <header className="matchup-preview-header">
-        <button type="button" className="matchup-preview-back" onClick={onClose} aria-label="Close matchup preview"><ChevronLeft size={19} /></button>
         <div><span>CFB MATCHUP PREVIEW</span><strong>Week {game.week}</strong></div>
-        <button type="button" className="matchup-preview-close" onClick={onClose} aria-label="Close matchup preview"><X size={18} /></button>
+        <button type="button" className="matchup-preview-close" onClick={onClose} aria-label="Close matchup preview"><X size={20} /></button>
       </header>
 
       <div className="matchup-preview-hero">
