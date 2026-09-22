@@ -34,6 +34,7 @@ type PreparedSport = {
   sport: string;
   eventsReturned: number;
   scheduleMatched: number;
+  eligibleEvents: number;
   spreadGames: any[];
   frozenGames: any[];
   snapshots: any[];
@@ -193,29 +194,41 @@ async function refreshOdds() {
 
       const returned = (await oddsResponse.json()) as OddsEvent[];
       const schedule = await fetchEspnSchedule(sport.league, returned.map((event) => event.commence_time));
+      let scheduleMatched = 0;
       const data = returned.flatMap((event) => {
-        // College imports must match both schools. Kickoff time plus one matching
-        // school is not enough: Northern Iowa can otherwise be mistaken for Iowa.
+        // Prefer ESPN's canonical identity when it is present, but do not let an
+        // incomplete ESPN date scoreboard erase legitimate CFB games that already
+        // have sportsbook lines. The Odds API is the source of truth for the betting
+        // slate; ESPN is enrichment for IDs, kickoff normalization and logos.
         const scheduleMatch = findEspnScheduleMatch(event, schedule, {
           allowOneSided: sport.league === "NFL"
         });
-        if (!scheduleMatch) return [];
-        const officialHomeName = scheduleMatch.swapped ? event.away_team : event.home_team;
-        const officialAwayName = scheduleMatch.swapped ? event.home_team : event.away_team;
+        if (scheduleMatch) scheduleMatched += 1;
+        if (!scheduleMatch && sport.league === "NFL") return [];
+
+        const officialHomeName = scheduleMatch?.swapped ? event.away_team : event.home_team;
+        const officialAwayName = scheduleMatch?.swapped ? event.home_team : event.away_team;
+        const commenceTime = scheduleMatch
+          ? resolveEspnCommenceTime(scheduleMatch, event.commence_time)
+          : event.commence_time;
+        const homeLogoUrl = scheduleMatch?.game.homeTeam.logoUrl || findEspnLogo(officialHomeName, logoMap);
+        const awayLogoUrl = scheduleMatch?.game.awayTeam.logoUrl || findEspnLogo(officialAwayName, logoMap);
         const officialGame = {
           event,
           scheduleMatch,
-          commenceTime: resolveEspnCommenceTime(scheduleMatch, event.commence_time),
+          commenceTime,
           homeTeam: officialHomeName,
-          awayTeam: officialAwayName
+          awayTeam: officialAwayName,
+          homeLogoUrl,
+          awayLogoUrl
         };
         return isEligibleSeasonGame({
           league: sport.league,
           commence_time: officialGame.commenceTime,
           home_team: officialGame.homeTeam,
           away_team: officialGame.awayTeam,
-          home_logo_url: scheduleMatch.game.homeTeam.logoUrl,
-          away_logo_url: scheduleMatch.game.awayTeam.logoUrl
+          home_logo_url: homeLogoUrl,
+          away_logo_url: awayLogoUrl
         }) ? [officialGame] : [];
       });
 
@@ -229,8 +242,8 @@ async function refreshOdds() {
         const week = getFootballWeek(official.commenceTime);
         const lockTime = getGameLockTime(official.commenceTime).toISOString();
         const spreadFreezeTime = getSpreadFreezeTime(official.commenceTime).toISOString();
-        const espnEventId = scheduleMatch.game.id;
-        const canonicalGameId = canonicalGameIdByEspnId.get(espnEventId) || event.id;
+        const espnEventId = scheduleMatch?.game.id || null;
+        const canonicalGameId = espnEventId ? (canonicalGameIdByEspnId.get(espnEventId) || event.id) : event.id;
         if (espnEventId && !canonicalGameIdByEspnId.has(espnEventId)) {
           canonicalGameIdByEspnId.set(espnEventId, canonicalGameId);
         }
@@ -244,8 +257,8 @@ async function refreshOdds() {
           commence_time: official.commenceTime,
           home_team: official.homeTeam,
           away_team: official.awayTeam,
-          home_logo_url: scheduleMatch.game.homeTeam.logoUrl || findEspnLogo(official.homeTeam, logoMap),
-          away_logo_url: scheduleMatch.game.awayTeam.logoUrl || findEspnLogo(official.awayTeam, logoMap),
+          home_logo_url: official.homeLogoUrl,
+          away_logo_url: official.awayLogoUrl,
           lock_time: lockTime,
           is_locked: now >= new Date(lockTime),
           updated_at: now.toISOString()
@@ -267,7 +280,7 @@ async function refreshOdds() {
             bookmaker: spread.bookmaker,
             raw: {
               ...event,
-              official_schedule_id: scheduleMatch.game.id,
+              official_schedule_id: espnEventId,
               official_commence_time: official.commenceTime,
               spread_freeze_time: spreadFreezeTime
             }
@@ -280,7 +293,8 @@ async function refreshOdds() {
       return {
         sport: sport.key,
         eventsReturned: returned.length,
-        scheduleMatched: data.length,
+        scheduleMatched,
+        eligibleEvents: data.length,
         spreadGames,
         frozenGames,
         snapshots
@@ -329,7 +343,7 @@ async function refreshOdds() {
       sport: result.sport,
       eventsReturned: result.eventsReturned,
       scheduleMatched: result.scheduleMatched,
-      eventsImported: result.scheduleMatched,
+      eventsImported: result.eligibleEvents,
       spreadsUpdated: result.spreadGames.length
     }));
 
