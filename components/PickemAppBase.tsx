@@ -1042,6 +1042,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [statusFilterTouched, setStatusFilterTouched] = useState(false);
   const [data, setData] = useState<AppData | null>(null);
   const [matchupPreviewGame, setMatchupPreviewGame] = useState<Game | null>(null);
+  const closeMatchupPreview = useCallback(() => setMatchupPreviewGame(null), []);
   const [week, setWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -2002,7 +2003,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         </div>
       </section>}
     </main>
-    {matchupPreviewGame && <MatchupPreview game={matchupPreviewGame} onClose={() => setMatchupPreviewGame(null)} />}
+    {matchupPreviewGame && <MatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} />}
     {!previewActive && stagedPicks !== null && autosaveBlockedSignatureRef.current !== pickCardSignature(stagedPicks) && !toast && <div className="autosave-toast" role="status" aria-live="polite"><LoaderCircle size={18} /><span>Saving…</span></div>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span><NumericText text={toast.message} /></span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
   </div>;
