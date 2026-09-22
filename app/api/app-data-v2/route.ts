@@ -5,6 +5,7 @@ import { getGroupGameLockTime, getGroupPickWeekOpenTime, getGroupSideBetSettings
 import { computeGroupStandings } from "@/lib/groupScoring";
 import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { sideBetSlotCounts } from "@/lib/sideBetLimits";
+import { buildBankHistory } from "@/lib/bankHistory";
 import { sideBetCreatorProfit } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
@@ -119,6 +120,7 @@ export async function GET(req: NextRequest) {
       sideBetBankTotals[bet.winner_id] = Number(sideBetBankTotals[bet.winner_id] || 0) + transfer;
       sideBetBankTotals[loserId] = Number(sideBetBankTotals[loserId] || 0) - transfer;
     }
+    const bankHistory = buildBankHistory(bankResult.data || [], allSideBets);
     const weeklyBank = context.rules?.weeklyBank || {};
     const moneyAdmin = context.group.slug === "other-family"
       ? context.members.find((member) => member.display_name.toLowerCase() === "caleb") || null
@@ -156,6 +158,7 @@ export async function GET(req: NextRequest) {
         managerName: moneyAdmin?.display_name || null
       },
       bankEntries: bankResult.data || [],
+      bankHistory,
       sideBets,
       sideBetLedger,
       sideBetSlotCounts: sideBetSlotCountsByPlayer,
