@@ -83,6 +83,7 @@ type AppData = {
   sideBetSlotCounts: Record<string, number>;
   sideBetBankTotals: Record<string, number>;
   week: number;
+  currentWeek?: number;
   weekRule: WeekRule;
   weekOpenTime: string | null;
   availableWeeks: number[];
@@ -1612,11 +1613,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const viewedGames = previewActive ? testWeek!.games : games;
   const viewedPicks = previewActive ? testWeek!.picks : picks;
   const viewedWeek = previewActive ? 3 : data.week;
-  const weekConcluded = !previewActive && viewedGames.length > 0 && viewedGames.every((game) => {
-    if (game.live_completed || (game.final_home_score != null && game.final_away_score != null)) return true;
-    const kickoff = new Date(game.commence_time).getTime();
-    return Number.isFinite(kickoff) && kickoff + 6 * 60 * 60 * 1000 < clock;
-  });
+  const currentWeek = Number(data.currentWeek ?? data.week);
+  const weekConcluded = !previewActive && Number(data.week) < currentWeek;
+  const weekNotOpenYet = !previewActive && Number(data.week) > currentWeek;
   const viewedBankEntries = previewActive ? testWeek!.bankEntries : bankEntries;
   const viewedBankHistory = previewActive ? [] : data.bankHistory || [];
   const rule = previewActive ? getWeekRule(3) : data.weekRule || getWeekRule(data.week);
@@ -1656,7 +1655,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     const entries = viewedBankEntries.filter((entry) => entry.week === bankResultWeek && entry.user_id === profile.id);
     return [profile.id, entries.length ? entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : null];
   })) : {};
-  const weekIsOpen = !previewActive && (!data.weekOpenTime || new Date(data.weekOpenTime) <= new Date());
+  const weekIsOpen = !previewActive && !weekNotOpenYet && (!data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock);
   const receivedNotificationCount = previewActive ? 1 : notificationCounts.side_bets_received;
   const sentNotificationCount = previewActive ? 1 : notificationCounts.side_bets_sent;
   const myCardNotificationCount = previewActive ? 1 : notificationCounts.my_card;
@@ -1891,6 +1890,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           manualAmount={Boolean(data.sideBetSettings?.manualAmount)}
           weekIsOpen={weekIsOpen}
           weekConcluded={weekConcluded}
+          weekOpenTime={data.weekOpenTime}
           openGames={openBetGames}
           selectedGame={selectedBetGame}
           selectedCreatorTeam={selectedCreatorTeam}
@@ -2225,7 +2225,7 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, openGames, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, openGames, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
@@ -2237,6 +2237,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   manualAmount: boolean;
   weekIsOpen: boolean;
   weekConcluded: boolean;
+  weekOpenTime: string | null;
   openGames: Game[];
   selectedGame?: Game;
   selectedCreatorTeam: string;
@@ -2405,7 +2406,9 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
     {view === "new" && weekConcluded && <div className="side-bet-sportsbook-board"><div className="empty-state side-bet-empty-state">This week has concluded.</div></div>}
 
-    {view === "new" && !weekConcluded && <div className="side-bet-sportsbook-board">
+    {view === "new" && !weekConcluded && !weekIsOpen && <div className="side-bet-sportsbook-board"><div className="empty-state side-bet-empty-state">{weekOpenTime ? <>This week opens on <NumericText text={openText(weekOpenTime)} />.</> : "This week is not open yet."}</div></div>}
+
+    {view === "new" && !weekConcluded && weekIsOpen && <div className="side-bet-sportsbook-board">
       {limitReached && <div className="empty-state side-bet-empty-state"><NumericText text={`Your ${weeklyLimit} side bet slots are accepted or pending this week.`} /></div>}
       {!limitReached && openGames.length === 0 && <div className="empty-state side-bet-empty-state">No games with a spread are available before kickoff.</div>}
       {!limitReached && openGames.length > 0 && filteredOpenGames.length === 0 && <div className="empty-state side-bet-empty-state">No available games.</div>}
