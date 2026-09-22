@@ -10,6 +10,7 @@ export type BankHistoryGame = {
   betCount: number;
   betCounts: Record<string, number>;
   amounts: Record<string, number>;
+  winningSelections: Array<{ team: string; spread: number; marketType: "spread" | "moneyline" }>;
 };
 
 export type BankHistoryWeek = {
@@ -79,13 +80,27 @@ export function buildBankHistory(bankEntries: BankEntry[], sideBets: HistorySide
         homeTeam: String(bet.game?.home_team || bet.creator_team || ""),
         betCount: 0,
         betCounts: {},
-        amounts: {}
+        amounts: {},
+        winningSelections: []
       };
       games.set(bet.game_id, game);
       row.games.push(game);
     }
 
     game.betCount += 1;
+    const creatorWon = bet.winner_id === bet.creator_id;
+    const winningTeam = creatorWon ? bet.creator_team : bet.offered_team;
+    const rawWinningSpread = Number(creatorWon ? bet.creator_spread : bet.offered_spread);
+    const winningSelection = {
+      team: winningTeam,
+      spread: Number.isFinite(rawWinningSpread) ? rawWinningSpread : 0,
+      marketType: bet.market_type === "moneyline" ? "moneyline" as const : "spread" as const
+    };
+    if (!game.winningSelections.some((selection) =>
+      selection.team === winningSelection.team &&
+      selection.spread === winningSelection.spread &&
+      selection.marketType === winningSelection.marketType
+    )) game.winningSelections.push(winningSelection);
     game.betCounts[bet.creator_id] = Number(game.betCounts[bet.creator_id] || 0) + 1;
     game.betCounts[bet.accepted_by] = Number(game.betCounts[bet.accepted_by] || 0) + 1;
     addAmount(game.amounts, bet.winner_id, transfer);
