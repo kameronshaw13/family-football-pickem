@@ -2510,7 +2510,7 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   const matchup = game
     ? bet.market_type === "moneyline"
       ? matchupTextVariants(game, { suffix: ` · ${displayTeamName(game, displayTeam)} ${market}` })
-      : matchupTextVariants(game, { spreadTeam: displayTeam, spread: displaySpread, suffix: ` ${americanOddsText(displayTeam === bet.creator_team ? Number(bet.creator_odds ?? 100) : oppositeAmericanOdds(Number(bet.creator_odds ?? 100)))}` })
+      : matchupTextVariants(game, { spreadTeam: displayTeam, spread: displaySpread, suffix: ` · ${americanOddsText(displayTeam === bet.creator_team ? Number(bet.creator_odds ?? 100) : oppositeAmericanOdds(Number(bet.creator_odds ?? 100)))}` })
     : { full: `${displayTeam} ${market} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}`, intermediate: undefined, compact: `${displayTeam} ${market} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}` };
   const winner = bet.winner_id === creator.id ? creator : bet.winner_id === acceptor.id ? acceptor : null;
   const status = bet.status === "accepted" ? "" : bet.result === "push" ? "Push" : winner ? `${displayPerson(winner)} Won` : "Settled";
