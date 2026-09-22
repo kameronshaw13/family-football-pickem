@@ -70,7 +70,9 @@ type CfbdMatchup = {
 
 function sameTeam(a: string | null | undefined, b: string | null | undefined) {
   if (!a || !b) return false;
-  return normalizeTeamNameKey(a) === normalizeTeamNameKey(b);
+  const aSchool = teamDisplayName("CFB", a);
+  const bSchool = teamDisplayName("CFB", b);
+  return normalizeTeamNameKey(aSchool) === normalizeTeamNameKey(bSchool);
 }
 
 function finiteNumber(value: unknown) {
