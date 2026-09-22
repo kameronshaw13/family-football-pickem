@@ -30,6 +30,9 @@ test("aggregates multiple side bets on the same game by player", () => {
   assert.equal(history.length, 1);
   assert.equal(history[0].games.length, 1);
   assert.equal(history[0].games[0].betCount, 2);
+  assert.equal(history[0].games[0].betCounts.kam, 2);
+  assert.equal(history[0].games[0].betCounts.dad, 1);
+  assert.equal(history[0].games[0].betCounts.bro, 1);
   assert.equal(history[0].games[0].amounts.kam, 40);
   assert.equal(history[0].games[0].amounts.dad, -20);
   assert.equal(history[0].games[0].amounts.bro, -20);
