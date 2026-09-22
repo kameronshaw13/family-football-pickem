@@ -767,7 +767,7 @@ function sideBetAmountForUser(bet: SideBet, userId: string) {
   };
 }
 
-function sideBetMarketText(marketType: SideBetMarketType, spread: number | null, odds: number) {
+function sideBetMarketText(marketType: SideBetMarketType | undefined, spread: number | null, odds: number) {
   const base = marketType === "moneyline" ? "ML" : spreadText(spread);
   return odds === 100 ? base : `${base} · ${americanOddsText(odds)}`;
 }
