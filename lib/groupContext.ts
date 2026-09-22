@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game, WeekRule } from "@/lib/types";
-import { getGameLockTime, getSpreadFreezeTime } from "@/lib/lockRules";
+import { getGameLockTime, getPickWeekOpenTime, getSpreadFreezeTime } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
 
 export const DEFAULT_GROUP_SLUG = "shaw-family";
@@ -152,6 +152,16 @@ export function getGroupSideBetSettings(context: GroupContext) {
     maxAmount: Number.isFinite(maxAmount) ? maxAmount : Infinity,
     maxPerWeek: Number.isFinite(maxPerWeek) ? maxPerWeek : Infinity
   };
+}
+
+export function getGroupPickWeekOpenTime(context: GroupContext, week: number, commenceTimes: string[]) {
+  const override = context.rules?.weekOpenOverrides?.[String(week)];
+  if (override === "open") return null;
+  if (typeof override === "string") {
+    const parsed = new Date(override);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return getPickWeekOpenTime(week, commenceTimes, context.group.timezone);
 }
 
 export function getGroupGameLockTime(context: GroupContext, commenceTimeIso: string) {
