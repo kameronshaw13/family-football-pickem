@@ -2330,7 +2330,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
     {view === "new" && selectedGame && selectedCreatorTeam && !slipExpanded && <button className="side-bet-slip-bar" type="button" aria-expanded="false" onClick={() => setSlipExpanded(true)}>
       <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
-      <span className="side-bet-slip-copy"><ResponsiveTeamName game={selectedGame} team={selectedCreatorTeam} className="team-name" /><span className="team-spread"><NumericText text={spreadText(creatorSpread)} /></span></span>
+      <span className="side-bet-slip-copy"><ResponsiveTeamName game={selectedGame} team={selectedCreatorTeam} className="team-name" /><span className="team-spread"><NumericText text={selectedMarketText} /></span></span>
       <span className="side-bet-slip-open"><ChevronUp size={17} /></span>
     </button>}
 
@@ -2342,13 +2342,31 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
         <div className="team-row side-bet-slip-selection">
           <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
-          <span className="side-bet-slip-team-choice"><ResponsiveTeamName game={selectedGame} team={selectedCreatorTeam} className="team-name" /><span className="team-spread"><NumericText text={spreadText(creatorSpread)} /></span></span>
+          <span className="side-bet-slip-team-choice"><ResponsiveTeamName game={selectedGame} team={selectedCreatorTeam} className="team-name" /><span className="team-spread"><NumericText text={selectedMarketText} /></span></span>
           <button type="button" className="slip-icon-btn side-bet-selection-clear" aria-label="Clear selected team" onClick={clearSlip}><X size={18} /></button>
         </div>
 
+        <section className="side-bet-slip-section side-bet-market-section">
+          <div className="side-bet-slip-section-head"><span>Market</span></div>
+          <div className="side-bet-market-toggle" role="group" aria-label="Side bet market">
+            <button type="button" className={marketType === "spread" ? "active" : ""} aria-pressed={marketType === "spread"} onClick={() => setMarketType("spread")}>Spread</button>
+            <button type="button" className={marketType === "moneyline" ? "active" : ""} aria-pressed={marketType === "moneyline"} onClick={() => setMarketType("moneyline")}>Moneyline</button>
+          </div>
+          <div className="side-bet-market-fields">
+            {marketType === "spread" && <label><span>Spread</span><input className="side-bet-spread-input" type="number" step="0.5" value={customSpread} onChange={(event) => setCustomSpread(event.target.value)} /></label>}
+            <label><span>American odds</span><input className="side-bet-odds-input" type="number" step="1" value={oddsInput} onChange={(event) => setOddsInput(event.target.value)} /></label>
+          </div>
+          {!validAmericanOdds(creatorOdds) && <p className="side-bet-field-error">Use odds of -100 or lower, or +100 or higher.</p>}
+        </section>
+
         <section className="side-bet-slip-section">
-          <div className="side-bet-slip-section-head"><span>Amount</span></div>
-          <div className="side-bet-amount-grid">{["20", "15", "10", "5"].map((value) => <button type="button" key={value} className={amount === value ? "active" : ""} aria-pressed={amount === value} onClick={() => setAmount(value)}><NumericText text={`$${value}`} /></button>)}</div>
+          <div className="side-bet-slip-section-head"><span>Risk</span><small>Max <NumericText text={stakeMoney(maxAmount)} /></small></div>
+          <div className="side-bet-amount-grid">{amountOptions.map((value) => <button type="button" key={value} className={amount === value ? "active" : ""} aria-pressed={amount === value} onClick={() => setAmount(value)}><NumericText text={`${value}`} /></button>)}</div>
+          {manualAmount && <label className="side-bet-risk-field"><span>Custom risk</span><div><span>$</span><input className="side-bet-risk-input" type="number" min="1" max={maxAmount} step="1" value={amount} onChange={(event) => setAmount(event.target.value)} /></div></label>}
+          <div className="side-bet-payout-preview">
+            <span>You risk <strong><NumericText text={stakeMoney(creatorRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorWin)} /></strong></span>
+            <span>They risk <strong><NumericText text={stakeMoney(offeredRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorRisk)} /></strong></span>
+          </div>
         </section>
 
         <section className="side-bet-slip-section">
@@ -2360,13 +2378,13 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         </section>
 
         <div className="side-bet-slip-summary">
-          <div><span>You keep</span><strong><ResponsiveText full={`${displayTeamName(selectedGame, selectedCreatorTeam)} ${spreadText(creatorSpread)}`} compact={`${abbreviatedTeamName(selectedGame, selectedCreatorTeam)} ${spreadText(creatorSpread)}`} /></strong></div>
-          <div><span>They get</span><strong><ResponsiveText full={`${displayTeamName(selectedGame, offeredTeam)} ${spreadText(creatorSpread == null ? null : -creatorSpread)}`} compact={`${abbreviatedTeamName(selectedGame, offeredTeam)} ${spreadText(creatorSpread == null ? null : -creatorSpread)}`} /></strong></div>
+          <div><span>You keep</span><strong><ResponsiveText full={`${displayTeamName(selectedGame, selectedCreatorTeam)} ${selectedMarketText}`} compact={`${abbreviatedTeamName(selectedGame, selectedCreatorTeam)} ${selectedMarketText}`} /></strong></div>
+          <div><span>They get</span><strong><ResponsiveText full={`${displayTeamName(selectedGame, offeredTeam)} ${offeredMarketText}`} compact={`${abbreviatedTeamName(selectedGame, offeredTeam)} ${offeredMarketText}`} /></strong></div>
         </div>
-        <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > MAX_SIDE_BET_AMOUNT || !recipients.length} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
+        <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > maxAmount || !recipients.length || !validAmericanOdds(creatorOdds) || (marketType === "spread" && creatorSpread == null)} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
       </section>}
 
-    {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty="No side bet offers yet." saving={saving} savingBetId={savingBetId} canAccept={(bet) => weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={!weekIsOpen ? "Opens Tue 8:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
+    {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty="No side bet offers yet." saving={saving} savingBetId={savingBetId} canAccept={(bet) => weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={!weekIsOpen ? "Opens Tue 9:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
