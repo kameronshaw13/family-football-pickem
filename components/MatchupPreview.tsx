@@ -411,5 +411,5 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
         </div>}
       </div>
     </section>
-  </div>;
+  </div>, document.body);
 }
