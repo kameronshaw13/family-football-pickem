@@ -2728,7 +2728,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
     <div className="game-head compact-game-head">
       <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status"><NumericText text={livePeriodStatus(game)} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}</div>
       {statusFilter !== "OPEN" && gameIsLive && liveSituation && <div className="game-live-situation"><LiveSituationText game={game} /></div>}
-      {game.league === "CFB" && <button type="button" className="matchup-preview-trigger" onClick={() => openPreview(game)}>Preview</button>}
+      {game.league === "CFB" && <button type="button" className="matchup-preview-trigger" onClick={() => openPreview(game)}>Matchup Preview</button>}
     </div>
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
