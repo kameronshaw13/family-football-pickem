@@ -1738,14 +1738,19 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     setBetRecipients((current) => current.includes(profileId) ? current.filter((id) => id !== profileId) : [...current, profileId]);
   }
 
-  async function createSideBet(): Promise<boolean> {
+  async function createSideBet(options: { marketType: SideBetMarketType; creatorSpread: number; creatorOdds: number }): Promise<boolean> {
     if (!weekIsOpen) {
-      notify("Side bet offers open Tuesday at 8:00 AM.", "error");
+      notify("Side bet offers open Tuesday at 9:00 AM.", "error");
       return false;
     }
     if (!selectedBetGame || !selectedCreatorTeam || !betRecipients.length) return false;
-    if (Number(betAmount) > MAX_SIDE_BET_AMOUNT) {
-      notify(`Side bets are capped at $${MAX_SIDE_BET_AMOUNT}.`, "error");
+    const maxAmount = data?.sideBetSettings?.maxAmount ?? MAX_SIDE_BET_AMOUNT;
+    if (Number(betAmount) > maxAmount) {
+      notify(`Side bets are capped at ${maxAmount}.`, "error");
+      return false;
+    }
+    if (!validAmericanOdds(options.creatorOdds)) {
+      notify("Enter valid American odds (for example -200, -110, +100, or +200).", "error");
       return false;
     }
     const maxPerWeek = data?.sideBetSettings?.maxPerWeek ?? null;
@@ -1758,7 +1763,16 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       notify(`${fullRecipient.display_name} has reached the weekly side bet limit.`, "error");
       return false;
     }
-    const ok = await postSideBet({ action: "create", gameId: selectedBetGame.id, creatorTeam: selectedCreatorTeam, amount: Number(betAmount), recipientIds: betRecipients });
+    const ok = await postSideBet({
+      action: "create",
+      gameId: selectedBetGame.id,
+      creatorTeam: selectedCreatorTeam,
+      amount: Number(betAmount),
+      recipientIds: betRecipients,
+      marketType: options.marketType,
+      creatorSpread: options.marketType === "spread" ? options.creatorSpread : 0,
+      creatorOdds: options.creatorOdds
+    });
     if (ok) {
       setBetGameId("");
       setBetCreatorTeam("");
@@ -1833,6 +1847,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           sideBets={sideBets}
           slotCounts={data.sideBetSlotCounts || {}}
           maxPerWeek={data.sideBetSettings?.maxPerWeek ?? null}
+          maxAmount={data.sideBetSettings?.maxAmount ?? MAX_SIDE_BET_AMOUNT}
+          manualAmount={Boolean(data.sideBetSettings?.manualAmount)}
           weekIsOpen={weekIsOpen}
           openGames={openBetGames}
           gameLeague={betLeagueFilter}
