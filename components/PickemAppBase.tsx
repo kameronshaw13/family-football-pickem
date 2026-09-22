@@ -757,9 +757,9 @@ function sideBetAmountForUser(bet: SideBet, userId: string) {
 function sideBetLineText(bet: SideBet, team: string) {
   const creatorSide = team === bet.creator_team;
   const odds = creatorSide ? Number(bet.creator_odds ?? 100) : oppositeAmericanOdds(Number(bet.creator_odds ?? 100));
-  if (bet.market_type === "moneyline") return `ML ${americanOddsText(odds)}`;
+  if (bet.market_type === "moneyline") return `ML · ${americanOddsText(odds)}`;
   const spread = Number(creatorSide ? bet.creator_spread : bet.offered_spread);
-  return `${spreadText(spread)} ${americanOddsText(odds)}`;
+  return `${spreadText(spread)} · ${americanOddsText(odds)}`;
 }
 function pctText(value: number) {
   return `${(Number(value || 0) * 100).toFixed(1)}%`;
@@ -2167,11 +2167,11 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const creatorWin = validAmericanOdds(creatorOdds) ? profitForRisk(creatorRisk, creatorOdds) : 0;
   const offeredRisk = creatorWin;
   const selectedMarketText = marketType === "moneyline"
-    ? `ML ${americanOddsText(creatorOdds)}`
-    : `${spreadText(creatorSpread)} ${americanOddsText(creatorOdds)}`;
+    ? `ML · ${americanOddsText(creatorOdds)}`
+    : `${spreadText(creatorSpread)} · ${americanOddsText(creatorOdds)}`;
   const offeredMarketText = marketType === "moneyline"
-    ? `ML ${americanOddsText(offeredOdds)}`
-    : `${spreadText(creatorSpread == null ? null : -creatorSpread)} ${americanOddsText(offeredOdds)}`;
+    ? `ML · ${americanOddsText(offeredOdds)}`
+    : `${spreadText(creatorSpread == null ? null : -creatorSpread)} · ${americanOddsText(offeredOdds)}`;
   const amountOptions = maxAmount >= 40 ? ["40", "30", "20", "10"] : ["20", "15", "10", "5"];
   const selectedMatchup = selectedGame ? matchupTextVariants(selectedGame) : null;
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
@@ -2459,7 +2459,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   const matchup = game
     ? bet.market_type === "moneyline"
       ? matchupTextVariants(game, { suffix: ` · ${displayTeamName(game, perspectiveTeam)} ${perspectiveMarket}` })
-      : matchupTextVariants(game, { spreadTeam: perspectiveTeam, spread: perspectiveSpread, suffix: ` ${americanOddsText(perspectiveTeam === bet.creator_team ? Number(bet.creator_odds ?? 100) : oppositeAmericanOdds(Number(bet.creator_odds ?? 100)))}` })
+      : matchupTextVariants(game, { spreadTeam: perspectiveTeam, spread: perspectiveSpread, suffix: ` · ${americanOddsText(perspectiveTeam === bet.creator_team ? Number(bet.creator_odds ?? 100) : oppositeAmericanOdds(Number(bet.creator_odds ?? 100)))}` })
     : { full: `${perspectiveTeam} ${perspectiveMarket}`, intermediate: undefined, compact: `${perspectiveTeam} ${perspectiveMarket}` };
   const responseSummary = sideBetResponseSummary(bet, currentUser.id, mode);
   const responseSpread = sideBetLineText(bet, bet.offered_team);
