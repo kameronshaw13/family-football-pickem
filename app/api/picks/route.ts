@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromRequest } from "@/lib/authServer";
-import { getGroupGameLockTime, getGroupUnderdogBonus, getGroupWeekRule, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
-import { getPickWeekOpenTime } from "@/lib/lockRules";
+import { getGroupGameLockTime, getGroupPickWeekOpenTime, getGroupUnderdogBonus, getGroupWeekRule, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
@@ -39,7 +38,7 @@ export async function POST(req: NextRequest) {
         return { ...game, lock_time: lockTime, is_locked: now >= new Date(lockTime) };
       });
     const gameMap = new Map(weekGames.map((game: any) => [game.id, game]));
-    const weekOpen = getPickWeekOpenTime(body.week, weekGames.map((game: any) => game.commence_time), context.group.timezone);
+    const weekOpen = getGroupPickWeekOpenTime(context, body.week, weekGames.map((game: any) => game.commence_time));
     if (weekOpen && now < weekOpen) {
       return NextResponse.json({ ok: false, error: `This week opens on ${weekOpen.toLocaleString("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: context.group.timezone })}.` }, { status: 409 });
     }
