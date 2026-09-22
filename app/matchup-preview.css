@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: center;
   padding: 0 8px;
-  border: 0.5px solid var(--graphite);
+  border: 0.75px solid var(--graphite);
   border-radius: 4px;
   color: var(--graphite);
   background: #fff;
@@ -79,7 +79,7 @@
 
 .matchup-preview-header > div span {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: .06em;
 }
@@ -165,7 +165,7 @@
 }
 
 .matchup-preview-team span {
-  color: var(--blue-dark);
+  color: var(--graphite);
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 900;
@@ -182,7 +182,7 @@
 .matchup-preview-at span {
   color: var(--ink);
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
 }
 
@@ -309,7 +309,7 @@
 .matchup-columns-header > span {
   color: var(--muted);
   font-family: var(--font-display);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: .05em;
   text-align: center;
@@ -381,14 +381,14 @@
 
 .matchup-comparison-heading strong {
   color: var(--ink);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: .04em;
 }
 
 .matchup-comparison-heading span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -455,7 +455,7 @@
   overflow: hidden;
   color: var(--ink);
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -463,7 +463,7 @@
 
 .matchup-team-section-title small {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -483,7 +483,7 @@
 
 .matchup-result-row > span {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
 }
 
@@ -504,7 +504,7 @@
 
 .matchup-result-row > div strong {
   overflow: hidden;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -512,12 +512,12 @@
 
 .matchup-result-row > div small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .matchup-result-row > strong {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
   white-space: nowrap;
 }
@@ -563,7 +563,7 @@
 .matchup-history-row > span {
   color: var(--muted);
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
 }
 
@@ -576,7 +576,7 @@
 
 .matchup-history-row strong {
   overflow: hidden;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -584,14 +584,14 @@
 
 .matchup-history-row small {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .matchup-empty-copy {
   margin: 0;
   padding: 18px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   text-align: center;
 }
 
@@ -633,11 +633,11 @@
   }
 
   .matchup-preview-team strong {
-    font-size: 11px;
+    font-size: 14px;
   }
 
   .matchup-preview-team span {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .matchup-preview-at {
@@ -645,8 +645,8 @@
   }
 
   .matchup-preview-tabs button {
-    height: 36px;
-    font-size: 8px;
+    height: 38px;
+    font-size: 10px;
   }
 
   .matchup-tab-body {
@@ -663,7 +663,7 @@
   }
 
   .matchup-team-column-label strong {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .matchup-metric-row {
@@ -674,11 +674,11 @@
   }
 
   .matchup-metric-row strong {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .matchup-metric-row span {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .matchup-split-lists {
@@ -693,7 +693,7 @@
 .matchup-data-note {
   margin: 10px 2px 0;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.4;
   text-align: center;
 }
@@ -720,4 +720,15 @@
 .side-bet-game-card .side-bet-matchup-preview-trigger:active {
   color: var(--graphite);
   background: var(--surface-soft);
+}
+
+
+.matchup-unit-comparison .matchup-comparison-heading {
+  height: auto;
+  min-height: 38px;
+  padding-block: 6px;
+}
+
+.matchup-unit-comparison .matchup-comparison-heading strong {
+  line-height: 1.25;
 }

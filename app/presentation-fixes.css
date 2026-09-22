@@ -409,12 +409,19 @@
 }
 
 
-/* Stronger separators make the Bank History week accordions readable against
-   the muted row background without changing the row fill. */
+/* Keep the light week divider fixed under the 40px header whether open or closed.
+   A 1px padding rebalance centers the row content slightly lower without transforms. */
+.bank-history-week,
 .bank-history-week:not(:last-child) {
-  border-bottom-color: var(--line-strong);
+  border-bottom: 0;
+}
+
+.bank-history-week > summary {
+  padding-top: 8px;
+  padding-bottom: 6px;
+  border-bottom-color: var(--line);
 }
 
 .bank-history-week[open] > summary {
-  border-bottom-color: var(--line-strong);
+  border-bottom-color: var(--line);
 }

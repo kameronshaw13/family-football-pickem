@@ -235,6 +235,15 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
   const efficiencyLabel = useEpa ? "EPA / Play" : "PPA / Play";
   const efficiencyAway = useEpa ? awayOffense?.epaPerPlay : awayOffense?.ppaPerPlay;
   const efficiencyHome = useEpa ? homeOffense?.epaPerPlay : homeOffense?.ppaPerPlay;
+  const awayOffRank = away.power?.adjustedOffRank ?? away.power?.offenseEfficiencyRank ?? away.sp?.offense?.ranking ?? null;
+  const homeOffRank = home.power?.adjustedOffRank ?? home.power?.offenseEfficiencyRank ?? home.sp?.offense?.ranking ?? null;
+  const awayDefRank = away.power?.adjustedDefRank ?? away.power?.defenseEfficiencyRank ?? away.sp?.defense?.ranking ?? null;
+  const homeDefRank = home.power?.adjustedDefRank ?? home.power?.defenseEfficiencyRank ?? home.sp?.defense?.ranking ?? null;
+  const awayOffEfficiency = away.power?.offenseEfficiency ?? away.sp?.offense?.rating ?? null;
+  const homeOffEfficiency = home.power?.offenseEfficiency ?? home.sp?.offense?.rating ?? null;
+  const awayDefEfficiency = away.power?.defenseEfficiency ?? away.sp?.defense?.rating ?? null;
+  const homeDefEfficiency = home.power?.defenseEfficiency ?? home.sp?.defense?.rating ?? null;
+  const rank = (value: number | null | undefined) => hasNumber(value) ? `#${Math.round(Number(value))}` : "—";
 
   return <div className="matchup-tab-body">
     <section className="matchup-comparison-block">
@@ -263,6 +272,30 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
     </section>
 
     <section className="matchup-comparison-block">
+      <div className="matchup-comparison-heading"><strong>DEFENSIVE EFFICIENCY</strong><span>Adjusted + FPI unit strength</span></div>
+      <MetricRow label="Adj Def EPA / Play" away={fmtSigned(away.power?.adjustedDefEpa, 3)} home={fmtSigned(home.power?.adjustedDefEpa, 3)} />
+      <MetricRow label="FPI Def Efficiency" away={fmt(awayDefEfficiency, 1)} home={fmt(homeDefEfficiency, 1)} />
+      <MetricRow label="Defense Rank" away={rank(awayDefRank)} home={rank(homeDefRank)} />
+      <MetricRow label="Drive Stop Rate" away={fmtPct(awayDefense?.driveStoppedRate)} home={fmtPct(homeDefense?.driveStoppedRate)} />
+    </section>
+
+    <section className="matchup-comparison-block matchup-unit-comparison">
+      <div className="matchup-comparison-heading"><strong>{away.name.toUpperCase()} OFFENSE vs {home.name.toUpperCase()} DEFENSE</strong></div>
+      <MetricRow label="Adj EPA / Play" away={fmtSigned(away.power?.adjustedOffEpa, 3)} home={fmtSigned(home.power?.adjustedDefEpa, 3)} />
+      <MetricRow label="FPI Efficiency" away={fmt(awayOffEfficiency, 1)} home={fmt(homeDefEfficiency, 1)} />
+      <MetricRow label="Unit Rank" away={rank(awayOffRank)} home={rank(homeDefRank)} />
+      <MetricRow label="Success / Drive Stop" away={fmtPct(awayOffense?.successRate)} home={fmtPct(homeDefense?.driveStoppedRate)} />
+    </section>
+
+    <section className="matchup-comparison-block matchup-unit-comparison">
+      <div className="matchup-comparison-heading"><strong>{home.name.toUpperCase()} OFFENSE vs {away.name.toUpperCase()} DEFENSE</strong></div>
+      <MetricRow label="Adj EPA / Play" away={fmtSigned(home.power?.adjustedOffEpa, 3)} home={fmtSigned(away.power?.adjustedDefEpa, 3)} />
+      <MetricRow label="FPI Efficiency" away={fmt(homeOffEfficiency, 1)} home={fmt(awayDefEfficiency, 1)} />
+      <MetricRow label="Unit Rank" away={rank(homeOffRank)} home={rank(awayDefRank)} />
+      <MetricRow label="Success / Drive Stop" away={fmtPct(homeOffense?.successRate)} home={fmtPct(awayDefense?.driveStoppedRate)} />
+    </section>
+
+    <section className="matchup-comparison-block">
       <div className="matchup-comparison-heading"><strong>DEFENSIVE DISRUPTION</strong><span>Pressure + drive-ending production</span></div>
       <MetricRow label="Havoc Rate" away={fmtPct(awayDefense?.havocRate)} home={fmtPct(homeDefense?.havocRate)} />
       <MetricRow label="Pass Havoc" away={fmtPct(awayDefense?.passHavocRate)} home={fmtPct(homeDefense?.passHavocRate)} />
@@ -280,10 +313,10 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
   </div>;
 }
 
-function RecentTeam({ game, side, team }: { game: Game; side: "away" | "home"; team: TeamPreview }) {
+function ResultsTeam({ game, side, team, season }: { game: Game; side: "away" | "home"; team: TeamPreview; season: number }) {
   return <section className="matchup-list-section">
-    <TeamSectionTitle game={game} side={side} name={team.name} detail="Last 5 before this matchup" />
-    {!team.recent.length ? <p className="matchup-empty-copy">No prior results available.</p> : team.recent.map((row) => <div className="matchup-result-row" key={row.id}>
+    <TeamSectionTitle game={game} side={side} name={team.name} detail={`${season} results`} />
+    {!team.recent.length ? <p className="matchup-empty-copy">No results available.</p> : team.recent.map((row) => <div className="matchup-result-row" key={row.id}>
       <span className={row.result === "W" ? "matchup-result-win" : row.result === "L" ? "matchup-result-loss" : ""}>{row.result}</span>
       <div><strong>{row.home ? "vs" : "at"} {teamDisplayName("CFB", row.opponent)}</strong><small>Week {row.week}</small></div>
       <strong>{row.teamPoints}-{row.opponentPoints}</strong>
@@ -393,7 +426,7 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
   const tabs = useMemo(() => ([
     ["overview", "Overview"],
     ["advanced", "Advanced"],
-    ["recent", "Recent"],
+    ["recent", "Results"],
     ["ats", "ATS"],
     ["history", "History"]
   ] as Array<[PreviewTab, string]>), []);
@@ -446,7 +479,7 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
             <MetricRow label="3rd Down" away={fmtPct(payload.teams.away.regular.thirdDownPct)} home={fmtPct(payload.teams.home.regular.thirdDownPct)} />
           </section>
           <section className="matchup-comparison-block">
-            <div className="matchup-comparison-heading"><strong>POWER RATINGS</strong><span>Weekly, pre-matchup snapshots</span></div>
+            <div className="matchup-comparison-heading"><strong>POWER RATINGS</strong></div>
             <MetricRow label="FPI Rank" away={payload.teams.away.power?.fpiRank ? `#${payload.teams.away.power.fpiRank}` : "—"} home={payload.teams.home.power?.fpiRank ? `#${payload.teams.home.power.fpiRank}` : "—"} />
             <MetricRow label="FPI" away={fmtSigned(payload.teams.away.power?.fpi)} home={fmtSigned(payload.teams.home.power?.fpi)} />
             <MetricRow label="Adj EPA Rank" away={payload.teams.away.power?.adjustedNetRank ? `#${payload.teams.away.power.adjustedNetRank}` : "—"} home={payload.teams.home.power?.adjustedNetRank ? `#${payload.teams.home.power.adjustedNetRank}` : "—"} />
@@ -455,7 +488,7 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
             <MetricRow label="Defense Rank" away={payload.teams.away.power?.adjustedDefRank ? `#${payload.teams.away.power.adjustedDefRank}` : (payload.teams.away.power?.defenseEfficiencyRank ? `#${payload.teams.away.power.defenseEfficiencyRank}` : "—")} home={payload.teams.home.power?.adjustedDefRank ? `#${payload.teams.home.power.adjustedDefRank}` : (payload.teams.home.power?.defenseEfficiencyRank ? `#${payload.teams.home.power.defenseEfficiencyRank}` : "—")} />
           </section>
           <section className="matchup-comparison-block">
-            <div className="matchup-comparison-heading"><strong>AGAINST THE SPREAD</strong><span>Season before this game</span></div>
+            <div className="matchup-comparison-heading"><strong>AGAINST THE SPREAD</strong></div>
             <MetricRow label="ATS Record" away={`${payload.teams.away.ats.wins}-${payload.teams.away.ats.losses}-${payload.teams.away.ats.pushes}`} home={`${payload.teams.home.ats.wins}-${payload.teams.home.ats.losses}-${payload.teams.home.ats.pushes}`} />
             <MetricRow label="Avg Cover Margin" away={fmtSigned(payload.teams.away.ats.avgCoverMargin)} home={fmtSigned(payload.teams.home.ats.avgCoverMargin)} />
           </section>
@@ -464,8 +497,8 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
         {!loading && payload && tab === "advanced" && <AdvancedMatchup away={payload.teams.away} home={payload.teams.home} />}
 
         {!loading && payload && tab === "recent" && <div className="matchup-tab-body matchup-split-lists">
-          <RecentTeam game={game} side="away" team={payload.teams.away} />
-          <RecentTeam game={game} side="home" team={payload.teams.home} />
+          <ResultsTeam game={game} side="away" team={payload.teams.away} season={payload.season} />
+          <ResultsTeam game={game} side="home" team={payload.teams.home} season={payload.season} />
         </div>}
 
         {!loading && payload && tab === "ats" && <div className="matchup-tab-body matchup-split-lists">

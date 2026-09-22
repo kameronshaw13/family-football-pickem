@@ -402,7 +402,7 @@ function summarizeLocalGames(games: LocalGame[], team: string) {
     pointsAgainst += opponentPoints;
   }
 
-  const recent = games.slice(-5).reverse().map((game) => {
+  const recent = [...games].reverse().map((game) => {
     const home = sameTeam(game.home_team, team);
     const teamPoints = Number(home ? game.final_home_score : game.final_away_score);
     const opponentPoints = Number(home ? game.final_away_score : game.final_home_score);
@@ -619,7 +619,6 @@ function recentFromEspnSchedule(schedule: Awaited<ReturnType<typeof fetchEspnSch
   return schedule
     .filter((game) => game.completed && game.teamPoints != null && game.opponentPoints != null && new Date(game.date).getTime() < targetDate)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5)
     .map((game) => {
       const margin = Number(game.teamPoints) - Number(game.opponentPoints);
       return {
