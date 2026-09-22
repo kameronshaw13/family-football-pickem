@@ -387,13 +387,21 @@ export default function SideBetBatchPresentationEnhancement() {
 
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "data-batch-count"] });
+    const refreshMarketPresentation = (event: Event) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(".side-bet-market-section")) schedule();
+    };
     window.addEventListener("click", enforceFourGameLimit, true);
+    document.addEventListener("input", refreshMarketPresentation, true);
+    document.addEventListener("change", refreshMarketPresentation, true);
     schedule();
 
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("click", enforceFourGameLimit, true);
+      document.removeEventListener("input", refreshMarketPresentation, true);
+      document.removeEventListener("change", refreshMarketPresentation, true);
     };
   }, []);
 
