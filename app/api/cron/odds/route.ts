@@ -195,7 +195,23 @@ async function refreshOdds() {
       }
 
       const returned = (await oddsResponse.json()) as OddsEvent[];
-      const schedule = await fetchEspnSchedule(sport.league, returned.map((event) => event.commence_time));
+      let schedule = [] as Awaited<ReturnType<typeof fetchEspnSchedule>>;
+      try {
+        schedule = await fetchEspnSchedule(sport.league, returned.map((event) => event.commence_time));
+      } catch (error) {
+        console.error(`[cron/odds] ESPN enrichment unavailable for ${sport.key}; continuing where safe.`, error);
+        if (sport.league === "NFL") {
+          return {
+            sport: sport.key,
+            eventsReturned: returned.length,
+            scheduleMatched: 0,
+            eligibleEvents: 0,
+            spreadGames: [],
+            frozenGames: [],
+            snapshots: []
+          };
+        }
+      }
       let scheduleMatched = 0;
       const data = returned.flatMap((event) => {
         // Prefer ESPN's canonical identity when it is present, but do not let an
@@ -370,8 +386,28 @@ async function refreshOdds() {
   }
 }
 
+function isChicagoTuesdayEightAm(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    weekday: "short",
+    hour: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(date);
+  const weekday = parts.find((part) => part.type === "weekday")?.value;
+  const hour = Number(parts.find((part) => part.type === "hour")?.value);
+  return weekday === "Tue" && hour === 8;
+}
+
 export async function GET(req: NextRequest) {
   const secret = req.headers.get("authorization")?.replace("Bearer ", "") || req.nextUrl.searchParams.get("secret");
   if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) return unauthorized();
+
+  // Two UTC schedules cover CDT and CST. Vercel Hobby cron timing can be
+  // imprecise within the scheduled hour, so only the invocation that lands
+  // during Tuesday's 8 AM Chicago hour performs the refresh.
+  if (req.headers.get("x-vercel-cron-schedule") && !isChicagoTuesdayEightAm()) {
+    return NextResponse.json({ ok: true, skipped: true, reason: "Outside Tuesday 8 AM CT odds window." });
+  }
+
   return refreshOdds();
 }
