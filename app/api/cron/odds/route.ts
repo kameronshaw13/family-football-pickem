@@ -342,6 +342,7 @@ async function refreshOdds() {
       sportResults
     });
   } catch (error) {
+    console.error("[cron/odds] refresh failed", error);
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
