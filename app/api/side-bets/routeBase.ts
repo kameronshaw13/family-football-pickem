@@ -5,12 +5,23 @@ import { getGroupSideBetSettings, isGameAllowedForGroup, requestedGroupFromReque
 import { createNotificationInBackground, resolveSideBetOfferNotifications } from "@/lib/notifications";
 import { sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
+import { americanOddsText, oppositeAmericanOdds, profitForRisk, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { notificationTeamName } from "@/lib/notificationTeamName";
 
 const viewWeek = z.number().int().nonnegative().optional();
 const bodySchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("create"), gameId: z.string().min(1), creatorTeam: z.string().min(1), amount: z.number().positive(), recipientIds: z.array(z.string().uuid()).min(1).max(10), viewWeek }),
+  z.object({
+    action: z.literal("create"),
+    gameId: z.string().min(1),
+    creatorTeam: z.string().min(1),
+    amount: z.number().positive(),
+    recipientIds: z.array(z.string().uuid()).min(1).max(10),
+    marketType: z.enum(["spread", "moneyline"]).optional(),
+    creatorSpread: z.number().finite().min(-100).max(100).optional(),
+    creatorOdds: z.number().int().optional(),
+    viewWeek
+  }),
   z.object({ action: z.literal("accept"), sideBetId: z.string().uuid(), viewWeek }),
   z.object({ action: z.literal("decline"), sideBetId: z.string().uuid(), viewWeek }),
   z.object({ action: z.literal("cancel"), sideBetId: z.string().uuid(), viewWeek }),
@@ -128,8 +139,16 @@ export async function POST(req: NextRequest) {
       if (!isGameAllowedForGroup(context, game)) return NextResponse.json({ ok: false, error: "That game is not available in this Pick'em group." }, { status: 409 });
       if (new Date(game.commence_time) <= now) return NextResponse.json({ ok: false, error: "Side bets must be offered before kickoff." }, { status: 409 });
       if (![game.away_team, game.home_team].includes(body.creatorTeam)) return NextResponse.json({ ok: false, error: "Choose one of the two teams in this game." }, { status: 400 });
-      const creatorSpread = normalizeSpreadForSelectedTeam(body.creatorTeam, game.current_spread_team, game.current_spread);
-      if (creatorSpread == null) return NextResponse.json({ ok: false, error: "This game does not have a spread available." }, { status: 409 });
+      const marketType = body.marketType || "spread";
+      const creatorOdds = body.creatorOdds ?? 100;
+      if (!validAmericanOdds(creatorOdds)) {
+        return NextResponse.json({ ok: false, error: "American odds must be -100 or lower, or +100 or higher." }, { status: 400 });
+      }
+      const currentCreatorSpread = normalizeSpreadForSelectedTeam(body.creatorTeam, game.current_spread_team, game.current_spread);
+      const creatorSpread = marketType === "moneyline" ? 0 : (body.creatorSpread ?? currentCreatorSpread);
+      if (marketType === "spread" && creatorSpread == null) {
+        return NextResponse.json({ ok: false, error: "Choose a spread for this side bet." }, { status: 409 });
+      }
 
       if (Number.isFinite(settings.maxPerWeek)) {
         const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
@@ -155,6 +174,8 @@ export async function POST(req: NextRequest) {
         offered_team: offeredTeam,
         creator_spread: creatorSpread,
         offered_spread: -creatorSpread,
+        market_type: marketType,
+        creator_odds: creatorOdds,
         amount,
         status: "open",
         result: "pending"
@@ -175,7 +196,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-offer:${sideBet.id}`,
           title: `Side bet from ${auth.profile.display_name}`,
-          body: `$${amount} · ${notificationTeamName(offeredTeam, game.league)} ${notificationSpread(-creatorSpread)}`,
+          body: `Risk ${profitForRisk(amount, creatorOdds)} · ${notificationTeamName(offeredTeam, game.league)} ${marketType === "moneyline" ? "ML" : notificationSpread(-creatorSpread)} ${americanOddsText(oppositeAmericanOdds(creatorOdds))}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_received"),
           actionRequired: true
         }));
