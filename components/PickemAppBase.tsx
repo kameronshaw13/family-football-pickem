@@ -2340,6 +2340,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
           <button type="button" className="slip-icon-btn side-bet-header-collapse" aria-label="Collapse bet slip" onPointerDown={(event) => event.stopPropagation()} onClick={collapseSlip}><ChevronDown size={18} /></button>
         </div>
 
+        <div className="side-bet-slip-scroll">
         <div className="team-row side-bet-slip-selection">
           <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
           <span className="side-bet-slip-team-choice"><ResponsiveTeamName game={selectedGame} team={selectedCreatorTeam} className="team-name" /><span className="team-spread"><NumericText text={selectedMarketText} /></span></span>
@@ -2382,6 +2383,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
           <div><span>They get</span><strong><ResponsiveText full={`${displayTeamName(selectedGame, offeredTeam)} ${offeredMarketText}`} compact={`${abbreviatedTeamName(selectedGame, offeredTeam)} ${offeredMarketText}`} /></strong></div>
         </div>
         <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > maxAmount || !recipients.length || !validAmericanOdds(creatorOdds) || (marketType === "spread" && creatorSpread == null)} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
+        </div>
       </section>}
 
     {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty="No side bet offers yet." saving={saving} savingBetId={savingBetId} canAccept={(bet) => weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={!weekIsOpen ? "Opens Tue 9:00 AM" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
