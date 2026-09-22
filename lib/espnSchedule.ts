@@ -276,15 +276,24 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
     if (league === "CFB") url.searchParams.set("groups", "80");
     url.searchParams.set("dates", datesParam);
 
-    const response = await fetch(url.toString(), freshness === true
-      ? { cache: "no-store" }
-      : { next: { revalidate: typeof freshness === "number" ? freshness : 60 * 60 } });
-    if (!response.ok) {
-      const details = (await response.text().catch(() => "")).slice(0, 240);
-      throw new Error(`ESPN schedule failed for ${league} (${response.status}) dates=${datesParam}${details ? `: ${details}` : ""}`);
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        const response = await fetch(url.toString(), freshness === true
+          ? { cache: "no-store" }
+          : { next: { revalidate: typeof freshness === "number" ? freshness : 60 * 60 } });
+        if (!response.ok) {
+          const details = (await response.text().catch(() => "")).slice(0, 240);
+          throw new Error(`ESPN schedule failed for ${league} (${response.status}) dates=${datesParam}${details ? `: ${details}` : ""}`);
+        }
+        const payload = await response.json();
+        return Array.isArray(payload?.events) ? payload.events : [];
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 250));
+      }
     }
-    const payload = await response.json();
-    return Array.isArray(payload?.events) ? payload.events : [];
+    throw lastError || new Error(`ESPN schedule failed for ${league} dates=${datesParam}`);
   };
 
   // ESPN's scoreboard no longer reliably accepts date ranges, and season-wide
@@ -301,7 +310,19 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
     }
   }
 
-  const events = (await Promise.all(Array.from(exactDates).map(fetchScoreboardEvents))).flat();
+  const dateResults = await Promise.allSettled(Array.from(exactDates).map(fetchScoreboardEvents));
+  const successfulDateResults = dateResults.filter((result): result is PromiseFulfilledResult<any[]> => result.status === "fulfilled");
+  if (!successfulDateResults.length) {
+    const firstFailure = dateResults.find((result): result is PromiseRejectedResult => result.status === "rejected");
+    throw firstFailure?.reason instanceof Error
+      ? firstFailure.reason
+      : new Error(`ESPN schedule failed for ${league}`);
+  }
+  const failedDates = dateResults.filter((result) => result.status === "rejected").length;
+  if (failedDates) {
+    console.warn(`[espnSchedule] ${league} loaded with ${failedDates} failed date request(s); using successful dates.`);
+  }
+  const events = successfulDateResults.flatMap((result) => result.value);
 
   const uniqueEvents = Array.from(new Map(events.map((event: any) => [
     String(event?.id || `${event?.date || ""}:${event?.name || ""}`),
