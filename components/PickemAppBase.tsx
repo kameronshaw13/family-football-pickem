@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Pointer
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
-import { americanOddsText, oppositeAmericanOdds, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
+import { americanOddsText, oppositeAmericanOdds, profitForRisk, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
@@ -2113,7 +2113,7 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
@@ -2121,6 +2121,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   sideBets: SideBet[];
   slotCounts: Record<string, number>;
   maxPerWeek: number | null;
+  maxAmount: number;
+  manualAmount: boolean;
   weekIsOpen: boolean;
   openGames: Game[];
   gameLeague: SideBetLeagueFilter;
@@ -2138,12 +2140,15 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   setCreatorTeam: (value: string) => void;
   setAmount: (value: string) => void;
   toggleRecipient: (value: string) => void;
-  createBet: () => Promise<boolean>;
+  createBet: (options: { marketType: SideBetMarketType; creatorSpread: number; creatorOdds: number }) => Promise<boolean>;
   respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean>;
 }) {
   const [confirmingBetId, setConfirmingBetId] = useState<string | null>(null);
   const [slipExpanded, setSlipExpanded] = useState(false);
   const [slipClosing, setSlipClosing] = useState(false);
+  const [marketType, setMarketType] = useState<SideBetMarketType>("spread");
+  const [customSpread, setCustomSpread] = useState("");
+  const [oddsInput, setOddsInput] = useState("100");
   const slipSheetRef = useRef<HTMLElement>(null);
   const slipSwipeStartY = useRef<number | null>(null);
   const slipCloseTimer = useRef<number | null>(null);
@@ -2153,7 +2158,21 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const offers = [...received, ...sent];
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
-  const creatorSpread = selectedGame && selectedCreatorTeam ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
+  const defaultCreatorSpread = selectedGame && selectedCreatorTeam ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
+  const parsedCustomSpread = customSpread.trim() === "" ? null : Number(customSpread);
+  const creatorSpread = marketType === "moneyline" ? 0 : (Number.isFinite(parsedCustomSpread) ? parsedCustomSpread : defaultCreatorSpread);
+  const creatorOdds = Number(oddsInput);
+  const offeredOdds = oppositeAmericanOdds(creatorOdds);
+  const creatorRisk = Math.max(0, Number(amount) || 0);
+  const creatorWin = validAmericanOdds(creatorOdds) ? profitForRisk(creatorRisk, creatorOdds) : 0;
+  const offeredRisk = creatorWin;
+  const selectedMarketText = marketType === "moneyline"
+    ? `ML ${americanOddsText(creatorOdds)}`
+    : `${spreadText(creatorSpread)} ${americanOddsText(creatorOdds)}`;
+  const offeredMarketText = marketType === "moneyline"
+    ? `ML ${americanOddsText(offeredOdds)}`
+    : `${spreadText(creatorSpread == null ? null : -creatorSpread)} ${americanOddsText(offeredOdds)}`;
+  const amountOptions = maxAmount >= 40 ? ["40", "30", "20", "10"] : ["20", "15", "10", "5"];
   const selectedMatchup = selectedGame ? matchupTextVariants(selectedGame) : null;
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
   const slotCount = slotCounts[currentUser.id] || 0;
