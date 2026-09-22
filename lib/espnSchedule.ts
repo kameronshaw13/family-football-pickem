@@ -287,30 +287,21 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
     return Array.isArray(payload?.events) ? payload.events : [];
   };
 
-  // ESPN stopped accepting scoreboard date ranges in September 2026.
-  // Prefer one season-level request, then fall back to exact dates if ESPN
-  // changes or temporarily rejects the season form.
-  const seasonYears = Array.from(new Set(parsedDates.map((date) => {
-    const eastern = toZonedTime(date, "America/New_York");
-    return eastern.getMonth() <= 1 ? eastern.getFullYear() - 1 : eastern.getFullYear();
-  })));
-
-  let events: any[] = [];
-  try {
-    events = (await Promise.all(seasonYears.map((year) => fetchScoreboardEvents(String(year))))).flat();
-    if (!events.length) throw new Error("ESPN season schedule returned no events.");
-  } catch {
-    const exactDates = new Set<string>();
-    const fallbackPaddingDays = Math.min(1, Math.max(0, paddingDays));
-    for (const date of parsedDates) {
-      for (let offset = -fallbackPaddingDays; offset <= fallbackPaddingDays; offset += 1) {
-        const adjusted = new Date(date);
-        adjusted.setUTCDate(adjusted.getUTCDate() + offset);
-        exactDates.add(compactDate(adjusted));
-      }
+  // ESPN's scoreboard no longer reliably accepts date ranges, and season-wide
+  // queries can return an incomplete current slate. Query exact calendar dates
+  // derived from the provider events instead. A one-day cushion handles rare
+  // provider timezone/date disagreements without reintroducing range syntax.
+  const exactDates = new Set<string>();
+  const exactPaddingDays = Math.min(1, Math.max(0, paddingDays));
+  for (const date of parsedDates) {
+    for (let offset = -exactPaddingDays; offset <= exactPaddingDays; offset += 1) {
+      const adjusted = new Date(date);
+      adjusted.setUTCDate(adjusted.getUTCDate() + offset);
+      exactDates.add(compactDate(adjusted));
     }
-    events = (await Promise.all(Array.from(exactDates).map(fetchScoreboardEvents))).flat();
   }
+
+  const events = (await Promise.all(Array.from(exactDates).map(fetchScoreboardEvents))).flat();
 
   const uniqueEvents = Array.from(new Map(events.map((event: any) => [
     String(event?.id || `${event?.date || ""}:${event?.name || ""}`),
