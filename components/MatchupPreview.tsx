@@ -400,8 +400,8 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
 
   if (!mounted) return null;
 
-  return createPortal(<div className="matchup-preview-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section className="matchup-preview-sheet" role="dialog" aria-modal="true" aria-label={`${awayName} at ${homeName} matchup preview`} onMouseDown={(event) => event.stopPropagation()}>
+  return createPortal(<div className="matchup-preview-backdrop" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="matchup-preview-sheet" role="dialog" aria-modal="true" aria-label={`${awayName} at ${homeName} matchup preview`} onClick={(event) => event.stopPropagation()}>
       <header className="matchup-preview-header">
         <div><span>MATCHUP PREVIEW</span></div>
         <button type="button" className="matchup-preview-close" onClick={onClose} aria-label="Close matchup preview"><X size={20} /></button>
