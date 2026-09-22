@@ -1612,8 +1612,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const viewedGames = previewActive ? testWeek!.games : games;
   const viewedPicks = previewActive ? testWeek!.picks : picks;
   const viewedWeek = previewActive ? 3 : data.week;
-  const latestAvailableWeek = Math.max(Number(data.week || 0), ...(data.availableWeeks || []).map(Number).filter(Number.isFinite));
-  const weekConcluded = !previewActive && Number(data.week) < latestAvailableWeek;
+  const weekConcluded = !previewActive && viewedGames.length > 0 && viewedGames.every((game) => {
+    if (game.live_completed || (game.final_home_score != null && game.final_away_score != null)) return true;
+    const kickoff = new Date(game.commence_time).getTime();
+    return Number.isFinite(kickoff) && kickoff + 6 * 60 * 60 * 1000 < clock;
+  });
   const viewedBankEntries = previewActive ? testWeek!.bankEntries : bankEntries;
   const viewedBankHistory = previewActive ? [] : data.bankHistory || [];
   const rule = previewActive ? getWeekRule(3) : data.weekRule || getWeekRule(data.week);
