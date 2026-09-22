@@ -584,7 +584,7 @@ fieldset .field-label { padding: 0; }
 .board-ranked-team-name {
   display: flex;
   min-width: 0;
-  align-items: baseline;
+  align-items: center;
   gap: 5px;
 }
 .board-ranked-team-name > .team-name {
