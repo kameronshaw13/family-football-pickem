@@ -149,6 +149,7 @@ export async function POST(req: NextRequest) {
       if (marketType === "spread" && creatorSpread == null) {
         return NextResponse.json({ ok: false, error: "Choose a spread for this side bet." }, { status: 409 });
       }
+      const resolvedCreatorSpread = Number(creatorSpread ?? 0);
 
       if (Number.isFinite(settings.maxPerWeek)) {
         const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
@@ -172,8 +173,8 @@ export async function POST(req: NextRequest) {
         week: game.week,
         creator_team: body.creatorTeam,
         offered_team: offeredTeam,
-        creator_spread: creatorSpread,
-        offered_spread: -creatorSpread,
+        creator_spread: resolvedCreatorSpread,
+        offered_spread: -resolvedCreatorSpread,
         market_type: marketType,
         creator_odds: creatorOdds,
         amount,
@@ -196,7 +197,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-offer:${sideBet.id}`,
           title: `Side bet from ${auth.profile.display_name}`,
-          body: `Risk ${profitForRisk(amount, creatorOdds)} · ${notificationTeamName(offeredTeam, game.league)} ${marketType === "moneyline" ? "ML" : notificationSpread(-creatorSpread)} ${americanOddsText(oppositeAmericanOdds(creatorOdds))}`,
+          body: `Risk ${profitForRisk(amount, creatorOdds)} · ${notificationTeamName(offeredTeam, game.league)} ${marketType === "moneyline" ? "ML" : notificationSpread(-resolvedCreatorSpread)} ${americanOddsText(oppositeAmericanOdds(creatorOdds))}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_received"),
           actionRequired: true
         }));
