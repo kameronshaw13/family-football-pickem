@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
+import { americanOddsText, oppositeAmericanOdds } from "@/lib/sideBetMarkets";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 
 type AppSlug = "shaw-family" | "other-family" | "friends";
@@ -145,6 +146,17 @@ function selectionInfo(row: HTMLElement, payload: CachedPayload | null): Selecti
     ? (selectedTeam === game.home_team ? game.away_team : game.home_team)
     : null;
   const offeredDisplay = game && offeredTeam ? teamDisplayName(game.league, offeredTeam) : "";
+  const marketButton = Array.from(document.querySelectorAll<HTMLButtonElement>(".side-bet-market-toggle button"))
+    .find((button) => button.classList.contains("active"));
+  const marketType = /moneyline/i.test(marketButton?.textContent || "") ? "moneyline" : "spread";
+  const creatorOdds = Number(document.querySelector<HTMLInputElement>(".side-bet-odds-input")?.value || 100);
+  const offeredOdds = oppositeAmericanOdds(creatorOdds);
+  const selectedLine = marketType === "moneyline"
+    ? `ML ${americanOddsText(creatorOdds)}`
+    : `${row.dataset.batchSpread || spreadText(creatorSpread)} ${americanOddsText(creatorOdds)}`;
+  const offeredLine = marketType === "moneyline"
+    ? `ML ${americanOddsText(offeredOdds)}`
+    : creatorSpread == null ? "" : `${spreadText(-creatorSpread)} ${americanOddsText(offeredOdds)}`;
 
   return {
     game,
@@ -153,10 +165,10 @@ function selectionInfo(row: HTMLElement, payload: CachedPayload | null): Selecti
     selectedTeam,
     selectedDisplay,
     selectedCompact: game && selectedTeam ? teamAbbreviatedName(game.league, selectedTeam) : selectedDisplay,
-    selectedSpread: row.dataset.batchSpread || spreadText(creatorSpread),
+    selectedSpread: selectedLine,
     offeredDisplay,
     offeredCompact: game && offeredTeam ? teamAbbreviatedName(game.league, offeredTeam) : offeredDisplay,
-    offeredSpread: creatorSpread == null ? "" : spreadText(-creatorSpread)
+    offeredSpread: offeredLine
   };
 }
 
