@@ -2389,10 +2389,10 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
         <div className="confirmation-icon"><CircleDollarSign size={22} /></div>
-        <div className="confirmation-heading"><span>Review side bet</span><h2 id="accept-bet-title">Accept <NumericText text={stakeMoney(Number(confirmingBet.amount))} /> bet?</h2></div>
+        <div className="confirmation-heading"><span>Review side bet</span><h2 id="accept-bet-title">Risk <NumericText text={stakeMoney(sideBetRiskForUser(confirmingBet, currentUser.id))} /> to win <NumericText text={stakeMoney(sideBetProfitForUser(confirmingBet, currentUser.id))} />?</h2></div>
         <div className="confirmation-matchup">
-          <div><span>You take</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.offered_team)} ${spreadText(Number(confirmingBet.offered_spread))}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.offered_team)} ${spreadText(Number(confirmingBet.offered_spread))}`} /> : <>{confirmingBet.offered_team} <NumericText text={spreadText(Number(confirmingBet.offered_spread))} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.offered_team) : null} name={confirmingBet.offered_team} /></div>
-          <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.creator_team)} ${spreadText(Number(confirmingBet.creator_spread))}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.creator_team)} ${spreadText(Number(confirmingBet.creator_spread))}`} /> : <>{confirmingBet.creator_team} <NumericText text={spreadText(Number(confirmingBet.creator_spread))} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.creator_team) : null} name={confirmingBet.creator_team} /></div>
+          <div><span>You take</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.offered_team)} ${sideBetLineText(confirmingBet, confirmingBet.offered_team)}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.offered_team)} ${sideBetLineText(confirmingBet, confirmingBet.offered_team)}`} /> : <>{confirmingBet.offered_team} <NumericText text={sideBetLineText(confirmingBet, confirmingBet.offered_team)} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.offered_team) : null} name={confirmingBet.offered_team} /></div>
+          <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.creator_team)} ${sideBetLineText(confirmingBet, confirmingBet.creator_team)}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.creator_team)} ${sideBetLineText(confirmingBet, confirmingBet.creator_team)}`} /> : <>{confirmingBet.creator_team} <NumericText text={sideBetLineText(confirmingBet, confirmingBet.creator_team)} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.creator_team) : null} name={confirmingBet.creator_team} /></div>
         </div>
         {confirmingBet.game && <p className="confirmation-kickoff"><NumericText text={`${matchupTextVariants(confirmingBet.game).full} · ${openText(confirmingBet.game.commence_time)}`} /></p>}
         <div className="confirmation-actions"><button className="btn secondary" disabled={saving} onClick={() => setConfirmingBetId(null)}>Cancel</button><button className="btn accept" disabled={saving} onClick={acceptConfirmedBet}><Check size={16} /> {saving ? "Accepting…" : "Accept bet"}</button></div>
@@ -2453,11 +2453,14 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   const perspectiveSpread = perspective.spread;
   const offeredSideName = game ? displayTeamName(game, bet.offered_team) : bet.offered_team;
   const offeredSideCompact = game ? abbreviatedTeamName(game, bet.offered_team) : bet.offered_team;
+  const perspectiveMarket = sideBetLineText(bet, perspectiveTeam);
   const matchup = game
-    ? matchupTextVariants(game, { spreadTeam: perspectiveTeam, spread: perspectiveSpread })
-    : { full: `${perspectiveTeam} ${spreadText(perspectiveSpread)}`, intermediate: undefined, compact: `${perspectiveTeam} ${spreadText(perspectiveSpread)}` };
+    ? bet.market_type === "moneyline"
+      ? matchupTextVariants(game, { suffix: ` · ${displayTeamName(game, perspectiveTeam)} ${perspectiveMarket}` })
+      : matchupTextVariants(game, { spreadTeam: perspectiveTeam, spread: perspectiveSpread, suffix: ` ${americanOddsText(perspectiveTeam === bet.creator_team ? Number(bet.creator_odds ?? 100) : oppositeAmericanOdds(Number(bet.creator_odds ?? 100)))}` })
+    : { full: `${perspectiveTeam} ${perspectiveMarket}`, intermediate: undefined, compact: `${perspectiveTeam} ${perspectiveMarket}` };
   const responseSummary = sideBetResponseSummary(bet, currentUser.id, mode);
-  const responseSpread = spreadText(Number(bet.offered_spread));
+  const responseSpread = sideBetLineText(bet, bet.offered_team);
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
   const canClearOffer = mode === "received"
     ? target?.response === "declined" || ["cancelled", "expired"].includes(bet.status)
@@ -2487,10 +2490,12 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   const displaySpread = perspective.spread;
   const awayTeam = game?.away_team || bet.offered_team;
   const homeTeam = game?.home_team || bet.creator_team;
-  const spread = spreadText(displaySpread);
+  const market = sideBetLineText(bet, displayTeam);
   const matchup = game
-    ? matchupTextVariants(game, { spreadTeam: displayTeam, spread: displaySpread })
-    : { full: `${displayTeam} ${spread} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}`, intermediate: undefined, compact: `${displayTeam} ${spread} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}` };
+    ? bet.market_type === "moneyline"
+      ? matchupTextVariants(game, { suffix: ` · ${displayTeamName(game, displayTeam)} ${market}` })
+      : matchupTextVariants(game, { spreadTeam: displayTeam, spread: displaySpread, suffix: ` ${americanOddsText(displayTeam === bet.creator_team ? Number(bet.creator_odds ?? 100) : oppositeAmericanOdds(Number(bet.creator_odds ?? 100)))}` })
+    : { full: `${displayTeam} ${market} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}`, intermediate: undefined, compact: `${displayTeam} ${market} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}` };
   const winner = bet.winner_id === creator.id ? creator : bet.winner_id === acceptor.id ? acceptor : null;
   const status = bet.status === "accepted" ? "" : bet.result === "push" ? "Push" : winner ? `${displayPerson(winner)} Won` : "Settled";
   const bettors = `${displayPerson(sideBetBettorForTeam(bet, awayTeam))} vs ${displayPerson(sideBetBettorForTeam(bet, homeTeam))}`;
