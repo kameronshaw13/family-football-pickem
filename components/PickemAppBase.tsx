@@ -240,8 +240,8 @@ function ResponsiveText({ full, intermediate, compact, className = "" }: { full:
 }
 
 type SideBetResponseText = ReturnType<typeof sideBetResponseSummary>;
-type SideBetResponseVariant = "full" | "names" | "team" | "minimal";
-const SIDE_BET_RESPONSE_VARIANTS: SideBetResponseVariant[] = ["full", "names", "team", "minimal"];
+type SideBetResponseVariant = "full" | "names" | "team" | "noSubject" | "minimal";
+const SIDE_BET_RESPONSE_VARIANTS: SideBetResponseVariant[] = ["full", "names", "team", "noSubject", "minimal"];
 
 function SideBetResponseLine({ summary, teamFull, teamCompact, spread, date }: { summary: SideBetResponseText; teamFull: string; teamCompact: string; spread: string; date?: string }) {
   const hostRef = useRef<HTMLParagraphElement>(null);
@@ -249,7 +249,7 @@ function SideBetResponseLine({ summary, teamFull, teamCompact, spread, date }: {
   const [variant, setVariant] = useState<SideBetResponseVariant>("full");
 
   const contentFor = (value: SideBetResponseVariant) => ({
-    subject: value === "minimal" ? "" : value === "full" ? summary.subjectFull : summary.subjectCompact,
+    subject: value === "noSubject" || value === "minimal" ? "" : value === "full" ? summary.subjectFull : summary.subjectCompact,
     recipient: value === "minimal" ? "" : value === "full" ? summary.recipientFull : summary.recipientCompact || summary.recipientFull,
     team: value === "full" || value === "names" ? teamFull : teamCompact
   });
@@ -283,7 +283,7 @@ function SideBetResponseLine({ summary, teamFull, teamCompact, spread, date }: {
   const renderContent = (value: SideBetResponseVariant) => {
     const content = contentFor(value);
     return <>
-      <span>{content.subject}</span>
+      {content.subject && <span>{content.subject}</span>}
       <span className={`side-bet-response ${summary.tone}`}>{summary.action}</span>
       {content.team && <span>{content.team}</span>}
       <NumericText text={spread} />
