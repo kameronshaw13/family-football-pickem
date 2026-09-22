@@ -6,6 +6,7 @@ import { normalizeTeamNameKey, teamDisplayName } from "@/lib/teamNames";
 const CFBD_BASE_URL = "https://api.collegefootballdata.com";
 const ESPN_CORE_BASE = "https://sports.core.api.espn.com/v2/sports/football/leagues/college-football";
 const ESPN_SITE_BASE = "https://site.api.espn.com/apis/site/v2/sports/football/college-football";
+const SPORTSDATAVERSE_RELEASE_BASE = "https://github.com/sportsdataverse/sportsdataverse-data/releases/download";
 
 type LocalGame = {
   id: string;
@@ -94,6 +95,221 @@ async function jsonFetch<T>(url: string, revalidate = 1800): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+
+type SportsDataRow = Record<string, string>;
+
+type NormalizedAdvanced = {
+  source: "sportsdataverse" | "cfbd" | "sportsdataverse+cfbd";
+  throughWeek: number | null;
+  offense?: {
+    epaPerPlay?: number | null;
+    ppaPerPlay?: number | null;
+    successRate?: number | null;
+    passEpaPerPlay?: number | null;
+    rushEpaPerPlay?: number | null;
+    passSuccessRate?: number | null;
+    rushSuccessRate?: number | null;
+    explosiveRate?: number | null;
+    yardsPerPlay?: number | null;
+    lineYardsPerCarry?: number | null;
+    powerSuccessRate?: number | null;
+    stuffRate?: number | null;
+    earlyDownEpaPerPlay?: number | null;
+    lateDownEpaPerPlay?: number | null;
+    thirdDownSuccessRate?: number | null;
+    redZoneSuccessRate?: number | null;
+    pointsPerOpportunity?: number | null;
+  };
+  defense?: {
+    havocRate?: number | null;
+    passHavocRate?: number | null;
+    rushHavocRate?: number | null;
+    frontSevenHavocRate?: number | null;
+    dbHavocRate?: number | null;
+    sackRate?: number | null;
+    tflRate?: number | null;
+    driveStoppedRate?: number | null;
+    stuffRate?: number | null;
+  };
+};
+
+function parseCsv(text: string): SportsDataRow[] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (char === '"') {
+      if (quoted && text[index + 1] === '"') {
+        cell += '"';
+        index += 1;
+      } else {
+        quoted = !quoted;
+      }
+      continue;
+    }
+    if (!quoted && char === ",") {
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+    if (!quoted && (char === "\n" || char === "\r")) {
+      if (char === "\r" && text[index + 1] === "\n") index += 1;
+      row.push(cell);
+      cell = "";
+      if (row.some((value) => value.length > 0)) rows.push(row);
+      row = [];
+      continue;
+    }
+    cell += char;
+  }
+  if (cell.length || row.length) {
+    row.push(cell);
+    if (row.some((value) => value.length > 0)) rows.push(row);
+  }
+
+  const headers = rows.shift()?.map((value) => value.trim()) || [];
+  if (!headers.length) return [];
+  return rows.map((values) => Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""])));
+}
+
+async function fetchSportsDataCsv(dataset: string, filePrefix: string, season: number) {
+  const url = `${SPORTSDATAVERSE_RELEASE_BASE}/${dataset}/${filePrefix}_${season}.csv`;
+  try {
+    const response = await fetch(url, { next: { revalidate: 900 } });
+    if (!response.ok) return [] as SportsDataRow[];
+    return parseCsv(await response.text());
+  } catch {
+    return [] as SportsDataRow[];
+  }
+}
+
+function sportsRow(
+  rows: SportsDataRow[],
+  teamId: string | null,
+  team: string,
+  idKey: string,
+  nameKey: string,
+  requestedWeek: number
+) {
+  const matches = rows.filter((row) => {
+    if (teamId && String(row[idKey] || "").trim() === String(teamId)) return true;
+    return sameTeam(row[nameKey], team);
+  });
+  if (!matches.length) return null;
+  matches.sort((a, b) => Number(b.week || 0) - Number(a.week || 0));
+  const row = matches[0];
+  const throughWeek = finiteNumber(row.week);
+  if (requestedWeek > 0 && throughWeek != null && throughWeek >= requestedWeek) return null;
+  return row;
+}
+
+function rowNumber(row: SportsDataRow | null, key: string) {
+  return row ? finiteNumber(row[key]) : null;
+}
+
+function asRate(value: number | null, percentScale = false) {
+  if (value == null) return null;
+  if (percentScale || value > 1) return value / 100;
+  return value;
+}
+
+function hasAdvancedValues(value: Record<string, number | null | undefined> | undefined) {
+  return Boolean(value && Object.values(value).some((entry) => entry != null && Number.isFinite(Number(entry))));
+}
+
+function normalizeSportsAdvanced(
+  teamRow: SportsDataRow | null,
+  situationalRow: SportsDataRow | null,
+  defensiveRow: SportsDataRow | null
+): NormalizedAdvanced | null {
+  const offense = {
+    epaPerPlay: rowNumber(teamRow, "EPA_per_play"),
+    successRate: asRate(rowNumber(situationalRow, "EPA_success_rate")),
+    passEpaPerPlay: rowNumber(teamRow, "EPA_passing_per_play"),
+    rushEpaPerPlay: rowNumber(teamRow, "EPA_rushing_per_play"),
+    passSuccessRate: asRate(rowNumber(situationalRow, "EPA_success_pass_rate")),
+    rushSuccessRate: asRate(rowNumber(situationalRow, "EPA_success_rush_rate")),
+    explosiveRate: asRate(rowNumber(teamRow, "EPA_explosive_rate")),
+    yardsPerPlay: rowNumber(teamRow, "yards_per_play"),
+    lineYardsPerCarry: rowNumber(teamRow, "line_yards_per_carry"),
+    powerSuccessRate: asRate(rowNumber(teamRow, "rushing_power_success_rate")),
+    stuffRate: asRate(rowNumber(teamRow, "rushing_stuff_rate")),
+    earlyDownEpaPerPlay: rowNumber(situationalRow, "EPA_early_down_per_play"),
+    lateDownEpaPerPlay: rowNumber(situationalRow, "EPA_late_down_per_play"),
+    thirdDownSuccessRate: asRate(rowNumber(situationalRow, "EPA_success_rate_third")),
+    redZoneSuccessRate: asRate(rowNumber(situationalRow, "EPA_success_rate_rz"))
+  };
+  const scrimmagePlays = rowNumber(defensiveRow, "scrimmage_plays");
+  const tfl = rowNumber(defensiveRow, "TFL");
+  const defense = {
+    havocRate: asRate(rowNumber(defensiveRow, "havoc_total_rate")),
+    passHavocRate: asRate(rowNumber(defensiveRow, "havoc_total_pass_rate")),
+    rushHavocRate: asRate(rowNumber(defensiveRow, "havoc_total_rush_rate")),
+    sackRate: asRate(rowNumber(defensiveRow, "sacks_rate")),
+    tflRate: scrimmagePlays && tfl != null ? tfl / scrimmagePlays : null,
+    driveStoppedRate: asRate(rowNumber(defensiveRow, "drive_stopped_rate"), true)
+  };
+
+  if (!hasAdvancedValues(offense) && !hasAdvancedValues(defense)) return null;
+  const weeks = [teamRow, situationalRow, defensiveRow]
+    .map((row) => row ? finiteNumber(row.week) : null)
+    .filter((value): value is number => value != null);
+  return {
+    source: "sportsdataverse",
+    throughWeek: weeks.length ? Math.max(...weeks) : null,
+    offense: hasAdvancedValues(offense) ? offense : undefined,
+    defense: hasAdvancedValues(defense) ? defense : undefined
+  };
+}
+
+function advancedPath(block: Record<string, any> | undefined, path: string[]) {
+  let current: any = block;
+  for (const key of path) {
+    if (current == null || typeof current !== "object") return null;
+    current = current[key];
+  }
+  return finiteNumber(current);
+}
+
+function normalizeCfbdAdvanced(row: CfbdAdvanced | undefined): NormalizedAdvanced | null {
+  if (!row) return null;
+  const offense = {
+    ppaPerPlay: advancedPath(row.offense, ["ppa"]),
+    successRate: advancedPath(row.offense, ["successRate"]),
+    passSuccessRate: advancedPath(row.offense, ["passingPlays", "successRate"]),
+    rushSuccessRate: advancedPath(row.offense, ["rushingPlays", "successRate"]),
+    lineYardsPerCarry: advancedPath(row.offense, ["lineYards"]),
+    pointsPerOpportunity: advancedPath(row.offense, ["pointsPerOpportunity"])
+  };
+  const defense = {
+    havocRate: advancedPath(row.defense, ["havoc", "total"]),
+    frontSevenHavocRate: advancedPath(row.defense, ["havoc", "frontSeven"]),
+    dbHavocRate: advancedPath(row.defense, ["havoc", "db"]),
+    stuffRate: advancedPath(row.defense, ["stuffRate"])
+  };
+  if (!hasAdvancedValues(offense) && !hasAdvancedValues(defense)) return null;
+  return {
+    source: "cfbd",
+    throughWeek: null,
+    offense: hasAdvancedValues(offense) ? offense : undefined,
+    defense: hasAdvancedValues(defense) ? defense : undefined
+  };
+}
+
+function mergeAdvanced(primary: NormalizedAdvanced | null, fallback: NormalizedAdvanced | null): NormalizedAdvanced | null {
+  if (!primary) return fallback;
+  if (!fallback) return primary;
+  return {
+    source: "sportsdataverse+cfbd",
+    throughWeek: primary.throughWeek ?? fallback.throughWeek,
+    offense: { ...(fallback.offense || {}), ...(primary.offense || {}) },
+    defense: { ...(fallback.defense || {}), ...(primary.defense || {}) }
+  };
 }
 
 async function cfbd<T>(path: string, params: Record<string, string | number | boolean | null | undefined>, revalidate = 1800) {
@@ -520,6 +736,9 @@ export async function GET(request: NextRequest) {
     awaySchedule,
     homeSchedule,
     espnHistory,
+    sportsTeamRows,
+    sportsSituationalRows,
+    sportsDefensiveRows,
     cfbdStats,
     cfbdAdvanced,
     cfbdSp,
@@ -532,6 +751,9 @@ export async function GET(request: NextRequest) {
     fetchEspnSchedule(awayId, season),
     fetchEspnSchedule(homeId, season),
     fetchEspnHeadToHead({ away, home, awayId, homeId, season, targetDate }),
+    fetchSportsDataCsv("espn_cfb_adv_team", "adv_team", season),
+    fetchSportsDataCsv("espn_cfb_adv_situational", "adv_situational", season),
+    fetchSportsDataCsv("espn_cfb_adv_defensive", "adv_defensive", season),
     cfbd<CfbdTeamStat[]>("/stats/season", { year: season, endWeek, classification: "fbs" }, 1800),
     cfbd<CfbdAdvanced[]>("/stats/season/advanced", { year: season, endWeek, classification: "fbs", excludeGarbageTime: true }, 1800),
     cfbd<CfbdSp[]>("/ratings/sp", { year: season }, 3600),
@@ -546,6 +768,21 @@ export async function GET(request: NextRequest) {
   const awayRecentEspn = recentFromEspnSchedule(awaySchedule, targetDate);
   const homeRecentEspn = recentFromEspnSchedule(homeSchedule, targetDate);
 
+  const awaySportsAdvanced = normalizeSportsAdvanced(
+    sportsRow(sportsTeamRows, awayId, away, "pos_team_id", "pos_team", requestedWeek),
+    sportsRow(sportsSituationalRows, awayId, away, "pos_team_id", "pos_team", requestedWeek),
+    sportsRow(sportsDefensiveRows, awayId, away, "def_pos_team_id", "def_pos_team", requestedWeek)
+  );
+  const homeSportsAdvanced = normalizeSportsAdvanced(
+    sportsRow(sportsTeamRows, homeId, home, "pos_team_id", "pos_team", requestedWeek),
+    sportsRow(sportsSituationalRows, homeId, home, "pos_team_id", "pos_team", requestedWeek),
+    sportsRow(sportsDefensiveRows, homeId, home, "def_pos_team_id", "def_pos_team", requestedWeek)
+  );
+  const awayCfbdAdvanced = normalizeCfbdAdvanced(cfbdAdvanced?.find((row) => sameTeam(row.team, away)));
+  const homeCfbdAdvanced = normalizeCfbdAdvanced(cfbdAdvanced?.find((row) => sameTeam(row.team, home)));
+  const awayAdvanced = mergeAdvanced(awaySportsAdvanced, awayCfbdAdvanced);
+  const homeAdvanced = mergeAdvanced(homeSportsAdvanced, homeCfbdAdvanced);
+
   const awayData = {
     name: away,
     record: awaySummary.record,
@@ -559,7 +796,7 @@ export async function GET(request: NextRequest) {
       avgCoverMargin: localAwayAts.avgCoverMargin,
       recent: localAwayAts.recent
     },
-    advanced: cfbdAdvanced?.find((row) => sameTeam(row.team, away)) || null,
+    advanced: awayAdvanced,
     sp: cfbdSp?.find((row) => sameTeam(row.team, away)) || null
   };
 
@@ -576,7 +813,7 @@ export async function GET(request: NextRequest) {
       avgCoverMargin: localHomeAts.avgCoverMargin,
       recent: localHomeAts.recent
     },
-    advanced: cfbdAdvanced?.find((row) => sameTeam(row.team, home)) || null,
+    advanced: homeAdvanced,
     sp: cfbdSp?.find((row) => sameTeam(row.team, home)) || null
   };
 
@@ -601,11 +838,13 @@ export async function GET(request: NextRequest) {
       games: awayLocalGames.length > 0 || homeLocalGames.length > 0 || awaySchedule.length > 0 || homeSchedule.length > 0,
       lines: localAwayAts.recent.length > 0 || localHomeAts.recent.length > 0 || Boolean(awayEspnAts || homeEspnAts),
       regularStats: Boolean(cfbdStats || awayEspnStats || homeEspnStats),
-      advanced: Boolean(cfbdAdvanced),
+      advanced: Boolean(awayAdvanced || homeAdvanced),
       sp: Boolean(cfbdSp),
       history: Boolean(headToHead),
       baseSource: "espn+pickem",
-      advancedSource: cfbdAdvanced ? "cfbd" : null
+      advancedSource: awaySportsAdvanced || homeSportsAdvanced
+        ? (awayCfbdAdvanced || homeCfbdAdvanced ? "sportsdataverse+cfbd" : "sportsdataverse")
+        : (awayCfbdAdvanced || homeCfbdAdvanced ? "cfbd" : null)
     }
   }, {
     headers: { "Cache-Control": "private, max-age=0, must-revalidate" }

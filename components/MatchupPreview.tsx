@@ -53,8 +53,38 @@ type TeamPreview = {
     recent: AtsGame[];
   };
   advanced: {
-    offense?: Record<string, any>;
-    defense?: Record<string, any>;
+    source?: string;
+    throughWeek?: number | null;
+    offense?: {
+      epaPerPlay?: number | null;
+      ppaPerPlay?: number | null;
+      successRate?: number | null;
+      passEpaPerPlay?: number | null;
+      rushEpaPerPlay?: number | null;
+      passSuccessRate?: number | null;
+      rushSuccessRate?: number | null;
+      explosiveRate?: number | null;
+      yardsPerPlay?: number | null;
+      lineYardsPerCarry?: number | null;
+      powerSuccessRate?: number | null;
+      stuffRate?: number | null;
+      earlyDownEpaPerPlay?: number | null;
+      lateDownEpaPerPlay?: number | null;
+      thirdDownSuccessRate?: number | null;
+      redZoneSuccessRate?: number | null;
+      pointsPerOpportunity?: number | null;
+    };
+    defense?: {
+      havocRate?: number | null;
+      passHavocRate?: number | null;
+      rushHavocRate?: number | null;
+      frontSevenHavocRate?: number | null;
+      dbHavocRate?: number | null;
+      sackRate?: number | null;
+      tflRate?: number | null;
+      driveStoppedRate?: number | null;
+      stuffRate?: number | null;
+    };
   } | null;
   sp: {
     rating: number | null;
@@ -148,14 +178,16 @@ function TeamSectionTitle({ game, side, name, detail }: { game: Game; side: "awa
   </div>;
 }
 
-function advancedMetric(block: Record<string, any> | undefined, path: string[]) {
-  let current: any = block;
-  for (const key of path) {
-    if (current == null || typeof current !== "object") return null;
-    current = current[key];
-  }
-  const value = Number(current);
-  return Number.isFinite(value) ? value : null;
+function hasNumber(value: number | null | undefined) {
+  return value != null && Number.isFinite(value);
+}
+
+function advancedSourceLabel(away: TeamPreview, home: TeamPreview) {
+  const source = `${away.advanced?.source || ""} ${home.advanced?.source || ""}`;
+  if (source.includes("sportsdataverse") && source.includes("cfbd")) return "SportsDataverse / ESPN + CFBD";
+  if (source.includes("sportsdataverse")) return "SportsDataverse / ESPN";
+  if (source.includes("cfbd")) return "CFBD";
+  return "Advanced data";
 }
 
 function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview }) {
@@ -176,32 +208,58 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
         <MetricRow label="Turnovers / Game" away={fmt(away.regular.turnoversPerGame)} home={fmt(home.regular.turnoversPerGame)} />
         <MetricRow label="Avg Scoring Margin" away={fmtSigned(away.scoring.margin)} home={fmtSigned(home.scoring.margin)} />
       </section>
-      <p className="matchup-data-note">Success rate, PPA, explosiveness, line yards and havoc will layer in when the advanced feed is connected.</p>
+      <p className="matchup-data-note">Advanced season data is not available for this historical point in the schedule yet.</p>
     </div>;
   }
 
-  const block = (title: string, leftName: string, left: Record<string, any> | undefined, rightName: string, right: Record<string, any> | undefined) => <section className="matchup-comparison-block">
-    <div className="matchup-comparison-heading"><strong>{title}</strong><span>{leftName} offense vs {rightName} defense</span></div>
-    <MetricRow label="Success Rate" away={fmtPct(advancedMetric(left, ["successRate"]))} home={fmtPct(advancedMetric(right, ["successRate"]))} />
-    <MetricRow label="PPA / Play" away={fmt(advancedMetric(left, ["ppa"]), 3)} home={fmt(advancedMetric(right, ["ppa"]), 3)} />
-    <MetricRow label="Explosiveness" away={fmt(advancedMetric(left, ["explosiveness"]), 2)} home={fmt(advancedMetric(right, ["explosiveness"]), 2)} />
-    <MetricRow label="Pass Success" away={fmtPct(advancedMetric(left, ["passingPlays", "successRate"]))} home={fmtPct(advancedMetric(right, ["passingPlays", "successRate"]))} />
-    <MetricRow label="Rush Success" away={fmtPct(advancedMetric(left, ["rushingPlays", "successRate"]))} home={fmtPct(advancedMetric(right, ["rushingPlays", "successRate"]))} />
-    <MetricRow label="Line Yards" away={fmt(advancedMetric(left, ["lineYards"]), 2)} home={fmt(advancedMetric(right, ["lineYards"]), 2)} />
-    <MetricRow label="Pts / Opportunity" away={fmt(advancedMetric(left, ["pointsPerOpportunity"]), 2)} home={fmt(advancedMetric(right, ["pointsPerOpportunity"]), 2)} />
-  </section>;
+  const sourceLabel = advancedSourceLabel(away, home);
+  const useEpa = hasNumber(awayOffense?.epaPerPlay) || hasNumber(homeOffense?.epaPerPlay);
+  const efficiencyLabel = useEpa ? "EPA / Play" : "PPA / Play";
+  const efficiencyAway = useEpa ? awayOffense?.epaPerPlay : awayOffense?.ppaPerPlay;
+  const efficiencyHome = useEpa ? homeOffense?.epaPerPlay : homeOffense?.ppaPerPlay;
 
   return <div className="matchup-tab-body">
-    {block("WHEN AWAY HAS THE BALL", away.name, awayOffense, home.name, homeDefense)}
-    {block("WHEN HOME HAS THE BALL", home.name, homeOffense, away.name, awayDefense)}
     <section className="matchup-comparison-block">
-      <div className="matchup-comparison-heading"><strong>DISRUPTION</strong><span>Defensive havoc</span></div>
-      <MetricRow label="Havoc Rate" away={fmtPct(advancedMetric(awayDefense, ["havoc", "total"]))} home={fmtPct(advancedMetric(homeDefense, ["havoc", "total"]))} />
-      <MetricRow label="Front 7 Havoc" away={fmtPct(advancedMetric(awayDefense, ["havoc", "frontSeven"]))} home={fmtPct(advancedMetric(homeDefense, ["havoc", "frontSeven"]))} />
-      <MetricRow label="DB Havoc" away={fmtPct(advancedMetric(awayDefense, ["havoc", "db"]))} home={fmtPct(advancedMetric(homeDefense, ["havoc", "db"]))} />
-      <MetricRow label="Stuff Rate" away={fmtPct(advancedMetric(awayDefense, ["stuffRate"]))} home={fmtPct(advancedMetric(homeDefense, ["stuffRate"]))} />
+      <div className="matchup-comparison-heading"><strong>OFFENSIVE EFFICIENCY</strong><span>{sourceLabel}</span></div>
+      <MetricRow label={efficiencyLabel} away={fmtSigned(efficiencyAway, 3)} home={fmtSigned(efficiencyHome, 3)} />
+      <MetricRow label="Success Rate" away={fmtPct(awayOffense?.successRate)} home={fmtPct(homeOffense?.successRate)} />
+      <MetricRow label="Pass EPA / Play" away={fmtSigned(awayOffense?.passEpaPerPlay, 3)} home={fmtSigned(homeOffense?.passEpaPerPlay, 3)} />
+      <MetricRow label="Rush EPA / Play" away={fmtSigned(awayOffense?.rushEpaPerPlay, 3)} home={fmtSigned(homeOffense?.rushEpaPerPlay, 3)} />
+      <MetricRow label="Pass Success" away={fmtPct(awayOffense?.passSuccessRate)} home={fmtPct(homeOffense?.passSuccessRate)} />
+      <MetricRow label="Rush Success" away={fmtPct(awayOffense?.rushSuccessRate)} home={fmtPct(homeOffense?.rushSuccessRate)} />
+      <MetricRow label="Explosive Play Rate" away={fmtPct(awayOffense?.explosiveRate)} home={fmtPct(homeOffense?.explosiveRate)} />
+      <MetricRow label="Yards / Play" away={fmt(awayOffense?.yardsPerPlay, 2)} home={fmt(homeOffense?.yardsPerPlay, 2)} />
+      <MetricRow label="Line Yards / Carry" away={fmt(awayOffense?.lineYardsPerCarry, 2)} home={fmt(homeOffense?.lineYardsPerCarry, 2)} />
     </section>
-  </div>, document.body);
+
+    <section className="matchup-comparison-block">
+      <div className="matchup-comparison-heading"><strong>SITUATIONAL OFFENSE</strong><span>Down + field-state efficiency</span></div>
+      <MetricRow label="Early Down EPA / Play" away={fmtSigned(awayOffense?.earlyDownEpaPerPlay, 3)} home={fmtSigned(homeOffense?.earlyDownEpaPerPlay, 3)} />
+      <MetricRow label="Late Down EPA / Play" away={fmtSigned(awayOffense?.lateDownEpaPerPlay, 3)} home={fmtSigned(homeOffense?.lateDownEpaPerPlay, 3)} />
+      <MetricRow label="3rd Down Success" away={fmtPct(awayOffense?.thirdDownSuccessRate)} home={fmtPct(homeOffense?.thirdDownSuccessRate)} />
+      <MetricRow label="Red Zone Success" away={fmtPct(awayOffense?.redZoneSuccessRate)} home={fmtPct(homeOffense?.redZoneSuccessRate)} />
+      <MetricRow label="Power Run Success" away={fmtPct(awayOffense?.powerSuccessRate)} home={fmtPct(homeOffense?.powerSuccessRate)} />
+      <MetricRow label="Stuffed Rush Rate" away={fmtPct(awayOffense?.stuffRate)} home={fmtPct(homeOffense?.stuffRate)} />
+      {(hasNumber(awayOffense?.pointsPerOpportunity) || hasNumber(homeOffense?.pointsPerOpportunity)) &&
+        <MetricRow label="Pts / Opportunity" away={fmt(awayOffense?.pointsPerOpportunity, 2)} home={fmt(homeOffense?.pointsPerOpportunity, 2)} />}
+    </section>
+
+    <section className="matchup-comparison-block">
+      <div className="matchup-comparison-heading"><strong>DEFENSIVE DISRUPTION</strong><span>Pressure + drive-ending production</span></div>
+      <MetricRow label="Havoc Rate" away={fmtPct(awayDefense?.havocRate)} home={fmtPct(homeDefense?.havocRate)} />
+      <MetricRow label="Pass Havoc" away={fmtPct(awayDefense?.passHavocRate)} home={fmtPct(homeDefense?.passHavocRate)} />
+      <MetricRow label="Rush Havoc" away={fmtPct(awayDefense?.rushHavocRate)} home={fmtPct(homeDefense?.rushHavocRate)} />
+      <MetricRow label="Sack Rate" away={fmtPct(awayDefense?.sackRate)} home={fmtPct(homeDefense?.sackRate)} />
+      <MetricRow label="TFL Rate" away={fmtPct(awayDefense?.tflRate)} home={fmtPct(homeDefense?.tflRate)} />
+      <MetricRow label="Drive Stop Rate" away={fmtPct(awayDefense?.driveStoppedRate)} home={fmtPct(homeDefense?.driveStoppedRate)} />
+      {(hasNumber(awayDefense?.frontSevenHavocRate) || hasNumber(homeDefense?.frontSevenHavocRate)) &&
+        <MetricRow label="Front 7 Havoc" away={fmtPct(awayDefense?.frontSevenHavocRate)} home={fmtPct(homeDefense?.frontSevenHavocRate)} />}
+      {(hasNumber(awayDefense?.dbHavocRate) || hasNumber(homeDefense?.dbHavocRate)) &&
+        <MetricRow label="DB Havoc" away={fmtPct(awayDefense?.dbHavocRate)} home={fmtPct(homeDefense?.dbHavocRate)} />}
+    </section>
+
+    <p className="matchup-data-note">EPA is expected points added per play. Success rate is the share of plays graded successful by the underlying ESPN-derived model. Lower offensive stuffed-rush rate is better; higher defensive disruption rates are better.</p>
+  </div>;
 }
 
 function RecentTeam({ game, side, team }: { game: Game; side: "away" | "home"; team: TeamPreview }) {
