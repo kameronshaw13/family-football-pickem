@@ -13,6 +13,8 @@ export type Game = {
   away_team: string;
   home_logo_url: string | null;
   away_logo_url: string | null;
+  home_rank?: number | null;
+  away_rank?: number | null;
   current_spread_team: string | null;
   current_spread: number | null;
   current_bookmaker: string | null;
@@ -127,6 +129,8 @@ export type SideBet = {
   offered_team: string;
   creator_spread: number;
   offered_spread: number;
+  market_type?: "spread" | "moneyline";
+  creator_odds?: number;
   amount: number;
   status: SideBetStatus;
   accepted_by: string | null;
