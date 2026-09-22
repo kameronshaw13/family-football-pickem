@@ -11,8 +11,7 @@ import { notificationTeamName } from "@/lib/notificationTeamName";
 
 const SPORTS = [
   { key: "americanfootball_nfl", league: "NFL" },
-  { key: "americanfootball_ncaaf", league: "CFB" },
-  { key: "americanfootball_ncaaf_fcs", league: "CFB" }
+  { key: "americanfootball_ncaaf", league: "CFB" }
 ] as const;
 
 type OddsEvent = {
@@ -415,7 +414,7 @@ async function refreshOdds() {
   }
 }
 
-function isChicagoTuesdayEightAm(date = new Date()) {
+function isChicagoOddsRefreshWindow(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Chicago",
     weekday: "short",
@@ -424,18 +423,21 @@ function isChicagoTuesdayEightAm(date = new Date()) {
   }).formatToParts(date);
   const weekday = parts.find((part) => part.type === "weekday")?.value;
   const hour = Number(parts.find((part) => part.type === "hour")?.value);
-  return weekday === "Tue" && hour === 8;
+
+  // Refresh hourly at :50 from 8:50 AM through 8:50 PM CT Tuesday-Friday.
+  // Saturday gets the final 8:50 and 9:50 AM refreshes before the 10 AM freeze.
+  if (["Tue", "Wed", "Thu", "Fri"].includes(weekday || "")) return hour >= 8 && hour <= 20;
+  return weekday === "Sat" && hour >= 8 && hour <= 9;
 }
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get("authorization")?.replace("Bearer ", "") || req.nextUrl.searchParams.get("secret");
   if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) return unauthorized();
 
-  // Two UTC schedules cover CDT and CST. Vercel Hobby cron timing can be
-  // imprecise within the scheduled hour, so only the invocation that lands
-  // during Tuesday's 8 AM Chicago hour performs the refresh.
-  if (req.headers.get("x-vercel-cron-schedule") && !isChicagoTuesdayEightAm()) {
-    return NextResponse.json({ ok: true, skipped: true, reason: "Outside Tuesday 8 AM CT odds window." });
+  // The Vercel schedule fires hourly at :50. This local-time guard keeps
+  // Odds API usage to the useful pick'em window and handles CDT/CST automatically.
+  if (req.headers.get("x-vercel-cron-schedule") && !isChicagoOddsRefreshWindow()) {
+    return NextResponse.json({ ok: true, skipped: true, reason: "Outside active CT odds refresh window." });
   }
 
   return refreshOdds();
