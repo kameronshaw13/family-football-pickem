@@ -167,7 +167,7 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
   if (!hasDetailedAdvanced) {
     return <div className="matchup-tab-body">
       <section className="matchup-comparison-block">
-        <div className="matchup-comparison-heading"><strong>EFFICIENCY SNAPSHOT</strong><span>ESPN + pick'em data</span></div>
+        <div className="matchup-comparison-heading"><strong>EFFICIENCY SNAPSHOT</strong><span>ESPN + pick’em data</span></div>
         <MetricRow label="Yards / Game" away={fmt(away.regular.yardsPerGame)} home={fmt(home.regular.yardsPerGame)} />
         <MetricRow label="Pass Yards / Game" away={fmt(away.regular.passYardsPerGame)} home={fmt(home.regular.passYardsPerGame)} />
         <MetricRow label="Rush Yards / Game" away={fmt(away.regular.rushYardsPerGame)} home={fmt(home.regular.rushYardsPerGame)} />
@@ -305,7 +305,7 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
       cancelled = true;
       controller.abort();
     };
-  }, [game.away_team, game.home_team, game.commence_time, game.week]);
+  }, [game.away_team, game.home_team, game.away_logo_url, game.home_logo_url, game.commence_time, game.week]);
 
   const tabs = useMemo(() => ([
     ["overview", "Overview"],
