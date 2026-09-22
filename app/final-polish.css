@@ -107,6 +107,16 @@ body,
   align-self: stretch;
 }
 
+/* Risk must sit above Win in open side-bet cards. This intentionally
+   overrides the generic centered amount flex rule above. */
+.side-bet-offer-amount.side-bet-offer-payout {
+  display: grid;
+  height: auto;
+  grid-template-columns: 1fr;
+  align-self: center;
+  justify-items: end;
+}
+
 /* Real and preview Pick Board use the same score-based selected-side treatment. */
 .picks-panel .stacked-matchup .team-row.picked-win {
   background: linear-gradient(var(--green), var(--green)) left top / 4px 100% no-repeat, var(--win-soft);
