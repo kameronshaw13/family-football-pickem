@@ -359,7 +359,7 @@
   align-content: center;
 }
 
-/* Keep week selectors on a stable centerline without making NumericText a flex layout. */
+/* Week labels use one plain text run so the word and number share a baseline. */
 .header-menu-select .custom-select-trigger {
   display: flex;
   height: 36px;
@@ -375,16 +375,10 @@
   align-items: center;
   line-height: 1;
 }
-.header-menu-select .numeric-token {
-  display: inline;
+.header-menu-select .plain-select-text {
+  display: inline-block;
   line-height: 1;
   white-space: nowrap;
-}
-.header-menu-select .numeric-fragment {
-  display: inline-block;
-  margin-left: 4px;
-  line-height: 1;
-  vertical-align: middle;
 }
 .header-menu-select .custom-select-menu .custom-select-label {
   height: auto;
@@ -392,14 +386,25 @@
 }
 
 .bank-history-week-label {
-  display: inline-flex !important;
-  height: auto !important;
+  display: flex !important;
+  height: 40px !important;
   align-items: center;
-  gap: 4px;
   line-height: 1;
+  transform: translateY(1px);
+  white-space: nowrap;
 }
-.bank-history-week-label .numeric-token,
-.bank-history-week-label .numeric-fragment {
-  display: inline-block;
-  line-height: 1;
+
+/* Keep the expanded bank-history game rows at their original compact scale. */
+.bank-history-game-copy {
+  align-items: baseline;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.bank-history-game-copy .responsive-text {
+  font-size: 11px;
+  line-height: 1.2;
+}
+.bank-history-game-copy small {
+  font-size: 9px;
+  line-height: 1.2;
 }

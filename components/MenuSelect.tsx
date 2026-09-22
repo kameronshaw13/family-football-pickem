@@ -32,7 +32,8 @@ export default function MenuSelect({
   ariaLabel,
   className = "",
   disabled = false,
-  loading = false
+  loading = false,
+  plainText = false
 }: {
   value: string;
   sections: MenuSelectSection[];
@@ -41,11 +42,13 @@ export default function MenuSelect({
   className?: string;
   disabled?: boolean;
   loading?: boolean;
+  plainText?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const selected = useMemo(() => selectedOption(sections, value), [sections, value]);
   const selectedText = selected?.selectedLabel || selected?.label || value;
+  const labelContent = (text: string) => plainText ? <span className="plain-select-text">{text}</span> : <NumericText text={text} />;
 
   useEffect(() => {
     if (!open) return;
@@ -95,7 +98,7 @@ export default function MenuSelect({
         if (event.detail === 0) setOpen((current) => !current);
       }}
     >
-      <span className="custom-select-label"><NumericText text={selectedText} /><NotificationBadge count={selected?.badge || 0} /></span>
+      <span className="custom-select-label">{labelContent(selectedText)}<NotificationBadge count={selected?.badge || 0} /></span>
     </button>
     {loading
       ? <LoaderCircle className="custom-select-spinner" size={14} />
@@ -111,7 +114,7 @@ export default function MenuSelect({
           key={option.value}
           onClick={() => choose(option.value)}
         >
-          <span className="custom-select-label"><NumericText text={option.label} /><NotificationBadge count={option.badge || 0} /></span>
+          <span className="custom-select-label">{labelContent(option.label)}<NotificationBadge count={option.badge || 0} /></span>
         </button>)}
       </div>)}
     </div>}

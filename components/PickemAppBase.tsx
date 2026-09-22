@@ -1841,6 +1841,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           {previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><MenuSelect
             ariaLabel="Select week"
             className="week-select-wrap header-menu-select"
+            plainText
             value={String(data.week)}
             disabled={refreshing}
             sections={[{ options: availableWeeks.map((w) => ({ value: String(w), label: w === 0 ? "Week 0" : `Week ${w}` })) }]}
@@ -2067,7 +2068,7 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
         const weekTotal = Number(week.weeklyAmount || 0) + week.games.reduce((sum, game) => sum + game.playerAmount, 0);
         return <details className="bank-history-week" key={week.week}>
         <summary>
-          <strong className="bank-history-week-label"><span>Week</span><NumericText text={String(week.week)} /></strong>
+          <strong className="bank-history-week-label">{`Week ${week.week}`}</strong>
           <span className={weekTotal > 0 ? "money-pos" : weekTotal < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(weekTotal)} /></span>
           <ChevronDown size={16} />
         </summary>
