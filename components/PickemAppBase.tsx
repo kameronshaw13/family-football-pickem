@@ -769,7 +769,10 @@ function sideBetAmountForUser(bet: SideBet, userId: string) {
 
 function sideBetMarketText(marketType: SideBetMarketType | undefined, spread: number | null, odds: number) {
   const base = marketType === "moneyline" ? "ML" : spreadText(spread);
-  return odds === 100 ? base : `${base} · ${americanOddsText(odds)}`;
+  if (odds === 100) return base;
+  return marketType === "moneyline"
+    ? `${base} ${americanOddsText(odds)}`
+    : `${base} · ${americanOddsText(odds)}`;
 }
 
 function sideBetOddsForTeam(bet: SideBet, team: string) {
