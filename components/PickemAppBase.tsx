@@ -1618,6 +1618,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       return;
     }
 
+    const projectionData = data;
     const controller = new AbortController();
     async function loadProjections() {
       try {
@@ -1629,7 +1630,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             ...(token ? { Authorization: `Bearer ${token}` } : {})
           },
           body: JSON.stringify({
-            games: data.games.map((game) => ({
+            games: projectionData.games.map((game) => ({
               id: game.id,
               league: game.league,
               commence_time: game.commence_time,
