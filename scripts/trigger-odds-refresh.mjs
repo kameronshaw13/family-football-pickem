@@ -1,3 +1,4 @@
+// Trigger fixed production once.
 const secret = process.env.CRON_SECRET;
 if (!secret) {
   console.error("Odds diagnostic skipped: CRON_SECRET unavailable.");
