@@ -745,10 +745,18 @@ function stakeMoney(value: number) {
   return `$${Math.abs(Number(value)).toFixed(Number.isInteger(Number(value)) ? 0 : 2)}`;
 }
 function sideBetAmountForUser(bet: SideBet, userId: string) {
-  if (bet.status !== "settled") return { text: stakeMoney(sideBetRiskForUser(bet, userId)), tone: "money-neutral" };
-  if (bet.result === "push") return { text: "$0", tone: "money-neutral" };
+  if (bet.status !== "settled") {
+    return {
+      settled: false as const,
+      risk: stakeMoney(sideBetRiskForUser(bet, userId)),
+      win: stakeMoney(sideBetProfitForUser(bet, userId)),
+      tone: "money-neutral"
+    };
+  }
+  if (bet.result === "push") return { settled: true as const, text: "$0", tone: "money-neutral" };
   const net = sideBetNetForUser(bet, userId);
   return {
+    settled: true as const,
     text: money(net),
     tone: net > 0 ? "money-pos" : net < 0 ? "money-neg" : "money-neutral"
   };
@@ -2474,7 +2482,12 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, perspectiveTeam) : null} name={perspectiveTeam} />
       <div className="side-bet-offer-copy"><strong><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} /></strong><SideBetResponseLine summary={responseSummary} teamFull={offeredSideName} teamCompact={offeredSideCompact} spread={responseSpread} date={game ? dt(game.commence_time) : undefined} /></div>
-      <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
+      {amountDisplay.settled
+        ? <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
+        : <div className="side-bet-offer-amount side-bet-offer-payout" aria-label={`Risk ${amountDisplay.risk} to win ${amountDisplay.win}`}>
+            <span><small>Risk</small><strong><NumericText text={amountDisplay.risk} /></strong></span>
+            <span><small>Win</small><strong><NumericText text={amountDisplay.win} /></strong></span>
+          </div>}
     </div>
     {mode === "received" && offerOpen && <div className="actions"><button className={`btn accept ${working ? "working" : ""}`} disabled={saving || !canAccept} onClick={() => requestAccept(bet.id)}><Check size={15} /> {canAccept ? "Review & accept" : <NumericText text={acceptDisabledText} />}</button><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("decline", bet.id)}><X size={15} /> Decline</button></div>}
     {mode === "sent" && bet.status === "open" && <div className="actions"><button className={`btn secondary ${working ? "working" : ""}`} disabled={saving} onClick={() => respond("cancel", bet.id)}><X size={15} /> Cancel offer</button></div>}
