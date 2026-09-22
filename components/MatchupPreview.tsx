@@ -86,6 +86,24 @@ type TeamPreview = {
       stuffRate?: number | null;
     };
   } | null;
+  power: {
+    source?: string;
+    throughWeek?: number | null;
+    fpi?: number | null;
+    fpiRank?: number | null;
+    offenseEfficiency?: number | null;
+    offenseEfficiencyRank?: number | null;
+    defenseEfficiency?: number | null;
+    defenseEfficiencyRank?: number | null;
+    specialTeamsEfficiency?: number | null;
+    specialTeamsEfficiencyRank?: number | null;
+    adjustedOffEpa?: number | null;
+    adjustedDefEpa?: number | null;
+    adjustedNetEpa?: number | null;
+    adjustedOffRank?: number | null;
+    adjustedDefRank?: number | null;
+    adjustedNetRank?: number | null;
+  } | null;
   sp: {
     rating: number | null;
     ranking: number | null;
@@ -428,11 +446,13 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
             <MetricRow label="3rd Down" away={fmtPct(payload.teams.away.regular.thirdDownPct)} home={fmtPct(payload.teams.home.regular.thirdDownPct)} />
           </section>
           <section className="matchup-comparison-block">
-            <div className="matchup-comparison-heading"><strong>POWER RATINGS</strong><span>SP+</span></div>
-            <MetricRow label="SP+ Rank" away={payload.teams.away.sp?.ranking ? `#${payload.teams.away.sp.ranking}` : "—"} home={payload.teams.home.sp?.ranking ? `#${payload.teams.home.sp.ranking}` : "—"} />
-            <MetricRow label="SP+ Rating" away={fmtSigned(payload.teams.away.sp?.rating)} home={fmtSigned(payload.teams.home.sp?.rating)} />
-            <MetricRow label="Offense Rank" away={payload.teams.away.sp?.offense?.ranking ? `#${payload.teams.away.sp.offense.ranking}` : "—"} home={payload.teams.home.sp?.offense?.ranking ? `#${payload.teams.home.sp.offense.ranking}` : "—"} />
-            <MetricRow label="Defense Rank" away={payload.teams.away.sp?.defense?.ranking ? `#${payload.teams.away.sp.defense.ranking}` : "—"} home={payload.teams.home.sp?.defense?.ranking ? `#${payload.teams.home.sp.defense.ranking}` : "—"} />
+            <div className="matchup-comparison-heading"><strong>POWER RATINGS</strong><span>Weekly, pre-matchup snapshots</span></div>
+            <MetricRow label="FPI Rank" away={payload.teams.away.power?.fpiRank ? `#${payload.teams.away.power.fpiRank}` : "—"} home={payload.teams.home.power?.fpiRank ? `#${payload.teams.home.power.fpiRank}` : "—"} />
+            <MetricRow label="FPI" away={fmtSigned(payload.teams.away.power?.fpi)} home={fmtSigned(payload.teams.home.power?.fpi)} />
+            <MetricRow label="Adj EPA Rank" away={payload.teams.away.power?.adjustedNetRank ? `#${payload.teams.away.power.adjustedNetRank}` : "—"} home={payload.teams.home.power?.adjustedNetRank ? `#${payload.teams.home.power.adjustedNetRank}` : "—"} />
+            <MetricRow label="Adj EPA / Play" away={fmtSigned(payload.teams.away.power?.adjustedNetEpa, 3)} home={fmtSigned(payload.teams.home.power?.adjustedNetEpa, 3)} />
+            <MetricRow label="Offense Rank" away={payload.teams.away.power?.adjustedOffRank ? `#${payload.teams.away.power.adjustedOffRank}` : (payload.teams.away.power?.offenseEfficiencyRank ? `#${payload.teams.away.power.offenseEfficiencyRank}` : "—")} home={payload.teams.home.power?.adjustedOffRank ? `#${payload.teams.home.power.adjustedOffRank}` : (payload.teams.home.power?.offenseEfficiencyRank ? `#${payload.teams.home.power.offenseEfficiencyRank}` : "—")} />
+            <MetricRow label="Defense Rank" away={payload.teams.away.power?.adjustedDefRank ? `#${payload.teams.away.power.adjustedDefRank}` : (payload.teams.away.power?.defenseEfficiencyRank ? `#${payload.teams.away.power.defenseEfficiencyRank}` : "—")} home={payload.teams.home.power?.adjustedDefRank ? `#${payload.teams.home.power.adjustedDefRank}` : (payload.teams.home.power?.defenseEfficiencyRank ? `#${payload.teams.home.power.defenseEfficiencyRank}` : "—")} />
           </section>
           <section className="matchup-comparison-block">
             <div className="matchup-comparison-heading"><strong>AGAINST THE SPREAD</strong><span>Season before this game</span></div>

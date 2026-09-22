@@ -312,6 +312,48 @@ function mergeAdvanced(primary: NormalizedAdvanced | null, fallback: NormalizedA
   };
 }
 
+function latestWeeklyRow(
+  rows: SportsDataRow[],
+  teamId: string | null,
+  weekKey: string,
+  maxWeek: number,
+  extraFilter?: (row: SportsDataRow) => boolean
+) {
+  if (!teamId) return null;
+  return rows
+    .filter((row) => String(row.team_id || "").replace(/\.0$/, "") === String(teamId) &&
+      (finiteNumber(row[weekKey]) ?? -1) <= maxWeek &&
+      (!extraFilter || extraFilter(row)))
+    .sort((a, b) => (finiteNumber(b[weekKey]) ?? -1) - (finiteNumber(a[weekKey]) ?? -1))[0] || null;
+}
+
+function falseyCsv(value: string | undefined) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized === "" || normalized === "false" || normalized === "0" || normalized === "no";
+}
+
+function normalizePower(ratingRow: SportsDataRow | null, fpiRow: SportsDataRow | null) {
+  if (!ratingRow && !fpiRow) return null;
+  return {
+    source: "sportsdataverse",
+    throughWeek: rowNumber(ratingRow, "through_week") ?? rowNumber(fpiRow, "week"),
+    fpi: rowNumber(fpiRow, "fpi"),
+    fpiRank: rowNumber(fpiRow, "rank"),
+    offenseEfficiency: rowNumber(fpiRow, "offefficiency"),
+    offenseEfficiencyRank: rowNumber(fpiRow, "offefficiencyrank"),
+    defenseEfficiency: rowNumber(fpiRow, "defefficiency"),
+    defenseEfficiencyRank: rowNumber(fpiRow, "defefficiencyrank"),
+    specialTeamsEfficiency: rowNumber(fpiRow, "stefficiency"),
+    specialTeamsEfficiencyRank: rowNumber(fpiRow, "stefficiencyrank"),
+    adjustedOffEpa: rowNumber(ratingRow, "adj_off_epa"),
+    adjustedDefEpa: rowNumber(ratingRow, "adj_def_epa"),
+    adjustedNetEpa: rowNumber(ratingRow, "adj_net"),
+    adjustedOffRank: rowNumber(ratingRow, "off_rank"),
+    adjustedDefRank: rowNumber(ratingRow, "def_rank"),
+    adjustedNetRank: rowNumber(ratingRow, "net_rank")
+  };
+}
+
 async function cfbd<T>(path: string, params: Record<string, string | number | boolean | null | undefined>, revalidate = 1800) {
   const key = process.env.CFBD_API_KEY;
   if (!key) return null as T | null;
@@ -545,6 +587,34 @@ async function fetchEspnSchedule(teamId: string | null, season: number) {
   return events.map((event: any) => scheduleEvent(event, teamId)).filter(Boolean) as Array<NonNullable<ReturnType<typeof scheduleEvent>>>;
 }
 
+function summarizeEspnSchedule(schedule: Awaited<ReturnType<typeof fetchEspnSchedule>>, targetDate: number) {
+  const completed = schedule
+    .filter((game) => game.completed && game.teamPoints != null && game.opponentPoints != null && new Date(game.date).getTime() < targetDate)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  let wins = 0;
+  let losses = 0;
+  let pointsFor = 0;
+  let pointsAgainst = 0;
+  for (const game of completed) {
+    const teamPoints = Number(game.teamPoints);
+    const opponentPoints = Number(game.opponentPoints);
+    if (teamPoints > opponentPoints) wins += 1;
+    else if (teamPoints < opponentPoints) losses += 1;
+    pointsFor += teamPoints;
+    pointsAgainst += opponentPoints;
+  }
+  return {
+    games: completed.length,
+    record: { wins, losses },
+    scoring: {
+      ppg: completed.length ? pointsFor / completed.length : null,
+      allowedPpg: completed.length ? pointsAgainst / completed.length : null,
+      margin: completed.length ? (pointsFor - pointsAgainst) / completed.length : null
+    },
+    recent: recentFromEspnSchedule(completed, targetDate)
+  };
+}
+
 function recentFromEspnSchedule(schedule: Awaited<ReturnType<typeof fetchEspnSchedule>>, targetDate: number) {
   return schedule
     .filter((game) => game.completed && game.teamPoints != null && game.opponentPoints != null && new Date(game.date).getTime() < targetDate)
@@ -725,8 +795,8 @@ export async function GET(request: NextRequest) {
 
   const awayLocalGames = localGamesForTeam(localGames, away, targetDate, season);
   const homeLocalGames = localGamesForTeam(localGames, home, targetDate, season);
-  const awaySummary = summarizeLocalGames(awayLocalGames, away);
-  const homeSummary = summarizeLocalGames(homeLocalGames, home);
+  const awayLocalSummary = summarizeLocalGames(awayLocalGames, away);
+  const homeLocalSummary = summarizeLocalGames(homeLocalGames, home);
 
   const [
     awayEspnStats,
@@ -739,6 +809,8 @@ export async function GET(request: NextRequest) {
     sportsTeamRows,
     sportsSituationalRows,
     sportsDefensiveRows,
+    sportsRatingsRows,
+    sportsFpiRows,
     cfbdStats,
     cfbdAdvanced,
     cfbdSp,
@@ -754,6 +826,8 @@ export async function GET(request: NextRequest) {
     fetchSportsDataCsv("espn_cfb_adv_team", "adv_team", season),
     fetchSportsDataCsv("espn_cfb_adv_situational", "adv_situational", season),
     fetchSportsDataCsv("espn_cfb_adv_defensive", "adv_defensive", season),
+    fetchSportsDataCsv("cfb_ratings_weekly", "cfb_ratings_weekly", season),
+    fetchSportsDataCsv("cfb_fpi_weekly", "cfb_fpi_weekly", season),
     cfbd<CfbdTeamStat[]>("/stats/season", { year: season, endWeek, classification: "fbs" }, 1800),
     cfbd<CfbdAdvanced[]>("/stats/season/advanced", { year: season, endWeek, classification: "fbs", excludeGarbageTime: true }, 1800),
     cfbd<CfbdSp[]>("/ratings/sp", { year: season }, 3600),
@@ -765,8 +839,18 @@ export async function GET(request: NextRequest) {
   const localAwayAts = summarizeLocalAts(localGames, away, targetDate, season);
   const localHomeAts = summarizeLocalAts(localGames, home, targetDate, season);
 
-  const awayRecentEspn = recentFromEspnSchedule(awaySchedule, targetDate);
-  const homeRecentEspn = recentFromEspnSchedule(homeSchedule, targetDate);
+  const awayEspnSummary = summarizeEspnSchedule(awaySchedule, targetDate);
+  const homeEspnSummary = summarizeEspnSchedule(homeSchedule, targetDate);
+  const awaySummary = awayEspnSummary.games ? awayEspnSummary : { ...awayLocalSummary, games: awayLocalGames.length };
+  const homeSummary = homeEspnSummary.games ? homeEspnSummary : { ...homeLocalSummary, games: homeLocalGames.length };
+
+  const ratingsThroughWeek = Math.max(0, requestedWeek - 1);
+  const awayRatingRow = latestWeeklyRow(sportsRatingsRows, awayId, "through_week", ratingsThroughWeek);
+  const homeRatingRow = latestWeeklyRow(sportsRatingsRows, homeId, "through_week", ratingsThroughWeek);
+  const awayFpiRow = latestWeeklyRow(sportsFpiRows, awayId, "week", Math.max(1, requestedWeek), (row) => falseyCsv(row.snapshot_out_of_sequence));
+  const homeFpiRow = latestWeeklyRow(sportsFpiRows, homeId, "week", Math.max(1, requestedWeek), (row) => falseyCsv(row.snapshot_out_of_sequence));
+  const awayPower = normalizePower(awayRatingRow, awayFpiRow);
+  const homePower = normalizePower(homeRatingRow, homeFpiRow);
 
   const awaySportsAdvanced = normalizeSportsAdvanced(
     sportsRow(sportsTeamRows, awayId, away, "pos_team_id", "pos_team", requestedWeek),
@@ -787,16 +871,17 @@ export async function GET(request: NextRequest) {
     name: away,
     record: awaySummary.record,
     scoring: awaySummary.scoring,
-    recent: awaySummary.recent.length ? awaySummary.recent : awayRecentEspn,
+    recent: awaySummary.recent,
     regular: mergeRegular(cfbdRegularAway, awayEspnStats),
     ats: {
-      wins: localAwayAts.recent.length ? localAwayAts.wins : awayEspnAts?.wins ?? 0,
-      losses: localAwayAts.recent.length ? localAwayAts.losses : awayEspnAts?.losses ?? 0,
-      pushes: localAwayAts.recent.length ? localAwayAts.pushes : awayEspnAts?.pushes ?? 0,
+      wins: awayEspnAts?.wins ?? localAwayAts.wins,
+      losses: awayEspnAts?.losses ?? localAwayAts.losses,
+      pushes: awayEspnAts?.pushes ?? localAwayAts.pushes,
       avgCoverMargin: localAwayAts.avgCoverMargin,
       recent: localAwayAts.recent
     },
     advanced: awayAdvanced,
+    power: awayPower,
     sp: cfbdSp?.find((row) => sameTeam(row.team, away)) || null
   };
 
@@ -804,16 +889,17 @@ export async function GET(request: NextRequest) {
     name: home,
     record: homeSummary.record,
     scoring: homeSummary.scoring,
-    recent: homeSummary.recent.length ? homeSummary.recent : homeRecentEspn,
+    recent: homeSummary.recent,
     regular: mergeRegular(cfbdRegularHome, homeEspnStats),
     ats: {
-      wins: localHomeAts.recent.length ? localHomeAts.wins : homeEspnAts?.wins ?? 0,
-      losses: localHomeAts.recent.length ? localHomeAts.losses : homeEspnAts?.losses ?? 0,
-      pushes: localHomeAts.recent.length ? localHomeAts.pushes : homeEspnAts?.pushes ?? 0,
+      wins: homeEspnAts?.wins ?? localHomeAts.wins,
+      losses: homeEspnAts?.losses ?? localHomeAts.losses,
+      pushes: homeEspnAts?.pushes ?? localHomeAts.pushes,
       avgCoverMargin: localHomeAts.avgCoverMargin,
       recent: localHomeAts.recent
     },
     advanced: homeAdvanced,
+    power: homePower,
     sp: cfbdSp?.find((row) => sameTeam(row.team, home)) || null
   };
 
@@ -839,7 +925,7 @@ export async function GET(request: NextRequest) {
       lines: localAwayAts.recent.length > 0 || localHomeAts.recent.length > 0 || Boolean(awayEspnAts || homeEspnAts),
       regularStats: Boolean(cfbdStats || awayEspnStats || homeEspnStats),
       advanced: Boolean(awayAdvanced || homeAdvanced),
-      sp: Boolean(cfbdSp),
+      sp: Boolean(cfbdSp || awayPower || homePower),
       history: Boolean(headToHead),
       baseSource: "espn+pickem",
       advancedSource: awaySportsAdvanced || homeSportsAdvanced
