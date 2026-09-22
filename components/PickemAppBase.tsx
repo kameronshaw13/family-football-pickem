@@ -249,7 +249,7 @@ function SideBetResponseLine({ summary, teamFull, teamCompact, spread, date }: {
   const contentFor = (value: SideBetResponseVariant) => ({
     subject: value === "full" ? summary.subjectFull : summary.subjectCompact,
     recipient: value === "full" ? summary.recipientFull : summary.recipientCompact || summary.recipientFull,
-    team: value === "full" || value === "names" ? teamFull : value === "team" ? teamCompact : ""
+    team: value === "full" || value === "names" ? teamFull : teamCompact
   });
 
   useBrowserLayoutEffect(() => {
