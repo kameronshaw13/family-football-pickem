@@ -15,6 +15,14 @@ const COMMON_MASCOTS = new Set([
 ]);
 
 const MANUAL_CFB_LOGOS = new Map<string, string>([
+  ["app state", "https://a.espncdn.com/i/teamlogos/ncaa/500/2026.png"],
+  ["app state mountaineers", "https://a.espncdn.com/i/teamlogos/ncaa/500/2026.png"],
+  ["appalachian state", "https://a.espncdn.com/i/teamlogos/ncaa/500/2026.png"],
+  ["appalachian state mountaineers", "https://a.espncdn.com/i/teamlogos/ncaa/500/2026.png"],
+  ["umass", "https://a.espncdn.com/i/teamlogos/ncaa/500/113.png"],
+  ["umass minutemen", "https://a.espncdn.com/i/teamlogos/ncaa/500/113.png"],
+  ["massachusetts", "https://a.espncdn.com/i/teamlogos/ncaa/500/113.png"],
+  ["massachusetts minutemen", "https://a.espncdn.com/i/teamlogos/ncaa/500/113.png"],
   ["san jose state", "https://a.espncdn.com/i/teamlogos/ncaa/500/23.png"],
   ["san jose", "https://a.espncdn.com/i/teamlogos/ncaa/500/23.png"],
   ["sjsu", "https://a.espncdn.com/i/teamlogos/ncaa/500/23.png"],
