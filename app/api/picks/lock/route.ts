@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromRequest } from "@/lib/authServer";
-import { getGroupGameLockTime, getGroupUnderdogBonus, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
-import { getPickWeekOpenTime } from "@/lib/lockRules";
+import { getGroupGameLockTime, getGroupPickWeekOpenTime, getGroupUnderdogBonus, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
@@ -35,7 +34,7 @@ export async function POST(req: NextRequest) {
     const pick = (candidates || [])[0];
     if (!pick?.game) return NextResponse.json({ ok: false, error: "Wait for this pick to finish saving, then lock it." }, { status: 409 });
 
-    const weekOpen = getPickWeekOpenTime(body.week, [pick.game.commence_time], context.group.timezone);
+    const weekOpen = getGroupPickWeekOpenTime(context, body.week, [pick.game.commence_time]);
     if (weekOpen && now < weekOpen) return NextResponse.json({ ok: false, error: "This week is not open yet." }, { status: 409 });
 
     const automaticLock = getGroupGameLockTime(context, pick.game.commence_time);
