@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { normalizeEspnLogoUrl } from "@/lib/espnLogos";
-import { getGroupGameLockTime, getGroupSideBetSettings, getGroupWeekRule, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+import { getGroupGameLockTime, getGroupPickWeekOpenTime, getGroupSideBetSettings, getGroupWeekRule, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { computeGroupStandings } from "@/lib/groupScoring";
-import { getPickWeekOpenTime } from "@/lib/lockRules";
 import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
@@ -56,14 +55,14 @@ export async function GET(req: NextRequest) {
     const standingsWeeks = Array.from(new Set(allGames.map((game) => Number(game.week)))).sort((a, b) => a - b);
     const openedWeeks = standingsWeeks.filter((candidateWeek) => {
       const candidateGames = allGames.filter((game) => Number(game.week) === candidateWeek);
-      const openTime = getPickWeekOpenTime(candidateWeek, candidateGames.map((game) => game.commence_time), context.group.timezone);
+      const openTime = getGroupPickWeekOpenTime(context, candidateWeek, candidateGames.map((game) => game.commence_time));
       return !openTime || openTime <= now;
     });
     const defaultWeek = openedWeeks[openedWeeks.length - 1] ?? standingsWeeks[0] ?? 0;
     const week = requestedWeek != null ? Number(requestedWeek) : defaultWeek;
     const games = allGames.filter((game) => Number(game.week) === week);
     const gameById = new Map(allGames.map((game) => [game.id, game]));
-    const weekOpen = getPickWeekOpenTime(week, games.map((game) => game.commence_time), context.group.timezone);
+    const weekOpen = getGroupPickWeekOpenTime(context, week, games.map((game) => game.commence_time));
 
     const [picksResult, weekMoneyResult] = await Promise.all([
       supabase.from("picks").select("*, game:games(*), profile:profiles(id,username,display_name,is_admin)").eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("week", week),
