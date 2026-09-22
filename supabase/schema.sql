@@ -42,6 +42,8 @@ create table if not exists games (
   away_team text not null,
   home_logo_url text,
   away_logo_url text,
+  home_rank integer check (home_rank is null or home_rank between 1 and 25),
+  away_rank integer check (away_rank is null or away_rank between 1 and 25),
   current_spread_team text,
   current_spread numeric,
   current_bookmaker text,
@@ -55,6 +57,18 @@ create table if not exists games (
 
 alter table games add column if not exists home_logo_url text;
 alter table games add column if not exists away_logo_url text;
+alter table games add column if not exists home_rank integer;
+alter table games add column if not exists away_rank integer;
+
+do $ begin
+  alter table games add constraint games_home_rank_check check (home_rank is null or home_rank between 1 and 25);
+exception when duplicate_object then null;
+end $;
+
+do $ begin
+  alter table games add constraint games_away_rank_check check (away_rank is null or away_rank between 1 and 25);
+exception when duplicate_object then null;
+end $;
 
 -- Convert early college games that were previously bucketed as Week 1 into Week 0.
 update games
@@ -132,6 +146,8 @@ create table if not exists side_bets (
   offered_team text not null,
   creator_spread numeric not null,
   offered_spread numeric not null,
+  market_type text not null default 'spread' check (market_type in ('spread','moneyline')),
+  creator_odds integer not null default 100 check (creator_odds <= -100 or creator_odds >= 100),
   amount numeric(10,2) not null check (amount > 0 and amount <= 10000),
   status text not null default 'open' check (status in ('open','accepted','declined','cancelled','expired','settled')),
   accepted_by uuid,
@@ -146,6 +162,19 @@ create table if not exists side_bets (
   constraint side_bets_winner_id_fkey foreign key (winner_id) references profiles(id) on delete set null,
   constraint side_bets_distinct_teams check (creator_team <> offered_team)
 );
+
+alter table side_bets add column if not exists market_type text not null default 'spread';
+alter table side_bets add column if not exists creator_odds integer not null default 100;
+
+do $ begin
+  alter table side_bets add constraint side_bets_market_type_check check (market_type in ('spread','moneyline'));
+exception when duplicate_object then null;
+end $;
+
+do $ begin
+  alter table side_bets add constraint side_bets_creator_odds_check check (creator_odds <= -100 or creator_odds >= 100);
+exception when duplicate_object then null;
+end $;
 
 create table if not exists side_bet_targets (
   side_bet_id uuid not null,
