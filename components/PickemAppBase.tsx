@@ -745,19 +745,20 @@ function stakeMoney(value: number) {
   return `$${Math.abs(Number(value)).toFixed(Number.isInteger(Number(value)) ? 0 : 2)}`;
 }
 function sideBetAmountForUser(bet: SideBet, userId: string) {
+  const risk = stakeMoney(sideBetRiskForUser(bet, userId));
+  const win = stakeMoney(sideBetProfitForUser(bet, userId));
   if (bet.status !== "settled") {
-    return {
-      settled: false as const,
-      risk: stakeMoney(sideBetRiskForUser(bet, userId)),
-      win: stakeMoney(sideBetProfitForUser(bet, userId)),
-      tone: "money-neutral"
-    };
+    return { settled: false, text: "", risk, win, tone: "money-neutral" };
   }
-  if (bet.result === "push") return { settled: true as const, text: "$0", tone: "money-neutral" };
+  if (bet.result === "push") {
+    return { settled: true, text: "$0", risk, win, tone: "money-neutral" };
+  }
   const net = sideBetNetForUser(bet, userId);
   return {
-    settled: true as const,
+    settled: true,
     text: money(net),
+    risk,
+    win,
     tone: net > 0 ? "money-pos" : net < 0 ? "money-neg" : "money-neutral"
   };
 }
