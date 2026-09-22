@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getProfileFromRequest } from "@/lib/authServer";
 import { normalizeTeamNameKey, teamDisplayName } from "@/lib/teamNames";
 
 const CFBD_BASE_URL = "https://api.collegefootballdata.com";
@@ -328,7 +329,10 @@ function teamPayload(args: {
   };
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const auth = await getProfileFromRequest(request);
+  if (!auth.profile) return NextResponse.json({ error: auth.error || "Unauthorized" }, { status: auth.status });
+
   const url = new URL(request.url);
   const rawAway = url.searchParams.get("away") || "";
   const rawHome = url.searchParams.get("home") || "";
