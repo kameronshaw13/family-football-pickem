@@ -44,7 +44,7 @@ type PreparedSport = {
   creditsLast: number | null;
 };
 
-const SUPABASE_ODDS_CRON_TOKEN_SHA256 = "e899f43d69b2e45353be55f58ed6e81aedec37dfc199e341d93ac9ecddb252c7";
+const SUPABASE_ODDS_CRON_TOKEN_SHA256 = "3907027700258fc50a7d4ea237b41402793ca1082da70fdc5751a81216c09dbb";
 
 function hasValidSupabaseOddsCronToken(req: NextRequest) {
   const token = req.headers.get("x-odds-cron-token");
