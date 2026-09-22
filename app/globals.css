@@ -578,3 +578,131 @@ fieldset .field-label { padding: 0; }
   .leaderboard-labels, .leaderboard-row { grid-template-columns: 42px minmax(82px, 1fr) repeat(3, 28px) 58px; }
   .autosave-toast, .toast { right: 9px; left: 9px; }
 }
+
+
+/* Board-only AP ranking labels. My Card intentionally keeps the existing team-name treatment. */
+.board-ranked-team-name {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 5px;
+}
+.board-ranked-team-name > .team-name {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.board-team-rank {
+  flex: 0 0 auto;
+  color: var(--blue-dark);
+  font-size: 9px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Custom side-bet markets and American-odds payout preview. */
+.side-bet-market-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.side-bet-market-toggle button {
+  min-height: 39px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  background: var(--panel);
+  font-size: 12px;
+  font-weight: 800;
+}
+.side-bet-market-toggle button:last-child { border-right: 0; }
+.side-bet-market-toggle button.active {
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+  box-shadow: inset 0 -3px 0 var(--blue);
+}
+.side-bet-market-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  background: var(--panel);
+}
+.side-bet-market-fields label,
+.side-bet-risk-field {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  padding: 8px var(--pick-content-inset);
+  border-right: 1px solid var(--line);
+}
+.side-bet-market-fields label:last-child { border-right: 0; }
+.side-bet-market-fields label > span,
+.side-bet-risk-field > span {
+  color: var(--header-muted);
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.side-bet-market-fields input,
+.side-bet-risk-field input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 5px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  color: var(--ink);
+  background: var(--panel);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.side-bet-market-fields:has(label:only-child) { grid-template-columns: 1fr; }
+.side-bet-field-error {
+  margin: 0;
+  padding: 6px var(--pick-content-inset) 8px;
+  color: var(--red);
+  background: var(--red-soft);
+  font-size: 10px;
+  font-weight: 700;
+}
+.side-bet-slip-section-head small {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: none;
+}
+.side-bet-risk-field {
+  border-top: 1px solid var(--line);
+  border-right: 0;
+}
+.side-bet-risk-field > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 5px;
+}
+.side-bet-risk-field > div > span {
+  font-size: 13px;
+  font-weight: 800;
+}
+.side-bet-payout-preview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+.side-bet-payout-preview > span {
+  padding: 8px var(--pick-content-inset);
+  border-right: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.side-bet-payout-preview > span:last-child { border-right: 0; }
+.side-bet-payout-preview strong {
+  color: var(--ink);
+  font-weight: 850;
+}
