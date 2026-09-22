@@ -25,7 +25,7 @@ type CachedPayload = {
   games?: CachedGame[];
 };
 
-const APP_DATA_CACHE_PREFIX = "pickem_app_data_v1";
+const APP_DATA_CACHE_PREFIX = "pickem_app_data_v2";
 const MAX_BATCH_SELECTIONS = 4;
 
 function appSlugFromPath(): AppSlug {
@@ -387,7 +387,13 @@ export default function SideBetBatchEnhancements() {
       }
 
       const amountButton = document.querySelector<HTMLButtonElement>(".side-bet-amount-grid button.active");
-      const amount = Number((amountButton?.textContent || "").replace(/[^0-9.]/g, ""));
+      const riskInput = document.querySelector<HTMLInputElement>(".side-bet-risk-input");
+      const amount = Number(riskInput?.value || (amountButton?.textContent || "").replace(/[^0-9.]/g, ""));
+      const marketButton = Array.from(document.querySelectorAll<HTMLButtonElement>(".side-bet-market-toggle button"))
+        .find((button) => button.classList.contains("active"));
+      const marketType = /moneyline/i.test(marketButton?.textContent || "") ? "moneyline" : "spread";
+      const creatorOdds = Number(document.querySelector<HTMLInputElement>(".side-bet-odds-input")?.value || 100);
+      const customSpread = Number(document.querySelector<HTMLInputElement>(".side-bet-spread-input")?.value);
       const recipientIds = Array.from(document.querySelectorAll<HTMLInputElement>(".side-bet-recipient-grid input:checked"))
         .map((input) => input.closest<HTMLElement>("label")?.dataset.batchRecipientId || "")
         .filter(Boolean);
@@ -408,7 +414,25 @@ export default function SideBetBatchEnhancements() {
             Authorization: `Bearer ${token}`,
             "x-pickem-group": appSlug
           },
-          body: JSON.stringify({ selections, amount, recipientIds, viewWeek: payload.week ?? selectedWeekFromHeader() ?? undefined })
+          body: JSON.stringify({
+            selections: selections.map((selection) => {
+              const game = payload.games?.find((candidate) => candidate.id === selection.gameId);
+              const currentSpread = game
+                ? normalizeSpreadForSelectedTeam(selection.creatorTeam, game.current_spread_team, game.current_spread)
+                : null;
+              return {
+                ...selection,
+                creatorSpread: marketType === "spread"
+                  ? (selections.length === 1 && Number.isFinite(customSpread) ? customSpread : currentSpread ?? undefined)
+                  : 0
+              };
+            }),
+            amount,
+            marketType,
+            creatorOdds,
+            recipientIds,
+            viewWeek: payload.week ?? selectedWeekFromHeader() ?? undefined
+          })
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || "The side bet batch could not be sent.");
