@@ -5,6 +5,7 @@ import { getGroupGameLockTime, getGroupPickWeekOpenTime, getGroupSideBetSettings
 import { computeGroupStandings } from "@/lib/groupScoring";
 import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { sideBetSlotCounts } from "@/lib/sideBetLimits";
+import { sideBetCreatorProfit } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
@@ -114,8 +115,9 @@ export async function GET(req: NextRequest) {
     for (const bet of allSideBets) {
       if (bet.status !== "settled" || bet.result === "push" || !bet.accepted_by || !bet.winner_id) continue;
       const loserId = bet.winner_id === bet.creator_id ? bet.accepted_by : bet.creator_id;
-      sideBetBankTotals[bet.winner_id] = Number(sideBetBankTotals[bet.winner_id] || 0) + Number(bet.amount);
-      sideBetBankTotals[loserId] = Number(sideBetBankTotals[loserId] || 0) - Number(bet.amount);
+      const transfer = bet.winner_id === bet.creator_id ? sideBetCreatorProfit(bet) : Number(bet.amount);
+      sideBetBankTotals[bet.winner_id] = Number(sideBetBankTotals[bet.winner_id] || 0) + transfer;
+      sideBetBankTotals[loserId] = Number(sideBetBankTotals[loserId] || 0) - transfer;
     }
     const weeklyBank = context.rules?.weeklyBank || {};
     const moneyAdmin = context.group.slug === "other-family"
