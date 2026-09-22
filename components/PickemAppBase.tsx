@@ -1913,6 +1913,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           toggleRecipient={toggleBetRecipient}
           createBet={createSideBet}
           respond={(action, sideBetId) => postSideBet({ action, sideBetId })}
+          openPreview={setMatchupPreviewGame}
         />}
       </section>}
 
@@ -2233,7 +2234,7 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond, openPreview }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
@@ -2264,6 +2265,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   toggleRecipient: (value: string) => void;
   createBet: (options: { marketType: SideBetMarketType; creatorSpread: number; creatorOdds: number }) => Promise<boolean>;
   respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean>;
+  openPreview: (game: Game) => void;
 }) {
   const [confirmingBetId, setConfirmingBetId] = useState<string | null>(null);
   const [slipExpanded, setSlipExpanded] = useState(false);
@@ -2447,6 +2449,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
           selectedTeam={selectedGame?.id === game.id ? selectedCreatorTeam : ""}
           disabled={!weekIsOpen}
           onSelect={selectSide}
+          openPreview={openPreview}
         />)}</div>
       </section>)}</div>}
     </div>}
@@ -2528,9 +2531,12 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   </div>;
 }
 
-function SideBetGameCard({ game, selectedTeam, disabled, onSelect }: { game: Game; selectedTeam: string; disabled: boolean; onSelect: (game: Game, team: string) => void }) {
+function SideBetGameCard({ game, selectedTeam, disabled, onSelect, openPreview }: { game: Game; selectedTeam: string; disabled: boolean; onSelect: (game: Game, team: string) => void; openPreview: (game: Game) => void }) {
   return <article className={`game-card matchup-card side-bet-game-card ${disabled ? "closed" : ""} ${selectedTeam ? "selected" : ""}`.trim()}>
-    <div className="game-head compact-game-head"><div className="game-time-group"><span className="game-time"><NumericText text={timeText(game.commence_time)} /></span></div></div>
+    <div className="game-head compact-game-head">
+      <div className="game-time-group"><span className="game-time"><NumericText text={timeText(game.commence_time)} /></span></div>
+      {game.league === "CFB" && <button type="button" className="matchup-preview-trigger side-bet-matchup-preview-trigger" onClick={() => openPreview(game)}>Matchup Preview</button>}
+    </div>
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
       {[game.away_team, game.home_team].map((team) => <button
         type="button"
