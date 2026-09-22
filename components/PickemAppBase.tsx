@@ -2160,7 +2160,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
   const defaultCreatorSpread = selectedGame && selectedCreatorTeam ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
   const parsedCustomSpread = customSpread.trim() === "" ? null : Number(customSpread);
-  const creatorSpread = marketType === "moneyline" ? 0 : (Number.isFinite(parsedCustomSpread) ? parsedCustomSpread : defaultCreatorSpread);
+  const creatorSpread = marketType === "moneyline" ? 0 : (parsedCustomSpread != null && Number.isFinite(parsedCustomSpread) ? parsedCustomSpread : defaultCreatorSpread);
   const creatorOdds = Number(oddsInput);
   const offeredOdds = oppositeAmericanOdds(creatorOdds);
   const creatorRisk = Math.max(0, Number(amount) || 0);
