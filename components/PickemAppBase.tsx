@@ -1976,13 +1976,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             onError={(error) => notify(error, "error")}
           />}
           <div className="bank-summary-grid">
-            <div className="bank-summary-head"><span>Player</span><span>Balance</span></div>
-            {bankTotals.map((row) => <div key={row.id} className="money-card"><span>{row.display_name}</span><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : ""}><NumericText text={money(row.total)} /></strong></div>)}
+            <div className="bank-summary-head bank-summary-head-expandable"><span>Player</span><span>Balance</span><span aria-hidden="true" /></div>
+            {bankTotals.map((row) => <BankBalanceHistoryRow
+              key={row.id}
+              player={row}
+              weeks={viewedBankHistory}
+            />)}
           </div>
-          {!previewActive && <div className="subsection bank-section bank-history-section">
-            <div className="standings-heading-row"><h2>Bank History</h2></div>
-            <BankHistoryList weeks={viewedBankHistory} profiles={profiles} currentUserId={currentUser.id} />
-          </div>}
           <div className="subsection bank-section bank-week-section">
             <div className="standings-heading-row">
               <h2>{previewActive ? "Test Weekly Results" : "Weekly Results"}</h2>
@@ -2035,54 +2035,55 @@ function RankNumber({ rank, className }: { rank: number; className: string }) {
   return <span className={`${className} rank-${rank}`} aria-label={labels[rank]}>{rank}</span>;
 }
 
-function BankHistoryAmounts({ amounts, profiles, currentUserId }: { amounts: Record<string, number>; profiles: Profile[]; currentUserId: string }) {
-  const ordered = [
-    ...profiles.filter((profile) => profile.id === currentUserId),
-    ...profiles.filter((profile) => profile.id !== currentUserId)
-  ].filter((profile) => Object.prototype.hasOwnProperty.call(amounts, profile.id));
+function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; display_name: string; total: number }; weeks: BankHistoryWeek[] }) {
+  const playerWeeks = weeks.map((week) => {
+    const weeklyAmount = Object.prototype.hasOwnProperty.call(week.weeklyAmounts || {}, player.id)
+      ? Number(week.weeklyAmounts[player.id] || 0)
+      : null;
+    const games = week.games
+      .filter((game) => Object.prototype.hasOwnProperty.call(game.amounts || {}, player.id))
+      .map((game) => ({ ...game, playerAmount: Number(game.amounts[player.id] || 0) }));
+    return { week: week.week, weeklyAmount, games };
+  }).filter((week) => week.weeklyAmount != null || week.games.length > 0);
 
-  return <div className="bank-history-amounts">{ordered.map((profile) => {
-    const amount = Number(amounts[profile.id] || 0);
-    return <div className="bank-history-player-row" key={profile.id}>
-      <span>{profile.id === currentUserId ? "You" : profile.display_name}</span>
-      <strong className={amount > 0 ? "money-pos" : amount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(amount)} /></strong>
-    </div>;
-  })}</div>;
-}
-
-function BankHistoryList({ weeks, profiles, currentUserId }: { weeks: BankHistoryWeek[]; profiles: Profile[]; currentUserId: string }) {
-  if (!weeks.length) return <div className="bank-history-list"><p className="muted bank-history-empty">No bank history yet.</p></div>;
-
-  return <div className="bank-history-list">{weeks.map((week) => {
-    const weeklyPlayers = Object.keys(week.weeklyAmounts || {}).length;
-    const entryCount = week.games.length + (weeklyPlayers ? 1 : 0);
-    return <details className="bank-history-week" key={week.week}>
-      <summary>
-        <strong>Week <NumericText text={String(week.week)} /></strong>
-        <span><NumericText text={`${entryCount} ${entryCount === 1 ? "entry" : "entries"}`} /></span>
-        <ChevronDown size={16} />
-      </summary>
-      <div className="bank-history-week-body">
-        {weeklyPlayers > 0 && <section className="bank-history-event">
-          <div className="bank-history-event-head"><strong>Weekly Pick’em</strong><span>Weekly result</span></div>
-          <BankHistoryAmounts amounts={week.weeklyAmounts} profiles={profiles} currentUserId={currentUserId} />
-        </section>}
-        {week.games.map((game) => {
-          const awayFull = teamDisplayName(game.league, game.awayTeam);
-          const homeFull = teamDisplayName(game.league, game.homeTeam);
-          const awayCompact = teamAbbreviatedName(game.league, game.awayTeam);
-          const homeCompact = teamAbbreviatedName(game.league, game.homeTeam);
-          return <section className="bank-history-event" key={game.gameId}>
-            <div className="bank-history-event-head">
-              <strong><ResponsiveText full={`${awayFull} at ${homeFull}`} compact={`${awayCompact} at ${homeCompact}`} /></strong>
-              <span><NumericText text={`${game.betCount} ${game.betCount === 1 ? "bet" : "bets"}`} /></span>
-            </div>
-            <BankHistoryAmounts amounts={game.amounts} profiles={profiles} currentUserId={currentUserId} />
-          </section>;
-        })}
-      </div>
-    </details>;
-  })}</div>;
+  return <details className="bank-balance-player">
+    <summary>
+      <span className="bank-balance-player-name">{player.display_name}</span>
+      <strong className={player.total > 0 ? "money-pos" : player.total < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(player.total)} /></strong>
+      <ChevronDown size={16} />
+    </summary>
+    <div className="bank-balance-player-history">
+      {!playerWeeks.length && <p className="muted bank-history-empty">No bank history yet.</p>}
+      {playerWeeks.map((week) => <details className="bank-history-week" key={week.week}>
+        <summary>
+          <strong>Week <NumericText text={String(week.week)} /></strong>
+          <span><NumericText text={money(
+            Number(week.weeklyAmount || 0) + week.games.reduce((sum, game) => sum + game.playerAmount, 0)
+          )} /></span>
+          <ChevronDown size={16} />
+        </summary>
+        <div className="bank-history-week-body">
+          {week.weeklyAmount != null && <div className="bank-history-line">
+            <span>Weekly Pick’em</span>
+            <strong className={week.weeklyAmount > 0 ? "money-pos" : week.weeklyAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.weeklyAmount)} /></strong>
+          </div>}
+          {week.games.map((game) => {
+            const awayFull = teamDisplayName(game.league, game.awayTeam);
+            const homeFull = teamDisplayName(game.league, game.homeTeam);
+            const awayCompact = teamAbbreviatedName(game.league, game.awayTeam);
+            const homeCompact = teamAbbreviatedName(game.league, game.homeTeam);
+            return <div className="bank-history-line bank-history-game-line" key={game.gameId}>
+              <span className="bank-history-game-copy">
+                <ResponsiveText full={`${awayFull} at ${homeFull}`} compact={`${awayCompact} at ${homeCompact}`} />
+                {game.betCount > 1 && <small><NumericText text={`${game.betCount} bets`} /></small>}
+              </span>
+              <strong className={game.playerAmount > 0 ? "money-pos" : game.playerAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(game.playerAmount)} /></strong>
+            </div>;
+          })}
+        </div>
+      </details>)}
+    </div>
+  </details>;
 }
 
 function BankWeekResults({ rows, picks, games, amounts, pointsMode, universalLockReached }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null>; pointsMode: boolean; universalLockReached: boolean }) {
