@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-offer:${sideBet.id}`,
           title: `Side bet from ${auth.profile.display_name}`,
-          body: `Risk ${profitForRisk(amount, creatorOdds)} · ${notificationTeamName(offeredTeam, game.league)} ${marketType === "moneyline" ? "ML" : notificationSpread(-resolvedCreatorSpread)} ${americanOddsText(oppositeAmericanOdds(creatorOdds))}`,
+          body: `Risk ${profitForRisk(amount, creatorOdds)} · ${notificationTeamName(offeredTeam, game.league)} ${marketType === "moneyline" ? "ML" : notificationSpread(-resolvedCreatorSpread)} · ${americanOddsText(oppositeAmericanOdds(creatorOdds))}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_received"),
           actionRequired: true
         }));
@@ -278,7 +278,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-declined:${sideBet.id}:${auth.profile.id}`,
           title: `${auth.profile.display_name} declined your side bet`,
-          body: `${notificationTeamName(sideBet.offered_team, sideBet.game?.league)} ${sideBet.market_type === "moneyline" ? "ML" : notificationSpread(Number(sideBet.offered_spread))} ${americanOddsText(oppositeAmericanOdds(Number(sideBet.creator_odds ?? 100)))}`,
+          body: `${notificationTeamName(sideBet.offered_team, sideBet.game?.league)} ${sideBet.market_type === "moneyline" ? "ML" : notificationSpread(Number(sideBet.offered_spread))} · ${americanOddsText(oppositeAmericanOdds(Number(sideBet.creator_odds ?? 100)))}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_sent")
         });
       const nextSnapshot = await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week);
@@ -321,7 +321,7 @@ export async function POST(req: NextRequest) {
         entityId: sideBet.id,
         dedupeKey: `side-bet-accepted:${sideBet.id}`,
         title: `${auth.profile.display_name} accepted your side bet`,
-        body: `Risk ${Number(sideBet.amount)} to win ${profitForRisk(Number(sideBet.amount), Number(sideBet.creator_odds ?? 100))} · ${notificationTeamName(sideBet.creator_team, sideBet.game?.league)} ${sideBet.market_type === "moneyline" ? "ML" : notificationSpread(Number(sideBet.creator_spread))} ${americanOddsText(Number(sideBet.creator_odds ?? 100))}`,
+        body: `Risk ${Number(sideBet.amount)} to win ${profitForRisk(Number(sideBet.amount), Number(sideBet.creator_odds ?? 100))} · ${notificationTeamName(sideBet.creator_team, sideBet.game?.league)} ${sideBet.market_type === "moneyline" ? "ML" : notificationSpread(Number(sideBet.creator_spread))} · ${americanOddsText(Number(sideBet.creator_odds ?? 100))}`,
         url: groupNotificationUrl(context.group.slug, "side_bets_sent")
       });
     const nextSnapshot = await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week);
