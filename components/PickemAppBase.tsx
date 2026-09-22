@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Pointer
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
+import { americanOddsText, oppositeAmericanOdds, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
@@ -298,6 +299,20 @@ function SideBetResponseLine({ summary, teamFull, teamCompact, spread, date }: {
 
 function ResponsiveTeamName({ game, team, className = "" }: { game: Game; team: string; className?: string }) {
   return <ResponsiveText full={displayTeamName(game, team)} compact={abbreviatedTeamName(game, team)} className={className} />;
+}
+
+function teamRank(game: Game, team: string) {
+  if (game.league !== "CFB") return null;
+  const rank = Number(team === game.home_team ? game.home_rank : game.away_rank);
+  return Number.isInteger(rank) && rank >= 1 && rank <= 25 ? rank : null;
+}
+
+function BoardTeamName({ game, team }: { game: Game; team: string }) {
+  const rank = teamRank(game, team);
+  return <span className="board-ranked-team-name">
+    {rank != null && <span className="board-team-rank" aria-label={`Ranked ${rank}`}>#{rank}</span>}
+    <ResponsiveTeamName game={game} team={team} className="team-name" />
+  </span>;
 }
 
 function dogBonusText(value: number | string, pointsMode: boolean) {
@@ -730,20 +745,21 @@ function stakeMoney(value: number) {
   return `$${Math.abs(Number(value)).toFixed(Number.isInteger(Number(value)) ? 0 : 2)}`;
 }
 function sideBetAmountForUser(bet: SideBet, userId: string) {
-  const stake = Number(bet.amount);
-  if (bet.status !== "settled") return { text: stakeMoney(stake), tone: "money-neutral" };
+  if (bet.status !== "settled") return { text: stakeMoney(sideBetRiskForUser(bet, userId)), tone: "money-neutral" };
   if (bet.result === "push") return { text: "$0", tone: "money-neutral" };
-
-  const involved = bet.creator_id === userId || bet.accepted_by === userId;
-  if (!involved) return { text: stakeMoney(stake), tone: "money-neutral" };
-
-  const won = bet.winner_id === userId ||
-    (!bet.winner_id && bet.result === "creator_win" && bet.creator_id === userId) ||
-    (!bet.winner_id && bet.result === "acceptor_win" && bet.accepted_by === userId);
+  const net = sideBetNetForUser(bet, userId);
   return {
-    text: money(won ? stake : -stake),
-    tone: won ? "money-pos" : "money-neg"
+    text: money(net),
+    tone: net > 0 ? "money-pos" : net < 0 ? "money-neg" : "money-neutral"
   };
+}
+
+function sideBetLineText(bet: SideBet, team: string) {
+  const creatorSide = team === bet.creator_team;
+  const odds = creatorSide ? Number(bet.creator_odds ?? 100) : oppositeAmericanOdds(Number(bet.creator_odds ?? 100));
+  if (bet.market_type === "moneyline") return `ML ${americanOddsText(odds)}`;
+  const spread = Number(creatorSide ? bet.creator_spread : bet.offered_spread);
+  return `${spreadText(spread)} ${americanOddsText(odds)}`;
 }
 function pctText(value: number) {
   return `${(Number(value || 0) * 100).toFixed(1)}%`;
