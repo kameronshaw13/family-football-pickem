@@ -6,6 +6,7 @@ import { createNotificationSafely } from "@/lib/notifications";
 import { notificationTeamName } from "@/lib/notificationTeamName";
 import { getGameLockTime } from "@/lib/lockRules";
 import { getUnderdogBonusForRules, isGameAllowedByRules } from "@/lib/groupContext";
+import { sideBetCreatorProfit } from "@/lib/sideBetMarkets";
 
 async function groupInfo(supabase: SupabaseClient, groupId: string, cache: Map<string, { slug: string; members: Array<{ id: string; display_name: string }> }>) {
   const cached = cache.get(groupId);
@@ -106,7 +107,9 @@ export async function finalizeGame(supabase: SupabaseClient, game: Game, homeSco
   let sideBetsGraded = 0;
   for (const sideBet of sideBets || []) {
     if (!sideBet.accepted_by) continue;
-    const result = gradeAgainstSpread(sideBet.creator_team, game.home_team, game.away_team, homeScore, awayScore, Number(sideBet.creator_spread));
+    const result = sideBet.market_type === "moneyline"
+      ? gradeUnderdogOutright(sideBet.creator_team, game.home_team, game.away_team, homeScore, awayScore)
+      : gradeAgainstSpread(sideBet.creator_team, game.home_team, game.away_team, homeScore, awayScore, Number(sideBet.creator_spread));
     const sideBetResult = result === "win" ? "creator_win" : result === "loss" ? "acceptor_win" : "push";
     const winnerId = result === "win" ? sideBet.creator_id : result === "loss" ? sideBet.accepted_by : null;
     const update = await supabase.from("side_bets").update({ status: "settled", result: sideBetResult, winner_id: winnerId, updated_at: updatedAt }).eq("id", sideBet.id).eq("group_id", sideBet.group_id).eq("status", "accepted");
@@ -115,8 +118,11 @@ export async function finalizeGame(supabase: SupabaseClient, game: Game, homeSco
     const group = await groupInfo(supabase, sideBet.group_id, groupCache);
     const creatorResult = result === "win" ? "Won" : result === "loss" ? "Lost" : "Pushed";
     const acceptorResult = result === "loss" ? "Won" : result === "win" ? "Lost" : "Pushed";
-    notificationTasks.push(createNotificationSafely(supabase, { groupId: sideBet.group_id, userId: sideBet.creator_id, type: "side_bet_final", destination: "side_bet_ledger", entityId: sideBet.id, dedupeKey: `side-bet-final:${sideBet.id}`, title: "Your side bet is final", body: `${creatorResult} $${Number(sideBet.amount)} · ${score}`, url: `/?group=${group.slug}&notification=side_bet_ledger` }));
-    notificationTasks.push(createNotificationSafely(supabase, { groupId: sideBet.group_id, userId: sideBet.accepted_by, type: "side_bet_final", destination: "side_bet_ledger", entityId: sideBet.id, dedupeKey: `side-bet-final:${sideBet.id}`, title: "Your side bet is final", body: `${acceptorResult} $${Number(sideBet.amount)} · ${score}`, url: `/?group=${group.slug}&notification=side_bet_ledger` }));
+    const creatorProfit = sideBetCreatorProfit(sideBet);
+    const creatorAmount = result === "win" ? creatorProfit : result === "loss" ? Number(sideBet.amount) : 0;
+    const acceptorAmount = result === "loss" ? Number(sideBet.amount) : result === "win" ? creatorProfit : 0;
+    notificationTasks.push(createNotificationSafely(supabase, { groupId: sideBet.group_id, userId: sideBet.creator_id, type: "side_bet_final", destination: "side_bet_ledger", entityId: sideBet.id, dedupeKey: `side-bet-final:${sideBet.id}`, title: "Your side bet is final", body: `${creatorResult} ${creatorAmount} · ${score}`, url: `/?group=${group.slug}&notification=side_bet_ledger` }));
+    notificationTasks.push(createNotificationSafely(supabase, { groupId: sideBet.group_id, userId: sideBet.accepted_by, type: "side_bet_final", destination: "side_bet_ledger", entityId: sideBet.id, dedupeKey: `side-bet-final:${sideBet.id}`, title: "Your side bet is final", body: `${acceptorResult} ${acceptorAmount} · ${score}`, url: `/?group=${group.slug}&notification=side_bet_ledger` }));
   }
 
   await Promise.all(notificationTasks);
