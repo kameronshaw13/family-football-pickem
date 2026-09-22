@@ -8,6 +8,7 @@ export type BankHistoryGame = {
   awayTeam: string;
   homeTeam: string;
   betCount: number;
+  betCounts: Record<string, number>;
   amounts: Record<string, number>;
 };
 
@@ -77,6 +78,7 @@ export function buildBankHistory(bankEntries: BankEntry[], sideBets: HistorySide
         awayTeam: String(bet.game?.away_team || bet.offered_team || ""),
         homeTeam: String(bet.game?.home_team || bet.creator_team || ""),
         betCount: 0,
+        betCounts: {},
         amounts: {}
       };
       games.set(bet.game_id, game);
@@ -84,6 +86,8 @@ export function buildBankHistory(bankEntries: BankEntry[], sideBets: HistorySide
     }
 
     game.betCount += 1;
+    game.betCounts[bet.creator_id] = Number(game.betCounts[bet.creator_id] || 0) + 1;
+    game.betCounts[bet.accepted_by] = Number(game.betCounts[bet.accepted_by] || 0) + 1;
     addAmount(game.amounts, bet.winner_id, transfer);
     addAmount(game.amounts, loserId, -transfer);
     addAmount(row.totals, bet.winner_id, transfer);
