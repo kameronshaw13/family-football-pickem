@@ -249,8 +249,8 @@ function SideBetResponseLine({ summary, teamFull, teamCompact, spread, date }: {
   const [variant, setVariant] = useState<SideBetResponseVariant>("full");
 
   const contentFor = (value: SideBetResponseVariant) => ({
-    subject: value === "full" ? summary.subjectFull : summary.subjectCompact,
-    recipient: value === "full" ? summary.recipientFull : summary.recipientCompact || summary.recipientFull,
+    subject: value === "minimal" ? "" : value === "full" ? summary.subjectFull : summary.subjectCompact,
+    recipient: value === "minimal" ? "" : value === "full" ? summary.recipientFull : summary.recipientCompact || summary.recipientFull,
     team: value === "full" || value === "names" ? teamFull : teamCompact
   });
 
