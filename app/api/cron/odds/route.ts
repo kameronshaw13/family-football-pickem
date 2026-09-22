@@ -39,6 +39,9 @@ type PreparedSport = {
   spreadGames: any[];
   frozenGames: any[];
   snapshots: any[];
+  creditsRemaining: number | null;
+  creditsUsed: number | null;
+  creditsLast: number | null;
 };
 
 function unauthorized() {
@@ -49,6 +52,13 @@ function uniqueByKey<T>(items: T[], keyFor: (item: T) => string) {
   const unique = new Map<string, T>();
   for (const item of items) unique.set(keyFor(item), item);
   return Array.from(unique.values());
+}
+
+function oddsCreditHeader(response: Response, name: "x-requests-remaining" | "x-requests-used" | "x-requests-last") {
+  const raw = response.headers.get(name);
+  if (raw == null) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
 }
 
 function pickSpread(event: OddsEvent) {
@@ -194,6 +204,9 @@ async function refreshOdds() {
         throw new Error(`Odds API failed for ${sport.key}: ${text}`);
       }
 
+      const creditsRemaining = oddsCreditHeader(oddsResponse, "x-requests-remaining");
+      const creditsUsed = oddsCreditHeader(oddsResponse, "x-requests-used");
+      const creditsLast = oddsCreditHeader(oddsResponse, "x-requests-last");
       const returned = (await oddsResponse.json()) as OddsEvent[];
       let schedule = [] as Awaited<ReturnType<typeof fetchEspnSchedule>>;
       try {
@@ -208,7 +221,10 @@ async function refreshOdds() {
             eligibleEvents: 0,
             spreadGames: [],
             frozenGames: [],
-            snapshots: []
+            snapshots: [],
+            creditsRemaining,
+            creditsUsed,
+            creditsLast
           };
         }
       }
@@ -317,7 +333,10 @@ async function refreshOdds() {
         eligibleEvents: data.length,
         spreadGames,
         frozenGames,
-        snapshots
+        snapshots,
+        creditsRemaining,
+        creditsUsed,
+        creditsLast
       };
     }));
 
@@ -364,11 +383,21 @@ async function refreshOdds() {
       eventsReturned: result.eventsReturned,
       scheduleMatched: result.scheduleMatched,
       eventsImported: result.eligibleEvents,
-      spreadsUpdated: result.spreadGames.length
+      spreadsUpdated: result.spreadGames.length,
+      creditsLast: result.creditsLast
     }));
+    const remainingValues = preparedSports.map((result) => result.creditsRemaining).filter((value): value is number => value != null);
+    const usedValues = preparedSports.map((result) => result.creditsUsed).filter((value): value is number => value != null);
+    const lastValues = preparedSports.map((result) => result.creditsLast).filter((value): value is number => value != null);
+    const creditStatus = {
+      remaining: remainingValues.length ? Math.min(...remainingValues) : null,
+      used: usedValues.length ? Math.max(...usedValues) : null,
+      refreshCost: lastValues.length ? lastValues.reduce((sum, value) => sum + value, 0) : null
+    };
 
     console.log("[cron/odds] refresh complete", JSON.stringify({
       gamesUpdated: spreadGames.length,
+      creditStatus,
       sportResults
     }));
 
@@ -376,7 +405,7 @@ async function refreshOdds() {
       ok: true,
       gamesUpdated: spreadGames.length,
       dogAdjustments,
-      creditsEstimated: SPORTS.length,
+      creditStatus,
       durationMs: Date.now() - startedAt,
       sportResults
     });
