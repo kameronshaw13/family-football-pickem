@@ -270,13 +270,7 @@ export default function WeekScopeAndManualLockEnhancements({ appSlug }: { appSlu
 
           if (manuallyLocked.has(selectedTeam)) {
             remove.style.display = "none";
-            if (!actions.querySelector(".manual-lock-confirmed")) {
-              const confirmed = document.createElement("span");
-              confirmed.className = "manual-lock-confirmed pick-lock-indicator";
-              confirmed.setAttribute("aria-label", "Locked");
-              confirmed.innerHTML = iconMarkup();
-              actions.prepend(confirmed);
-            }
+            actions.querySelector(".manual-lock-confirmed")?.remove();
             actions.querySelector(".manual-pick-lock")?.remove();
             return;
           }

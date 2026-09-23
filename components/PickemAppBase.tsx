@@ -1794,14 +1794,19 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     setBetRecipients((current) => current.includes(profileId) ? current.filter((id) => id !== profileId) : [...current, profileId]);
   }
 
-  async function createSideBet(options: { marketType: SideBetMarketType; creatorSpread: number; creatorOdds: number }): Promise<boolean> {
+  async function createSideBet(options: { marketType: SideBetMarketType; creatorSpread: number; creatorOdds: number; amount: number }): Promise<boolean> {
     if (!weekIsOpen) {
       notify("Side bet offers open Tuesday at 9:00 AM.", "error");
       return false;
     }
     if (!selectedBetGame || !selectedCreatorTeam || !betRecipients.length) return false;
+    const submittedAmount = Math.round(Number(options.amount) * 100) / 100;
     const maxAmount = data?.sideBetSettings?.maxAmount ?? MAX_SIDE_BET_AMOUNT;
-    if (Number(betAmount) > maxAmount) {
+    if (!Number.isFinite(submittedAmount) || submittedAmount <= 0) {
+      notify("Choose a valid side bet amount.", "error");
+      return false;
+    }
+    if (submittedAmount > maxAmount) {
       notify(`Side bets are capped at ${maxAmount}.`, "error");
       return false;
     }
@@ -1823,7 +1828,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       action: "create",
       gameId: selectedBetGame.id,
       creatorTeam: selectedCreatorTeam,
-      amount: Number(betAmount),
+      amount: submittedAmount,
       recipientIds: betRecipients,
       marketType: options.marketType,
       creatorSpread: options.marketType === "spread" ? options.creatorSpread : 0,
@@ -2277,7 +2282,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   setCreatorTeam: (value: string) => void;
   setAmount: (value: string) => void;
   toggleRecipient: (value: string) => void;
-  createBet: (options: { marketType: SideBetMarketType; creatorSpread: number; creatorOdds: number }) => Promise<boolean>;
+  createBet: (options: { marketType: SideBetMarketType; creatorSpread: number; creatorOdds: number; amount: number }) => Promise<boolean>;
   respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean>;
   openPreview: (game: Game) => void;
 }) {
@@ -2417,7 +2422,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     const sentOffer = await createBet({
       marketType,
       creatorSpread: marketType === "moneyline" ? 0 : Number(creatorSpread),
-      creatorOdds
+      creatorOdds,
+      amount: creatorRisk
     });
     if (sentOffer) setSlipExpanded(false);
   }
