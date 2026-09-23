@@ -1,30 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fairMoneylineFromSpread, oppositeAmericanOdds, profitForRisk, sideBetNetForUser, wholeDollarRiskOptions } from "../lib/sideBetMarkets.ts";
+import { fairMoneylineFromSpread, oppositeAmericanOdds, profitForRisk, sideBetNetForUser } from "../lib/sideBetMarkets.ts";
 
-test("derives league-specific friendly moneylines from a football spread", () => {
-  assert.equal(fairMoneylineFromSpread(-2.5, "CFB"), -120);
-  assert.equal(fairMoneylineFromSpread(2.5, "NFL"), 120);
+test("derives league-specific fair rounded moneylines from a football spread", () => {
+  assert.equal(fairMoneylineFromSpread(-1.5, "CFB"), -110);
+  assert.equal(fairMoneylineFromSpread(-2.5, "CFB"), -125);
+  assert.equal(fairMoneylineFromSpread(2.5, "NFL"), 125);
   assert.equal(fairMoneylineFromSpread(-6.5, "CFB"), -200);
   assert.equal(fairMoneylineFromSpread(6.5, "NFL"), 250);
   assert.equal(fairMoneylineFromSpread(0), 100);
 });
 
-test("offers risk amounts that produce whole-dollar moneyline winnings", () => {
-  assert.deepEqual(wholeDollarRiskOptions(-200, 40), [40, 30, 20, 10]);
-  assert.deepEqual(wholeDollarRiskOptions(-150, 20), [18, 15, 9, 3]);
-  for (const risk of wholeDollarRiskOptions(-150, 20)) {
-    assert.equal(Number.isInteger(profitForRisk(risk, -150)), true);
-  }
-});
-
-test("every derived football moneyline has at least one clean risk option", () => {
+test("every derived football moneyline is a valid whole-number price", () => {
   for (const league of ["CFB", "NFL"] as const) {
     for (let spread = 0.5; spread <= 30; spread += 0.5) {
-      const odds = fairMoneylineFromSpread(-spread, league);
-      const options = wholeDollarRiskOptions(odds, 20);
-      assert.ok(options.length > 0, `${league} ${spread} should have a clean risk option at ${odds}`);
-      for (const risk of options) assert.equal(Number.isInteger(profitForRisk(risk, odds)), true);
+      const favorite = fairMoneylineFromSpread(-spread, league);
+      const underdog = fairMoneylineFromSpread(spread, league);
+      assert.equal(Number.isInteger(favorite), true);
+      assert.equal(underdog, Math.abs(favorite) === 100 ? 100 : -favorite);
     }
   }
 });

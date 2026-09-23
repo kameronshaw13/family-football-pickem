@@ -36,11 +36,12 @@ const HISTORICAL_FAIR_MONEYLINES: Record<FootballLeague, number[]> = {
   ]
 };
 
-// Family side bets favor prices that are easy to settle in whole dollars.
-// The historical estimate is snapped to the closest member of this ladder.
+// Keep the internal no-vig prices simple enough to read at a glance while
+// choosing the closest value to the league-specific historical estimate.
 const FRIENDLY_MONEYLINE_LADDER = [
-  100, 110, 120, 125, 150, 200, 250, 300, 400, 500,
-  600, 800, 1000, 1500, 2000
+  100, 110, 125, 150, 175, 200, 225, 250, 275, 300,
+  350, 400, 450, 500, 600, 700, 800, 900, 1000, 1250,
+  1500, 2000
 ];
 
 function historicalMoneylineMagnitude(points: number, league: FootballLeague) {
@@ -70,27 +71,6 @@ export function fairMoneylineFromSpread(value: number | null | undefined, league
   const magnitude = closestFriendlyMoneyline(historicalMoneylineMagnitude(points, league));
   if (magnitude === 100) return 100;
   return spread < 0 ? -magnitude : magnitude;
-}
-
-function greatestCommonDivisor(left: number, right: number): number {
-  return right === 0 ? Math.abs(left) : greatestCommonDivisor(right, left % right);
-}
-
-export function wholeDollarRiskOptions(odds: number, maxRisk: number) {
-  if (!validAmericanOdds(odds) || !Number.isFinite(maxRisk) || maxRisk <= 0) return [];
-  const magnitude = Math.abs(Math.trunc(odds));
-  const divisor = greatestCommonDivisor(magnitude, 100);
-  const riskUnit = odds < 0 ? magnitude / divisor : 100 / divisor;
-  const targets = [maxRisk, maxRisk * 0.75, maxRisk * 0.5, maxRisk * 0.25];
-  const options: number[] = [];
-
-  for (const target of targets) {
-    const risk = Math.floor(target / riskUnit) * riskUnit;
-    if (risk > 0 && risk <= maxRisk && !options.includes(risk)) options.push(risk);
-  }
-
-  if (!options.length && riskUnit <= maxRisk) options.push(riskUnit);
-  return options;
 }
 
 export function profitForRisk(risk: number, odds: number) {
