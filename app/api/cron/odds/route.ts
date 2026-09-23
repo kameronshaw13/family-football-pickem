@@ -15,6 +15,13 @@ const SPORTS = [
   { key: "americanfootball_ncaaf", league: "CFB" }
 ] as const;
 
+const WEEK_SPREAD_OVERRIDES: Record<string, { team: string; spread: number; releaseDelta: number }> = {
+  "d9a781a64fc2c4b45290db32b5ec3f20": { team: "Temple Owls", spread: 3.5, releaseDelta: 3 },
+  "17a730b7d399feeab6a78c30767c29d2": { team: "Indianapolis Colts", spread: 3.5, releaseDelta: 3 },
+  "dbc89703b51acf3b8818134a1a2a0dc2": { team: "Troy Trojans", spread: 3.5, releaseDelta: 3 },
+  "90cacdc25f25e1f13b13e031a7fee9b7": { team: "Baylor Bears", spread: -9.5, releaseDelta: 3 }
+};
+
 type OddsEvent = {
   id: string;
   sport_key: string;
@@ -69,6 +76,23 @@ function oddsCreditHeader(response: Response, name: "x-requests-remaining" | "x-
   if (raw == null) return null;
   const value = Number(raw);
   return Number.isFinite(value) ? value : null;
+}
+
+function applyWeekSpreadOverride(
+  gameId: string,
+  live: { team: string | null; spread: number | null; bookmaker: string | null }
+) {
+  const override = WEEK_SPREAD_OVERRIDES[gameId];
+  if (!override || live.team == null || live.spread == null) return live;
+  const liveForOverrideTeam = normalizeSpreadForSelectedTeam(override.team, live.team, live.spread);
+  if (liveForOverrideTeam == null || Math.abs(liveForOverrideTeam - override.spread) >= override.releaseDelta) {
+    return live;
+  }
+  return {
+    team: override.team,
+    spread: override.spread,
+    bookmaker: `Manual Week 5 override · ${live.bookmaker || "Odds API"}`
+  };
 }
 
 function pickSpread(event: OddsEvent) {
@@ -281,8 +305,8 @@ async function refreshOdds() {
       const snapshots: any[] = [];
       for (const official of data) {
         const { event, scheduleMatch } = official;
-        const spread = pickSpread(event);
-        if (spread.team == null || spread.spread == null) continue;
+        const liveSpread = pickSpread(event);
+        if (liveSpread.team == null || liveSpread.spread == null) continue;
         const week = getFootballWeek(official.commenceTime);
         const lockTime = getGameLockTime(official.commenceTime).toISOString();
         const spreadFreezeTime = getSpreadFreezeTime(official.commenceTime).toISOString();
@@ -291,6 +315,7 @@ async function refreshOdds() {
         if (espnEventId && !canonicalGameIdByEspnId.has(espnEventId)) {
           canonicalGameIdByEspnId.set(espnEventId, canonicalGameId);
         }
+        const spread = applyWeekSpreadOverride(canonicalGameId, liveSpread);
         const isKnownGame = knownGameIds.has(canonicalGameId);
         const updateSpread = !isKnownGame || canRefreshSpread(official.commenceTime, now);
         const gameBase = {
