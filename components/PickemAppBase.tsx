@@ -2610,7 +2610,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   const responseSummary = sideBetResponseSummary(bet, currentUser.id, mode);
   const responseSpread = sideBetLineText(bet, bet.offered_team);
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
-  const marketReference = mode === "sent" && offerOpen ? sideBetAppMarketReference(bet, perspectiveTeam) : null;
+  const marketReference = offerOpen ? sideBetAppMarketReference(bet, perspectiveTeam) : null;
   const canClearOffer = mode === "received"
     ? target?.response === "declined" || ["cancelled", "expired"].includes(bet.status)
     : ["declined", "cancelled", "expired"].includes(bet.status);
