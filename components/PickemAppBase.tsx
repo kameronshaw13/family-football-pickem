@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Pointer
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
 import { MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
-import { americanOddsText, oppositeAmericanOdds, profitForRisk, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
+import { americanOddsText, fairMoneylineFromSpread, oppositeAmericanOdds, profitForRisk, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds, wholeDollarRiskOptions } from "@/lib/sideBetMarkets";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import type { BankHistoryWeek } from "@/lib/bankHistory";
@@ -767,7 +767,7 @@ function money(value: number) {
   return `${sign}$${absolute.toFixed(Number.isInteger(absolute) ? 0 : 2)}`;
 }
 function stakeMoney(value: number) {
-  return `${Math.abs(Number(value)).toFixed(Number.isInteger(Number(value)) ? 0 : 2)}`;
+  return `$${Math.abs(Number(value)).toFixed(Number.isInteger(Number(value)) ? 0 : 2)}`;
 }
 
 function normalizeRiskInput(value: string) {
@@ -2346,6 +2346,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
   const defaultCreatorSpread = selectedGame && selectedCreatorTeam ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
+  const defaultCreatorMoneyline = fairMoneylineFromSpread(defaultCreatorSpread, selectedGame?.league);
   const parsedCustomSpread = customSpread.trim() === "" ? null : Number(customSpread);
   const creatorSpread = marketType === "moneyline" ? 0 : (parsedCustomSpread != null && Number.isFinite(parsedCustomSpread) ? parsedCustomSpread : defaultCreatorSpread);
   const creatorOdds = Number(oddsInput);
@@ -2358,7 +2359,10 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const selectedMarketText = sideBetMarketText(marketType, marketType === "moneyline" ? null : creatorSpread, creatorOdds);
   const offeredMarketText = sideBetMarketText(marketType, marketType === "moneyline" ? null : (creatorSpread == null ? null : -creatorSpread), offeredOdds);
   const evenPayout = Math.abs(creatorRisk - creatorWin) < 0.005;
-  const amountOptions = maxAmount >= 40 ? ["40", "30", "20", "10"] : ["20", "15", "10", "5"];
+  const standardAmountOptions = maxAmount >= 40 ? ["40", "30", "20", "10"] : ["20", "15", "10", "5"];
+  const amountOptions = marketType === "moneyline" && validAmericanOdds(creatorOdds)
+    ? wholeDollarRiskOptions(creatorOdds, maxAmount).map(String)
+    : standardAmountOptions;
   const selectedMatchup = selectedGame ? matchupTextVariants(selectedGame) : null;
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
   const slotCount = slotCounts[currentUser.id] || 0;
@@ -2547,8 +2551,14 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         <section className="side-bet-slip-section side-bet-market-section">
           <div className="side-bet-slip-section-head"><span>Market</span></div>
           <div className="side-bet-market-toggle" role="group" aria-label="Side bet market">
-            <button type="button" className={marketType === "spread" ? "active" : ""} aria-pressed={marketType === "spread"} onClick={() => setMarketType("spread")}>Spread</button>
-            <button type="button" className={marketType === "moneyline" ? "active" : ""} aria-pressed={marketType === "moneyline"} onClick={() => setMarketType("moneyline")}>Moneyline</button>
+            <button type="button" className={marketType === "spread" ? "active" : ""} aria-pressed={marketType === "spread"} onClick={() => { setMarketType("spread"); setOddsInput("100"); }}>Spread</button>
+            <button type="button" className={marketType === "moneyline" ? "active" : ""} aria-pressed={marketType === "moneyline"} onClick={() => {
+              const moneylineRiskOptions = wholeDollarRiskOptions(defaultCreatorMoneyline, maxAmount);
+              setMarketType("moneyline");
+              setOddsInput(String(defaultCreatorMoneyline));
+              setCustomRiskMode(false);
+              if (moneylineRiskOptions.length) setAmount(String(moneylineRiskOptions[0]));
+            }}>Moneyline</button>
           </div>
           <div className="side-bet-market-fields">
             {marketType === "spread" && <label><span>Spread</span><input className="side-bet-spread-input" type="number" step="0.5" value={customSpread} onChange={(event) => setCustomSpread(event.target.value)} /></label>}
@@ -2559,7 +2569,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
         <section className="side-bet-slip-section">
           <div className="side-bet-slip-section-head"><span>Risk</span><small>Max <NumericText text={stakeMoney(maxAmount)} /></small></div>
-          <div className="side-bet-amount-grid">{amountOptions.map((value) => <button type="button" key={value} className={!customRiskMode && amount === value ? "active" : ""} aria-pressed={!customRiskMode && amount === value} onClick={() => { setCustomRiskMode(false); setAmount(value); }}><NumericText text={stakeMoney(Number(value))} /></button>)}</div>
+          <div className="side-bet-amount-grid" style={{ gridTemplateColumns: `repeat(${Math.max(1, amountOptions.length)}, minmax(0, 1fr))` }}>{amountOptions.map((value) => <button type="button" key={value} className={!customRiskMode && amount === value ? "active" : ""} aria-pressed={!customRiskMode && amount === value} onClick={() => { setCustomRiskMode(false); setAmount(value); }}><NumericText text={stakeMoney(Number(value))} /></button>)}</div>
           {manualAmount && <label className="side-bet-risk-field"><span>Custom risk</span><div><span>$</span><input className="side-bet-risk-input" type="text" inputMode="decimal" autoComplete="off" value={amount} onFocus={() => setCustomRiskMode(true)} onChange={(event) => { setCustomRiskMode(true); setAmount(normalizeRiskInput(event.target.value)); }} onBlur={() => {
             const value = Number(amount);
             if (Number.isFinite(value) && value > 0) setAmount(String(Math.min(maxAmount, Math.round(value * 100) / 100)));
