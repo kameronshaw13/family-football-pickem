@@ -411,16 +411,60 @@ function latestWeeklyRow(
     .sort((a, b) => (finiteNumber(b[weekKey]) ?? -1) - (finiteNumber(a[weekKey]) ?? -1))[0] || null;
 }
 
+function exactWeeklySummaryRow(rows: SportsDataRow[], teamId: string | null, team: string, throughWeek: number) {
+  if (throughWeek < 0) return null;
+  return rows.find((row) => {
+    if (finiteNumber(row.through_week) !== throughWeek) return false;
+    const rowId = String(row.team_id || "").replace(/\.0$/, "");
+    if (teamId && rowId === String(teamId)) return true;
+    return sameTeam(row.team, team);
+  }) || null;
+}
+
+function normalizeRelative(summaryRow: SportsDataRow | null) {
+  if (!summaryRow) return null;
+  const validGames = rowNumber(summaryRow, "valid_games");
+  const enoughSample = validGames != null && validGames >= 3;
+  const rank = (key: string) => enoughSample ? rowNumber(summaryRow, key) : null;
+  return {
+    source: "sportsdataverse-team-summaries-weekly",
+    throughWeek: rowNumber(summaryRow, "through_week"),
+    validGames,
+    enoughSample,
+    overallRank: rank("net_adj_epa_rank"),
+    offense: {
+      adjustedEpaRank: rank("adj_off_epa_rank"),
+      epaPerPlayRank: rank("EPAplay_off_rank"),
+      successRateRank: rank("success_off_rank"),
+      explosivePlayRank: rank("explosive_off_rank"),
+      yardsPerPlayRank: rank("yardsplay_off_rank"),
+      lineYardsRank: rank("line_yards_off_rank"),
+      thirdDownRank: rank("third_down_success_off_rank"),
+      redZoneRank: rank("red_zone_success_off_rank")
+    },
+    defense: {
+      adjustedEpaRank: rank("adj_def_epa_rank"),
+      epaPerPlayRank: rank("EPAplay_def_rank"),
+      successRateRank: rank("success_def_rank"),
+      explosivePlayRank: rank("explosive_def_rank"),
+      yardsPerPlayRank: rank("yardsplay_def_rank"),
+      lineYardsRank: rank("line_yards_def_rank"),
+      thirdDownRank: rank("third_down_success_def_rank"),
+      redZoneRank: rank("red_zone_success_def_rank")
+    }
+  };
+}
+
 function falseyCsv(value: string | undefined) {
   const normalized = String(value || "").trim().toLowerCase();
   return normalized === "" || normalized === "false" || normalized === "0" || normalized === "no";
 }
 
-function normalizePower(ratingRow: SportsDataRow | null, fpiRow: SportsDataRow | null) {
-  if (!ratingRow && !fpiRow) return null;
+function normalizePower(summaryRow: SportsDataRow | null, fpiRow: SportsDataRow | null) {
+  if (!summaryRow && !fpiRow) return null;
   return {
-    source: "sportsdataverse",
-    throughWeek: rowNumber(ratingRow, "through_week") ?? rowNumber(fpiRow, "week"),
+    source: "sportsdataverse-team-summaries",
+    throughWeek: rowNumber(summaryRow, "through_week") ?? rowNumber(fpiRow, "week"),
     fpi: rowNumber(fpiRow, "fpi"),
     fpiRank: rowNumber(fpiRow, "rank"),
     offenseEfficiency: rowNumber(fpiRow, "offefficiency"),
@@ -429,12 +473,12 @@ function normalizePower(ratingRow: SportsDataRow | null, fpiRow: SportsDataRow |
     defenseEfficiencyRank: rowNumber(fpiRow, "defefficiencyrank"),
     specialTeamsEfficiency: rowNumber(fpiRow, "stefficiency"),
     specialTeamsEfficiencyRank: rowNumber(fpiRow, "stefficiencyrank"),
-    adjustedOffEpa: rowNumber(ratingRow, "adj_off_epa"),
-    adjustedDefEpa: rowNumber(ratingRow, "adj_def_epa"),
-    adjustedNetEpa: rowNumber(ratingRow, "adj_net"),
-    adjustedOffRank: rowNumber(ratingRow, "off_rank"),
-    adjustedDefRank: rowNumber(ratingRow, "def_rank"),
-    adjustedNetRank: rowNumber(ratingRow, "net_rank")
+    adjustedOffEpa: rowNumber(summaryRow, "adj_off_epa"),
+    adjustedDefEpa: rowNumber(summaryRow, "adj_def_epa"),
+    adjustedNetEpa: rowNumber(summaryRow, "net_adj_epa"),
+    adjustedOffRank: rowNumber(summaryRow, "adj_off_epa_rank"),
+    adjustedDefRank: rowNumber(summaryRow, "adj_def_epa_rank"),
+    adjustedNetRank: rowNumber(summaryRow, "net_adj_epa_rank")
   };
 }
 
@@ -452,32 +496,47 @@ function rankStrength(rank: number | null | undefined) {
 function adjustedProjection(
   awayName: string,
   homeName: string,
+  awaySummary: SportsDataRow | null,
+  homeSummary: SportsDataRow | null,
   awayPower: PowerSnapshot | null,
   homePower: PowerSnapshot | null
 ) {
   if (!awayPower || !homePower) return null;
+
   const homeField = 2.5;
-  const marginSignals: Array<{ value: number; weight: number }> = [];
+  const awayValid = rowNumber(awaySummary, "valid_games") ?? 0;
+  const homeValid = rowNumber(homeSummary, "valid_games") ?? 0;
+  const minValid = Math.min(awayValid, homeValid);
+  const signals: Array<{ value: number; weight: number }> = [];
 
   if (awayPower.fpi != null && homePower.fpi != null) {
-    marginSignals.push({ value: homePower.fpi - awayPower.fpi + homeField, weight: 0.62 });
+    // FPI is already on a points-like scale and is the most stable early-season signal.
+    signals.push({ value: homePower.fpi - awayPower.fpi + homeField, weight: minValid >= 4 ? 0.55 : 0.72 });
   }
-  if (awayPower.adjustedNetEpa != null && homePower.adjustedNetEpa != null) {
-    marginSignals.push({ value: (homePower.adjustedNetEpa - awayPower.adjustedNetEpa) * 65 + homeField, weight: 0.38 });
+
+  const awayNet = rowNumber(awaySummary, "net_adj_epa");
+  const homeNet = rowNumber(homeSummary, "net_adj_epa");
+  if (awayNet != null && homeNet != null && minValid >= 2) {
+    // Opponent-adjusted EPA is converted to an approximate point-margin signal.
+    signals.push({ value: (homeNet - awayNet) * 58 + homeField, weight: minValid >= 4 ? 0.45 : 0.28 });
   }
-  if (!marginSignals.length) return null;
 
-  const weight = marginSignals.reduce((sum, signal) => sum + signal.weight, 0);
-  const margin = marginSignals.reduce((sum, signal) => sum + signal.value * signal.weight, 0) / weight;
+  if (!signals.length) return null;
+  const totalWeight = signals.reduce((sum, signal) => sum + signal.weight, 0);
+  const margin = signals.reduce((sum, signal) => sum + signal.value * signal.weight, 0) / totalWeight;
 
-  const awayOff = rankStrength(awayPower.adjustedOffRank ?? awayPower.offenseEfficiencyRank);
-  const homeOff = rankStrength(homePower.adjustedOffRank ?? homePower.offenseEfficiencyRank);
-  const awayDef = rankStrength(awayPower.adjustedDefRank ?? awayPower.defenseEfficiencyRank);
-  const homeDef = rankStrength(homePower.adjustedDefRank ?? homePower.defenseEfficiencyRank);
+  const awayOffRank = rowNumber(awaySummary, "adj_off_epa_rank") ?? awayPower.offenseEfficiencyRank;
+  const homeOffRank = rowNumber(homeSummary, "adj_off_epa_rank") ?? homePower.offenseEfficiencyRank;
+  const awayDefRank = rowNumber(awaySummary, "adj_def_epa_rank") ?? awayPower.defenseEfficiencyRank;
+  const homeDefRank = rowNumber(homeSummary, "adj_def_epa_rank") ?? homePower.defenseEfficiencyRank;
 
-  const awayBase = 28 + awayOff * 6 - homeDef * 5 - homeField / 2;
-  const homeBase = 28 + homeOff * 6 - awayDef * 5 + homeField / 2;
-  const total = Math.max(34, Math.min(88, awayBase + homeBase));
+  const awayOff = rankStrength(awayOffRank);
+  const homeOff = rankStrength(homeOffRank);
+  const awayDef = rankStrength(awayDefRank);
+  const homeDef = rankStrength(homeDefRank);
+  const awayBase = 27.5 + awayOff * 5.5 - homeDef * 4.5 - homeField / 2;
+  const homeBase = 27.5 + homeOff * 5.5 - awayDef * 4.5 + homeField / 2;
+  const total = Math.max(34, Math.min(86, awayBase + homeBase));
   const boundedMargin = Math.max(-35, Math.min(35, margin));
   const homeScore = Math.max(3, Math.round((total + boundedMargin) / 2));
   const awayScore = Math.max(3, Math.round((total - boundedMargin) / 2));
@@ -489,7 +548,7 @@ function adjustedProjection(
     homeScore,
     favoriteTeam,
     spread: favoriteTeam ? -roundedMargin : 0,
-    method: "Adjusted FPI + opponent-adjusted EPA"
+    method: "FPI + opponent-adjusted EPA"
   };
 }
 
@@ -947,7 +1006,7 @@ export async function GET(request: NextRequest) {
     sportsTeamRows,
     sportsSituationalRows,
     sportsDefensiveRows,
-    sportsRatingsRows,
+    sportsSummaryRows,
     sportsFpiRows,
     cfbdStats,
     cfbdAdvanced,
@@ -964,7 +1023,7 @@ export async function GET(request: NextRequest) {
     fetchSportsDataCsv("espn_cfb_adv_team", "adv_team", season),
     fetchSportsDataCsv("espn_cfb_adv_situational", "adv_situational", season),
     fetchSportsDataCsv("espn_cfb_adv_defensive", "adv_defensive", season),
-    fetchSportsDataCsv("cfb_ratings_weekly", "cfb_ratings_weekly", season),
+    fetchSportsDataCsv("cfb_team_summaries_weekly", "cfb_team_summaries_weekly", season),
     fetchSportsDataCsv("cfb_fpi_weekly", "cfb_fpi_weekly", season),
     cfbd<CfbdTeamStat[]>("/stats/season", { year: season, endWeek, classification: "fbs" }, 1800),
     cfbd<CfbdAdvanced[]>("/stats/season/advanced", { year: season, endWeek, classification: "fbs", excludeGarbageTime: true }, 1800),
@@ -983,12 +1042,14 @@ export async function GET(request: NextRequest) {
   const homeSummary = homeEspnSummary.games ? homeEspnSummary : { ...homeLocalSummary, games: homeLocalGames.length };
 
   const ratingsThroughWeek = Math.max(0, requestedWeek - 1);
-  const awayRatingRow = latestWeeklyRow(sportsRatingsRows, awayId, "through_week", ratingsThroughWeek);
-  const homeRatingRow = latestWeeklyRow(sportsRatingsRows, homeId, "through_week", ratingsThroughWeek);
-  const awayFpiRow = latestWeeklyRow(sportsFpiRows, awayId, "week", Math.max(1, requestedWeek), (row) => falseyCsv(row.snapshot_out_of_sequence));
-  const homeFpiRow = latestWeeklyRow(sportsFpiRows, homeId, "week", Math.max(1, requestedWeek), (row) => falseyCsv(row.snapshot_out_of_sequence));
-  const awayPower = normalizePower(awayRatingRow, awayFpiRow);
-  const homePower = normalizePower(homeRatingRow, homeFpiRow);
+  const awaySummaryRow = exactWeeklySummaryRow(sportsSummaryRows, awayId, away, ratingsThroughWeek);
+  const homeSummaryRow = exactWeeklySummaryRow(sportsSummaryRows, homeId, home, ratingsThroughWeek);
+  const awayFpiRow = latestWeeklyRow(sportsFpiRows, awayId, "week", ratingsThroughWeek, (row) => falseyCsv(row.snapshot_out_of_sequence));
+  const homeFpiRow = latestWeeklyRow(sportsFpiRows, homeId, "week", ratingsThroughWeek, (row) => falseyCsv(row.snapshot_out_of_sequence));
+  const awayPower = normalizePower(awaySummaryRow, awayFpiRow);
+  const homePower = normalizePower(homeSummaryRow, homeFpiRow);
+  const awayRelative = normalizeRelative(awaySummaryRow);
+  const homeRelative = normalizeRelative(homeSummaryRow);
 
   const awaySportsTeamRow = sportsRow(sportsTeamRows, awayId, away, "pos_team_id", "pos_team", requestedWeek);
   const awaySportsSituationalRow = sportsRow(sportsSituationalRows, awayId, away, "pos_team_id", "pos_team", requestedWeek);
@@ -1026,6 +1087,7 @@ export async function GET(request: NextRequest) {
       recent: localAwayAts.recent
     },
     advanced: awayAdvanced,
+    relative: awayRelative,
     power: awayPower,
     sp: cfbdSp?.find((row) => sameTeam(row.team, away)) || null
   };
@@ -1044,6 +1106,7 @@ export async function GET(request: NextRequest) {
       recent: localHomeAts.recent
     },
     advanced: homeAdvanced,
+    relative: homeRelative,
     power: homePower,
     sp: cfbdSp?.find((row) => sameTeam(row.team, home)) || null
   };
@@ -1060,7 +1123,7 @@ export async function GET(request: NextRequest) {
       .slice(0, 8)
   } : espnHistory;
 
-  const model = isKameronProfile(auth.profile) ? adjustedProjection(away, home, awayPower, homePower) : null;
+  const model = isKameronProfile(auth.profile) ? adjustedProjection(away, home, awaySummaryRow, homeSummaryRow, awayPower, homePower) : null;
 
   return NextResponse.json({
     season,
@@ -1072,13 +1135,11 @@ export async function GET(request: NextRequest) {
       games: awayLocalGames.length > 0 || homeLocalGames.length > 0 || awaySchedule.length > 0 || homeSchedule.length > 0,
       lines: localAwayAts.recent.length > 0 || localHomeAts.recent.length > 0 || Boolean(awayEspnAts || homeEspnAts),
       regularStats: Boolean(cfbdStats || awayEspnStats || homeEspnStats),
-      advanced: Boolean(awayAdvanced || homeAdvanced),
+      advanced: Boolean(awayRelative?.enoughSample || homeRelative?.enoughSample),
       sp: Boolean(cfbdSp || awayPower || homePower),
       history: Boolean(headToHead),
       baseSource: "espn+pickem",
-      advancedSource: awaySportsAdvanced || homeSportsAdvanced
-        ? (awayCfbdAdvanced || homeCfbdAdvanced ? "sportsdataverse+cfbd" : "sportsdataverse")
-        : (awayCfbdAdvanced || homeCfbdAdvanced ? "cfbd" : null)
+      advancedSource: awayRelative || homeRelative ? "sportsdataverse-team-summaries-weekly" : null
     }
   }, {
     headers: { "Cache-Control": "private, max-age=0, must-revalidate" }
