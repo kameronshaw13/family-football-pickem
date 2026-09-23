@@ -95,28 +95,46 @@ type TeamPreview = {
     throughWeek: number | null;
     validGames: number | null;
     enoughSample: boolean;
+    overallValue: number | null;
     overallRank: number | null;
     offense: {
+      adjustedEpa: number | null;
       adjustedEpaRank: number | null;
+      epaPerPlay: number | null;
       epaPerPlayRank: number | null;
+      successRate: number | null;
       successRateRank: number | null;
+      explosivePlayRate: number | null;
       explosivePlayRank: number | null;
+      yardsPerPlay: number | null;
       yardsPerPlayRank: number | null;
+      lineYards: number | null;
       lineYardsRank: number | null;
+      thirdDownRate: number | null;
       thirdDownRank: number | null;
+      redZoneRate: number | null;
       redZoneRank: number | null;
     };
     defense: {
+      adjustedEpa: number | null;
       adjustedEpaRank: number | null;
+      epaPerPlay: number | null;
       epaPerPlayRank: number | null;
+      successRate: number | null;
       successRateRank: number | null;
+      explosivePlayRate: number | null;
       explosivePlayRank: number | null;
+      yardsPerPlay: number | null;
       yardsPerPlayRank: number | null;
+      lineYards: number | null;
       lineYardsRank: number | null;
+      thirdDownRate: number | null;
       thirdDownRank: number | null;
+      redZoneRate: number | null;
       redZoneRank: number | null;
     };
   } | null;
+
   power: {
     source?: string;
     throughWeek?: number | null;
@@ -149,13 +167,6 @@ type PreviewPayload = {
   season: number;
   throughWeek: number;
   teams: { away: TeamPreview; home: TeamPreview };
-  model?: {
-    awayScore: number;
-    homeScore: number;
-    favoriteTeam: string | null;
-    spread: number;
-    method: string;
-  } | null;
   headToHead: {
     team1: string;
     team2: string;
@@ -233,6 +244,17 @@ function rankText(value: number | null | undefined) {
   return value != null && Number.isFinite(value) ? `#${Math.round(Number(value))}` : "—";
 }
 
+function valueRank(value: number | null | undefined, rank: number | null | undefined, formatter: (value: number) => string) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  const formatted = formatter(Number(value));
+  return rank != null && Number.isFinite(rank) ? `${formatted} · #${Math.round(Number(rank))}` : formatted;
+}
+
+const signed3 = (value: number) => value > 0 ? `+${value.toFixed(3)}` : value.toFixed(3);
+const signed2 = (value: number) => value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2);
+const percent1 = (value: number) => `${(Math.abs(value) <= 1 ? value * 100 : value).toFixed(1)}%`;
+const number2 = (value: number) => value.toFixed(2);
+
 function MetricRow({ label, away, home, explain = true }: { label: string; away: string; home: string; explain?: boolean }) {
   const info = explain ? ADVANCED_METRIC_INFO[label] : undefined;
   return <div className="matchup-metric-row">
@@ -281,9 +303,9 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
 
     <section className="matchup-comparison-block">
       <div className="matchup-comparison-heading"><strong>TEAM STRENGTH</strong></div>
-      <MetricRow label="Overall Adjusted EPA" away={rankText(awayRelative?.overallRank)} home={rankText(homeRelative?.overallRank)} />
-      <MetricRow label="Adjusted EPA / Play" away={rankText(awayRelative?.offense.adjustedEpaRank)} home={rankText(homeRelative?.offense.adjustedEpaRank)} />
-      <MetricRow label="FPI" away={rankText(away.power?.fpiRank)} home={rankText(home.power?.fpiRank)} />
+      <MetricRow label="Overall Adjusted EPA" away={valueRank(awayRelative?.overallValue, awayRelative?.overallRank, signed3)} home={valueRank(homeRelative?.overallValue, homeRelative?.overallRank, signed3)} />
+      <MetricRow label="Adjusted EPA / Play" away={valueRank(awayRelative?.offense.adjustedEpa, awayRelative?.offense.adjustedEpaRank, signed3)} home={valueRank(homeRelative?.offense.adjustedEpa, homeRelative?.offense.adjustedEpaRank, signed3)} />
+      <MetricRow label="FPI" away={valueRank(away.power?.fpi, away.power?.fpiRank, signed2)} home={valueRank(home.power?.fpi, home.power?.fpiRank, signed2)} />
     </section>
 
     <section className="matchup-comparison-block">
@@ -291,12 +313,12 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
         <strong>WHEN {away.name.toUpperCase()} HAS THE BALL</strong>
         <span>{away.name} offense · {home.name} defense</span>
       </div>
-      <MetricRow label="Adjusted EPA / Play" away={rankText(awayRelative?.offense.adjustedEpaRank)} home={rankText(homeRelative?.defense.adjustedEpaRank)} />
-      <MetricRow label="Success Rate" away={rankText(awayRelative?.offense.successRateRank)} home={rankText(homeRelative?.defense.successRateRank)} />
-      <MetricRow label="Explosive Play Rate" away={rankText(awayRelative?.offense.explosivePlayRank)} home={rankText(homeRelative?.defense.explosivePlayRank)} />
-      <MetricRow label="Yards / Play" away={rankText(awayRelative?.offense.yardsPerPlayRank)} home={rankText(homeRelative?.defense.yardsPerPlayRank)} />
-      <MetricRow label="Line Yards / Carry" away={rankText(awayRelative?.offense.lineYardsRank)} home={rankText(homeRelative?.defense.lineYardsRank)} />
-      <MetricRow label="3rd Down Success Rate" away={rankText(awayRelative?.offense.thirdDownRank)} home={rankText(homeRelative?.defense.thirdDownRank)} />
+      <MetricRow label="Adjusted EPA / Play" away={valueRank(awayRelative?.offense.adjustedEpa, awayRelative?.offense.adjustedEpaRank, signed3)} home={valueRank(homeRelative?.defense.adjustedEpa, homeRelative?.defense.adjustedEpaRank, signed3)} />
+      <MetricRow label="Success Rate" away={valueRank(awayRelative?.offense.successRate, awayRelative?.offense.successRateRank, percent1)} home={valueRank(homeRelative?.defense.successRate, homeRelative?.defense.successRateRank, percent1)} />
+      <MetricRow label="Explosive Play Rate" away={valueRank(awayRelative?.offense.explosivePlayRate, awayRelative?.offense.explosivePlayRank, percent1)} home={valueRank(homeRelative?.defense.explosivePlayRate, homeRelative?.defense.explosivePlayRank, percent1)} />
+      <MetricRow label="Yards / Play" away={valueRank(awayRelative?.offense.yardsPerPlay, awayRelative?.offense.yardsPerPlayRank, number2)} home={valueRank(homeRelative?.defense.yardsPerPlay, homeRelative?.defense.yardsPerPlayRank, number2)} />
+      <MetricRow label="Line Yards / Carry" away={valueRank(awayRelative?.offense.lineYards, awayRelative?.offense.lineYardsRank, number2)} home={valueRank(homeRelative?.defense.lineYards, homeRelative?.defense.lineYardsRank, number2)} />
+      <MetricRow label="3rd Down Success Rate" away={valueRank(awayRelative?.offense.thirdDownRate, awayRelative?.offense.thirdDownRank, percent1)} home={valueRank(homeRelative?.defense.thirdDownRate, homeRelative?.defense.thirdDownRank, percent1)} />
     </section>
 
     <section className="matchup-comparison-block">
@@ -304,12 +326,12 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
         <strong>WHEN {home.name.toUpperCase()} HAS THE BALL</strong>
         <span>{away.name} defense · {home.name} offense</span>
       </div>
-      <MetricRow label="Adjusted EPA / Play" away={rankText(awayRelative?.defense.adjustedEpaRank)} home={rankText(homeRelative?.offense.adjustedEpaRank)} />
-      <MetricRow label="Success Rate" away={rankText(awayRelative?.defense.successRateRank)} home={rankText(homeRelative?.offense.successRateRank)} />
-      <MetricRow label="Explosive Play Rate" away={rankText(awayRelative?.defense.explosivePlayRank)} home={rankText(homeRelative?.offense.explosivePlayRank)} />
-      <MetricRow label="Yards / Play" away={rankText(awayRelative?.defense.yardsPerPlayRank)} home={rankText(homeRelative?.offense.yardsPerPlayRank)} />
-      <MetricRow label="Line Yards / Carry" away={rankText(awayRelative?.defense.lineYardsRank)} home={rankText(homeRelative?.offense.lineYardsRank)} />
-      <MetricRow label="3rd Down Success Rate" away={rankText(awayRelative?.defense.thirdDownRank)} home={rankText(homeRelative?.offense.thirdDownRank)} />
+      <MetricRow label="Adjusted EPA / Play" away={valueRank(awayRelative?.defense.adjustedEpa, awayRelative?.defense.adjustedEpaRank, signed3)} home={valueRank(homeRelative?.offense.adjustedEpa, homeRelative?.offense.adjustedEpaRank, signed3)} />
+      <MetricRow label="Success Rate" away={valueRank(awayRelative?.defense.successRate, awayRelative?.defense.successRateRank, percent1)} home={valueRank(homeRelative?.offense.successRate, homeRelative?.offense.successRateRank, percent1)} />
+      <MetricRow label="Explosive Play Rate" away={valueRank(awayRelative?.defense.explosivePlayRate, awayRelative?.defense.explosivePlayRank, percent1)} home={valueRank(homeRelative?.offense.explosivePlayRate, homeRelative?.offense.explosivePlayRank, percent1)} />
+      <MetricRow label="Yards / Play" away={valueRank(awayRelative?.defense.yardsPerPlay, awayRelative?.defense.yardsPerPlayRank, number2)} home={valueRank(homeRelative?.offense.yardsPerPlay, homeRelative?.offense.yardsPerPlayRank, number2)} />
+      <MetricRow label="Line Yards / Carry" away={valueRank(awayRelative?.defense.lineYards, awayRelative?.defense.lineYardsRank, number2)} home={valueRank(homeRelative?.offense.lineYards, homeRelative?.offense.lineYardsRank, number2)} />
+      <MetricRow label="3rd Down Success Rate" away={valueRank(awayRelative?.defense.thirdDownRate, awayRelative?.defense.thirdDownRank, percent1)} home={valueRank(homeRelative?.offense.thirdDownRate, homeRelative?.offense.thirdDownRank, percent1)} />
     </section>
 
     {(!awayReady || !homeReady) && <p className="matchup-data-note">
@@ -467,25 +489,12 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
         {!loading && error && <div className="matchup-preview-unavailable"><strong>Preview foundation is ready.</strong><p>{error}</p><small>The pick board and spread are unchanged.</small></div>}
 
         {!loading && payload && tab === "overview" && <div className="matchup-tab-body">
-          {payload.model && <section className="matchup-comparison-block matchup-model-section">
-            <div className="matchup-comparison-heading"><strong>K MODEL</strong><span>{payload.model.method}</span></div>
-            <div className="matchup-model-score-row">
-              <strong>{awayName} {payload.model.awayScore}</strong>
-              <span>Projected score</span>
-              <strong>{homeName} {payload.model.homeScore}</strong>
-            </div>
-            <div className="matchup-model-line-row">
-              <span>Model spread</span>
-              <strong>{payload.model.favoriteTeam ? `${teamDisplayName("CFB", payload.model.favoriteTeam)} ${spreadText(payload.model.spread)}` : "Pick 'em"}</strong>
-            </div>
-          </section>}
-
           <section className="matchup-comparison-block">
             <div className="matchup-comparison-heading"><strong>OVERVIEW</strong></div>
             <MetricRow label="Record" away={`${payload.teams.away.record.wins}-${payload.teams.away.record.losses}`} home={`${payload.teams.home.record.wins}-${payload.teams.home.record.losses}`} explain={false} />
-            <MetricRow label="Overall Adjusted EPA" away={rankText(payload.teams.away.relative?.overallRank)} home={rankText(payload.teams.home.relative?.overallRank)} />
-            <MetricRow label="Adjusted EPA / Play" away={rankText(payload.teams.away.relative?.offense.adjustedEpaRank)} home={rankText(payload.teams.home.relative?.offense.adjustedEpaRank)} />
-            <MetricRow label="FPI" away={rankText(payload.teams.away.power?.fpiRank)} home={rankText(payload.teams.home.power?.fpiRank)} />
+            <MetricRow label="Overall Adjusted EPA" away={valueRank(payload.teams.away.relative?.overallValue, payload.teams.away.relative?.overallRank, signed3)} home={valueRank(payload.teams.home.relative?.overallValue, payload.teams.home.relative?.overallRank, signed3)} />
+            <MetricRow label="Adjusted EPA / Play" away={valueRank(payload.teams.away.relative?.offense.adjustedEpa, payload.teams.away.relative?.offense.adjustedEpaRank, signed3)} home={valueRank(payload.teams.home.relative?.offense.adjustedEpa, payload.teams.home.relative?.offense.adjustedEpaRank, signed3)} />
+            <MetricRow label="FPI" away={valueRank(payload.teams.away.power?.fpi, payload.teams.away.power?.fpiRank, signed2)} home={valueRank(payload.teams.home.power?.fpi, payload.teams.home.power?.fpiRank, signed2)} />
           </section>
 
           <p className="matchup-data-note">National ranks use the last completed weekly snapshot before this matchup. Advanced ranks require at least 3 valid FBS games.</p>

@@ -425,31 +425,49 @@ function normalizeRelative(summaryRow: SportsDataRow | null) {
   if (!summaryRow) return null;
   const validGames = rowNumber(summaryRow, "valid_games");
   const enoughSample = validGames != null && validGames >= 3;
+  const value = (key: string) => enoughSample ? rowNumber(summaryRow, key) : null;
   const rank = (key: string) => enoughSample ? rowNumber(summaryRow, key) : null;
   return {
     source: "sportsdataverse-team-summaries-weekly",
     throughWeek: rowNumber(summaryRow, "through_week"),
     validGames,
     enoughSample,
+    overallValue: value("net_adj_epa"),
     overallRank: rank("net_adj_epa_rank"),
     offense: {
+      adjustedEpa: value("adj_off_epa"),
       adjustedEpaRank: rank("adj_off_epa_rank"),
+      epaPerPlay: value("EPAplay_off"),
       epaPerPlayRank: rank("EPAplay_off_rank"),
+      successRate: value("success_off"),
       successRateRank: rank("success_off_rank"),
+      explosivePlayRate: value("explosive_off"),
       explosivePlayRank: rank("explosive_off_rank"),
+      yardsPerPlay: value("yardsplay_off"),
       yardsPerPlayRank: rank("yardsplay_off_rank"),
+      lineYards: value("line_yards_off"),
       lineYardsRank: rank("line_yards_off_rank"),
+      thirdDownRate: value("third_down_success_off"),
       thirdDownRank: rank("third_down_success_off_rank"),
+      redZoneRate: value("red_zone_success_off"),
       redZoneRank: rank("red_zone_success_off_rank")
     },
     defense: {
+      adjustedEpa: value("adj_def_epa"),
       adjustedEpaRank: rank("adj_def_epa_rank"),
+      epaPerPlay: value("EPAplay_def"),
       epaPerPlayRank: rank("EPAplay_def_rank"),
+      successRate: value("success_def"),
       successRateRank: rank("success_def_rank"),
+      explosivePlayRate: value("explosive_def"),
       explosivePlayRank: rank("explosive_def_rank"),
+      yardsPerPlay: value("yardsplay_def"),
       yardsPerPlayRank: rank("yardsplay_def_rank"),
+      lineYards: value("line_yards_def"),
       lineYardsRank: rank("line_yards_def_rank"),
+      thirdDownRate: value("third_down_success_def"),
       thirdDownRank: rank("third_down_success_def_rank"),
+      redZoneRate: value("red_zone_success_def"),
       redZoneRank: rank("red_zone_success_def_rank")
     }
   };
@@ -483,74 +501,6 @@ function normalizePower(summaryRow: SportsDataRow | null, fpiRow: SportsDataRow 
 }
 
 type PowerSnapshot = NonNullable<ReturnType<typeof normalizePower>>;
-
-function isKameronProfile(profile: { username?: string | null; display_name?: string | null }) {
-  return /\bkameron\b/i.test(`${profile.username || ""} ${profile.display_name || ""}`);
-}
-
-function rankStrength(rank: number | null | undefined) {
-  if (rank == null || !Number.isFinite(rank)) return 0;
-  return Math.max(-1, Math.min(1, (66 - Number(rank)) / 65));
-}
-
-function adjustedProjection(
-  awayName: string,
-  homeName: string,
-  awaySummary: SportsDataRow | null,
-  homeSummary: SportsDataRow | null,
-  awayPower: PowerSnapshot | null,
-  homePower: PowerSnapshot | null
-) {
-  if (!awayPower || !homePower) return null;
-
-  const homeField = 2.5;
-  const awayValid = rowNumber(awaySummary, "valid_games") ?? 0;
-  const homeValid = rowNumber(homeSummary, "valid_games") ?? 0;
-  const minValid = Math.min(awayValid, homeValid);
-  const signals: Array<{ value: number; weight: number }> = [];
-
-  if (awayPower.fpi != null && homePower.fpi != null) {
-    // FPI is already on a points-like scale and is the most stable early-season signal.
-    signals.push({ value: homePower.fpi - awayPower.fpi + homeField, weight: minValid >= 4 ? 0.55 : 0.72 });
-  }
-
-  const awayNet = rowNumber(awaySummary, "net_adj_epa");
-  const homeNet = rowNumber(homeSummary, "net_adj_epa");
-  if (awayNet != null && homeNet != null && minValid >= 2) {
-    // Opponent-adjusted EPA is converted to an approximate point-margin signal.
-    signals.push({ value: (homeNet - awayNet) * 58 + homeField, weight: minValid >= 4 ? 0.45 : 0.28 });
-  }
-
-  if (!signals.length) return null;
-  const totalWeight = signals.reduce((sum, signal) => sum + signal.weight, 0);
-  const margin = signals.reduce((sum, signal) => sum + signal.value * signal.weight, 0) / totalWeight;
-
-  const awayOffRank = rowNumber(awaySummary, "adj_off_epa_rank") ?? awayPower.offenseEfficiencyRank;
-  const homeOffRank = rowNumber(homeSummary, "adj_off_epa_rank") ?? homePower.offenseEfficiencyRank;
-  const awayDefRank = rowNumber(awaySummary, "adj_def_epa_rank") ?? awayPower.defenseEfficiencyRank;
-  const homeDefRank = rowNumber(homeSummary, "adj_def_epa_rank") ?? homePower.defenseEfficiencyRank;
-
-  const awayOff = rankStrength(awayOffRank);
-  const homeOff = rankStrength(homeOffRank);
-  const awayDef = rankStrength(awayDefRank);
-  const homeDef = rankStrength(homeDefRank);
-  const awayBase = 27.5 + awayOff * 5.5 - homeDef * 4.5 - homeField / 2;
-  const homeBase = 27.5 + homeOff * 5.5 - awayDef * 4.5 + homeField / 2;
-  const total = Math.max(34, Math.min(86, awayBase + homeBase));
-  const boundedMargin = Math.max(-35, Math.min(35, margin));
-  const homeScore = Math.max(3, Math.round((total + boundedMargin) / 2));
-  const awayScore = Math.max(3, Math.round((total - boundedMargin) / 2));
-  const roundedMargin = Math.round(Math.abs(boundedMargin) * 2) / 2;
-  const favoriteTeam = boundedMargin > 0.25 ? homeName : boundedMargin < -0.25 ? awayName : null;
-
-  return {
-    awayScore,
-    homeScore,
-    favoriteTeam,
-    spread: favoriteTeam ? -roundedMargin : 0,
-    method: "FPI + opponent-adjusted EPA"
-  };
-}
 
 async function cfbd<T>(path: string, params: Record<string, string | number | boolean | null | undefined>, revalidate = 1800) {
   const key = process.env.CFBD_API_KEY;
@@ -1123,13 +1073,10 @@ export async function GET(request: NextRequest) {
       .slice(0, 8)
   } : espnHistory;
 
-  const model = isKameronProfile(auth.profile) ? adjustedProjection(away, home, awaySummaryRow, homeSummaryRow, awayPower, homePower) : null;
-
   return NextResponse.json({
     season,
     throughWeek: requestedWeek > 1 ? requestedWeek - 1 : 0,
     teams: { away: awayData, home: homeData },
-    model,
     headToHead,
     availability: {
       games: awayLocalGames.length > 0 || homeLocalGames.length > 0 || awaySchedule.length > 0 || homeSchedule.length > 0,
