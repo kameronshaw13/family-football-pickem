@@ -1,5 +1,6 @@
 export const MAX_SIDE_BETS_PER_WEEK = 3;
 export const MAX_SIDE_BET_AMOUNT = 20;
+export const MAX_CUSTOM_SIDE_BET_AMOUNT = 10_000;
 
 type AcceptedSideBet = {
   creator_id: string;

@@ -1,3 +1,5 @@
+import { MAX_CUSTOM_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
+
 export type AppSlug = "shaw-family" | "other-family" | "friends";
 export type RuleSection = { title: string; items: string[] };
 
@@ -63,9 +65,9 @@ function eligibleItems(rules: GroupRules) {
 function sideBetItems(rules: GroupRules, companion: boolean) {
   const settings = rules.sideBets || {};
   const fixed = settings.fixedAmounts?.length ? settings.fixedAmounts : [20, 15, 10, 5];
-  const items = ["Spread bets only."];
+  const items = ["Spread and moneyline side bets are available."];
   if (companion || settings.amountEntry !== "free") items.push(`Side bets may be ${fixed.map((amount) => `$${amount}`).join(", ")}.`);
-  else items.push(`Maximum: $${numberValue(settings.maxAmount, 20)} per bet.`);
+  else items.push(`Maximum: $${MAX_CUSTOM_SIDE_BET_AMOUNT.toLocaleString("en-US")} per bet.`);
   if (settings.maxPerWeek == null) items.push("There is no weekly side-bet count limit.");
   else {
     const limit = numberValue(settings.maxPerWeek, 3);

@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { hasAvailableSideBetSlot, sideBetSlotCounts } from "../lib/sideBetLimits.ts";
+import { MAX_CUSTOM_SIDE_BET_AMOUNT, hasAvailableSideBetSlot, sideBetSlotCounts } from "../lib/sideBetLimits.ts";
+
+test("custom side bets retain only the database safety ceiling", () => {
+  assert.equal(MAX_CUSTOM_SIDE_BET_AMOUNT, 10_000);
+});
 
 test("the offer being reviewed does not block its recipient's final slot", () => {
   const rows = [

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { getGroupSideBetSettings, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { createNotificationInBackground, resolveSideBetOfferNotifications } from "@/lib/notifications";
-import { sideBetSlotCounts } from "@/lib/sideBetLimits";
+import { MAX_CUSTOM_SIDE_BET_AMOUNT, sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { americanOddsText, oppositeAmericanOdds, profitForRisk, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
@@ -127,8 +127,9 @@ export async function POST(req: NextRequest) {
       if (context.rules?.sideBets?.amountEntry === "fixed" && ![5, 10, 15, 20].includes(Number(body.amount))) {
         return NextResponse.json({ ok: false, error: "Choose a side bet amount of $20, $15, $10, or $5." }, { status: 409 });
       }
-      if (Number.isFinite(settings.maxAmount) && Number(body.amount) > settings.maxAmount) {
-        return NextResponse.json({ ok: false, error: `Side bets are capped at $${settings.maxAmount}.` }, { status: 409 });
+      const amountCap = context.rules?.sideBets?.amountEntry === "free" ? MAX_CUSTOM_SIDE_BET_AMOUNT : settings.maxAmount;
+      if (Number.isFinite(amountCap) && Number(body.amount) > amountCap) {
+        return NextResponse.json({ ok: false, error: `Side bets are capped at $${amountCap}.` }, { status: 409 });
       }
       const memberIds = new Set(context.members.map((member) => member.id));
       const recipientIds = Array.from(new Set(body.recipientIds)).filter((id) => id !== auth.profile.id && memberIds.has(id));
