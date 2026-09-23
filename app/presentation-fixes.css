@@ -425,3 +425,28 @@
 .bank-history-week[open] > summary {
   border-bottom-color: var(--line);
 }
+
+
+/* Bank history week headers use one divider only, fixed in place open or closed. */
+.bank-history-week,
+.bank-history-week:not(:last-child),
+.bank-history-week[open] {
+  border-bottom: 0 !important;
+}
+
+.bank-history-week > summary,
+.bank-history-week[open] > summary {
+  position: relative;
+  border-bottom: 0 !important;
+}
+
+.bank-history-week > summary::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: var(--line);
+  content: "";
+  pointer-events: none;
+}

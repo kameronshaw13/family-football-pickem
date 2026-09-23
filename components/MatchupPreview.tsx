@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Info, LoaderCircle, X } from "lucide-react";
+import { LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { teamDisplayName } from "@/lib/teamNames";
@@ -85,6 +85,10 @@ type TeamPreview = {
       driveStoppedRate?: number | null;
       stuffRate?: number | null;
     };
+    ranks?: {
+      offense?: Record<string, number | null>;
+      defense?: Record<string, number | null>;
+    };
   } | null;
   power: {
     source?: string;
@@ -118,6 +122,13 @@ type PreviewPayload = {
   season: number;
   throughWeek: number;
   teams: { away: TeamPreview; home: TeamPreview };
+  model?: {
+    awayScore: number;
+    homeScore: number;
+    favoriteTeam: string | null;
+    spread: number;
+    method: string;
+  } | null;
   headToHead: {
     team1: string;
     team2: string;
@@ -173,53 +184,57 @@ function espnTeamIdFromLogo(url: string | null | undefined) {
 }
 
 const ADVANCED_METRIC_INFO: Record<string, string> = {
-  "Value / Play (EPA)": "Expected Points Added per play. Positive means the offense creates scoring value; higher is better.",
-  "Value / Play (PPA)": "Predicted Points Added per play. It estimates scoring value created on each snap; higher is better.",
-  "Successful Plays": "The share of plays that gain enough for the down and distance. Higher means the offense stays on schedule more often.",
-  "Pass Value / Play": "Scoring value created on passing plays. Positive and higher values indicate more efficient passing.",
-  "Run Value / Play": "Scoring value created on rushing plays. Positive and higher values indicate more efficient rushing.",
-  "Successful Pass Plays": "The percentage of pass plays graded successful for the situation.",
-  "Successful Run Plays": "The percentage of run plays graded successful for the situation.",
-  "Explosive Play Rate": "How often the offense creates a big-gain play. Higher means more home-run potential.",
+  "EPA / Play": "Expected Points Added per play. Positive means the offense creates scoring value; higher is better.",
+  "PPA / Play": "Predicted Points Added per play, another measure of scoring value created on each snap.",
+  "Success Rate": "The share of plays that gain enough for the down and distance. Higher means the offense stays on schedule more often.",
+  "Pass EPA / Play": "Expected Points Added on passing plays. Higher is better.",
+  "Rush EPA / Play": "Expected Points Added on rushing plays. Higher is better.",
+  "Pass Success Rate": "The percentage of pass plays graded successful for the situation.",
+  "Rush Success Rate": "The percentage of run plays graded successful for the situation.",
+  "Explosive Play Rate": "How often the offense creates a big-gain play.",
   "Yards / Play": "Average yards gained per offensive snap.",
-  "OL Run Push / Carry": "Line yards per carry, estimating rushing production created by the offensive line.",
-  "Early-Down Value / Play": "Scoring value per play on early downs. Strong numbers help avoid obvious passing situations.",
-  "Late-Down Value / Play": "Scoring value per play on later downs, when conversion pressure is higher.",
-  "3rd-Down Success": "How often the offense succeeds on third down.",
-  "Red-Zone Success": "How effectively the offense converts red-zone opportunities into successful plays and scoring chances.",
-  "Short-Yardage Run Success": "Success rate on power-running situations where only a short gain is needed.",
-  "Runs Stopped at Line": "The share of runs stopped at or behind the line. Lower is better for the offense.",
-  "Pts / Opportunity": "Average points scored after creating a quality scoring opportunity.",
-  "Adjusted Defense EPA": "Opponent-adjusted defensive EPA per play. It estimates defensive efficiency after accounting for schedule strength.",
-  "FPI Defense Rating": "ESPN FPI's defensive efficiency component. The rank is usually the easiest way to compare it.",
+  "Line Yards / Carry": "An estimate of rushing production created by the offensive line before the runner adds extra yards.",
+  "Early Down EPA / Play": "EPA per play on early downs. Strong numbers help avoid obvious passing situations.",
+  "Late Down EPA / Play": "EPA per play on later downs, when conversion pressure is higher.",
+  "3rd Down Success Rate": "How often the offense succeeds on third down.",
+  "Red Zone Success Rate": "How often red-zone plays are graded successful.",
+  "Power Success Rate": "Success rate in short-yardage power-running situations.",
+  "Stuff Rate": "The share of runs stopped at or behind the line. Lower is better for the offense.",
+  "Points / Opportunity": "Average points scored after creating a quality scoring opportunity.",
+  "Adjusted Defensive EPA / Play": "Opponent-adjusted defensive EPA per play. Lower allowed EPA is generally better; use the national rank for the fastest comparison.",
+  "FPI Defensive Efficiency": "ESPN FPI's defensive efficiency component.",
   "Defense Rank": "National defensive unit rank. #1 is best.",
-  "Drive Stop Rate": "How often the defense ends an opponent drive without allowing points. Higher is better.",
-  "Adj EPA / Play": "Opponent-adjusted EPA per play for the offense or defense shown.",
-  "FPI Efficiency": "ESPN FPI unit efficiency. Use it together with unit rank rather than reading the raw number alone.",
+  "Drive Stop Rate": "How often the defense ends an opponent drive without allowing points.",
+  "Adjusted EPA / Play": "Opponent-adjusted EPA per play for the unit shown.",
+  "FPI Efficiency": "ESPN FPI unit efficiency. Use it together with the national unit rank.",
   "Unit Rank": "National rank for the offense or defense shown. #1 is best.",
-  "Success / Drive Stop": "Offensive success rate on the left compared with the opposing defense's drive-stop rate on the right.",
+  "Success Rate / Drive Stop Rate": "The away and home values use the metric appropriate to the labeled unit: offensive success rate or defensive drive-stop rate.",
   "Havoc Rate": "How often the defense creates a disruptive play such as a sack, tackle for loss, forced fumble, or interception.",
-  "Passing-Play Havoc": "Defensive havoc created specifically against passing plays.",
-  "Run-Play Havoc": "Defensive havoc created specifically against rushing plays.",
+  "Pass Havoc Rate": "Defensive havoc created specifically against passing plays.",
+  "Rush Havoc Rate": "Defensive havoc created specifically against rushing plays.",
   "Sack Rate": "The percentage of opponent pass plays ending in a sack.",
-  "Tackle-for-Loss Rate": "The percentage of plays where the defense tackles the ball carrier behind the line.",
-  "Front 7 Havoc": "Disruptive-play rate created by defensive linemen and linebackers.",
-  "DB Havoc": "Disruptive-play rate created by defensive backs."
-};
+  "TFL Rate": "The percentage of plays where the defense records a tackle for loss.",
+  "Front 7 Havoc Rate": "Disruptive-play rate created by defensive linemen and linebackers.",
+  "DB Havoc Rate": "Disruptive-play rate created by defensive backs."
+}
 
 function MetricInfo({ label, text }: { label: string; text: string }) {
   return <details className="matchup-metric-info">
-    <summary aria-label={`Explain ${label}`}><Info size={11} aria-hidden="true" /></summary>
+    <summary aria-label={`Explain ${label}`}><span aria-hidden="true">i</span></summary>
     <span className="matchup-metric-info-popover"><strong>{label}</strong>{text}</span>
   </details>;
 }
 
-function MetricRow({ label, away, home }: { label: string; away: string; home: string }) {
+function MetricValue({ value, rank }: { value: string; rank?: number | null }) {
+  return <strong className="matchup-metric-value"><span>{value}</span>{rank ? <small>#{Math.round(rank)}</small> : null}</strong>;
+}
+
+function MetricRow({ label, away, home, awayRank, homeRank }: { label: string; away: string; home: string; awayRank?: number | null; homeRank?: number | null }) {
   const info = ADVANCED_METRIC_INFO[label];
   return <div className="matchup-metric-row">
-    <strong>{away}</strong>
+    <MetricValue value={away} rank={awayRank} />
     <span className="matchup-metric-label"><span>{label}</span>{info ? <MetricInfo label={label} text={info} /> : null}</span>
-    <strong>{home}</strong>
+    <MetricValue value={home} rank={homeRank} />
   </div>;
 }
 
@@ -334,65 +349,65 @@ function AdvancedMatchup({ away, home }: { away: TeamPreview; home: TeamPreview 
     </section>
     <section className="matchup-comparison-block">
       <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>OFFENSIVE EFFICIENCY</strong><small>Efficiency and consistency on every snap.</small></div><span>{sourceLabel}</span></div>
-      <MetricRow label={useEpa ? "Value / Play (EPA)" : "Value / Play (PPA)"} away={fmtSigned(efficiencyAway, 3)} home={fmtSigned(efficiencyHome, 3)} />
-      <MetricRow label="Successful Plays" away={fmtPct(awayOffense?.successRate)} home={fmtPct(homeOffense?.successRate)} />
-      <MetricRow label="Pass Value / Play" away={fmtSigned(awayOffense?.passEpaPerPlay, 3)} home={fmtSigned(homeOffense?.passEpaPerPlay, 3)} />
-      <MetricRow label="Run Value / Play" away={fmtSigned(awayOffense?.rushEpaPerPlay, 3)} home={fmtSigned(homeOffense?.rushEpaPerPlay, 3)} />
-      <MetricRow label="Successful Pass Plays" away={fmtPct(awayOffense?.passSuccessRate)} home={fmtPct(homeOffense?.passSuccessRate)} />
-      <MetricRow label="Successful Run Plays" away={fmtPct(awayOffense?.rushSuccessRate)} home={fmtPct(homeOffense?.rushSuccessRate)} />
-      <MetricRow label="Explosive Play Rate" away={fmtPct(awayOffense?.explosiveRate)} home={fmtPct(homeOffense?.explosiveRate)} />
-      <MetricRow label="Yards / Play" away={fmt(awayOffense?.yardsPerPlay, 2)} home={fmt(homeOffense?.yardsPerPlay, 2)} />
-      <MetricRow label="OL Run Push / Carry" away={fmt(awayOffense?.lineYardsPerCarry, 2)} home={fmt(homeOffense?.lineYardsPerCarry, 2)} />
+      <MetricRow label={useEpa ? "EPA / Play" : "PPA / Play"} away={fmtSigned(efficiencyAway, 3)} home={fmtSigned(efficiencyHome, 3)} awayRank={useEpa ? away.advanced?.ranks?.offense?.epaPerPlay : null} homeRank={useEpa ? home.advanced?.ranks?.offense?.epaPerPlay : null} />
+      <MetricRow label="Success Rate" away={fmtPct(awayOffense?.successRate)} home={fmtPct(homeOffense?.successRate)} awayRank={away.advanced?.ranks?.offense?.successRate} homeRank={home.advanced?.ranks?.offense?.successRate} />
+      <MetricRow label="Pass EPA / Play" away={fmtSigned(awayOffense?.passEpaPerPlay, 3)} home={fmtSigned(homeOffense?.passEpaPerPlay, 3)} awayRank={away.advanced?.ranks?.offense?.passEpaPerPlay} homeRank={home.advanced?.ranks?.offense?.passEpaPerPlay} />
+      <MetricRow label="Rush EPA / Play" away={fmtSigned(awayOffense?.rushEpaPerPlay, 3)} home={fmtSigned(homeOffense?.rushEpaPerPlay, 3)} awayRank={away.advanced?.ranks?.offense?.rushEpaPerPlay} homeRank={home.advanced?.ranks?.offense?.rushEpaPerPlay} />
+      <MetricRow label="Pass Success Rate" away={fmtPct(awayOffense?.passSuccessRate)} home={fmtPct(homeOffense?.passSuccessRate)} awayRank={away.advanced?.ranks?.offense?.passSuccessRate} homeRank={home.advanced?.ranks?.offense?.passSuccessRate} />
+      <MetricRow label="Rush Success Rate" away={fmtPct(awayOffense?.rushSuccessRate)} home={fmtPct(homeOffense?.rushSuccessRate)} awayRank={away.advanced?.ranks?.offense?.rushSuccessRate} homeRank={home.advanced?.ranks?.offense?.rushSuccessRate} />
+      <MetricRow label="Explosive Play Rate" away={fmtPct(awayOffense?.explosiveRate)} home={fmtPct(homeOffense?.explosiveRate)} awayRank={away.advanced?.ranks?.offense?.explosiveRate} homeRank={home.advanced?.ranks?.offense?.explosiveRate} />
+      <MetricRow label="Yards / Play" away={fmt(awayOffense?.yardsPerPlay, 2)} home={fmt(homeOffense?.yardsPerPlay, 2)} awayRank={away.advanced?.ranks?.offense?.yardsPerPlay} homeRank={home.advanced?.ranks?.offense?.yardsPerPlay} />
+      <MetricRow label="Line Yards / Carry" away={fmt(awayOffense?.lineYardsPerCarry, 2)} home={fmt(homeOffense?.lineYardsPerCarry, 2)} awayRank={away.advanced?.ranks?.offense?.lineYardsPerCarry} homeRank={home.advanced?.ranks?.offense?.lineYardsPerCarry} />
     </section>
 
     <section className="matchup-comparison-block">
       <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>SITUATIONAL OFFENSE</strong><small>Performance in high-leverage situations.</small></div></div>
-      <MetricRow label="Early-Down Value / Play" away={fmtSigned(awayOffense?.earlyDownEpaPerPlay, 3)} home={fmtSigned(homeOffense?.earlyDownEpaPerPlay, 3)} />
-      <MetricRow label="Late-Down Value / Play" away={fmtSigned(awayOffense?.lateDownEpaPerPlay, 3)} home={fmtSigned(homeOffense?.lateDownEpaPerPlay, 3)} />
-      <MetricRow label="3rd-Down Success" away={fmtPct(awayOffense?.thirdDownSuccessRate)} home={fmtPct(homeOffense?.thirdDownSuccessRate)} />
-      <MetricRow label="Red-Zone Success" away={fmtPct(awayOffense?.redZoneSuccessRate)} home={fmtPct(homeOffense?.redZoneSuccessRate)} />
-      <MetricRow label="Short-Yardage Run Success" away={fmtPct(awayOffense?.powerSuccessRate)} home={fmtPct(homeOffense?.powerSuccessRate)} />
-      <MetricRow label="Runs Stopped at Line" away={fmtPct(awayOffense?.stuffRate)} home={fmtPct(homeOffense?.stuffRate)} />
+      <MetricRow label="Early Down EPA / Play" away={fmtSigned(awayOffense?.earlyDownEpaPerPlay, 3)} home={fmtSigned(homeOffense?.earlyDownEpaPerPlay, 3)} awayRank={away.advanced?.ranks?.offense?.earlyDownEpaPerPlay} homeRank={home.advanced?.ranks?.offense?.earlyDownEpaPerPlay} />
+      <MetricRow label="Late Down EPA / Play" away={fmtSigned(awayOffense?.lateDownEpaPerPlay, 3)} home={fmtSigned(homeOffense?.lateDownEpaPerPlay, 3)} awayRank={away.advanced?.ranks?.offense?.lateDownEpaPerPlay} homeRank={home.advanced?.ranks?.offense?.lateDownEpaPerPlay} />
+      <MetricRow label="3rd Down Success Rate" away={fmtPct(awayOffense?.thirdDownSuccessRate)} home={fmtPct(homeOffense?.thirdDownSuccessRate)} awayRank={away.advanced?.ranks?.offense?.thirdDownSuccessRate} homeRank={home.advanced?.ranks?.offense?.thirdDownSuccessRate} />
+      <MetricRow label="Red Zone Success Rate" away={fmtPct(awayOffense?.redZoneSuccessRate)} home={fmtPct(homeOffense?.redZoneSuccessRate)} awayRank={away.advanced?.ranks?.offense?.redZoneSuccessRate} homeRank={home.advanced?.ranks?.offense?.redZoneSuccessRate} />
+      <MetricRow label="Power Success Rate" away={fmtPct(awayOffense?.powerSuccessRate)} home={fmtPct(homeOffense?.powerSuccessRate)} awayRank={away.advanced?.ranks?.offense?.powerSuccessRate} homeRank={home.advanced?.ranks?.offense?.powerSuccessRate} />
+      <MetricRow label="Stuff Rate" away={fmtPct(awayOffense?.stuffRate)} home={fmtPct(homeOffense?.stuffRate)} awayRank={away.advanced?.ranks?.offense?.stuffRate} homeRank={home.advanced?.ranks?.offense?.stuffRate} />
       {(hasNumber(awayOffense?.pointsPerOpportunity) || hasNumber(homeOffense?.pointsPerOpportunity)) &&
-        <MetricRow label="Pts / Opportunity" away={fmt(awayOffense?.pointsPerOpportunity, 2)} home={fmt(homeOffense?.pointsPerOpportunity, 2)} />}
+        <MetricRow label="Points / Opportunity" away={fmt(awayOffense?.pointsPerOpportunity, 2)} home={fmt(homeOffense?.pointsPerOpportunity, 2)} />}
     </section>
 
     <section className="matchup-comparison-block">
       <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>DEFENSIVE EFFICIENCY</strong><small>Overall opponent-adjusted defensive strength.</small></div></div>
-      <MetricRow label="Adjusted Defense EPA" away={fmtSigned(away.power?.adjustedDefEpa, 3)} home={fmtSigned(home.power?.adjustedDefEpa, 3)} />
-      <MetricRow label="FPI Defense Rating" away={fmt(awayDefEfficiency, 1)} home={fmt(homeDefEfficiency, 1)} />
+      <MetricRow label="Adjusted Defensive EPA / Play" away={fmtSigned(away.power?.adjustedDefEpa, 3)} home={fmtSigned(home.power?.adjustedDefEpa, 3)} awayRank={awayDefRank} homeRank={homeDefRank} />
+      <MetricRow label="FPI Defensive Efficiency" away={fmt(awayDefEfficiency, 1)} home={fmt(homeDefEfficiency, 1)} awayRank={away.power?.defenseEfficiencyRank} homeRank={home.power?.defenseEfficiencyRank} />
       <MetricRow label="Defense Rank" away={rank(awayDefRank)} home={rank(homeDefRank)} />
-      <MetricRow label="Drive Stop Rate" away={fmtPct(awayDefense?.driveStoppedRate)} home={fmtPct(homeDefense?.driveStoppedRate)} />
+      <MetricRow label="Drive Stop Rate" away={fmtPct(awayDefense?.driveStoppedRate)} home={fmtPct(homeDefense?.driveStoppedRate)} awayRank={away.advanced?.ranks?.defense?.driveStoppedRate} homeRank={home.advanced?.ranks?.defense?.driveStoppedRate} />
     </section>
 
     <section className="matchup-comparison-block matchup-unit-comparison">
       <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>{away.name.toUpperCase()} OFFENSE vs {home.name.toUpperCase()} DEFENSE</strong><small>{awayVsHome}</small></div></div>
-      <MetricRow label="Adj EPA / Play" away={fmtSigned(away.power?.adjustedOffEpa, 3)} home={fmtSigned(home.power?.adjustedDefEpa, 3)} />
-      <MetricRow label="FPI Efficiency" away={fmt(awayOffEfficiency, 1)} home={fmt(homeDefEfficiency, 1)} />
+      <MetricRow label="Adjusted EPA / Play" away={fmtSigned(away.power?.adjustedOffEpa, 3)} home={fmtSigned(home.power?.adjustedDefEpa, 3)} awayRank={awayOffRank} homeRank={homeDefRank} />
+      <MetricRow label="FPI Efficiency" away={fmt(awayOffEfficiency, 1)} home={fmt(homeDefEfficiency, 1)} awayRank={away.power?.offenseEfficiencyRank} homeRank={home.power?.defenseEfficiencyRank} />
       <MetricRow label="Unit Rank" away={rank(awayOffRank)} home={rank(homeDefRank)} />
-      <MetricRow label="Success / Drive Stop" away={fmtPct(awayOffense?.successRate)} home={fmtPct(homeDefense?.driveStoppedRate)} />
+      <MetricRow label="Success Rate / Drive Stop Rate" away={fmtPct(awayOffense?.successRate)} home={fmtPct(homeDefense?.driveStoppedRate)} awayRank={away.advanced?.ranks?.offense?.successRate} homeRank={home.advanced?.ranks?.defense?.driveStoppedRate} />
     </section>
 
     <section className="matchup-comparison-block matchup-unit-comparison">
-      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>{home.name.toUpperCase()} OFFENSE vs {away.name.toUpperCase()} DEFENSE</strong><small>{homeVsAway}</small></div></div>
-      <MetricRow label="Adj EPA / Play" away={fmtSigned(home.power?.adjustedOffEpa, 3)} home={fmtSigned(away.power?.adjustedDefEpa, 3)} />
-      <MetricRow label="FPI Efficiency" away={fmt(homeOffEfficiency, 1)} home={fmt(awayDefEfficiency, 1)} />
-      <MetricRow label="Unit Rank" away={rank(homeOffRank)} home={rank(awayDefRank)} />
-      <MetricRow label="Success / Drive Stop" away={fmtPct(homeOffense?.successRate)} home={fmtPct(awayDefense?.driveStoppedRate)} />
+      <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>{away.name.toUpperCase()} DEFENSE vs {home.name.toUpperCase()} OFFENSE</strong><small>{homeVsAway}</small></div></div>
+      <MetricRow label="Adjusted EPA / Play" away={fmtSigned(away.power?.adjustedDefEpa, 3)} home={fmtSigned(home.power?.adjustedOffEpa, 3)} awayRank={awayDefRank} homeRank={homeOffRank} />
+      <MetricRow label="FPI Efficiency" away={fmt(awayDefEfficiency, 1)} home={fmt(homeOffEfficiency, 1)} awayRank={away.power?.defenseEfficiencyRank} homeRank={home.power?.offenseEfficiencyRank} />
+      <MetricRow label="Unit Rank" away={rank(awayDefRank)} home={rank(homeOffRank)} />
+      <MetricRow label="Success Rate / Drive Stop Rate" away={fmtPct(awayDefense?.driveStoppedRate)} home={fmtPct(homeOffense?.successRate)} awayRank={away.advanced?.ranks?.defense?.driveStoppedRate} homeRank={home.advanced?.ranks?.offense?.successRate} />
     </section>
 
     <section className="matchup-comparison-block">
       <div className="matchup-comparison-heading matchup-explained-heading"><div><strong>DEFENSIVE DISRUPTION</strong><small>Pressure, negative plays and drive-ending ability.</small></div></div>
-      <MetricRow label="Havoc Rate" away={fmtPct(awayDefense?.havocRate)} home={fmtPct(homeDefense?.havocRate)} />
-      <MetricRow label="Passing-Play Havoc" away={fmtPct(awayDefense?.passHavocRate)} home={fmtPct(homeDefense?.passHavocRate)} />
-      <MetricRow label="Run-Play Havoc" away={fmtPct(awayDefense?.rushHavocRate)} home={fmtPct(homeDefense?.rushHavocRate)} />
-      <MetricRow label="Sack Rate" away={fmtPct(awayDefense?.sackRate)} home={fmtPct(homeDefense?.sackRate)} />
-      <MetricRow label="Tackle-for-Loss Rate" away={fmtPct(awayDefense?.tflRate)} home={fmtPct(homeDefense?.tflRate)} />
+      <MetricRow label="Havoc Rate" away={fmtPct(awayDefense?.havocRate)} home={fmtPct(homeDefense?.havocRate)} awayRank={away.advanced?.ranks?.defense?.havocRate} homeRank={home.advanced?.ranks?.defense?.havocRate} />
+      <MetricRow label="Pass Havoc Rate" away={fmtPct(awayDefense?.passHavocRate)} home={fmtPct(homeDefense?.passHavocRate)} awayRank={away.advanced?.ranks?.defense?.passHavocRate} homeRank={home.advanced?.ranks?.defense?.passHavocRate} />
+      <MetricRow label="Rush Havoc Rate" away={fmtPct(awayDefense?.rushHavocRate)} home={fmtPct(homeDefense?.rushHavocRate)} awayRank={away.advanced?.ranks?.defense?.rushHavocRate} homeRank={home.advanced?.ranks?.defense?.rushHavocRate} />
+      <MetricRow label="Sack Rate" away={fmtPct(awayDefense?.sackRate)} home={fmtPct(homeDefense?.sackRate)} awayRank={away.advanced?.ranks?.defense?.sackRate} homeRank={home.advanced?.ranks?.defense?.sackRate} />
+      <MetricRow label="TFL Rate" away={fmtPct(awayDefense?.tflRate)} home={fmtPct(homeDefense?.tflRate)} awayRank={away.advanced?.ranks?.defense?.tflRate} homeRank={home.advanced?.ranks?.defense?.tflRate} />
       <MetricRow label="Drive Stop Rate" away={fmtPct(awayDefense?.driveStoppedRate)} home={fmtPct(homeDefense?.driveStoppedRate)} />
       {(hasNumber(awayDefense?.frontSevenHavocRate) || hasNumber(homeDefense?.frontSevenHavocRate)) &&
-        <MetricRow label="Front 7 Havoc" away={fmtPct(awayDefense?.frontSevenHavocRate)} home={fmtPct(homeDefense?.frontSevenHavocRate)} />}
+        <MetricRow label="Front 7 Havoc Rate" away={fmtPct(awayDefense?.frontSevenHavocRate)} home={fmtPct(homeDefense?.frontSevenHavocRate)} />}
       {(hasNumber(awayDefense?.dbHavocRate) || hasNumber(homeDefense?.dbHavocRate)) &&
-        <MetricRow label="DB Havoc" away={fmtPct(awayDefense?.dbHavocRate)} home={fmtPct(homeDefense?.dbHavocRate)} />}
+        <MetricRow label="DB Havoc Rate" away={fmtPct(awayDefense?.dbHavocRate)} home={fmtPct(homeDefense?.dbHavocRate)} />}
     </section>
 
     <p className="matchup-data-note">Quick rule: higher is generally better for offensive value, success and defensive disruption. For unit strength, use the rank first — #1 is best. Runs stopped at the line is better when lower for the offense.</p>
@@ -439,17 +454,14 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
   }, []);
 
   useEffect(() => {
-    const scrollY = window.scrollY;
-    const prior = {
-      position: document.body.style.position,
-      top: document.body.style.top,
-      width: document.body.style.width,
-      overflow: document.body.style.overflow
-    };
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = "100%";
+    const priorBodyOverflow = document.body.style.overflow;
+    const priorHtmlOverflow = document.documentElement.style.overflow;
+    const priorBodyOverscroll = document.body.style.overscrollBehavior;
+    const priorHtmlOverscroll = document.documentElement.style.overscrollBehavior;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    document.documentElement.style.overscrollBehavior = "none";
 
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -457,11 +469,10 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.position = prior.position;
-      document.body.style.top = prior.top;
-      document.body.style.width = prior.width;
-      document.body.style.overflow = prior.overflow;
-      window.scrollTo(0, scrollY);
+      document.body.style.overflow = priorBodyOverflow;
+      document.documentElement.style.overflow = priorHtmlOverflow;
+      document.body.style.overscrollBehavior = priorBodyOverscroll;
+      document.documentElement.style.overscrollBehavior = priorHtmlOverscroll;
     };
   }, [onClose]);
 
@@ -529,14 +540,14 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
       <div className="matchup-preview-hero">
         <div className="matchup-preview-team">
           {game.away_logo_url ? <img src={game.away_logo_url} alt="" width={52} height={52} /> : <span className="matchup-logo-fallback" />}
-          <strong>{awayName}</strong>
-          <span>{spreadText(awaySpread)}</span>
+          <span className="matchup-preview-team-name">{game.away_rank ? <small>#{game.away_rank}</small> : null}<strong>{awayName}</strong></span>
+          <span className="matchup-preview-team-spread">{spreadText(awaySpread)}</span>
         </div>
         <div className="matchup-preview-at"><span>AT</span></div>
         <div className="matchup-preview-team">
           {game.home_logo_url ? <img src={game.home_logo_url} alt="" width={52} height={52} /> : <span className="matchup-logo-fallback" />}
-          <strong>{homeName}</strong>
-          <span>{spreadText(homeSpread)}</span>
+          <span className="matchup-preview-team-name">{game.home_rank ? <small>#{game.home_rank}</small> : null}<strong>{homeName}</strong></span>
+          <span className="matchup-preview-team-spread">{spreadText(homeSpread)}</span>
         </div>
       </div>
 
@@ -549,6 +560,15 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
         {!loading && error && <div className="matchup-preview-unavailable"><strong>Preview foundation is ready.</strong><p>{error}</p><small>The pick board and spread are unchanged.</small></div>}
 
         {!loading && payload && tab === "overview" && <div className="matchup-tab-body">
+          {payload.model && <section className="matchup-model-card">
+            <div className="matchup-model-head"><strong>K MODEL</strong><span>{payload.model.method}</span></div>
+            <div className="matchup-model-score">
+              <span>{awayName}<strong>{payload.model.awayScore}</strong></span>
+              <small>PROJECTED</small>
+              <span>{homeName}<strong>{payload.model.homeScore}</strong></span>
+            </div>
+            <div className="matchup-model-line"><span>Model spread</span><strong>{payload.model.favoriteTeam ? `${teamDisplayName("CFB", payload.model.favoriteTeam)} ${spreadText(payload.model.spread)}` : "Pick 'em"}</strong></div>
+          </section>}
           <div className="matchup-columns-header">
             <TeamColumnLabel game={game} side="away" name={payload.teams.away.name} />
             <span>TEAM COMPARISON</span>

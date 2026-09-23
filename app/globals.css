@@ -780,3 +780,9 @@ fieldset .field-label { padding: 0; }
   text-align: right;
   white-space: nowrap;
 }
+
+
+.side-bet-game-card .board-team-rank {
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+}

@@ -34,15 +34,6 @@ type GameStatusFilter = "OPEN" | "LOCKED" | "FINAL";
 type LeagueFilter = "CFB" | "NFL" | "DOGS";
 type DogValueFilter = "ALL" | "1" | "2" | "3";
 type GameOutcome = "win" | "loss" | "push";
-type GameProjection = {
-  gameId: string;
-  awayScore: number;
-  homeScore: number;
-  favoriteTeam: string | null;
-  spread: number;
-  sampleGames: number;
-  version: string;
-};
 type Toast = { message: string; tone: "success" | "error" | "info" } | null;
 type NotificationDestination = "side_bets_received" | "side_bets_sent" | "my_card" | "league_cards" | "side_bet_ledger";
 type NotificationCounts = Record<NotificationDestination, number> & { total: number };
@@ -1055,7 +1046,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [statusFilterTouched, setStatusFilterTouched] = useState(false);
   const [data, setData] = useState<AppData | null>(null);
   const [matchupPreviewGame, setMatchupPreviewGame] = useState<Game | null>(null);
-  const [gameProjections, setGameProjections] = useState<Record<string, GameProjection>>({});
   const closeMatchupPreview = useCallback(() => setMatchupPreviewGame(null), []);
   const [week, setWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1607,53 +1597,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     }
   }
 
-  useEffect(() => {
-    if (!data?.currentUser || !data.games?.length) {
-      setGameProjections({});
-      return;
-    }
-    const identity = `${data.currentUser.username || ""} ${data.currentUser.display_name || ""}`.toLowerCase();
-    if (!/\bkameron\b/.test(identity)) {
-      setGameProjections({});
-      return;
-    }
-
-    const projectionData = data;
-    const controller = new AbortController();
-    async function loadProjections() {
-      try {
-        const token = window.localStorage.getItem("pickem_session_token");
-        const response = await fetch("/api/game-projections", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify({
-            games: projectionData.games.map((game) => ({
-              id: game.id,
-              league: game.league,
-              commence_time: game.commence_time,
-              home_team: game.home_team,
-              away_team: game.away_team,
-              home_logo_url: game.home_logo_url,
-              away_logo_url: game.away_logo_url
-            }))
-          }),
-          signal: controller.signal
-        });
-        if (!response.ok) return;
-        const payload = await response.json();
-        setGameProjections(payload?.projections || {});
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) setGameProjections({});
-      }
-    }
-
-    void loadProjections();
-    return () => controller.abort();
-  }, [data?.currentUser.id, data?.week]);
-
   if (loading) return <LoadingShell appSlug={appSlug} />;
   if (!data) return <div className="app-shell"><main className="container"><div className="error-card">{message || "Could not load app."}</div></main></div>;
 
@@ -1937,7 +1880,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           <div className="game-days">
             {gameGroups.map((group) => <div className={`game-day-group ${statusFilter === "FINAL" ? "past-day-group" : ""}`} key={group.key}>
               <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong></div>
-              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} statusFilter={statusFilter} leagueFilter={leagueFilter} weekIsOpen={weekIsOpen} now={clock} pointsMode={pointsMode} projection={gameProjections[game.id]} addPick={addPick} openPreview={setMatchupPreviewGame} />)}</div>
+              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} statusFilter={statusFilter} leagueFilter={leagueFilter} weekIsOpen={weekIsOpen} now={clock} pointsMode={pointsMode} addPick={addPick} openPreview={setMatchupPreviewGame} />)}</div>
             </div>)}
           </div>
         </>}
@@ -2716,7 +2659,7 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   </div>;
 }
 
-function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, pointsMode, projection, addPick, openPreview }: { game: Game; picks: Pick[]; statusFilter: GameStatusFilter; leagueFilter: LeagueFilter; weekIsOpen: boolean; now: number; pointsMode: boolean; projection?: GameProjection; addPick: (game: Game, team: string, pickType: PickType) => void; openPreview: (game: Game) => void }) {
+function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, pointsMode, addPick, openPreview }: { game: Game; picks: Pick[]; statusFilter: GameStatusFilter; leagueFilter: LeagueFilter; weekIsOpen: boolean; now: number; pointsMode: boolean; addPick: (game: Game, team: string, pickType: PickType) => void; openPreview: (game: Game) => void }) {
   const closed = isClosed(game) || !weekIsOpen;
   const hasFinalScore = game.final_away_score != null && game.final_home_score != null;
   const hasLiveScore = game.live_state !== "pre" && game.live_away_score != null && game.live_home_score != null;
@@ -2820,12 +2763,6 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
       {statusFilter !== "OPEN" && gameIsLive && liveSituation && <div className="game-live-situation"><LiveSituationText game={game} /></div>}
       {game.league === "CFB" && <button type="button" className="matchup-preview-trigger" onClick={() => openPreview(game)}>Matchup Preview</button>}
     </div>
-
-    {projection && <div className="kameron-model-strip" aria-label={`${projection.version} predicts ${displayTeamName(game, game.away_team)} ${projection.awayScore}, ${displayTeamName(game, game.home_team)} ${projection.homeScore}`}>
-      <span className="kameron-model-label">K MODEL</span>
-      <strong><ResponsiveText full={`${displayTeamName(game, game.away_team)} ${projection.awayScore}–${projection.homeScore} ${displayTeamName(game, game.home_team)}`} compact={`${abbreviatedTeamName(game, game.away_team)} ${projection.awayScore}–${projection.homeScore} ${abbreviatedTeamName(game, game.home_team)}`} /></strong>
-      <span className="kameron-model-spread">{projection.favoriteTeam ? <ResponsiveText full={`${displayTeamName(game, projection.favoriteTeam)} ${spreadText(projection.spread)}`} compact={`${abbreviatedTeamName(game, projection.favoriteTeam)} ${spreadText(projection.spread)}`} /> : "PK"}</span>
-    </div>}
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
       <button

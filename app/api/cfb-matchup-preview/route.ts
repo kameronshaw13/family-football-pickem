@@ -133,6 +133,10 @@ type NormalizedAdvanced = {
     driveStoppedRate?: number | null;
     stuffRate?: number | null;
   };
+  ranks?: {
+    offense?: Record<string, number | null>;
+    defense?: Record<string, number | null>;
+  };
 };
 
 function parseCsv(text: string): SportsDataRow[] {
@@ -210,6 +214,82 @@ function sportsRow(
 
 function rowNumber(row: SportsDataRow | null, key: string) {
   return row ? finiteNumber(row[key]) : null;
+}
+
+function rankFromValues(value: number | null, values: number[], higherBetter = true) {
+  if (value == null || !Number.isFinite(value) || !values.length) return null;
+  return 1 + values.filter((candidate) => higherBetter ? candidate > value : candidate < value).length;
+}
+
+function sameSnapshotRows(rows: SportsDataRow[], row: SportsDataRow | null) {
+  if (!row) return [] as SportsDataRow[];
+  const week = finiteNumber(row.week);
+  if (week == null) return rows;
+  return rows.filter((candidate) => finiteNumber(candidate.week) === week);
+}
+
+function metricRank(rows: SportsDataRow[], row: SportsDataRow | null, key: string, higherBetter = true) {
+  const value = rowNumber(row, key);
+  const values = sameSnapshotRows(rows, row)
+    .map((candidate) => finiteNumber(candidate[key]))
+    .filter((candidate): candidate is number => candidate != null);
+  return rankFromValues(value, values, higherBetter);
+}
+
+function derivedRank(
+  rows: SportsDataRow[],
+  row: SportsDataRow | null,
+  getter: (candidate: SportsDataRow) => number | null,
+  higherBetter = true
+) {
+  if (!row) return null;
+  const value = getter(row);
+  const values = sameSnapshotRows(rows, row)
+    .map(getter)
+    .filter((candidate): candidate is number => candidate != null);
+  return rankFromValues(value, values, higherBetter);
+}
+
+function sportsAdvancedRanks(
+  teamRows: SportsDataRow[],
+  situationalRows: SportsDataRow[],
+  defensiveRows: SportsDataRow[],
+  teamRow: SportsDataRow | null,
+  situationalRow: SportsDataRow | null,
+  defensiveRow: SportsDataRow | null
+) {
+  const tflRate = (row: SportsDataRow) => {
+    const plays = finiteNumber(row.scrimmage_plays);
+    const tfl = finiteNumber(row.TFL);
+    return plays && tfl != null ? tfl / plays : null;
+  };
+  return {
+    offense: {
+      epaPerPlay: metricRank(teamRows, teamRow, "EPA_per_play"),
+      successRate: metricRank(situationalRows, situationalRow, "EPA_success_rate"),
+      passEpaPerPlay: metricRank(teamRows, teamRow, "EPA_passing_per_play"),
+      rushEpaPerPlay: metricRank(teamRows, teamRow, "EPA_rushing_per_play"),
+      passSuccessRate: metricRank(situationalRows, situationalRow, "EPA_success_pass_rate"),
+      rushSuccessRate: metricRank(situationalRows, situationalRow, "EPA_success_rush_rate"),
+      explosiveRate: metricRank(teamRows, teamRow, "EPA_explosive_rate"),
+      yardsPerPlay: metricRank(teamRows, teamRow, "yards_per_play"),
+      lineYardsPerCarry: metricRank(teamRows, teamRow, "line_yards_per_carry"),
+      powerSuccessRate: metricRank(teamRows, teamRow, "rushing_power_success_rate"),
+      stuffRate: metricRank(teamRows, teamRow, "rushing_stuff_rate", false),
+      earlyDownEpaPerPlay: metricRank(situationalRows, situationalRow, "EPA_early_down_per_play"),
+      lateDownEpaPerPlay: metricRank(situationalRows, situationalRow, "EPA_late_down_per_play"),
+      thirdDownSuccessRate: metricRank(situationalRows, situationalRow, "EPA_success_rate_third"),
+      redZoneSuccessRate: metricRank(situationalRows, situationalRow, "EPA_success_rate_rz")
+    },
+    defense: {
+      havocRate: metricRank(defensiveRows, defensiveRow, "havoc_total_rate"),
+      passHavocRate: metricRank(defensiveRows, defensiveRow, "havoc_total_pass_rate"),
+      rushHavocRate: metricRank(defensiveRows, defensiveRow, "havoc_total_rush_rate"),
+      sackRate: metricRank(defensiveRows, defensiveRow, "sacks_rate"),
+      tflRate: derivedRank(defensiveRows, defensiveRow, tflRate),
+      driveStoppedRate: metricRank(defensiveRows, defensiveRow, "drive_stopped_rate")
+    }
+  };
 }
 
 function asRate(value: number | null, percentScale = false) {
@@ -308,7 +388,11 @@ function mergeAdvanced(primary: NormalizedAdvanced | null, fallback: NormalizedA
     source: "sportsdataverse+cfbd",
     throughWeek: primary.throughWeek ?? fallback.throughWeek,
     offense: { ...(fallback.offense || {}), ...(primary.offense || {}) },
-    defense: { ...(fallback.defense || {}), ...(primary.defense || {}) }
+    defense: { ...(fallback.defense || {}), ...(primary.defense || {}) },
+    ranks: {
+      offense: { ...(fallback.ranks?.offense || {}), ...(primary.ranks?.offense || {}) },
+      defense: { ...(fallback.ranks?.defense || {}), ...(primary.ranks?.defense || {}) }
+    }
   };
 }
 
@@ -351,6 +435,61 @@ function normalizePower(ratingRow: SportsDataRow | null, fpiRow: SportsDataRow |
     adjustedOffRank: rowNumber(ratingRow, "off_rank"),
     adjustedDefRank: rowNumber(ratingRow, "def_rank"),
     adjustedNetRank: rowNumber(ratingRow, "net_rank")
+  };
+}
+
+type PowerSnapshot = NonNullable<ReturnType<typeof normalizePower>>;
+
+function isKameronProfile(profile: { username?: string | null; display_name?: string | null }) {
+  return /\bkameron\b/i.test(`${profile.username || ""} ${profile.display_name || ""}`);
+}
+
+function rankStrength(rank: number | null | undefined) {
+  if (rank == null || !Number.isFinite(rank)) return 0;
+  return Math.max(-1, Math.min(1, (66 - Number(rank)) / 65));
+}
+
+function adjustedProjection(
+  awayName: string,
+  homeName: string,
+  awayPower: PowerSnapshot | null,
+  homePower: PowerSnapshot | null
+) {
+  if (!awayPower || !homePower) return null;
+  const homeField = 2.5;
+  const marginSignals: Array<{ value: number; weight: number }> = [];
+
+  if (awayPower.fpi != null && homePower.fpi != null) {
+    marginSignals.push({ value: homePower.fpi - awayPower.fpi + homeField, weight: 0.62 });
+  }
+  if (awayPower.adjustedNetEpa != null && homePower.adjustedNetEpa != null) {
+    marginSignals.push({ value: (homePower.adjustedNetEpa - awayPower.adjustedNetEpa) * 65 + homeField, weight: 0.38 });
+  }
+  if (!marginSignals.length) return null;
+
+  const weight = marginSignals.reduce((sum, signal) => sum + signal.weight, 0);
+  const margin = marginSignals.reduce((sum, signal) => sum + signal.value * signal.weight, 0) / weight;
+
+  const awayOff = rankStrength(awayPower.adjustedOffRank ?? awayPower.offenseEfficiencyRank);
+  const homeOff = rankStrength(homePower.adjustedOffRank ?? homePower.offenseEfficiencyRank);
+  const awayDef = rankStrength(awayPower.adjustedDefRank ?? awayPower.defenseEfficiencyRank);
+  const homeDef = rankStrength(homePower.adjustedDefRank ?? homePower.defenseEfficiencyRank);
+
+  const awayBase = 28 + awayOff * 6 - homeDef * 5 - homeField / 2;
+  const homeBase = 28 + homeOff * 6 - awayDef * 5 + homeField / 2;
+  const total = Math.max(34, Math.min(88, awayBase + homeBase));
+  const boundedMargin = Math.max(-35, Math.min(35, margin));
+  const homeScore = Math.max(3, Math.round((total + boundedMargin) / 2));
+  const awayScore = Math.max(3, Math.round((total - boundedMargin) / 2));
+  const roundedMargin = Math.round(Math.abs(boundedMargin) * 2) / 2;
+  const favoriteTeam = boundedMargin > 0.25 ? homeName : boundedMargin < -0.25 ? awayName : null;
+
+  return {
+    awayScore,
+    homeScore,
+    favoriteTeam,
+    spread: favoriteTeam ? -roundedMargin : 0,
+    method: "Adjusted FPI + opponent-adjusted EPA"
   };
 }
 
@@ -851,15 +990,22 @@ export async function GET(request: NextRequest) {
   const awayPower = normalizePower(awayRatingRow, awayFpiRow);
   const homePower = normalizePower(homeRatingRow, homeFpiRow);
 
-  const awaySportsAdvanced = normalizeSportsAdvanced(
-    sportsRow(sportsTeamRows, awayId, away, "pos_team_id", "pos_team", requestedWeek),
-    sportsRow(sportsSituationalRows, awayId, away, "pos_team_id", "pos_team", requestedWeek),
-    sportsRow(sportsDefensiveRows, awayId, away, "def_pos_team_id", "def_pos_team", requestedWeek)
+  const awaySportsTeamRow = sportsRow(sportsTeamRows, awayId, away, "pos_team_id", "pos_team", requestedWeek);
+  const awaySportsSituationalRow = sportsRow(sportsSituationalRows, awayId, away, "pos_team_id", "pos_team", requestedWeek);
+  const awaySportsDefensiveRow = sportsRow(sportsDefensiveRows, awayId, away, "def_pos_team_id", "def_pos_team", requestedWeek);
+  const homeSportsTeamRow = sportsRow(sportsTeamRows, homeId, home, "pos_team_id", "pos_team", requestedWeek);
+  const homeSportsSituationalRow = sportsRow(sportsSituationalRows, homeId, home, "pos_team_id", "pos_team", requestedWeek);
+  const homeSportsDefensiveRow = sportsRow(sportsDefensiveRows, homeId, home, "def_pos_team_id", "def_pos_team", requestedWeek);
+
+  const awaySportsAdvanced = normalizeSportsAdvanced(awaySportsTeamRow, awaySportsSituationalRow, awaySportsDefensiveRow);
+  const homeSportsAdvanced = normalizeSportsAdvanced(homeSportsTeamRow, homeSportsSituationalRow, homeSportsDefensiveRow);
+  if (awaySportsAdvanced) awaySportsAdvanced.ranks = sportsAdvancedRanks(
+    sportsTeamRows, sportsSituationalRows, sportsDefensiveRows,
+    awaySportsTeamRow, awaySportsSituationalRow, awaySportsDefensiveRow
   );
-  const homeSportsAdvanced = normalizeSportsAdvanced(
-    sportsRow(sportsTeamRows, homeId, home, "pos_team_id", "pos_team", requestedWeek),
-    sportsRow(sportsSituationalRows, homeId, home, "pos_team_id", "pos_team", requestedWeek),
-    sportsRow(sportsDefensiveRows, homeId, home, "def_pos_team_id", "def_pos_team", requestedWeek)
+  if (homeSportsAdvanced) homeSportsAdvanced.ranks = sportsAdvancedRanks(
+    sportsTeamRows, sportsSituationalRows, sportsDefensiveRows,
+    homeSportsTeamRow, homeSportsSituationalRow, homeSportsDefensiveRow
   );
   const awayCfbdAdvanced = normalizeCfbdAdvanced(cfbdAdvanced?.find((row) => sameTeam(row.team, away)));
   const homeCfbdAdvanced = normalizeCfbdAdvanced(cfbdAdvanced?.find((row) => sameTeam(row.team, home)));
@@ -914,10 +1060,13 @@ export async function GET(request: NextRequest) {
       .slice(0, 8)
   } : espnHistory;
 
+  const model = isKameronProfile(auth.profile) ? adjustedProjection(away, home, awayPower, homePower) : null;
+
   return NextResponse.json({
     season,
     throughWeek: requestedWeek > 1 ? requestedWeek - 1 : 0,
     teams: { away: awayData, home: homeData },
+    model,
     headToHead,
     availability: {
       games: awayLocalGames.length > 0 || homeLocalGames.length > 0 || awaySchedule.length > 0 || homeSchedule.length > 0,
