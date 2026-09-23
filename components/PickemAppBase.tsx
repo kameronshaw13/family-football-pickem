@@ -2559,7 +2559,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
         <section className="side-bet-slip-section">
           <div className="side-bet-slip-section-head"><span>Risk</span><small>Max <NumericText text={stakeMoney(maxAmount)} /></small></div>
-          <div className="side-bet-amount-grid">{amountOptions.map((value) => <button type="button" key={value} className={!customRiskMode && amount === value ? "active" : ""} aria-pressed={!customRiskMode && amount === value} onClick={() => { setCustomRiskMode(false); setAmount(value); }}><NumericText text={`${value}`} /></button>)}</div>
+          <div className="side-bet-amount-grid">{amountOptions.map((value) => <button type="button" key={value} className={!customRiskMode && amount === value ? "active" : ""} aria-pressed={!customRiskMode && amount === value} onClick={() => { setCustomRiskMode(false); setAmount(value); }}><NumericText text={stakeMoney(Number(value))} /></button>)}</div>
           {manualAmount && <label className="side-bet-risk-field"><span>Custom risk</span><div><span>$</span><input className="side-bet-risk-input" type="text" inputMode="decimal" autoComplete="off" value={amount} onFocus={() => setCustomRiskMode(true)} onChange={(event) => { setCustomRiskMode(true); setAmount(normalizeRiskInput(event.target.value)); }} onBlur={() => {
             const value = Number(amount);
             if (Number.isFinite(value) && value > 0) setAmount(String(Math.min(maxAmount, Math.round(value * 100) / 100)));
