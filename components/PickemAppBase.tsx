@@ -38,6 +38,22 @@ type Toast = { message: string; tone: "success" | "error" | "info" } | null;
 type NotificationDestination = "side_bets_received" | "side_bets_sent" | "my_card" | "league_cards" | "side_bet_ledger";
 type NotificationCounts = Record<NotificationDestination, number> & { total: number };
 type BadgeNavigator = Navigator & { setAppBadge?: (contents?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+
+function stabilizeViewportAfterLayoutChange() {
+  if (typeof window === "undefined") return;
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      const doc = document.documentElement;
+      const maxScroll = Math.max(0, doc.scrollHeight - window.innerHeight);
+      if (window.scrollY > maxScroll) window.scrollTo(0, maxScroll);
+      const nav = document.querySelector<HTMLElement>(".primary-nav");
+      if (nav) {
+        nav.style.bottom = "0px";
+        void nav.offsetHeight;
+      }
+    });
+  });
+}
 type LiveScoreUpdate = {
   id: string;
   final_home_score?: number | null;
@@ -1097,6 +1113,24 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }));
 
   useEffect(() => {
+    const viewport = window.visualViewport;
+    const stabilize = () => stabilizeViewportAfterLayoutChange();
+    window.addEventListener("resize", stabilize);
+    window.addEventListener("orientationchange", stabilize);
+    window.addEventListener("pageshow", stabilize);
+    viewport?.addEventListener("resize", stabilize);
+    viewport?.addEventListener("scroll", stabilize);
+    stabilize();
+    return () => {
+      window.removeEventListener("resize", stabilize);
+      window.removeEventListener("orientationchange", stabilize);
+      window.removeEventListener("pageshow", stabilize);
+      viewport?.removeEventListener("resize", stabilize);
+      viewport?.removeEventListener("scroll", stabilize);
+    };
+  }, []);
+
+  useEffect(() => {
     const handlePickLocked = (event: Event) => {
       const detail = (event as CustomEvent<{ appSlug?: AppSlug; week?: number; pick?: Partial<Pick> | null }>).detail;
       if (!detail || detail.appSlug !== appSlug || !detail.pick?.selected_team) return;
@@ -1598,6 +1632,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       }
       if (body.action === "accept") void refreshSideBetLedger();
       void refreshNotificationCounts();
+      stabilizeViewportAfterLayoutChange();
       return true;
     } catch {
       notify("Side bet action failed.", "error");
@@ -1875,7 +1910,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
     <nav className="primary-nav" aria-label="Main navigation">
       <div className="primary-nav-inner">
-        {primaryNav.map((item) => <button key={item.id} aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><span className={`nav-icon nav-icon-${item.id}`}><item.icon size={19} /><NotificationBadge count={navNotificationCounts[item.id] || 0} className="nav-notification-badge" /></span><span>{item.label}</span></button>)}
+        {primaryNav.map((item) => <button key={item.id} aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "active" : ""} onClick={() => { setTab(item.id); stabilizeViewportAfterLayoutChange(); }}><span className={`nav-icon nav-icon-${item.id}`}><item.icon size={19} /><NotificationBadge count={navNotificationCounts[item.id] || 0} className="nav-notification-badge" /></span><span>{item.label}</span></button>)}
       </div>
     </nav>
 
@@ -2436,7 +2471,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
     <div className={`view-select-row side-bet-filter-row ${view === "new" && weekIsOpen && !weekConcluded ? "make-offer" : ""}`.trim()}>
-      <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "offers", label: "Offers", badge: offerNotificationCount }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => { setSlipExpanded(false); setView(value as BetView); }} />
+      <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "offers", label: "Offers", badge: offerNotificationCount }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => { setSlipExpanded(false); setView(value as BetView); stabilizeViewportAfterLayoutChange(); }} />
       {view === "new" && weekIsOpen && !weekConcluded && <MenuSelect
         ariaLabel="Filter side bet games by league"
         className="compact-select"
