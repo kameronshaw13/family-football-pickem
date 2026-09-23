@@ -164,6 +164,13 @@ export async function POST(req: NextRequest) {
       }
 
       const offeredTeam = body.creatorTeam === game.home_team ? game.away_team : game.home_team;
+      const offeredSpread = -resolvedCreatorSpread;
+      const appOfferedSpread = marketType === "spread"
+        ? normalizeSpreadForSelectedTeam(offeredTeam, game.current_spread_team, game.current_spread)
+        : null;
+      const marketReference = appOfferedSpread != null && Math.abs(offeredSpread - appOfferedSpread) >= 0.001
+        ? ` · Market ${notificationTeamName(offeredTeam, game.league)} ${notificationSpread(appOfferedSpread)}`
+        : "";
       const amount = Math.round(Number(body.amount) * 100) / 100;
       const { data: sideBet, error: insertError } = await supabase.from("side_bets").insert({
         group_id: context.group.id,
@@ -174,7 +181,7 @@ export async function POST(req: NextRequest) {
         creator_team: body.creatorTeam,
         offered_team: offeredTeam,
         creator_spread: resolvedCreatorSpread,
-        offered_spread: -resolvedCreatorSpread,
+        offered_spread: offeredSpread,
         market_type: marketType,
         creator_odds: creatorOdds,
         amount,
@@ -197,7 +204,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-offer:${sideBet.id}`,
           title: `Side bet from ${auth.profile.display_name}`,
-          body: `Risk ${profitForRisk(amount, creatorOdds)} · ${notificationTeamName(offeredTeam, game.league)} ${marketType === "moneyline" ? "ML" : notificationSpread(-resolvedCreatorSpread)} · ${americanOddsText(oppositeAmericanOdds(creatorOdds))}`,
+          body: `Risk ${profitForRisk(amount, creatorOdds)} · ${notificationTeamName(offeredTeam, game.league)} ${marketType === "moneyline" ? "ML" : notificationSpread(offeredSpread)} · ${americanOddsText(oppositeAmericanOdds(creatorOdds))}${marketReference}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_received"),
           actionRequired: true
         }));

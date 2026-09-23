@@ -798,6 +798,18 @@ function sideBetLineText(bet: SideBet, team: string) {
   const spread = bet.market_type === "moneyline" ? null : Number(creatorSide ? bet.creator_spread : bet.offered_spread);
   return sideBetMarketText(bet.market_type, spread, odds);
 }
+
+function sideBetAppMarketReference(bet: SideBet, team: string) {
+  if (bet.market_type === "moneyline" || !bet.game) return null;
+  const offeredSpread = Number(team === bet.creator_team ? bet.creator_spread : bet.offered_spread);
+  const appSpread = normalizeSpreadForSelectedTeam(team, bet.game.current_spread_team, bet.game.current_spread);
+  if (appSpread == null || !Number.isFinite(offeredSpread) || Math.abs(offeredSpread - appSpread) < 0.001) return null;
+  return {
+    team,
+    spread: appSpread,
+    text: `Market: ${displayTeamName(bet.game, team)} ${spreadText(appSpread)}`
+  };
+}
 function pctText(value: number) {
   return `${(Number(value || 0) * 100).toFixed(1)}%`;
 }
@@ -2526,6 +2538,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
           <div><span>You take</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.offered_team)} ${sideBetLineText(confirmingBet, confirmingBet.offered_team)}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.offered_team)} ${sideBetLineText(confirmingBet, confirmingBet.offered_team)}`} /> : <>{confirmingBet.offered_team} <NumericText text={sideBetLineText(confirmingBet, confirmingBet.offered_team)} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.offered_team) : null} name={confirmingBet.offered_team} /></div>
           <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.creator_team)} ${sideBetLineText(confirmingBet, confirmingBet.creator_team)}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.creator_team)} ${sideBetLineText(confirmingBet, confirmingBet.creator_team)}`} /> : <>{confirmingBet.creator_team} <NumericText text={sideBetLineText(confirmingBet, confirmingBet.creator_team)} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.creator_team) : null} name={confirmingBet.creator_team} /></div>
         </div>
+        {sideBetAppMarketReference(confirmingBet, confirmingBet.offered_team) && <p className="confirmation-market-line"><NumericText text={sideBetAppMarketReference(confirmingBet, confirmingBet.offered_team)!.text} /></p>}
         {confirmingBet.game && <p className="confirmation-kickoff"><NumericText text={`${matchupTextVariants(confirmingBet.game).full} · ${openText(confirmingBet.game.commence_time)}`} /></p>}
         <div className="confirmation-actions"><button className="btn secondary" disabled={saving} onClick={() => setConfirmingBetId(null)}>Cancel</button><button className="btn accept" disabled={saving} onClick={acceptConfirmedBet}><Check size={16} /> {saving ? "Accepting…" : "Accept bet"}</button></div>
       </section>
@@ -2597,6 +2610,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   const responseSummary = sideBetResponseSummary(bet, currentUser.id, mode);
   const responseSpread = sideBetLineText(bet, bet.offered_team);
   const amountDisplay = sideBetAmountForUser(bet, currentUser.id);
+  const marketReference = sideBetAppMarketReference(bet, perspectiveTeam);
   const canClearOffer = mode === "received"
     ? target?.response === "declined" || ["cancelled", "expired"].includes(bet.status)
     : ["declined", "cancelled", "expired"].includes(bet.status);
@@ -2606,7 +2620,7 @@ function SideBetCard({ bet, mode, currentUser, saving, working, canAccept, accep
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${hasActionRow ? "has-actions" : ""} ${saving && !working ? "background-busy" : ""}`.trim()}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, perspectiveTeam) : null} name={perspectiveTeam} />
-      <div className="side-bet-offer-copy"><strong><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} /></strong><SideBetResponseLine summary={responseSummary} teamFull={offeredSideName} teamCompact={offeredSideCompact} spread={responseSpread} date={game ? dt(game.commence_time) : undefined} /></div>
+      <div className="side-bet-offer-copy"><strong><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} /></strong>{marketReference && <span className="side-bet-market-reference"><NumericText text={marketReference.text} /></span>}<SideBetResponseLine summary={responseSummary} teamFull={offeredSideName} teamCompact={offeredSideCompact} spread={responseSpread} date={game ? dt(game.commence_time) : undefined} /></div>
       {amountDisplay.settled || amountDisplay.evenPayout
         ? <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
         : <div className="side-bet-offer-amount side-bet-offer-payout" aria-label={`Risk ${amountDisplay.risk} to win ${amountDisplay.win}`}>
