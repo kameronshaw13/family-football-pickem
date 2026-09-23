@@ -767,7 +767,15 @@ function money(value: number) {
   return `${sign}$${absolute.toFixed(Number.isInteger(absolute) ? 0 : 2)}`;
 }
 function stakeMoney(value: number) {
-  return `$${Math.abs(Number(value)).toFixed(Number.isInteger(Number(value)) ? 0 : 2)}`;
+  return `${Math.abs(Number(value)).toFixed(Number.isInteger(Number(value)) ? 0 : 2)}`;
+}
+
+function normalizeRiskInput(value: string) {
+  const cleaned = value.replace(/[^0-9.]/g, "");
+  const [whole = "", ...fractionParts] = cleaned.split(".");
+  const fraction = fractionParts.join("").slice(0, 2);
+  if (!fractionParts.length) return whole;
+  return `${whole || "0"}.${fraction}`;
 }
 function sideBetAmountForUser(bet: SideBet, userId: string) {
   const riskValue = sideBetRiskForUser(bet, userId);
@@ -2341,7 +2349,9 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const creatorSpread = marketType === "moneyline" ? 0 : (parsedCustomSpread != null && Number.isFinite(parsedCustomSpread) ? parsedCustomSpread : defaultCreatorSpread);
   const creatorOdds = Number(oddsInput);
   const offeredOdds = oppositeAmericanOdds(creatorOdds);
-  const creatorRisk = Math.max(0, Number(amount) || 0);
+  const parsedRisk = Number(amount);
+  const riskIsValid = Number.isFinite(parsedRisk) && parsedRisk > 0 && parsedRisk <= maxAmount;
+  const creatorRisk = riskIsValid ? Math.round(parsedRisk * 100) / 100 : 0;
   const creatorWin = validAmericanOdds(creatorOdds) ? profitForRisk(creatorRisk, creatorOdds) : 0;
   const offeredRisk = creatorWin;
   const selectedMarketText = sideBetMarketText(marketType, marketType === "moneyline" ? null : creatorSpread, creatorOdds);
@@ -2544,7 +2554,11 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         <section className="side-bet-slip-section">
           <div className="side-bet-slip-section-head"><span>Risk</span><small>Max <NumericText text={stakeMoney(maxAmount)} /></small></div>
           <div className="side-bet-amount-grid">{amountOptions.map((value) => <button type="button" key={value} className={amount === value ? "active" : ""} aria-pressed={amount === value} onClick={() => setAmount(value)}><NumericText text={`${value}`} /></button>)}</div>
-          {manualAmount && <label className="side-bet-risk-field"><span>Custom risk</span><div><span>$</span><input className="side-bet-risk-input" type="number" min="1" max={maxAmount} step="1" value={amount} onChange={(event) => setAmount(event.target.value)} /></div></label>}
+          {manualAmount && <label className="side-bet-risk-field"><span>Custom risk</span><div><span>$</span><input className="side-bet-risk-input" type="text" inputMode="decimal" autoComplete="off" value={amount} onChange={(event) => setAmount(normalizeRiskInput(event.target.value))} onBlur={() => {
+            const value = Number(amount);
+            if (Number.isFinite(value) && value > 0) setAmount(String(Math.min(maxAmount, Math.round(value * 100) / 100)));
+          }} /></div></label>}
+          {manualAmount && amount !== "" && !riskIsValid && <p className="side-bet-field-error">Enter a risk amount from $0.01 to <NumericText text={stakeMoney(maxAmount)} />.</p>}
           {!evenPayout && <div className="side-bet-payout-preview">
             <span>You risk <strong><NumericText text={stakeMoney(creatorRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorWin)} /></strong></span>
             <span>They risk <strong><NumericText text={stakeMoney(offeredRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorRisk)} /></strong></span>
@@ -2563,7 +2577,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
           <div><span>You keep</span><strong><ResponsiveText full={`${displayTeamName(selectedGame, selectedCreatorTeam)} ${selectedMarketText}`} compact={`${abbreviatedTeamName(selectedGame, selectedCreatorTeam)} ${selectedMarketText}`} /></strong></div>
           <div><span>They get</span><strong><ResponsiveText full={`${displayTeamName(selectedGame, offeredTeam)} ${offeredMarketText}`} compact={`${abbreviatedTeamName(selectedGame, offeredTeam)} ${offeredMarketText}`} /></strong></div>
         </div>
-        <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || Number(amount) <= 0 || Number(amount) > maxAmount || !recipients.length || !validAmericanOdds(creatorOdds) || (marketType === "spread" && creatorSpread == null)} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
+        <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || !riskIsValid || !recipients.length || !validAmericanOdds(creatorOdds) || (marketType === "spread" && creatorSpread == null)} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
         </div>
       </section>}
 
