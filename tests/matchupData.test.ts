@@ -13,12 +13,14 @@ test("CSV preserves quoted commas, escaped quotes, multiline cells and zero valu
 test("advanced data never uses a future week and still returns an early sample", () => {
   const rows = [
     { team_id: "333.0", team: "Alabama", through_week: "4", valid_games: "4", net_adj_epa: ".2", net_adj_epa_rank: "2" },
-    { team_id: "333.0", team: "Alabama", through_week: "3", valid_games: "2", net_adj_epa: ".1", net_adj_epa_rank: "5" }
+    { team_id: "333.0", team: "Alabama", through_week: "3", valid_games: "2", net_adj_epa: ".1", net_adj_epa_rank: "5", EPAdrive_off: "1.42", EPAdrive_off_rank: "8", available_yards_pct_off: ".61", available_yards_pct_off_rank: "6" }
   ];
   const row = exactWeeklySummaryRow(rows, "333", "Alabama", 3);
   assert.equal(row?.through_week, "3");
   assert.equal(normalizeRelative(row)?.overallRank, 5);
   assert.equal(normalizeRelative(row)?.limitedSample, true);
+  assert.equal(normalizeRelative(row)?.offense.epaPerDrive, 1.42);
+  assert.equal(normalizeRelative(row)?.offense.availableYardsRate, 0.61);
   assert.equal(normalizeRelative(rows[0])?.overallRank, 2);
   assert.equal(normalizeRelative(rows[0])?.limitedSample, false);
   assert.equal(exactWeeklySummaryRow(rows, "333", "Alabama", 2), null);

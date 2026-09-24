@@ -19,9 +19,11 @@ const getHistory = createAsyncCache<MatchupHistory>(15 * 60_000, 24);
 const signed = (value: number, digits = 1) => `${value > 0 ? "+" : ""}${value.toFixed(digits)}`;
 const metrics: Array<{ label: string; detail: string; basis: MetricBasis; value: keyof Unit; rank: keyof Unit; format: (value: number) => string }> = [
   { label: "Play efficiency", detail: "EPA / play", basis: "adjusted", value: "adjustedEpa", rank: "adjustedEpaRank", format: value => signed(value, 3) },
-  { label: "Consistency", detail: "Success rate", basis: "raw", value: "successRate", rank: "successRateRank", format: value => `${(value * 100).toFixed(1)}%` },
+  { label: "Drive efficiency", detail: "EPA / drive", basis: "raw", value: "epaPerDrive", rank: "epaPerDriveRank", format: value => signed(value, 2) },
+  { label: "Field-position value", detail: "Available yards gained", basis: "raw", value: "availableYardsRate", rank: "availableYardsRateRank", format: value => `${(value * 100).toFixed(1)}%` },
+  { label: "Early downs", detail: "EPA / play on 1st & 2nd", basis: "raw", value: "earlyDownEpa", rank: "earlyDownEpaRank", format: value => signed(value, 3) },
+  { label: "Consistency", detail: "Successful-play rate", basis: "raw", value: "successRate", rank: "successRateRank", format: value => `${(value * 100).toFixed(1)}%` },
   { label: "Big plays", detail: "Explosive-play rate", basis: "raw", value: "explosivePlayRate", rank: "explosivePlayRank", format: value => `${(value * 100).toFixed(1)}%` },
-  { label: "The trenches", detail: "Line yards / carry", basis: "raw", value: "lineYards", rank: "lineYardsRank", format: value => value.toFixed(2) },
   { label: "Third downs", detail: "Success rate", basis: "raw", value: "thirdDownRate", rank: "thirdDownRank", format: value => `${(value * 100).toFixed(1)}%` }
 ];
 
@@ -99,7 +101,8 @@ function Matchup({ payload }: { payload: MatchupPayload }) {
       <summary>How to read these numbers</summary>
       <p>Ranks compare each unit with FBS offenses or defenses. Blue marks the better national rank; it is a comparison, not a predicted winner. The smaller number is the underlying stat. Defensive values describe what opponents gain.</p>
       <p><strong>Opponent-adjusted</strong> numbers account for schedule strength. <strong>Raw</strong> numbers are the team’s observed rate without an opponent adjustment. <strong>Predictive model</strong> identifies ESPN FPI rather than a directly observed stat.</p>
-      <p>EPA measures how a play changes expected points. Success rate measures how often a play succeeds; explosive rate captures big plays. Line yards estimates the rushing contribution near the line of scrimmage. Third-down success measures performance on third downs.</p>
+      <p>EPA measures how a play changes expected points. EPA per drive is the possession-based counterpart to points per drive without being distorted by defensive or special-teams scoring. Available-yards rate accounts for where each drive started. Early-down EPA shows how efficiently a team stays ahead of the chains.</p>
+      <p>Success rate measures how often a play succeeds; explosive rate captures big plays, and third-down success measures performance in conversion situations. The weekly play-by-play rates exclude garbage time.</p>
       <p>Weekly advanced data: SportsDataverse. Power rating: ESPN FPI. Only snapshots published for weeks before this matchup are used.</p>
     </details>
   </div>;
