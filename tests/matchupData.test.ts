@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseCsv, exactWeeklySummaryRow, normalizeRelative, latestWeeklyRow, normalizePower, summarizeLocalAts, localGamesForTeam, type LocalGame } from "../lib/cfbMatchupData.ts";
 import { createAsyncCache } from "../lib/asyncCache.ts";
-import { ordinalDay, formatOrdinalDate } from "../lib/displayDates.ts";
+import { ordinalDay, formatOrdinalDate, formatUppercaseOrdinalDate } from "../lib/displayDates.ts";
 
 test("CSV preserves quoted commas, escaped quotes, multiline cells and zero values", () => {
   assert.deepEqual(parseCsv('team,note,rank\r\n"Miami, FL","a ""quote""\nnext line",0\r\n'), [
@@ -10,15 +10,17 @@ test("CSV preserves quoted commas, escaped quotes, multiline cells and zero valu
   ]);
   assert.deepEqual(parseCsv("a,b\n1,2", header => header === "b"), [{ b: "2" }]);
 });
-test("advanced data never uses a future week and requires three valid games", () => {
+test("advanced data never uses a future week and still returns an early sample", () => {
   const rows = [
     { team_id: "333.0", team: "Alabama", through_week: "4", valid_games: "4", net_adj_epa: ".2", net_adj_epa_rank: "2" },
     { team_id: "333.0", team: "Alabama", through_week: "3", valid_games: "2", net_adj_epa: ".1", net_adj_epa_rank: "5" }
   ];
   const row = exactWeeklySummaryRow(rows, "333", "Alabama", 3);
   assert.equal(row?.through_week, "3");
-  assert.equal(normalizeRelative(row)?.overallRank, null);
+  assert.equal(normalizeRelative(row)?.overallRank, 5);
+  assert.equal(normalizeRelative(row)?.limitedSample, true);
   assert.equal(normalizeRelative(rows[0])?.overallRank, 2);
+  assert.equal(normalizeRelative(rows[0])?.limitedSample, false);
   assert.equal(exactWeeklySummaryRow(rows, "333", "Alabama", 2), null);
 });
 test("FPI carries its own snapshot week rather than the advanced-data week", () => {
@@ -58,4 +60,5 @@ test("ordinal dates handle teens and the Central Time day boundary", () => {
   assert.deepEqual([1, 2, 3, 11, 12, 13, 21, 22, 23, 25, 31].map(ordinalDay), ["1st", "2nd", "3rd", "11th", "12th", "13th", "21st", "22nd", "23rd", "25th", "31st"]);
   const formatter = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "America/Chicago" });
   assert.equal(formatOrdinalDate(formatter, new Date("2026-09-26T02:00:00Z")), "September 25th");
+  assert.equal(formatUppercaseOrdinalDate(formatter, new Date("2026-09-24T18:00:00Z")), "SEPTEMBER 24th");
 });

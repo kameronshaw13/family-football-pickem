@@ -1,6 +1,6 @@
 "use client";
 
-import { formatOrdinalDate } from "@/lib/displayDates";
+import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
 import NextImage from "next/image";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
@@ -394,7 +394,7 @@ function gameDayKey(iso: string) {
   return CENTRAL_DAY_KEY_FORMATTER.format(new Date(iso));
 }
 function gameDayLabel(iso: string) {
-  return formatOrdinalDate(CENTRAL_DAY_LABEL_FORMATTER, new Date(iso)).toUpperCase();
+  return formatUppercaseOrdinalDate(CENTRAL_DAY_LABEL_FORMATTER, new Date(iso));
 }
 function gameDayShort(iso: string) {
   return CENTRAL_WEEKDAY_LONG_FORMATTER.format(new Date(iso)).toUpperCase();

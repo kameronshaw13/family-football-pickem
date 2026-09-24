@@ -108,14 +108,13 @@ export function exactWeeklySummaryRow(rows: SportsDataRow[], teamId: string | nu
 export function normalizeRelative(summaryRow: SportsDataRow | null) {
   if (!summaryRow) return null;
   const validGames = rowNumber(summaryRow, "valid_games");
-  const enoughSample = validGames != null && validGames >= 3;
-  const value = (key: string) => enoughSample ? rowNumber(summaryRow, key) : null;
-  const rank = (key: string) => enoughSample ? rowNumber(summaryRow, key) : null;
+  const value = (key: string) => rowNumber(summaryRow, key);
+  const rank = (key: string) => rowNumber(summaryRow, key);
   return {
     source: "sportsdataverse-team-summaries-weekly",
     throughWeek: rowNumber(summaryRow, "through_week"),
     validGames,
-    enoughSample,
+    limitedSample: validGames != null && validGames < 3,
     overallValue: value("net_adj_epa"),
     overallRank: rank("net_adj_epa_rank"),
     offense: {

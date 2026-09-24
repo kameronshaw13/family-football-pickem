@@ -13,15 +13,16 @@ import { teamDisplayName } from "@/lib/teamNames";
 
 type Tab = "matchup" | "form" | "history";
 type Unit = NonNullable<MatchupTeam["relative"]>["offense"];
+type MetricBasis = "raw" | "adjusted" | "model";
 const getPreview = createAsyncCache<MatchupPayload>(5 * 60_000, 24);
 const getHistory = createAsyncCache<MatchupHistory>(15 * 60_000, 24);
 const signed = (value: number, digits = 1) => `${value > 0 ? "+" : ""}${value.toFixed(digits)}`;
-const metrics: Array<{ label: string; detail: string; value: keyof Unit; rank: keyof Unit; format: (value: number) => string }> = [
-  { label: "Play efficiency", detail: "Adjusted EPA / play", value: "adjustedEpa", rank: "adjustedEpaRank", format: value => signed(value, 3) },
-  { label: "Consistency", detail: "Success rate", value: "successRate", rank: "successRateRank", format: value => `${(value * 100).toFixed(1)}%` },
-  { label: "Big plays", detail: "Explosive-play rate", value: "explosivePlayRate", rank: "explosivePlayRank", format: value => `${(value * 100).toFixed(1)}%` },
-  { label: "The trenches", detail: "Line yards / carry", value: "lineYards", rank: "lineYardsRank", format: value => value.toFixed(2) },
-  { label: "Third downs", detail: "Success rate", value: "thirdDownRate", rank: "thirdDownRank", format: value => `${(value * 100).toFixed(1)}%` }
+const metrics: Array<{ label: string; detail: string; basis: MetricBasis; value: keyof Unit; rank: keyof Unit; format: (value: number) => string }> = [
+  { label: "Play efficiency", detail: "EPA / play", basis: "adjusted", value: "adjustedEpa", rank: "adjustedEpaRank", format: value => signed(value, 3) },
+  { label: "Consistency", detail: "Success rate", basis: "raw", value: "successRate", rank: "successRateRank", format: value => `${(value * 100).toFixed(1)}%` },
+  { label: "Big plays", detail: "Explosive-play rate", basis: "raw", value: "explosivePlayRate", rank: "explosivePlayRank", format: value => `${(value * 100).toFixed(1)}%` },
+  { label: "The trenches", detail: "Line yards / carry", basis: "raw", value: "lineYards", rank: "lineYardsRank", format: value => value.toFixed(2) },
+  { label: "Third downs", detail: "Success rate", basis: "raw", value: "thirdDownRate", rank: "thirdDownRank", format: value => `${(value * 100).toFixed(1)}%` }
 ];
 
 async function requestData<T>(gameId: string, section: string, token: string): Promise<T> {
@@ -46,6 +47,15 @@ function RankValue({ value, rank, format, edge = false }: { value?: number | nul
   </div>;
 }
 
+function BasisTag({ basis }: { basis: MetricBasis }) {
+  const label = basis === "adjusted" ? "Opponent-adjusted" : basis === "model" ? "Predictive model" : "Raw";
+  return <span className={`matchup-basis matchup-basis-${basis}`}>{label}</span>;
+}
+
+function MetricLabel({ label, detail, basis }: { label: string; detail: string; basis: MetricBasis }) {
+  return <span className="matchup-metric-label"><strong>{label}</strong><span className="matchup-metric-meta"><small>{detail}</small><BasisTag basis={basis} /></span></span>;
+}
+
 function Comparison({ away, home, possession }: { away: MatchupTeam; home: MatchupTeam; possession: "away" | "home" }) {
   const offense = possession === "away" ? away : home;
   const left = possession === "away" ? away.relative?.offense : away.relative?.defense;
@@ -59,7 +69,7 @@ function Comparison({ away, home, possession }: { away: MatchupTeam; home: Match
       const comparable = sameSnapshot && l != null && r != null;
       return <div className="matchup-metric-row" key={metric.value}>
         <RankValue value={left?.[metric.value]} rank={l} format={metric.format} edge={comparable && l < r} />
-        <span className="matchup-metric-label"><strong>{metric.label}</strong><small>{metric.detail}</small></span>
+        <MetricLabel label={metric.label} detail={metric.detail} basis={metric.basis} />
         <RankValue value={right?.[metric.value]} rank={r} format={metric.format} edge={comparable && r < l} />
       </div>;
     })}
@@ -68,25 +78,28 @@ function Comparison({ away, home, possession }: { away: MatchupTeam; home: Match
 
 function Matchup({ payload }: { payload: MatchupPayload }) {
   const { away, home } = payload.teams;
-  const ready = away.relative?.enoughSample && home.relative?.enoughSample;
   const fpiWeek = away.power?.throughWeek === home.power?.throughWeek ? away.power?.throughWeek : null;
-  const pendingTeams = [away, home].filter(team => !team.relative?.enoughSample).map(team =>
-    team.relative ? `${team.name}: ${team.relative.validGames ?? 0} valid FBS games` : `${team.name}: snapshot pending`);
+  const sampleNotes = [away, home].flatMap(team => {
+    if (!team.relative) return [`${team.name}: advanced snapshot pending`];
+    if (team.relative.limitedSample) return [`${team.name}: early sample (${team.relative.validGames ?? 0} FBS ${team.relative.validGames === 1 ? "game" : "games"})`];
+    return [];
+  });
   return <div className="matchup-tab-body">
-    <div className="matchup-freshness"><span>Advanced stats through Week {payload.throughWeek}</span><span>#1 is best</span></div>
+    <div className="matchup-freshness"><span>Advanced stats through Week {payload.throughWeek}</span><strong>#1 is best</strong></div>
     <section className="matchup-strength">
       <div className="matchup-section-heading"><span className="matchup-eyebrow">THE BIG PICTURE</span><h3>Team strength</h3></div>
       <div className="matchup-column-heads"><span>{away.name}</span><span>FBS RANK</span><span>{home.name}</span></div>
-      <div className="matchup-metric-row"><RankValue value={away.relative?.overallValue} rank={away.relative?.overallRank} format={v => signed(v, 3)} /><span className="matchup-metric-label"><strong>Overall efficiency</strong><small>Opponent-adjusted net EPA</small></span><RankValue value={home.relative?.overallValue} rank={home.relative?.overallRank} format={v => signed(v, 3)} /></div>
-      <div className="matchup-metric-row"><RankValue value={away.power?.fpi} rank={away.power?.fpiRank} format={signed} /><span className="matchup-metric-label"><strong>Power rating</strong><small>ESPN FPI{fpiWeek != null ? ` · Week ${fpiWeek}` : ""}</small></span><RankValue value={home.power?.fpi} rank={home.power?.fpiRank} format={signed} /></div>
+      <div className="matchup-metric-row"><RankValue value={away.relative?.overallValue} rank={away.relative?.overallRank} format={v => signed(v, 3)} /><MetricLabel label="Overall efficiency" detail="Net EPA" basis="adjusted" /><RankValue value={home.relative?.overallValue} rank={home.relative?.overallRank} format={v => signed(v, 3)} /></div>
+      <div className="matchup-metric-row"><RankValue value={away.power?.fpi} rank={away.power?.fpiRank} format={signed} /><MetricLabel label="Power rating" detail={`ESPN FPI${fpiWeek != null ? ` · Week ${fpiWeek}` : ""}`} basis="model" /><RankValue value={home.power?.fpi} rank={home.power?.fpiRank} format={signed} /></div>
     </section>
-    {!ready && <p className="matchup-data-note">{pendingTeams.join(" · ")}. Rankings appear after three valid FBS games and a published weekly snapshot.</p>}
+    {sampleNotes.length > 0 && <p className="matchup-data-note"><strong>Sample note:</strong> {sampleNotes.join(" · ")}. Published values are shown, but early-season numbers can move quickly.</p>}
     <Comparison away={away} home={home} possession="away" />
     <Comparison away={away} home={home} possession="home" />
     <details className="matchup-guide">
       <summary>How to read these numbers</summary>
       <p>Ranks compare each unit with FBS offenses or defenses. Blue marks the better national rank; it is a comparison, not a predicted winner. The smaller number is the underlying stat. Defensive values describe what opponents gain.</p>
-      <p>EPA measures how a play changes expected points. Adjusted EPA accounts for opponent strength. Success rate measures how often a play succeeds; explosive rate captures big plays. Line yards estimates the rushing contribution near the line of scrimmage. Third-down success measures performance on third downs.</p>
+      <p><strong>Opponent-adjusted</strong> numbers account for schedule strength. <strong>Raw</strong> numbers are the team’s observed rate without an opponent adjustment. <strong>Predictive model</strong> identifies ESPN FPI rather than a directly observed stat.</p>
+      <p>EPA measures how a play changes expected points. Success rate measures how often a play succeeds; explosive rate captures big plays. Line yards estimates the rushing contribution near the line of scrimmage. Third-down success measures performance on third downs.</p>
       <p>Weekly advanced data: SportsDataverse. Power rating: ESPN FPI. Only snapshots published for weeks before this matchup are used.</p>
     </details>
   </div>;
