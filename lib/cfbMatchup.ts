@@ -27,7 +27,7 @@ async function fetchCsv(dataset: string, season: number) {
     // Discard unused columns before retaining season data in memory.
     return parseCsv(await response.text(), (key) =>
       ["team", "pos_team", "team_id", "through_week", "valid_games", "week", "snapshot_out_of_sequence", "fpi", "rank"].includes(key) ||
-      /^(net_adj_epa|adj_off_epa|adj_def_epa|EPAplay_|EPAdrive_|early_down_EPA_|available_yards_pct_|success_|explosive_|yardsplay_|line_yards_|third_down_success_|red_zone_success_)/.test(key));
+      /^(net_adj_epa|adj_off_epa|adj_def_epa|EPAplay_|EPAdrive_|early_down_EPA_|late_down_success_|available_yards_pct_|success_|explosive_|yardsplay_|line_yards_|third_down_success_|red_zone_success_)/.test(key));
   });
 }
 
