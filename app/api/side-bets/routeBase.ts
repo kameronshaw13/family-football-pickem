@@ -42,6 +42,20 @@ function notificationMarketText(team: string, league: string | null | undefined,
   return `${notificationTeamName(team, league)} ${line}${oddsText}`;
 }
 
+function notificationMoney(value: number) {
+  const rounded = Math.round(Number(value) * 100) / 100;
+  return `${rounded.toLocaleString("en-US", {
+    minimumFractionDigits: Number.isInteger(rounded) ? 0 : 2,
+    maximumFractionDigits: 2
+  })}`;
+}
+
+function notificationStakeText(risk: number, win: number) {
+  return Math.abs(risk - win) < 0.005
+    ? notificationMoney(risk)
+    : `Risk ${notificationMoney(risk)} to win ${notificationMoney(win)}`;
+}
+
 function groupNotificationUrl(slug: string, destination: string) {
   const base = slug === "friends" ? "/friends" : slug === "other-family" ? "/caleb-family" : "/";
   return `${base}?notification=${encodeURIComponent(destination)}`;
@@ -211,7 +225,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-offer:${sideBet.id}`,
           title: `Side bet from ${auth.profile.display_name}`,
-          body: `Risk ${profitForRisk(amount, creatorOdds)} · ${notificationMarketText(offeredTeam, game.league, marketType, offeredSpread, oppositeAmericanOdds(creatorOdds))}${marketReference}`,
+          body: `${notificationStakeText(profitForRisk(amount, creatorOdds), amount)} · ${notificationMarketText(offeredTeam, game.league, marketType, offeredSpread, oppositeAmericanOdds(creatorOdds))}${marketReference}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_received"),
           actionRequired: true
         }));
@@ -335,7 +349,7 @@ export async function POST(req: NextRequest) {
         entityId: sideBet.id,
         dedupeKey: `side-bet-accepted:${sideBet.id}`,
         title: `${auth.profile.display_name} accepted your side bet`,
-        body: `Risk ${Number(sideBet.amount)} to win ${profitForRisk(Number(sideBet.amount), Number(sideBet.creator_odds ?? 100))} · ${notificationMarketText(sideBet.creator_team, sideBet.game?.league, sideBet.market_type === "moneyline" ? "moneyline" : "spread", Number(sideBet.creator_spread), Number(sideBet.creator_odds ?? 100))}`,
+        body: `${notificationStakeText(Number(sideBet.amount), profitForRisk(Number(sideBet.amount), Number(sideBet.creator_odds ?? 100)))} · ${notificationMarketText(sideBet.creator_team, sideBet.game?.league, sideBet.market_type === "moneyline" ? "moneyline" : "spread", Number(sideBet.creator_spread), Number(sideBet.creator_odds ?? 100))}`,
         url: groupNotificationUrl(context.group.slug, "side_bets_sent")
       });
     const nextSnapshot = await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week);
