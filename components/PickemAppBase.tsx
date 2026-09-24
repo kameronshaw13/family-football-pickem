@@ -1964,6 +1964,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           </div>
         </>}
         {picksView === "sideBets" && <SideBetCenter
+          appSlug={appSlug}
           view={betView}
           setView={setBetView}
           currentUser={currentUser}
@@ -2316,7 +2317,8 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
+function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
+  appSlug: AppSlug;
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
@@ -2392,6 +2394,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
     .filter((profile) => !Number.isFinite(weeklyLimit) || (slotCounts[profile.id] || 0) < weeklyLimit)
     .map((profile) => profile.id);
   const allRecipientsSelected = availableRecipientIds.length > 0 && availableRecipientIds.every((id) => recipients.includes(id));
+  const recipientGridColumns = appSlug === "friends" ? 4 : appSlug === "shaw-family" ? 3 : 2;
   const limitReached = Number.isFinite(weeklyLimit) && slotCount >= weeklyLimit;
   const filteredOpenGames = openGames
     .filter((game) => game.league === gameLeague && (gameLeague === "NFL" || gameConference === "ALL" || gameConferences(game).includes(gameConference)))
@@ -2610,7 +2613,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
         <section className="side-bet-slip-section">
           <div className="side-bet-slip-section-head"><span>Send to</span></div>
-          <fieldset aria-label="Send side bet to"><div className="side-bet-recipient-grid">
+          <fieldset aria-label="Send side bet to"><div className="side-bet-recipient-grid" style={{ gridTemplateColumns: `repeat(${recipientGridColumns}, minmax(0, 1fr))` }}>
             <label className={`${allRecipientsSelected ? "checked" : ""} ${availableRecipientIds.length === 0 ? "disabled" : ""}`.trim()}><input type="checkbox" disabled={availableRecipientIds.length === 0} checked={allRecipientsSelected} onChange={() => setRecipients(allRecipientsSelected ? [] : availableRecipientIds)} /><span>All</span><small>{availableRecipientIds.length === 0 ? "Unavailable" : allRecipientsSelected ? "Selected" : "Everyone"}</small></label>
             {otherPlayers.map((profile) => {
               const recipientFull = Number.isFinite(weeklyLimit) && (slotCounts[profile.id] || 0) >= weeklyLimit;
