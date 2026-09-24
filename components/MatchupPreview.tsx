@@ -40,11 +40,18 @@ function Logo({ src, size = 40 }: { src?: string | null; size?: number }) {
   return src ? <Image unoptimized src={src} alt="" width={size} height={size} /> : <span className="matchup-logo-fallback" />;
 }
 
-function RankValue({ value, rank, format, edge = false }: { value?: number | null; rank?: number | null; format: (value: number) => string; edge?: boolean }) {
+function rankTone(rank?: number | null) {
+  if (rank == null || !Number.isFinite(rank)) return "";
+  if (rank <= 25) return " rank-good";
+  if (rank <= 75) return " rank-average";
+  return " rank-bad";
+}
+
+function RankValue({ value, rank, format }: { value?: number | null; rank?: number | null; format: (value: number) => string }) {
   const available = value != null && Number.isFinite(value);
-  return <div className={`matchup-rank-value${edge ? " has-edge" : ""}`}>
+  return <div className="matchup-rank-value">
     <strong>{available ? format(value) : "—"}</strong>
-    {available && rank != null && <small>#{Math.round(rank)}</small>}
+    {available && rank != null && <small className={rankTone(rank)}>#{Math.round(rank)}</small>}
   </div>;
 }
 
@@ -52,46 +59,42 @@ function MetricLabel({ label }: { label: string }) {
   return <span className="matchup-metric-label"><strong>{label}</strong></span>;
 }
 
-function Comparison({ away, home, possession }: { away: MatchupTeam; home: MatchupTeam; possession: "away" | "home" }) {
-  const offense = possession === "away" ? away : home;
-  const defense = possession === "away" ? home : away;
+function Comparison({ away, home, awayLogo, homeLogo, possession }: { away: MatchupTeam; home: MatchupTeam; awayLogo?: string | null; homeLogo?: string | null; possession: "away" | "home" }) {
   const left = possession === "away" ? away.relative?.offense : away.relative?.defense;
   const right = possession === "home" ? home.relative?.offense : home.relative?.defense;
-  const sameSnapshot = away.relative?.throughWeek === home.relative?.throughWeek;
+  const leftRole = possession === "away" ? "OFFENSE" : "DEFENSE";
+  const rightRole = possession === "home" ? "OFFENSE" : "DEFENSE";
   return <section className="matchup-comparison-block">
-    <div className="matchup-section-heading"><h3>{offense.name} offense vs {defense.name} defense</h3></div>
-    <div className="matchup-column-heads"><span>{away.name}<small>{possession === "away" ? "OFF" : "DEF"}</small></span><span>STAT</span><span>{home.name}<small>{possession === "home" ? "OFF" : "DEF"}</small></span></div>
-    {metrics.map(metric => {
-      const l = left?.[metric.rank], r = right?.[metric.rank];
-      const comparable = sameSnapshot && l != null && r != null;
-      return <div className="matchup-metric-row" key={metric.value}>
-        <RankValue value={left?.[metric.value]} rank={l} format={metric.format} edge={comparable && l < r} />
-        <MetricLabel label={metric.label} />
-        <RankValue value={right?.[metric.value]} rank={r} format={metric.format} edge={comparable && r < l} />
-      </div>;
-    })}
+    <div className="matchup-column-heads matchup-role-heads">
+      <span className="matchup-role-side matchup-role-left"><Logo src={awayLogo} size={22} /><strong>{leftRole}</strong></span>
+      <span>STAT</span>
+      <span className="matchup-role-side matchup-role-right"><strong>{rightRole}</strong><Logo src={homeLogo} size={22} /></span>
+    </div>
+    {metrics.map(metric => <div className="matchup-metric-row" key={metric.value}>
+      <RankValue value={left?.[metric.value]} rank={left?.[metric.rank]} format={metric.format} />
+      <MetricLabel label={metric.label} />
+      <RankValue value={right?.[metric.value]} rank={right?.[metric.rank]} format={metric.format} />
+    </div>)}
   </section>;
 }
 
-function Matchup({ payload }: { payload: MatchupPayload }) {
+function Matchup({ payload, awayLogo, homeLogo }: { payload: MatchupPayload; awayLogo?: string | null; homeLogo?: string | null }) {
   const { away, home } = payload.teams;
-  const fpiWeek = away.power?.throughWeek === home.power?.throughWeek ? away.power?.throughWeek : null;
   const sampleNotes = [away, home].flatMap(team => {
     if (!team.relative) return [`${team.name}: advanced snapshot pending`];
     if (team.relative.limitedSample) return [`${team.name}: early sample (${team.relative.validGames ?? 0} FBS ${team.relative.validGames === 1 ? "game" : "games"})`];
     return [];
   });
   return <div className="matchup-tab-body">
-    <div className="matchup-freshness"><span>Through Week {payload.throughWeek}</span><strong>#1 = best</strong></div>
     <section className="matchup-strength">
       <div className="matchup-section-heading"><h3>Team strength</h3></div>
       <div className="matchup-column-heads"><span>{away.name}</span><span>STAT</span><span>{home.name}</span></div>
       <div className="matchup-metric-row"><RankValue value={away.relative?.overallValue} rank={away.relative?.overallRank} format={v => signed(v, 3)} /><MetricLabel label="Adj. net EPA" /><RankValue value={home.relative?.overallValue} rank={home.relative?.overallRank} format={v => signed(v, 3)} /></div>
-      <div className="matchup-metric-row"><RankValue value={away.power?.fpi} rank={away.power?.fpiRank} format={signed} /><MetricLabel label={`ESPN FPI${fpiWeek != null ? ` · W${fpiWeek}` : ""}`} /><RankValue value={home.power?.fpi} rank={home.power?.fpiRank} format={signed} /></div>
+      <div className="matchup-metric-row"><RankValue value={away.power?.fpi} rank={away.power?.fpiRank} format={signed} /><MetricLabel label="ESPN FPI" /><RankValue value={home.power?.fpi} rank={home.power?.fpiRank} format={signed} /></div>
     </section>
     {sampleNotes.length > 0 && <p className="matchup-data-note"><strong>Limited sample:</strong> {sampleNotes.join(" · ")}.</p>}
-    <Comparison away={away} home={home} possession="away" />
-    <Comparison away={away} home={home} possession="home" />
+    <Comparison away={away} home={home} awayLogo={awayLogo} homeLogo={homeLogo} possession="away" />
+    <Comparison away={away} home={home} awayLogo={awayLogo} homeLogo={homeLogo} possession="home" />
   </div>;
 }
 
@@ -100,11 +103,10 @@ function FormTeam({ team, logo }: { team: MatchupTeam; logo?: string | null }) {
   return <section className="matchup-form-team">
     <div className="matchup-form-heading"><Logo src={logo} size={30} /><h3>{team.name}</h3></div>
     <div className="matchup-form-stats"><div><small>RECORD</small><strong>{team.resultsAvailable ? `${team.record.wins}–${team.record.losses}` : "—"}</strong></div><div><small>AVG. MARGIN</small><strong>{team.scoring.margin == null ? "—" : signed(team.scoring.margin)}</strong></div><div><small>ATS</small><strong>{count ? `${team.ats.wins}–${team.ats.losses}–${team.ats.pushes}` : "—"}</strong></div></div>
-    <h4>Last five</h4>
-    {team.recent.length ? team.recent.slice(0, 5).map(row => <div className="matchup-result-row" key={row.id}><span className={row.result === "W" ? "matchup-result-win" : "matchup-result-loss"}>{row.result}</span><div><strong>{row.home ? "vs" : "at"} {teamDisplayName("CFB", row.opponent)}</strong><small>Week {row.week}</small></div><strong>{row.teamPoints}–{row.opponentPoints}</strong></div>) : <p className="matchup-empty-copy">No completed results available.</p>}
-    <h4>ATS</h4>
-    <p className="matchup-form-note">{count ? `Avg. cover margin ${signed(team.ats.avgCoverMargin!)}` : "No graded spreads."}</p>
-    {team.ats.recent.map(row => <div className="matchup-result-row" key={row.id}><span className={row.result === "W" ? "matchup-result-win" : row.result === "L" ? "matchup-result-loss" : "matchup-result-push"}>{row.result}</span><div><strong>{row.home ? "vs" : "at"} {teamDisplayName("CFB", row.opponent)} {spreadText(row.spread)}</strong><small>Week {row.week} · Cover margin {signed(row.coverMargin)}</small></div><strong>{row.teamPoints}–{row.opponentPoints}</strong></div>)}
+    <h4>Season Results</h4>
+    {team.recent.length ? team.recent.map(row => <div className="matchup-result-row" key={row.id}><span className={row.result === "W" ? "matchup-result-win" : "matchup-result-loss"}>{row.result}</span><div><strong>{row.home ? "vs" : "at"} {teamDisplayName("CFB", row.opponent)}</strong><small>Week {row.week}</small></div><strong>{row.teamPoints}–{row.opponentPoints}</strong></div>) : <p className="matchup-empty-copy">No completed results available.</p>}
+    <h4>Against the Spread</h4>
+    {team.ats.recent.length ? team.ats.recent.map(row => <div className="matchup-result-row" key={row.id}><span className={row.result === "W" ? "matchup-result-win" : row.result === "L" ? "matchup-result-loss" : "matchup-result-push"}>{row.result}</span><div><strong>{row.home ? "vs" : "at"} {teamDisplayName("CFB", row.opponent)} {spreadText(row.spread)}</strong><small>Week {row.week} · Cover margin {signed(row.coverMargin)}</small></div><strong>{row.teamPoints}–{row.opponentPoints}</strong></div>) : <p className="matchup-empty-copy">No graded spreads.</p>}
   </section>;
 }
 
@@ -194,7 +196,7 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
       <div className="matchup-preview-scroll">
         {error && <div className="matchup-empty-copy" role="alert"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
         {!payload && !error && <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading matchup…</span></div>}
-        {payload && tab === "matchup" && <Matchup payload={payload} />}
+        {payload && tab === "matchup" && <Matchup payload={payload} awayLogo={game.away_logo_url} homeLogo={game.home_logo_url} />}
         {payload && tab === "form" && <div className="matchup-tab-body"><div className="matchup-split-lists"><FormTeam team={payload.teams.away} logo={game.away_logo_url} /><FormTeam team={payload.teams.home} logo={game.home_logo_url} /></div></div>}
         {payload && tab === "history" && (history ? <History history={history} away={away} home={home} /> : historyError ? <div className="matchup-empty-copy" role="alert"><p>{historyError}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div> : <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading history…</span></div>)}
       </div>
