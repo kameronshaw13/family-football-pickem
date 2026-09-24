@@ -1991,6 +1991,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           setGameConference={(nextConference) => { setBetConferenceFilter(nextConference); setBetGameId(""); setBetCreatorTeam(""); }}
           setCreatorTeam={setBetCreatorTeam}
           setAmount={setBetAmount}
+          setRecipients={setBetRecipients}
           toggleRecipient={toggleBetRecipient}
           createBet={createSideBet}
           respond={(action, sideBetId) => postSideBet({ action, sideBetId })}
@@ -2315,7 +2316,7 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   </div>;
 }
 
-function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, toggleRecipient, createBet, respond, openPreview }: {
+function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
@@ -2343,6 +2344,7 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   setGameConference: (value: string) => void;
   setCreatorTeam: (value: string) => void;
   setAmount: (value: string) => void;
+  setRecipients: (value: string[]) => void;
   toggleRecipient: (value: string) => void;
   createBet: (options: { marketType: SideBetMarketType; creatorSpread: number; creatorOdds: number; amount: number }) => Promise<boolean>;
   respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean>;
@@ -2386,6 +2388,10 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
   const slotCount = slotCounts[currentUser.id] || 0;
   const weeklyLimit = maxPerWeek == null ? Infinity : maxPerWeek;
+  const availableRecipientIds = otherPlayers
+    .filter((profile) => !Number.isFinite(weeklyLimit) || (slotCounts[profile.id] || 0) < weeklyLimit)
+    .map((profile) => profile.id);
+  const allRecipientsSelected = availableRecipientIds.length > 0 && availableRecipientIds.every((id) => recipients.includes(id));
   const limitReached = Number.isFinite(weeklyLimit) && slotCount >= weeklyLimit;
   const filteredOpenGames = openGames
     .filter((game) => game.league === gameLeague && (gameLeague === "NFL" || gameConference === "ALL" || gameConferences(game).includes(gameConference)))
@@ -2589,13 +2595,13 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
         </section>
 
         <section className="side-bet-slip-section">
-          <div className="side-bet-slip-section-head"><span>Risk</span><small>Max <NumericText text={stakeMoney(wagerMax)} /></small></div>
+          <div className="side-bet-slip-section-head"><span>Risk</span></div>
           <div className="side-bet-amount-grid">{amountOptions.map((value) => <button type="button" key={value} className={!customRiskMode && amount === value ? "active" : ""} aria-pressed={!customRiskMode && amount === value} onClick={() => { setCustomRiskMode(false); setAmount(value); }}><NumericText text={stakeMoney(Number(value))} /></button>)}</div>
           {manualAmount && <label className="side-bet-risk-field"><span>Custom risk</span><div><span>$</span><input className="side-bet-risk-input" type="text" inputMode="decimal" autoComplete="off" value={amount} onFocus={() => setCustomRiskMode(true)} onChange={(event) => { setCustomRiskMode(true); setAmount(normalizeRiskInput(event.target.value)); }} onBlur={() => {
             const value = Number(amount);
             if (Number.isFinite(value) && value > 0) setAmount(String(Math.min(wagerMax, Math.round(value * 100) / 100)));
           }} /></div></label>}
-          {manualAmount && amount !== "" && !riskIsValid && <p className="side-bet-field-error">Enter a risk amount from $0.01 to <NumericText text={stakeMoney(wagerMax)} />.</p>}
+          {manualAmount && amount !== "" && !riskIsValid && <p className="side-bet-field-error">Enter a valid risk amount.</p>}
           {!evenPayout && <div className="side-bet-payout-preview">
             <span>You risk <strong><NumericText text={stakeMoney(creatorRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorWin)} /></strong></span>
             <span>They risk <strong><NumericText text={stakeMoney(offeredRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorRisk)} /></strong></span>
@@ -2604,10 +2610,13 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
 
         <section className="side-bet-slip-section">
           <div className="side-bet-slip-section-head"><span>Send to</span></div>
-          <fieldset aria-label="Send side bet to"><div className="side-bet-recipient-grid">{otherPlayers.map((profile) => {
-            const recipientFull = Number.isFinite(weeklyLimit) && (slotCounts[profile.id] || 0) >= weeklyLimit;
-            return <label key={profile.id} className={`${recipients.includes(profile.id) ? "checked" : ""} ${recipientFull ? "disabled" : ""}`.trim()}><input type="checkbox" disabled={recipientFull} checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}</span><small>{recipientFull ? "Unavailable" : recipients.includes(profile.id) ? "Selected" : "Available"}</small></label>;
-          })}</div></fieldset>
+          <fieldset aria-label="Send side bet to"><div className="side-bet-recipient-grid">
+            <label className={`${allRecipientsSelected ? "checked" : ""} ${availableRecipientIds.length === 0 ? "disabled" : ""}`.trim()}><input type="checkbox" disabled={availableRecipientIds.length === 0} checked={allRecipientsSelected} onChange={() => setRecipients(allRecipientsSelected ? [] : availableRecipientIds)} /><span>All</span><small>{availableRecipientIds.length === 0 ? "Unavailable" : allRecipientsSelected ? "Selected" : "Everyone"}</small></label>
+            {otherPlayers.map((profile) => {
+              const recipientFull = Number.isFinite(weeklyLimit) && (slotCounts[profile.id] || 0) >= weeklyLimit;
+              return <label key={profile.id} className={`${recipients.includes(profile.id) ? "checked" : ""} ${recipientFull ? "disabled" : ""}`.trim()}><input type="checkbox" disabled={recipientFull} checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}</span><small>{recipientFull ? "Unavailable" : recipients.includes(profile.id) ? "Selected" : "Available"}</small></label>;
+            })}
+          </div></fieldset>
         </section>
 
         <div className="side-bet-slip-summary">
