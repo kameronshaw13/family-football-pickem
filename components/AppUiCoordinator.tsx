@@ -17,22 +17,13 @@ function makeSeasonNamesInteractive() {
   });
 }
 
-function bankPanelIsActive() {
-  const activeTab = document.querySelector<HTMLElement>(".standings-panel .section-tabs button.active");
-  return activeTab?.textContent?.replace(/\s+/g, " ").trim().startsWith("Bank") || false;
-}
-
 export default function AppUiCoordinator() {
   useEffect(() => {
     let frame = 0;
-    let bankWasActive = false;
 
     function applyStructuralEnhancements() {
       frame = 0;
       makeSeasonNamesInteractive();
-      const bankActive = bankPanelIsActive();
-      if (bankActive && !bankWasActive) window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      bankWasActive = bankActive;
     }
 
     function schedule() {
