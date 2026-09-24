@@ -39,10 +39,10 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--line-strong);
-  border-radius: 4px;
+  border-radius: 2px;
   color: var(--ink);
   background: var(--canvas);
-  box-shadow: 0 12px 28px rgba(20, 33, 43, .18);
+  box-shadow: 0 8px 22px rgba(20, 33, 43, .14);
 }
 
 .matchup-preview-header {
@@ -287,18 +287,16 @@
 .matchup-rank-value small {
   display: inline-flex;
   align-items: center;
-  min-height: 18px;
-  padding: 1px 4px;
-  border-radius: 1px;
   color: var(--blue-dark);
-  background: var(--blue-soft);
-  font-size: 9px;
+  background: transparent;
+  font-size: 9.5px;
   font-weight: 800;
   line-height: 1;
 }
 .matchup-rank-value.has-edge small {
-  color: #fff;
-  background: var(--blue-dark);
+  color: var(--blue-dark);
+  background: transparent;
+  font-weight: 900;
 }
 .matchup-metric-label strong {
   display: block;
@@ -546,7 +544,7 @@
   .matchup-preview-sheet {
     width: 100%;
     height: min(68dvh, 720px);
-    border-radius: 4px;
+    border-radius: 2px;
   }
   .matchup-preview-hero { padding-inline: 12px; }
   .matchup-preview-team > strong { font-size: 17px; }
