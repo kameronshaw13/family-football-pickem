@@ -300,11 +300,27 @@
   background: var(--graphite);
 }
 
-/* Keep the loading header's geometry identical to the hydrated header so the
-   fixed top bar does not jump or flash when app data finishes loading. */
-.loading-header-actions {
-  visibility: hidden;
-  pointer-events: none;
+/* Initial app load: paint the header shell first, then reveal the complete
+   header contents together once the real logo has loaded. */
+.loading-shell .scoreboard-header {
+  animation: initial-header-shell-in 160ms ease-out both;
+}
+.scoreboard-main.initial-header-content {
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 180ms ease-out, transform 180ms ease-out;
+}
+.scoreboard-main.initial-header-content.ready {
+  opacity: 1;
+  transform: translateY(0);
+}
+@keyframes initial-header-shell-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-shell .scoreboard-header { animation: none; }
+  .scoreboard-main.initial-header-content { transition: none; transform: none; }
 }
 
 /* Keep Risk / Win horizontal, with the labels directly above each amount. */
