@@ -43,8 +43,8 @@ function Logo({ src, size = 40 }: { src?: string | null; size?: number }) {
 function RankValue({ value, rank, format, edge = false }: { value?: number | null; rank?: number | null; format: (value: number) => string; edge?: boolean }) {
   const available = value != null && Number.isFinite(value);
   return <div className={`matchup-rank-value${edge ? " has-edge" : ""}`}>
-    <strong>{available && rank != null ? `#${Math.round(rank)}` : available ? format(value) : "—"}</strong>
-    <small>{available && rank != null ? format(value) : available ? "Rank unavailable" : "Unavailable"}</small>
+    <strong>{available ? format(value) : "—"}</strong>
+    {available && rank != null && <small>#{Math.round(rank)}</small>}
   </div>;
 }
 
@@ -60,7 +60,7 @@ function Comparison({ away, home, possession }: { away: MatchupTeam; home: Match
   const sameSnapshot = away.relative?.throughWeek === home.relative?.throughWeek;
   return <section className="matchup-comparison-block">
     <div className="matchup-section-heading"><h3>{offense.name} offense vs {defense.name} defense</h3></div>
-    <div className="matchup-column-heads"><span>{away.name}<small>{possession === "away" ? "OFF" : "DEF"}</small></span><span>RANK</span><span>{home.name}<small>{possession === "home" ? "OFF" : "DEF"}</small></span></div>
+    <div className="matchup-column-heads"><span>{away.name}<small>{possession === "away" ? "OFF" : "DEF"}</small></span><span>STAT</span><span>{home.name}<small>{possession === "home" ? "OFF" : "DEF"}</small></span></div>
     {metrics.map(metric => {
       const l = left?.[metric.rank], r = right?.[metric.rank];
       const comparable = sameSnapshot && l != null && r != null;
@@ -85,7 +85,7 @@ function Matchup({ payload }: { payload: MatchupPayload }) {
     <div className="matchup-freshness"><span>Through Week {payload.throughWeek}</span><strong>#1 = best</strong></div>
     <section className="matchup-strength">
       <div className="matchup-section-heading"><h3>Team strength</h3></div>
-      <div className="matchup-column-heads"><span>{away.name}</span><span>RANK</span><span>{home.name}</span></div>
+      <div className="matchup-column-heads"><span>{away.name}</span><span>STAT</span><span>{home.name}</span></div>
       <div className="matchup-metric-row"><RankValue value={away.relative?.overallValue} rank={away.relative?.overallRank} format={v => signed(v, 3)} /><MetricLabel label="Adj. net EPA" /><RankValue value={home.relative?.overallValue} rank={home.relative?.overallRank} format={v => signed(v, 3)} /></div>
       <div className="matchup-metric-row"><RankValue value={away.power?.fpi} rank={away.power?.fpiRank} format={signed} /><MetricLabel label={`ESPN FPI${fpiWeek != null ? ` · W${fpiWeek}` : ""}`} /><RankValue value={home.power?.fpi} rank={home.power?.fpiRank} format={signed} /></div>
     </section>
