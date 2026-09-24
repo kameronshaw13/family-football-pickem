@@ -120,15 +120,16 @@
   align-items: center;
   gap: 7px;
   color: var(--muted);
+  font-family: var(--font-display);
   font-size: 11px;
-  font-weight: 650;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .matchup-preview-team b {
   padding-left: 7px;
   border-left: 1px solid var(--line-strong);
   color: var(--blue-dark);
-  font-weight: 850;
+  font-weight: 700;
 }
 .matchup-preview-at {
   position: absolute;
@@ -184,23 +185,6 @@
   background: var(--canvas);
 }
 .matchup-tab-body { padding: 12px 0 18px; }
-
-.matchup-freshness {
-  display: flex;
-  min-height: 26px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0 14px;
-  color: var(--muted);
-  font-size: 9.5px;
-  font-weight: 650;
-}
-.matchup-freshness strong {
-  color: var(--blue-dark);
-  font-size: 9px;
-  font-weight: 850;
-}
 
 .matchup-section-heading {
   display: flex;
@@ -259,6 +243,33 @@
   font-weight: 750;
   letter-spacing: .04em;
 }
+.matchup-role-heads {
+  min-height: 38px;
+  padding-block: 6px;
+}
+.matchup-role-heads > span:nth-child(2) {
+  align-self: center;
+}
+.matchup-role-side {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+.matchup-role-side img {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  object-fit: contain;
+}
+.matchup-role-side strong {
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .03em;
+}
+.matchup-role-left { justify-content: flex-start; text-align: left; }
+.matchup-role-right { justify-content: flex-end; text-align: right; }
 .matchup-metric-row {
   min-height: 52px;
   padding: 7px 10px;
@@ -286,17 +297,27 @@
 }
 .matchup-rank-value small {
   display: inline-flex;
+  min-width: 29px;
+  min-height: 19px;
   align-items: center;
-  color: var(--blue-dark);
-  background: transparent;
-  font-size: 9.5px;
-  font-weight: 800;
+  justify-content: center;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 850;
   line-height: 1;
 }
-.matchup-rank-value.has-edge small {
-  color: var(--blue-dark);
-  background: transparent;
-  font-weight: 900;
+.matchup-rank-value small.rank-good {
+  color: var(--green);
+  background: var(--green-soft);
+}
+.matchup-rank-value small.rank-average {
+  color: #745b0f;
+  background: var(--push-soft);
+}
+.matchup-rank-value small.rank-bad {
+  color: var(--red);
+  background: var(--red-soft);
 }
 .matchup-metric-label strong {
   display: block;
@@ -414,17 +435,6 @@
   font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
-}
-.matchup-form-note {
-  min-height: 34px;
-  margin: 0;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--line);
-  color: var(--muted);
-  background: var(--panel);
-  font-size: 9.5px;
-  font-weight: 600;
-  line-height: 1.35;
 }
 .matchup-result-row {
   display: grid;
@@ -562,7 +572,7 @@
   }
   .matchup-rank-value { gap: 4px; }
   .matchup-rank-value strong { font-size: 13px; }
-  .matchup-rank-value small { font-size: 8.5px; }
+  .matchup-rank-value small { min-width: 27px; min-height: 18px; padding-inline: 4px; font-size: 8.5px; }
   .matchup-metric-label strong { font-size: 10.5px; }
   .matchup-form-team { border-inline: 0; }
 }
