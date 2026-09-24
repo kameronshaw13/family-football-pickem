@@ -263,12 +263,12 @@
 }
 .side-bet-ledger-scope-toggle {
   display: grid;
-  width: 142px;
+  width: 132px;
   height: 30px;
-  flex: 0 0 142px;
+  flex: 0 0 132px;
   grid-template-columns: 1fr 1fr;
-  gap: 2px;
-  padding: 2px;
+  gap: 1px;
+  padding: 1px;
   overflow: hidden;
   border: 1px solid var(--graphite);
   border-radius: 999px;
@@ -298,6 +298,13 @@
 .side-bet-ledger-scope-toggle button.active {
   color: #fff;
   background: var(--graphite);
+}
+
+/* Keep the loading header's geometry identical to the hydrated header so the
+   fixed top bar does not jump or flash when app data finishes loading. */
+.loading-header-actions {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* Keep Risk / Win horizontal, with the labels directly above each amount. */

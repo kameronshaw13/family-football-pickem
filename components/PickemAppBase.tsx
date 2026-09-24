@@ -2306,6 +2306,10 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup"><NextImage unoptimized className="header-wordmark" src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="async" fetchPriority="high" /></div>
+        <div className="header-actions loading-header-actions" aria-hidden="true">
+          <span className="header-refresh-indicator" />
+          <div className="header-slate"><div className="week-select-wrap" /></div>
+        </div>
       </div>
     </header>
     <nav className="primary-nav" aria-label="Main navigation">
