@@ -1241,7 +1241,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       const payload = await response.json() as SideBetSnapshot;
       const changed = sideBetSyncSignature(current.sideBets) !== sideBetSyncSignature(payload.sideBets || []);
       applySideBetSnapshot({ ...payload, sideBets: payload.sideBets || [] }, requestId);
-      if (changed) void refreshNotificationCounts();
+      if (changed) {
+        void refreshNotificationCounts();
+        // Remote offers/cancellations can change the document height while the user is
+        // already scrolled in Side Bets. Re-stabilize after React commits that layout
+        // change so the fixed bottom nav stays attached to the viewport.
+        stabilizeViewportAfterLayoutChange();
+      }
     } catch {
       // Keep the current offers visible and retry on the next foreground refresh.
     } finally {
