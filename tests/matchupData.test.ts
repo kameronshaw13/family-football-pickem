@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseCsv, exactWeeklySummaryRow, normalizeRelative, latestWeeklyRow, normalizePower, summarizeLocalAts, localGamesForTeam, cfbWeekFromPickemWeek, type LocalGame } from "../lib/cfbMatchupData.ts";
+import { parseCsv, exactWeeklySummaryRow, normalizeRelative, latestWeeklyRow, normalizePower, summarizeLocalAts, localGamesForTeam, officialCfbWeek, type LocalGame } from "../lib/cfbMatchupData.ts";
 import { createAsyncCache } from "../lib/asyncCache.ts";
 import { ordinalDay, formatOrdinalDate, formatUppercaseOrdinalDate } from "../lib/displayDates.ts";
 
@@ -47,10 +47,12 @@ test("ATS record and cover margins share the same graded games and exclude missi
   assert.equal(result.recent.length, 1);
   assert.equal(result.recent[0]?.week, 2);
 });
-test("pick'em weeks display as official CFB weeks in matchup form", () => {
-  assert.equal(cfbWeekFromPickemWeek(1), 0);
-  assert.equal(cfbWeekFromPickemWeek(2), 1);
-  assert.equal(cfbWeekFromPickemWeek(5), 4);
+test("matchup form derives official CFB weeks from kickoff dates", () => {
+  assert.equal(officialCfbWeek("2026-08-29T18:00:00Z"), 0);
+  assert.equal(officialCfbWeek("2026-09-05T18:00:00Z"), 1);
+  assert.equal(officialCfbWeek("2026-09-12T18:00:00Z"), 2);
+  assert.equal(officialCfbWeek("2025-08-23T18:00:00Z"), 0);
+  assert.equal(officialCfbWeek("2025-08-30T18:00:00Z"), 1);
 });
 test("January bowl results belong to the previous football season", () => {
   const bowl = { ...base, commence_time: "2027-01-01T18:00:00Z" };

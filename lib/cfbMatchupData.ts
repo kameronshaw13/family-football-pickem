@@ -1,3 +1,4 @@
+import { toZonedTime } from "date-fns-tz";
 import { normalizeTeamNameKey, teamDisplayName } from "./teamNames.ts";
 
 export type LocalGame = {
@@ -32,8 +33,15 @@ export function logoTeamId(url: string | null | undefined) {
   return url.match(/\/(\d+)\.(?:png|svg|webp)(?:\?|$)/i)?.[1] || null;
 }
 
-export function cfbWeekFromPickemWeek(week: number) {
-  return Math.max(0, Math.trunc(week) - 1);
+export function officialCfbWeek(dateIso: string, timezone = "America/Chicago") {
+  const local = toZonedTime(new Date(dateIso), timezone);
+  const seasonYear = local.getMonth() >= 6 ? local.getFullYear() : local.getFullYear() - 1;
+  const laborDay = new Date(seasonYear, 8, 1, 0, 0, 0, 0);
+  while (laborDay.getDay() !== 1) laborDay.setDate(laborDay.getDate() + 1);
+  const weekOneStart = new Date(laborDay);
+  weekOneStart.setDate(weekOneStart.getDate() - 6);
+  const diff = local.getTime() - weekOneStart.getTime();
+  return diff < 0 ? 0 : Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
 
 export type SportsDataRow = Record<string, string>;
@@ -240,7 +248,7 @@ export function summarizeLocalGames(games: LocalGame[], team: string) {
     const margin = teamPoints - opponentPoints;
     return {
       id: game.id,
-      week: cfbWeekFromPickemWeek(game.week),
+      week: officialCfbWeek(game.commence_time),
       date: game.commence_time,
       opponent,
       home,
@@ -281,7 +289,7 @@ export function summarizeLocalAts(games: LocalGame[], team: string, targetDate: 
       const coverMargin = teamPoints - opponentPoints + spread;
       return {
         id: game.id,
-        week: cfbWeekFromPickemWeek(game.week),
+        week: officialCfbWeek(game.commence_time),
         date: game.commence_time,
         opponent,
         home,
@@ -381,7 +389,7 @@ export function recentFromEspnSchedule(schedule: Array<NonNullable<ReturnType<ty
       const margin = Number(game.teamPoints) - Number(game.opponentPoints);
       return {
         id: game.id,
-        week: game.week,
+        week: officialCfbWeek(game.date),
         date: game.date,
         opponent: game.opponentName,
         home: game.home,
