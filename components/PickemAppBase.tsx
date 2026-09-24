@@ -25,6 +25,7 @@ import { appLoginPath } from "@/lib/appIdentity";
 import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetResponseSummary, sideBetsForView } from "@/lib/sideBetPresentation";
 import { orderCardPicks } from "@/lib/cardOrdering";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
+import { getCurrentPickWeek } from "@/lib/lockRules";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -1669,7 +1670,35 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     }
   }
 
-  if (loading) return <LoadingShell appSlug={appSlug} />;
+  if (loading) {
+    const startupWeek = getCurrentPickWeek(new Date(clock));
+    const loadingNav = [
+      { label: "Picks", icon: Zap },
+      { label: "My Card", icon: SquareCheck },
+      { label: "Standings", icon: Trophy },
+      { label: "Rules", icon: Shield }
+    ];
+
+    return <div className="app-shell loading-shell">
+      <header className="scoreboard-header">
+        <div className="scoreboard-main">
+          <div className="brand-lockup"><NextImage unoptimized className="header-wordmark" src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="async" fetchPriority="high" /></div>
+          <div className="header-actions" aria-hidden="true">
+            <span className="header-refresh-indicator" />
+            <div className="header-slate">
+              <div className="week-select-wrap header-menu-select loading-week-select"><span>{startupWeek === 0 ? "Week 0" : `Week ${startupWeek}`}</span><ChevronDown size={16} /></div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <nav className="primary-nav" aria-label="Main navigation">
+        <div className="primary-nav-inner">
+          {loadingNav.map((item, index) => <button type="button" key={item.label} className={index === 0 ? "active" : ""} disabled><span className="nav-icon"><item.icon size={19} /></span><span>{item.label}</span></button>)}
+        </div>
+      </nav>
+      <main className="initial-loading" role="status" aria-label="Loading app"><LoaderCircle size={30} /></main>
+    </div>;
+  }
   if (!data) return <div className="app-shell"><main className="container"><div className="error-card">{message || "Could not load app."}</div></main></div>;
 
   const { currentUser, games, picks, profiles, standings, availableWeeks, bankEntries } = data;
@@ -1918,7 +1947,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <NextImage unoptimized className="header-wordmark" src={pointsMode || appSlug === "friends" ? "/football-pickem-wordmark.png" : "/header-wordmark.png"} alt={pointsMode || appSlug === "friends" ? "Football Pick'em" : "Shaw Family Pick'em"} width={800} height={pointsMode || appSlug === "friends" ? 100 : 96} decoding="async" fetchPriority="high" />
+          <NextImage unoptimized className="header-wordmark" src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="async" fetchPriority="high" />
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
@@ -2292,35 +2321,6 @@ function ConfidenceOrder({ picks, regularTotal, saving, onMove }: { picks: Pick[
       })}
     </div>
   </section>;
-}
-
-function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
-  const loadingNav = [
-    { label: "Picks", icon: Zap },
-    { label: "My Card", icon: SquareCheck },
-    { label: "Standings", icon: Trophy },
-    { label: "Rules", icon: Shield }
-  ];
-
-  return <div className="app-shell loading-shell">
-    <header className="scoreboard-header">
-      <div className="scoreboard-main">
-        <div className="brand-lockup"><NextImage unoptimized className="header-wordmark" src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="async" fetchPriority="high" /></div>
-        <div className="header-actions" aria-hidden="true">
-          <span className="header-refresh-indicator" />
-          <div className="header-slate">
-            <div className="week-select-wrap header-menu-select loading-week-select"><span className="loading-week-value" /><ChevronDown size={16} /></div>
-          </div>
-        </div>
-      </div>
-    </header>
-    <nav className="primary-nav" aria-label="Main navigation">
-      <div className="primary-nav-inner">
-        {loadingNav.map((item, index) => <button type="button" key={item.label} className={index === 0 ? "active" : ""} disabled><span className="nav-icon"><item.icon size={19} /></span><span>{item.label}</span></button>)}
-      </div>
-    </nav>
-    <main className="initial-loading" role="status" aria-label="Loading app"><LoaderCircle size={30} /></main>
-  </div>;
 }
 
 function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {

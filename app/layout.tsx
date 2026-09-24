@@ -43,6 +43,27 @@ export const viewport: Viewport = {
   themeColor: "#20282d"
 };
 
+const CRITICAL_HEADER_CSS = `
+html { background: #eef0ed; }
+body { margin: 0; background: #eef0ed; }
+.scoreboard-header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 40;
+  height: calc(env(safe-area-inset-top) + 76px);
+  padding: env(safe-area-inset-top) 14px 0;
+  color: #fff;
+  background: #20282d;
+  box-shadow: inset 0 -3px 0 #4d91b8;
+}
+@media (max-width: 520px) {
+  .scoreboard-header {
+    height: calc(env(safe-area-inset-top) + 74px);
+    padding-inline: 11px;
+  }
+}
+`;
+
 const SESSION_RECOVERY_SCRIPT = `
 (() => {
   try {
@@ -72,36 +93,6 @@ const APP_DATA_STARTUP_GUARD_SCRIPT = `
     const nativeFetch = window.fetch.bind(window);
     const transientStatuses = new Set([408, 425, 429, 500, 502, 503, 504]);
     const maxAge = 24 * 60 * 60 * 1000;
-    const path = window.location.pathname;
-    const startupGroup = path.startsWith("/friends") ? "friends" : path.startsWith("/caleb-family") ? "other-family" : "shaw-family";
-    const startupWeekKey = "pickem_last_week_v1:" + startupGroup;
-
-    function applyStartupWeek(value) {
-      const week = Number(value);
-      if (!Number.isInteger(week) || week < 0) return;
-      try {
-        window.localStorage.setItem(startupWeekKey, String(week));
-        document.documentElement.style.setProperty("--pickem-startup-week-label", JSON.stringify("Week " + week));
-      } catch {}
-    }
-
-    try {
-      const rememberedWeek = window.localStorage.getItem(startupWeekKey);
-      if (rememberedWeek != null) {
-        applyStartupWeek(rememberedWeek);
-      } else {
-        const cachedResponse = window.localStorage.getItem("pickem_app_data_response_v1:" + startupGroup + ":default");
-        if (cachedResponse) {
-          const entry = JSON.parse(cachedResponse);
-          const payload = JSON.parse(entry?.body || "null");
-          applyStartupWeek(payload?.week);
-        } else {
-          const sessionEntry = window.sessionStorage.getItem("pickem_app_data_v2:" + startupGroup + ":default");
-          if (sessionEntry) applyStartupWeek(JSON.parse(sessionEntry)?.payload?.week);
-        }
-      }
-    } catch {}
-
     function cacheKey(input, init) {
       try {
         const raw = typeof input === "string" ? input : input instanceof Request ? input.url : String(input);
@@ -145,11 +136,7 @@ const APP_DATA_STARTUP_GUARD_SCRIPT = `
         const response = await nativeFetch(input, init);
         if (response.ok) {
           response.clone().text().then((body) => {
-            try {
-              window.localStorage.setItem(key, JSON.stringify({ cachedAt: Date.now(), body }));
-              const payload = JSON.parse(body);
-              applyStartupWeek(payload?.week);
-            } catch {}
+            try { window.localStorage.setItem(key, JSON.stringify({ cachedAt: Date.now(), body })); } catch {}
           }).catch(() => undefined);
           return response;
         }
@@ -176,6 +163,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" data-theme="light" className={robotoSlab.variable}>
       <head>
+        <style dangerouslySetInnerHTML={{ __html: CRITICAL_HEADER_CSS }} />
         <script dangerouslySetInnerHTML={{ __html: SESSION_RECOVERY_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: APP_DATA_STARTUP_GUARD_SCRIPT }} />
         <link rel="preload" href="/header-wordmark.png" as="image" type="image/png" />

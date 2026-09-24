@@ -90,6 +90,17 @@ export function getPickWeekOpenTime(week: number, commenceTimes: string[], timez
   return getWeekOpenTimeFromCommenceTimes(commenceTimes, timezone);
 }
 
+export function getCurrentPickWeek(now = new Date(), timezone = APP_TIMEZONE): number {
+  const local = toZonedTime(now, timezone);
+  const seasonYear = local.getMonth() >= 6 ? local.getFullYear() : local.getFullYear() - 1;
+  const firstTuesday = new Date(seasonYear, 7, 24, 0, 0, 0, 0);
+  while (firstTuesday.getDay() !== 2) firstTuesday.setDate(firstTuesday.getDate() + 1);
+  firstTuesday.setHours(9, 0, 0, 0);
+
+  const diff = local.getTime() - firstTuesday.getTime();
+  return diff < 0 ? 0 : Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1;
+}
+
 export function isClosed(lockTimeIso: string, now = new Date()) {
   return now.getTime() >= new Date(lockTimeIso).getTime();
 }
