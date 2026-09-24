@@ -1090,7 +1090,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const closeMatchupPreview = useCallback(() => setMatchupPreviewGame(null), []);
   const [week, setWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [headerContentReady, setHeaderContentReady] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [sessionValidated, setSessionValidated] = useState(false);
   const [message, setMessage] = useState("");
@@ -1917,9 +1916,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
   return <div className="app-shell">
     <header className="scoreboard-header">
-      <div className={`scoreboard-main initial-header-content ${headerContentReady ? "ready" : ""}`.trim()}>
+      <div className="scoreboard-main">
         <div className="brand-lockup">
-          <NextImage unoptimized className="header-wordmark" src={pointsMode || appSlug === "friends" ? "/football-pickem-wordmark.png" : "/header-wordmark.png"} alt={pointsMode || appSlug === "friends" ? "Football Pick'em" : "Shaw Family Pick'em"} width={800} height={pointsMode || appSlug === "friends" ? 100 : 96} decoding="async" fetchPriority="high" onLoad={() => setHeaderContentReady(true)} onError={() => setHeaderContentReady(true)} />
+          <NextImage unoptimized className="header-wordmark" src={pointsMode || appSlug === "friends" ? "/football-pickem-wordmark.png" : "/header-wordmark.png"} alt={pointsMode || appSlug === "friends" ? "Football Pick'em" : "Shaw Family Pick'em"} width={800} height={pointsMode || appSlug === "friends" ? 100 : 96} decoding="async" fetchPriority="high" />
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
@@ -2304,7 +2303,17 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   ];
 
   return <div className="app-shell loading-shell">
-    <header className="scoreboard-header" aria-hidden="true" />
+    <header className="scoreboard-header">
+      <div className="scoreboard-main">
+        <div className="brand-lockup"><NextImage unoptimized className="header-wordmark" src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="async" fetchPriority="high" /></div>
+        <div className="header-actions" aria-hidden="true">
+          <span className="header-refresh-indicator" />
+          <div className="header-slate">
+            <div className="week-select-wrap header-menu-select loading-week-select"><span>Week</span><ChevronDown size={16} /></div>
+          </div>
+        </div>
+      </div>
+    </header>
     <nav className="primary-nav" aria-label="Main navigation">
       <div className="primary-nav-inner">
         {loadingNav.map((item, index) => <button type="button" key={item.label} className={index === 0 ? "active" : ""} disabled><span className="nav-icon"><item.icon size={19} /></span><span>{item.label}</span></button>)}

@@ -300,27 +300,21 @@
   background: var(--graphite);
 }
 
-/* Initial app load: paint the header shell first, then reveal the complete
-   header contents together once the real logo has loaded. */
-.loading-shell .scoreboard-header {
-  animation: initial-header-shell-in 160ms ease-out both;
+/* Keep the initial header fully formed from the first paint. Only the week
+   number changes once app data is available; the header itself never fades. */
+.loading-week-select {
+  pointer-events: none;
 }
-.scoreboard-main.initial-header-content {
-  opacity: 0;
-  transform: translateY(-2px);
-  transition: opacity 180ms ease-out, transform 180ms ease-out;
-}
-.scoreboard-main.initial-header-content.ready {
-  opacity: 1;
-  transform: translateY(0);
-}
-@keyframes initial-header-shell-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .loading-shell .scoreboard-header { animation: none; }
-  .scoreboard-main.initial-header-content { transition: none; transform: none; }
+.loading-week-select > span {
+  display: flex;
+  height: 36px;
+  min-height: 36px;
+  align-items: center;
+  padding: 0 23px 0 5px;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 /* Keep Risk / Win horizontal, with the labels directly above each amount. */
