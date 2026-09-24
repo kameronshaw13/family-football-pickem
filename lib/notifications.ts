@@ -91,18 +91,36 @@ async function inferGroupId(supabase: SupabaseClient, input: NotificationInput) 
   return data.id as string;
 }
 
+function normalizeSideBetMarketSegment(segment: string, league?: string) {
+  const trimmed = segment.trim();
+  const marketPrefix = trimmed.startsWith("Market ") ? "Market " : "";
+  const core = marketPrefix ? trimmed.slice("Market ".length) : trimmed;
+  const match = core.match(/^(.*?)\s+(ML|Pick'em|[+-]\d+(?:\.\d+)?)(?:\s+([+-]\d+))?$/);
+  if (!match) return trimmed;
+  const [, team, line, odds] = match;
+  const oddsText = odds && Math.abs(Number(odds)) !== 100 ? ` ${odds}` : "";
+  return `${marketPrefix}${notificationTeamName(team.trim(), league)} ${line}${oddsText}`;
+}
+
 async function normalizedBody(supabase: SupabaseClient, input: NotificationInput) {
   if (!["side_bet_offer", "side_bet_response", "side_bet_final"].includes(input.type)) return input.body;
   const { data } = await supabase.from("side_bets").select("game:games(league)").eq("id", input.entityId).maybeSingle();
   const league = (data as any)?.game?.league as string | undefined;
-  const match = input.body.match(/^(.*?)(Pick'em|[+-]\d+(?:\.\d+)?)$/);
-  if (!match) return input.body;
-  const left = match[1].trimEnd();
-  const spread = match[2];
-  const dividerIndex = left.lastIndexOf("·");
-  const prefix = dividerIndex >= 0 ? `${left.slice(0, dividerIndex + 1)} ` : "";
-  const team = (dividerIndex >= 0 ? left.slice(dividerIndex + 1) : left).trim();
-  return `${prefix}${notificationTeamName(team, league)} ${spread}`;
+  const parts = input.body.split(" · ").map((part) => part.trim()).filter(Boolean);
+  const normalized: string[] = [];
+
+  for (const part of parts) {
+    const standaloneOdds = part.match(/^[+-]\d+$/);
+    const previous = normalized.at(-1);
+    const previousIsMarket = Boolean(previous && /(?:ML|Pick'em|[+-]\d+(?:\.\d+)?)(?:\s+[+-]\d+)?$/.test(previous));
+    if (standaloneOdds && previousIsMarket) {
+      if (Math.abs(Number(part)) !== 100) normalized[normalized.length - 1] = `${previous} ${part}`;
+      continue;
+    }
+    normalized.push(normalizeSideBetMarketSegment(part, league));
+  }
+
+  return normalized.join(" · ");
 }
 
 export async function createNotification(supabase: SupabaseClient, input: NotificationInput) {
