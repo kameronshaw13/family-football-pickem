@@ -50,7 +50,7 @@ function RankValue({ value, rank, format, edge = false }: { value?: number | nul
 }
 
 function BasisTag({ basis }: { basis: MetricBasis }) {
-  const label = basis === "adjusted" ? "Opponent-adjusted" : basis === "model" ? "Predictive model" : "Raw";
+  const label = basis === "adjusted" ? "Opp. adjusted" : basis === "model" ? "FPI model" : "Raw";
   return <span className={`matchup-basis matchup-basis-${basis}`}>{label}</span>;
 }
 
@@ -94,16 +94,12 @@ function Matchup({ payload }: { payload: MatchupPayload }) {
       <div className="matchup-metric-row"><RankValue value={away.relative?.overallValue} rank={away.relative?.overallRank} format={v => signed(v, 3)} /><MetricLabel label="Overall efficiency" detail="Net EPA" basis="adjusted" /><RankValue value={home.relative?.overallValue} rank={home.relative?.overallRank} format={v => signed(v, 3)} /></div>
       <div className="matchup-metric-row"><RankValue value={away.power?.fpi} rank={away.power?.fpiRank} format={signed} /><MetricLabel label="Power rating" detail={`ESPN FPI${fpiWeek != null ? ` · Week ${fpiWeek}` : ""}`} basis="model" /><RankValue value={home.power?.fpi} rank={home.power?.fpiRank} format={signed} /></div>
     </section>
-    {sampleNotes.length > 0 && <p className="matchup-data-note"><strong>Sample note:</strong> {sampleNotes.join(" · ")}. Published values are shown, but early-season numbers can move quickly.</p>}
+    {sampleNotes.length > 0 && <p className="matchup-data-note"><strong>Early sample:</strong> {sampleNotes.join(" · ")}. Expect movement.</p>}
     <Comparison away={away} home={home} possession="away" />
     <Comparison away={away} home={home} possession="home" />
     <details className="matchup-guide">
-      <summary>How to read these numbers</summary>
-      <p>Ranks compare each unit with FBS offenses or defenses. Blue marks the better national rank; it is a comparison, not a predicted winner. The smaller number is the underlying stat. Defensive values describe what opponents gain.</p>
-      <p><strong>Opponent-adjusted</strong> numbers account for schedule strength. <strong>Raw</strong> numbers are the team’s observed rate without an opponent adjustment. <strong>Predictive model</strong> identifies ESPN FPI rather than a directly observed stat.</p>
-      <p>EPA measures how a play changes expected points. EPA per drive is the possession-based counterpart to points per drive without being distorted by defensive or special-teams scoring. Available-yards rate accounts for where each drive started. Early-down EPA shows how efficiently a team stays ahead of the chains.</p>
-      <p>Success rate measures how often a play succeeds; explosive rate captures big plays, and third-down success measures performance in conversion situations. The weekly play-by-play rates exclude garbage time.</p>
-      <p>Weekly advanced data: SportsDataverse. Power rating: ESPN FPI. Only snapshots published for weeks before this matchup are used.</p>
+      <summary>Stat key</summary>
+      <p><strong>Opp. adjusted</strong> accounts for schedule strength. <strong>Raw</strong> is the observed, garbage-time-filtered rate. <strong>FPI model</strong> is ESPN’s predictive rating. Blue marks the better comparable rank; #1 is best.</p>
     </details>
   </div>;
 }
