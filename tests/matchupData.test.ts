@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseCsv, exactWeeklySummaryRow, normalizeRelative, latestWeeklyRow, normalizePower, summarizeLocalAts, localGamesForTeam, type LocalGame } from "../lib/cfbMatchupData.ts";
+import { parseCsv, exactWeeklySummaryRow, normalizeRelative, latestWeeklyRow, normalizePower, summarizeLocalAts, localGamesForTeam, cfbWeekFromPickemWeek, type LocalGame } from "../lib/cfbMatchupData.ts";
 import { createAsyncCache } from "../lib/asyncCache.ts";
 import { ordinalDay, formatOrdinalDate, formatUppercaseOrdinalDate } from "../lib/displayDates.ts";
 
@@ -45,6 +45,12 @@ test("ATS record and cover margins share the same graded games and exclude missi
   assert.equal(result.wins + result.losses + result.pushes, 1);
   assert.equal(result.avgCoverMargin, 0);
   assert.equal(result.recent.length, 1);
+  assert.equal(result.recent[0]?.week, 2);
+});
+test("pick'em weeks display as official CFB weeks in matchup form", () => {
+  assert.equal(cfbWeekFromPickemWeek(1), 0);
+  assert.equal(cfbWeekFromPickemWeek(2), 1);
+  assert.equal(cfbWeekFromPickemWeek(5), 4);
 });
 test("January bowl results belong to the previous football season", () => {
   const bowl = { ...base, commence_time: "2027-01-01T18:00:00Z" };

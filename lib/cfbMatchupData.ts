@@ -32,6 +32,10 @@ export function logoTeamId(url: string | null | undefined) {
   return url.match(/\/(\d+)\.(?:png|svg|webp)(?:\?|$)/i)?.[1] || null;
 }
 
+export function cfbWeekFromPickemWeek(week: number) {
+  return Math.max(0, Math.trunc(week) - 1);
+}
+
 export type SportsDataRow = Record<string, string>;
 
 export function parseCsv(text: string, keep?: (header: string) => boolean): SportsDataRow[] {
@@ -236,7 +240,7 @@ export function summarizeLocalGames(games: LocalGame[], team: string) {
     const margin = teamPoints - opponentPoints;
     return {
       id: game.id,
-      week: game.week,
+      week: cfbWeekFromPickemWeek(game.week),
       date: game.commence_time,
       opponent,
       home,
@@ -277,7 +281,7 @@ export function summarizeLocalAts(games: LocalGame[], team: string, targetDate: 
       const coverMargin = teamPoints - opponentPoints + spread;
       return {
         id: game.id,
-        week: game.week,
+        week: cfbWeekFromPickemWeek(game.week),
         date: game.commence_time,
         opponent,
         home,
