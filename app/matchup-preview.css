@@ -9,7 +9,7 @@
 .matchup-preview-backdrop {
   position: fixed; z-index: 5000; inset: 0; display: flex; align-items: center; justify-content: center;
   padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
-  background: rgb(20 29 34 / 46%); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); overscroll-behavior: contain;
+  background: rgb(20 29 34 / 46%); overscroll-behavior: contain;
 }
 .matchup-preview-sheet {
   display: flex; width: min(660px, 100%); height: min(68dvh, 760px); max-height: calc(100dvh - 28px);
