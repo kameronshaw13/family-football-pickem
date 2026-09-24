@@ -316,6 +316,9 @@
   line-height: 1;
   white-space: nowrap;
 }
+.loading-week-value::before {
+  content: var(--pickem-startup-week-label, "Week");
+}
 
 /* Keep Risk / Win horizontal, with the labels directly above each amount. */
 .side-bet-offer-amount.side-bet-offer-payout,

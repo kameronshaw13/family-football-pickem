@@ -72,6 +72,35 @@ const APP_DATA_STARTUP_GUARD_SCRIPT = `
     const nativeFetch = window.fetch.bind(window);
     const transientStatuses = new Set([408, 425, 429, 500, 502, 503, 504]);
     const maxAge = 24 * 60 * 60 * 1000;
+    const path = window.location.pathname;
+    const startupGroup = path.startsWith("/friends") ? "friends" : path.startsWith("/caleb-family") ? "other-family" : "shaw-family";
+    const startupWeekKey = "pickem_last_week_v1:" + startupGroup;
+
+    function applyStartupWeek(value) {
+      const week = Number(value);
+      if (!Number.isInteger(week) || week < 0) return;
+      try {
+        window.localStorage.setItem(startupWeekKey, String(week));
+        document.documentElement.style.setProperty("--pickem-startup-week-label", JSON.stringify("Week " + week));
+      } catch {}
+    }
+
+    try {
+      const rememberedWeek = window.localStorage.getItem(startupWeekKey);
+      if (rememberedWeek != null) {
+        applyStartupWeek(rememberedWeek);
+      } else {
+        const cachedResponse = window.localStorage.getItem("pickem_app_data_response_v1:" + startupGroup + ":default");
+        if (cachedResponse) {
+          const entry = JSON.parse(cachedResponse);
+          const payload = JSON.parse(entry?.body || "null");
+          applyStartupWeek(payload?.week);
+        } else {
+          const sessionEntry = window.sessionStorage.getItem("pickem_app_data_v2:" + startupGroup + ":default");
+          if (sessionEntry) applyStartupWeek(JSON.parse(sessionEntry)?.payload?.week);
+        }
+      }
+    } catch {}
 
     function cacheKey(input, init) {
       try {
@@ -116,7 +145,11 @@ const APP_DATA_STARTUP_GUARD_SCRIPT = `
         const response = await nativeFetch(input, init);
         if (response.ok) {
           response.clone().text().then((body) => {
-            try { window.localStorage.setItem(key, JSON.stringify({ cachedAt: Date.now(), body })); } catch {}
+            try {
+              window.localStorage.setItem(key, JSON.stringify({ cachedAt: Date.now(), body }));
+              const payload = JSON.parse(body);
+              applyStartupWeek(payload?.week);
+            } catch {}
           }).catch(() => undefined);
           return response;
         }

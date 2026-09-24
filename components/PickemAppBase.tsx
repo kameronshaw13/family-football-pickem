@@ -2309,7 +2309,7 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
         <div className="header-actions" aria-hidden="true">
           <span className="header-refresh-indicator" />
           <div className="header-slate">
-            <div className="week-select-wrap header-menu-select loading-week-select"><span>Week</span><ChevronDown size={16} /></div>
+            <div className="week-select-wrap header-menu-select loading-week-select"><span className="loading-week-value" /><ChevronDown size={16} /></div>
           </div>
         </div>
       </div>
