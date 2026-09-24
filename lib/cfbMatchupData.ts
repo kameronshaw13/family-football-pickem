@@ -306,7 +306,7 @@ export function summarizeLocalAts(games: LocalGame[], team: string, targetDate: 
     losses,
     pushes,
     avgCoverMargin: graded.length ? graded.reduce((sum, game) => sum + game.coverMargin, 0) / graded.length : null,
-    recent: graded.slice(-5).reverse()
+    recent: graded.slice().reverse()
   };
 }
 
