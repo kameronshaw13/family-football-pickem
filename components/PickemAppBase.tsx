@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOrdinalDate } from "@/lib/displayDates";
+import NextImage from "next/image";
+
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, Standing, WeekRule } from "@/lib/types";
@@ -362,10 +365,10 @@ function dt(iso: string) {
   return `${weekdayAbbreviation(iso)} ${timeText(iso)}`;
 }
 function fullDateText(iso: string) {
-  return CENTRAL_FULL_DATE_FORMATTER.format(new Date(iso));
+  return formatOrdinalDate(CENTRAL_FULL_DATE_FORMATTER, new Date(iso));
 }
 function openText(iso: string) {
-  return CENTRAL_OPEN_DATE_FORMATTER.format(new Date(iso));
+  return formatOrdinalDate(CENTRAL_OPEN_DATE_FORMATTER, new Date(iso));
 }
 function cardGameStateText(game: Game, locked: boolean) {
   if (game.final_away_score != null && game.final_home_score != null) {
@@ -391,7 +394,7 @@ function gameDayKey(iso: string) {
   return CENTRAL_DAY_KEY_FORMATTER.format(new Date(iso));
 }
 function gameDayLabel(iso: string) {
-  return CENTRAL_DAY_LABEL_FORMATTER.format(new Date(iso)).toUpperCase();
+  return formatOrdinalDate(CENTRAL_DAY_LABEL_FORMATTER, new Date(iso)).toUpperCase();
 }
 function gameDayShort(iso: string) {
   return CENTRAL_WEEKDAY_LONG_FORMATTER.format(new Date(iso)).toUpperCase();
@@ -1311,8 +1314,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     window.history.replaceState({}, "", `${current.pathname}${current.search}${current.hash}`);
   }, []);
 
-  async function load(nextWeek = week) {
-    const isInitialLoad = data === null;
+  const loadSequence = useRef(0);
+  const load = useCallback(async (nextWeek: number | null = dataRef.current?.week ?? null) => {
+    const sequence = ++loadSequence.current;
+    const isInitialLoad = dataRef.current === null;
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) {
       window.location.href = loginPath;
@@ -1353,6 +1358,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       }
       if (!response) throw lastError || new Error("Could not load app data.");
       const payload = await response.json();
+      if (sequence !== loadSequence.current) return;
       if (!response.ok) {
         if (response.status === 401) {
           window.sessionStorage.removeItem(appDataCacheKey(appSlug, nextWeek));
@@ -1364,10 +1370,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         setMessage(payload.error || "Could not load app data.");
         return;
       }
-      if (isInitialLoad) setSessionValidated(true);
+      setSessionValidated(true);
       const loadedAt = Date.now();
       const loadedWeekIsOpen = !payload.weekOpenTime || new Date(payload.weekOpenTime).getTime() <= loadedAt;
       if (!cachedPayload) await preloadInitialBoardLogos(payload);
+      if (sequence !== loadSequence.current) return;
       dataRef.current = payload;
       setData(payload);
       setWeek(payload.week);
@@ -1377,14 +1384,16 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       }
       writeCachedAppData(appSlug, nextWeek, payload);
     } catch {
-      if (!cachedPayload) setMessage("Could not load app data.");
+      if (sequence === loadSequence.current && !cachedPayload) setMessage("Could not load app data.");
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (sequence === loadSequence.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
-  }
+  }, [appSlug, loginPath]);
 
-  useEffect(() => { load(null); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { void load(null); return () => { loadSequence.current += 1; }; }, [load]);
   useEffect(() => { dataRef.current = data; }, [data]);
   useEffect(() => {
     if (!data?.currentUser.id) return;
@@ -1393,7 +1402,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     setSideBetLedgerReady(true);
   }, [data?.activeGroup?.id, data?.currentUser.id, data?.sideBetLedger, data?.week]);
   useEffect(() => {
-    if (!data || testWeekActive) return;
+    if (!dataRef.current || testWeekActive) return;
     const offersVisible = tab === "picks" && picksView === "sideBets";
     const ledgerVisible = tab === "standings" && standingsView === "bank";
     if (!offersVisible && !ledgerVisible) return;
@@ -1453,7 +1462,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       return;
     }
     if (destination && notificationCounts[destination] > 0) void markNotificationsSeen(destination);
-  }, [betView, cardView, data, markNotificationsSeen, notificationCounts.league_cards, notificationCounts.my_card, notificationCounts.side_bet_ledger, notificationCounts.side_bets_received, notificationCounts.side_bets_sent, picksView, standingsView, tab, testWeekActive]);
+  }, [betView, cardView, data, markNotificationsSeen, notificationCounts, picksView, standingsView, tab, testWeekActive]);
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 30_000);
     return () => window.clearInterval(timer);
@@ -1537,7 +1546,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       window.removeEventListener("online", refreshOnResume);
       document.removeEventListener("visibilitychange", refreshOnResume);
     };
-  }, [appSlug, hasActiveGames, week]);
+  }, [appSlug, hasActiveGames, load, week]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 3200);
@@ -1553,7 +1562,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.week, savingPicks, stagedPicks, testWeekActive]);
   useEffect(() => {
-    if (appSlug !== "other-family" || !data || stagedPicks || savingPicks || testWeekActive) return;
+    if (data?.groupRules?.scoring?.mode !== "confidence" || stagedPicks || savingPicks || testWeekActive) return;
     const currentCard = data.picks.filter((pick) => pick.user_id === data.currentUser.id && Number(pick.week) === Number(data.week));
     const normalizedCard = normalizeConfidenceCard(currentCard, data.weekRule.regularTotal);
     const confidenceChanged = normalizedCard.some((pick, index) => pick.confidence_points !== currentCard[index]?.confidence_points);
@@ -1658,7 +1667,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   if (!data) return <div className="app-shell"><main className="container"><div className="error-card">{message || "Could not load app."}</div></main></div>;
 
   const { currentUser, games, picks, profiles, standings, availableWeeks, bankEntries } = data;
-  const pointsMode = appSlug === "other-family";
+  const pointsMode = data.groupRules?.scoring?.mode === "confidence";
   const leagueCardProfiles = [
     profiles.find((profile) => profile.id === currentUser.id) || currentUser,
     ...profiles.filter((profile) => profile.id !== currentUser.id)
@@ -1903,7 +1912,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <img className="header-wordmark" src={pointsMode || appSlug === "friends" ? "/football-pickem-wordmark.png" : "/header-wordmark.png"} alt={pointsMode || appSlug === "friends" ? "Football Pick'em" : "Shaw Family Pick'em"} width={800} height={pointsMode || appSlug === "friends" ? 100 : 96} decoding="async" fetchPriority="high" />
+          <NextImage unoptimized className="header-wordmark" src={pointsMode || appSlug === "friends" ? "/football-pickem-wordmark.png" : "/header-wordmark.png"} alt={pointsMode || appSlug === "friends" ? "Football Pick'em" : "Shaw Family Pick'em"} width={800} height={pointsMode || appSlug === "friends" ? 100 : 96} decoding="async" fetchPriority="high" />
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
@@ -2288,7 +2297,7 @@ function LoadingShell({ appSlug }: { appSlug: AppSlug }) {
   return <div className="app-shell loading-shell">
     <header className="scoreboard-header">
       <div className="scoreboard-main">
-        <div className="brand-lockup"><img className="header-wordmark" src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="async" fetchPriority="high" /></div>
+        <div className="brand-lockup"><NextImage unoptimized className="header-wordmark" src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="async" fetchPriority="high" /></div>
       </div>
     </header>
     <nav className="primary-nav" aria-label="Main navigation">
@@ -2349,6 +2358,8 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   const offers = [...received, ...sent];
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
+  const selectedGameRef = useRef(selectedGame);
+  selectedGameRef.current = selectedGame;
   const defaultCreatorSpread = selectedGame && selectedCreatorTeam ? normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread) : null;
   const defaultCreatorMoneyline = fairMoneylineFromSpread(defaultCreatorSpread, selectedGame?.league);
   const parsedCustomSpread = customSpread.trim() === "" ? null : Number(customSpread);
@@ -2399,14 +2410,15 @@ function SideBetCenter({ view, setView, currentUser, profiles, sideBets, slotCou
   }, [view, selectedGame, selectedCreatorTeam]);
 
   useEffect(() => {
-    if (!selectedGame || !selectedCreatorTeam) return;
-    const initialSpread = normalizeSpreadForSelectedTeam(selectedCreatorTeam, selectedGame.current_spread_team, selectedGame.current_spread);
+    const game = selectedGameRef.current;
+    if (!game || !selectedCreatorTeam) return;
+    const initialSpread = normalizeSpreadForSelectedTeam(selectedCreatorTeam, game.current_spread_team, game.current_spread);
     setCustomSpread(initialSpread == null ? "" : String(initialSpread));
     setMarketType("spread");
     setOddsInput("100");
     setAmount("20");
     setCustomRiskMode(false);
-  }, [selectedGame?.id, selectedCreatorTeam]);
+  }, [selectedGame?.id, selectedCreatorTeam, setAmount]);
 
   useEffect(() => () => {
     if (slipCloseTimer.current != null) window.clearTimeout(slipCloseTimer.current);
@@ -2880,7 +2892,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
 
 function TeamLogo({ url, name, className = "" }: { url?: string | null; name: string; className?: string }) {
   const classes = `team-logo ${className}`.trim();
-  if (url) return <img src={url} alt="" className={classes} width={68} height={68} loading="eager" decoding="async" />;
+  if (url) return <NextImage unoptimized src={url} alt="" className={classes} width={68} height={68} loading="eager" decoding="async" />;
   return <div className={`${classes} fallback`}>{name.slice(0, 1)}</div>;
 }
 

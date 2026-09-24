@@ -57,7 +57,9 @@ function hasValidSupabaseOddsCronToken(req: NextRequest) {
   const token = req.headers.get("x-odds-cron-token");
   if (!token) return false;
   const actual = Buffer.from(createHash("sha256").update(token).digest("hex"), "hex");
-  const expected = Buffer.from(SUPABASE_ODDS_CRON_TOKEN_SHA256, "hex");
+  const expectedHash = process.env.ODDS_CRON_TOKEN_SHA256 || SUPABASE_ODDS_CRON_TOKEN_SHA256;
+  if (!/^[a-f0-9]{64}$/i.test(expectedHash)) return false;
+  const expected = Buffer.from(expectedHash, "hex");
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 

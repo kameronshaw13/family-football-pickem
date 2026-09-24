@@ -1,5 +1,7 @@
 "use client";
 
+import { formatOrdinalDate } from "@/lib/displayDates";
+
 import { useEffect } from "react";
 import type { AppSlug } from "@/lib/rulePresentation";
 import { teamDisplayName } from "@/lib/teamNames";
@@ -71,7 +73,7 @@ function closeReview() {
 }
 
 function fullGameDate(iso: string) {
-  return FULL_GAME_DATE_FORMATTER.format(new Date(iso));
+  return formatOrdinalDate(FULL_GAME_DATE_FORMATTER, new Date(iso));
 }
 
 function readCachedPayload(appSlug: AppSlug, week: number | null) {

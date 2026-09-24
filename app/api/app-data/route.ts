@@ -3,7 +3,8 @@ import { GET as getAppDataV2 } from "@/app/api/app-data-v2/route";
 import { finalizeIncompleteCardsAfterWeekendLock } from "@/lib/finalizeIncompleteCards";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
-export { dynamic, revalidate } from "@/app/api/app-data-v2/route";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 export const maxDuration = 30;
 
 function pickStart(pick: any) {
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (Array.isArray(payload.picks)) {
-    const confidenceMode = payload.activeGroup?.slug === "other-family";
+    const confidenceMode = payload.groupRules?.scoring?.mode === "confidence";
     payload.picks = [...payload.picks].sort((a, b) => {
       const dogOrder = Number(a.pick_type === "underdog") - Number(b.pick_type === "underdog");
       if (dogOrder !== 0) return dogOrder;

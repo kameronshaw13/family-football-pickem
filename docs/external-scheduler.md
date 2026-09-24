@@ -1,44 +1,53 @@
-# External scheduler setup
+# Scheduled jobs
 
-Vercel Hobby blocks cron jobs that run more than once per day. Keep the app on Vercel, but use an external scheduler to call the app's secure cron endpoint.
+Odds updates are scheduled by **Supabase Cron**, not cron-job.org or Vercel Cron.
+All three apps consume the same games and odds pipeline. Group rules are applied separately when presenting games and validating picks.
 
-## Endpoint to call
+## Current schedule
 
-```txt
-https://YOUR-VERCEL-APP.vercel.app/api/cron/tick?secret=YOUR_CRON_SECRET
+The active Supabase job is `refresh-pickem-odds-hourly`, scheduled at `50 * * * *` (UTC).
+It calls `/api/cron/odds` with `x-odds-cron-token` loaded from the Vault secret `odds_cron_token`.
+The endpoint enforces America/Chicago time, including daylight saving:
+
+- Tuesday–Friday: hourly, 8:50 AM–8:50 PM CT.
+- Saturday: 8:50 AM and 9:50 AM CT.
+- Outside these windows: HTTP 200 with `skipped: true`, without spending Odds API credits.
+
+Vercel still runs the results fallback daily (`30 6 * * *` UTC) and the Saturday locking fallback (`5 17 * * 6` UTC), as recorded in `vercel.json`. Do not add a second odds scheduler or schedule the legacy `/api/cron/tick` endpoint.
+
+## Recreate or rotate the odds job
+
+1. Enable the Cron (`pg_cron`) and `pg_net` integrations in Supabase.
+2. Create a strong random token in Supabase Vault named `odds_cron_token`. Do not put its value in source control, URLs, logs, or this document.
+3. Configure the token's SHA-256 hex digest as the Vercel server variable `ODDS_CRON_TOKEN_SHA256`, then redeploy. The existing production digest remains the fallback until this variable is configured.
+4. Run `supabase/odds-cron.sql` after reviewing its deployment URL. Scheduling by the existing name updates the job instead of creating a duplicate.
+5. Verify a scheduled run and its actual HTTP response. A successful pg_cron run only means the asynchronous request was queued.
+
+Do not manually invoke the odds endpoint for testing unless an extra paid odds refresh is intended.
+
+## Health checks
+
+Run in the Supabase SQL editor:
+
+```sql
+select jobid, jobname, schedule, active
+from cron.job where jobname = 'refresh-pickem-odds-hourly';
+
+select start_time, end_time, status, return_message
+from cron.job_run_details
+where jobid = (select jobid from cron.job where jobname = 'refresh-pickem-odds-hourly')
+order by start_time desc limit 24;
+
+select id, created, status_code, timed_out, error_msg, left(content, 800) as response
+from net._http_response
+order by created desc limit 24;
 ```
 
-The `CRON_SECRET` value must match the environment variable you set in Vercel.
+Check for HTTP 200 and `ok: true` (or the documented skipped response). Investigate non-2xx responses, timeouts, missing responses, or no successful refresh during an allowed window. Responses from other pg_net jobs can appear in the same table. These checks are operational diagnostics, not an automatic alerting service.
 
-## Schedule
+pg_net responses have limited retention. Check failures promptly. Review and prune old `cron.job_run_details` records as part of database maintenance; do not delete recent incident evidence.
 
-Keep the regular scheduler jobs that cover Tuesday-Friday games, including a Friday 8:50 PM CT call so a Friday 10:00 PM CT kickoff can receive its final update before the 9:00 PM line freeze.
+## Local verification
 
-Add these Saturday-morning jobs:
-
-- Saturday 8:50 AM CT
-- Saturday 9:50 AM CT
-
-Each run refreshes both CFB and NFL, locks closed picks, checks official ESPN final scores, grades picks and side bets, and settles the weekly bank when a group is ready.
-
-The Saturday-only calls create two extra weekend line checks around 9:00 and 10:00 AM. The 9:50 AM call is the final scheduled refresh for Saturday-Monday games before those lines freeze at 10:00 AM CT. Saturday-Monday picks then lock at 11:00 AM CT.
-
-Tuesday-Friday games stay on the per-game schedule: their lines freeze 1 hour before kickoff and their picks lock at kickoff. This keeps Friday games out of the weekend freeze window even when they kick late Friday night.
-
-Because many schedulers use UTC, during daylight saving time Central Time is UTC-5:
-
-- Friday 8:50 PM CT = 01:50 UTC Saturday
-- Saturday 8:50 AM CT = 13:50 UTC
-- Saturday 9:50 AM CT = 14:50 UTC
-
-If the scheduler supports America/Chicago time zones, use that instead so daylight-saving changes are handled automatically.
-
-## What the endpoint does
-
-`/api/cron/tick` calls:
-
-1. `/api/cron/odds` to refresh current spreads.
-2. `/api/cron/lock` to close any games whose deadline has passed and lock draft picks.
-3. `/api/cron/results` to import ESPN finals, grade picks and side bets, and automatically settle completed weeks.
-
-There is no manual refresh or weekly settlement control in the app. The external cron schedule handles both. Vercel also runs `/api/cron/results` once nightly as a fallback.
+Run `npm ci`, `npm run lint`, `npm test`, and `npm run build`.
+The matchup preview uses bounded caches and request timeouts; no scheduler is required for its data.

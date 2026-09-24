@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import MenuSelect from "@/components/MenuSelect";
 
@@ -41,7 +41,9 @@ export default function PlayerProfiles() {
   const profileCache = useRef(new Map<string, ProfilePayload>());
   const requestSequence = useRef(0);
 
-  async function loadProfile(name: string, nextPeriod: string, initial = false) {
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+  const loadProfile = useCallback(async (name: string, nextPeriod: string, initial = false) => {
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token || !name) return;
 
@@ -72,11 +74,11 @@ export default function PlayerProfiles() {
     } catch (cause) {
       if (requestId !== requestSequence.current) return;
       setError(cause instanceof Error ? cause.message : "Could not load player profile.");
-      if (profile) setPeriod(profile.period.selected);
+      if (profileRef.current) setPeriod(profileRef.current.period.selected);
     } finally {
       if (requestId === requestSequence.current) setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     function activate(event: MouseEvent) {
@@ -111,7 +113,7 @@ export default function PlayerProfiles() {
       document.removeEventListener("click", activate);
       document.removeEventListener("keydown", activateFromKeyboard);
     };
-  }, []);
+  }, [loadProfile]);
 
   useEffect(() => {
     if (!profile) return;

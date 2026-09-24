@@ -43,12 +43,6 @@ Ready-mode private family football pick'em app.
 4. Each user clicks **First time**, selects their username, and creates a password.
 5. After claiming, they use **Sign in** with username + password.
 
-## External scheduler
+## Scheduled updates
 
-Use cron-job.org to call:
-
-```txt
-https://YOUR-VERCEL-APP.vercel.app/api/cron/tick?secret=YOUR_CRON_SECRET
-```
-
-Schedule it Monday-Friday at 2 AM, 6 AM, 10 AM, 2 PM, 6 PM, and 10 PM CT.
+Odds updates run through Supabase Cron and Vault. Vercel provides the results and locking fallback jobs. See [scheduler setup and health checks](docs/external-scheduler.md) for recovery instructions and the current Central Time refresh windows.
