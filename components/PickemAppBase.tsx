@@ -2794,8 +2794,8 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
     : bet.result === "push"
       ? "Push"
       : winner
-        ? perspective.involvesUser && winner.id === currentUser.id
-          ? "You Win"
+        ? perspective.involvesUser
+          ? winner.id === currentUser.id ? "You Win" : "You Lost"
           : `${winner.name} Won`
         : "Settled";
   const statusTone = bet.status === "settled" && winner && perspective.involvesUser
