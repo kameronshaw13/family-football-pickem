@@ -62,7 +62,7 @@
   gap: 7px;
   border-bottom: 1px solid var(--line);
   color: var(--muted);
-  background: var(--panel);
+  background: var(--surface-muted);
 }
 .game-tracker-status-line span { font-size: 8px; font-weight: 900; letter-spacing: .05em; }
 .game-tracker-status-line span.live { color: var(--red); }
@@ -287,7 +287,7 @@
   border-bottom: 1px solid transparent;
   list-style: none;
   cursor: pointer;
-  background: var(--surface-muted);
+  background: var(--panel);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   user-select: none;
