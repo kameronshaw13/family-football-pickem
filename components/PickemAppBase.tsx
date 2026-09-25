@@ -1727,7 +1727,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const viewedSideBetLedger = (previewActive ? testWeek!.sideBets : sideBetLedger)
     .filter((bet) => bet.status === "accepted" || bet.status === "settled")
     .filter((bet) => sideBetLedgerScope === "all" || bet.creator_id === currentUser.id || bet.accepted_by === currentUser.id)
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    .sort((a, b) => {
+      const bTime = new Date(b.accepted_at || b.created_at).getTime();
+      const aTime = new Date(a.accepted_at || a.created_at).getTime();
+      return bTime - aTime;
+    });
   const viewedSideBetBankTotals = previewActive ? testWeek!.sideBetBankTotals : data.sideBetBankTotals;
   const viewedGames = previewActive ? testWeek!.games : games;
   const viewedPicks = previewActive ? testWeek!.picks : picks;
@@ -2795,7 +2799,7 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
       ? "Push"
       : winner
         ? perspective.involvesUser
-          ? winner.id === currentUser.id ? "You Win" : "You Lost"
+          ? winner.id === currentUser.id ? "You Won" : "You Lost"
           : `${winner.name} Won`
         : "Settled";
   const statusTone = bet.status === "settled" && winner && perspective.involvesUser
