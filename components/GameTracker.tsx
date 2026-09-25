@@ -215,6 +215,28 @@ function DriveSummary({ drive, payload }: { drive: TrackerDrive; payload: Tracke
   </summary>;
 }
 
+function DriveDetails({ drive, payload, initiallyOpen }: { drive: TrackerDrive; payload: TrackerPayload; initiallyOpen: boolean }) {
+  const [open, setOpen] = useState(initiallyOpen);
+
+  return <details
+    className="game-tracker-drive"
+    open={open}
+    onToggle={(event) => setOpen(event.currentTarget.open)}
+  >
+    <DriveSummary drive={drive} payload={payload} />
+    <div className="game-tracker-drive-plays">
+      {drive.plays.length ? drive.plays.map((play) => <div className="game-tracker-drive-play" key={play.id}>
+        <span>{[periodLabel(play.period), play.clock].filter(Boolean).join(" · ")}</span>
+        <div>
+          <strong>{play.text}</strong>
+          {play.situation && <small>{play.situation}</small>}
+        </div>
+        {play.scoringPlay && <b>SCORING</b>}
+      </div>) : <p className="game-tracker-drive-empty">No plays listed for this drive.</p>}
+    </div>
+  </details>;
+}
+
 function Plays({ payload }: { payload: TrackerPayload }) {
   if (!payload.drives.length) return <p className="game-tracker-empty">Drive data is not available yet.</p>;
 
@@ -227,19 +249,7 @@ function Plays({ payload }: { payload: TrackerPayload }) {
 
       return <Fragment key={drive.id}>
         {showQuarter && <div className="game-tracker-quarter-header">{period} Quarter</div>}
-        <details className="game-tracker-drive" defaultOpen={drive.current || index === 0}>
-          <DriveSummary drive={drive} payload={payload} />
-          <div className="game-tracker-drive-plays">
-            {drive.plays.length ? drive.plays.map((play) => <div className="game-tracker-drive-play" key={play.id}>
-              <span>{[periodLabel(play.period), play.clock].filter(Boolean).join(" · ")}</span>
-              <div>
-                <strong>{play.text}</strong>
-                {play.situation && <small>{play.situation}</small>}
-              </div>
-              {play.scoringPlay && <b>SCORING</b>}
-            </div>) : <p className="game-tracker-drive-empty">No plays listed for this drive.</p>}
-          </div>
-        </details>
+        <DriveDetails drive={drive} payload={payload} initiallyOpen={drive.current || index === 0} />
       </Fragment>;
     })}
   </div>;
