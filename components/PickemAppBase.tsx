@@ -2225,11 +2225,12 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
             const awayCompact = teamAbbreviatedName(game.league, game.awayTeam);
             const homeCompact = teamAbbreviatedName(game.league, game.homeTeam);
             const selection = game.selections?.[player.id] || game.winningSelections?.[0];
-            const oddsText = selection ? americanOddsText(Number(selection.odds || 100)) : "";
+            const oddsValue = selection ? Number(selection.odds || 100) : 100;
+            const oddsText = selection && Math.abs(oddsValue) !== 100 ? americanOddsText(oddsValue) : "";
             const marketText = selection
               ? selection.marketType === "moneyline"
-                ? `ML ${oddsText}`
-                : `${spreadText(selection.spread)} ${oddsText}`
+                ? ["ML", oddsText].filter(Boolean).join(" ")
+                : [spreadText(selection.spread), oddsText].filter(Boolean).join(" ")
               : "";
             const fullMatchup = selection?.team === game.awayTeam
               ? `${awayFull} ${marketText} at ${homeFull}`

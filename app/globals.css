@@ -442,13 +442,12 @@ fieldset .field-label { padding: 0; }
 .bank-summary-head { display: grid; height: var(--data-header-height); min-height: var(--data-header-height); grid-template-columns: minmax(0, 1fr) max-content; align-items: center; padding-inline: var(--bank-content-inset) 17px; border-bottom: 1px solid var(--line); color: var(--header-muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
 .bank-summary-head-expandable { grid-template-columns: minmax(0, 1fr) max-content 18px; gap: 10px; padding-right: 11px; }
 .bank-summary-head span:nth-child(2) { display: flex; height: 100%; align-items: center; justify-content: flex-end; text-align: right; }
-.bank-balance-player { background: var(--panel); }
-.bank-balance-player:not(:last-child) { border-bottom: 1px solid var(--line); }
-.bank-balance-player > summary { display: grid; box-sizing: border-box; height: var(--data-row-height); min-height: var(--data-row-height); grid-template-columns: minmax(0, 1fr) max-content 18px; align-items: center; gap: 10px; padding: 8px 11px 8px var(--bank-content-inset); border-bottom: 1px solid transparent; list-style: none; cursor: pointer; outline: 0; background: var(--panel); -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
+.bank-balance-player { background: var(--panel); border-bottom: 0; }
+.bank-balance-player > summary { display: grid; box-sizing: border-box; height: var(--data-row-height); min-height: var(--data-row-height); grid-template-columns: minmax(0, 1fr) max-content 18px; align-items: center; gap: 10px; padding: 8px 11px 8px var(--bank-content-inset); border: 0; border-bottom: 1px solid var(--line); list-style: none; cursor: pointer; outline: 0; background: var(--panel); -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
+.bank-balance-player:last-child:not([open]) > summary { border-bottom-color: transparent; }
 .bank-balance-player > summary::marker { content: ""; }
 .bank-balance-player > summary::-webkit-details-marker { display: none; }
 .bank-balance-player > summary > svg { color: var(--muted); transition: transform .18s ease; }
-.bank-balance-player[open] > summary { border-bottom-color: var(--line); }
 .bank-balance-player[open] > summary > svg { transform: rotate(180deg); }
 .bank-balance-player-name { min-width: 0; overflow: hidden; color: var(--ink); font-family: var(--font-display); font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .bank-balance-player > summary > strong { font-family: var(--font-display); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
