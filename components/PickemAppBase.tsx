@@ -2221,21 +2221,24 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
             const homeFull = teamDisplayName(game.league, game.homeTeam);
             const awayCompact = teamAbbreviatedName(game.league, game.awayTeam);
             const homeCompact = teamAbbreviatedName(game.league, game.homeTeam);
-            const winningSelection = game.winningSelections?.[0];
-            const winningLine = winningSelection
-              ? winningSelection.marketType === "moneyline" ? "ML" : spreadText(winningSelection.spread)
+            const selection = game.selections?.[player.id] || game.winningSelections?.[0];
+            const oddsText = selection ? americanOddsText(Number(selection.odds || 100)) : "";
+            const marketText = selection
+              ? selection.marketType === "moneyline"
+                ? `ML ${oddsText}`
+                : `${spreadText(selection.spread)} ${oddsText}`
               : "";
-            const fullMatchup = winningSelection?.team === game.awayTeam
-              ? `${awayFull} ${winningLine} at ${homeFull}`
-              : winningSelection?.team === game.homeTeam
-                ? `${awayFull} at ${homeFull} ${winningLine}`
+            const fullMatchup = selection?.team === game.awayTeam
+              ? `${awayFull} ${marketText} at ${homeFull}`
+              : selection?.team === game.homeTeam
+                ? `${awayFull} at ${homeFull} ${marketText}`
                 : `${awayFull} at ${homeFull}`;
-            const compactMatchup = winningSelection?.team === game.awayTeam
-              ? `${awayCompact} ${winningLine} at ${homeCompact}`
-              : winningSelection?.team === game.homeTeam
-                ? `${awayCompact} at ${homeCompact} ${winningLine}`
+            const compactMatchup = selection?.team === game.awayTeam
+              ? `${awayCompact} ${marketText} at ${homeCompact}`
+              : selection?.team === game.homeTeam
+                ? `${awayCompact} at ${homeCompact} ${marketText}`
                 : `${awayCompact} at ${homeCompact}`;
-            return <div className="bank-history-line bank-history-game-line" key={game.gameId}>
+            return <div className="bank-history-line bank-history-game-line" key={game.historyKey || game.gameId}>
               <span className="bank-history-game-copy">
                 <ResponsiveText full={fullMatchup} compact={compactMatchup} />
                 {game.playerBetCount > 1 && <small><NumericText text={`${game.playerBetCount} bets`} /></small>}

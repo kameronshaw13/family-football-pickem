@@ -1,7 +1,8 @@
 import type { BankEntry, SideBet } from "./types.ts";
-import { sideBetCreatorProfit } from "./sideBetMarkets.ts";
+import { oppositeAmericanOdds, sideBetCreatorProfit } from "./sideBetMarkets.ts";
 
 export type BankHistoryGame = {
+  historyKey: string;
   gameId: string;
   league: string;
   commenceTime: string;
@@ -10,7 +11,8 @@ export type BankHistoryGame = {
   betCount: number;
   betCounts: Record<string, number>;
   amounts: Record<string, number>;
-  winningSelections: Array<{ team: string; spread: number; marketType: "spread" | "moneyline" }>;
+  winningSelections: Array<{ team: string; spread: number; marketType: "spread" | "moneyline"; odds: number }>;
+  selections: Record<string, { team: string; spread: number; marketType: "spread" | "moneyline"; odds: number }>;
 };
 
 export type BankHistoryWeek = {
@@ -70,9 +72,20 @@ export function buildBankHistory(bankEntries: BankEntry[], sideBets: HistorySide
       gameMaps.set(week, games);
     }
 
-    let game = games.get(bet.game_id);
+    const creatorOdds = Number(bet.creator_odds ?? 100);
+    const marketType = bet.market_type === "moneyline" ? "moneyline" as const : "spread" as const;
+    const historyKey = [
+      bet.game_id,
+      marketType,
+      bet.creator_team,
+      Number(bet.creator_spread || 0),
+      Number.isFinite(creatorOdds) ? creatorOdds : 100
+    ].join("|");
+
+    let game = games.get(historyKey);
     if (!game) {
       game = {
+        historyKey,
         gameId: bet.game_id,
         league: String(bet.game?.league || ""),
         commenceTime: String(bet.game?.commence_time || ""),
@@ -81,9 +94,10 @@ export function buildBankHistory(bankEntries: BankEntry[], sideBets: HistorySide
         betCount: 0,
         betCounts: {},
         amounts: {},
-        winningSelections: []
+        winningSelections: [],
+        selections: {}
       };
-      games.set(bet.game_id, game);
+      games.set(historyKey, game);
       row.games.push(game);
     }
 
@@ -91,16 +105,31 @@ export function buildBankHistory(bankEntries: BankEntry[], sideBets: HistorySide
     const creatorWon = bet.winner_id === bet.creator_id;
     const winningTeam = creatorWon ? bet.creator_team : bet.offered_team;
     const rawWinningSpread = Number(creatorWon ? bet.creator_spread : bet.offered_spread);
+    const winnerOdds = creatorWon ? creatorOdds : oppositeAmericanOdds(creatorOdds);
     const winningSelection = {
       team: winningTeam,
       spread: Number.isFinite(rawWinningSpread) ? rawWinningSpread : 0,
-      marketType: bet.market_type === "moneyline" ? "moneyline" as const : "spread" as const
+      marketType,
+      odds: Number.isFinite(winnerOdds) ? winnerOdds : 100
     };
     if (!game.winningSelections.some((selection) =>
       selection.team === winningSelection.team &&
       selection.spread === winningSelection.spread &&
-      selection.marketType === winningSelection.marketType
+      selection.marketType === winningSelection.marketType &&
+      selection.odds === winningSelection.odds
     )) game.winningSelections.push(winningSelection);
+    game.selections[bet.creator_id] = {
+      team: bet.creator_team,
+      spread: Number(bet.creator_spread || 0),
+      marketType,
+      odds: Number.isFinite(creatorOdds) ? creatorOdds : 100
+    };
+    game.selections[bet.accepted_by] = {
+      team: bet.offered_team,
+      spread: Number(bet.offered_spread || 0),
+      marketType,
+      odds: oppositeAmericanOdds(Number.isFinite(creatorOdds) ? creatorOdds : 100)
+    };
     game.betCounts[bet.creator_id] = Number(game.betCounts[bet.creator_id] || 0) + 1;
     game.betCounts[bet.accepted_by] = Number(game.betCounts[bet.accepted_by] || 0) + 1;
     addAmount(game.amounts, bet.winner_id, transfer);

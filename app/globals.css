@@ -463,14 +463,13 @@ fieldset .field-label { padding: 0; }
 .bank-results-labels > span:nth-child(2), .bank-results-labels > span:nth-child(3) { display: flex; height: 100%; align-items: center; justify-content: flex-end; text-align: right; }
 .bank-history-empty { margin: 0; padding: 11px var(--bank-content-inset); }
 .bank-history-week { position: relative; background: var(--panel); }
-.bank-history-week:not(:last-child) { border-bottom: 1px solid var(--line); }
-.bank-history-week > summary { display: grid; box-sizing: border-box; height: 40px; min-height: 40px; grid-template-columns: minmax(0, 1fr) max-content 18px; align-items: center; gap: 10px; padding: 7px 11px 7px calc(var(--bank-content-inset) + 10px); border-bottom: 1px solid transparent; list-style: none; cursor: pointer; outline: 0; background: var(--surface-muted); -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
+.bank-history-week:not(:last-child) { border-bottom: 0; }
+.bank-history-week > summary { display: grid; box-sizing: border-box; height: 40px; min-height: 40px; grid-template-columns: minmax(0, 1fr) max-content 18px; align-items: center; gap: 10px; padding: 7px 11px 7px calc(var(--bank-content-inset) + 10px); border-bottom: 1px solid var(--line); list-style: none; cursor: pointer; outline: 0; background: var(--surface-muted); -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
 .bank-history-week > summary::marker { content: ""; }
 .bank-history-week > summary::-webkit-details-marker { display: none; }
 .bank-history-week > summary > strong { color: var(--ink); font-family: var(--font-display); font-size: 12px; font-weight: 800; }
 .bank-history-week > summary > span { font-family: var(--font-display); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bank-history-week > summary > svg { color: var(--muted); transition: transform .18s ease; }
-.bank-history-week[open] > summary { border-bottom-color: var(--line); }
 .bank-history-week[open] > summary > svg { transform: rotate(180deg); }
 .bank-history-week-body { background: var(--panel); }
 .bank-history-line { display: grid; min-height: 38px; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; gap: 10px; padding: 7px 17px 7px calc(var(--bank-content-inset) + 20px); border-bottom: 1px solid var(--line); background: var(--panel); }
