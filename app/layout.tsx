@@ -12,6 +12,7 @@ import "./admin-no-submission.css";
 import "./component-styles.css";
 import "./presentation-fixes.css";
 import "./matchup-preview.css";
+import "./game-tracker.css";
 import type { Metadata, Viewport } from "next";
 import { Roboto_Slab } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
