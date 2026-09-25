@@ -113,12 +113,17 @@ export async function GET(req: NextRequest) {
       ? rawSideBetSlotCounts
       : Object.fromEntries(profiles.map((profile) => [profile.id, 0]));
     const sideBetBankTotals = Object.fromEntries(profiles.map((profile) => [profile.id, 0]));
+    const sideBetWeekTotals = Object.fromEntries(profiles.map((profile) => [profile.id, 0]));
     for (const bet of allSideBets) {
       if (bet.status !== "settled" || bet.result === "push" || !bet.accepted_by || !bet.winner_id) continue;
       const loserId = bet.winner_id === bet.creator_id ? bet.accepted_by : bet.creator_id;
       const transfer = bet.winner_id === bet.creator_id ? sideBetCreatorProfit(bet) : Number(bet.amount);
       sideBetBankTotals[bet.winner_id] = Number(sideBetBankTotals[bet.winner_id] || 0) + transfer;
       sideBetBankTotals[loserId] = Number(sideBetBankTotals[loserId] || 0) - transfer;
+      if (Number(bet.week) === week) {
+        sideBetWeekTotals[bet.winner_id] = Number(sideBetWeekTotals[bet.winner_id] || 0) + transfer;
+        sideBetWeekTotals[loserId] = Number(sideBetWeekTotals[loserId] || 0) - transfer;
+      }
     }
     const bankHistory = buildBankHistory(bankResult.data || [], allSideBets);
     const weeklyBank = context.rules?.weeklyBank || {};
@@ -163,6 +168,7 @@ export async function GET(req: NextRequest) {
       sideBetLedger,
       sideBetSlotCounts: sideBetSlotCountsByPlayer,
       sideBetBankTotals,
+      sideBetWeekTotals,
       week,
       currentWeek: defaultWeek,
       weekRule: getGroupWeekRule(context, week),
