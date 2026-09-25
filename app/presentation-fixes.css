@@ -424,3 +424,35 @@
   font-size: 9px;
   line-height: 1.2;
 }
+
+
+/* Side-bet ledger result and balance clarity. */
+.side-bet-ledger-balance-strip {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 12px;
+  margin: -4px 0 8px;
+  padding: 0 2px;
+  overflow-x: auto;
+  color: var(--muted);
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+.side-bet-ledger-balance-strip::-webkit-scrollbar { display: none; }
+.side-bet-ledger-balance-strip > span {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 10px;
+}
+.side-bet-ledger-balance-strip b { color: var(--header-muted); font-weight: 800; }
+.side-bet-ledger-balance-strip strong {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.side-bet-ledger-copy .ledger-result-win { color: var(--green); font-weight: 800; }
+.side-bet-ledger-copy .ledger-result-loss { color: var(--red); font-weight: 800; }

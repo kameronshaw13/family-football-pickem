@@ -1791,6 +1791,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     display_name: profile.display_name,
     total: viewedBankEntries.filter((entry) => entry.user_id === profile.id).reduce((sum, entry) => sum + Number(entry.amount || 0), 0) + Number(viewedSideBetBankTotals?.[profile.id] || 0)
   })).sort((a, b) => b.total - a.total) : [];
+  const sideBetBalanceRows = bankActive ? profiles.map((profile) => ({
+    id: profile.id,
+    display_name: profile.id === currentUser.id ? "You" : profile.display_name,
+    total: Number(viewedSideBetBankTotals?.[profile.id] || 0)
+  })).sort((a, b) => b.total - a.total || a.display_name.localeCompare(b.display_name)) : [];
   const openBetGames = sideBetsActive ? games.filter((game) => new Date(game.commence_time) > new Date() && game.current_spread != null && game.current_spread_team) : [];
   const selectedBetGame = openBetGames.find((game) => game.id === betGameId);
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : "";
@@ -2127,7 +2132,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             </div>
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} pointsMode={pointsMode} universalLockReached={universalLockReached} />
           </div>
-          <div className="subsection bank-section bank-week-section"><div className="standings-heading-row side-bet-ledger-heading-row"><h2 className="heading-with-badge">Side Bet Ledger <NotificationBadge count={bankNotificationCount} /></h2><div className="side-bet-ledger-scope-toggle" role="group" aria-label="Filter side bet ledger"><button type="button" className={sideBetLedgerScope === "all" ? "active" : ""} aria-pressed={sideBetLedgerScope === "all"} onClick={() => setSideBetLedgerScope("all")}>All Bets</button><button type="button" className={sideBetLedgerScope === "mine" ? "active" : ""} aria-pressed={sideBetLedgerScope === "mine"} onClick={() => setSideBetLedgerScope("mine")}>My Bets</button></div></div><div className="ledger-list">{!previewActive && !sideBetLedgerReady && <p className="muted">Loading side bet ledger…</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.length === 0 && <p className="muted ledger-empty-state">No side bets in the ledger yet.</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
+          <div className="subsection bank-section bank-week-section"><div className="standings-heading-row side-bet-ledger-heading-row"><h2 className="heading-with-badge">Side Bet Ledger <NotificationBadge count={bankNotificationCount} /></h2><div className="side-bet-ledger-scope-toggle" role="group" aria-label="Filter side bet ledger"><button type="button" className={sideBetLedgerScope === "all" ? "active" : ""} aria-pressed={sideBetLedgerScope === "all"} onClick={() => setSideBetLedgerScope("all")}>All Bets</button><button type="button" className={sideBetLedgerScope === "mine" ? "active" : ""} aria-pressed={sideBetLedgerScope === "mine"} onClick={() => setSideBetLedgerScope("mine")}>My Bets</button></div></div><div className="side-bet-ledger-balance-strip" aria-label="Side bet balances">{sideBetBalanceRows.map((row) => <span key={row.id}><b>{row.display_name}</b><strong className={row.total > 0 ? "money-pos" : row.total < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(row.total)} /></strong></span>)}</div><div className="ledger-list">{!previewActive && !sideBetLedgerReady && <p className="muted">Loading side bet ledger…</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.length === 0 && <p className="muted ledger-empty-state">No side bets in the ledger yet.</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
         </>}
       </section>}
 
@@ -2782,12 +2787,25 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
       : matchupTextVariants(game, { spreadTeam: displayTeam, spread: displaySpread, suffix: sideBetOddsSuffix(bet, displayTeam) })
     : { full: `${displayTeam} ${market} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}`, intermediate: undefined, compact: `${displayTeam} ${market} vs ${displayTeam === bet.creator_team ? bet.offered_team : bet.creator_team}` };
   const winner = bet.winner_id === creator.id ? creator : bet.winner_id === acceptor.id ? acceptor : null;
-  const status = bet.status === "accepted" ? "" : bet.result === "push" ? "Push" : winner ? `${displayPerson(winner)} Won` : "Settled";
+  const status = bet.status === "accepted"
+    ? ""
+    : bet.result === "push"
+      ? "Push"
+      : winner
+        ? perspective.involvesUser
+          ? winner.id === currentUser.id ? "You Win" : "You Lose"
+          : `${winner.name} Won`
+        : "Settled";
+  const statusTone = bet.status === "settled" && winner
+    ? perspective.involvesUser
+      ? winner.id === currentUser.id ? "ledger-result-win" : "ledger-result-loss"
+      : "ledger-result-win"
+    : "";
   const bettors = `${displayPerson(sideBetBettorForTeam(bet, awayTeam))} vs ${displayPerson(sideBetBettorForTeam(bet, homeTeam))}`;
   const amountDisplay = perspective.involvesUser ? sideBetAmountForUser(bet, currentUser.id) : { settled: true, text: stakeMoney(Number(bet.amount)), risk: "", win: "", evenPayout: true, tone: "money-neutral" };
   return <div className={`ledger-row side-bet-ledger-row ${bet.status === "accepted" ? "accepted" : ""}`}>
     <TeamLogo url={game ? logoForTeam(game, displayTeam) : null} name={displayTeam} />
-    <div className="side-bet-ledger-copy"><strong className="side-bet-ledger-title"><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} className="side-bet-ledger-matchup" /></strong><p>{bettors}{status ? <> · {status}</> : null}</p></div>
+    <div className="side-bet-ledger-copy"><strong className="side-bet-ledger-title"><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} className="side-bet-ledger-matchup" /></strong><p><span>{bettors}</span>{status ? <> · <span className={statusTone}>{status}</span></> : null}</p></div>
     {amountDisplay.settled || amountDisplay.evenPayout
       ? <strong className={`side-bet-ledger-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
       : <div className="side-bet-ledger-amount side-bet-offer-payout" aria-label={`Risk ${amountDisplay.risk} to win ${amountDisplay.win}`}>
