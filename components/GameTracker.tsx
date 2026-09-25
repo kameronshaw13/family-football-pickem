@@ -239,17 +239,20 @@ function DriveSummary({ drive, payload }: { drive: TrackerDrive; payload: Tracke
     ? ` (${drive.awayScore ?? "—"}-${drive.homeScore ?? "—"})`
     : "";
   const title = drive.current ? "Current Drive" : drive.result || "Drive";
-  const detail = [
+  const detailParts = [
     drive.playsCount ? `${drive.playsCount} plays` : "",
-    drive.yards != null ? `${drive.yards} yds` : "",
-    drive.timeElapsed
-  ].filter(Boolean).join(" · ");
+    drive.yards != null ? `${drive.yards} yds` : ""
+  ].filter(Boolean);
+  const timeAndPossession = drive.timeElapsed
+    ? `${drive.timeElapsed}${team ? " Possession" : ""}`
+    : team ? "Possession" : "";
+  const detail = [...detailParts, timeAndPossession].filter(Boolean).join(" · ");
 
   return <summary>
     <span className="game-tracker-drive-logo">{team && <TeamLogo src={team.logo} name={team.name} size={28} />}</span>
     <div>
       <strong>{title}{scoreText}</strong>
-      <small className="game-tracker-drive-meta"><span>{detail || drive.description || "Drive summary"}</span>{team && <b>Possession</b>}</small>
+      <small className="game-tracker-drive-meta">{detail || drive.description || "Drive summary"}</small>
     </div>
     <ChevronDown size={16} />
   </summary>;
@@ -266,7 +269,6 @@ function DriveDetails({ drive, payload, initiallyOpen }: { drive: TrackerDrive; 
     <DriveSummary drive={drive} payload={payload} />
     <div className="game-tracker-drive-plays">
       {drive.plays.length ? drive.plays.map((play) => <div className="game-tracker-drive-play" key={play.id}>
-        <span className="game-tracker-play-time">{[periodLabel(play.period), play.clock].filter(Boolean).join(" · ")}</span>
         <div>
           {play.situation && <small className="game-tracker-play-situation">{play.situation}</small>}
           <strong>{play.text}</strong>
