@@ -124,19 +124,31 @@ function statusText(payload: TrackerPayload | null, game: Game) {
   return game.live_completed || game.final_home_score != null ? "Final" : "Live";
 }
 
-function TeamScore({ side, payload, game }: { side: Side; payload: TrackerPayload | null; game: Game }) {
+function TeamScore({ side, payload, game, completed }: { side: Side; payload: TrackerPayload | null; game: Game; completed: boolean }) {
   const fallbackName = teamDisplayName(game.league, side === "away" ? game.away_team : game.home_team);
   const fallbackLogo = side === "away" ? game.away_logo_url : game.home_logo_url;
-  const fallbackScore = side === "away"
+  const ownFallbackScore = side === "away"
     ? game.live_away_score ?? game.final_away_score
     : game.live_home_score ?? game.final_home_score;
+  const opponentFallbackScore = side === "away"
+    ? game.live_home_score ?? game.final_home_score
+    : game.live_away_score ?? game.final_away_score;
   const team = payload?.teams[side];
+  const opponent = payload?.teams[side === "away" ? "home" : "away"];
   const fullName = team?.name || fallbackName;
   const shortName = team?.shortName || fullName;
-  return <div className={`game-tracker-score-team ${side}`} aria-label={`${fullName} ${team?.score ?? fallbackScore ?? "score unavailable"}`}>
-    <TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={38} />
-    <span>{shortName}</span>
-    <b>{team?.score ?? fallbackScore ?? "—"}</b>
+  const score = team?.score ?? ownFallbackScore;
+  const opponentScore = opponent?.score ?? opponentFallbackScore;
+  const scoreTone = completed && score != null && opponentScore != null
+    ? score > opponentScore ? "winner" : score < opponentScore ? "loser" : ""
+    : "";
+
+  return <div className={`game-tracker-score-team ${side}`} aria-label={`${fullName} ${score ?? "score unavailable"}`}>
+    <span className="game-tracker-score-team-name">{shortName}</span>
+    <div className="game-tracker-score-team-main">
+      <TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={38} />
+      <b className={scoreTone}>{score ?? "—"}</b>
+    </div>
   </div>;
 }
 
@@ -180,10 +192,20 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
   </div>;
 }
 
-function ScoringScore({ payload, awayScore, homeScore }: { payload: TrackerPayload; awayScore: number | null; homeScore: number | null }) {
-  return <div className="game-tracker-score-columns" aria-label={`${payload.teams.away.shortName} ${awayScore ?? "—"}, ${payload.teams.home.shortName} ${homeScore ?? "—"}`}>
-    <span><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><b>{awayScore ?? "—"}</b></span>
-    <span><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /><b>{homeScore ?? "—"}</b></span>
+function ScoringQuarterHeader({ payload, label }: { payload: TrackerPayload; label: string }) {
+  return <div className="game-tracker-quarter-header game-tracker-scoring-quarter-header">
+    <span>{label} Quarter</span>
+    <div className="game-tracker-quarter-team-logos" aria-hidden="true">
+      <TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} />
+      <TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} />
+    </div>
+  </div>;
+}
+
+function ScoringScore({ awayScore, homeScore }: { awayScore: number | null; homeScore: number | null }) {
+  return <div className="game-tracker-score-values">
+    <b>{awayScore ?? "—"}</b>
+    <b>{homeScore ?? "—"}</b>
   </div>;
 }
 
@@ -193,19 +215,17 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
   return <div className="game-tracker-scoring-list">
     {payload.scoringPlays.map((play, index) => {
       const previous = payload.scoringPlays[index - 1];
-      const showQuarter = !previous || periodLabel(previous.period) !== periodLabel(play.period);
-      const side = play.teamSide;
-      const team = side ? payload.teams[side] : null;
+      const quarter = periodLabel(play.period);
+      const showQuarter = !previous || periodLabel(previous.period) !== quarter;
 
       return <Fragment key={play.id}>
-        {showQuarter && <div className="game-tracker-quarter-header">{periodLabel(play.period)} Quarter</div>}
+        {showQuarter && <ScoringQuarterHeader payload={payload} label={quarter} />}
         <div className="game-tracker-score-play">
-          <span className="game-tracker-score-logo">{team && <TeamLogo src={team.logo} name={team.name} size={30} />}</span>
           <div>
-            <small>{[periodLabel(play.period), play.clock, play.type].filter(Boolean).join(" · ")}</small>
+            <small>{[quarter, play.clock, play.type].filter(Boolean).join(" · ")}</small>
             <strong>{play.text}</strong>
           </div>
-          <ScoringScore payload={payload} awayScore={play.awayScore} homeScore={play.homeScore} />
+          <ScoringScore awayScore={play.awayScore} homeScore={play.homeScore} />
         </div>
       </Fragment>;
     })}
@@ -220,17 +240,16 @@ function DriveSummary({ drive, payload }: { drive: TrackerDrive; payload: Tracke
     : "";
   const title = drive.current ? "Current Drive" : drive.result || "Drive";
   const detail = [
-    drive.timeElapsed,
-    team ? `${team.shortName || team.name} Possession` : "",
     drive.playsCount ? `${drive.playsCount} plays` : "",
-    drive.yards != null ? `${drive.yards} yds` : ""
+    drive.yards != null ? `${drive.yards} yds` : "",
+    drive.timeElapsed
   ].filter(Boolean).join(" · ");
 
   return <summary>
     <span className="game-tracker-drive-logo">{team && <TeamLogo src={team.logo} name={team.name} size={28} />}</span>
     <div>
       <strong>{title}{scoreText}</strong>
-      <small>{detail || drive.description || "Drive summary"}</small>
+      <small className="game-tracker-drive-meta"><span>{detail || drive.description || "Drive summary"}</span>{team && <b>Possession</b>}</small>
     </div>
     <ChevronDown size={16} />
   </summary>;
@@ -247,10 +266,10 @@ function DriveDetails({ drive, payload, initiallyOpen }: { drive: TrackerDrive; 
     <DriveSummary drive={drive} payload={payload} />
     <div className="game-tracker-drive-plays">
       {drive.plays.length ? drive.plays.map((play) => <div className="game-tracker-drive-play" key={play.id}>
-        <span>{[periodLabel(play.period), play.clock].filter(Boolean).join(" · ")}</span>
+        <span className="game-tracker-play-time">{[periodLabel(play.period), play.clock].filter(Boolean).join(" · ")}</span>
         <div>
+          {play.situation && <small className="game-tracker-play-situation">{play.situation}</small>}
           <strong>{play.text}</strong>
-          {play.situation && <small>{play.situation}</small>}
         </div>
         {play.scoringPlay && <b>SCORING</b>}
       </div>) : <p className="game-tracker-drive-empty">No plays listed for this drive.</p>}
@@ -279,9 +298,9 @@ function Plays({ payload }: { payload: TrackerPayload }) {
 function TeamStats({ payload }: { payload: TrackerPayload }) {
   return <section className="game-tracker-team-stats">
     <div className="game-tracker-stat-table-head">
-      <span>{payload.teams.away.shortName || payload.teams.away.abbreviation || "Away"}</span>
+      <span className="game-tracker-stat-team"><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><b>{payload.teams.away.shortName || payload.teams.away.abbreviation || "Away"}</b></span>
       <strong>TEAM STATS</strong>
-      <span>{payload.teams.home.shortName || payload.teams.home.abbreviation || "Home"}</span>
+      <span className="game-tracker-stat-team home"><b>{payload.teams.home.shortName || payload.teams.home.abbreviation || "Home"}</b><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /></span>
     </div>
     {payload.teamStats.map((stat) => <div className="game-tracker-stat-row" key={stat.label}>
       <strong>{stat.away}</strong>
@@ -445,9 +464,9 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
             : <><span className="live">LIVE</span><strong>{statusText(payload, game)}</strong></>}
         </div>
         <div className="game-tracker-scoreboard-grid">
-          <TeamScore side="away" payload={payload} game={game} />
+          <TeamScore side="away" payload={payload} game={game} completed={completed} />
           <div className="game-tracker-score-divider">AT</div>
-          <TeamScore side="home" payload={payload} game={game} />
+          <TeamScore side="home" payload={payload} game={game} completed={completed} />
         </div>
       </div>
 
