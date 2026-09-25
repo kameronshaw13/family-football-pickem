@@ -39,9 +39,18 @@ type TrackerDrive = {
   plays: TrackerPlay[];
 };
 
+type TrackerTeam = {
+  id: string;
+  name: string;
+  shortName: string;
+  abbreviation: string;
+  logo: string;
+  score: number | null;
+};
+
 type TrackerPayload = {
   status: { state: string; detail: string; completed: boolean };
-  teams: Record<Side, { id: string; name: string; abbreviation: string; logo: string; score: number | null }>;
+  teams: Record<Side, TrackerTeam>;
   situation: {
     possessionSide: Side | null;
     down: number | null;
@@ -68,6 +77,7 @@ type TrackerPayload = {
   playerStats: Array<{
     side: Side;
     category: string;
+    title: string;
     labels: string[];
     athletes: Array<{ name: string; values: string[] }>;
   }>;
@@ -121,12 +131,11 @@ function TeamScore({ side, payload, game }: { side: Side; payload: TrackerPayloa
     ? game.live_away_score ?? game.final_away_score
     : game.live_home_score ?? game.final_home_score;
   const team = payload?.teams[side];
-  const name = team?.name || fallbackName;
-  const abbreviation = team?.abbreviation || name.split(" ").map((part) => part[0]).join("").slice(0, 4).toUpperCase();
-
-  return <div className={`game-tracker-score-team ${side}`} aria-label={`${name} ${team?.score ?? fallbackScore ?? "score unavailable"}`}>
-    <TeamLogo src={team?.logo || fallbackLogo} name={name} size={38} />
-    <span>{abbreviation}</span>
+  const fullName = team?.name || fallbackName;
+  const shortName = team?.shortName || fullName;
+  return <div className={`game-tracker-score-team ${side}`} aria-label={`${fullName} ${team?.score ?? fallbackScore ?? "score unavailable"}`}>
+    <TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={38} />
+    <span>{shortName}</span>
     <b>{team?.score ?? fallbackScore ?? "—"}</b>
   </div>;
 }
@@ -143,13 +152,13 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
   return <div className="game-tracker-live">
     <div className="game-tracker-live-situation">
       <div>
-        <small>{possession ? `${possession.abbreviation || possession.name} BALL` : "POSSESSION"}</small>
+        <small>{possession ? `${possession.shortName || possession.name} BALL` : "POSSESSION"}</small>
         <strong>{downText}</strong>
         <span>{situation.fieldPosition ? `Ball at ${situation.fieldPosition}` : "Field position updating"}</span>
       </div>
       <div className="game-tracker-timeouts">
-        <span>{teams.away.abbreviation || "Away"} TO <b>{situation.awayTimeouts ?? "—"}</b></span>
-        <span>{teams.home.abbreviation || "Home"} TO <b>{situation.homeTimeouts ?? "—"}</b></span>
+        <span>{teams.away.shortName || teams.away.abbreviation || "Away"} TO <b>{situation.awayTimeouts ?? "—"}</b></span>
+        <span>{teams.home.shortName || teams.home.abbreviation || "Home"} TO <b>{situation.homeTimeouts ?? "—"}</b></span>
       </div>
     </div>
 
@@ -165,9 +174,16 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
 
     <div className="game-tracker-field-footer">
       <span>Own goal line</span>
-      <strong>{possession ? `${possession.abbreviation || possession.name} possession` : "Possession updating"}</strong>
+      <strong>{possession ? `${possession.shortName || possession.name} possession` : "Possession updating"}</strong>
       <span>Opponent end zone</span>
     </div>
+  </div>;
+}
+
+function ScoringScore({ payload, awayScore, homeScore }: { payload: TrackerPayload; awayScore: number | null; homeScore: number | null }) {
+  return <div className="game-tracker-score-columns" aria-label={`${payload.teams.away.shortName} ${awayScore ?? "—"}, ${payload.teams.home.shortName} ${homeScore ?? "—"}`}>
+    <span><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><b>{awayScore ?? "—"}</b></span>
+    <span><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /><b>{homeScore ?? "—"}</b></span>
   </div>;
 }
 
@@ -189,7 +205,7 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
             <small>{[periodLabel(play.period), play.clock, play.type].filter(Boolean).join(" · ")}</small>
             <strong>{play.text}</strong>
           </div>
-          <b>{play.awayScore ?? "—"}–{play.homeScore ?? "—"}</b>
+          <ScoringScore payload={payload} awayScore={play.awayScore} homeScore={play.homeScore} />
         </div>
       </Fragment>;
     })}
@@ -198,19 +214,24 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
 
 function DriveSummary({ drive, payload }: { drive: TrackerDrive; payload: TrackerPayload }) {
   const team = drive.teamSide ? payload.teams[drive.teamSide] : null;
+  const scored = drive.plays.some((play) => play.scoringPlay);
+  const scoreText = scored && (drive.awayScore != null || drive.homeScore != null)
+    ? ` (${drive.awayScore ?? "—"}-${drive.homeScore ?? "—"})`
+    : "";
+  const title = drive.current ? "Current Drive" : drive.result || "Drive";
   const detail = [
+    drive.timeElapsed,
+    team ? `${team.shortName || team.name} Possession` : "",
     drive.playsCount ? `${drive.playsCount} plays` : "",
-    drive.yards != null ? `${drive.yards} yds` : "",
-    drive.timeElapsed
+    drive.yards != null ? `${drive.yards} yds` : ""
   ].filter(Boolean).join(" · ");
 
   return <summary>
     <span className="game-tracker-drive-logo">{team && <TeamLogo src={team.logo} name={team.name} size={28} />}</span>
     <div>
-      <strong>{drive.current ? "Current Drive" : drive.result || "Drive"}</strong>
+      <strong>{title}{scoreText}</strong>
       <small>{detail || drive.description || "Drive summary"}</small>
     </div>
-    <span className="game-tracker-drive-score">{drive.awayScore != null || drive.homeScore != null ? `${drive.awayScore ?? "—"}–${drive.homeScore ?? "—"}` : ""}</span>
     <ChevronDown size={16} />
   </summary>;
 }
@@ -258,9 +279,9 @@ function Plays({ payload }: { payload: TrackerPayload }) {
 function TeamStats({ payload }: { payload: TrackerPayload }) {
   return <section className="game-tracker-team-stats">
     <div className="game-tracker-stat-table-head">
-      <span>{payload.teams.away.abbreviation || "Away"}</span>
+      <span>{payload.teams.away.shortName || payload.teams.away.abbreviation || "Away"}</span>
       <strong>TEAM STATS</strong>
-      <span>{payload.teams.home.abbreviation || "Home"}</span>
+      <span>{payload.teams.home.shortName || payload.teams.home.abbreviation || "Home"}</span>
     </div>
     {payload.teamStats.map((stat) => <div className="game-tracker-stat-row" key={stat.label}>
       <strong>{stat.away}</strong>
@@ -271,7 +292,7 @@ function TeamStats({ payload }: { payload: TrackerPayload }) {
 }
 
 function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
-  const visibleLabels = row.labels.slice(0, 6);
+  const visibleLabels = row.labels;
   return <div className="game-tracker-player-table-scroll">
     <table className="game-tracker-player-table">
       <thead><tr><th>Player</th>{visibleLabels.map((label) => <th key={label}>{label}</th>)}</tr></thead>
@@ -285,21 +306,17 @@ function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
 
 function TeamBox({ payload, side }: { payload: TrackerPayload; side: Side }) {
   const team = payload.teams[side];
-  const categories = ["passing", "rushing", "receiving"];
+  const rows = payload.playerStats.filter((item) => item.side === side);
 
   return <div className="game-tracker-team-box">
     <div className="game-tracker-team-box-heading">
       <TeamLogo src={team.logo} name={team.name} size={30} />
       <strong>{team.name}</strong>
     </div>
-    {categories.map((category) => {
-      const row = payload.playerStats.find((item) => item.side === side && item.category === category);
-      if (!row) return null;
-      return <section className="game-tracker-box-section" key={category}>
-        <h3>{category}</h3>
-        <PlayerTable row={row} />
-      </section>;
-    })}
+    {rows.length ? rows.map((row) => <section className="game-tracker-box-section" key={row.category}>
+      <h3>{row.title}</h3>
+      <PlayerTable row={row} />
+    </section>) : <p className="game-tracker-empty">Player box score is not available yet.</p>}
   </div>;
 }
 
@@ -308,9 +325,9 @@ function BoxScore({ payload }: { payload: TrackerPayload }) {
 
   return <div className="game-tracker-box">
     <div className="game-tracker-box-selector" role="group" aria-label="Choose box score team">
+      <button type="button" className={view === "away" ? "active" : ""} onClick={() => setView("away")}>{payload.teams.away.shortName || payload.teams.away.abbreviation || "Away"}</button>
       <button type="button" className={view === "all" ? "active" : ""} onClick={() => setView("all")}>All</button>
-      <button type="button" className={view === "away" ? "active" : ""} onClick={() => setView("away")}>{payload.teams.away.abbreviation || "Away"}</button>
-      <button type="button" className={view === "home" ? "active" : ""} onClick={() => setView("home")}>{payload.teams.home.abbreviation || "Home"}</button>
+      <button type="button" className={view === "home" ? "active" : ""} onClick={() => setView("home")}>{payload.teams.home.shortName || payload.teams.home.abbreviation || "Home"}</button>
     </div>
     {view === "all" ? <TeamStats payload={payload} /> : <TeamBox payload={payload} side={view} />}
   </div>;
@@ -323,6 +340,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
   const sheet = useRef<HTMLElement>(null);
+  const scrollArea = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
 
@@ -354,6 +372,36 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
   }, [mounted]);
 
   useEffect(() => {
+    if (!mounted) return;
+    const element = scrollArea.current;
+    if (!element) return;
+
+    let startX = 0;
+    let startY = 0;
+    const touchStart = (event: TouchEvent) => {
+      startX = event.touches[0]?.clientX || 0;
+      startY = event.touches[0]?.clientY || 0;
+    };
+    const touchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      if (Math.abs(deltaY) <= Math.abs(deltaX)) return;
+      const atTop = element.scrollTop <= 0;
+      const atBottom = Math.ceil(element.scrollTop + element.clientHeight) >= element.scrollHeight;
+      if ((atTop && deltaY > 0) || (atBottom && deltaY < 0)) event.preventDefault();
+    };
+
+    element.addEventListener("touchstart", touchStart, { passive: true });
+    element.addEventListener("touchmove", touchMove, { passive: false });
+    return () => {
+      element.removeEventListener("touchstart", touchStart);
+      element.removeEventListener("touchmove", touchMove);
+    };
+  }, [mounted]);
+
+  useEffect(() => {
     let active = true;
     let timer = 0;
     const refresh = async () => {
@@ -381,6 +429,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
   const awayName = teamDisplayName(game.league, game.away_team);
   const homeName = teamDisplayName(game.league, game.home_team);
   const tabs: Array<[TrackerTab, string]> = [["live", "Live"], ["scoring", "Scoring"], ["plays", "Plays"], ["box", "Box Score"]];
+  const completed = Boolean(payload?.status.completed ?? game.live_completed ?? (game.final_home_score != null && game.final_away_score != null));
 
   return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="true" aria-label={`${awayName} at ${homeName} GameTracker`}>
@@ -391,8 +440,9 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
 
       <div className="game-tracker-scoreboard">
         <div className="game-tracker-status-line">
-          <span className={payload?.status.completed ? "final" : "live"}>{payload?.status.completed ? "FINAL" : "LIVE"}</span>
-          <strong>{statusText(payload, game)}</strong>
+          {completed
+            ? <strong>FINAL</strong>
+            : <><span className="live">LIVE</span><strong>{statusText(payload, game)}</strong></>}
         </div>
         <div className="game-tracker-scoreboard-grid">
           <TeamScore side="away" payload={payload} game={game} />
@@ -409,12 +459,12 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
           aria-current={tab === id ? "page" : undefined}
           onClick={() => {
             setTab(id);
-            sheet.current?.querySelector(".game-tracker-scroll")?.scrollTo(0, 0);
+            scrollArea.current?.scrollTo(0, 0);
           }}
         >{label}</button>)}
       </nav>
 
-      <div className="game-tracker-scroll">
+      <div ref={scrollArea} className="game-tracker-scroll">
         {!payload && !error && <div className="game-tracker-loading"><LoaderCircle size={22} /><span>Loading GameTracker…</span></div>}
         {error && !payload && <div className="game-tracker-empty" role="alert">{error}</div>}
         {payload && tab === "live" && <LiveField payload={payload} />}

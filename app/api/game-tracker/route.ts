@@ -134,20 +134,29 @@ function normalizeTeamStats(boxscore: any, homeId: string, awayId: string) {
 
 function normalizePlayerStats(boxscore: any, homeId: string, awayId: string) {
   const players = Array.isArray(boxscore?.players) ? boxscore.players : [];
-  const out: Array<{ side: "home" | "away"; category: string; labels: string[]; athletes: Array<{ name: string; values: string[] }> }> = [];
+  const out: Array<{
+    side: "home" | "away";
+    category: string;
+    title: string;
+    labels: string[];
+    athletes: Array<{ name: string; values: string[] }>;
+  }> = [];
+
   for (const team of players) {
     const id = String(team?.team?.id || "");
     const side = id === homeId ? "home" : id === awayId ? "away" : null;
     if (!side) continue;
+
     for (const category of team?.statistics || []) {
-      const name = String(category?.name || category?.label || "").toLowerCase();
-      if (!["passing", "rushing", "receiving"].includes(name)) continue;
+      const key = String(category?.name || category?.label || category?.displayName || "stats").toLowerCase();
+      const title = String(category?.displayName || category?.label || category?.name || "Stats");
       const labels = Array.isArray(category?.labels) ? category.labels.map((label: any) => String(label)) : [];
-      const athletes = (category?.athletes || []).slice(0, 4).map((row: any) => ({
+      const athletes = (category?.athletes || []).map((row: any) => ({
         name: String(row?.athlete?.shortName || row?.athlete?.displayName || "Player"),
         values: Array.isArray(row?.stats) ? row.stats.map((value: any) => String(value)) : []
       }));
-      out.push({ side, category: name, labels, athletes });
+      if (!athletes.length) continue;
+      out.push({ side, category: key, title, labels, athletes });
     }
   }
   return out;
@@ -224,6 +233,7 @@ export async function GET(req: NextRequest) {
         away: {
           id: awayId,
           name: String(away?.team?.displayName || game.away_team),
+          shortName: String(away?.team?.shortDisplayName || away?.team?.location || away?.team?.displayName || game.away_team),
           abbreviation: String(away?.team?.abbreviation || ""),
           logo: String(away?.team?.logo || game.away_logo_url || ""),
           score: scoreValue(away)
@@ -231,6 +241,7 @@ export async function GET(req: NextRequest) {
         home: {
           id: homeId,
           name: String(home?.team?.displayName || game.home_team),
+          shortName: String(home?.team?.shortDisplayName || home?.team?.location || home?.team?.displayName || game.home_team),
           abbreviation: String(home?.team?.abbreviation || ""),
           logo: String(home?.team?.logo || game.home_logo_url || ""),
           score: scoreValue(home)
