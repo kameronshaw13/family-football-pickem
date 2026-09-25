@@ -312,7 +312,39 @@ function TeamStats({ payload }: { payload: TrackerPayload }) {
 
 function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
   const visibleLabels = row.labels;
-  return <div className="game-tracker-player-table-scroll">
+  const scroller = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = scroller.current;
+    if (!element) return;
+
+    let startX = 0;
+    let startY = 0;
+    const touchStart = (event: TouchEvent) => {
+      startX = event.touches[0]?.clientX || 0;
+      startY = event.touches[0]?.clientY || 0;
+    };
+    const touchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      if (Math.abs(deltaX) <= Math.abs(deltaY)) return;
+
+      const atLeft = element.scrollLeft <= 0;
+      const atRight = Math.ceil(element.scrollLeft + element.clientWidth) >= element.scrollWidth;
+      if ((atLeft && deltaX > 0) || (atRight && deltaX < 0)) event.preventDefault();
+    };
+
+    element.addEventListener("touchstart", touchStart, { passive: true });
+    element.addEventListener("touchmove", touchMove, { passive: false });
+    return () => {
+      element.removeEventListener("touchstart", touchStart);
+      element.removeEventListener("touchmove", touchMove);
+    };
+  }, []);
+
+  return <div ref={scroller} className="game-tracker-player-table-scroll">
     <table className="game-tracker-player-table">
       <thead><tr><th>Player</th>{visibleLabels.map((label) => <th key={label}>{label}</th>)}</tr></thead>
       <tbody>{row.athletes.map((athlete) => <tr key={athlete.name}>
