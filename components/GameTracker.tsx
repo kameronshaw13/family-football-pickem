@@ -125,6 +125,39 @@ function statusText(payload: TrackerPayload | null, game: Game) {
   return game.live_completed || game.final_home_score != null ? "Final" : "Live";
 }
 
+function gameCenterPeriodClock(payload: TrackerPayload | null, game: Game) {
+  const detail = statusText(payload, game);
+  const quarter = detail.match(/\b(1st|2nd|3rd|4th|OT)\b/i)?.[1];
+  const clock = detail.match(/\b\d{1,2}:\d{2}\b/)?.[0];
+  return [quarter ? periodLabel(quarter) : "", clock || ""].filter(Boolean).join(" · ");
+}
+
+function gameCenterSituation(payload: TrackerPayload | null) {
+  if (!payload) return "";
+  const situation = payload.situation;
+  const direct = String(situation.downDistanceText || "").trim();
+  if (direct) {
+    if (/\bat\s+/i.test(direct)) return direct.replace(/\s+at\s+/i, " · ");
+    return [direct, situation.fieldPosition].filter(Boolean).join(" · ");
+  }
+  if (situation.down != null) {
+    const suffix = situation.down === 1 ? "st" : situation.down === 2 ? "nd" : situation.down === 3 ? "rd" : "th";
+    const downDistance = `${situation.down}${suffix} & ${situation.distance != null ? situation.distance : "Goal"}`;
+    return [downDistance, situation.fieldPosition].filter(Boolean).join(" · ");
+  }
+  return situation.fieldPosition || "";
+}
+
+function ScoreboardCenter({ payload, game, completed }: { payload: TrackerPayload | null; game: Game; completed: boolean }) {
+  const periodClock = completed ? "FINAL" : gameCenterPeriodClock(payload, game);
+  const situation = completed ? "" : gameCenterSituation(payload);
+  return <div className="game-tracker-score-center">
+    <strong>AT</strong>
+    <span className={completed ? "final" : "live"}>{completed ? periodClock : ["LIVE", periodClock].filter(Boolean).join(" · ")}</span>
+    {situation && <small>{situation}</small>}
+  </div>;
+}
+
 function TeamScore({ side, payload, game, completed }: { side: Side; payload: TrackerPayload | null; game: Game; completed: boolean }) {
   const fallbackName = teamDisplayName(game.league, side === "away" ? game.away_team : game.home_team);
   const fallbackLogo = side === "away" ? game.away_logo_url : game.home_logo_url;
@@ -522,14 +555,9 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
       </header>
 
       <div className="game-tracker-scoreboard">
-        <div className="game-tracker-status-line">
-          {completed
-            ? <strong>FINAL</strong>
-            : <><span className="live">LIVE</span><strong>{statusText(payload, game)}</strong></>}
-        </div>
         <div className="game-tracker-scoreboard-grid">
           <TeamScore side="away" payload={payload} game={game} completed={completed} />
-          <div className="game-tracker-score-divider">AT</div>
+          <ScoreboardCenter payload={payload} game={game} completed={completed} />
           <TeamScore side="home" payload={payload} game={game} completed={completed} />
         </div>
       </div>

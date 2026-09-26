@@ -63,72 +63,109 @@
   background: transparent;
 }
 
-.game-tracker-scoreboard { flex: 0 0 auto; border-bottom: 1px solid var(--line-strong); background: var(--panel); }
-.game-tracker-status-line {
-  display: flex;
-  min-height: 25px;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  border-bottom: 1px solid var(--line);
-  color: var(--muted);
-  background: var(--surface-muted);
+.game-tracker-scoreboard {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--panel);
 }
-.game-tracker-status-line span { font-size: 8px; font-weight: 900; letter-spacing: .05em; }
-.game-tracker-status-line span.live { color: var(--red); }
-.game-tracker-status-line span.final { color: var(--graphite); }
-.game-tracker-status-line strong { color: var(--ink); font-size: 9px; font-weight: 800; }
-
 .game-tracker-scoreboard-grid {
   display: grid;
-  min-height: 68px;
-  grid-template-columns: minmax(0, 1fr) 42px minmax(0, 1fr);
-  align-items: center;
-  padding: 8px 18px;
+  min-height: 92px;
+  grid-template-columns: minmax(0, 1fr) minmax(112px, 132px) minmax(0, 1fr);
+  align-items: stretch;
+  padding: 8px 14px;
 }
 .game-tracker-score-team {
   display: grid;
   min-width: 0;
-  justify-items: start;
-  gap: 4px;
+  align-content: center;
+  justify-items: center;
+  gap: 5px;
+  text-align: center;
 }
-.game-tracker-score-team.home { justify-items: end; }
+.game-tracker-score-team.home { justify-items: center; }
 .game-tracker-score-team-name {
   display: block;
-  max-width: 132px;
+  max-width: 142px;
   overflow: hidden;
+  padding: 1px 0 3px;
   color: var(--ink);
   font-family: var(--font-display);
-  padding: 1px 0 3px;
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.3;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.28;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .game-tracker-score-team-main {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 14px;
 }
 .game-tracker-score-team.home .game-tracker-score-team-main { flex-direction: row-reverse; }
 .game-tracker-score-team-main > img,
-.game-tracker-score-team-main > .game-tracker-logo-fallback { width: 38px; height: 38px; object-fit: contain; }
-.game-tracker-logo-fallback { display: grid; place-items: center; color: var(--muted); background: var(--surface-muted); font-size: 8px; font-weight: 900; }
+.game-tracker-score-team-main > .game-tracker-logo-fallback {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.game-tracker-logo-fallback {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: var(--surface-muted);
+  font-size: 8px;
+  font-weight: 800;
+}
 .game-tracker-score-team-main > b {
+  min-width: 28px;
   color: var(--ink);
-  font-size: 21px;
-  font-weight: 900;
+  font-size: 24px;
+  font-weight: 850;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 .game-tracker-score-team-main > b.loser { color: var(--muted); }
 .game-tracker-score-team-main > b.winner { color: var(--ink); }
-.game-tracker-score-divider { color: var(--muted); font-size: 8px; font-weight: 900; text-align: center; }
+
+.game-tracker-score-center {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  padding-inline: 4px;
+  text-align: center;
+}
+.game-tracker-score-center > strong {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+}
+.game-tracker-score-center > span {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.game-tracker-score-center > span.live::first-letter { color: var(--red); }
+.game-tracker-score-center > span.final { color: var(--ink); font-weight: 800; }
+.game-tracker-score-center > small {
+  max-width: 128px;
+  color: var(--header-muted);
+  font-size: 9.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
+}
 
 .game-tracker-tabs {
   display: grid;
-  height: 42px;
+  height: 44px;
   flex: 0 0 auto;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   padding: 0 10px;
@@ -143,10 +180,10 @@
   color: var(--muted);
   background: transparent;
   font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 11.5px;
+  font-weight: 700;
 }
-.game-tracker-tabs button.active { border-bottom-color: var(--blue); color: var(--ink); }
+.game-tracker-tabs button.active { border-bottom-color: var(--blue); color: var(--ink); font-weight: 800; }
 
 .game-tracker-scroll {
   min-height: 0;
@@ -174,16 +211,16 @@
 
 .game-tracker-quarter-header {
   display: flex;
-  min-height: 30px;
+  min-height: 34px;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--pick-content-inset);
-  border: 0;
+  border-top: 1px solid var(--line-strong);
   border-bottom: 1px solid var(--line-strong);
   color: var(--header-muted);
   background: var(--surface-muted);
-  font-size: 10px;
-  font-weight: 900;
+  font-size: 11.5px;
+  font-weight: 800;
   letter-spacing: .02em;
   text-transform: uppercase;
 }
@@ -204,11 +241,11 @@
 .game-tracker-live { padding: 12px var(--pick-content-inset) 16px; }
 .game-tracker-live-situation { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
 .game-tracker-live-situation > div:first-child { display: grid; gap: 2px; }
-.game-tracker-live-situation small { color: var(--muted); font-size: 8px; font-weight: 900; letter-spacing: .05em; }
-.game-tracker-live-situation strong { font-size: 19px; font-weight: 900; line-height: 1; }
-.game-tracker-live-situation span { color: var(--muted); font-size: 9px; font-weight: 700; }
+.game-tracker-live-situation small { color: var(--muted); font-size: 9.5px; font-weight: 800; letter-spacing: .04em; }
+.game-tracker-live-situation strong { font-size: 21px; font-weight: 800; line-height: 1.05; }
+.game-tracker-live-situation span { color: var(--muted); font-size: 10px; font-weight: 650; }
 .game-tracker-timeouts { display: flex; gap: 9px; }
-.game-tracker-timeouts span { color: var(--muted); font-size: 8.5px; font-weight: 700; white-space: nowrap; }
+.game-tracker-timeouts span { color: var(--muted); font-size: 9.5px; font-weight: 650; white-space: nowrap; }
 .game-tracker-timeouts b { color: var(--ink); }
 
 .game-tracker-field {
@@ -288,8 +325,8 @@
 }
 .game-tracker-live-drive > header > span { display: grid; width: 30px; height: 30px; place-items: center; }
 .game-tracker-live-drive > header img { width: 28px; height: 28px; object-fit: contain; }
-.game-tracker-live-drive > header strong { display: block; font-size: 11.5px; font-weight: 900; line-height: 1.2; }
-.game-tracker-live-drive > header small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; font-weight: 700; }
+.game-tracker-live-drive > header strong { display: block; font-size: 12.5px; font-weight: 800; line-height: 1.2; }
+.game-tracker-live-drive > header small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; font-weight: 650; }
 .game-tracker-live-drive-plays .game-tracker-drive-play:last-child { border-bottom: 0; }
 
 /* Scoring */
@@ -305,8 +342,8 @@
   background: var(--panel);
 }
 .game-tracker-score-play > div:first-child { min-width: 0; align-self: center; }
-.game-tracker-score-play small { display: block; margin-bottom: 4px; color: var(--muted); font-size: 9.5px; font-weight: 800; line-height: 1.15; text-transform: uppercase; }
-.game-tracker-score-play strong { display: block; font-size: 12px; font-weight: 700; line-height: 1.3; }
+.game-tracker-score-play small { display: block; margin-bottom: 4px; color: var(--muted); font-size: 10px; font-weight: 700; line-height: 1.2; text-transform: uppercase; }
+.game-tracker-score-play strong { display: block; font-size: 13px; font-weight: 650; line-height: 1.34; }
 .game-tracker-score-values {
   display: grid;
   grid-template-columns: repeat(2, 28px);
@@ -315,8 +352,8 @@
 }
 .game-tracker-score-values b {
   color: var(--ink);
-  font-size: 13px;
-  font-weight: 900;
+  font-size: 14px;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -348,8 +385,8 @@
 .game-tracker-drive-logo { display: grid; width: 30px; height: 30px; place-items: center; }
 .game-tracker-drive-logo img { width: 27px; height: 27px; object-fit: contain; }
 .game-tracker-drive > summary div { min-width: 0; }
-.game-tracker-drive > summary strong { display: block; font-size: 12px; font-weight: 900; line-height: 1.2; }
-.game-tracker-drive > summary small { display: block; margin-top: 4px; color: var(--muted); font-size: 9.5px; line-height: 1.2; }
+.game-tracker-drive > summary strong { display: block; font-size: 13px; font-weight: 800; line-height: 1.22; }
+.game-tracker-drive > summary small { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; font-weight: 600; line-height: 1.25; }
 .game-tracker-drive-meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .game-tracker-drive-play {
   display: grid;
@@ -369,18 +406,18 @@
   gap: 7px;
   margin-bottom: 3px;
   color: var(--ink);
-  font-size: 11.5px;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1.28;
 }
 .game-tracker-play-context > span { min-width: 0; }
-.game-tracker-play-context time { flex: 0 0 auto; color: var(--muted); font-size: 9px; font-weight: 800; }
-.game-tracker-drive-play strong { display: block; color: var(--ink); font-size: 11.5px; font-weight: 550; line-height: 1.32; }
+.game-tracker-play-context time { flex: 0 0 auto; color: var(--muted); font-size: 10px; font-weight: 700; }
+.game-tracker-drive-play strong { display: block; color: var(--ink); font-size: 12.5px; font-weight: 500; line-height: 1.36; }
 .game-tracker-play-outcome {
   align-self: center;
   color: var(--header-muted);
-  font-size: 9px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: 800;
   letter-spacing: .02em;
   white-space: nowrap;
 }
@@ -400,7 +437,7 @@
   background: var(--surface-muted);
 }
 .game-tracker-box-selector button {
-  min-height: 29px;
+  min-height: 31px;
   padding: 0 10px;
   border: 0;
   border-radius: 999px;
@@ -417,22 +454,22 @@
 .game-tracker-stat-row {
   display: grid;
   min-height: 36px;
-  grid-template-columns: 1fr 1.35fr 1fr;
+  grid-template-columns: 1fr 1.08fr 1fr;
   align-items: center;
   padding: 0 var(--pick-content-inset);
   border-bottom: 1px solid var(--line);
   text-align: center;
 }
-.game-tracker-stat-table-head { color: var(--header-muted); background: var(--surface-muted); font-size: 9px; }
-.game-tracker-stat-table-head > strong { font-size: 9px; letter-spacing: .04em; }
+.game-tracker-stat-table-head { color: var(--header-muted); background: var(--surface-muted); border-bottom-color: var(--line-strong); font-size: 10px; }
+.game-tracker-stat-table-head > strong { font-size: 10px; font-weight: 750; letter-spacing: .03em; }
 .game-tracker-stat-team { display: inline-flex; min-width: 0; align-items: center; justify-content: flex-start; gap: 5px; }
 .game-tracker-stat-team.home { justify-content: flex-end; }
 .game-tracker-stat-team img,
 .game-tracker-stat-team .game-tracker-logo-fallback { width: 20px; height: 20px; flex: 0 0 20px; object-fit: contain; }
-.game-tracker-stat-team b { overflow: hidden; color: var(--ink); font-size: 9px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.game-tracker-stat-team b { overflow: hidden; color: var(--ink); font-size: 10.5px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .game-tracker-stat-row:last-child { border-bottom: 0; }
-.game-tracker-stat-row strong { font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.game-tracker-stat-row span { color: var(--muted); font-size: 8px; font-weight: 800; text-transform: uppercase; }
+.game-tracker-stat-row strong { font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.game-tracker-stat-row span { color: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; }
 
 .game-tracker-team-box-heading {
   display: flex;
@@ -445,7 +482,7 @@
 }
 .game-tracker-team-box-heading img,
 .game-tracker-team-box-heading .game-tracker-logo-fallback { width: 30px; height: 30px; object-fit: contain; }
-.game-tracker-team-box-heading strong { font-family: var(--font-display); font-size: 13px; font-weight: 800; }
+.game-tracker-team-box-heading strong { font-family: var(--font-display); font-size: 14px; font-weight: 750; }
 
 .game-tracker-box-section { margin-top: 12px; }
 .game-tracker-box-section > h3 {
@@ -458,8 +495,8 @@
   border-bottom: 1px solid var(--line);
   color: var(--header-muted);
   background: var(--surface-muted);
-  font-size: 9px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: 800;
   text-transform: uppercase;
 }
 .game-tracker-player-table-scroll {
@@ -468,11 +505,11 @@
   background: var(--panel);
   touch-action: pan-x pan-y;
 }
-.game-tracker-player-table { width: 100%; min-width: 430px; border-collapse: separate; border-spacing: 0; table-layout: auto; border-bottom: 1px solid var(--line); }
+.game-tracker-player-table { width: 100%; min-width: 400px; border-collapse: separate; border-spacing: 0; table-layout: auto; border-bottom: 1px solid var(--line); }
 .game-tracker-player-table th,
 .game-tracker-player-table td {
   height: 29px;
-  padding: 4px 5px;
+  padding: 4px 4px;
   border-bottom: 1px solid var(--line);
   font-size: 9px;
   text-align: right;
@@ -498,21 +535,24 @@
 }
 .game-tracker-player-table th:first-child { z-index: 3; }
 .game-tracker-player-table th:not(:first-child),
-.game-tracker-player-table td:not(:first-child) { min-width: 44px; }
+.game-tracker-player-table td:not(:first-child) { min-width: 40px; }
 .game-tracker-player-table tbody tr:last-child td { border-bottom: 0; }
 
 @media (max-width: 520px) {
   .game-tracker-backdrop { padding: 12px; }
   .game-tracker-sheet { width: 100%; height: min(68dvh, 720px); }
-  .game-tracker-scoreboard-grid { grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr); padding-inline: 10px; }
-  .game-tracker-score-team { gap: 3px; }
-  .game-tracker-score-team-name { max-width: 110px; padding: 1px 0 3px; font-size: 12px; line-height: 1.3; }
-  .game-tracker-score-team-main { gap: 6px; }
+  .game-tracker-scoreboard-grid { grid-template-columns: minmax(0, 1fr) minmax(104px, 116px) minmax(0, 1fr); min-height: 88px; padding: 7px 8px; }
+  .game-tracker-score-team { gap: 4px; }
+  .game-tracker-score-team-name { max-width: 106px; padding: 1px 0 3px; font-size: 13px; line-height: 1.28; }
+  .game-tracker-score-team-main { gap: 10px; }
   .game-tracker-score-team-main > img,
-  .game-tracker-score-team-main > .game-tracker-logo-fallback { width: 31px; height: 31px; }
-  .game-tracker-score-team-main > b { font-size: 19px; }
+  .game-tracker-score-team-main > .game-tracker-logo-fallback { width: 34px; height: 34px; }
+  .game-tracker-score-team-main > b { font-size: 21px; }
+  .game-tracker-score-center { gap: 3px; padding-inline: 2px; }
+  .game-tracker-score-center > span { font-size: 9.5px; }
+  .game-tracker-score-center > small { max-width: 112px; font-size: 8.5px; }
   .game-tracker-tabs { padding-inline: 7px; }
-  .game-tracker-tabs button { font-size: 9px; }
+  .game-tracker-tabs button { font-size: 10.5px; }
   .game-tracker-live { padding-inline: 9px; }
   .game-tracker-field { height: 148px; }
   .game-tracker-live-situation strong { font-size: 17px; }
@@ -522,4 +562,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .game-tracker-loading svg { animation: none; }
+}
+
+
+.game-tracker-score-play:has(+ .game-tracker-quarter-header),
+.game-tracker-drive:has(+ .game-tracker-quarter-header) {
+  border-bottom-color: transparent;
 }
