@@ -153,7 +153,9 @@ function ScoreboardCenter({ payload, game, completed }: { payload: TrackerPayloa
   const situation = completed ? "" : gameCenterSituation(payload);
   return <div className="game-tracker-score-center">
     <strong>AT</strong>
-    <span className={completed ? "final" : "live"}>{completed ? periodClock : ["LIVE", periodClock].filter(Boolean).join(" · ")}</span>
+    {completed
+      ? <span className="final">FINAL</span>
+      : <span className="live"><b>LIVE</b>{periodClock ? <> · {periodClock}</> : null}</span>}
     {situation && <small>{situation}</small>}
   </div>;
 }
