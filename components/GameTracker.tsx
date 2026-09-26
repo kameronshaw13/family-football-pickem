@@ -46,6 +46,8 @@ type TrackerTeam = {
   shortName: string;
   abbreviation: string;
   logo: string;
+  color: string;
+  alternateColor: string;
   score: number | null;
 };
 
@@ -125,11 +127,14 @@ function statusText(payload: TrackerPayload | null, game: Game) {
   return game.live_completed || game.final_home_score != null ? "Final" : "Live";
 }
 
-function gameCenterPeriodClock(payload: TrackerPayload | null, game: Game) {
+function gameCenterState(payload: TrackerPayload | null, game: Game) {
   const detail = statusText(payload, game);
-  const quarter = detail.match(/\b(1st|2nd|3rd|4th|OT)\b/i)?.[1];
-  const clock = detail.match(/\b\d{1,2}:\d{2}\b/)?.[0];
-  return [quarter ? periodLabel(quarter) : "", clock || ""].filter(Boolean).join(" · ");
+  const rawPeriod = detail.match(/\b(1st|2nd|3rd|4th|OT|\d+OT)\b/i)?.[1] || "";
+  const clock = detail.match(/\b\d{1,2}:\d{2}\b/)?.[0] || "";
+  return {
+    period: rawPeriod ? periodLabel(rawPeriod) : "Live",
+    clock
+  };
 }
 
 function gameCenterSituation(payload: TrackerPayload | null) {
@@ -149,13 +154,14 @@ function gameCenterSituation(payload: TrackerPayload | null) {
 }
 
 function ScoreboardCenter({ payload, game, completed }: { payload: TrackerPayload | null; game: Game; completed: boolean }) {
-  const periodClock = completed ? "FINAL" : gameCenterPeriodClock(payload, game);
+  const state = gameCenterState(payload, game);
   const situation = completed ? "" : gameCenterSituation(payload);
+
+  if (completed) return <div className="game-tracker-score-center final"><strong>FINAL</strong></div>;
+
   return <div className="game-tracker-score-center">
-    <strong>AT</strong>
-    {completed
-      ? <span className="final">FINAL</span>
-      : <span className="live"><b>LIVE</b>{periodClock ? <> · {periodClock}</> : null}</span>}
+    <span className="game-tracker-center-period">{state.period}</span>
+    {state.clock && <strong className="game-tracker-center-clock">{state.clock}</strong>}
     {situation && <small>{situation}</small>}
   </div>;
 }
@@ -222,41 +228,71 @@ function LiveCurrentDrive({ drive, payload }: { drive: TrackerDrive; payload: Tr
 
 function LiveField({ payload }: { payload: TrackerPayload }) {
   const { situation, teams } = payload;
-  const possession = situation.possessionSide ? teams[situation.possessionSide] : null;
   const currentDrive = payload.drives.find((drive) => drive.current) || (!payload.status.completed ? payload.drives[0] : null);
+  const offenseSide = situation.possessionSide || currentDrive?.teamSide || "away";
+  const defenseSide: Side = offenseSide === "home" ? "away" : "home";
+  const offense = teams[offenseSide];
+  const defense = teams[defenseSide];
+
   const yardsToGoal = situation.yardsToGoal == null ? 50 : Math.max(0, Math.min(100, situation.yardsToGoal));
-  const marker = Math.max(4, Math.min(96, 100 - yardsToGoal));
-  const downText = situation.down != null
-    ? `${situation.down}${situation.down === 1 ? "st" : situation.down === 2 ? "nd" : situation.down === 3 ? "rd" : "th"} & ${situation.distance != null ? situation.distance : "Goal"}`
-    : situation.downDistanceText || "Game situation";
+  const lineOfScrimmage = 6 + ((100 - yardsToGoal) / 100) * 88;
+  const firstDownYards = situation.distance == null
+    ? null
+    : Math.max(0, Math.min(situation.distance, yardsToGoal));
+  const firstDownLine = firstDownYards == null
+    ? null
+    : Math.min(94, lineOfScrimmage + (firstDownYards / 100) * 88);
+
+  const timeoutText = (value: number | null) => value == null ? "—" : String(value);
 
   return <div className="game-tracker-live">
-    <div className="game-tracker-live-situation">
-      <div>
-        <small>{possession ? `${possession.shortName || possession.name} BALL` : currentDrive?.teamSide ? `${teams[currentDrive.teamSide].shortName || teams[currentDrive.teamSide].name} BALL` : "POSSESSION"}</small>
-        <strong>{downText}</strong>
-        <span>{situation.fieldPosition ? `Ball at ${situation.fieldPosition}` : currentDrive?.endText || currentDrive?.startText || "Field position updating"}</span>
+    <div className="game-tracker-live-meta">
+      <div className="game-tracker-possession-label">
+        <TeamLogo src={offense.logo} name={offense.name} size={22} />
+        <strong>{offense.shortName || offense.name}</strong>
+        <span>Ball</span>
       </div>
-      <div className="game-tracker-timeouts">
-        <span>{teams.away.shortName || teams.away.abbreviation || "Away"} TO <b>{situation.awayTimeouts ?? "—"}</b></span>
-        <span>{teams.home.shortName || teams.home.abbreviation || "Home"} TO <b>{situation.homeTimeouts ?? "—"}</b></span>
+      <div className="game-tracker-timeouts" aria-label="Timeouts remaining">
+        <span>{teams.away.shortName || teams.away.abbreviation || "Away"} <b>{timeoutText(situation.awayTimeouts)}</b> TO</span>
+        <span>{teams.home.shortName || teams.home.abbreviation || "Home"} <b>{timeoutText(situation.homeTimeouts)}</b> TO</span>
       </div>
     </div>
 
-    <div className={`game-tracker-field ${situation.redZone ? "red-zone" : ""}`.trim()} aria-label={`${downText}, ${situation.fieldPosition || ""}`}>
-      <div className="game-tracker-endzone left">END</div>
-      <div className="game-tracker-field-lines">{Array.from({ length: 9 }, (_, index) => <i key={index} style={{ left: `${(index + 1) * 10}%` }} />)}</div>
+    <div className="game-tracker-field" aria-label={gameCenterSituation(payload)}>
+      <div
+        className="game-tracker-endzone left"
+        style={{ backgroundColor: `#${offense.color || "34444c"}`, color: `#${offense.alternateColor || "ffffff"}` }}
+      >
+        <TeamLogo src={offense.logo} name={offense.name} size={24} />
+        <span>{offense.shortName || offense.abbreviation}</span>
+      </div>
+
+      <div className="game-tracker-field-lines">
+        {Array.from({ length: 9 }, (_, index) => <i key={index} style={{ left: `${(index + 1) * 10}%` }} />)}
+      </div>
       <div className="game-tracker-yard-labels"><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>40</span><span>30</span><span>20</span><span>10</span></div>
-      <div className="game-tracker-ball-marker" style={{ left: `${marker}%` }}>
-        {possession ? <TeamLogo src={possession.logo} name={possession.name} size={24} /> : currentDrive?.teamSide ? <TeamLogo src={teams[currentDrive.teamSide].logo} name={teams[currentDrive.teamSide].name} size={24} /> : <span>●</span>}
+
+      <div className="game-tracker-los-line" style={{ left: `${lineOfScrimmage}%` }} aria-hidden="true" />
+      {firstDownLine != null && <div className="game-tracker-first-down-line" style={{ left: `${firstDownLine}%` }} aria-hidden="true" />}
+
+      <div className="game-tracker-football-marker" style={{ left: `${lineOfScrimmage}%` }} aria-hidden="true">
+        <span className="football-lace" />
       </div>
-      <div className="game-tracker-endzone right">END</div>
+      <span className="game-tracker-drive-direction" style={{ left: `${Math.min(88, lineOfScrimmage + 4)}%` }} aria-hidden="true">→</span>
+
+      <div
+        className="game-tracker-endzone right"
+        style={{ backgroundColor: `#${defense.color || "34444c"}`, color: `#${defense.alternateColor || "ffffff"}` }}
+      >
+        <TeamLogo src={defense.logo} name={defense.name} size={24} />
+        <span>{defense.shortName || defense.abbreviation}</span>
+      </div>
     </div>
 
-    <div className="game-tracker-field-footer">
-      <span>Own goal line</span>
-      <strong>{possession ? `${possession.shortName || possession.name} possession` : currentDrive?.teamSide ? `${teams[currentDrive.teamSide].shortName || teams[currentDrive.teamSide].name} possession` : "Possession updating"}</strong>
-      <span>Opponent end zone</span>
+    <div className="game-tracker-field-key" aria-hidden="true">
+      <span className="los-key">Line of scrimmage</span>
+      {firstDownLine != null && <span className="first-down-key">First down</span>}
+      <strong>{offense.shortName || offense.name} →</strong>
     </div>
 
     {currentDrive && <LiveCurrentDrive drive={currentDrive} payload={payload} />}

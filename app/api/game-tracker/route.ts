@@ -14,6 +14,19 @@ function finite(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function remainingTimeouts(situationValue: unknown, competitor: any) {
+  const direct = finite(situationValue);
+  if (direct != null) return direct;
+
+  const remaining = finite(competitor?.timeoutsRemaining ?? competitor?.timeouts);
+  if (remaining != null) return remaining;
+
+  const used = finite(competitor?.timeoutsUsed);
+  if (used != null) return Math.max(0, 3 - used);
+
+  return null;
+}
+
 function scoreValue(competitor: any) {
   return finite(competitor?.score?.value ?? competitor?.score);
 }
@@ -278,8 +291,9 @@ export async function GET(req: NextRequest) {
     const rawCurrentPlays = Array.isArray(currentDrive?.plays) ? currentDrive.plays : [];
     const latestRawPlay = rawCurrentPlays.at(-1) || null;
     const fallbackSituation = latestRawPlay?.end || latestRawPlay?.start || {};
+    const payloadSituation = payload?.situation || {};
     const competitionSituation = competition?.situation || {};
-    const situation = { ...fallbackSituation, ...competitionSituation };
+    const situation = { ...fallbackSituation, ...payloadSituation, ...competitionSituation };
     const possessionId = String(competitionSituation?.possession || currentDrive?.team?.id || latestRawPlay?.team?.id || "");
     const possessionSide = possessionId === homeId ? "home" : possessionId === awayId ? "away" : null;
     const downDistanceText = String(
@@ -310,6 +324,8 @@ export async function GET(req: NextRequest) {
           shortName: String(away?.team?.shortDisplayName || away?.team?.location || away?.team?.displayName || game.away_team),
           abbreviation: String(away?.team?.abbreviation || ""),
           logo: String(away?.team?.logo || game.away_logo_url || ""),
+          color: String(away?.team?.color || "34444c"),
+          alternateColor: String(away?.team?.alternateColor || "ffffff"),
           score: scoreValue(away)
         },
         home: {
@@ -318,6 +334,8 @@ export async function GET(req: NextRequest) {
           shortName: String(home?.team?.shortDisplayName || home?.team?.location || home?.team?.displayName || game.home_team),
           abbreviation: String(home?.team?.abbreviation || ""),
           logo: String(home?.team?.logo || game.home_logo_url || ""),
+          color: String(home?.team?.color || "34444c"),
+          alternateColor: String(home?.team?.alternateColor || "ffffff"),
           score: scoreValue(home)
         }
       },
@@ -329,8 +347,8 @@ export async function GET(req: NextRequest) {
         fieldPosition: fieldPositionText(situation),
         redZone: Boolean(situation?.isRedZone),
         downDistanceText,
-        homeTimeouts: finite(competitionSituation?.homeTimeouts),
-        awayTimeouts: finite(competitionSituation?.awayTimeouts)
+        homeTimeouts: remainingTimeouts(competitionSituation?.homeTimeouts ?? payloadSituation?.homeTimeouts, home),
+        awayTimeouts: remainingTimeouts(competitionSituation?.awayTimeouts ?? payloadSituation?.awayTimeouts, away)
       },
       scoringPlays,
       drives,
