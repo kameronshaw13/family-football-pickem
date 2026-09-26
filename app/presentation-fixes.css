@@ -515,3 +515,17 @@
     font-size: 8.5px;
   }
 }
+
+
+/* Give the one-line Side Bet Ledger controls deliberate breathing room. */
+.side-bet-ledger-heading-row {
+  margin-bottom: 7px;
+}
+.side-bet-ledger-filter-row {
+  gap: 9px;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+@media (max-width: 360px) {
+  .side-bet-ledger-filter-row { gap: 6px; }
+}
