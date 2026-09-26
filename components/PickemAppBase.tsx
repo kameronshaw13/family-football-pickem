@@ -461,7 +461,7 @@ function LiveSituationText({ game }: { game: Game }) {
   const situation = game.live_situation?.trim() || "";
   const match = situation.match(/^(.*?)\s+at\s+(.+)$/i);
   if (!match) return <NumericText text={situation} />;
-  return <><NumericText text={match[1]} /> · <span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={match[2]} /></span></>;
+  return <><NumericText text={match[1]} /><span className="live-situation-dot">·</span><span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={match[2]} /></span></>;
 }
 function liveGameStatus(game: Game) {
   const status = livePeriodStatus(game);
