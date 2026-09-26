@@ -146,22 +146,36 @@ function fieldPositionText(situation: any) {
 }
 
 function situationYardsToGoal(situation: any, possessionSide: "home" | "away" | null, home: any, away: any) {
+  const position = fieldPositionText(situation);
+
+  if (position && possessionSide) {
+    if (/^(?:50|midfield)$/i.test(position)) return 50;
+
+    const match = position.match(/^(.+?)\s+(\d{1,2})$/);
+    if (match) {
+      const yard = Math.max(1, Math.min(49, Number(match[2])));
+      const possession = possessionSide === "home" ? home?.team : away?.team;
+      const opponent = possessionSide === "home" ? away?.team : home?.team;
+      const normalize = (value: unknown) => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+      const aliases = (team: any) => [
+        team?.abbreviation,
+        team?.location,
+        team?.shortDisplayName,
+        team?.displayName,
+        team?.name
+      ].map(normalize).filter(Boolean);
+
+      const fieldSide = normalize(match[1]);
+      const possessionAliases = aliases(possession);
+      const opponentAliases = aliases(opponent);
+
+      if (possessionAliases.includes(fieldSide)) return 100 - yard;
+      if (opponentAliases.includes(fieldSide)) return yard;
+    }
+  }
+
   const direct = finite(situation?.yardsToEndzone ?? situation?.yardsToGoal);
   if (direct != null) return Math.max(0, Math.min(100, direct));
-  const position = fieldPositionText(situation);
-  if (!position || !possessionSide) return null;
-  if (/^(?:50|midfield)$/i.test(position)) return 50;
-  const match = position.match(/^(.+?)\s+(\d{1,2})$/);
-  if (!match) return null;
-  const yard = Math.max(1, Math.min(49, Number(match[2])));
-  const possession = possessionSide === "home" ? home?.team : away?.team;
-  const opponent = possessionSide === "home" ? away?.team : home?.team;
-  const normalize = (value: unknown) => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
-  const fieldSide = normalize(match[1]);
-  const possessionNames = [possession?.abbreviation, possession?.location, possession?.shortDisplayName].map(normalize);
-  const opponentNames = [opponent?.abbreviation, opponent?.location, opponent?.shortDisplayName].map(normalize);
-  if (possessionNames.includes(fieldSide)) return 100 - yard;
-  if (opponentNames.includes(fieldSide)) return yard;
   return null;
 }
 

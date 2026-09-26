@@ -166,6 +166,12 @@ function ScoreboardCenter({ payload, game, completed }: { payload: TrackerPayloa
   </div>;
 }
 
+function TimeoutDots({ remaining }: { remaining: number | null }) {
+  return <span className="game-tracker-timeout-dots" aria-label={remaining == null ? "Timeouts unavailable" : `${remaining} timeouts remaining`}>
+    {[0, 1, 2].map((index) => <i key={index} className={remaining != null && index < remaining ? "active" : ""} />)}
+  </span>;
+}
+
 function TeamScore({ side, payload, game, completed }: { side: Side; payload: TrackerPayload | null; game: Game; completed: boolean }) {
   const fallbackName = teamDisplayName(game.league, side === "away" ? game.away_team : game.home_team);
   const fallbackLogo = side === "away" ? game.away_logo_url : game.home_logo_url;
@@ -184,14 +190,29 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   const scoreTone = completed && score != null && opponentScore != null
     ? score > opponentScore ? "winner" : score < opponentScore ? "loser" : ""
     : "";
+  const timeouts = payload
+    ? side === "away" ? payload.situation.awayTimeouts : payload.situation.homeTimeouts
+    : null;
 
   return <div className={`game-tracker-score-team ${side}`} aria-label={`${fullName} ${score ?? "score unavailable"}`}>
     <span className="game-tracker-score-team-name">{shortName}</span>
     <div className="game-tracker-score-team-main">
       <TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={38} />
-      <b className={scoreTone}>{score ?? "—"}</b>
+      <div className="game-tracker-score-stack">
+        <b className={scoreTone}>{score ?? "—"}</b>
+        {!completed && <TimeoutDots remaining={timeouts} />}
+      </div>
     </div>
   </div>;
+}
+
+function FieldFootballIcon() {
+  return <span className="game-tracker-field-football" aria-hidden="true">
+    <svg viewBox="0 0 24 14" shapeRendering="geometricPrecision">
+      <path d="M1.5 7C4.1 3 7.6 1.4 12 1.4S19.9 3 22.5 7c-2.6 4-6.1 5.6-10.5 5.6S4.1 11 1.5 7Z" fill="currentColor" stroke="#62371f" strokeWidth="1.05" />
+      <path d="M8.5 7h7M10.5 5.85v2.3M12 5.85v2.3M13.5 5.85v2.3" fill="none" stroke="#fff" strokeLinecap="round" strokeWidth="1.3" />
+    </svg>
+  </span>;
 }
 
 function PlayRow({ play, compact = false }: { play: TrackerPlay; compact?: boolean }) {
@@ -235,15 +256,16 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
   const defense = teams[defenseSide];
 
   const yardsToGoal = situation.yardsToGoal == null ? 50 : Math.max(0, Math.min(100, situation.yardsToGoal));
-  const lineOfScrimmage = 6 + ((100 - yardsToGoal) / 100) * 88;
+  const playableLeft = 7;
+  const playableWidth = 86;
+  const lineOfScrimmage = playableLeft + ((100 - yardsToGoal) / 100) * playableWidth;
   const firstDownYards = situation.distance == null
     ? null
     : Math.max(0, Math.min(situation.distance, yardsToGoal));
   const firstDownLine = firstDownYards == null
     ? null
-    : Math.min(94, lineOfScrimmage + (firstDownYards / 100) * 88);
-
-  const timeoutText = (value: number | null) => value == null ? "—" : String(value);
+    : Math.min(playableLeft + playableWidth, lineOfScrimmage + (firstDownYards / 100) * playableWidth);
+  const yardLabels = [10, 20, 30, 40, 50, 40, 30, 20, 10];
 
   return <div className="game-tracker-live">
     <div className="game-tracker-live-meta">
@@ -251,10 +273,6 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
         <TeamLogo src={offense.logo} name={offense.name} size={22} />
         <strong>{offense.shortName || offense.name}</strong>
         <span>Ball</span>
-      </div>
-      <div className="game-tracker-timeouts" aria-label="Timeouts remaining">
-        <span>{teams.away.shortName || teams.away.abbreviation || "Away"} <b>{timeoutText(situation.awayTimeouts)}</b> TO</span>
-        <span>{teams.home.shortName || teams.home.abbreviation || "Home"} <b>{timeoutText(situation.homeTimeouts)}</b> TO</span>
       </div>
     </div>
 
@@ -268,17 +286,24 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
       </div>
 
       <div className="game-tracker-field-lines">
-        {Array.from({ length: 9 }, (_, index) => <i key={index} style={{ left: `${(index + 1) * 10}%` }} />)}
+        {yardLabels.map((_, index) => {
+          const left = playableLeft + ((index + 1) * playableWidth / 10);
+          return <i key={index} style={{ left: `${left}%` }} />;
+        })}
       </div>
-      <div className="game-tracker-yard-labels"><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>40</span><span>30</span><span>20</span><span>10</span></div>
+      <div className="game-tracker-yard-labels">
+        {yardLabels.map((label, index) => {
+          const left = playableLeft + ((index + 1) * playableWidth / 10);
+          return <span key={index} style={{ left: `${left}%` }}>{label}</span>;
+        })}
+      </div>
 
       <div className="game-tracker-los-line" style={{ left: `${lineOfScrimmage}%` }} aria-hidden="true" />
       {firstDownLine != null && <div className="game-tracker-first-down-line" style={{ left: `${firstDownLine}%` }} aria-hidden="true" />}
 
-      <div className="game-tracker-football-marker" style={{ left: `${lineOfScrimmage}%` }} aria-hidden="true">
-        <span className="football-lace" />
+      <div className="game-tracker-football-position" style={{ left: `${lineOfScrimmage}%` }}>
+        <FieldFootballIcon />
       </div>
-      <span className="game-tracker-drive-direction" style={{ left: `${Math.min(88, lineOfScrimmage + 4)}%` }} aria-hidden="true">→</span>
 
       <div
         className="game-tracker-endzone right"
@@ -287,12 +312,6 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
         <TeamLogo src={defense.logo} name={defense.name} size={24} />
         <span>{defense.shortName || defense.abbreviation}</span>
       </div>
-    </div>
-
-    <div className="game-tracker-field-key" aria-hidden="true">
-      <span className="los-key">Line of scrimmage</span>
-      {firstDownLine != null && <span className="first-down-key">First down</span>}
-      <strong>{offense.shortName || offense.name} →</strong>
     </div>
 
     {currentDrive && <LiveCurrentDrive drive={currentDrive} payload={payload} />}
