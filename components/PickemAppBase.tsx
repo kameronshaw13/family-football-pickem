@@ -35,6 +35,7 @@ type StandingsView = "standings" | "bank";
 type BetView = "offers" | "new";
 type SideBetLeagueFilter = "CFB" | "NFL";
 type SideBetLedgerScope = "all" | "mine";
+type SideBetGameFilter = "all" | "upcoming" | "completed";
 type GameStatusFilter = "OPEN" | "LOCKED" | "FINAL";
 type LeagueFilter = "CFB" | "NFL" | "DOGS";
 type DogValueFilter = "ALL" | "1" | "2" | "3";
@@ -1083,6 +1084,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [standingsView, setStandingsView] = useState<StandingsView>("standings");
   const [betView, setBetView] = useState<BetView>("offers");
   const [sideBetLedgerScope, setSideBetLedgerScope] = useState<SideBetLedgerScope>("all");
+  const [sideBetLedgerGameFilter, setSideBetLedgerGameFilter] = useState<SideBetGameFilter>("all");
   const [statusFilter, setStatusFilter] = useState<GameStatusFilter>("OPEN");
   const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>("CFB");
   const [conferenceFilter, setConferenceFilter] = useState("ALL");
@@ -1155,7 +1157,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
   useEffect(() => {
     stabilizeViewportAfterLayoutChange();
-  }, [tab, picksView, cardView, standingsView, betView, sideBetLedgerScope, data?.week, data?.sideBets.length, sideBetLedger.length]);
+  }, [tab, picksView, cardView, standingsView, betView, sideBetLedgerScope, sideBetLedgerGameFilter, data?.week, data?.sideBets.length, sideBetLedger.length]);
 
   useEffect(() => {
     const handlePickLocked = (event: Event) => {
@@ -1727,11 +1729,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const viewedSideBetLedger = (previewActive ? testWeek!.sideBets : sideBetLedger)
     .filter((bet) => bet.status === "accepted" || bet.status === "settled")
     .filter((bet) => sideBetLedgerScope === "all" || bet.creator_id === currentUser.id || bet.accepted_by === currentUser.id)
-    .sort((a, b) => {
-      const bTime = new Date(b.accepted_at || b.created_at).getTime();
-      const aTime = new Date(a.accepted_at || a.created_at).getTime();
-      return bTime - aTime;
-    });
+    .filter((bet) => sideBetMatchesGameFilter(bet, sideBetLedgerGameFilter))
+    .sort(sortSideBetsByGameStatus);
   const viewedSideBetBankTotals = previewActive ? testWeek!.sideBetBankTotals : data.sideBetBankTotals;
   const viewedGames = previewActive ? testWeek!.games : games;
   const viewedPicks = previewActive ? testWeek!.picks : picks;
@@ -2135,7 +2134,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             </div>
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} pointsMode={pointsMode} universalLockReached={universalLockReached} />
           </div>
-          <div className="subsection bank-section bank-week-section"><div className="standings-heading-row side-bet-ledger-heading-row"><h2 className="heading-with-badge">Side Bet Ledger <span className={`side-bet-week-total ${mySideBetWeekTotal > 0 ? "money-pos" : mySideBetWeekTotal < 0 ? "money-neg" : "money-neutral"}`.trim()}><NumericText text={money(mySideBetWeekTotal)} /></span><NotificationBadge count={bankNotificationCount} /></h2><div className="side-bet-ledger-scope-toggle" role="group" aria-label="Filter side bet ledger"><button type="button" className={sideBetLedgerScope === "all" ? "active" : ""} aria-pressed={sideBetLedgerScope === "all"} onClick={() => setSideBetLedgerScope("all")}>All Bets</button><button type="button" className={sideBetLedgerScope === "mine" ? "active" : ""} aria-pressed={sideBetLedgerScope === "mine"} onClick={() => setSideBetLedgerScope("mine")}>My Bets</button></div></div><div className="ledger-list">{!previewActive && !sideBetLedgerReady && <p className="muted">Loading side bet ledger…</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.length === 0 && <p className="muted ledger-empty-state">No side bets in the ledger yet.</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
+          <div className="subsection bank-section bank-week-section"><div className="standings-heading-row side-bet-ledger-heading-row"><h2 className="heading-with-badge">Side Bet Ledger <span className={`side-bet-week-total ${mySideBetWeekTotal > 0 ? "money-pos" : mySideBetWeekTotal < 0 ? "money-neg" : "money-neutral"}`.trim()}><NumericText text={money(mySideBetWeekTotal)} /></span><NotificationBadge count={bankNotificationCount} /></h2><div className="side-bet-ledger-scope-toggle" role="group" aria-label="Filter side bet ledger"><button type="button" className={sideBetLedgerScope === "all" ? "active" : ""} aria-pressed={sideBetLedgerScope === "all"} onClick={() => setSideBetLedgerScope("all")}>All Bets</button><button type="button" className={sideBetLedgerScope === "mine" ? "active" : ""} aria-pressed={sideBetLedgerScope === "mine"} onClick={() => setSideBetLedgerScope("mine")}>My Bets</button></div></div><div className="side-bet-game-filter-toggle" role="group" aria-label="Filter side bets by game status"><button type="button" className={sideBetLedgerGameFilter === "all" ? "active" : ""} aria-pressed={sideBetLedgerGameFilter === "all"} onClick={() => setSideBetLedgerGameFilter("all")}>All</button><button type="button" className={sideBetLedgerGameFilter === "upcoming" ? "active" : ""} aria-pressed={sideBetLedgerGameFilter === "upcoming"} onClick={() => setSideBetLedgerGameFilter("upcoming")}>Upcoming</button><button type="button" className={sideBetLedgerGameFilter === "completed" ? "active" : ""} aria-pressed={sideBetLedgerGameFilter === "completed"} onClick={() => setSideBetLedgerGameFilter("completed")}>Completed</button></div><div className="ledger-list">{!previewActive && !sideBetLedgerReady && <p className="muted">Loading side bet ledger…</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.length === 0 && <p className="muted ledger-empty-state">No side bets in the ledger yet.</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
         </>}
       </section>}
 
@@ -2391,6 +2390,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   const [customSpread, setCustomSpread] = useState("");
   const [oddsInput, setOddsInput] = useState("100");
   const [customRiskMode, setCustomRiskMode] = useState(false);
+  const [offerGameFilter, setOfferGameFilter] = useState<SideBetGameFilter>("all");
   const slipSheetRef = useRef<HTMLElement>(null);
   const slipSwipeStartY = useRef<number | null>(null);
   const slipCloseTimer = useRef<number | null>(null);
@@ -2571,6 +2571,8 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
       />}
     </div>
 
+    {view === "offers" && <div className="side-bet-game-filter-toggle side-bet-offers-game-filter" role="group" aria-label="Filter offers by game status"><button type="button" className={offerGameFilter === "all" ? "active" : ""} aria-pressed={offerGameFilter === "all"} onClick={() => setOfferGameFilter("all")}>All</button><button type="button" className={offerGameFilter === "upcoming" ? "active" : ""} aria-pressed={offerGameFilter === "upcoming"} onClick={() => setOfferGameFilter("upcoming")}>Upcoming</button><button type="button" className={offerGameFilter === "completed" ? "active" : ""} aria-pressed={offerGameFilter === "completed"} onClick={() => setOfferGameFilter("completed")}>Completed</button></div>}
+
     {view === "new" && weekConcluded && <div className="side-bet-sportsbook-board"><div className="empty-state side-bet-empty-state">This week has concluded.</div></div>}
 
     {view === "new" && !weekConcluded && !weekIsOpen && <div className="side-bet-sportsbook-board"><div className="empty-state side-bet-empty-state">{weekOpenTime ? <>This week opens on <NumericText text={openText(weekOpenTime)} />.</> : "This week is not open yet."}</div></div>}
@@ -2662,7 +2664,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
         </div>
       </section>}
 
-    {view === "offers" && <SideBetList bets={offers} currentUser={currentUser} empty={weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
+    {view === "offers" && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter)).sort(sortSideBetsByGameStatus)} currentUser={currentUser} empty={weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={setConfirmingBetId} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
@@ -2705,14 +2707,46 @@ function SideBetGameCard({ game, selectedTeam, disabled, onSelect, openPreview }
   </article>;
 }
 
+function sideBetGameCompleted(bet: SideBet) {
+  const game = bet.game;
+  return bet.status === "settled" || Boolean(game?.live_completed) ||
+    Boolean(game && game.final_home_score != null && game.final_away_score != null);
+}
+
+function sideBetMatchesGameFilter(bet: SideBet, filter: SideBetGameFilter) {
+  if (filter === "all") return true;
+  const completed = sideBetGameCompleted(bet);
+  return filter === "completed" ? completed : !completed;
+}
+
+function sideBetKickoffTime(bet: SideBet) {
+  const kickoff = bet.game?.commence_time ? new Date(bet.game.commence_time).getTime() : Number.POSITIVE_INFINITY;
+  return Number.isFinite(kickoff) ? kickoff : Number.POSITIVE_INFINITY;
+}
+
+function sideBetCompletionTime(bet: SideBet) {
+  const updated = new Date(bet.updated_at || bet.accepted_at || bet.created_at).getTime();
+  return Number.isFinite(updated) ? updated : 0;
+}
+
+function sortSideBetsByGameStatus(a: SideBet, b: SideBet) {
+  const aCompleted = sideBetGameCompleted(a);
+  const bCompleted = sideBetGameCompleted(b);
+  if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
+  if (aCompleted) return sideBetCompletionTime(b) - sideBetCompletionTime(a);
+  const kickoffDiff = sideBetKickoffTime(a) - sideBetKickoffTime(b);
+  if (kickoffDiff !== 0) return kickoffDiff;
+  return new Date(b.accepted_at || b.created_at).getTime() - new Date(a.accepted_at || a.created_at).getTime();
+}
+
 function SideBetList({ bets, currentUser, empty, historyOnly = false, saving, savingBetId, canAccept, acceptDisabledText, requestAccept, respond }: { bets: SideBet[]; currentUser: Profile; empty: string; historyOnly?: boolean; saving: boolean; savingBetId: string | null; canAccept: (bet: SideBet) => boolean; acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
   const modeFor = (bet: SideBet) => bet.creator_id === currentUser.id ? "sent" as const : "received" as const;
   const pending = bets
     .filter((bet) => sideBetOfferIsPending(bet, currentUser.id, modeFor(bet)))
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    .sort(sortSideBetsByGameStatus);
   const history = bets
     .filter((bet) => !sideBetOfferIsPending(bet, currentUser.id, modeFor(bet)))
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    .sort(sortSideBetsByGameStatus);
   const card = (bet: SideBet) => <SideBetCard key={bet.id} bet={bet} mode={modeFor(bet)} currentUser={currentUser} saving={saving} working={savingBetId === bet.id} canAccept={canAccept(bet)} acceptDisabledText={acceptDisabledText} requestAccept={requestAccept} respond={respond} />;
 
   if (!bets.length) return <div className="side-bet-list"><div className="empty-state">{empty}</div></div>;
