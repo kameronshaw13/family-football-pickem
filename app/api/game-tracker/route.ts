@@ -36,6 +36,28 @@ function normalizeScoringPlay(play: any, homeId: string, awayId: string, index: 
   };
 }
 
+function playOutcome(play: any) {
+  const type = String(play?.type?.text || "");
+  const text = String(play?.text || play?.shortText || "");
+  const combined = `${type} ${text}`.toLowerCase();
+
+  if (/touchdown/.test(combined)) return "Touchdown";
+  if (/field goal/.test(combined)) return "Field Goal";
+  if (/extra point/.test(combined)) return "Extra Point";
+  if (/two.point|2.pt|two point/.test(combined)) return "2PT";
+  if (/safety/.test(combined)) return "Safety";
+  if (/intercept/.test(combined)) return "Interception";
+  if (/penalty/.test(combined)) return "Penalty";
+  if (/fumble/.test(combined)) return "Fumble";
+  if (/punt/.test(combined)) return "Punt";
+  if (/no gain/.test(combined)) return "No Gain";
+
+  const yards = finite(play?.statYardage ?? play?.yards);
+  if (yards === 0) return "No Gain";
+  if (yards != null) return `${yards > 0 ? "+" : ""}${yards} YD`;
+  return "";
+}
+
 function normalizePlay(play: any, homeId: string, awayId: string, drive: any, index: number) {
   const teamId = teamIdFromPlay(play) || String(drive?.team?.id || "");
   const sequence = finite(play?.sequenceNumber ?? play?.id);
@@ -45,7 +67,8 @@ function normalizePlay(play: any, homeId: string, awayId: string, drive: any, in
     text: String(play?.text || play?.shortText || play?.type?.text || "Play"),
     period: String(play?.period?.displayValue || play?.period?.number || ""),
     clock: String(play?.clock?.displayValue || ""),
-    situation: String(play?.start?.downDistanceText || play?.start?.shortDownDistanceText || play?.end?.downDistanceText || ""),
+    situation: String(play?.start?.downDistanceText || play?.start?.shortDownDistanceText || play?.end?.downDistanceText || play?.end?.shortDownDistanceText || ""),
+    outcome: playOutcome(play),
     teamSide: teamId === homeId ? "home" : teamId === awayId ? "away" : null,
     scoringPlay: Boolean(play?.scoringPlay),
     homeScore: finite(play?.homeScore),
@@ -53,13 +76,19 @@ function normalizePlay(play: any, homeId: string, awayId: string, drive: any, in
   };
 }
 
-function normalizeDrive(drive: any, homeId: string, awayId: string, current: boolean, index: number) {
+function normalizeDrive(drive: any, homeId: string, awayId: string, current: boolean, index: number, newestFirst: boolean) {
   const teamId = String(drive?.team?.id || "");
   const side = teamId === homeId ? "home" : teamId === awayId ? "away" : null;
-  const plays = (Array.isArray(drive?.plays) ? drive.plays : []).map((play: any, playIndex: number) =>
+  const rawPlays = (Array.isArray(drive?.plays) ? drive.plays : []).map((play: any, playIndex: number) =>
     normalizePlay(play, homeId, awayId, drive, playIndex)
   );
-  const lastPlay = plays.at(-1);
+  const chronologicalPlays = rawPlays.slice().sort((a: any, b: any) => {
+    if (a.sequence != null && b.sequence != null) return a.sequence - b.sequence;
+    return 0;
+  });
+  const scorePlay = chronologicalPlays.at(-1);
+  const plays = newestFirst ? chronologicalPlays.slice().reverse() : chronologicalPlays;
+
   return {
     id: String(drive?.id || `drive-${index}`),
     teamSide: side,
@@ -70,12 +99,31 @@ function normalizeDrive(drive: any, homeId: string, awayId: string, current: boo
     endText: String(drive?.end?.text || drive?.end?.yardLine || ""),
     timeElapsed: String(drive?.timeElapsed?.displayValue || ""),
     yards: finite(drive?.yards),
-    playsCount: plays.length,
-    homeScore: lastPlay?.homeScore ?? null,
-    awayScore: lastPlay?.awayScore ?? null,
+    playsCount: chronologicalPlays.length,
+    homeScore: scorePlay?.homeScore ?? null,
+    awayScore: scorePlay?.awayScore ?? null,
     plays
   };
 }
+
+function periodNumber(value: string) {
+  const parsed = Number(String(value || "").match(/\d+/)?.[0]);
+  return Number.isFinite(parsed) ? parsed : 99;
+}
+
+function clockSeconds(value: string) {
+  const match = String(value || "").match(/(\d{1,2}):(\d{2})/);
+  return match ? Number(match[1]) * 60 + Number(match[2]) : -1;
+}
+
+function chronologicalDriveSort(a: any, b: any) {
+  const aPlay = a.plays?.[0];
+  const bPlay = b.plays?.[0];
+  const periodDiff = periodNumber(aPlay?.period || "") - periodNumber(bPlay?.period || "");
+  if (periodDiff !== 0) return periodDiff;
+  return clockSeconds(bPlay?.clock || "") - clockSeconds(aPlay?.clock || "");
+}
+
 
 function fieldPositionText(situation: any) {
   const direct = String(situation?.possessionText || "").trim();
@@ -200,21 +248,47 @@ export async function GET(req: NextRequest) {
     const awayId = String(away?.team?.id || "");
     const status = competition?.status?.type || {};
 
+    const completed = Boolean(status?.completed);
     const priorDrives = Array.isArray(payload?.drives?.previous) ? payload.drives.previous : [];
     const currentDrive = payload?.drives?.current || null;
-    const drives = [
-      ...(currentDrive ? [normalizeDrive(currentDrive, homeId, awayId, true, 0)] : []),
-      ...priorDrives.slice().reverse().map((drive: any, index: number) => normalizeDrive(drive, homeId, awayId, false, index + 1))
-    ];
+    const currentDriveId = currentDrive?.id ? String(currentDrive.id) : "";
+    const seenDriveIds = new Set<string>();
+    const uniquePreviousDrives = priorDrives.filter((drive: any, index: number) => {
+      const id = String(drive?.id || `previous-${index}`);
+      if ((currentDriveId && id === currentDriveId) || seenDriveIds.has(id)) return false;
+      seenDriveIds.add(id);
+      return true;
+    });
+
+    let drives = completed
+      ? uniquePreviousDrives.map((drive: any, index: number) => normalizeDrive(drive, homeId, awayId, false, index, false)).sort(chronologicalDriveSort)
+      : [
+          ...(currentDrive ? [normalizeDrive(currentDrive, homeId, awayId, true, 0, true)] : []),
+          ...uniquePreviousDrives.slice().reverse().map((drive: any, index: number) => normalizeDrive(drive, homeId, awayId, false, index + 1, true))
+        ];
 
     const scoringPlays = (Array.isArray(payload?.scoringPlays) ? payload.scoringPlays : [])
       .map((play: any, index: number) => normalizeScoringPlay(play, homeId, awayId, index))
-      .reverse();
+      .sort((a: any, b: any) => {
+        const periodDiff = periodNumber(a.period) - periodNumber(b.period);
+        if (periodDiff !== 0) return periodDiff;
+        return clockSeconds(b.clock) - clockSeconds(a.clock);
+      });
 
-    const situation = competition?.situation || {};
-    const possessionId = String(situation?.possession || "");
+    const rawCurrentPlays = Array.isArray(currentDrive?.plays) ? currentDrive.plays : [];
+    const latestRawPlay = rawCurrentPlays.at(-1) || null;
+    const fallbackSituation = latestRawPlay?.end || latestRawPlay?.start || {};
+    const competitionSituation = competition?.situation || {};
+    const situation = { ...fallbackSituation, ...competitionSituation };
+    const possessionId = String(competitionSituation?.possession || currentDrive?.team?.id || latestRawPlay?.team?.id || "");
     const possessionSide = possessionId === homeId ? "home" : possessionId === awayId ? "away" : null;
-    const downDistanceText = String(situation?.shortDownDistanceText || situation?.downDistanceText || "");
+    const downDistanceText = String(
+      competitionSituation?.shortDownDistanceText ||
+      competitionSituation?.downDistanceText ||
+      fallbackSituation?.shortDownDistanceText ||
+      fallbackSituation?.downDistanceText ||
+      ""
+    );
     const down = finite(situation?.down ?? downDistanceText.match(/^(\d)/)?.[1]);
     const yardsToGoal = situationYardsToGoal(situation, possessionSide, home, away);
     const distance = finite(situation?.distance ?? downDistanceText.match(/&\s*(\d+)/)?.[1])
@@ -227,7 +301,7 @@ export async function GET(req: NextRequest) {
       status: {
         state: String(status?.state || ""),
         detail: String(status?.shortDetail || status?.detail || ""),
-        completed: Boolean(status?.completed)
+        completed
       },
       teams: {
         away: {
@@ -255,8 +329,8 @@ export async function GET(req: NextRequest) {
         fieldPosition: fieldPositionText(situation),
         redZone: Boolean(situation?.isRedZone),
         downDistanceText,
-        homeTimeouts: finite(situation?.homeTimeouts),
-        awayTimeouts: finite(situation?.awayTimeouts)
+        homeTimeouts: finite(competitionSituation?.homeTimeouts),
+        awayTimeouts: finite(competitionSituation?.awayTimeouts)
       },
       scoringPlays,
       drives,

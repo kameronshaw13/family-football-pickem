@@ -19,6 +19,7 @@ type TrackerPlay = {
   situation: string;
   teamSide: Side | null;
   scoringPlay: boolean;
+  outcome: string;
   homeScore: number | null;
   awayScore: number | null;
 };
@@ -152,9 +153,42 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   </div>;
 }
 
+function PlayRow({ play, compact = false }: { play: TrackerPlay; compact?: boolean }) {
+  return <div className={`game-tracker-drive-play ${compact ? "compact" : ""}`.trim()}>
+    <div>
+      <div className="game-tracker-play-context">
+        {play.situation && <span>{play.situation}</span>}
+        {play.clock && <time>{play.clock}</time>}
+      </div>
+      <strong>{play.text}</strong>
+    </div>
+    {play.outcome && <b className="game-tracker-play-outcome">{play.outcome}</b>}
+  </div>;
+}
+
+function LiveCurrentDrive({ drive, payload }: { drive: TrackerDrive; payload: TrackerPayload }) {
+  const team = drive.teamSide ? payload.teams[drive.teamSide] : null;
+  const meta = [
+    drive.playsCount ? `${drive.playsCount} plays` : "",
+    drive.yards != null ? `${drive.yards} yds` : "",
+    drive.timeElapsed ? `${drive.timeElapsed} Possession` : "Possession"
+  ].filter(Boolean).join(" · ");
+
+  return <section className="game-tracker-live-drive">
+    <header>
+      <span>{team && <TeamLogo src={team.logo} name={team.name} size={28} />}</span>
+      <div><strong>Current Drive</strong><small>{meta}</small></div>
+    </header>
+    <div className="game-tracker-live-drive-plays">
+      {drive.plays.length ? drive.plays.slice(0, 4).map((play) => <PlayRow key={play.id} play={play} compact />) : <p className="game-tracker-drive-empty">Waiting for the first play…</p>}
+    </div>
+  </section>;
+}
+
 function LiveField({ payload }: { payload: TrackerPayload }) {
   const { situation, teams } = payload;
   const possession = situation.possessionSide ? teams[situation.possessionSide] : null;
+  const currentDrive = payload.drives.find((drive) => drive.current) || (!payload.status.completed ? payload.drives[0] : null);
   const yardsToGoal = situation.yardsToGoal == null ? 50 : Math.max(0, Math.min(100, situation.yardsToGoal));
   const marker = Math.max(4, Math.min(96, 100 - yardsToGoal));
   const downText = situation.down != null
@@ -164,9 +198,9 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
   return <div className="game-tracker-live">
     <div className="game-tracker-live-situation">
       <div>
-        <small>{possession ? `${possession.shortName || possession.name} BALL` : "POSSESSION"}</small>
+        <small>{possession ? `${possession.shortName || possession.name} BALL` : currentDrive?.teamSide ? `${teams[currentDrive.teamSide].shortName || teams[currentDrive.teamSide].name} BALL` : "POSSESSION"}</small>
         <strong>{downText}</strong>
-        <span>{situation.fieldPosition ? `Ball at ${situation.fieldPosition}` : "Field position updating"}</span>
+        <span>{situation.fieldPosition ? `Ball at ${situation.fieldPosition}` : currentDrive?.endText || currentDrive?.startText || "Field position updating"}</span>
       </div>
       <div className="game-tracker-timeouts">
         <span>{teams.away.shortName || teams.away.abbreviation || "Away"} TO <b>{situation.awayTimeouts ?? "—"}</b></span>
@@ -179,16 +213,18 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
       <div className="game-tracker-field-lines">{Array.from({ length: 9 }, (_, index) => <i key={index} style={{ left: `${(index + 1) * 10}%` }} />)}</div>
       <div className="game-tracker-yard-labels"><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>40</span><span>30</span><span>20</span><span>10</span></div>
       <div className="game-tracker-ball-marker" style={{ left: `${marker}%` }}>
-        {possession ? <TeamLogo src={possession.logo} name={possession.name} size={24} /> : <span>●</span>}
+        {possession ? <TeamLogo src={possession.logo} name={possession.name} size={24} /> : currentDrive?.teamSide ? <TeamLogo src={teams[currentDrive.teamSide].logo} name={teams[currentDrive.teamSide].name} size={24} /> : <span>●</span>}
       </div>
       <div className="game-tracker-endzone right">END</div>
     </div>
 
     <div className="game-tracker-field-footer">
       <span>Own goal line</span>
-      <strong>{possession ? `${possession.shortName || possession.name} possession` : "Possession updating"}</strong>
+      <strong>{possession ? `${possession.shortName || possession.name} possession` : currentDrive?.teamSide ? `${teams[currentDrive.teamSide].shortName || teams[currentDrive.teamSide].name} possession` : "Possession updating"}</strong>
       <span>Opponent end zone</span>
     </div>
+
+    {currentDrive && <LiveCurrentDrive drive={currentDrive} payload={payload} />}
   </div>;
 }
 
@@ -268,13 +304,7 @@ function DriveDetails({ drive, payload, initiallyOpen }: { drive: TrackerDrive; 
   >
     <DriveSummary drive={drive} payload={payload} />
     <div className="game-tracker-drive-plays">
-      {drive.plays.length ? drive.plays.map((play) => <div className="game-tracker-drive-play" key={play.id}>
-        <div>
-          {play.situation && <small className="game-tracker-play-situation">{play.situation}</small>}
-          <strong>{play.text}</strong>
-        </div>
-        {play.scoringPlay && <b>SCORING</b>}
-      </div>) : <p className="game-tracker-drive-empty">No plays listed for this drive.</p>}
+      {drive.plays.length ? drive.plays.map((play) => <PlayRow key={play.id} play={play} />) : <p className="game-tracker-drive-empty">No plays listed for this drive.</p>}
     </div>
   </details>;
 }
