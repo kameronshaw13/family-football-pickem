@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     // pick locking, grading, notifications, settlement, or unrelated database writes.
     const { data: candidates, error } = await supabase
       .from("games")
-      .select("id,espn_event_id,week,league,commence_time,home_team,away_team,final_home_score,final_away_score")
+      .select("id,espn_event_id,week,league,commence_time,home_team,away_team,home_logo_url,away_logo_url,final_home_score,final_away_score")
       .eq("week", week)
       .is("final_home_score", null)
       .is("final_away_score", null)

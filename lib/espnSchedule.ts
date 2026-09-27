@@ -46,11 +46,14 @@ type Matchup = {
   commence_time: string;
   home_team: string;
   away_team: string;
+  home_logo_url?: string | null;
+  away_logo_url?: string | null;
 };
 
 const MIN_TWO_SIDED_IDENTITY_SCORE = 80;
 const STRONG_ONE_SIDED_IDENTITY_SCORE = 110;
 const ONE_SIDED_MATCH_MAX_DISTANCE_MS = 36 * 60 * 60 * 1000;
+const discoveredEventIdCache = new Map<string, string>();
 
 function normalize(value: string | null | undefined) {
   return (value || "")
@@ -104,6 +107,32 @@ function identityScore(sourceName: string, team: EspnTeam) {
   const displayTokens = tokenSet(team.displayName);
   const overlap = Array.from(displayTokens).filter((token) => sourceTokens.has(token)).length;
   return overlap >= 2 ? Math.round((overlap / Math.max(displayTokens.size, sourceTokens.size)) * 80) : 0;
+}
+
+function teamIdFromLogoUrl(url: string | null | undefined) {
+  const normalized = normalizeEspnLogoUrl(url);
+  return normalized?.match(/\/teamlogos\/(?:ncaa|nfl)\/\d+\/(\d+)\.[a-z0-9]+(?:\?.*)?$/i)?.[1] || null;
+}
+
+function matchupIdentityScore(sourceName: string, sourceLogoUrl: string | null | undefined, team: EspnTeam) {
+  const sourceTeamId = teamIdFromLogoUrl(sourceLogoUrl);
+  const espnTeamId = teamIdFromLogoUrl(team.logoUrl);
+  if (sourceTeamId && espnTeamId && sourceTeamId === espnTeamId) return 140;
+  return identityScore(sourceName, team);
+}
+
+function matchupCacheKey(league: "NFL" | "CFB", matchup: Matchup) {
+  return [
+    league,
+    matchup.commence_time,
+    teamIdFromLogoUrl(matchup.home_logo_url) || normalize(matchup.home_team),
+    teamIdFromLogoUrl(matchup.away_logo_url) || normalize(matchup.away_team)
+  ].join(":");
+}
+
+function footballSeasonYear(iso: string) {
+  const eastern = toZonedTime(new Date(iso), "America/New_York");
+  return eastern.getMonth() <= 1 ? eastern.getFullYear() - 1 : eastern.getFullYear();
 }
 
 function alignmentScore(firstTeamScore: number, secondTeamScore: number, kickoffDistance: number, allowOneSided: boolean) {
@@ -265,6 +294,68 @@ export async function fetchEspnEvent(
   };
 }
 
+async function fetchEspnTeamSchedule(
+  league: "NFL" | "CFB",
+  teamId: string,
+  season: number,
+  freshness: boolean | number = true
+) {
+  const sportPath = league === "NFL" ? "nfl" : "college-football";
+  const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/teams/${encodeURIComponent(teamId)}/schedule`);
+  url.searchParams.set("season", String(season));
+  if (league === "CFB") url.searchParams.set("seasontype", "2");
+
+  const response = await fetch(url.toString(), freshness === true
+    ? { cache: "no-store" }
+    : { next: { revalidate: typeof freshness === "number" ? freshness : 60 * 60 } });
+  if (!response.ok) return [];
+
+  const payload = await response.json();
+  const events = Array.isArray(payload?.events) ? payload.events : [];
+  return events.flatMap((event: any): EspnScheduleGame[] => {
+    const competition = event?.competitions?.[0];
+    const home = competition?.competitors?.find((competitor: any) => competitor.homeAway === "home");
+    const away = competition?.competitors?.find((competitor: any) => competitor.homeAway === "away");
+    const commenceTime = competition?.date || event?.date;
+    if (!home || !away || !commenceTime) return [];
+
+    const possessionId = String(competition?.situation?.possession || "");
+    const possessionSide = possessionId && possessionId === String(home?.team?.id)
+      ? "home"
+      : possessionId && possessionId === String(away?.team?.id)
+        ? "away"
+        : null;
+    const situation = competition?.situation;
+    const situationText = situation?.downDistanceText || situation?.shortDownDistanceText || null;
+    const yardsToGoal = situationYardsToGoal(situation, possessionSide, home, away);
+    const parsedDown = situationText?.match(/^(\d)(?:st|nd|rd|th)\b/i)?.[1];
+    const parsedDistance = situationText?.match(/&\s*(\d+)\b/i)?.[1];
+    const down = finiteSituationNumber(situation?.down ?? parsedDown);
+    const distance = finiteSituationNumber(situation?.distance ?? parsedDistance) ?? (/&\s*goal\b/i.test(situationText || "") ? yardsToGoal : null);
+
+    return [{
+      id: String(event.id),
+      commenceTime,
+      timeValid: competition?.timeValid !== false,
+      completed: Boolean(competition?.status?.type?.completed),
+      homeScore: scoreFromCompetitor(home),
+      awayScore: scoreFromCompetitor(away),
+      statusDetail: competition?.status?.type?.shortDetail || competition?.status?.type?.detail || null,
+      statusState: competition?.status?.type?.state || null,
+      possessionSide,
+      situationText,
+      redZone: Boolean(situation?.isRedZone),
+      down,
+      distance,
+      yardsToGoal,
+      homeTimeouts: finiteSituationNumber(situation?.homeTimeouts),
+      awayTimeouts: finiteSituationNumber(situation?.awayTimeouts),
+      homeTeam: teamFromCompetitor(home),
+      awayTeam: teamFromCompetitor(away)
+    }];
+  });
+}
+
 export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string[], freshness: boolean | number = false, paddingDays = 3) {
   const parsedDates = dateHints.map((date) => new Date(date)).filter((date) => !Number.isNaN(date.getTime()));
   if (!parsedDates.length) return [];
@@ -396,14 +487,14 @@ export function findEspnScheduleMatch(matchup: Matchup, schedule: EspnScheduleGa
     if (exact) {
       const distance = Math.abs(new Date(exact.commenceTime).getTime() - sourceTime);
       const directScore = alignmentScore(
-        identityScore(matchup.home_team, exact.homeTeam),
-        identityScore(matchup.away_team, exact.awayTeam),
+        matchupIdentityScore(matchup.home_team, matchup.home_logo_url, exact.homeTeam),
+        matchupIdentityScore(matchup.away_team, matchup.away_logo_url, exact.awayTeam),
         distance,
         true
       );
       const swappedScore = alignmentScore(
-        identityScore(matchup.home_team, exact.awayTeam),
-        identityScore(matchup.away_team, exact.homeTeam),
+        matchupIdentityScore(matchup.home_team, matchup.home_logo_url, exact.awayTeam),
+        matchupIdentityScore(matchup.away_team, matchup.away_logo_url, exact.homeTeam),
         distance,
         true
       );
@@ -421,10 +512,10 @@ export function findEspnScheduleMatch(matchup: Matchup, schedule: EspnScheduleGa
 
   for (const game of schedule) {
     const distance = Math.abs(new Date(game.commenceTime).getTime() - sourceTime);
-    const directHome = identityScore(matchup.home_team, game.homeTeam);
-    const directAway = identityScore(matchup.away_team, game.awayTeam);
-    const swappedHome = identityScore(matchup.home_team, game.awayTeam);
-    const swappedAway = identityScore(matchup.away_team, game.homeTeam);
+    const directHome = matchupIdentityScore(matchup.home_team, matchup.home_logo_url, game.homeTeam);
+    const directAway = matchupIdentityScore(matchup.away_team, matchup.away_logo_url, game.awayTeam);
+    const swappedHome = matchupIdentityScore(matchup.home_team, matchup.home_logo_url, game.awayTeam);
+    const swappedAway = matchupIdentityScore(matchup.away_team, matchup.away_logo_url, game.homeTeam);
     const directScore = alignmentScore(directHome, directAway, distance, allowOneSided);
     const swappedScore = alignmentScore(swappedHome, swappedAway, distance, allowOneSided);
     const score = Math.max(directScore, swappedScore);
@@ -450,11 +541,51 @@ export async function resolveEspnScheduleMatch(
   options: { allowOneSided?: boolean; freshness?: boolean | number } = {}
 ): Promise<EspnScheduleMatch | null> {
   const match = findEspnScheduleMatch(matchup, schedule, options);
-  if (match || !matchup.espn_event_id) return match;
+  if (match) return match;
 
   // The date scoreboard occasionally omits individual games. When we already
   // know ESPN's event id, query that exact event instead of guessing from a
   // different matchup or leaving a valid game stuck on "Score updating."
-  const exact = await fetchEspnEvent(league, matchup.espn_event_id, options.freshness ?? true);
-  return exact ? findEspnScheduleMatch(matchup, [exact], options) : null;
+  if (matchup.espn_event_id) {
+    const exact = await fetchEspnEvent(league, matchup.espn_event_id, options.freshness ?? true);
+    return exact ? findEspnScheduleMatch(matchup, [exact], options) : null;
+  }
+
+  // Some ESPN date scoreboards can omit an otherwise valid game. The games
+  // table already carries ESPN logo URLs, whose numeric logo id is the stable
+  // ESPN team id. Use one team's season schedule as a narrow discovery source,
+  // then still verify the full matchup before accepting the event. This is much
+  // safer than loosening fuzzy name matching and prevents wrong-score attachment.
+  const cacheKey = matchupCacheKey(league, matchup);
+  const cachedEventId = discoveredEventIdCache.get(cacheKey);
+  if (cachedEventId) {
+    const cachedEvent = await fetchEspnEvent(league, cachedEventId, options.freshness ?? true);
+    if (cachedEvent) {
+      const cachedMatch = findEspnScheduleMatch(matchup, [cachedEvent], options);
+      if (cachedMatch) return cachedMatch;
+    }
+    discoveredEventIdCache.delete(cacheKey);
+  }
+
+  const teamIds = Array.from(new Set([
+    teamIdFromLogoUrl(matchup.home_logo_url),
+    teamIdFromLogoUrl(matchup.away_logo_url)
+  ].filter((value): value is string => Boolean(value))));
+
+  if (!teamIds.length) return null;
+
+  const season = footballSeasonYear(matchup.commence_time);
+  for (const teamId of teamIds) {
+    try {
+      const teamSchedule = await fetchEspnTeamSchedule(league, teamId, season, options.freshness ?? true);
+      const teamMatch = findEspnScheduleMatch(matchup, teamSchedule, options);
+      if (!teamMatch) continue;
+      discoveredEventIdCache.set(cacheKey, teamMatch.game.id);
+      return teamMatch;
+    } catch {
+      // Try the other known team id before giving up.
+    }
+  }
+
+  return null;
 }

@@ -270,7 +270,13 @@ async function refreshOdds() {
         // incomplete ESPN date scoreboard erase legitimate CFB games that already
         // have sportsbook lines. The Odds API is the source of truth for the betting
         // slate; ESPN is enrichment for IDs, kickoff normalization and logos.
-        const scheduleMatch = findEspnScheduleMatch(event, schedule, {
+        const providerHomeLogoUrl = findEspnLogo(event.home_team, logoMap);
+        const providerAwayLogoUrl = findEspnLogo(event.away_team, logoMap);
+        const scheduleMatch = findEspnScheduleMatch({
+          ...event,
+          home_logo_url: providerHomeLogoUrl,
+          away_logo_url: providerAwayLogoUrl
+        }, schedule, {
           allowOneSided: sport.league === "NFL"
         });
         if (scheduleMatch) scheduleMatched += 1;
@@ -281,8 +287,8 @@ async function refreshOdds() {
         const commenceTime = scheduleMatch
           ? resolveEspnCommenceTime(scheduleMatch, event.commence_time)
           : event.commence_time;
-        const homeLogoUrl = scheduleMatch?.game.homeTeam.logoUrl || findEspnLogo(officialHomeName, logoMap);
-        const awayLogoUrl = scheduleMatch?.game.awayTeam.logoUrl || findEspnLogo(officialAwayName, logoMap);
+        const homeLogoUrl = scheduleMatch?.game.homeTeam.logoUrl || (scheduleMatch?.swapped ? providerAwayLogoUrl : providerHomeLogoUrl) || findEspnLogo(officialHomeName, logoMap);
+        const awayLogoUrl = scheduleMatch?.game.awayTeam.logoUrl || (scheduleMatch?.swapped ? providerHomeLogoUrl : providerAwayLogoUrl) || findEspnLogo(officialAwayName, logoMap);
         const officialGame = {
           event,
           scheduleMatch,
