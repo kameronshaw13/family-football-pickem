@@ -817,9 +817,16 @@ fieldset .field-label { padding: 0; }
 }
 
 .confirmation-market-line {
-  margin: 7px 0 0;
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
   color: var(--muted);
   font-size: 10px;
   font-weight: 700;
+  line-height: 1.2;
   text-align: center;
 }
