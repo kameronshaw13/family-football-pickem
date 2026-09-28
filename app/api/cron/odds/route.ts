@@ -4,6 +4,7 @@ import { refreshActionNetworkSpreads, syncUpcomingFootballSchedule } from "@/lib
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import type { Game } from "@/lib/types";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
 const SUPABASE_ODDS_CRON_TOKEN_SHA256 = "3907027700258fc50a7d4ea237b41402793ca1082da70fdc5751a81216c09dbb";
 
 function hasValidSupabaseOddsCronToken(req: NextRequest) {
@@ -53,24 +54,31 @@ export async function GET(req: NextRequest) {
 
   const scheduled = Boolean(req.headers.get("x-vercel-cron-schedule")) || hasValidSupabaseSecret;
   const now = new Date();
+  const { minute } = chicagoParts(now);
   if (scheduled && !isChicagoMarketRefreshWindow(now)) {
     return NextResponse.json({ ok: true, skipped: true, provider: "Action Network", reason: "Outside the active CT market refresh window." });
   }
 
   try {
     const supabase = getSupabaseAdmin();
-    let scheduleSync: { gamesDiscovered: number; start: string; end: string; error?: string };
+    const defaultWindow = {
+      gamesDiscovered: 0,
+      start: new Date(now.getTime() - DAY_MS).toISOString(),
+      end: new Date(now.getTime() + 14 * DAY_MS).toISOString()
+    };
+    let scheduleSync: { gamesDiscovered: number; start: string; end: string; error?: string } = defaultWindow;
+    const refreshFuture = !scheduled || minute % 30 === 0;
 
-    try {
-      scheduleSync = await syncUpcomingFootballSchedule(supabase, now);
-    } catch (error) {
-      scheduleSync = {
-        gamesDiscovered: 0,
-        start: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-        end: new Date(now.getTime() + 9 * 24 * 60 * 60 * 1000).toISOString(),
-        error: error instanceof Error ? error.message : String(error)
-      };
-      console.error("[cron/odds] ESPN schedule sync failed; continuing with existing games.", error);
+    if (refreshFuture) {
+      try {
+        scheduleSync = await syncUpcomingFootballSchedule(supabase, now);
+      } catch (error) {
+        scheduleSync = {
+          ...defaultWindow,
+          error: error instanceof Error ? error.message : String(error)
+        };
+        console.error("[cron/odds] ESPN schedule sync failed; continuing with existing games.", error);
+      }
     }
 
     const { data, error } = await supabase
@@ -83,15 +91,28 @@ export async function GET(req: NextRequest) {
     if (error) throw new Error(error.message);
 
     const games = (data || []) as Game[];
-    const result = await refreshActionNetworkSpreads(supabase, games, now);
+    const nearCutoff = now.getTime() + 8 * DAY_MS;
+    const nearGames = games.filter((game) => new Date(game.commence_time).getTime() <= nearCutoff);
+    const futureGames = games.filter((game) => new Date(game.commence_time).getTime() > nearCutoff);
+
+    const nearResult = await refreshActionNetworkSpreads(supabase, nearGames, now);
+    const futureResult = refreshFuture
+      ? await refreshActionNetworkSpreads(supabase, futureGames, now)
+      : { gamesUpdated: 0, dogAdjustments: { removed: 0, tierChanged: 0 } };
 
     return NextResponse.json({
       ok: true,
       provider: "Action Network",
       scheduleSource: "ESPN",
       gamesChecked: games.length,
-      gamesUpdated: result.gamesUpdated,
-      dogAdjustments: result.dogAdjustments,
+      nearGamesChecked: nearGames.length,
+      futureGamesChecked: refreshFuture ? futureGames.length : 0,
+      futureRefreshCadence: "30 minutes",
+      gamesUpdated: nearResult.gamesUpdated + futureResult.gamesUpdated,
+      dogAdjustments: {
+        removed: nearResult.dogAdjustments.removed + futureResult.dogAdjustments.removed,
+        tierChanged: nearResult.dogAdjustments.tierChanged + futureResult.dogAdjustments.tierChanged
+      },
       scheduleSync
     });
   } catch (error) {
