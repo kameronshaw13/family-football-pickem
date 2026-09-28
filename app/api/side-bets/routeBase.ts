@@ -57,7 +57,7 @@ function notificationMarketText(
       : notificationSpread(spread);
   const oddsText = Math.abs(Number(odds)) === 100 ? "" : ` ${americanOddsText(odds)}`;
   if (marketType === "total" && awayTeam && homeTeam) {
-    return `${notificationTeamName(awayTeam, league)} @ ${notificationTeamName(homeTeam, league)} ${line}${oddsText}`;
+    return `${notificationTeamName(awayTeam, league)} at ${notificationTeamName(homeTeam, league)} ${line}${oddsText}`;
   }
   return `${notificationTeamName(team, league)} ${line}${oddsText}`;
 }

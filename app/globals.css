@@ -320,6 +320,11 @@ fieldset .field-label { padding: 0; }
 .game-card.locked-out .team-row, .side-bet-game-card.closed .team-row { color: var(--muted); background: var(--canvas-muted); -webkit-text-fill-color: var(--muted); }
 .side-bet-slip-bar { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 9px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 34; display: grid; min-height: 60px; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 11px; border: 1px solid #c7c0b1; border-radius: 7px; color: var(--ink); background: #fbf9f4; box-shadow: 0 12px 30px rgba(20, 33, 43, .24); text-align: left; }
 .side-bet-slip-bar .team-logo { width: 34px; height: 34px; }
+.matchup-logo-pair { display: inline-flex; width: 38px; flex: 0 0 38px; align-items: center; justify-content: flex-start; }
+.matchup-logo-pair .team-logo { width: 25px; height: 25px; flex: 0 0 25px; border-radius: 50%; background: var(--panel); }
+.matchup-logo-pair .team-logo + .team-logo { margin-left: -11px; }
+.side-bet-slip-bar .matchup-logo-pair .team-logo { width: 27px; height: 27px; flex-basis: 27px; }
+.side-bet-slip-bar .matchup-logo-pair .team-logo + .team-logo { margin-left: -12px; }
 .side-bet-slip-copy { display: flex; min-width: 0; align-items: baseline; gap: 6px; }
 .side-bet-slip-copy .team-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side-bet-slip-copy .team-spread { width: auto; flex: 0 0 auto; justify-content: flex-start; }
@@ -418,7 +423,9 @@ fieldset .field-label { padding: 0; }
 .confirmation-matchup > div { display: flex; min-height: 52px; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
 .confirmation-matchup > div:last-child { border-bottom: 0; }
 .confirmation-matchup > div > span { color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; }
-.confirmation-matchup strong { font-size: 13px; text-align: right; }
+.confirmation-matchup strong { min-width: 0; font-size: 13px; text-align: right; }
+.confirmation-matchup .side-bet-review-logo-pair { width: 38px; flex: 0 0 38px; }
+.confirmation-matchup .side-bet-review-logo-pair .team-logo { width: 25px; height: 25px; flex-basis: 25px; }
 .confirmation-kickoff { margin-top: 10px; color: var(--muted); font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .confirmation-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 16px; }
 .confirmation-actions .btn { width: 100%; min-height: 43px; }
