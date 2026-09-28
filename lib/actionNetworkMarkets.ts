@@ -131,11 +131,11 @@ function rowAgeSeconds(row: ActionOddsRow, now = Date.now()) {
   return Number.isFinite(inserted) ? (now - inserted) / 1000 : null;
 }
 
-async function fetchActionLeague(league: Game["league"]) {
+async function fetchActionLeagueDate(league: Game["league"], marketDate: string) {
   const path = league === "NFL" ? "nfl" : "ncaaf";
   const params = new URLSearchParams({
     bookIds: String(DRAFTKINGS_BOOK_ID),
-    date: dateKey(),
+    date: marketDate,
     periods: "event"
   });
   if (league === "CFB") params.set("division", "FBS");
@@ -143,9 +143,20 @@ async function fetchActionLeague(league: Game["league"]) {
     headers: { "User-Agent": ACTION_USER_AGENT },
     next: { revalidate: 5 }
   });
-  if (!response.ok) throw new Error(`Action Network ${league} market request failed with ${response.status}.`);
+  if (!response.ok) throw new Error(`Action Network ${league} market request failed with ${response.status} for ${marketDate}.`);
   const payload = await response.json();
   return Array.isArray(payload?.games) ? payload.games as ActionGame[] : [];
+}
+
+async function fetchActionLeague(league: Game["league"], games: Game[]) {
+  const marketDates = Array.from(new Set(games.map((game) => dateKey(new Date(game.commence_time)))));
+  const results = await Promise.allSettled(marketDates.map((marketDate) => fetchActionLeagueDate(league, marketDate)));
+  const successful = results.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+  if (!successful.length && results.some((result) => result.status === "rejected")) {
+    const firstFailure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+    throw firstFailure?.reason instanceof Error ? firstFailure.reason : new Error(`Action Network ${league} market request failed.`);
+  }
+  return Array.from(new Map(successful.map((game) => [String(game.id || `${game.start_time}:${game.home_team_id}:${game.away_team_id}`), game])).values());
 }
 
 function quoteForGame(game: Game, actionGames: ActionGame[]): SideBetMarketQuote | null {
@@ -216,7 +227,7 @@ export async function fetchActionNetworkMarkets(games: Game[]) {
   const leaguePayloads = new Map<Game["league"], ActionGame[]>();
   await Promise.all(leagues.map(async (league) => {
     try {
-      leaguePayloads.set(league, await fetchActionLeague(league));
+      leaguePayloads.set(league, await fetchActionLeague(league, games.filter((game) => game.league === league)));
     } catch (error) {
       console.error(`[side-bet-markets] ${league} fetch failed`, error);
       leaguePayloads.set(league, []);
