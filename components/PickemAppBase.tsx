@@ -26,7 +26,7 @@ import { appLoginPath } from "@/lib/appIdentity";
 import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetResponseSummary, sideBetsForView } from "@/lib/sideBetPresentation";
 import { orderCardPicks } from "@/lib/cardOrdering";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
-import { getCurrentPickWeek } from "@/lib/lockRules";
+import { canRefreshSpread, getCurrentPickWeek } from "@/lib/lockRules";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -1591,6 +1591,73 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     if (!hasCurrentStatus) setStatusFilter(defaultBoardStatus(data.games, clock, weekIsOpenNow));
   }, [clock, data, statusFilter, statusFilterTouched]);
   useEffect(() => {
+    if (!dataRef.current || week == null || testWeekActive || tab !== "picks" || picksView !== "board") return;
+    let cancelled = false;
+    let refreshInFlight = false;
+
+    async function refreshPickBoardMarkets() {
+      if (document.visibilityState === "hidden" || refreshInFlight) return;
+      const token = window.localStorage.getItem("pickem_session_token");
+      if (!token) return;
+      refreshInFlight = true;
+      try {
+        const response = await fetch(`/api/side-bet-markets?week=${week}`, {
+          headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
+          cache: "no-store"
+        });
+        if (!response.ok) return;
+        const payload = await response.json() as { markets?: SideBetMarketQuote[] };
+        if (cancelled || !Array.isArray(payload.markets)) return;
+
+        const quotesById = new Map(payload.markets.map((quote) => [quote.gameId, quote]));
+        setData((current) => {
+          if (!current || Number(current.week) !== Number(week)) return current;
+          let changed = false;
+          const now = new Date();
+          const nextGames = current.games.map((game) => {
+            const quote = quotesById.get(game.id);
+            const spread = quote?.phase === "pregame" && quote.spread && !quote.spread.suspended ? quote.spread : null;
+            if (!spread || !canRefreshSpread(game.commence_time, now)) return game;
+            const nextAwaySpread = Number(spread.awayPoint);
+            const currentAwaySpread = normalizeSpreadForSelectedTeam(game.away_team, game.current_spread_team, game.current_spread);
+            if (!Number.isFinite(nextAwaySpread) || (currentAwaySpread != null && Math.abs(currentAwaySpread - nextAwaySpread) < 0.001)) return game;
+            changed = true;
+            return {
+              ...game,
+              current_spread_team: game.away_team,
+              current_spread: nextAwaySpread,
+              current_bookmaker: "Market",
+              updated_at: now.toISOString()
+            };
+          });
+          if (!changed) return current;
+          const nextData = { ...current, games: nextGames };
+          dataRef.current = nextData;
+          writeCachedAppData(appSlug, current.week, nextData);
+          return nextData;
+        });
+      } catch {
+        // Preserve the last known lines through a brief market-feed interruption.
+      } finally {
+        refreshInFlight = false;
+      }
+    }
+
+    void refreshPickBoardMarkets();
+    const timer = window.setInterval(refreshPickBoardMarkets, 15_000);
+    const refreshOnResume = () => void refreshPickBoardMarkets();
+    window.addEventListener("focus", refreshOnResume);
+    window.addEventListener("online", refreshOnResume);
+    document.addEventListener("visibilitychange", refreshOnResume);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshOnResume);
+      window.removeEventListener("online", refreshOnResume);
+      document.removeEventListener("visibilitychange", refreshOnResume);
+    };
+  }, [appSlug, picksView, tab, testWeekActive, week]);
+  useEffect(() => {
     if (week == null || !hasActiveGames) return;
     let cancelled = false;
     let scoreRefreshInFlight = false;
@@ -2612,7 +2679,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   useEffect(() => {
     if (view !== "new" && view !== "offers") return;
     void refreshMarketQuotes();
-    const interval = window.setInterval(() => void refreshMarketQuotes(), offerPhase === "live" || hasPendingLiveOffer ? 8000 : 30000);
+    const interval = window.setInterval(() => void refreshMarketQuotes(), offerPhase === "live" || hasPendingLiveOffer ? 5000 : 15000);
     return () => window.clearInterval(interval);
   }, [view, offerPhase, hasPendingLiveOffer, refreshMarketQuotes]);
 
