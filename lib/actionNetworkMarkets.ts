@@ -40,6 +40,23 @@ type ActionGame = {
   odds?: ActionOddsRow[];
 };
 
+export type ActionNetworkScheduledGame = {
+  actionId: string;
+  league: Game["league"];
+  commenceTime: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeAliases: string[];
+  awayAliases: string[];
+  spread: {
+    awayPoint: number;
+    homePoint: number;
+    awayOdds: number | null;
+    homeOdds: number | null;
+    suspended: boolean;
+  } | null;
+};
+
 function dateKey(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/New_York",
@@ -61,12 +78,18 @@ function normalizeName(value: string) {
     .trim();
 }
 
-function aliases(team: ActionTeam | undefined) {
+function rawAliases(team: ActionTeam | undefined) {
   if (!team) return [];
   return [team.full_name, team.display_name, team.short_name, team.name, team.abbr]
-    .filter((value): value is string => Boolean(value))
-    .map(normalizeName)
-    .filter(Boolean);
+    .filter((value): value is string => Boolean(value));
+}
+
+function aliases(team: ActionTeam | undefined) {
+  return rawAliases(team).map(normalizeName).filter(Boolean);
+}
+
+function primaryTeamName(team: ActionTeam | undefined) {
+  return team?.full_name || team?.display_name || team?.short_name || team?.name || team?.abbr || "";
 }
 
 function teamMatchScore(expected: string, candidates: string[]) {
@@ -157,6 +180,47 @@ async function fetchActionLeague(league: Game["league"], games: Game[]) {
     throw firstFailure?.reason instanceof Error ? firstFailure.reason : new Error(`Action Network ${league} market request failed.`);
   }
   return Array.from(new Map(successful.map((game) => [String(game.id || `${game.start_time}:${game.home_team_id}:${game.away_team_id}`), game])).values());
+}
+
+export async function fetchActionNetworkScheduledGames(league: Game["league"], dateHints: string[]) {
+  const marketDates = Array.from(new Set(dateHints.map((hint) => dateKey(new Date(hint)))));
+  const results = await Promise.allSettled(marketDates.map((marketDate) => fetchActionLeagueDate(league, marketDate)));
+  const actionGames = Array.from(new Map(
+    results.flatMap((result) => result.status === "fulfilled" ? result.value : [])
+      .map((game) => [String(game.id || `${game.start_time}:${game.home_team_id}:${game.away_team_id}`), game])
+  ).values());
+
+  return actionGames.flatMap((actionGame): ActionNetworkScheduledGame[] => {
+    if (!actionGame.start_time) return [];
+    const teams = actionTeams(actionGame);
+    const homeTeam = primaryTeamName(teams.home);
+    const awayTeam = primaryTeamName(teams.away);
+    if (!homeTeam || !awayTeam) return [];
+
+    const rows = (actionGame.odds || [])
+      .filter((row) => Number(row.book_id) === DRAFTKINGS_BOOK_ID && row.type === "game")
+      .sort((a, b) => new Date(b.inserted || 0).getTime() - new Date(a.inserted || 0).getTime());
+    const row = rows[0];
+    const awaySpread = finiteNumber(row?.spread_away);
+    const homeSpread = finiteNumber(row?.spread_home);
+
+    return [{
+      actionId: String(actionGame.id || `${actionGame.start_time}:${actionGame.home_team_id}:${actionGame.away_team_id}`),
+      league,
+      commenceTime: actionGame.start_time,
+      homeTeam,
+      awayTeam,
+      homeAliases: rawAliases(teams.home),
+      awayAliases: rawAliases(teams.away),
+      spread: row && awaySpread != null && homeSpread != null ? {
+        awayPoint: awaySpread,
+        homePoint: homeSpread,
+        awayOdds: validOdds(row.spread_away_line),
+        homeOdds: validOdds(row.spread_home_line),
+        suspended: suspended(row, "spread_away", "spread_home")
+      } : null
+    }];
+  });
 }
 
 function quoteForGame(game: Game, actionGames: ActionGame[]): SideBetMarketQuote | null {
