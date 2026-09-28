@@ -1,5 +1,5 @@
 import type { BankEntry, SideBet } from "./types.ts";
-import { oppositeAmericanOdds, sideBetCreatorProfit } from "./sideBetMarkets.ts";
+import { oppositeAmericanOdds, oppositeTotalSide, sideBetCreatorProfit } from "./sideBetMarkets.ts";
 
 export type BankHistoryGame = {
   historyKey: string;
@@ -11,8 +11,8 @@ export type BankHistoryGame = {
   betCount: number;
   betCounts: Record<string, number>;
   amounts: Record<string, number>;
-  winningSelections: Array<{ team: string; spread: number; marketType: "spread" | "moneyline"; odds: number }>;
-  selections: Record<string, { team: string; spread: number; marketType: "spread" | "moneyline"; odds: number }>;
+  winningSelections: Array<{ team: string; spread: number; marketType: "spread" | "moneyline" | "total"; odds: number; totalPoints?: number | null; totalSide?: "over" | "under" | null }>;
+  selections: Record<string, { team: string; spread: number; marketType: "spread" | "moneyline" | "total"; odds: number; totalPoints?: number | null; totalSide?: "over" | "under" | null }>;
 };
 
 export type BankHistoryWeek = {
@@ -73,12 +73,13 @@ export function buildBankHistory(bankEntries: BankEntry[], sideBets: HistorySide
     }
 
     const creatorOdds = Number(bet.creator_odds ?? 100);
-    const marketType = bet.market_type === "moneyline" ? "moneyline" as const : "spread" as const;
+    const marketType = bet.market_type === "moneyline" ? "moneyline" as const : bet.market_type === "total" ? "total" as const : "spread" as const;
     const historyKey = [
       bet.game_id,
       marketType,
       bet.creator_team,
-      Number(bet.creator_spread || 0),
+      marketType === "total" ? Number(bet.total_points || 0) : Number(bet.creator_spread || 0),
+      marketType === "total" ? String(bet.creator_total_side || "over") : "",
       Number.isFinite(creatorOdds) ? creatorOdds : 100
     ].join("|");
 
@@ -106,29 +107,40 @@ export function buildBankHistory(bankEntries: BankEntry[], sideBets: HistorySide
     const winningTeam = creatorWon ? bet.creator_team : bet.offered_team;
     const rawWinningSpread = Number(creatorWon ? bet.creator_spread : bet.offered_spread);
     const winnerOdds = creatorWon ? creatorOdds : oppositeAmericanOdds(creatorOdds);
+    const winningTotalSide = marketType === "total"
+      ? (creatorWon ? (bet.creator_total_side || "over") : oppositeTotalSide(bet.creator_total_side || "over"))
+      : null;
     const winningSelection = {
       team: winningTeam,
       spread: Number.isFinite(rawWinningSpread) ? rawWinningSpread : 0,
       marketType,
-      odds: Number.isFinite(winnerOdds) ? winnerOdds : 100
+      odds: Number.isFinite(winnerOdds) ? winnerOdds : 100,
+      totalPoints: marketType === "total" ? Number(bet.total_points || 0) : null,
+      totalSide: winningTotalSide
     };
     if (!game.winningSelections.some((selection) =>
       selection.team === winningSelection.team &&
       selection.spread === winningSelection.spread &&
       selection.marketType === winningSelection.marketType &&
-      selection.odds === winningSelection.odds
+      selection.odds === winningSelection.odds &&
+      selection.totalPoints === winningSelection.totalPoints &&
+      selection.totalSide === winningSelection.totalSide
     )) game.winningSelections.push(winningSelection);
     game.selections[bet.creator_id] = {
       team: bet.creator_team,
       spread: Number(bet.creator_spread || 0),
       marketType,
-      odds: Number.isFinite(creatorOdds) ? creatorOdds : 100
+      odds: Number.isFinite(creatorOdds) ? creatorOdds : 100,
+      totalPoints: marketType === "total" ? Number(bet.total_points || 0) : null,
+      totalSide: marketType === "total" ? (bet.creator_total_side || "over") : null
     };
     game.selections[bet.accepted_by] = {
       team: bet.offered_team,
       spread: Number(bet.offered_spread || 0),
       marketType,
-      odds: oppositeAmericanOdds(Number.isFinite(creatorOdds) ? creatorOdds : 100)
+      odds: oppositeAmericanOdds(Number.isFinite(creatorOdds) ? creatorOdds : 100),
+      totalPoints: marketType === "total" ? Number(bet.total_points || 0) : null,
+      totalSide: marketType === "total" ? oppositeTotalSide(bet.creator_total_side || "over") : null
     };
     game.betCounts[bet.creator_id] = Number(game.betCounts[bet.creator_id] || 0) + 1;
     game.betCounts[bet.accepted_by] = Number(game.betCounts[bet.accepted_by] || 0) + 1;
