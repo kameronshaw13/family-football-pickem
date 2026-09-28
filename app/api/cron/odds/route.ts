@@ -55,10 +55,11 @@ export async function GET(req: NextRequest) {
   if (!hasValidVercelSecret && !hasValidSupabaseSecret) return unauthorized();
 
   const scheduled = Boolean(req.headers.get("x-vercel-cron-schedule")) || hasValidSupabaseSecret;
+  const force = req.nextUrl.searchParams.get("force") === "1";
   const now = new Date();
   const { minute } = chicagoParts(now);
   const refreshCadence = chicagoMarketRefreshCadence(now);
-  if (scheduled && minute % refreshCadence !== 0) {
+  if (scheduled && !force && minute % refreshCadence !== 0) {
     return NextResponse.json({
       ok: true,
       skipped: true,
@@ -76,7 +77,7 @@ export async function GET(req: NextRequest) {
       end: new Date(now.getTime() + 14 * DAY_MS).toISOString()
     };
     let scheduleSync: { gamesDiscovered: number; start: string; end: string; error?: string } = defaultWindow;
-    const refreshFuture = !scheduled || minute % 30 === 0;
+    const refreshFuture = force || !scheduled || minute % 30 === 0;
 
     if (refreshFuture) {
       try {
