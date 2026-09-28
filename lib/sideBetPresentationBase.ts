@@ -121,11 +121,13 @@ export function sideBetLedgerPerspective(bet: SideBet, userId: string) {
     : bet.accepted_by === userId
       ? bet.offered_team
       : null;
-  const favoriteTeam = Number(bet.creator_spread) < 0
+  const favoriteTeam = bet.market_type === "total"
     ? bet.creator_team
-    : Number(bet.offered_spread) < 0
-      ? bet.offered_team
-      : bet.creator_team;
+    : Number(bet.creator_spread) < 0
+      ? bet.creator_team
+      : Number(bet.offered_spread) < 0
+        ? bet.offered_team
+        : bet.creator_team;
   const team = userTeam || favoriteTeam;
   return {
     team,
