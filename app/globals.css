@@ -315,12 +315,15 @@ fieldset .field-label { padding: 0; }
 .side-bet-sportsbook-board { padding-bottom: var(--space-2); }
 .board-empty-state, .side-bet-empty-state { width: auto; margin-inline: calc(var(--page-gutter) * -1); padding-left: var(--pick-content-inset); text-align: left; }
 .side-bet-game-card .game-head { background: var(--surface-soft); }
+.side-bet-game-card .team-spread.side-bet-total-market { gap: 4px; overflow: visible; }
+.side-bet-total-side { display: inline-flex; min-width: .78em; align-items: center; justify-content: center; padding-left: 1px; font-family: var(--font-body); font-weight: 800; line-height: 1; text-align: center; }
 .game-card.locked-out .team-row, .side-bet-game-card.closed .team-row { color: var(--muted); background: var(--canvas-muted); -webkit-text-fill-color: var(--muted); }
 .side-bet-slip-bar { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 9px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 34; display: grid; min-height: 60px; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 11px; border: 1px solid #c7c0b1; border-radius: 7px; color: var(--ink); background: #fbf9f4; box-shadow: 0 12px 30px rgba(20, 33, 43, .24); text-align: left; }
 .side-bet-slip-bar .team-logo { width: 34px; height: 34px; }
 .side-bet-slip-copy { display: flex; min-width: 0; align-items: baseline; gap: 6px; }
 .side-bet-slip-copy .team-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side-bet-slip-copy .team-spread { width: auto; flex: 0 0 auto; justify-content: flex-start; }
+.side-bet-slip-copy > .responsive-text { flex: 1 1 auto; }
 .side-bet-slip-open { display: grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--blue-dark); background: rgba(255, 255, 255, .34); }
 .side-bet-slip-open svg { display: block; width: 18px; height: 18px; margin: 0; }
 .side-bet-slip-sheet { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 9px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 34; display: flex; max-height: min(590px, calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom) - 24px)); flex-direction: column; overflow: hidden; overscroll-behavior: none; border: 1px solid #4c5a61; border-radius: 8px; background: var(--panel); box-shadow: 0 22px 52px rgba(20, 33, 43, .32); animation: side-bet-sheet-up .18s ease-out; will-change: transform, opacity; }
@@ -340,6 +343,7 @@ fieldset .field-label { padding: 0; }
 .side-bet-slip-team-choice { display: flex; min-width: 0; align-items: baseline; gap: 6px; }
 .side-bet-slip-team-choice .team-name { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .side-bet-slip-team-choice .team-spread { width: auto; flex: 0 0 auto; justify-content: flex-start; font-weight: 700; }
+.side-bet-slip-team-choice > .responsive-text { flex: 1 1 auto; }
 .side-bet-selection-clear { justify-self: end; border-color: #d6aaa6; color: var(--red); background: var(--red-soft); }
 .side-bet-slip-section { border-bottom: 1px solid var(--line-strong); }
 .side-bet-slip-section-head { display: flex; height: 30px; align-items: center; gap: 10px; padding: 0 var(--pick-content-inset); border-bottom: 1px solid var(--line); color: var(--header-muted); background: var(--surface-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }

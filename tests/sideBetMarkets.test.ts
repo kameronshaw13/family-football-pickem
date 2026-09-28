@@ -63,3 +63,20 @@ test("prices alternate totals from the selected over or under side", () => {
   assert.equal(fairAltTotalOdds(52.5, 53.5, "under"), -120);
   assert.equal(fairAltTotalOdds(52.5, 51.5, "under"), 120);
 });
+
+
+test("anchors alternate spreads to the de-vigged market moneyline", () => {
+  const options = { teamMoneylineOdds: 160, opponentMoneylineOdds: -190, league: "CFB" as const };
+  const nearMoneyline = fairAltSpreadOdds(3.5, 0.5, options);
+  const harderThanMoneyline = fairAltSpreadOdds(3.5, -1.5, options);
+  assert.ok(nearMoneyline >= 150);
+  assert.ok(harderThanMoneyline > nearMoneyline);
+  assert.ok(harderThanMoneyline > 160);
+});
+
+test("NFL and CFB alternate spread curves treat key numbers differently", () => {
+  const nfl = fairAltSpreadOdds(-3.5, -2.5, { teamMoneylineOdds: -200, opponentMoneylineOdds: 170, league: "NFL" });
+  const cfb = fairAltSpreadOdds(-3.5, -2.5, { teamMoneylineOdds: -200, opponentMoneylineOdds: 170, league: "CFB" });
+  assert.equal(nfl, -140);
+  assert.equal(cfb, -130);
+});

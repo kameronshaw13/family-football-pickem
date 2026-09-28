@@ -21,25 +21,136 @@ export function americanOddsText(value: number | null | undefined) {
   return odds > 0 ? `+${odds}` : String(odds);
 }
 
-const ALT_LINE_ODDS_LADDER = [
+type FootballLeague = "NFL" | "CFB";
+
+const ALT_TOTAL_ODDS_LADDER = [
   100, 110, 120, 130, 140, 150, 165, 180, 200, 225, 250, 275, 300, 350, 400,
   450, 500, 600, 700, 800, 900, 1000
 ];
 
-function altLineOddsMagnitude(pointsFromMarket: number) {
-  const halfPointSteps = Math.max(0, Math.round(Math.abs(pointsFromMarket) * 2));
-  return ALT_LINE_ODDS_LADDER[Math.min(halfPointSteps, ALT_LINE_ODDS_LADDER.length - 1)];
+const ALT_SPREAD_FALLBACK_LADDERS: Record<FootballLeague, number[]> = {
+  NFL: [
+    100, 110, 120, 130, 145, 160, 180, 200, 225, 250, 275, 300, 350, 400, 450,
+    500, 600, 700, 800, 900, 1000
+  ],
+  CFB: [
+    100, 110, 115, 125, 135, 145, 155, 170, 185, 200, 225, 250, 275, 300, 350,
+    400, 450, 500, 600, 700, 800
+  ]
+};
+
+const FRIENDLY_ALT_ODDS = [
+  100, 110, 120, 125, 130, 140, 150, 165, 175, 180, 200, 225, 250, 275, 300,
+  350, 400, 450, 500, 600, 700, 800, 900, 1000, 1250, 1500, 2000
+];
+
+const ALT_SPREAD_KEY_WEIGHTS: Record<FootballLeague, Record<number, number>> = {
+  NFL: { 3: 2.4, 7: 1.8, 10: 1.25, 14: 1.2 },
+  CFB: { 3: 1.6, 7: 1.35, 10: 1.12, 14: 1.1 }
+};
+
+function closestFriendlyAltMagnitude(value: number) {
+  return FRIENDLY_ALT_ODDS.reduce((closest, candidate) =>
+    Math.abs(candidate - value) < Math.abs(closest - value) ? candidate : closest
+  );
 }
 
-export function fairAltSpreadOdds(marketSpread: number | null | undefined, offeredSpread: number | null | undefined) {
+function impliedProbabilityFromAmericanOdds(value: number) {
+  if (!validAmericanOdds(value)) return null;
+  return value < 0
+    ? Math.abs(value) / (Math.abs(value) + 100)
+    : 100 / (value + 100);
+}
+
+function noVigMoneylineProbability(teamOdds: number | null | undefined, opponentOdds: number | null | undefined) {
+  const team = impliedProbabilityFromAmericanOdds(Number(teamOdds));
+  const opponent = impliedProbabilityFromAmericanOdds(Number(opponentOdds));
+  if (team == null || opponent == null || team + opponent <= 0) return null;
+  return team / (team + opponent);
+}
+
+function friendlyAmericanOddsFromProbability(probability: number) {
+  const bounded = Math.max(0.01, Math.min(0.99, probability));
+  if (Math.abs(bounded - 0.5) < 0.0001) return 100;
+  const rawMagnitude = bounded > 0.5
+    ? 100 * bounded / (1 - bounded)
+    : 100 * (1 - bounded) / bounded;
+  const magnitude = closestFriendlyAltMagnitude(rawMagnitude);
+  return bounded > 0.5 ? -magnitude : magnitude;
+}
+
+function altSpreadStepWeight(from: number, to: number, league: FootballLeague) {
+  const low = Math.min(Math.abs(from), Math.abs(to));
+  const high = Math.max(Math.abs(from), Math.abs(to));
+  let weight = 1;
+  for (const [keyText, keyWeight] of Object.entries(ALT_SPREAD_KEY_WEIGHTS[league])) {
+    const key = Number(keyText);
+    if (key >= low && key <= high) weight = Math.max(weight, keyWeight);
+  }
+  return weight;
+}
+
+function weightedSpreadDistance(from: number, to: number, league: FootballLeague) {
+  if (Math.abs(to - from) < 0.001) return 0;
+  const direction = to > from ? 1 : -1;
+  let current = from;
+  let distance = 0;
+  let guard = 0;
+  while (Math.abs(to - current) >= 0.001 && guard < 500) {
+    const step = Math.min(0.5, Math.abs(to - current));
+    const next = current + direction * step;
+    distance += altSpreadStepWeight(current, next, league) * (step / 0.5);
+    current = next;
+    guard += 1;
+  }
+  return distance;
+}
+
+function fallbackAltSpreadOdds(market: number, offered: number, league: FootballLeague) {
+  const move = offered - market;
+  const steps = Math.max(0, Math.round(Math.abs(move) * 2));
+  const ladder = ALT_SPREAD_FALLBACK_LADDERS[league];
+  const magnitude = ladder[Math.min(steps, ladder.length - 1)];
+  return move > 0 ? -magnitude : magnitude;
+}
+
+export function fairAltSpreadOdds(
+  marketSpread: number | null | undefined,
+  offeredSpread: number | null | undefined,
+  options: {
+    teamMoneylineOdds?: number | null;
+    opponentMoneylineOdds?: number | null;
+    league?: FootballLeague;
+  } = {}
+) {
   const market = Number(marketSpread);
   const offered = Number(offeredSpread);
+  const league = options.league === "NFL" ? "NFL" : "CFB";
   if (!Number.isFinite(market) || !Number.isFinite(offered)) return 100;
 
   const move = offered - market;
   if (Math.abs(move) < 0.25) return 100;
-  const magnitude = altLineOddsMagnitude(move);
-  return move > 0 ? -magnitude : magnitude;
+
+  const moneylineProbability = noVigMoneylineProbability(options.teamMoneylineOdds, options.opponentMoneylineOdds);
+  const moneylineSpread = market < -0.5 ? -0.5 : market > 0.5 ? 0.5 : null;
+  const moneylineDirectionMatchesSpread = moneylineProbability != null && (
+    (market < -0.5 && moneylineProbability > 0.5) ||
+    (market > 0.5 && moneylineProbability < 0.5)
+  );
+
+  if (moneylineSpread != null && moneylineDirectionMatchesSpread) {
+    const anchorDistance = weightedSpreadDistance(market, moneylineSpread, league);
+    if (anchorDistance > 0) {
+      const directionToMoneyline = moneylineSpread > market ? 1 : -1;
+      const moveDirection = Math.sign((offered - market) * directionToMoneyline) || 1;
+      const progress = moveDirection * weightedSpreadDistance(market, offered, league) / anchorDistance;
+      const moneylineLogit = Math.log(moneylineProbability! / (1 - moneylineProbability!));
+      const coverProbability = 1 / (1 + Math.exp(-(progress * moneylineLogit)));
+      return friendlyAmericanOddsFromProbability(coverProbability);
+    }
+  }
+
+  return fallbackAltSpreadOdds(market, offered, league);
 }
 
 export function fairAltTotalOdds(
@@ -54,11 +165,10 @@ export function fairAltTotalOdds(
   const move = offered - market;
   if (Math.abs(move) < 0.25) return 100;
   const easierMove = side === "under" ? move : -move;
-  const magnitude = altLineOddsMagnitude(move);
+  const halfPointSteps = Math.max(0, Math.round(Math.abs(move) * 2));
+  const magnitude = ALT_TOTAL_ODDS_LADDER[Math.min(halfPointSteps, ALT_TOTAL_ODDS_LADDER.length - 1)];
   return easierMove > 0 ? -magnitude : magnitude;
 }
-
-type FootballLeague = "NFL" | "CFB";
 
 const HISTORICAL_FAIR_MONEYLINES: Record<FootballLeague, number[]> = {
   // Index is twice the absolute spread (0, 0.5, 1.0, ...). These are fair,

@@ -46,7 +46,9 @@ function notificationMarketText(
   spread: number,
   odds: number,
   totalPoints?: number | null,
-  totalSide?: "over" | "under" | null
+  totalSide?: "over" | "under" | null,
+  awayTeam?: string | null,
+  homeTeam?: string | null
 ) {
   const line = marketType === "moneyline"
     ? "ML"
@@ -54,6 +56,9 @@ function notificationMarketText(
       ? `${totalSide === "under" ? "U" : "O"} ${Number(totalPoints)}`
       : notificationSpread(spread);
   const oddsText = Math.abs(Number(odds)) === 100 ? "" : ` ${americanOddsText(odds)}`;
+  if (marketType === "total" && awayTeam && homeTeam) {
+    return `${notificationTeamName(awayTeam, league)} @ ${notificationTeamName(homeTeam, league)} ${line}${oddsText}`;
+  }
   return `${notificationTeamName(team, league)} ${line}${oddsText}`;
 }
 
@@ -277,7 +282,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-offer:${sideBet.id}`,
           title: `Side bet from ${auth.profile.display_name}`,
-          body: `${notificationStakeText(profitForRisk(amount, creatorOdds), amount)} · ${notificationMarketText(offeredTeam, game.league, marketType, offeredSpread, oppositeAmericanOdds(creatorOdds), totalPoints, offeredTotalSide)}${marketReference}`,
+          body: `${notificationStakeText(profitForRisk(amount, creatorOdds), amount)} · ${notificationMarketText(offeredTeam, game.league, marketType, offeredSpread, oppositeAmericanOdds(creatorOdds), totalPoints, offeredTotalSide, game.away_team, game.home_team)}${marketReference}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_received"),
           actionRequired: true
         }));
@@ -380,7 +385,9 @@ export async function POST(req: NextRequest) {
             Number(sideBet.offered_spread),
             oppositeAmericanOdds(Number(sideBet.creator_odds ?? 100)),
             sideBet.total_points == null ? null : Number(sideBet.total_points),
-            sideBet.creator_total_side ? oppositeTotalSide(sideBet.creator_total_side) : null
+            sideBet.creator_total_side ? oppositeTotalSide(sideBet.creator_total_side) : null,
+            sideBet.game?.away_team,
+            sideBet.game?.home_team
           ),
           url: groupNotificationUrl(context.group.slug, "side_bets_sent")
         });
@@ -431,7 +438,9 @@ export async function POST(req: NextRequest) {
           Number(sideBet.creator_spread),
           Number(sideBet.creator_odds ?? 100),
           sideBet.total_points == null ? null : Number(sideBet.total_points),
-          sideBet.creator_total_side
+          sideBet.creator_total_side,
+          sideBet.game?.away_team,
+          sideBet.game?.home_team
         )}`,
         url: groupNotificationUrl(context.group.slug, "side_bets_sent")
       });

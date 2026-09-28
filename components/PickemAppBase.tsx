@@ -822,6 +822,12 @@ function totalSideText(side: SideBetTotalSide | null | undefined) {
   return side === "under" ? "U" : "O";
 }
 
+function sideBetTotalMatchupText(game: Game, marketText: string, compact = false) {
+  const away = compact ? abbreviatedTeamName(game, game.away_team) : displayTeamName(game, game.away_team);
+  const home = compact ? abbreviatedTeamName(game, game.home_team) : displayTeamName(game, game.home_team);
+  return `${away} @ ${home} ${marketText}`;
+}
+
 function sideBetMarketText(
   marketType: SideBetMarketType | undefined,
   spread: number | null,
@@ -913,7 +919,13 @@ function sideBetAppMarketReference(bet: SideBet, team: string, quote?: SideBetMa
   const baseText = `Market: ${teamName} ${spreadText(marketSpread)} +100`;
   if (sameLine) return { text: baseText };
 
-  const fairOfferOdds = fairAltSpreadOdds(marketSpread, offerSpread);
+  const teamMoneylineOdds = away ? quote.moneyline?.awayOdds : quote.moneyline?.homeOdds;
+  const opponentMoneylineOdds = away ? quote.moneyline?.homeOdds : quote.moneyline?.awayOdds;
+  const fairOfferOdds = fairAltSpreadOdds(marketSpread, offerSpread, {
+    teamMoneylineOdds,
+    opponentMoneylineOdds,
+    league: bet.game?.league
+  });
   return { text: `${baseText} · ${spreadText(offerSpread)} ${americanOddsText(fairOfferOdds)}` };
 }
 function pctText(value: number) {
@@ -2495,6 +2507,9 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   const quoteMoneyline = selectedGame && selectedCreatorTeam && selectedQuote?.moneyline
     ? selectedCreatorTeam === selectedGame.away_team ? selectedQuote.moneyline.awayOdds : selectedQuote.moneyline.homeOdds
     : null;
+  const quoteOpponentMoneyline = selectedGame && selectedCreatorTeam && selectedQuote?.moneyline
+    ? selectedCreatorTeam === selectedGame.away_team ? selectedQuote.moneyline.homeOdds : selectedQuote.moneyline.awayOdds
+    : null;
   const defaultCreatorMoneyline = quoteMoneyline ?? fairMoneylineFromSpread(defaultCreatorSpread, selectedGame?.league);
   const parsedCustomSpread = customSpread.trim() === "" ? null : Number(customSpread);
   const creatorSpread = marketType === "spread"
@@ -2516,6 +2531,26 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   const evenPayout = Math.abs(creatorRisk - creatorWin) < 0.005;
   const amountOptions = manualAmount || maxAmount >= 40 ? ["40", "30", "20", "10"] : ["20", "15", "10", "5"];
   const selectedMatchup = selectedGame ? matchupTextVariants(selectedGame) : null;
+  const selectedOfferFull = selectedGame
+    ? marketType === "total"
+      ? sideBetTotalMatchupText(selectedGame, selectedMarketText)
+      : `${displayTeamName(selectedGame, selectedCreatorTeam)} ${selectedMarketText}`
+    : "";
+  const selectedOfferCompact = selectedGame
+    ? marketType === "total"
+      ? sideBetTotalMatchupText(selectedGame, selectedMarketText, true)
+      : `${abbreviatedTeamName(selectedGame, selectedCreatorTeam)} ${selectedMarketText}`
+    : "";
+  const offeredOfferFull = selectedGame
+    ? marketType === "total"
+      ? sideBetTotalMatchupText(selectedGame, offeredMarketText)
+      : `${displayTeamName(selectedGame, offeredTeam)} ${offeredMarketText}`
+    : "";
+  const offeredOfferCompact = selectedGame
+    ? marketType === "total"
+      ? sideBetTotalMatchupText(selectedGame, offeredMarketText, true)
+      : `${abbreviatedTeamName(selectedGame, offeredTeam)} ${offeredMarketText}`
+    : "";
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
   const slotCount = slotCounts[currentUser.id] || 0;
   const weeklyLimit = maxPerWeek == null ? Infinity : maxPerWeek;
@@ -2661,7 +2696,11 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
 
     if (marketType === "spread") {
       const marketLine = quoteSpread ?? defaultCreatorSpread;
-      if (marketLine != null) setOddsInput(String(fairAltSpreadOdds(Number(marketLine), nextLine)));
+      if (marketLine != null) setOddsInput(String(fairAltSpreadOdds(Number(marketLine), nextLine, {
+        teamMoneylineOdds: quoteMoneyline,
+        opponentMoneylineOdds: quoteOpponentMoneyline,
+        league: selectedGame?.league
+      })));
       return;
     }
 
@@ -2793,7 +2832,9 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
 
     {view === "new" && !weekConcluded && selectedGame && selectedCreatorTeam && !slipExpanded && <button className="side-bet-slip-bar" type="button" aria-expanded="false" onClick={() => setSlipExpanded(true)}>
       <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
-      <span className="side-bet-slip-copy"><ResponsiveTeamName game={selectedGame} team={selectedCreatorTeam} className="team-name" /><span className="team-spread"><NumericText text={selectedMarketText} /></span></span>
+      <span className="side-bet-slip-copy">{marketType === "total"
+        ? <ResponsiveText full={selectedOfferFull} compact={selectedOfferCompact} />
+        : <><ResponsiveTeamName game={selectedGame} team={selectedCreatorTeam} className="team-name" /><span className="team-spread"><NumericText text={selectedMarketText} /></span></>}</span>
       <span className="side-bet-slip-open"><ChevronUp size={17} /></span>
     </button>}
 
@@ -2806,7 +2847,9 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
         <div className="side-bet-slip-scroll">
         <div className="team-row side-bet-slip-selection">
           <TeamLogo url={logoForTeam(selectedGame, selectedCreatorTeam)} name={selectedCreatorTeam} />
-          <span className="side-bet-slip-team-choice"><ResponsiveTeamName game={selectedGame} team={selectedCreatorTeam} className="team-name" /><span className="team-spread"><NumericText text={selectedMarketText} /></span></span>
+          <span className="side-bet-slip-team-choice">{marketType === "total"
+            ? <ResponsiveText full={selectedOfferFull} compact={selectedOfferCompact} />
+            : <><ResponsiveTeamName game={selectedGame} team={selectedCreatorTeam} className="team-name" /><span className="team-spread"><NumericText text={selectedMarketText} /></span></>}</span>
           <button type="button" className="slip-icon-btn side-bet-selection-clear" aria-label="Clear selected team" onClick={clearSlip}><X size={18} /></button>
         </div>
 
@@ -2865,8 +2908,8 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
         </section>
 
         <div className="side-bet-slip-summary">
-          <div><span>You keep</span><strong><ResponsiveText full={`${displayTeamName(selectedGame, selectedCreatorTeam)} ${selectedMarketText}`} compact={`${abbreviatedTeamName(selectedGame, selectedCreatorTeam)} ${selectedMarketText}`} /></strong></div>
-          <div><span>They get</span><strong><ResponsiveText full={`${displayTeamName(selectedGame, offeredTeam)} ${offeredMarketText}`} compact={`${abbreviatedTeamName(selectedGame, offeredTeam)} ${offeredMarketText}`} /></strong></div>
+          <div><span>You keep</span><strong><ResponsiveText full={selectedOfferFull} compact={selectedOfferCompact} /></strong></div>
+          <div><span>They get</span><strong><ResponsiveText full={offeredOfferFull} compact={offeredOfferCompact} /></strong></div>
         </div>
         <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || !riskIsValid || !recipients.length || !validAmericanOdds(creatorOdds) || (marketType === "spread" && creatorSpread == null) || (marketType === "total" && creatorTotalPoints == null)} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
         </div>
@@ -2882,10 +2925,10 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
           : <>Risk <NumericText text={stakeMoney(sideBetRiskForUser(confirmingBet, currentUser.id))} /> to win <NumericText text={stakeMoney(sideBetProfitForUser(confirmingBet, currentUser.id))} />?</>}</h2></div>
         <div className="confirmation-matchup">
           <div><span>You take</span><strong>{confirmingBet.game && confirmingBet.market_type === "total"
-            ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.game.away_team)} at ${displayTeamName(confirmingBet.game, confirmingBet.game.home_team)} · ${sideBetLineText(confirmingBet, confirmingBet.offered_team)}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.game.away_team)} at ${abbreviatedTeamName(confirmingBet.game, confirmingBet.game.home_team)} · ${sideBetLineText(confirmingBet, confirmingBet.offered_team)}`} />
+            ? <ResponsiveText full={sideBetTotalMatchupText(confirmingBet.game, sideBetLineText(confirmingBet, confirmingBet.offered_team))} compact={sideBetTotalMatchupText(confirmingBet.game, sideBetLineText(confirmingBet, confirmingBet.offered_team), true)} />
             : confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.offered_team)} ${sideBetLineText(confirmingBet, confirmingBet.offered_team)}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.offered_team)} ${sideBetLineText(confirmingBet, confirmingBet.offered_team)}`} /> : <>{confirmingBet.offered_team} <NumericText text={sideBetLineText(confirmingBet, confirmingBet.offered_team)} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.offered_team) : null} name={confirmingBet.offered_team} /></div>
           <div><span>{confirmingBet.creator?.display_name || "Opponent"} keeps</span><strong>{confirmingBet.game && confirmingBet.market_type === "total"
-            ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.game.away_team)} at ${displayTeamName(confirmingBet.game, confirmingBet.game.home_team)} · ${sideBetLineText(confirmingBet, confirmingBet.creator_team)}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.game.away_team)} at ${abbreviatedTeamName(confirmingBet.game, confirmingBet.game.home_team)} · ${sideBetLineText(confirmingBet, confirmingBet.creator_team)}`} />
+            ? <ResponsiveText full={sideBetTotalMatchupText(confirmingBet.game, sideBetLineText(confirmingBet, confirmingBet.creator_team))} compact={sideBetTotalMatchupText(confirmingBet.game, sideBetLineText(confirmingBet, confirmingBet.creator_team), true)} />
             : confirmingBet.game ? <ResponsiveText full={`${displayTeamName(confirmingBet.game, confirmingBet.creator_team)} ${sideBetLineText(confirmingBet, confirmingBet.creator_team)}`} compact={`${abbreviatedTeamName(confirmingBet.game, confirmingBet.creator_team)} ${sideBetLineText(confirmingBet, confirmingBet.creator_team)}`} /> : <>{confirmingBet.creator_team} <NumericText text={sideBetLineText(confirmingBet, confirmingBet.creator_team)} /></>}</strong><TeamLogo className="side-bet-review-logo" url={confirmingBet.game ? logoForTeam(confirmingBet.game, confirmingBet.creator_team) : null} name={confirmingBet.creator_team} /></div>
         </div>
         {sideBetAppMarketReference(confirmingBet, confirmingBet.offered_team, confirmingBet.game ? marketQuotes[confirmingBet.game.id] : null) && <p className="confirmation-market-line"><NumericText text={sideBetAppMarketReference(confirmingBet, confirmingBet.offered_team, confirmingBet.game ? marketQuotes[confirmingBet.game.id] : null)!.text} /></p>}
@@ -2922,7 +2965,9 @@ function SideBetGameCard({ game, market, boardMarket, selectedTeam, disabled, on
       >
         <TeamLogo url={logoForTeam(game, team)} name={team} />
         <BoardTeamName game={game} team={team} />
-        <span className="team-spread"><NumericText text={lineFor(team)} /></span>
+        <span className={`team-spread ${boardMarket === "total" ? "side-bet-total-market" : ""}`.trim()}>{boardMarket === "total" && market?.total
+          ? <><span className="side-bet-total-side">{team === game.away_team ? "O" : "U"}</span><NumericText text={market.total.points} /></>
+          : <NumericText text={lineFor(team)} />}</span>
       </button>)}
     </div>
   </article>;
@@ -2990,15 +3035,23 @@ function SideBetCard({ bet, mode, currentUser, marketQuote, saving, working, can
   const perspective = sideBetPerspective(bet, mode);
   const perspectiveTeam = perspective.team;
   const perspectiveSpread = perspective.spread;
-  const offeredSideName = game ? displayTeamName(game, bet.offered_team) : bet.offered_team;
-  const offeredSideCompact = game ? abbreviatedTeamName(game, bet.offered_team) : bet.offered_team;
+  const offeredSideName = game
+    ? bet.market_type === "total"
+      ? `${displayTeamName(game, game.away_team)} @ ${displayTeamName(game, game.home_team)}`
+      : displayTeamName(game, bet.offered_team)
+    : bet.offered_team;
+  const offeredSideCompact = game
+    ? bet.market_type === "total"
+      ? `${abbreviatedTeamName(game, game.away_team)} @ ${abbreviatedTeamName(game, game.home_team)}`
+      : abbreviatedTeamName(game, bet.offered_team)
+    : bet.offered_team;
   const perspectiveMarket = sideBetLineText(bet, perspectiveTeam);
   const matchup = game
     ? bet.market_type === "total"
       ? {
-          full: `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)} · ${perspectiveMarket}`,
+          full: sideBetTotalMatchupText(game, perspectiveMarket),
           intermediate: undefined,
-          compact: `${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)} · ${perspectiveMarket}`
+          compact: sideBetTotalMatchupText(game, perspectiveMarket, true)
         }
       : bet.market_type === "moneyline"
         ? matchupTextVariants(game, { spreadTeam: perspectiveTeam, marketText: perspectiveMarket })
@@ -3052,9 +3105,9 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   const matchup = game
     ? bet.market_type === "total"
       ? {
-          full: `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)} · ${market}`,
+          full: sideBetTotalMatchupText(game, market),
           intermediate: undefined,
-          compact: `${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)} · ${market}`
+          compact: sideBetTotalMatchupText(game, market, true)
         }
       : bet.market_type === "moneyline"
         ? matchupTextVariants(game, { spreadTeam: displayTeam, marketText: market })
