@@ -13,6 +13,7 @@ import "./component-styles.css";
 import "./presentation-fixes.css";
 import "./matchup-preview.css";
 import "./game-tracker.css";
+import "./live-side-bets.css";
 import type { Metadata, Viewport } from "next";
 import { Roboto_Slab } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
