@@ -36,14 +36,16 @@ function chicagoParts(date = new Date()) {
   };
 }
 
-function isChicagoMarketRefreshWindow(date = new Date()) {
-  const { weekday, hour, minute } = chicagoParts(date);
-  if (["Tue", "Wed", "Thu", "Fri"].includes(weekday)) return true;
-  if (weekday !== "Sat") return false;
+function chicagoMarketRefreshCadence(date = new Date()) {
+  const { weekday, hour } = chicagoParts(date);
 
-  // Weekend spreads keep moving until the existing 10:00 AM CT spread freeze,
-  // one hour before the shared 11:00 AM CT Pick Board lock.
-  return hour < 10 || (hour === 10 && minute === 0);
+  // During the active pick week, keep current markets warm every five minutes.
+  if (["Tue", "Wed", "Thu", "Fri"].includes(weekday)) return 5;
+  if (weekday === "Sat" && hour < 10) return 5;
+
+  // After the current week's spread freeze and through Monday, keep future
+  // slates warm without hammering the provider or the database.
+  return 30;
 }
 
 export async function GET(req: NextRequest) {
@@ -55,8 +57,15 @@ export async function GET(req: NextRequest) {
   const scheduled = Boolean(req.headers.get("x-vercel-cron-schedule")) || hasValidSupabaseSecret;
   const now = new Date();
   const { minute } = chicagoParts(now);
-  if (scheduled && !isChicagoMarketRefreshWindow(now)) {
-    return NextResponse.json({ ok: true, skipped: true, provider: "Action Network", reason: "Outside the active CT market refresh window." });
+  const refreshCadence = chicagoMarketRefreshCadence(now);
+  if (scheduled && minute % refreshCadence !== 0) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      provider: "Action Network",
+      refreshCadenceMinutes: refreshCadence,
+      reason: "Waiting for the next market refresh interval."
+    });
   }
 
   try {
@@ -107,6 +116,7 @@ export async function GET(req: NextRequest) {
       gamesChecked: games.length,
       nearGamesChecked: nearGames.length,
       futureGamesChecked: refreshFuture ? futureGames.length : 0,
+      refreshCadenceMinutes: refreshCadence,
       futureRefreshCadence: "30 minutes",
       gamesUpdated: nearResult.gamesUpdated + futureResult.gamesUpdated,
       dogAdjustments: {
