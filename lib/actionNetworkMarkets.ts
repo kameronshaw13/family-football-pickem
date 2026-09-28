@@ -156,6 +156,50 @@ function rowAgeSeconds(row: ActionOddsRow, now = Date.now()) {
   return Number.isFinite(inserted) ? (now - inserted) / 1000 : null;
 }
 
+function bookPriority(row: ActionOddsRow) {
+  const bookId = Number(row.book_id);
+  if (bookId === DRAFTKINGS_BOOK_ID) return 0;
+  if (bookId === 15) return 1; // Action consensus is the safest full-game fallback.
+  return 2;
+}
+
+function sortPreferredMarketRows(rows: ActionOddsRow[]) {
+  return [...rows].sort((a, b) => {
+    const priority = bookPriority(a) - bookPriority(b);
+    if (priority !== 0) return priority;
+    return new Date(b.inserted || 0).getTime() - new Date(a.inserted || 0).getTime();
+  });
+}
+
+function marketRowsForPhase(game: ActionGame, phase: SideBetOfferPhase) {
+  const rows = (game.odds || [])
+    .filter((row) => phase === "live" ? row.type === "live" : row.type === "game")
+    .filter((row) => phase !== "live" || (() => {
+      const age = rowAgeSeconds(row);
+      return age != null && age <= LIVE_MAX_AGE_SECONDS;
+    })());
+
+  return sortPreferredMarketRows(rows);
+}
+
+function spreadRow(rows: ActionOddsRow[]) {
+  return rows.find((row) =>
+    finiteNumber(row.spread_away) != null &&
+    finiteNumber(row.spread_home) != null
+  ) || null;
+}
+
+function moneylineRow(rows: ActionOddsRow[]) {
+  return rows.find((row) =>
+    validOdds(row.ml_away) != null &&
+    validOdds(row.ml_home) != null
+  ) || null;
+}
+
+function totalRow(rows: ActionOddsRow[]) {
+  return rows.find((row) => finiteNumber(row.total) != null) || null;
+}
+
 async function fetchActionLeagueDate(league: Game["league"], marketDate: string) {
   const cacheKey = `${league}:${marketDate}`;
   const now = Date.now();
@@ -214,10 +258,8 @@ export async function fetchActionNetworkScheduledGames(league: Game["league"], d
     const awayTeam = primaryTeamName(teams.away);
     if (!homeTeam || !awayTeam) return [];
 
-    const rows = (actionGame.odds || [])
-      .filter((row) => Number(row.book_id) === DRAFTKINGS_BOOK_ID && row.type !== "live")
-      .sort((a, b) => new Date(b.inserted || 0).getTime() - new Date(a.inserted || 0).getTime());
-    const row = rows[0];
+    const rows = marketRowsForPhase(actionGame, "pregame");
+    const row = spreadRow(rows);
     const awaySpread = finiteNumber(row?.spread_away);
     const homeSpread = finiteNumber(row?.spread_home);
 
@@ -259,45 +301,38 @@ function quoteForGame(game: Game, actionGames: ActionGame[]): SideBetMarketQuote
       : null;
   if (!phase) return null;
 
-  const rows = (matched.odds || [])
-    .filter((row) => Number(row.book_id) === DRAFTKINGS_BOOK_ID)
-    .filter((row) => phase === "live" ? row.type === "live" : row.type !== "live")
-    .filter((row) => phase !== "live" || (() => {
-      const age = rowAgeSeconds(row);
-      return age != null && age <= LIVE_MAX_AGE_SECONDS;
-    })())
-    .sort((a, b) => new Date(b.inserted || 0).getTime() - new Date(a.inserted || 0).getTime());
-  const row = rows[0];
-  if (!row) return null;
+  const rows = marketRowsForPhase(matched, phase);
+  if (!rows.length) return null;
 
-  const awaySpread = finiteNumber(row.spread_away);
-  const homeSpread = finiteNumber(row.spread_home);
-  const spreadSuspended = suspended(row, "spread_away", "spread_home");
-  const mlSuspended = suspended(row, "ml_away", "ml_home");
-  const totalSuspended = suspended(row, "over", "under");
+  const spreadMarket = spreadRow(rows);
+  const moneylineMarket = moneylineRow(rows);
+  const totalMarket = totalRow(rows);
 
-  const total = finiteNumber(row.total);
+  const awaySpread = finiteNumber(spreadMarket?.spread_away);
+  const homeSpread = finiteNumber(spreadMarket?.spread_home);
+  const total = finiteNumber(totalMarket?.total);
+
   const quote: SideBetMarketQuote = {
     gameId: game.id,
     phase,
     status: String(matched.status || ""),
-    spread: awaySpread != null && homeSpread != null ? {
+    spread: spreadMarket && awaySpread != null && homeSpread != null ? {
       awayPoint: awaySpread,
       homePoint: homeSpread,
-      awayOdds: validOdds(row.spread_away_line),
-      homeOdds: validOdds(row.spread_home_line),
-      suspended: spreadSuspended
+      awayOdds: validOdds(spreadMarket.spread_away_line),
+      homeOdds: validOdds(spreadMarket.spread_home_line),
+      suspended: suspended(spreadMarket, "spread_away", "spread_home")
     } : null,
-    moneyline: validOdds(row.ml_away) != null && validOdds(row.ml_home) != null ? {
-      awayOdds: validOdds(row.ml_away)!,
-      homeOdds: validOdds(row.ml_home)!,
-      suspended: mlSuspended
+    moneyline: moneylineMarket ? {
+      awayOdds: validOdds(moneylineMarket.ml_away)!,
+      homeOdds: validOdds(moneylineMarket.ml_home)!,
+      suspended: suspended(moneylineMarket, "ml_away", "ml_home")
     } : null,
-    total: total != null ? {
+    total: totalMarket && total != null ? {
       points: total,
-      overOdds: validOdds(row.over),
-      underOdds: validOdds(row.under),
-      suspended: totalSuspended
+      overOdds: validOdds(totalMarket.over),
+      underOdds: validOdds(totalMarket.under),
+      suspended: suspended(totalMarket, "over", "under")
     } : null
   };
   return quote;
