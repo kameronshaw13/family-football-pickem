@@ -57,7 +57,7 @@ export async function syncUpcomingFootballSchedule(
   const [existingResult, teamIdentityResult] = await Promise.all([
     supabase
       .from("games")
-      .select("id,espn_event_id,league,commence_time,home_team,away_team,home_logo_url,away_logo_url,current_spread_team,current_spread,current_bookmaker")
+      .select("id,espn_event_id,league,commence_time,home_team,away_team,home_logo_url,away_logo_url,current_spread_team,current_spread,current_bookmaker,updated_at")
       .gte("commence_time", start.toISOString())
       .lte("commence_time", end.toISOString()),
     supabase
@@ -71,7 +71,17 @@ export async function syncUpcomingFootballSchedule(
   const existingByMatchup = new Map<string, any>();
   for (const game of existingResult.data || []) {
     if (game.espn_event_id) existingByEspnId.set(String(game.espn_event_id), String(game.id));
-    existingByMatchup.set(matchupIdentityKey(game.league as League, game.away_team, game.home_team), game);
+
+    const matchupKey = matchupIdentityKey(game.league as League, game.away_team, game.home_team);
+    const prior = existingByMatchup.get(matchupKey);
+    const gameHasSpread = game.current_spread_team != null && game.current_spread != null;
+    const priorHasSpread = prior?.current_spread_team != null && prior?.current_spread != null;
+    const gameUpdatedAt = new Date(game.updated_at || 0).getTime();
+    const priorUpdatedAt = new Date(prior?.updated_at || 0).getTime();
+
+    if (!prior || (gameHasSpread && !priorHasSpread) || (gameHasSpread === priorHasSpread && gameUpdatedAt > priorUpdatedAt)) {
+      existingByMatchup.set(matchupKey, game);
+    }
   }
 
   const teamIdentityMap = new Map<string, TeamIdentity>();
@@ -109,6 +119,8 @@ export async function syncUpcomingFootballSchedule(
       if (!isEligibleSeasonGame(game)) continue;
 
       const lockTime = getGameLockTime(event.commenceTime);
+      const matchupKey = matchupIdentityKey(league, event.awayTeam.displayName, event.homeTeam.displayName);
+      const existing = existingByMatchup.get(matchupKey);
       const row = {
         id: existingByEspnId.get(event.id) || event.id,
         espn_event_id: event.id,
@@ -121,6 +133,9 @@ export async function syncUpcomingFootballSchedule(
         away_logo_url: event.awayTeam.logoUrl,
         home_rank: league === "CFB" ? espnRankForLogo(rankMap, event.homeTeam.logoUrl) : null,
         away_rank: league === "CFB" ? espnRankForLogo(rankMap, event.awayTeam.logoUrl) : null,
+        current_spread_team: existing?.current_spread_team ?? null,
+        current_spread: existing?.current_spread ?? null,
+        current_bookmaker: existing?.current_bookmaker ?? null,
         lock_time: lockTime.toISOString(),
         is_locked: now >= lockTime,
         updated_at: now.toISOString()
