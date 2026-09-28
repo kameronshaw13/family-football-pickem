@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, oppositeAmericanOdds, profitForRisk, sideBetNetForUser } from "../lib/sideBetMarkets.ts";
+import { fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, fairSymmetricMoneyline, oppositeAmericanOdds, profitForRisk, sideBetNetForUser } from "../lib/sideBetMarkets.ts";
 
 test("derives league-specific fair rounded moneylines from a football spread", () => {
   assert.equal(fairMoneylineFromSpread(-1.5, "CFB"), -110);
@@ -79,4 +79,26 @@ test("NFL and CFB alternate spread curves treat key numbers differently", () => 
   const cfb = fairAltSpreadOdds(-3.5, -2.5, { teamMoneylineOdds: -200, opponentMoneylineOdds: 170, league: "CFB" });
   assert.equal(nfl, -140);
   assert.equal(cfb, -130);
+});
+
+
+test("turns sportsbook moneylines into one symmetric no-vig pair", () => {
+  assert.equal(fairSymmetricMoneyline(-190, 160), -175);
+  assert.equal(fairSymmetricMoneyline(160, -190), 175);
+  assert.equal(fairSymmetricMoneyline(-115, 105), -110);
+  assert.equal(fairSymmetricMoneyline(105, -115), 110);
+});
+
+test("every half-point alternate spread gets a distinct price", () => {
+  const options = { teamMoneylineOdds: -190, opponentMoneylineOdds: 160, league: "CFB" as const };
+  const prices = [-4, -3.5, -3, -2.5].map((line) => fairAltSpreadOdds(-4.5, line, options));
+  assert.equal(new Set(prices).size, prices.length);
+  assert.deepEqual(prices, [-105, -115, -125, -135]);
+});
+
+test("moneyline anchor uses the symmetric midpoint price", () => {
+  const favorite = fairAltSpreadOdds(-4.5, -0.5, { teamMoneylineOdds: -190, opponentMoneylineOdds: 160, league: "CFB" });
+  const underdog = fairAltSpreadOdds(4.5, 0.5, { teamMoneylineOdds: 160, opponentMoneylineOdds: -190, league: "CFB" });
+  assert.equal(favorite, -175);
+  assert.equal(underdog, 175);
 });

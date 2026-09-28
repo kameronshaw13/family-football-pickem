@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Pointer
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, SideBetMarketQuote, SideBetOfferPhase, SideBetTotalSide, Standing, WeekRule } from "@/lib/types";
 import { MAX_CUSTOM_SIDE_BET_AMOUNT, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
-import { americanOddsText, fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
+import { americanOddsText, fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, fairSymmetricMoneyline, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import type { BankHistoryWeek } from "@/lib/bankHistory";
@@ -883,7 +883,10 @@ function sideBetAppMarketReference(bet: SideBet, team: string, quote?: SideBetMa
   if (bet.market_type === "moneyline") {
     const market = quote.moneyline;
     if (!market || market.suspended) return live ? { text: "Market: Suspended" } : null;
-    const marketOdds = team === bet.game?.away_team ? market.awayOdds : market.homeOdds;
+    const away = team === bet.game?.away_team;
+    const rawTeamOdds = away ? market.awayOdds : market.homeOdds;
+    const rawOpponentOdds = away ? market.homeOdds : market.awayOdds;
+    const marketOdds = fairSymmetricMoneyline(rawTeamOdds, rawOpponentOdds) ?? rawTeamOdds;
     const same = Number(marketOdds) === Number(offerOdds);
     if (!live && same) return null;
     return { text: `Market: ${bet.game ? displayTeamName(bet.game, team) : team} ML ${americanOddsText(marketOdds)}` };
@@ -2510,7 +2513,9 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   const quoteOpponentMoneyline = selectedGame && selectedCreatorTeam && selectedQuote?.moneyline
     ? selectedCreatorTeam === selectedGame.away_team ? selectedQuote.moneyline.homeOdds : selectedQuote.moneyline.awayOdds
     : null;
-  const defaultCreatorMoneyline = quoteMoneyline ?? fairMoneylineFromSpread(defaultCreatorSpread, selectedGame?.league);
+  const defaultCreatorMoneyline = fairSymmetricMoneyline(quoteMoneyline, quoteOpponentMoneyline)
+    ?? quoteMoneyline
+    ?? fairMoneylineFromSpread(defaultCreatorSpread, selectedGame?.league);
   const parsedCustomSpread = customSpread.trim() === "" ? null : Number(customSpread);
   const creatorSpread = marketType === "spread"
     ? (parsedCustomSpread != null && Number.isFinite(parsedCustomSpread) ? parsedCustomSpread : defaultCreatorSpread)

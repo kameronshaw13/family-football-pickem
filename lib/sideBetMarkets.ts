@@ -40,8 +40,10 @@ const ALT_SPREAD_FALLBACK_LADDERS: Record<FootballLeague, number[]> = {
 };
 
 const FRIENDLY_ALT_ODDS = [
-  100, 110, 120, 125, 130, 140, 150, 165, 175, 180, 200, 225, 250, 275, 300,
-  350, 400, 450, 500, 600, 700, 800, 900, 1000, 1250, 1500, 2000
+  100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170,
+  175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245,
+  250, 255, 260, 265, 270, 275, 280, 285, 290, 295, 300, 325, 350, 375, 400,
+  450, 500, 600, 700, 800, 900, 1000, 1250, 1500, 2000
 ];
 
 const ALT_SPREAD_KEY_WEIGHTS: Record<FootballLeague, Record<number, number>> = {
@@ -62,21 +64,39 @@ function impliedProbabilityFromAmericanOdds(value: number) {
     : 100 / (value + 100);
 }
 
-function noVigMoneylineProbability(teamOdds: number | null | undefined, opponentOdds: number | null | undefined) {
-  const team = impliedProbabilityFromAmericanOdds(Number(teamOdds));
-  const opponent = impliedProbabilityFromAmericanOdds(Number(opponentOdds));
-  if (team == null || opponent == null || team + opponent <= 0) return null;
-  return team / (team + opponent);
+export function fairSymmetricMoneyline(
+  teamOdds: number | null | undefined,
+  opponentOdds: number | null | undefined
+) {
+  const team = Number(teamOdds);
+  const opponent = Number(opponentOdds);
+  if (!validAmericanOdds(team) || !validAmericanOdds(opponent)) return null;
+
+  const midpointMagnitude = (Math.abs(team) + Math.abs(opponent)) / 2;
+  const roundedMagnitude = Math.max(100, Math.round(midpointMagnitude / 5) * 5);
+  if (roundedMagnitude === 100) return 100;
+  return team < 0 ? -roundedMagnitude : roundedMagnitude;
 }
 
-function friendlyAmericanOddsFromProbability(probability: number) {
+function symmetricMoneylineProbability(teamOdds: number | null | undefined, opponentOdds: number | null | undefined) {
+  const fairOdds = fairSymmetricMoneyline(teamOdds, opponentOdds);
+  return fairOdds == null ? null : impliedProbabilityFromAmericanOdds(fairOdds);
+}
+
+function rawAmericanMagnitudeFromProbability(probability: number) {
   const bounded = Math.max(0.01, Math.min(0.99, probability));
   if (Math.abs(bounded - 0.5) < 0.0001) return 100;
-  const rawMagnitude = bounded > 0.5
+  return bounded > 0.5
     ? 100 * bounded / (1 - bounded)
     : 100 * (1 - bounded) / bounded;
-  const magnitude = closestFriendlyAltMagnitude(rawMagnitude);
-  return bounded > 0.5 ? -magnitude : magnitude;
+}
+
+function closestFriendlyAltIndex(value: number) {
+  let bestIndex = 0;
+  for (let index = 1; index < FRIENDLY_ALT_ODDS.length; index += 1) {
+    if (Math.abs(FRIENDLY_ALT_ODDS[index] - value) < Math.abs(FRIENDLY_ALT_ODDS[bestIndex] - value)) bestIndex = index;
+  }
+  return bestIndex;
 }
 
 function altSpreadStepWeight(from: number, to: number, league: FootballLeague) {
@@ -131,7 +151,7 @@ export function fairAltSpreadOdds(
   const move = offered - market;
   if (Math.abs(move) < 0.25) return 100;
 
-  const moneylineProbability = noVigMoneylineProbability(options.teamMoneylineOdds, options.opponentMoneylineOdds);
+  const moneylineProbability = symmetricMoneylineProbability(options.teamMoneylineOdds, options.opponentMoneylineOdds);
   const moneylineSpread = market < -0.5 ? -0.5 : market > 0.5 ? 0.5 : null;
   const moneylineDirectionMatchesSpread = moneylineProbability != null && (
     (market < -0.5 && moneylineProbability > 0.5) ||
@@ -142,11 +162,27 @@ export function fairAltSpreadOdds(
     const anchorDistance = weightedSpreadDistance(market, moneylineSpread, league);
     if (anchorDistance > 0) {
       const directionToMoneyline = moneylineSpread > market ? 1 : -1;
-      const moveDirection = Math.sign((offered - market) * directionToMoneyline) || 1;
-      const progress = moveDirection * weightedSpreadDistance(market, offered, league) / anchorDistance;
       const moneylineLogit = Math.log(moneylineProbability! / (1 - moneylineProbability!));
-      const coverProbability = 1 / (1 + Math.exp(-(progress * moneylineLogit)));
-      return friendlyAmericanOddsFromProbability(coverProbability);
+      const halfPointSteps = Math.max(1, Math.round(Math.abs(move) * 2));
+      const halfPointMove = move > 0 ? 0.5 : -0.5;
+      let previousMagnitudeIndex = 0;
+      let finalMagnitude = FRIENDLY_ALT_ODDS[1];
+
+      for (let step = 1; step <= halfPointSteps; step += 1) {
+        const intermediate = step === halfPointSteps ? offered : market + halfPointMove * step;
+        const moveDirection = Math.sign((intermediate - market) * directionToMoneyline) || 1;
+        const progress = moveDirection * weightedSpreadDistance(market, intermediate, league) / anchorDistance;
+        const coverProbability = 1 / (1 + Math.exp(-(progress * moneylineLogit)));
+        const modeledMagnitude = rawAmericanMagnitudeFromProbability(coverProbability);
+        const modeledIndex = closestFriendlyAltIndex(modeledMagnitude);
+        previousMagnitudeIndex = Math.min(
+          FRIENDLY_ALT_ODDS.length - 1,
+          Math.max(modeledIndex, previousMagnitudeIndex + 1)
+        );
+        finalMagnitude = FRIENDLY_ALT_ODDS[previousMagnitudeIndex];
+      }
+
+      return move > 0 ? -finalMagnitude : finalMagnitude;
     }
   }
 
