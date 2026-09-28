@@ -4,6 +4,8 @@ const ACTION_BASE = "https://api.actionnetwork.com/web/v1/scoreboard";
 const ACTION_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15";
 const DRAFTKINGS_BOOK_ID = 68;
 const LIVE_MAX_AGE_SECONDS = 45;
+const ACTION_CACHE_MS = 5_000;
+const actionLeagueRequestCache = new Map<string, { expiresAt: number; promise: Promise<ActionGame[]> }>();
 
 type ActionTeam = {
   id?: number | string;
@@ -155,20 +157,35 @@ function rowAgeSeconds(row: ActionOddsRow, now = Date.now()) {
 }
 
 async function fetchActionLeagueDate(league: Game["league"], marketDate: string) {
-  const path = league === "NFL" ? "nfl" : "ncaaf";
-  const params = new URLSearchParams({
-    bookIds: String(DRAFTKINGS_BOOK_ID),
-    date: marketDate,
-    periods: "event"
-  });
-  if (league === "CFB") params.set("division", "FBS");
-  const response = await fetch(`${ACTION_BASE}/${path}?${params.toString()}`, {
-    headers: { "User-Agent": ACTION_USER_AGENT },
-    next: { revalidate: 5 }
-  });
-  if (!response.ok) throw new Error(`Action Network ${league} market request failed with ${response.status} for ${marketDate}.`);
-  const payload = await response.json();
-  return Array.isArray(payload?.games) ? payload.games as ActionGame[] : [];
+  const cacheKey = `${league}:${marketDate}`;
+  const now = Date.now();
+  const cached = actionLeagueRequestCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) return cached.promise;
+
+  const request = (async () => {
+    const path = league === "NFL" ? "nfl" : "ncaaf";
+    const params = new URLSearchParams({
+      bookIds: String(DRAFTKINGS_BOOK_ID),
+      date: marketDate,
+      periods: "event"
+    });
+    if (league === "CFB") params.set("division", "FBS");
+    const response = await fetch(`${ACTION_BASE}/${path}?${params.toString()}`, {
+      headers: { "User-Agent": ACTION_USER_AGENT },
+      cache: "no-store"
+    });
+    if (!response.ok) throw new Error(`Action Network ${league} market request failed with ${response.status} for ${marketDate}.`);
+    const payload = await response.json();
+    return Array.isArray(payload?.games) ? payload.games as ActionGame[] : [];
+  })();
+
+  actionLeagueRequestCache.set(cacheKey, { expiresAt: now + ACTION_CACHE_MS, promise: request });
+  try {
+    return await request;
+  } catch (error) {
+    actionLeagueRequestCache.delete(cacheKey);
+    throw error;
+  }
 }
 
 async function fetchActionLeague(league: Game["league"], games: Game[]) {
@@ -198,7 +215,7 @@ export async function fetchActionNetworkScheduledGames(league: Game["league"], d
     if (!homeTeam || !awayTeam) return [];
 
     const rows = (actionGame.odds || [])
-      .filter((row) => Number(row.book_id) === DRAFTKINGS_BOOK_ID && row.type === "game")
+      .filter((row) => Number(row.book_id) === DRAFTKINGS_BOOK_ID && row.type !== "live")
       .sort((a, b) => new Date(b.inserted || 0).getTime() - new Date(a.inserted || 0).getTime());
     const row = rows[0];
     const awaySpread = finiteNumber(row?.spread_away);
@@ -242,9 +259,9 @@ function quoteForGame(game: Game, actionGames: ActionGame[]): SideBetMarketQuote
       : null;
   if (!phase) return null;
 
-  const wantedType = phase === "live" ? "live" : "game";
   const rows = (matched.odds || [])
-    .filter((row) => Number(row.book_id) === DRAFTKINGS_BOOK_ID && row.type === wantedType)
+    .filter((row) => Number(row.book_id) === DRAFTKINGS_BOOK_ID)
+    .filter((row) => phase === "live" ? row.type === "live" : row.type !== "live")
     .filter((row) => phase !== "live" || (() => {
       const age = rowAgeSeconds(row);
       return age != null && age <= LIVE_MAX_AGE_SECONDS;
