@@ -909,7 +909,7 @@ function sideBetAppMarketReference(bet: SideBet, team: string, quote?: SideBetMa
     const sameOffer = sameLine && Number(offerOdds) === 100;
     if (!live && sameOffer) return null;
 
-    const baseText = `Market: ${totalSideText(side)} ${marketPoints} +100`;
+    const baseText = `Market: ${totalSideText(side)} ${marketPoints}`;
     if (sameLine) return { text: baseText };
 
     const fairOfferOdds = fairAltTotalOdds(marketPoints, offerPoints, side);
@@ -925,8 +925,7 @@ function sideBetAppMarketReference(bet: SideBet, team: string, quote?: SideBetMa
   const sameOffer = sameLine && Number(offerOdds) === 100;
   if (!live && sameOffer) return null;
 
-  const teamName = bet.game ? displayTeamName(bet.game, team) : team;
-  const baseText = `Market: ${teamName} ${spreadText(marketSpread)} +100`;
+  const baseText = `Market: ${spreadText(marketSpread)}`;
   if (sameLine) return { text: baseText };
 
   const teamMoneylineOdds = away ? quote.moneyline?.awayOdds : quote.moneyline?.homeOdds;
