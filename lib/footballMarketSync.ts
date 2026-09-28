@@ -18,7 +18,7 @@ function winWord(value: number) {
 function targetWindow(now = new Date()) {
   return {
     start: new Date(now.getTime() - DAY_MS),
-    end: new Date(now.getTime() + 9 * DAY_MS)
+    end: new Date(now.getTime() + 14 * DAY_MS)
   };
 }
 
