@@ -1,4 +1,6 @@
-export type SideBetMarketType = "spread" | "moneyline";
+export type SideBetMarketType = "spread" | "moneyline" | "total";
+export type SideBetOfferType = "pregame" | "live";
+export type TotalSide = "over" | "under";
 
 export function validAmericanOdds(value: unknown) {
   const odds = Number(value);
@@ -9,6 +11,17 @@ export function oppositeAmericanOdds(value: number) {
   if (!validAmericanOdds(value)) return 100;
   if (Math.abs(value) === 100) return 100;
   return -value;
+}
+
+export function oppositeTotalSide(side: TotalSide): TotalSide {
+  return side === "over" ? "under" : "over";
+}
+
+export function gradeTotal(side: TotalSide, line: number, homeScore: number, awayScore: number): "win" | "loss" | "push" {
+  const finalTotal = Number(homeScore) + Number(awayScore);
+  if (finalTotal === Number(line)) return "push";
+  const overWon = finalTotal > Number(line);
+  return side === "over" ? (overWon ? "win" : "loss") : (overWon ? "loss" : "win");
 }
 
 export function americanOddsText(value: number | null | undefined) {

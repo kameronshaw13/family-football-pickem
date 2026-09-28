@@ -120,6 +120,20 @@ export type SideBetTarget = {
   recipient?: ProfileSummary | null;
 };
 
+export type SideBetMarketQuote = {
+  game_id: string;
+  status: "scheduled" | "inprogress";
+  spread_away: number | null;
+  spread_home: number | null;
+  spread_away_odds: number | null;
+  spread_home_odds: number | null;
+  moneyline_away: number | null;
+  moneyline_home: number | null;
+  total: number | null;
+  over_odds: number | null;
+  under_odds: number | null;
+};
+
 export type SideBet = {
   id: string;
   creator_id: string;
@@ -129,7 +143,10 @@ export type SideBet = {
   offered_team: string;
   creator_spread: number;
   offered_spread: number;
-  market_type?: "spread" | "moneyline";
+  market_type?: "spread" | "moneyline" | "total";
+  offer_type?: "pregame" | "live";
+  total_line?: number | null;
+  creator_total_side?: "over" | "under" | null;
   creator_odds?: number;
   amount: number;
   status: SideBetStatus;

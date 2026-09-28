@@ -5,7 +5,8 @@ import { getGroupSideBetSettings, isGameAllowedForGroup, requestedGroupFromReque
 import { createNotificationInBackground, resolveSideBetOfferNotifications } from "@/lib/notifications";
 import { MAX_CUSTOM_SIDE_BET_AMOUNT, sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
-import { americanOddsText, oppositeAmericanOdds, profitForRisk, validAmericanOdds } from "@/lib/sideBetMarkets";
+import { getActionNetworkQuoteForGame } from "@/lib/actionNetworkOdds";
+import { americanOddsText, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, validAmericanOdds, type SideBetMarketType, type TotalSide } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { notificationTeamName } from "@/lib/notificationTeamName";
 
@@ -17,8 +18,11 @@ const bodySchema = z.discriminatedUnion("action", [
     creatorTeam: z.string().min(1),
     amount: z.number().positive(),
     recipientIds: z.array(z.string().uuid()).min(1).max(10),
-    marketType: z.enum(["spread", "moneyline"]).optional(),
+    offerType: z.enum(["pregame", "live"]).optional(),
+    marketType: z.enum(["spread", "moneyline", "total"]).optional(),
     creatorSpread: z.number().finite().min(-100).max(100).optional(),
+    totalLine: z.number().finite().min(0).max(200).optional(),
+    creatorTotalSide: z.enum(["over", "under"]).optional(),
     creatorOdds: z.number().int().optional(),
     viewWeek
   }),
@@ -36,10 +40,28 @@ function notificationSpread(value: number) {
   return value > 0 ? `+${value}` : String(value);
 }
 
-function notificationMarketText(team: string, league: string | null | undefined, marketType: "spread" | "moneyline", spread: number, odds: number) {
-  const line = marketType === "moneyline" ? "ML" : notificationSpread(spread);
+function notificationMarketText(team: string, league: string | null | undefined, marketType: SideBetMarketType, spread: number, odds: number, totalSide?: TotalSide | null, totalLine?: number | null) {
   const oddsText = Math.abs(Number(odds)) === 100 ? "" : ` ${americanOddsText(odds)}`;
+  if (marketType === "total") {
+    const side = totalSide === "under" ? "U" : "O";
+    return `${side} ${Number(totalLine)}${oddsText}`;
+  }
+  const line = marketType === "moneyline" ? "ML" : notificationSpread(spread);
   return `${notificationTeamName(team, league)} ${line}${oddsText}`;
+}
+
+function liveQuoteSupportsBet(quote: any, game: any, marketType: SideBetMarketType, creatorTeam: string, totalSide?: TotalSide | null) {
+  if (!quote || quote.status !== "inprogress") return false;
+  const away = creatorTeam === game.away_team;
+  if (marketType === "spread") {
+    const line = away ? quote.spread_away : quote.spread_home;
+    const price = away ? quote.spread_away_odds : quote.spread_home_odds;
+    return line != null && validAmericanOdds(price);
+  }
+  if (marketType === "moneyline") {
+    return validAmericanOdds(away ? quote.moneyline_away : quote.moneyline_home);
+  }
+  return quote.total != null && validAmericanOdds(totalSide === "under" ? quote.under_odds : quote.over_odds);
 }
 
 function notificationMoney(value: number) {
@@ -87,7 +109,13 @@ async function snapshot(supabase: any, context: any, profileId: string, week: nu
   const now = new Date();
   const nowIso = now.toISOString();
   const expiredIds = rows
-    .filter((bet: any) => bet.status === "open" && bet.game && new Date(bet.game.commence_time) <= now)
+    .filter((bet: any) => {
+      if (bet.status !== "open" || !bet.game) return false;
+      if ((bet.offer_type || "pregame") === "live") {
+        return bet.game.final_home_score != null && bet.game.final_away_score != null;
+      }
+      return new Date(bet.game.commence_time) <= now;
+    })
     .map((bet: any) => bet.id);
   if (expiredIds.length) {
     await Promise.all([
@@ -158,19 +186,41 @@ export async function POST(req: NextRequest) {
       const { data: game, error: gameError } = await supabase.from("games").select("*").eq("id", body.gameId).maybeSingle();
       if (gameError || !game) return NextResponse.json({ ok: false, error: "Game not found." }, { status: 404 });
       if (!isGameAllowedForGroup(context, game)) return NextResponse.json({ ok: false, error: "That game is not available in this Pick'em group." }, { status: 409 });
-      if (new Date(game.commence_time) <= now) return NextResponse.json({ ok: false, error: "Side bets must be offered before kickoff." }, { status: 409 });
       if (![game.away_team, game.home_team].includes(body.creatorTeam)) return NextResponse.json({ ok: false, error: "Choose one of the two teams in this game." }, { status: 400 });
+      const offerType = body.offerType || "pregame";
       const marketType = body.marketType || "spread";
+      const started = new Date(game.commence_time) <= now;
+      const completed = game.final_home_score != null && game.final_away_score != null;
+      if (offerType === "pregame" && started) return NextResponse.json({ ok: false, error: "Pregame offers expire at kickoff. Create a new Live offer instead." }, { status: 409 });
+      if (offerType === "live") {
+        if (!started) return NextResponse.json({ ok: false, error: "Live offers are available after kickoff." }, { status: 409 });
+        if (completed) return NextResponse.json({ ok: false, error: "This game is final." }, { status: 409 });
+      }
+      const creatorTotalSide = marketType === "total"
+        ? (body.creatorTotalSide || (body.creatorTeam === game.away_team ? "over" : "under"))
+        : null;
+      if (marketType === "total") {
+        const expectedSide = body.creatorTeam === game.away_team ? "over" : "under";
+        if (creatorTotalSide !== expectedSide) return NextResponse.json({ ok: false, error: "Away is Over and home is Under for total offers." }, { status: 400 });
+        if (body.totalLine == null) return NextResponse.json({ ok: false, error: "Choose an over/under total." }, { status: 409 });
+      }
+      if (offerType === "live") {
+        const liveQuote = await getActionNetworkQuoteForGame(game, { fresh: true });
+        if (!liveQuoteSupportsBet(liveQuote, game, marketType, body.creatorTeam, creatorTotalSide)) {
+          return NextResponse.json({ ok: false, error: "That live market is currently unavailable." }, { status: 409 });
+        }
+      }
       const creatorOdds = body.creatorOdds ?? 100;
       if (!validAmericanOdds(creatorOdds)) {
         return NextResponse.json({ ok: false, error: "American odds must be -100 or lower, or +100 or higher." }, { status: 400 });
       }
       const currentCreatorSpread = normalizeSpreadForSelectedTeam(body.creatorTeam, game.current_spread_team, game.current_spread);
-      const creatorSpread = marketType === "moneyline" ? 0 : (body.creatorSpread ?? currentCreatorSpread);
+      const creatorSpread = marketType === "spread" ? (body.creatorSpread ?? currentCreatorSpread) : 0;
       if (marketType === "spread" && creatorSpread == null) {
         return NextResponse.json({ ok: false, error: "Choose a spread for this side bet." }, { status: 409 });
       }
       const resolvedCreatorSpread = Number(creatorSpread ?? 0);
+      const resolvedTotalLine = marketType === "total" ? Number(body.totalLine) : null;
 
       if (Number.isFinite(settings.maxPerWeek)) {
         const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
@@ -185,7 +235,8 @@ export async function POST(req: NextRequest) {
       }
 
       const offeredTeam = body.creatorTeam === game.home_team ? game.away_team : game.home_team;
-      const offeredSpread = -resolvedCreatorSpread;
+      const offeredSpread = marketType === "spread" ? -resolvedCreatorSpread : 0;
+      const offeredTotalSide = creatorTotalSide ? oppositeTotalSide(creatorTotalSide) : null;
       const appOfferedSpread = marketType === "spread"
         ? normalizeSpreadForSelectedTeam(offeredTeam, game.current_spread_team, game.current_spread)
         : null;
@@ -204,6 +255,9 @@ export async function POST(req: NextRequest) {
         creator_spread: resolvedCreatorSpread,
         offered_spread: offeredSpread,
         market_type: marketType,
+        offer_type: offerType,
+        total_line: resolvedTotalLine,
+        creator_total_side: creatorTotalSide,
         creator_odds: creatorOdds,
         amount,
         status: "open",
@@ -225,7 +279,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-offer:${sideBet.id}`,
           title: `Side bet from ${auth.profile.display_name}`,
-          body: `${notificationStakeText(profitForRisk(amount, creatorOdds), amount)} · ${notificationMarketText(offeredTeam, game.league, marketType, offeredSpread, oppositeAmericanOdds(creatorOdds))}${marketReference}`,
+          body: `${notificationStakeText(profitForRisk(amount, creatorOdds), amount)} · ${notificationMarketText(offeredTeam, game.league, marketType, offeredSpread, oppositeAmericanOdds(creatorOdds), offeredTotalSide, resolvedTotalLine)}${marketReference}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_received"),
           actionRequired: true
         }));
@@ -290,7 +344,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });
     }
     if (target.response !== "pending" || sideBet.status !== "open") return NextResponse.json({ ok: false, error: "This offer is no longer available." }, { status: 409 });
-    if (!sideBet.game || new Date(sideBet.game.commence_time) <= now) return NextResponse.json({ ok: false, error: "Kickoff has passed. This offer expired." }, { status: 409 });
+    if (!sideBet.game) return NextResponse.json({ ok: false, error: "Game unavailable." }, { status: 409 });
+    if ((sideBet.offer_type || "pregame") === "live") {
+      if (sideBet.game.final_home_score != null && sideBet.game.final_away_score != null) {
+        return NextResponse.json({ ok: false, error: "This game is final." }, { status: 409 });
+      }
+      if (body.action === "accept") {
+        const liveQuote = await getActionNetworkQuoteForGame(sideBet.game, { fresh: true });
+        if (!liveQuoteSupportsBet(liveQuote, sideBet.game, sideBet.market_type || "spread", sideBet.offered_team, sideBet.market_type === "total" ? oppositeTotalSide(sideBet.creator_total_side === "under" ? "under" : "over") : null)) {
+          return NextResponse.json({ ok: false, error: "The live market is currently unavailable." }, { status: 409 });
+        }
+      }
+    } else if (new Date(sideBet.game.commence_time) <= now) {
+      return NextResponse.json({ ok: false, error: "Kickoff has passed. This pregame offer expired." }, { status: 409 });
+    }
 
     if (body.action === "decline") {
       const result = await supabase.from("side_bet_targets").update({ response: "declined", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id).eq("response", "pending");
@@ -306,7 +373,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-declined:${sideBet.id}:${auth.profile.id}`,
           title: `${auth.profile.display_name} declined your side bet`,
-          body: notificationMarketText(sideBet.offered_team, sideBet.game?.league, sideBet.market_type === "moneyline" ? "moneyline" : "spread", Number(sideBet.offered_spread), oppositeAmericanOdds(Number(sideBet.creator_odds ?? 100))),
+          body: notificationMarketText(sideBet.offered_team, sideBet.game?.league, sideBet.market_type === "moneyline" ? "moneyline" : sideBet.market_type === "total" ? "total" : "spread", Number(sideBet.offered_spread), oppositeAmericanOdds(Number(sideBet.creator_odds ?? 100)), sideBet.market_type === "total" ? oppositeTotalSide(sideBet.creator_total_side === "under" ? "under" : "over") : null, sideBet.total_line == null ? null : Number(sideBet.total_line)),
           url: groupNotificationUrl(context.group.slug, "side_bets_sent")
         });
       const nextSnapshot = await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week);

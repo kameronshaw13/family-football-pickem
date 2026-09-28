@@ -2,11 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game } from "@/lib/types";
 import { settleWeekIfReady } from "@/lib/autoSettlement";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam } from "@/lib/spreads";
-import { createNotificationSafely } from "@/lib/notifications";
+import { createNotificationSafely, resolveSideBetOfferNotifications } from "@/lib/notifications";
 import { notificationTeamName } from "@/lib/notificationTeamName";
 import { getGameLockTime } from "@/lib/lockRules";
 import { getUnderdogBonusForRules, isGameAllowedByRules } from "@/lib/groupContext";
-import { sideBetCreatorProfit } from "@/lib/sideBetMarkets";
+import { gradeTotal, sideBetCreatorProfit } from "@/lib/sideBetMarkets";
 
 async function groupInfo(supabase: SupabaseClient, groupId: string, cache: Map<string, { slug: string; members: Array<{ id: string; display_name: string }> }>) {
   const cached = cache.get(groupId);
@@ -102,6 +102,17 @@ export async function finalizeGame(supabase: SupabaseClient, game: Game, homeSco
     }
   }
 
+  const { data: openSideBets, error: openSideBetError } = await supabase.from("side_bets").select("id").eq("game_id", game.id).eq("status", "open");
+  if (openSideBetError) throw new Error(openSideBetError.message);
+  const expiredOfferIds = (openSideBets || []).map((bet: any) => bet.id);
+  if (expiredOfferIds.length) {
+    const expireResult = await supabase.from("side_bets").update({ status: "expired", updated_at: updatedAt }).in("id", expiredOfferIds).eq("status", "open");
+    if (expireResult.error) throw new Error(expireResult.error.message);
+    const targetResult = await supabase.from("side_bet_targets").update({ response: "closed", responded_at: updatedAt }).in("side_bet_id", expiredOfferIds).eq("response", "pending");
+    if (targetResult.error) throw new Error(targetResult.error.message);
+    await resolveSideBetOfferNotifications(supabase, expiredOfferIds);
+  }
+
   const { data: sideBets, error: sideBetError } = await supabase.from("side_bets").select("*").eq("game_id", game.id).eq("status", "accepted");
   if (sideBetError) throw new Error(sideBetError.message);
   let sideBetsGraded = 0;
@@ -109,7 +120,9 @@ export async function finalizeGame(supabase: SupabaseClient, game: Game, homeSco
     if (!sideBet.accepted_by) continue;
     const result = sideBet.market_type === "moneyline"
       ? gradeUnderdogOutright(sideBet.creator_team, game.home_team, game.away_team, homeScore, awayScore)
-      : gradeAgainstSpread(sideBet.creator_team, game.home_team, game.away_team, homeScore, awayScore, Number(sideBet.creator_spread));
+      : sideBet.market_type === "total"
+        ? gradeTotal(sideBet.creator_total_side === "under" ? "under" : "over", Number(sideBet.total_line), homeScore, awayScore)
+        : gradeAgainstSpread(sideBet.creator_team, game.home_team, game.away_team, homeScore, awayScore, Number(sideBet.creator_spread));
     const sideBetResult = result === "win" ? "creator_win" : result === "loss" ? "acceptor_win" : "push";
     const winnerId = result === "win" ? sideBet.creator_id : result === "loss" ? sideBet.accepted_by : null;
     const update = await supabase.from("side_bets").update({ status: "settled", result: sideBetResult, winner_id: winnerId, updated_at: updatedAt }).eq("id", sideBet.id).eq("group_id", sideBet.group_id).eq("status", "accepted");

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fairMoneylineFromSpread, oppositeAmericanOdds, profitForRisk, sideBetNetForUser } from "../lib/sideBetMarkets.ts";
+import { fairMoneylineFromSpread, gradeTotal, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, sideBetNetForUser } from "../lib/sideBetMarkets.ts";
 
 test("derives league-specific fair rounded moneylines from a football spread", () => {
   assert.equal(fairMoneylineFromSpread(-1.5, "CFB"), -110);
@@ -44,4 +44,13 @@ test("side bet settlement stays zero-sum at -200", () => {
   assert.equal(sideBetNetForUser({ ...base, winner_id: "creator", result: "creator_win" }, "acceptor"), -20);
   assert.equal(sideBetNetForUser({ ...base, winner_id: "acceptor", result: "acceptor_win" }, "creator"), -40);
   assert.equal(sideBetNetForUser({ ...base, winner_id: "acceptor", result: "acceptor_win" }, "acceptor"), 40);
+});
+
+
+test("total sides are opposites and grade against the final combined score", () => {
+  assert.equal(oppositeTotalSide("over"), "under");
+  assert.equal(oppositeTotalSide("under"), "over");
+  assert.equal(gradeTotal("over", 51.5, 28, 24), "win");
+  assert.equal(gradeTotal("under", 51.5, 28, 24), "loss");
+  assert.equal(gradeTotal("over", 52, 28, 24), "push");
 });

@@ -146,7 +146,10 @@ create table if not exists side_bets (
   offered_team text not null,
   creator_spread numeric not null,
   offered_spread numeric not null,
-  market_type text not null default 'spread' check (market_type in ('spread','moneyline')),
+  market_type text not null default 'spread' check (market_type in ('spread','moneyline','total')),
+  offer_type text not null default 'pregame' check (offer_type in ('pregame','live')),
+  total_line numeric,
+  creator_total_side text check (creator_total_side is null or creator_total_side in ('over','under')),
   creator_odds integer not null default 100 check (creator_odds <= -100 or creator_odds >= 100),
   amount numeric(10,2) not null check (amount > 0 and amount <= 10000),
   status text not null default 'open' check (status in ('open','accepted','declined','cancelled','expired','settled')),
@@ -164,10 +167,28 @@ create table if not exists side_bets (
 );
 
 alter table side_bets add column if not exists market_type text not null default 'spread';
+alter table side_bets add column if not exists offer_type text not null default 'pregame';
+alter table side_bets add column if not exists total_line numeric;
+alter table side_bets add column if not exists creator_total_side text;
 alter table side_bets add column if not exists creator_odds integer not null default 100;
 
+alter table side_bets drop constraint if exists side_bets_market_type_check;
+alter table side_bets add constraint side_bets_market_type_check check (market_type in ('spread','moneyline','total'));
+
 do $ begin
-  alter table side_bets add constraint side_bets_market_type_check check (market_type in ('spread','moneyline'));
+  alter table side_bets add constraint side_bets_offer_type_check check (offer_type in ('pregame','live'));
+exception when duplicate_object then null;
+end $;
+
+do $ begin
+  alter table side_bets add constraint side_bets_creator_total_side_check check (creator_total_side is null or creator_total_side in ('over','under'));
+exception when duplicate_object then null;
+end $;
+
+do $ begin
+  alter table side_bets add constraint side_bets_total_fields_check check (
+    market_type <> 'total' or (total_line is not null and total_line >= 0 and creator_total_side in ('over','under'))
+  );
 exception when duplicate_object then null;
 end $;
 
