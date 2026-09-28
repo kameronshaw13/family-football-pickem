@@ -35,6 +35,14 @@ type StandingsView = "standings" | "bank";
 type BetView = "offers" | "new";
 type SideBetLeagueFilter = "CFB" | "NFL";
 type SideBetBoardMarket = "spreads" | "total";
+
+function defaultFootballLeague(): SideBetLeagueFilter {
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    weekday: "short"
+  }).format(new Date());
+  return weekday === "Sun" || weekday === "Mon" ? "NFL" : "CFB";
+}
 type SideBetLedgerScope = "all" | "mine";
 type SideBetGameFilter = "all" | "upcoming" | "completed";
 type GameStatusFilter = "OPEN" | "LOCKED" | "FINAL";
@@ -1141,7 +1149,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [sideBetLedgerScope, setSideBetLedgerScope] = useState<SideBetLedgerScope>("all");
   const [sideBetLedgerGameFilter, setSideBetLedgerGameFilter] = useState<SideBetGameFilter>("all");
   const [statusFilter, setStatusFilter] = useState<GameStatusFilter>("OPEN");
-  const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>("CFB");
+  const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>(() => defaultFootballLeague());
   const [conferenceFilter, setConferenceFilter] = useState("ALL");
   const [dogValueFilter, setDogValueFilter] = useState<DogValueFilter>("ALL");
   const [statusFilterTouched, setStatusFilterTouched] = useState(false);
@@ -1166,7 +1174,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [betCreatorTeam, setBetCreatorTeam] = useState("");
   const [betAmount, setBetAmount] = useState("20");
   const [betRecipients, setBetRecipients] = useState<string[]>([]);
-  const [betLeagueFilter, setBetLeagueFilter] = useState<SideBetLeagueFilter>("CFB");
+  const [betLeagueFilter, setBetLeagueFilter] = useState<SideBetLeagueFilter>(() => defaultFootballLeague());
   const [betConferenceFilter, setBetConferenceFilter] = useState("ALL");
   const [toast, setToast] = useState<Toast>(null);
   const [testWeekActive, setTestWeekActive] = useState(false);
@@ -2718,11 +2726,11 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
     </div>
 
     {view === "new" && weekIsOpen && !weekConcluded && <div className="side-bet-offer-mode-row">
-      <div className="side-bet-offer-mode-toggle" role="group" aria-label="Choose pregame or live games">
+      <div className="side-bet-game-filter-toggle side-bet-two-option-toggle" role="group" aria-label="Choose pregame or live games">
         <button type="button" className={offerPhase === "pregame" ? "active" : ""} aria-pressed={offerPhase === "pregame"} onClick={() => { clearSlip(); setOfferPhase("pregame"); }}>Pregame</button>
         <button type="button" className={offerPhase === "live" ? "active" : ""} aria-pressed={offerPhase === "live"} onClick={() => { clearSlip(); setOfferPhase("live"); }}>Live</button>
       </div>
-      <div className="side-bet-offer-mode-toggle" role="group" aria-label="Choose spreads or over under">
+      <div className="side-bet-game-filter-toggle side-bet-two-option-toggle" role="group" aria-label="Choose spreads or over under">
         <button type="button" className={boardMarket === "spreads" ? "active" : ""} aria-pressed={boardMarket === "spreads"} onClick={() => { clearSlip(); setBoardMarket("spreads"); setMarketType("spread"); }}>Spreads</button>
         <button type="button" className={boardMarket === "total" ? "active" : ""} aria-pressed={boardMarket === "total"} onClick={() => { clearSlip(); setBoardMarket("total"); setMarketType("total"); }}>O/U</button>
       </div>

@@ -476,6 +476,11 @@
   color: #fff;
   background: var(--graphite);
 }
+.side-bet-offer-mode-row .side-bet-two-option-toggle {
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
 .side-bet-offers-game-filter { margin: 8px var(--page-gutter) 10px; }
 .side-bet-ledger-heading-row + .side-bet-game-filter-toggle { margin-top: 2px; }
 
