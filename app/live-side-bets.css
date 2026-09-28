@@ -1,0 +1,50 @@
+.side-bet-offer-mode-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.side-bet-offer-mode-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.side-bet-offer-mode-toggle button {
+  min-width: 0;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.side-bet-offer-mode-toggle button.active {
+  color: var(--ink);
+  background: var(--panel);
+  box-shadow: 0 1px 3px rgba(20, 33, 43, .14);
+}
+
+.side-bet-live-offer-label {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+@media (max-width: 380px) {
+  .side-bet-offer-mode-row { gap: 6px; }
+  .side-bet-offer-mode-toggle button { padding-inline: 5px; font-size: 9px; }
+}
