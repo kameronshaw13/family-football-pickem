@@ -862,8 +862,9 @@ function sideBetLineText(bet: SideBet, team: string) {
 
 function sideBetAppMarketReference(bet: SideBet, team: string, quote?: SideBetMarketQuote | null) {
   const live = bet.offer_phase === "live";
+  const expectedPhase: SideBetOfferPhase = live ? "live" : "pregame";
   const offerOdds = sideBetOddsForTeam(bet, team);
-  if (!quote) return live ? { text: "Market: Unavailable" } : null;
+  if (!quote || quote.phase !== expectedPhase) return live ? { text: "Market: Unavailable" } : null;
 
   if (bet.market_type === "moneyline") {
     const market = quote.moneyline;
@@ -2466,7 +2467,8 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
   const selectedGameRef = useRef(selectedGame);
   selectedGameRef.current = selectedGame;
-  const selectedQuote = selectedGame ? marketQuotes[selectedGame.id] : undefined;
+  const rawSelectedQuote = selectedGame ? marketQuotes[selectedGame.id] : undefined;
+  const selectedQuote = rawSelectedQuote?.phase === offerPhase ? rawSelectedQuote : undefined;
   const selectedTotalSide: SideBetTotalSide = selectedGame && selectedCreatorTeam === selectedGame.home_team ? "under" : "over";
   const quoteSpread = selectedGame && selectedCreatorTeam && selectedQuote?.spread
     ? selectedCreatorTeam === selectedGame.away_team ? selectedQuote.spread.awayPoint : selectedQuote.spread.homePoint
@@ -2509,9 +2511,8 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
     .filter((game) => {
       if (game.league !== gameLeague) return false;
       if (gameLeague === "CFB" && gameConference !== "ALL" && !gameConferences(game).includes(gameConference)) return false;
-      const quote = marketQuotes[game.id];
-      if (!quote || quote.phase !== offerPhase) return false;
-      return boardMarket === "total" ? Boolean(quote.total) : Boolean(quote.spread);
+      if (offerPhase === "live") return game.live_state === "in";
+      return new Date(game.commence_time).getTime() > Date.now() && game.live_state !== "in";
     })
     .sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
   const sideBetGameGroups = filteredOpenGames.reduce<Array<{ key: string; label: string; shortDay: string; games: Game[] }>>((groups, game) => {
@@ -2742,10 +2743,15 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
         <div className="game-list">{group.games.map((game) => <SideBetGameCard
           key={game.id}
           game={game}
-          market={marketQuotes[game.id]}
+          market={marketQuotes[game.id]?.phase === offerPhase ? marketQuotes[game.id] : undefined}
           boardMarket={boardMarket}
           selectedTeam={selectedGame?.id === game.id ? selectedCreatorTeam : ""}
-          disabled={!weekIsOpen || (boardMarket === "total" ? Boolean(marketQuotes[game.id]?.total?.suspended) : Boolean(marketQuotes[game.id]?.spread?.suspended))}
+          disabled={!weekIsOpen || (() => {
+            const quote = marketQuotes[game.id]?.phase === offerPhase ? marketQuotes[game.id] : undefined;
+            return boardMarket === "total"
+              ? !quote?.total || quote.total.suspended
+              : !quote?.spread || quote.spread.suspended;
+          })()}
           onSelect={selectSide}
           openPreview={openPreview}
         />)}</div>
@@ -2869,7 +2875,7 @@ function SideBetGameCard({ game, market, boardMarket, selectedTeam, disabled, on
     if (!market?.spread) return "—";
     return spreadText(team === game.away_team ? market.spread.awayPoint : market.spread.homePoint);
   };
-  const live = market?.phase === "live";
+  const live = game.live_state === "in";
   return <article className={`game-card matchup-card side-bet-game-card ${disabled ? "closed" : ""} ${selectedTeam ? "selected" : ""}`.trim()}>
     <div className="game-head compact-game-head">
       <div className="game-time-group"><span className={live ? "game-live-status" : "game-time"}><NumericText text={live ? game.live_status || "Live" : timeText(game.commence_time)} /></span></div>
