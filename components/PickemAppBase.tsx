@@ -2559,6 +2559,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   const [boardMarket, setBoardMarket] = useState<SideBetBoardMarket>("spreads");
   const [marketQuotes, setMarketQuotes] = useState<Record<string, SideBetMarketQuote>>({});
   const marketQuotesRef = useRef<Record<string, SideBetMarketQuote>>({});
+  const marketQuoteRefreshInFlightRef = useRef(false);
   const [customSpread, setCustomSpread] = useState("");
   const [oddsInput, setOddsInput] = useState("100");
   const [customRiskMode, setCustomRiskMode] = useState(false);
@@ -2658,8 +2659,10 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   const hasPendingLiveOffer = offers.some((bet) => bet.status === "open" && bet.offer_phase === "live");
 
   const refreshMarketQuotes = useCallback(async () => {
+    if (marketQuoteRefreshInFlightRef.current) return marketQuotesRef.current;
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) return marketQuotesRef.current;
+    marketQuoteRefreshInFlightRef.current = true;
     try {
       const response = await fetch(`/api/side-bet-markets?week=${week}`, {
         headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
@@ -2673,14 +2676,27 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
       return next;
     } catch {
       return marketQuotesRef.current;
+    } finally {
+      marketQuoteRefreshInFlightRef.current = false;
     }
   }, [appSlug, week]);
 
   useEffect(() => {
     if (view !== "new" && view !== "offers") return;
-    void refreshMarketQuotes();
-    const interval = window.setInterval(() => void refreshMarketQuotes(), offerPhase === "live" || hasPendingLiveOffer ? 5000 : 15000);
-    return () => window.clearInterval(interval);
+    const refreshVisibleMarkets = () => {
+      if (document.visibilityState === "visible") void refreshMarketQuotes();
+    };
+    refreshVisibleMarkets();
+    const interval = window.setInterval(refreshVisibleMarkets, offerPhase === "live" || hasPendingLiveOffer ? 5000 : 15000);
+    window.addEventListener("focus", refreshVisibleMarkets);
+    window.addEventListener("online", refreshVisibleMarkets);
+    document.addEventListener("visibilitychange", refreshVisibleMarkets);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshVisibleMarkets);
+      window.removeEventListener("online", refreshVisibleMarkets);
+      document.removeEventListener("visibilitychange", refreshVisibleMarkets);
+    };
   }, [view, offerPhase, hasPendingLiveOffer, refreshMarketQuotes]);
 
   const collapseSlip = useCallback(() => {
