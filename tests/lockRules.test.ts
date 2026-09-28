@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canRefreshSpread, getGameLockTime, getSpreadFreezeTime } from "../lib/lockRules.ts";
+import { canRefreshSpread, getCurrentPickWeek, getGameLockTime, getSpreadFreezeTime, getWeekOpenTimeFromCommenceTimes } from "../lib/lockRules.ts";
 
 const timezone = "America/Chicago";
 
@@ -35,4 +35,15 @@ test("Saturday refreshes are allowed through the 10 AM freeze", () => {
   assert.equal(canRefreshSpread(kickoff, new Date("2026-09-05T14:50:00.000Z"), timezone), true);
   assert.equal(canRefreshSpread(kickoff, new Date("2026-09-05T15:00:00.000Z"), timezone), true);
   assert.equal(canRefreshSpread(kickoff, new Date("2026-09-05T15:00:00.001Z"), timezone), false);
+});
+
+
+test("pick weeks open Tuesday at 8 AM CT", () => {
+  const kickoff = "2026-09-05T17:00:00.000Z";
+  assert.equal(getWeekOpenTimeFromCommenceTimes([kickoff], timezone)?.toISOString(), "2026-09-01T13:00:00.000Z");
+});
+
+test("current week rolls at Tuesday 8 AM CT", () => {
+  assert.equal(getCurrentPickWeek(new Date("2026-08-25T12:59:59.999Z"), timezone), 0);
+  assert.equal(getCurrentPickWeek(new Date("2026-08-25T13:00:00.000Z"), timezone), 1);
 });
