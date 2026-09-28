@@ -109,7 +109,15 @@ export async function finalizeGame(supabase: SupabaseClient, game: Game, homeSco
     if (!sideBet.accepted_by) continue;
     const result = sideBet.market_type === "moneyline"
       ? gradeUnderdogOutright(sideBet.creator_team, game.home_team, game.away_team, homeScore, awayScore)
-      : gradeAgainstSpread(sideBet.creator_team, game.home_team, game.away_team, homeScore, awayScore, Number(sideBet.creator_spread));
+      : sideBet.market_type === "total"
+        ? (() => {
+            const points = Number(sideBet.total_points);
+            const total = Number(homeScore) + Number(awayScore);
+            if (!Number.isFinite(points) || total === points) return "push" as const;
+            const overWon = total > points;
+            return (sideBet.creator_total_side === "under" ? !overWon : overWon) ? "win" as const : "loss" as const;
+          })()
+        : gradeAgainstSpread(sideBet.creator_team, game.home_team, game.away_team, homeScore, awayScore, Number(sideBet.creator_spread));
     const sideBetResult = result === "win" ? "creator_win" : result === "loss" ? "acceptor_win" : "push";
     const winnerId = result === "win" ? sideBet.creator_id : result === "loss" ? sideBet.accepted_by : null;
     const update = await supabase.from("side_bets").update({ status: "settled", result: sideBetResult, winner_id: winnerId, updated_at: updatedAt }).eq("id", sideBet.id).eq("group_id", sideBet.group_id).eq("status", "accepted");

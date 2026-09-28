@@ -1,4 +1,8 @@
-export type SideBetMarketType = "spread" | "moneyline";
+export type SideBetMarketType = "spread" | "moneyline" | "total";
+
+export function oppositeTotalSide(value: "over" | "under") {
+  return value === "over" ? "under" : "over";
+}
 
 export function validAmericanOdds(value: unknown) {
   const odds = Number(value);
