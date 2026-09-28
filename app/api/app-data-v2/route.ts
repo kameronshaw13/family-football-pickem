@@ -51,7 +51,14 @@ export async function GET(req: NextRequest) {
         .map((value) => String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, " "))
         .join(":");
       const prior = unique.get(key);
-      if (!prior || new Date(game.updated_at || 0) > new Date(prior.updated_at || 0)) unique.set(key, game);
+      const gameIsFinal = game.final_away_score != null && game.final_home_score != null;
+      const priorIsFinal = prior?.final_away_score != null && prior?.final_home_score != null;
+      const gameUpdatedAt = new Date(game.updated_at || 0).getTime();
+      const priorUpdatedAt = new Date(prior?.updated_at || 0).getTime();
+
+      if (!prior || (gameIsFinal && !priorIsFinal) || (gameIsFinal === priorIsFinal && gameUpdatedAt > priorUpdatedAt)) {
+        unique.set(key, game);
+      }
     }
     const allGames = Array.from(unique.values()).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
     const standingsWeeks = Array.from(new Set(allGames.map((game) => Number(game.week)))).sort((a, b) => a - b);
