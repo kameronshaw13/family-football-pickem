@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { fetchActionNetworkMarkets } from "@/lib/actionNetworkMarkets";
+import { persistActionNetworkSpreads } from "@/lib/footballMarketSync";
 import { isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
@@ -33,7 +34,8 @@ export async function GET(req: NextRequest) {
 
     const eligible = (games || []).filter((game) => isGameAllowedForGroup(context, game));
     const markets = await fetchActionNetworkMarkets(eligible);
-    return NextResponse.json({ ok: true, markets }, { headers: NO_STORE_HEADERS });
+    const persisted = await persistActionNetworkSpreads(supabase, eligible, markets, new Date());
+    return NextResponse.json({ ok: true, markets, gamesUpdated: persisted.gamesUpdated }, { headers: NO_STORE_HEADERS });
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Could not load side bet markets." },
