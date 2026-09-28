@@ -1,4 +1,4 @@
-import { fetchActionNetworkMarkets } from "@/lib/actionNetworkMarkets";
+import { fetchActionNetworkMarkets, fetchActionNetworkScheduledGames } from "@/lib/actionNetworkMarkets";
 import { fetchEspnSchedule } from "@/lib/espnSchedule";
 import { espnRankForLogo, fetchEspnCfbRankMap } from "@/lib/espnRankings";
 import { canRefreshSpread, getFootballWeek, getGameLockTime, getSpreadFreezeTime } from "@/lib/lockRules";
@@ -6,10 +6,28 @@ import { createNotificationSafely } from "@/lib/notifications";
 import { notificationTeamName } from "@/lib/notificationTeamName";
 import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
+import { normalizeTeamNameKey, teamDisplayName } from "@/lib/teamNames";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import type { Game, League, SideBetMarketQuote } from "@/lib/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+type TeamIdentity = { name: string; logo: string | null };
+
+function teamIdentityKeys(league: League, values: string[]) {
+  return Array.from(new Set(values.flatMap((value) => [
+    normalizeTeamNameKey(value),
+    normalizeTeamNameKey(teamDisplayName(league, value))
+  ]).filter(Boolean)));
+}
+
+function matchupIdentityKey(league: League, awayTeam: string, homeTeam: string) {
+  return [
+    league,
+    normalizeTeamNameKey(teamDisplayName(league, awayTeam)),
+    normalizeTeamNameKey(teamDisplayName(league, homeTeam))
+  ].join(":");
+}
 
 function winWord(value: number) {
   return `${value} win${value === 1 ? "" : "s"}`;
@@ -36,21 +54,46 @@ export async function syncUpcomingFootballSchedule(
   now = new Date()
 ) {
   const { start, end } = targetWindow(now);
-  const existingResult = await supabase
-    .from("games")
-    .select("id,espn_event_id")
-    .gte("commence_time", start.toISOString())
-    .lte("commence_time", end.toISOString());
+  const [existingResult, teamIdentityResult] = await Promise.all([
+    supabase
+      .from("games")
+      .select("id,espn_event_id,league,commence_time,home_team,away_team,home_logo_url,away_logo_url,current_spread_team,current_spread,current_bookmaker")
+      .gte("commence_time", start.toISOString())
+      .lte("commence_time", end.toISOString()),
+    supabase
+      .from("games")
+      .select("league,home_team,away_team,home_logo_url,away_logo_url")
+  ]);
   if (existingResult.error) throw new Error(existingResult.error.message);
+  if (teamIdentityResult.error) throw new Error(teamIdentityResult.error.message);
 
   const existingByEspnId = new Map<string, string>();
+  const existingByMatchup = new Map<string, any>();
   for (const game of existingResult.data || []) {
     if (game.espn_event_id) existingByEspnId.set(String(game.espn_event_id), String(game.id));
+    existingByMatchup.set(matchupIdentityKey(game.league as League, game.away_team, game.home_team), game);
+  }
+
+  const teamIdentityMap = new Map<string, TeamIdentity>();
+  for (const game of teamIdentityResult.data || []) {
+    const league = game.league as League;
+    const candidates: Array<[string, string | null]> = [
+      [game.home_team, game.home_logo_url],
+      [game.away_team, game.away_logo_url]
+    ];
+    for (const [name, logo] of candidates) {
+      for (const key of teamIdentityKeys(league, [name])) {
+        if (!teamIdentityMap.has(`${league}:${key}`) || logo) {
+          teamIdentityMap.set(`${league}:${key}`, { name, logo });
+        }
+      }
+    }
   }
 
   const rankMap = await fetchEspnCfbRankMap();
   const dateHints = dateHintsForWindow(now);
   const rows: any[] = [];
+  const rowByMatchup = new Map<string, any>();
 
   for (const league of ["CFB", "NFL"] as League[]) {
     const schedule = await fetchEspnSchedule(league, dateHints, 15 * 60, 0);
@@ -66,7 +109,7 @@ export async function syncUpcomingFootballSchedule(
       if (!isEligibleSeasonGame(game)) continue;
 
       const lockTime = getGameLockTime(event.commenceTime);
-      rows.push({
+      const row = {
         id: existingByEspnId.get(event.id) || event.id,
         espn_event_id: event.id,
         week: getFootballWeek(event.commenceTime),
@@ -81,7 +124,68 @@ export async function syncUpcomingFootballSchedule(
         lock_time: lockTime.toISOString(),
         is_locked: now >= lockTime,
         updated_at: now.toISOString()
-      });
+      };
+      rows.push(row);
+      rowByMatchup.set(matchupIdentityKey(league, row.away_team, row.home_team), row);
+    }
+  }
+
+  let actionGamesDiscovered = 0;
+  for (const league of ["CFB", "NFL"] as League[]) {
+    const actionSchedule = await fetchActionNetworkScheduledGames(league, dateHints);
+    for (const actionGame of actionSchedule) {
+      const resolveTeam = (name: string, aliases: string[]) => {
+        for (const key of teamIdentityKeys(league, [name, ...aliases])) {
+          const identity = teamIdentityMap.get(`${league}:${key}`);
+          if (identity) return identity;
+        }
+        return null;
+      };
+
+      const awayIdentity = resolveTeam(actionGame.awayTeam, actionGame.awayAliases);
+      const homeIdentity = resolveTeam(actionGame.homeTeam, actionGame.homeAliases);
+      if (league === "CFB" && (!awayIdentity || !homeIdentity)) continue;
+
+      const awayTeam = awayIdentity?.name || actionGame.awayTeam;
+      const homeTeam = homeIdentity?.name || actionGame.homeTeam;
+      const matchupKey = matchupIdentityKey(league, awayTeam, homeTeam);
+      if (rowByMatchup.has(matchupKey)) continue;
+
+      const existing = existingByMatchup.get(matchupKey);
+      const game = {
+        league,
+        commence_time: actionGame.commenceTime,
+        home_team: homeTeam,
+        away_team: awayTeam,
+        home_logo_url: homeIdentity?.logo || null,
+        away_logo_url: awayIdentity?.logo || null
+      };
+      if (!isEligibleSeasonGame(game)) continue;
+
+      const lockTime = getGameLockTime(actionGame.commenceTime);
+      const spread = actionGame.spread && !actionGame.spread.suspended ? actionGame.spread : null;
+      const row = {
+        id: existing?.id || `action-${league.toLowerCase()}-${actionGame.actionId}`,
+        espn_event_id: existing?.espn_event_id || null,
+        week: getFootballWeek(actionGame.commenceTime),
+        league,
+        commence_time: actionGame.commenceTime,
+        home_team: homeTeam,
+        away_team: awayTeam,
+        home_logo_url: homeIdentity?.logo || null,
+        away_logo_url: awayIdentity?.logo || null,
+        home_rank: league === "CFB" ? espnRankForLogo(rankMap, homeIdentity?.logo || null) : null,
+        away_rank: league === "CFB" ? espnRankForLogo(rankMap, awayIdentity?.logo || null) : null,
+        current_spread_team: spread ? awayTeam : existing?.current_spread_team || null,
+        current_spread: spread ? spread.awayPoint : existing?.current_spread ?? null,
+        current_bookmaker: spread ? "Market" : existing?.current_bookmaker || null,
+        lock_time: lockTime.toISOString(),
+        is_locked: now >= lockTime,
+        updated_at: now.toISOString()
+      };
+      rows.push(row);
+      rowByMatchup.set(matchupKey, row);
+      actionGamesDiscovered += 1;
     }
   }
 
@@ -90,7 +194,7 @@ export async function syncUpcomingFootballSchedule(
     if (error) throw new Error(error.message);
   }
 
-  return { gamesDiscovered: rows.length, start: start.toISOString(), end: end.toISOString() };
+  return { gamesDiscovered: rows.length, actionGamesDiscovered, start: start.toISOString(), end: end.toISOString() };
 }
 
 async function reconcileDraftDogs(
