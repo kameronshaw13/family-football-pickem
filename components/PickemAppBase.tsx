@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Pointer
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, SideBetMarketQuote, SideBetOfferPhase, SideBetTotalSide, Standing, WeekRule } from "@/lib/types";
 import { MAX_CUSTOM_SIDE_BET_AMOUNT, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
-import { americanOddsText, fairMoneylineFromSpread, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
+import { americanOddsText, fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import type { BankHistoryWeek } from "@/lib/bankHistory";
@@ -887,24 +887,34 @@ function sideBetAppMarketReference(bet: SideBet, team: string, quote?: SideBetMa
     const market = quote.total;
     if (!market || market.suspended) return live ? { text: "Market: Suspended" } : null;
     const side = sideBetTotalSideForTeam(bet, team);
-    const marketOdds = side === "over" ? market.overOdds : market.underOdds;
+    const marketPoints = Number(market.points);
     const offerPoints = Number(bet.total_points);
-    const same = Math.abs(Number(market.points) - offerPoints) < 0.001 && (marketOdds == null || Number(marketOdds) === Number(offerOdds));
-    if (!live && same) return null;
-    const oddsText = marketOdds == null ? "" : ` ${americanOddsText(marketOdds)}`;
-    return { text: `Market: ${totalSideText(side)} ${market.points}${oddsText}` };
+    const sameLine = Math.abs(marketPoints - offerPoints) < 0.001;
+    const sameOffer = sameLine && Number(offerOdds) === 100;
+    if (!live && sameOffer) return null;
+
+    const baseText = `Market: ${totalSideText(side)} ${marketPoints} +100`;
+    if (sameLine) return { text: baseText };
+
+    const fairOfferOdds = fairAltTotalOdds(marketPoints, offerPoints, side);
+    return { text: `${baseText} · ${totalSideText(side)} ${offerPoints} ${americanOddsText(fairOfferOdds)}` };
   }
 
   const market = quote.spread;
   if (!market || market.suspended) return live ? { text: "Market: Suspended" } : null;
   const away = team === bet.game?.away_team;
-  const marketSpread = away ? market.awayPoint : market.homePoint;
-  const marketOdds = away ? market.awayOdds : market.homeOdds;
+  const marketSpread = Number(away ? market.awayPoint : market.homePoint);
   const offerSpread = Number(team === bet.creator_team ? bet.creator_spread : bet.offered_spread);
-  const same = Math.abs(Number(marketSpread) - offerSpread) < 0.001 && (marketOdds == null || Number(marketOdds) === Number(offerOdds));
-  if (!live && same) return null;
-  const oddsText = marketOdds == null ? "" : ` ${americanOddsText(marketOdds)}`;
-  return { text: `Market: ${bet.game ? displayTeamName(bet.game, team) : team} ${spreadText(marketSpread)}${oddsText}` };
+  const sameLine = Math.abs(marketSpread - offerSpread) < 0.001;
+  const sameOffer = sameLine && Number(offerOdds) === 100;
+  if (!live && sameOffer) return null;
+
+  const teamName = bet.game ? displayTeamName(bet.game, team) : team;
+  const baseText = `Market: ${teamName} ${spreadText(marketSpread)} +100`;
+  if (sameLine) return { text: baseText };
+
+  const fairOfferOdds = fairAltSpreadOdds(marketSpread, offerSpread);
+  return { text: `${baseText} · ${spreadText(offerSpread)} ${americanOddsText(fairOfferOdds)}` };
 }
 function pctText(value: number) {
   return `${(Number(value || 0) * 100).toFixed(1)}%`;
@@ -2581,21 +2591,17 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
     const quote = marketQuotesRef.current[game.id];
     if (boardMarket === "total") {
       const total = quote?.total;
-      const side = selectedCreatorTeam === game.away_team ? "over" : "under";
       setCustomSpread(total?.points == null ? "" : String(total.points));
       setMarketType("total");
-      setOddsInput(String(side === "over" ? total?.overOdds ?? 100 : total?.underOdds ?? 100));
+      setOddsInput("100");
     } else {
       const spread = quote?.spread;
       const initialSpread = spread
         ? selectedCreatorTeam === game.away_team ? spread.awayPoint : spread.homePoint
         : normalizeSpreadForSelectedTeam(selectedCreatorTeam, game.current_spread_team, game.current_spread);
-      const initialOdds = spread
-        ? selectedCreatorTeam === game.away_team ? spread.awayOdds : spread.homeOdds
-        : 100;
       setCustomSpread(initialSpread == null ? "" : String(initialSpread));
       setMarketType("spread");
-      setOddsInput(String(initialOdds ?? 100));
+      setOddsInput("100");
     }
     setAmount("20");
     setCustomRiskMode(false);
@@ -2644,6 +2650,25 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
     setOddsInput("100");
     setAmount("20");
     setCustomRiskMode(false);
+  }
+
+  function updateCustomMarketLine(value: string) {
+    setCustomSpread(value);
+    if (value.trim() === "") return;
+
+    const nextLine = Number(value);
+    if (!Number.isFinite(nextLine)) return;
+
+    if (marketType === "spread") {
+      const marketLine = quoteSpread ?? defaultCreatorSpread;
+      if (marketLine != null) setOddsInput(String(fairAltSpreadOdds(Number(marketLine), nextLine)));
+      return;
+    }
+
+    if (marketType === "total") {
+      const marketTotal = selectedQuote?.total?.points;
+      if (marketTotal != null) setOddsInput(String(fairAltTotalOdds(Number(marketTotal), nextLine, selectedTotalSide)));
+    }
   }
 
   function beginSlipSwipe(event: ReactPointerEvent<HTMLDivElement>) {
@@ -2793,12 +2818,9 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
               const nextSpread = selectedGame && selectedCreatorTeam && quote
                 ? selectedCreatorTeam === selectedGame.away_team ? quote.awayPoint : quote.homePoint
                 : defaultCreatorSpread;
-              const nextOdds = selectedGame && selectedCreatorTeam && quote
-                ? selectedCreatorTeam === selectedGame.away_team ? quote.awayOdds : quote.homeOdds
-                : 100;
               setMarketType("spread");
               setCustomSpread(nextSpread == null ? "" : String(nextSpread));
-              setOddsInput(String(nextOdds ?? 100));
+              setOddsInput("100");
               setAmount("20");
               setCustomRiskMode(false);
             }}>Spread</button>
@@ -2810,8 +2832,8 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
             }}>Moneyline</button>
           </div>}
           <div className="side-bet-market-fields">
-            {marketType === "spread" && <label><span>Spread</span><input className="side-bet-spread-input" type="number" step="0.5" value={customSpread} onChange={(event) => setCustomSpread(event.target.value)} /></label>}
-            {marketType === "total" && <label><span>Total</span><input className="side-bet-spread-input" type="number" step="0.5" value={customSpread} onChange={(event) => setCustomSpread(event.target.value)} /></label>}
+            {marketType === "spread" && <label><span>Spread</span><input className="side-bet-spread-input" type="number" step="0.5" value={customSpread} onChange={(event) => updateCustomMarketLine(event.target.value)} /></label>}
+            {marketType === "total" && <label><span>Total</span><input className="side-bet-spread-input" type="number" step="0.5" value={customSpread} onChange={(event) => updateCustomMarketLine(event.target.value)} /></label>}
             <label><span>American odds</span><input className="side-bet-odds-input" type="number" step="1" value={oddsInput} onChange={(event) => setOddsInput(event.target.value)} /></label>
           </div>
           {!validAmericanOdds(creatorOdds) && <p className="side-bet-field-error">Use odds of -100 or lower, or +100 or higher.</p>}

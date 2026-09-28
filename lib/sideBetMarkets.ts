@@ -21,6 +21,43 @@ export function americanOddsText(value: number | null | undefined) {
   return odds > 0 ? `+${odds}` : String(odds);
 }
 
+const ALT_LINE_ODDS_LADDER = [
+  100, 110, 120, 130, 140, 150, 165, 180, 200, 225, 250, 275, 300, 350, 400,
+  450, 500, 600, 700, 800, 900, 1000
+];
+
+function altLineOddsMagnitude(pointsFromMarket: number) {
+  const halfPointSteps = Math.max(0, Math.round(Math.abs(pointsFromMarket) * 2));
+  return ALT_LINE_ODDS_LADDER[Math.min(halfPointSteps, ALT_LINE_ODDS_LADDER.length - 1)];
+}
+
+export function fairAltSpreadOdds(marketSpread: number | null | undefined, offeredSpread: number | null | undefined) {
+  const market = Number(marketSpread);
+  const offered = Number(offeredSpread);
+  if (!Number.isFinite(market) || !Number.isFinite(offered)) return 100;
+
+  const move = offered - market;
+  if (Math.abs(move) < 0.25) return 100;
+  const magnitude = altLineOddsMagnitude(move);
+  return move > 0 ? -magnitude : magnitude;
+}
+
+export function fairAltTotalOdds(
+  marketTotal: number | null | undefined,
+  offeredTotal: number | null | undefined,
+  side: "over" | "under"
+) {
+  const market = Number(marketTotal);
+  const offered = Number(offeredTotal);
+  if (!Number.isFinite(market) || !Number.isFinite(offered)) return 100;
+
+  const move = offered - market;
+  if (Math.abs(move) < 0.25) return 100;
+  const easierMove = side === "under" ? move : -move;
+  const magnitude = altLineOddsMagnitude(move);
+  return easierMove > 0 ? -magnitude : magnitude;
+}
+
 type FootballLeague = "NFL" | "CFB";
 
 const HISTORICAL_FAIR_MONEYLINES: Record<FootballLeague, number[]> = {

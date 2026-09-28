@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fairMoneylineFromSpread, oppositeAmericanOdds, profitForRisk, sideBetNetForUser } from "../lib/sideBetMarkets.ts";
+import { fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, oppositeAmericanOdds, profitForRisk, sideBetNetForUser } from "../lib/sideBetMarkets.ts";
 
 test("derives league-specific fair rounded moneylines from a football spread", () => {
   assert.equal(fairMoneylineFromSpread(-1.5, "CFB"), -110);
@@ -44,4 +44,22 @@ test("side bet settlement stays zero-sum at -200", () => {
   assert.equal(sideBetNetForUser({ ...base, winner_id: "creator", result: "creator_win" }, "acceptor"), -20);
   assert.equal(sideBetNetForUser({ ...base, winner_id: "acceptor", result: "acceptor_win" }, "creator"), -40);
   assert.equal(sideBetNetForUser({ ...base, winner_id: "acceptor", result: "acceptor_win" }, "acceptor"), 40);
+});
+
+
+test("prices alternate spreads from an even-money market line", () => {
+  assert.equal(fairAltSpreadOdds(-4.5, -4.5), 100);
+  assert.equal(fairAltSpreadOdds(-4.5, -4), -110);
+  assert.equal(fairAltSpreadOdds(-4.5, -3.5), -120);
+  assert.equal(fairAltSpreadOdds(-4.5, -5.5), 120);
+  assert.equal(fairAltSpreadOdds(4.5, 5.5), -120);
+  assert.equal(fairAltSpreadOdds(4.5, 3.5), 120);
+});
+
+test("prices alternate totals from the selected over or under side", () => {
+  assert.equal(fairAltTotalOdds(52.5, 52.5, "over"), 100);
+  assert.equal(fairAltTotalOdds(52.5, 51.5, "over"), -120);
+  assert.equal(fairAltTotalOdds(52.5, 53.5, "over"), 120);
+  assert.equal(fairAltTotalOdds(52.5, 53.5, "under"), -120);
+  assert.equal(fairAltTotalOdds(52.5, 51.5, "under"), 120);
 });
