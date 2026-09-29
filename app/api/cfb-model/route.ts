@@ -266,7 +266,7 @@ export async function GET(request: NextRequest) {
       const savedByGame = new Map((savedRows || []).map(row => [String(row.game_id), row]));
       const projections = games.flatMap(game => {
         const saved = savedByGame.get(game.id) as { payload?: { models?: Array<{ id: string; label: string; homeSpread: number }> }; fetched_at?: string } | undefined;
-        const models = Array.isArray(saved?.payload?.models) ? saved!.payload!.models! : [];
+        const models = (Array.isArray(saved?.payload?.models) ? saved!.payload!.models! : []).filter(model => model.id === "fei" || model.id === "massey");
         if (!models.length) return [];
         const direct: CfbDirectProjection[] = models.flatMap(model =>
           Number.isFinite(Number(model.homeSpread))
@@ -346,6 +346,16 @@ export async function GET(request: NextRequest) {
         .from("cfb_model_snapshots")
         .upsert(rows, { onConflict: "game_id" });
       if (saveError) throw saveError;
+    }
+
+    const refreshedIds = new Set(rows.map(row => row.game_id));
+    const staleIds = games.map(game => game.id).filter(id => !refreshedIds.has(id));
+    if (staleIds.length) {
+      const { error: deleteError } = await supabase
+        .from("cfb_model_snapshots")
+        .delete()
+        .in("game_id", staleIds);
+      if (deleteError) throw deleteError;
     }
 
     console.info(`[cfb-model] daily refresh stored ${rows.length}/${games.length} upcoming projections`);
