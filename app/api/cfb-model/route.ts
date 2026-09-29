@@ -6,23 +6,14 @@ import {
   buildCfbModelProjection,
   cfbModelTeamKey,
   cfbSeasonForDate,
-  pointRatingFromAdjustedEpa,
-  pointRatingFromCore,
-  pointRatingFromElo,
   type CfbDirectProjection,
-  type CfbModelGame,
-  type CfbRatingPair
+  type CfbModelGame
 } from "@/lib/cfbModel";
-import { exactWeeklySummaryRow, falseyCsv, finiteNumber, latestWeeklyRow, logoTeamId, officialCfbWeek } from "@/lib/cfbMatchupData";
-import { loadStoredCfbSnapshot } from "@/lib/matchupStatSnapshots";
+import { officialCfbWeek } from "@/lib/cfbMatchupData";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
-type RatingRow = { team?: string; rating?: number | null; fpi?: number | null; elo?: number | null; overall?: number | null };
-type RatingSource = { id: string; label: string; values: Map<string, number> };
-type RatingBundle = { fetchedAt: string; sources: RatingSource[] };
 type HtmlCell = { text: string; raw: string };
 
-const ratingCache = createAsyncCache<RatingBundle>(10 * 60_000, 4);
 const feiCache = createAsyncCache<CfbDirectProjection[]>(15 * 60_000, 4);
 const masseyCache = createAsyncCache<Map<string, number>>(15 * 60_000, 16);
 const SUPABASE_CRON_TOKEN_SHA256 = "3907027700258fc50a7d4ea237b41402793ca1082da70fdc5751a81216c09dbb";
@@ -97,58 +88,6 @@ function isoDateKey(value: string) {
   }).formatToParts(new Date(value));
   const get = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)?.value || "";
   return `${get("year")}${get("month")}${get("day")}`;
-}
-
-async function fetchRatings(path: string, season: number) {
-  const key = process.env.CFBD_API_KEY?.trim();
-  if (!key) {
-    console.warn(`[cfb-model] CFBD_API_KEY missing; ${path} will use fallback if available.`);
-    return [] as RatingRow[];
-  }
-  try {
-    const response = await fetch(`https://api.collegefootballdata.com/ratings/${path}?year=${season}`, {
-      headers: { Authorization: `Bearer ${key}` },
-      cache: "no-store",
-      signal: AbortSignal.timeout(4_500)
-    });
-    if (!response.ok) {
-      console.warn(`[cfb-model] CFBD ${path} returned ${response.status}; using fallback if available.`);
-      return [];
-    }
-    const payload = await response.json();
-    return Array.isArray(payload) ? payload as RatingRow[] : [];
-  } catch (error) {
-    console.warn(`[cfb-model] CFBD ${path} failed; using fallback if available.`, error);
-    return [];
-  }
-}
-
-function ratingMap(rows: RatingRow[], field: keyof RatingRow, convert: (value: number) => number = value => value) {
-  return new Map(rows.flatMap((row) => {
-    const team = String(row.team || "");
-    const value = Number(row[field]);
-    return team && Number.isFinite(value) ? [[cfbModelTeamKey(team), convert(value)] as const] : [];
-  }));
-}
-
-async function loadRatings(season: number) {
-  return ratingCache(String(season), async () => {
-    const [sp, fpi, srs, elo, core] = await Promise.all([
-      fetchRatings("sp", season),
-      fetchRatings("fpi", season),
-      fetchRatings("srs", season),
-      fetchRatings("elo", season),
-      fetchRatings("core", season)
-    ]);
-    const sources: RatingSource[] = [
-      { id: "sp", label: "SP+", values: ratingMap(sp, "rating") },
-      { id: "fpi", label: "FPI", values: ratingMap(fpi, "fpi") },
-      { id: "srs", label: "SRS", values: ratingMap(srs, "rating") },
-      { id: "elo", label: "Elo", values: ratingMap(elo, "elo", pointRatingFromElo) },
-      { id: "core", label: "CORE", values: ratingMap(core, "overall", pointRatingFromCore) }
-    ].filter(source => source.values.size > 0);
-    return { fetchedAt: new Date().toISOString(), sources };
-  });
 }
 
 async function loadFei(season: number, games: CfbModelGame[]) {
@@ -237,47 +176,6 @@ function normalizeTeamNameForContains(value: string) {
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function pairForSource(game: CfbModelGame, source: RatingSource): CfbRatingPair {
-  return {
-    id: source.id,
-    label: source.label,
-    homeRating: source.values.get(cfbModelTeamKey(game.home_team)) ?? null,
-    awayRating: source.values.get(cfbModelTeamKey(game.away_team)) ?? null
-  };
-}
-
-function fallbackPairs(
-  game: CfbModelGame,
-  usedIds: Set<string>,
-  snapshot: Awaited<ReturnType<typeof loadStoredCfbSnapshot>>
-) {
-  const pairs: CfbRatingPair[] = [];
-  const throughWeek = Math.max(0, officialCfbWeek(game.commence_time) - 1);
-  const awayId = logoTeamId(game.away_logo_url);
-  const homeId = logoTeamId(game.home_logo_url);
-
-  if (!snapshot) return pairs;
-
-  if (!usedIds.has("fpi")) {
-    const awayFpi = latestWeeklyRow(snapshot.fpi, awayId, "week", throughWeek, value => falseyCsv(value.snapshot_out_of_sequence));
-    const homeFpi = latestWeeklyRow(snapshot.fpi, homeId, "week", throughWeek, value => falseyCsv(value.snapshot_out_of_sequence));
-    pairs.push({ id: "fpi", label: "FPI", awayRating: finiteNumber(awayFpi?.fpi), homeRating: finiteNumber(homeFpi?.fpi) });
-  }
-
-  const awaySummary = exactWeeklySummaryRow(snapshot.summaries, awayId, game.away_team, throughWeek);
-  const homeSummary = exactWeeklySummaryRow(snapshot.summaries, homeId, game.home_team, throughWeek);
-  const awayEpa = finiteNumber(awaySummary?.net_adj_epa);
-  const homeEpa = finiteNumber(homeSummary?.net_adj_epa);
-  pairs.push({
-    id: "adj-epa",
-    label: "Adj. EPA",
-    awayRating: awayEpa == null ? null : pointRatingFromAdjustedEpa(awayEpa),
-    homeRating: homeEpa == null ? null : pointRatingFromAdjustedEpa(homeEpa)
-  });
-
-  return pairs;
 }
 
 function hasValidRefreshToken(request: NextRequest) {
@@ -389,17 +287,8 @@ export async function GET(request: NextRequest) {
 
     const seasons = Array.from(new Set(games.map(game => cfbSeasonForDate(game.commence_time))));
     const dates = Array.from(new Set(games.map(game => isoDateKey(game.commence_time))));
-    const snapshotKeys = Array.from(new Map(games.map(game => {
-      const season = cfbSeasonForDate(game.commence_time);
-      const throughWeek = Math.max(0, officialCfbWeek(game.commence_time) - 1);
-      return [`${season}:${throughWeek}`, { season, throughWeek }] as const;
-    })).entries());
 
-    const [ratingEntries, feiEntries, masseyEntries, snapshotEntries] = await Promise.all([
-      Promise.all(seasons.map(async season => [
-        season,
-        await within(loadRatings(season), { fetchedAt: new Date().toISOString(), sources: [] }, 5_000, `CFBD ratings ${season}`)
-      ] as const)),
+    const [feiEntries, masseyEntries] = await Promise.all([
       Promise.all(seasons.map(async season => [
         season,
         await within(
@@ -417,34 +306,18 @@ export async function GET(request: NextRequest) {
           3_000,
           `Massey ${dateKey}`
         )
-      ] as const)),
-      Promise.all(snapshotKeys.map(async ([key, value]) => [
-        key,
-        await within(loadStoredCfbSnapshot(value.season, value.throughWeek), null, 2_000, `stored snapshot ${key}`)
       ] as const))
     ]);
 
-    const ratingBundles = new Map(ratingEntries);
     const feiBySeason = new Map(feiEntries);
     const masseyByDate = new Map(masseyEntries);
-    const snapshots = new Map(snapshotEntries);
     const refreshedAt = new Date().toISOString();
 
     const projections = games.map(game => {
       const season = cfbSeasonForDate(game.commence_time);
       const dateKey = isoDateKey(game.commence_time);
-      const throughWeek = Math.max(0, officialCfbWeek(game.commence_time) - 1);
-      const bundle = ratingBundles.get(season) || { fetchedAt: refreshedAt, sources: [] };
       const feiRows = feiBySeason.get(season) || [];
       const masseyRows = masseyByDate.get(dateKey) || new Map<string, number>();
-      const snapshot = snapshots.get(`${season}:${throughWeek}`) || null;
-      const officialPairs = bundle.sources.map(source => pairForSource(game, source));
-      const usedIds = new Set(officialPairs.filter(pair => pair.homeRating != null && pair.awayRating != null).map(pair => pair.id));
-      const fallbacks = fallbackPairs(game, usedIds, snapshot);
-      const validPairs = [...officialPairs, ...fallbacks].filter((pair, index, all) =>
-        pair.homeRating != null && pair.awayRating != null &&
-        all.findIndex(other => other.id === pair.id && other.homeRating != null && other.awayRating != null) === index
-      );
 
       const direct: CfbDirectProjection[] = [];
       const fei = feiRows.find(row => row.id === `fei:${game.id}`);
@@ -452,7 +325,7 @@ export async function GET(request: NextRequest) {
       const massey = masseyRows.get(game.id);
       if (massey != null) direct.push({ id: "massey", label: "Massey", homeSpread: massey });
 
-      return buildCfbModelProjection(game, validPairs, direct, refreshedAt);
+      return buildCfbModelProjection(game, [], direct, refreshedAt);
     });
 
     const rows = projections
