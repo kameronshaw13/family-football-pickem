@@ -3,6 +3,7 @@ import type { Game, SideBetMarketQuote, SideBetOfferPhase } from "@/lib/types";
 const ACTION_BASE = "https://api.actionnetwork.com/web/v1/scoreboard";
 const ACTION_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15";
 const DRAFTKINGS_BOOK_ID = 68;
+const ACTION_FALLBACK_BOOK_IDS = [DRAFTKINGS_BOOK_ID, 15, 30, 75, 123];
 const LIVE_MAX_AGE_SECONDS = 45;
 const ACTION_CACHE_MS = 5_000;
 const actionLeagueRequestCache = new Map<string, { expiresAt: number; promise: Promise<ActionGame[]> }>();
@@ -209,7 +210,7 @@ async function fetchActionLeagueDate(league: Game["league"], marketDate: string)
   const request = (async () => {
     const path = league === "NFL" ? "nfl" : "ncaaf";
     const params = new URLSearchParams({
-      bookIds: String(DRAFTKINGS_BOOK_ID),
+      bookIds: ACTION_FALLBACK_BOOK_IDS.join(","),
       date: marketDate,
       periods: "event"
     });
