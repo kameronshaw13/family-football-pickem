@@ -4,7 +4,7 @@ import { createAsyncCache } from "./asyncCache";
 import { loadStoredCfbSnapshot } from "./matchupStatSnapshots";
 import {
   parseCsv, logoTeamId, exactWeeklySummaryRow, latestWeeklyRow,
-  normalizeRelative, normalizePower, falseyCsv, localGamesForTeam,
+  normalizeRelative, normalizePower, falseyCsv, dedupeLocalGames, localGamesForTeam,
   summarizeLocalGames, summarizeLocalAts, scheduleEvent, summarizeEspnSchedule,
   type SportsDataRow, type LocalGame
 } from "./cfbMatchupData";
@@ -60,7 +60,7 @@ async function buildMatchup(game: MatchupGame) {
   const homeId = logoTeamId(game.home_logo_url);
   const supabase = getSupabaseAdmin();
   const localRequest = supabase.from("games")
-    .select("id,week,commence_time,home_team,away_team,current_spread_team,current_spread,final_home_score,final_away_score")
+    .select("id,week,commence_time,home_team,away_team,current_spread_team,current_spread,final_home_score,final_away_score,espn_event_id")
     .eq("league", "CFB")
     .gte("commence_time", `${season}-08-01T00:00:00Z`)
     .lt("commence_time", game.commence_time)
@@ -80,7 +80,7 @@ async function buildMatchup(game: MatchupGame) {
         fetchCsv("cfb_team_summaries_weekly", season).catch(() => [] as SportsDataRow[]),
         fetchCsv("cfb_fpi_weekly", season).catch(() => [] as SportsDataRow[])
       ]);
-  const localGames = (local.data || []) as LocalGame[];
+  const localGames = dedupeLocalGames((local.data || []) as LocalGame[]);
   const makeTeam = (name: string, id: string | null, games: Schedule) => {
     const espn = summarizeEspnSchedule(games, targetDate);
     const localTeamGames = localGamesForTeam(localGames, name, targetDate, season);
