@@ -1,368 +1,346 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import PickemApp from "@/components/PickemApp";
-import RouteAppBootstrap from "@/components/RouteAppBootstrap";
-import styles from "./CommissionerProductionSim.module.css";
 
-type LeagueCode = "CFB" | "NFL";
-type LedgerUnit = "dollars" | "points" | "bucks";
+type LeagueMode = "CFB + NFL" | "CFB only" | "NFL only";
+type ScoringMode = "Classic wins" | "Confidence points";
+type LedgerUnit = "Bucks ($)" | "Points";
 
-type SimConfig = {
+type SetupState = {
+  commissioner: string;
   leagueName: string;
-  memberCount: number;
+  leagueMode: LeagueMode;
+  maxMembers: number;
+  pricePerMember: number;
+  scoringMode: ScoringMode;
+  weeklyPicks: number;
+  dogEnabled: boolean;
+  perfectBonus: boolean;
+  sideBets: boolean;
+  liveBets: boolean;
+  overUnders: boolean;
+  moneylines: boolean;
   ledgerUnit: LedgerUnit;
-  eligibleLeagues: LeagueCode[];
-  regularPicks: number;
-  dogPickEnabled: boolean;
-  dogMinimum: number;
-  perfectWeekBonus: boolean;
-  spreadFreeze: "friday-8" | "kickoff";
-  pickLock: "kickoff" | "saturday-11";
-  sideBetsEnabled: boolean;
-  liveBetsEnabled: boolean;
-  totalsEnabled: boolean;
-  defaultBet: number;
+  weekOpen: string;
+  lockMode: "Kickoff" | "Saturday 11:00 AM CT";
 };
 
 const STORAGE_KEY = "pickem_commissioner_production_sim_v1";
 
-const DEFAULT_CONFIG: SimConfig = {
-  leagueName: "My Football Pick'em",
-  memberCount: 20,
-  ledgerUnit: "dollars",
-  eligibleLeagues: ["CFB", "NFL"],
-  regularPicks: 5,
-  dogPickEnabled: true,
-  dogMinimum: 7,
-  perfectWeekBonus: true,
-  spreadFreeze: "friday-8",
-  pickLock: "kickoff",
-  sideBetsEnabled: true,
-  liveBetsEnabled: true,
-  totalsEnabled: true,
-  defaultBet: 20
+const defaultSetup: SetupState = {
+  commissioner: "Kameron",
+  leagueName: "Saturday Legends",
+  leagueMode: "CFB + NFL",
+  maxMembers: 20,
+  pricePerMember: 2,
+  scoringMode: "Classic wins",
+  weeklyPicks: 5,
+  dogEnabled: true,
+  perfectBonus: true,
+  sideBets: true,
+  liveBets: true,
+  overUnders: true,
+  moneylines: true,
+  ledgerUnit: "Bucks ($)",
+  weekOpen: "Tuesday 9:00 AM CT",
+  lockMode: "Kickoff"
 };
 
-function toggleLeague(current: LeagueCode[], league: LeagueCode) {
-  return current.includes(league) ? current.filter((item) => item !== league) : [...current, league];
+const stepLabels = ["League", "Plan", "Rules", "Side Bets", "Locks", "Review"];
+
+function Choice({ active, title, detail, onClick }: { active: boolean; title: string; detail?: string; onClick: () => void }) {
+  return (
+    <button type="button" className={"sim-choice " + (active ? "active" : "")} onClick={onClick}>
+      <span className="sim-choice-dot" aria-hidden="true" />
+      <span><strong>{title}</strong>{detail && <small>{detail}</small>}</span>
+    </button>
+  );
 }
 
-function leagueLabel(leagues: LeagueCode[]) {
-  if (leagues.length === 2) return "College + NFL";
-  if (leagues[0] === "CFB") return "College football";
-  if (leagues[0] === "NFL") return "NFL";
-  return "No leagues selected";
+function Toggle({ checked, title, detail, onChange }: { checked: boolean; title: string; detail?: string; onChange: (next: boolean) => void }) {
+  return (
+    <button type="button" className="sim-toggle-row" onClick={() => onChange(!checked)} aria-pressed={checked}>
+      <span><strong>{title}</strong>{detail && <small>{detail}</small>}</span>
+      <span className={"sim-switch " + (checked ? "on" : "")}><span /></span>
+    </button>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return <div className="sim-summary-row"><span>{label}</span><strong>{value}</strong></div>;
 }
 
 export default function CommissionerProductionSim() {
   const [step, setStep] = useState(0);
-  const [config, setConfig] = useState<SimConfig>(DEFAULT_CONFIG);
-  const [completed, setCompleted] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+  const [setup, setSetup] = useState<SetupState>(defaultSetup);
+  const [created, setCreated] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const saved = JSON.parse(raw) as { config?: Partial<SimConfig>; completed?: boolean };
-        if (saved.config) setConfig((current) => ({ ...current, ...saved.config }));
-        if (saved.completed) setCompleted(true);
+        const saved = JSON.parse(raw) as { setup?: Partial<SetupState>; step?: number; created?: boolean };
+        setSetup((current) => ({ ...current, ...(saved.setup || {}) }));
+        if (Number.isInteger(saved.step)) setStep(Math.min(5, Math.max(0, Number(saved.step))));
+        setCreated(Boolean(saved.created));
       }
     } catch {
-      // The simulator still works when storage is unavailable.
+      // Prototype works without storage.
     } finally {
-      setHydrated(true);
+      setLoaded(true);
     }
   }, []);
 
-  const price = useMemo(() => Math.max(4, config.memberCount) * 2, [config.memberCount]);
-
-  function update<K extends keyof SimConfig>(key: K, value: SimConfig[K]) {
-    setConfig((current) => ({ ...current, [key]: value }));
-  }
-
-  function finishSetup() {
+  useEffect(() => {
+    if (!loaded) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ config, completed: true }));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ setup, step, created }));
     } catch {
-      // Persistence is optional in simulation mode.
+      // Storage is optional.
     }
-    setCompleted(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  }, [created, loaded, setup, step]);
 
-  function restartSetup() {
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // Ignore storage failures.
-    }
-    setConfig(DEFAULT_CONFIG);
+  const estimatedPrice = useMemo(() => Math.max(1, setup.maxMembers) * Math.max(0, setup.pricePerMember), [setup.maxMembers, setup.pricePerMember]);
+
+  const update = <K extends keyof SetupState>(key: K, value: SetupState[K]) => {
+    setSetup((current) => ({ ...current, [key]: value }));
+  };
+
+  const reset = () => {
+    setSetup(defaultSetup);
     setStep(0);
-    setCompleted(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+    setCreated(false);
+    try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
+  };
 
-  if (!hydrated) {
-    return <main className={styles.loading}>Loading commissioner setup…</main>;
-  }
+  if (!loaded) return <main className="production-sim"><div className="sim-loading">Loading commissioner preview…</div></main>;
 
-  if (completed) {
+  if (created) {
     return (
-      <div className={styles.previewShell}>
-        <div className={styles.simBanner}>
-          <div>
-            <strong>Production simulation</strong>
-            <span>{config.leagueName} · {config.memberCount} players · {"$"}{price}/season prototype</span>
+      <main className="production-sim">
+        <header className="sim-topbar">
+          <img src="/football-pickem-wordmark.png" alt="Football Pick'em" />
+          <span className="sim-preview-pill">PRODUCTION SIM</span>
+        </header>
+        <section className="sim-created">
+          <div className="sim-created-check">✓</div>
+          <p className="sim-eyebrow">League created</p>
+          <h1>{setup.leagueName}</h1>
+          <p className="sim-created-copy">This is the post-checkout state a commissioner would see before inviting the league.</p>
+          <div className="sim-invite-card">
+            <div><small>Invite code</small><strong>SHAW-26</strong></div>
+            <button type="button">Copy Invite Link</button>
           </div>
-          <button type="button" onClick={restartSetup}>Restart setup</button>
-        </div>
-        <RouteAppBootstrap slug="friends" />
-        <PickemApp appSlug="friends" />
-      </div>
+          <div className="sim-app-shell">
+            <div className="sim-shell-head">
+              <div><small>WEEK 1</small><strong>{setup.leagueName}</strong></div>
+              <span>Commissioner</span>
+            </div>
+            <nav>
+              <button className="active" type="button">Picks</button>
+              <button type="button">My Card</button>
+              {setup.sideBets && <button type="button">Side Bets</button>}
+              <button type="button">Standings</button>
+              <button type="button">Rules</button>
+            </nav>
+            <div className="sim-week-card">
+              <div><span>League is ready</span><strong>{setup.weekOpen}</strong></div>
+              <p>Members join free. Picks, standings, matchup previews and your configured league rules will live here.</p>
+            </div>
+            <div className="sim-fake-games">
+              <div><span>THU</span><strong>KC</strong><b>-3.5</b><strong>BUF</strong><b>+3.5</b></div>
+              <div><span>SAT</span><strong>ORE</strong><b>-6.5</b><strong>PSU</strong><b>+6.5</b></div>
+              <div><span>SUN</span><strong>GB</strong><b>+2.5</b><strong>DET</strong><b>-2.5</b></div>
+            </div>
+          </div>
+          <div className="sim-created-actions">
+            <button type="button" className="sim-secondary" onClick={() => setCreated(false)}>Edit Setup</button>
+            <button type="button" className="sim-primary" onClick={reset}>Start Over</button>
+          </div>
+          <p className="sim-safety-note">Simulation only. No real checkout, deposits, payouts, group creation, picks, or side bets are submitted.</p>
+        </section>
+      </main>
     );
   }
 
-  const steps = ["League", "Price", "Pick'em", "Side Bets", "Review"];
-  const canContinue = step !== 0 || (config.leagueName.trim().length > 1 && config.memberCount >= 4);
-
   return (
-    <main className={styles.shell}>
-      <section className={styles.card}>
-        <header className={styles.header}>
-          <div className={styles.eyebrow}>COMMISSIONER SETUP · SIMULATION</div>
-          <h1>Create your league</h1>
-          <p>Set the format once, invite your group, and run the season from one place.</p>
-        </header>
+    <main className="production-sim">
+      <header className="sim-topbar">
+        <img src="/football-pickem-wordmark.png" alt="Football Pick'em" />
+        <span className="sim-preview-pill">PRODUCTION SIM</span>
+      </header>
 
-        <div className={styles.progress} aria-label={`Step ${step + 1} of ${steps.length}`}>
-          <div className={styles.progressTrack}><span style={{ width: `${((step + 1) / steps.length) * 100}%` }} /></div>
-          <div className={styles.stepRow}>
-            {steps.map((label, index) => <span key={label} className={index === step ? styles.activeStep : ""}>{label}</span>)}
+      <div className="sim-layout">
+        <aside className="sim-progress" aria-label="Commissioner setup progress">
+          <p className="sim-eyebrow">Commissioner setup</p>
+          <h2>Create your league</h2>
+          <div className="sim-progress-list">
+            {stepLabels.map((label, index) => (
+              <button key={label} type="button" className={index === step ? "active" : index < step ? "done" : ""} onClick={() => setStep(index)}>
+                <span>{index < step ? "✓" : index + 1}</span>{label}
+              </button>
+            ))}
           </div>
-        </div>
-
-        {step === 0 && (
-          <div className={styles.section}>
-            <div className={styles.sectionHeading}>
-              <span>1</span>
-              <div><h2>League basics</h2><p>This is what your members will see.</p></div>
-            </div>
-
-            <label className={styles.field}>
-              <span>League name</span>
-              <input value={config.leagueName} onChange={(event) => update("leagueName", event.target.value)} maxLength={40} />
-            </label>
-
-            <label className={styles.field}>
-              <span>Expected players</span>
-              <div className={styles.numberField}>
-                <button type="button" onClick={() => update("memberCount", Math.max(4, config.memberCount - 1))}>−</button>
-                <strong>{config.memberCount}</strong>
-                <button type="button" onClick={() => update("memberCount", Math.min(100, config.memberCount + 1))}>+</button>
-              </div>
-              <small>You can still invite more people later.</small>
-            </label>
-
-            <div className={styles.field}>
-              <span>League games</span>
-              <div className={styles.choiceGrid}>
-                {(["CFB", "NFL"] as LeagueCode[]).map((league) => (
-                  <button
-                    key={league}
-                    type="button"
-                    className={config.eligibleLeagues.includes(league) ? styles.selectedChoice : styles.choice}
-                    onClick={() => update("eligibleLeagues", toggleLeague(config.eligibleLeagues, league))}
-                  >
-                    <b>{league === "CFB" ? "College" : "NFL"}</b>
-                    <small>{league === "CFB" ? "FBS games" : "Regular season"}</small>
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="sim-safe-card">
+            <strong>Safe preview</strong>
+            <span>Nothing here writes to Supabase or changes a live league.</span>
           </div>
-        )}
+        </aside>
 
-        {step === 1 && (
-          <div className={styles.section}>
-            <div className={styles.sectionHeading}>
-              <span>2</span>
-              <div><h2>Commissioner price</h2><p>Prototype pricing only — nothing is charged in this branch.</p></div>
-            </div>
+        <section className="sim-panel">
+          <div className="sim-mobile-step">Step {step + 1} of {stepLabels.length} · {stepLabels[step]}</div>
 
-            <div className={styles.priceCard}>
-              <div>
-                <span>Season league pass</span>
-                <strong>$2 <small>/ player</small></strong>
+          {step === 0 && (
+            <>
+              <p className="sim-eyebrow">Start a league</p>
+              <h1>Set the basics.</h1>
+              <p className="sim-lead">This becomes the league members see after they join.</p>
+              <div className="sim-field-grid">
+                <label className="sim-field"><span>Commissioner name</span><input value={setup.commissioner} onChange={(event) => update("commissioner", event.target.value)} /></label>
+                <label className="sim-field"><span>League name</span><input value={setup.leagueName} onChange={(event) => update("leagueName", event.target.value)} /></label>
               </div>
-              <div className={styles.priceMath}>
-                <span>{config.memberCount} players × $2</span>
-                <b>{"$"}{price}</b>
-              </div>
-            </div>
-
-            <div className={styles.callout}>
-              <b>Commissioner pays once for the league.</b>
-              <p>Members join from an invite. The app does not hold side-bet money; players settle with each other outside the app.</p>
-            </div>
-
-            <div className={styles.field}>
-              <span>Ledger display</span>
-              <div className={styles.pillRow}>
-                {([
-                  ["dollars", "$"],
-                  ["points", "Points"],
-                  ["bucks", "Bucks"]
-                ] as Array<[LedgerUnit, string]>).map(([value, label]) => (
-                  <button key={value} type="button" className={config.ledgerUnit === value ? styles.activePill : styles.pill} onClick={() => update("ledgerUnit", value)}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <small>This changes the label only. No real funds are stored in the app.</small>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className={styles.section}>
-            <div className={styles.sectionHeading}>
-              <span>3</span>
-              <div><h2>Pick'em rules</h2><p>Start with the format your league wants.</p></div>
-            </div>
-
-            <label className={styles.field}>
-              <span>Regular picks each week</span>
-              <div className={styles.numberField}>
-                <button type="button" onClick={() => update("regularPicks", Math.max(1, config.regularPicks - 1))}>−</button>
-                <strong>{config.regularPicks}</strong>
-                <button type="button" onClick={() => update("regularPicks", Math.min(12, config.regularPicks + 1))}>+</button>
-              </div>
-            </label>
-
-            <div className={styles.toggleRow}>
-              <div><b>Underdog pick</b><small>One bonus pick that must win outright.</small></div>
-              <button type="button" className={config.dogPickEnabled ? styles.toggleOn : styles.toggle} onClick={() => update("dogPickEnabled", !config.dogPickEnabled)} aria-pressed={config.dogPickEnabled}><span /></button>
-            </div>
-
-            {config.dogPickEnabled && (
-              <div className={styles.ruleInset}>
-                <label className={styles.field}>
-                  <span>Minimum underdog spread</span>
-                  <select value={config.dogMinimum} onChange={(event) => update("dogMinimum", Number(event.target.value))}>
-                    <option value={3}>+3 or more</option>
-                    <option value={5}>+5 or more</option>
-                    <option value={7}>+7 or more</option>
-                    <option value={10}>+10 or more</option>
-                  </select>
-                </label>
-                <div className={styles.miniRules}>
-                  <span>+7 to +9.5 → +1 win</span>
-                  <span>+10 to +19.5 → +2 wins</span>
-                  <span>+20 or more → +3 wins</span>
+              <div className="sim-section">
+                <h3>Football slate</h3>
+                <div className="sim-choice-grid">
+                  {(["CFB + NFL", "CFB only", "NFL only"] as LeagueMode[]).map((mode) => <Choice key={mode} active={setup.leagueMode === mode} title={mode} onClick={() => update("leagueMode", mode)} />)}
                 </div>
               </div>
-            )}
-
-            <div className={styles.toggleRow}>
-              <div><b>Perfect-week bonus</b><small>Enable the league's bonus for a perfect card.</small></div>
-              <button type="button" className={config.perfectWeekBonus ? styles.toggleOn : styles.toggle} onClick={() => update("perfectWeekBonus", !config.perfectWeekBonus)} aria-pressed={config.perfectWeekBonus}><span /></button>
-            </div>
-
-            <label className={styles.field}>
-              <span>Spread freeze</span>
-              <select value={config.spreadFreeze} onChange={(event) => update("spreadFreeze", event.target.value as SimConfig["spreadFreeze"])}>
-                <option value="friday-8">Friday at 8:00 PM CT</option>
-                <option value="kickoff">At each game's kickoff</option>
-              </select>
-            </label>
-
-            <label className={styles.field}>
-              <span>Pick lock</span>
-              <select value={config.pickLock} onChange={(event) => update("pickLock", event.target.value as SimConfig["pickLock"])}>
-                <option value="kickoff">Lock each game at kickoff</option>
-                <option value="saturday-11">Universal Saturday 11:00 AM CT lock</option>
-              </select>
-            </label>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className={styles.section}>
-            <div className={styles.sectionHeading}>
-              <span>4</span>
-              <div><h2>Side bets</h2><p>Choose which peer-to-peer features the league can use.</p></div>
-            </div>
-
-            <div className={styles.toggleRow}>
-              <div><b>Side bets</b><small>Members can offer bets directly to each other.</small></div>
-              <button type="button" className={config.sideBetsEnabled ? styles.toggleOn : styles.toggle} onClick={() => update("sideBetsEnabled", !config.sideBetsEnabled)} aria-pressed={config.sideBetsEnabled}><span /></button>
-            </div>
-
-            {config.sideBetsEnabled && (
-              <>
-                <div className={styles.toggleRow}>
-                  <div><b>Live bets</b><small>Allow offers after games begin.</small></div>
-                  <button type="button" className={config.liveBetsEnabled ? styles.toggleOn : styles.toggle} onClick={() => update("liveBetsEnabled", !config.liveBetsEnabled)} aria-pressed={config.liveBetsEnabled}><span /></button>
-                </div>
-                <div className={styles.toggleRow}>
-                  <div><b>Over / unders</b><small>Add totals beside spreads and moneylines.</small></div>
-                  <button type="button" className={config.totalsEnabled ? styles.toggleOn : styles.toggle} onClick={() => update("totalsEnabled", !config.totalsEnabled)} aria-pressed={config.totalsEnabled}><span /></button>
-                </div>
-                <label className={styles.field}>
-                  <span>Default offer amount</span>
-                  <div className={styles.pillRow}>
-                    {[10, 20, 30, 40].map((amount) => (
-                      <button key={amount} type="button" className={config.defaultBet === amount ? styles.activePill : styles.pill} onClick={() => update("defaultBet", amount)}>
-                        {config.ledgerUnit === "dollars" ? "$" : ""}{amount}
-                      </button>
-                    ))}
-                  </div>
-                </label>
-              </>
-            )}
-
-            <div className={styles.callout}>
-              <b>Peer-to-peer ledger only.</b>
-              <p>The app records who won and lost. It does not take deposits, hold balances, or transfer winnings between members.</p>
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className={styles.section}>
-            <div className={styles.sectionHeading}>
-              <span>5</span>
-              <div><h2>Review your league</h2><p>This is the simulated configuration we will carry into the app preview.</p></div>
-            </div>
-
-            <div className={styles.reviewCard}>
-              <div><span>League</span><b>{config.leagueName}</b></div>
-              <div><span>Players</span><b>{config.memberCount}</b></div>
-              <div><span>Season price</span><b>{"$"}{price}</b></div>
-              <div><span>Games</span><b>{leagueLabel(config.eligibleLeagues)}</b></div>
-              <div><span>Weekly card</span><b>{config.regularPicks} picks{config.dogPickEnabled ? " + dog" : ""}</b></div>
-              <div><span>Side bets</span><b>{config.sideBetsEnabled ? `On · ${config.liveBetsEnabled ? "Live on" : "Pregame only"}` : "Off"}</b></div>
-              <div><span>Ledger</span><b>{config.ledgerUnit === "dollars" ? "Dollars · external settlement" : config.ledgerUnit}</b></div>
-            </div>
-
-            <div className={styles.demoNotice}>
-              <b>What happens next in this branch</b>
-              <p>“Create simulated league” saves these choices only on this device, then opens the existing Friends build as the realistic in-app preview. No production group or payment is created.</p>
-            </div>
-          </div>
-        )}
-
-        <footer className={styles.footer}>
-          {step > 0 ? <button type="button" className={styles.secondaryButton} onClick={() => setStep((current) => current - 1)}>Back</button> : <span />}
-          {step < steps.length - 1 ? (
-            <button type="button" className={styles.primaryButton} disabled={!canContinue || (step === 0 && config.eligibleLeagues.length === 0)} onClick={() => setStep((current) => current + 1)}>Continue</button>
-          ) : (
-            <button type="button" className={styles.primaryButton} onClick={finishSetup}>Create simulated league</button>
+              <div className="sim-section">
+                <div className="sim-range-head"><h3>League size</h3><strong>{setup.maxMembers} members</strong></div>
+                <input className="sim-range" type="range" min="4" max="40" step="1" value={setup.maxMembers} onChange={(event) => update("maxMembers", Number(event.target.value))} />
+                <div className="sim-range-labels"><span>4</span><span>40</span></div>
+              </div>
+            </>
           )}
-        </footer>
-      </section>
+
+          {step === 1 && (
+            <>
+              <p className="sim-eyebrow">League plan</p>
+              <h1>Commissioner pays. Members join free.</h1>
+              <p className="sim-lead">The prototype keeps checkout on the commissioner side so league members never hit a paywall.</p>
+              <div className="sim-price-card">
+                <div className="sim-price-copy">
+                  <span>SEASON PASS · PROTOTYPE PRICE</span>
+                  <strong><b>$</b>{setup.pricePerMember}<small> / member</small></strong>
+                  <p>One commissioner checkout for the full football season.</p>
+                </div>
+                <div className="sim-price-total">
+                  <small>Estimated league total</small>
+                  <strong>{"$" + estimatedPrice}</strong>
+                  <span>{setup.maxMembers + " members × $" + setup.pricePerMember}</span>
+                </div>
+              </div>
+              <div className="sim-section">
+                <div className="sim-range-head"><h3>Prototype price per member</h3><strong>{"$" + setup.pricePerMember}</strong></div>
+                <input className="sim-range" type="range" min="1" max="5" step="1" value={setup.pricePerMember} onChange={(event) => update("pricePerMember", Number(event.target.value))} />
+                <div className="sim-range-labels"><span>$1</span><span>$5</span></div>
+              </div>
+              <div className="sim-callout"><strong>What the season pass includes</strong><span>Pick'em league · matchup previews · GameTracker · standings · side-bet ledger · commissioner controls</span></div>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <p className="sim-eyebrow">Pick'em rules</p>
+              <h1>Choose how the league plays.</h1>
+              <p className="sim-lead">These choices would become the season rules shown to every member.</p>
+              <div className="sim-section">
+                <h3>Scoring style</h3>
+                <div className="sim-choice-grid two">
+                  <Choice active={setup.scoringMode === "Classic wins"} title="Classic wins" detail="Every correct pick counts as one win." onClick={() => update("scoringMode", "Classic wins")} />
+                  <Choice active={setup.scoringMode === "Confidence points"} title="Confidence points" detail="Assign higher value to stronger picks." onClick={() => update("scoringMode", "Confidence points")} />
+                </div>
+              </div>
+              <div className="sim-section">
+                <div className="sim-range-head"><h3>Weekly spread picks</h3><strong>{setup.weeklyPicks}</strong></div>
+                <input className="sim-range" type="range" min="3" max="10" step="1" value={setup.weeklyPicks} onChange={(event) => update("weeklyPicks", Number(event.target.value))} />
+              </div>
+              <div className="sim-stack">
+                <Toggle checked={setup.dogEnabled} title="Underdog pick" detail="One underdog moneyline pick each week. Losses do not add a loss." onChange={(next) => update("dogEnabled", next)} />
+                {setup.dogEnabled && <div className="sim-dog-tiers"><span>+7 to +9.5 <b>+1 bonus win</b></span><span>+10 to +19.5 <b>+2 bonus wins</b></span><span>+20 or more <b>+3 bonus wins</b></span></div>}
+                <Toggle checked={setup.perfectBonus} title="Perfect-week bonus" detail="Allow a commissioner-defined reward for a perfect card." onChange={(next) => update("perfectBonus", next)} />
+              </div>
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              <p className="sim-eyebrow">Peer-to-peer side bets</p>
+              <h1>Decide what members can challenge each other on.</h1>
+              <p className="sim-lead">The app tracks agreed outcomes. Members settle with each other outside the app.</p>
+              <div className="sim-stack">
+                <Toggle checked={setup.sideBets} title="Enable side bets" detail="Members can send one-to-one offers tied to games." onChange={(next) => update("sideBets", next)} />
+                {setup.sideBets && <>
+                  <Toggle checked={setup.moneylines} title="Moneyline offers" onChange={(next) => update("moneylines", next)} />
+                  <Toggle checked={setup.overUnders} title="Over / under offers" onChange={(next) => update("overUnders", next)} />
+                  <Toggle checked={setup.liveBets} title="Live offers" detail="Allow offers while supported games are in progress." onChange={(next) => update("liveBets", next)} />
+                </>}
+              </div>
+              {setup.sideBets && <div className="sim-section">
+                <h3>Ledger display</h3>
+                <div className="sim-choice-grid two">
+                  <Choice active={setup.ledgerUnit === "Bucks ($)"} title="Bucks ($)" detail="Familiar dollar-style scorekeeping." onClick={() => update("ledgerUnit", "Bucks ($)")} />
+                  <Choice active={setup.ledgerUnit === "Points"} title="Points" detail="No currency symbol in league totals." onClick={() => update("ledgerUnit", "Points")} />
+                </div>
+              </div>}
+              <div className="sim-callout legal"><strong>Product boundary</strong><span>No wallet, deposits, withdrawals, custody, or automatic payouts. This flow is league scorekeeping and recordkeeping only.</span></div>
+            </>
+          )}
+
+          {step === 4 && (
+            <>
+              <p className="sim-eyebrow">Schedule & locks</p>
+              <h1>Set when the week opens and picks lock.</h1>
+              <p className="sim-lead">The current defaults mirror how the existing leagues run.</p>
+              <div className="sim-section">
+                <h3>Week opens</h3>
+                <div className="sim-choice-grid two">
+                  <Choice active={setup.weekOpen === "Tuesday 9:00 AM CT"} title="Tuesday 9:00 AM CT" detail="Recommended football-week rollover." onClick={() => update("weekOpen", "Tuesday 9:00 AM CT")} />
+                  <Choice active={setup.weekOpen === "Monday 9:00 AM CT"} title="Monday 9:00 AM CT" detail="Open the next card a day earlier." onClick={() => update("weekOpen", "Monday 9:00 AM CT")} />
+                </div>
+              </div>
+              <div className="sim-section">
+                <h3>Pick lock</h3>
+                <div className="sim-choice-grid two">
+                  <Choice active={setup.lockMode === "Kickoff"} title="Lock each game at kickoff" detail="Players can keep editing future games." onClick={() => update("lockMode", "Kickoff")} />
+                  <Choice active={setup.lockMode === "Saturday 11:00 AM CT"} title="Saturday 11:00 AM CT" detail="Universal weekly lock for the whole card." onClick={() => update("lockMode", "Saturday 11:00 AM CT")} />
+                </div>
+              </div>
+              <div className="sim-callout"><strong>Spread behavior</strong><span>Market lines can refresh during the week, then each selected game freezes according to the league lock rules.</span></div>
+            </>
+          )}
+
+          {step === 5 && (
+            <>
+              <p className="sim-eyebrow">Review</p>
+              <h1>Your league is ready to create.</h1>
+              <p className="sim-lead">This is the production-style summary shown before commissioner checkout.</p>
+              <div className="sim-review">
+                <div className="sim-review-title">
+                  <div><small>LEAGUE</small><strong>{setup.leagueName || "Untitled League"}</strong><span>{"Commissioner: " + (setup.commissioner || "—")}</span></div>
+                  <b>{"$" + estimatedPrice}</b>
+                </div>
+                <SummaryRow label="Football" value={setup.leagueMode} />
+                <SummaryRow label="Members" value={"Up to " + setup.maxMembers} />
+                <SummaryRow label="Plan" value={"Commissioner pays · $" + setup.pricePerMember + "/member"} />
+                <SummaryRow label="Scoring" value={setup.scoringMode} />
+                <SummaryRow label="Weekly card" value={setup.weeklyPicks + " spread picks" + (setup.dogEnabled ? " + 1 dog" : "")} />
+                <SummaryRow label="Side bets" value={setup.sideBets ? "On · " + setup.ledgerUnit : "Off"} />
+                <SummaryRow label="Week opens" value={setup.weekOpen} />
+                <SummaryRow label="Locks" value={setup.lockMode} />
+              </div>
+              <button type="button" className="sim-create-button" onClick={() => setCreated(true)}>Simulate Checkout & Create League</button>
+              <p className="sim-fine-print">Prototype only — this button does not charge a card or create database records.</p>
+            </>
+          )}
+
+          <footer className="sim-actions">
+            <button type="button" className="sim-secondary" disabled={step === 0} onClick={() => setStep((current) => Math.max(0, current - 1))}>Back</button>
+            {step < 5 && <button type="button" className="sim-primary" onClick={() => setStep((current) => Math.min(5, current + 1))}>Continue</button>}
+          </footer>
+        </section>
+      </div>
     </main>
   );
 }
