@@ -302,8 +302,13 @@ async function buildMatchup(game: NflMatchupGame) {
       .abortSignal(AbortSignal.timeout(8_000))
   ]);
   const localGames = (local.data || []) as LocalGame[];
-  const offense = snapshots(stats, throughWeek, false);
-  const defense = snapshots(stats, throughWeek, true);
+  const availableWeeks = stats
+    .filter(row => String(row.season_type || "").toUpperCase() === "REG")
+    .map(row => finiteNumber(row.week))
+    .filter((week): week is number => week != null && week <= throughWeek);
+  const dataThroughWeek = availableWeeks.length ? Math.max(...availableWeeks) : 0;
+  const offense = snapshots(stats, dataThroughWeek, false);
+  const defense = snapshots(stats, dataThroughWeek, true);
 
   const makeTeam = (name: string, abbr: string) => {
     const games = localGamesFor(localGames, name, cutoff);
@@ -342,7 +347,7 @@ async function buildMatchup(game: NflMatchupGame) {
 
   return {
     season,
-    throughWeek,
+    throughWeek: dataThroughWeek,
     fetchedAt: new Date().toISOString(),
     source: "nflverse-team-stats",
     teams: {
