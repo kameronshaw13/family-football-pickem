@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { teamDisplayName } from "@/lib/teamNames";
-import { createAsyncCache } from "./asyncCache";
+import { createAsyncCache } from "./asyncCache";\nimport { loadStoredCfbSnapshot } from "./matchupStatSnapshots";
 import {
   parseCsv, logoTeamId, exactWeeklySummaryRow, latestWeeklyRow,
   normalizeRelative, normalizePower, falseyCsv, localGamesForTeam,
@@ -26,7 +26,7 @@ async function fetchCsv(dataset: string, season: number) {
     if (!response.ok) throw new Error("Weekly stats unavailable");
     // Discard unused columns before retaining season data in memory.
     return parseCsv(await response.text(), (key) =>
-      ["team", "pos_team", "team_id", "through_week", "valid_games", "week", "snapshot_out_of_sequence", "fpi", "rank"].includes(key) ||
+      ["team", "pos_team", "team_id", "through_week", "valid_games", "week", "snapshot_out_of_sequence", "fpi", "rank", "offefficiency", "offefficiencyrank", "defefficiency", "defefficiencyrank", "stefficiency", "stefficiencyrank"].includes(key) ||
       /^(net_adj_epa|adj_off_epa|adj_def_epa|EPAplay_|EPAdrive_|early_down_EPA_|late_down_success_|available_yards_pct_|success_|explosive_|yardsplay_|line_yards_|third_down_success_|red_zone_success_)/.test(key));
   });
 }
@@ -67,13 +67,18 @@ async function buildMatchup(game: MatchupGame) {
     .order("commence_time", { ascending: true })
     .limit(100)
     .abortSignal(AbortSignal.timeout(8_000));
-  const [local, awaySchedule, homeSchedule, summaries, fpi] = await Promise.all([
+  const [local, awaySchedule, homeSchedule, storedSnapshot] = await Promise.all([
     localRequest,
     schedule(awayId, season).catch(() => [] as Schedule),
     schedule(homeId, season).catch(() => [] as Schedule),
-    fetchCsv("cfb_team_summaries_weekly", season).catch(() => [] as SportsDataRow[]),
-    fetchCsv("cfb_fpi_weekly", season).catch(() => [] as SportsDataRow[])
+    loadStoredCfbSnapshot(season, throughWeek).catch(() => null)
   ]);
+  const [summaries, fpi] = storedSnapshot
+    ? [storedSnapshot.summaries, storedSnapshot.fpi]
+    : await Promise.all([
+        fetchCsv("cfb_team_summaries_weekly", season).catch(() => [] as SportsDataRow[]),
+        fetchCsv("cfb_fpi_weekly", season).catch(() => [] as SportsDataRow[])
+      ]);
   const localGames = (local.data || []) as LocalGame[];
   const makeTeam = (name: string, id: string | null, games: Schedule) => {
     const espn = summarizeEspnSchedule(games, targetDate);
@@ -91,7 +96,7 @@ async function buildMatchup(game: MatchupGame) {
     };
   };
   return {
-    season, throughWeek, fetchedAt: new Date().toISOString(),
+    season, throughWeek, fetchedAt: storedSnapshot?.fetchedAt || new Date().toISOString(),
     teams: { away: makeTeam(away, awayId, awaySchedule), home: makeTeam(home, homeId, homeSchedule) }
   };
 }
