@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { teamDisplayName } from "@/lib/teamNames";
-import { createAsyncCache } from "./asyncCache";\nimport { loadStoredCfbSnapshot } from "./matchupStatSnapshots";
+import { createAsyncCache } from "./asyncCache";
+import { loadStoredCfbSnapshot } from "./matchupStatSnapshots";
 import {
   parseCsv, logoTeamId, exactWeeklySummaryRow, latestWeeklyRow,
   normalizeRelative, normalizePower, falseyCsv, localGamesForTeam,
