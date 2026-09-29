@@ -17,6 +17,7 @@ import MenuSelect from "@/components/MenuSelect";
 import NumericText from "@/components/NumericText";
 import NotificationBadge from "@/components/NotificationBadge";
 import MatchupPreview from "@/components/MatchupPreview";
+import NflMatchupPreview from "@/components/NflMatchupPreview";
 import GameTracker from "@/components/GameTracker";
 import PushNotificationControls from "@/components/PushNotificationControls";
 import GroupMoneyControls from "@/components/GroupMoneyControls";
@@ -2312,7 +2313,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     </main>
     {matchupPreviewGame && (isFinalGame(matchupPreviewGame) || new Date(matchupPreviewGame.commence_time).getTime() <= clock
       ? <GameTracker game={matchupPreviewGame} onClose={closeMatchupPreview} />
-      : <MatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} />)}
+      : matchupPreviewGame.league === "NFL"
+        ? <NflMatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} />
+        : <MatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} />)}
     {!previewActive && stagedPicks !== null && autosaveBlockedSignatureRef.current !== pickCardSignature(stagedPicks) && !toast && <div className="autosave-toast" role="status" aria-live="polite"><LoaderCircle size={18} /><span>Saving…</span></div>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span><NumericText text={toast.message} /></span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
   </div>;
@@ -3046,7 +3049,7 @@ function SideBetGameCard({ game, market, boardMarket, selectedTeam, disabled, on
   return <article className={`game-card matchup-card side-bet-game-card ${disabled ? "closed" : ""} ${selectedTeam ? "selected" : ""}`.trim()}>
     <div className="game-head compact-game-head">
       <div className="game-time-group"><span className={live ? "game-live-status" : "game-time"}><NumericText text={live ? game.live_status || "Live" : timeText(game.commence_time)} /></span></div>
-      {game.league === "CFB" && <button type="button" className="matchup-preview-trigger side-bet-matchup-preview-trigger" onClick={() => openPreview(game)}>Matchup Preview</button>}
+      {!live && <button type="button" className="matchup-preview-trigger side-bet-matchup-preview-trigger" onClick={() => openPreview(game)}>Matchup Preview</button>}
     </div>
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
       {[game.away_team, game.home_team].map((team) => <button
@@ -3337,7 +3340,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
       <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status"><NumericText text={livePeriodStatus(game)} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}</div>
       {gameIsLive && <button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>GameTracker</button>}
       {gameIsLive && liveSituation && <div className="game-live-situation"><LiveSituationText game={game} /></div>}
-      {!gameIsLive && (gameIsFinal || game.league === "CFB") && <button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>{gameIsFinal ? "GameTracker" : "Matchup Preview"}</button>}
+      {!gameIsLive && <button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>{gameIsFinal ? "GameTracker" : "Matchup Preview"}</button>}
     </div>
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
