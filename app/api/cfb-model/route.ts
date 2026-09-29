@@ -3,14 +3,11 @@ import { getProfileFromRequest } from "@/lib/authServer";
 import { createAsyncCache } from "@/lib/asyncCache";
 import {
   buildCfbModelProjection,
-  buildResultsEloRatings,
-  buildResultsSrsRatings,
   cfbModelTeamKey,
   cfbSeasonForDate,
   pointRatingFromAdjustedEpa,
   pointRatingFromCore,
   pointRatingFromElo,
-  type CfbCompletedGame,
   type CfbDirectProjection,
   type CfbModelGame,
   type CfbRatingPair
@@ -252,42 +249,32 @@ function pairForSource(game: CfbModelGame, source: RatingSource): CfbRatingPair 
 function fallbackPairs(
   game: CfbModelGame,
   usedIds: Set<string>,
-  snapshot: Awaited<ReturnType<typeof loadStoredCfbSnapshot>>,
-  srs: Map<string, number>,
-  elo: Map<string, number>
+  snapshot: Awaited<ReturnType<typeof loadStoredCfbSnapshot>>
 ) {
   const pairs: CfbRatingPair[] = [];
   const throughWeek = Math.max(0, officialCfbWeek(game.commence_time) - 1);
   const awayId = logoTeamId(game.away_logo_url);
   const homeId = logoTeamId(game.home_logo_url);
 
-  if (snapshot) {
-    if (!usedIds.has("fpi")) {
-      const awayFpi = latestWeeklyRow(snapshot.fpi, awayId, "week", throughWeek, value => falseyCsv(value.snapshot_out_of_sequence));
-      const homeFpi = latestWeeklyRow(snapshot.fpi, homeId, "week", throughWeek, value => falseyCsv(value.snapshot_out_of_sequence));
-      pairs.push({ id: "fpi", label: "FPI", awayRating: finiteNumber(awayFpi?.fpi), homeRating: finiteNumber(homeFpi?.fpi) });
-    }
+  if (!snapshot) return pairs;
 
-    const awaySummary = exactWeeklySummaryRow(snapshot.summaries, awayId, game.away_team, throughWeek);
-    const homeSummary = exactWeeklySummaryRow(snapshot.summaries, homeId, game.home_team, throughWeek);
-    const awayEpa = finiteNumber(awaySummary?.net_adj_epa);
-    const homeEpa = finiteNumber(homeSummary?.net_adj_epa);
-    pairs.push({
-      id: "adj-epa",
-      label: "Adj. EPA",
-      awayRating: awayEpa == null ? null : pointRatingFromAdjustedEpa(awayEpa),
-      homeRating: homeEpa == null ? null : pointRatingFromAdjustedEpa(homeEpa)
-    });
+  if (!usedIds.has("fpi")) {
+    const awayFpi = latestWeeklyRow(snapshot.fpi, awayId, "week", throughWeek, value => falseyCsv(value.snapshot_out_of_sequence));
+    const homeFpi = latestWeeklyRow(snapshot.fpi, homeId, "week", throughWeek, value => falseyCsv(value.snapshot_out_of_sequence));
+    pairs.push({ id: "fpi", label: "FPI", awayRating: finiteNumber(awayFpi?.fpi), homeRating: finiteNumber(homeFpi?.fpi) });
   }
 
-  const homeKey = cfbModelTeamKey(game.home_team);
-  const awayKey = cfbModelTeamKey(game.away_team);
-  if (!usedIds.has("srs")) {
-    pairs.push({ id: "srs", label: "SRS", homeRating: srs.get(homeKey) ?? null, awayRating: srs.get(awayKey) ?? null });
-  }
-  if (!usedIds.has("elo")) {
-    pairs.push({ id: "elo", label: "Elo", homeRating: elo.get(homeKey) ?? null, awayRating: elo.get(awayKey) ?? null });
-  }
+  const awaySummary = exactWeeklySummaryRow(snapshot.summaries, awayId, game.away_team, throughWeek);
+  const homeSummary = exactWeeklySummaryRow(snapshot.summaries, homeId, game.home_team, throughWeek);
+  const awayEpa = finiteNumber(awaySummary?.net_adj_epa);
+  const homeEpa = finiteNumber(homeSummary?.net_adj_epa);
+  pairs.push({
+    id: "adj-epa",
+    label: "Adj. EPA",
+    awayRating: awayEpa == null ? null : pointRatingFromAdjustedEpa(awayEpa),
+    homeRating: homeEpa == null ? null : pointRatingFromAdjustedEpa(homeEpa)
+  });
+
   return pairs;
 }
 
@@ -325,24 +312,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (!games.length) {
-      const headers = { "Cache-Control": "private, no-store" };
+      console.info(`[cfb-model] completed ${gameId ? "game" : "week"} request with ${projections.length} projection(s); models=${projections.map(item => item.models.length).join(",")}`);
+    const headers = { "Cache-Control": "private, no-store" };
       return gameId ? NextResponse.json(null, { headers }) : NextResponse.json({ week, games: [] }, { headers });
     }
-
-    const earliestSeason = Math.min(...games.map(game => cfbSeasonForDate(game.commence_time)));
-    const latestKickoff = games.map(game => game.commence_time).sort().at(-1)!;
-    const { data: history, error: historyError } = await supabase.from("games")
-      .select("commence_time,home_team,away_team,final_home_score,final_away_score")
-      .eq("league", "CFB")
-      .gte("commence_time", `${earliestSeason}-08-01T00:00:00Z`)
-      .lt("commence_time", latestKickoff)
-      .not("final_home_score", "is", null)
-      .not("final_away_score", "is", null)
-      .order("commence_time", { ascending: true })
-      .limit(1500)
-      .abortSignal(AbortSignal.timeout(8_000));
-    if (historyError) throw historyError;
-    const completedGames = (history || []) as CfbCompletedGame[];
 
     const seasons = Array.from(new Set(games.map(game => cfbSeasonForDate(game.commence_time))));
     const dates = Array.from(new Set(games.map(game => isoDateKey(game.commence_time))));
@@ -362,7 +335,7 @@ export async function GET(request: NextRequest) {
         await within(
           loadFei(season, games.filter(game => cfbSeasonForDate(game.commence_time) === season)),
           [],
-          3_000,
+          2_000,
           `FEI ${season}`
         )
       ] as const)),
@@ -371,13 +344,13 @@ export async function GET(request: NextRequest) {
         await within(
           loadMasseyDate(dateKey, games.filter(game => isoDateKey(game.commence_time) === dateKey)),
           new Map<string, number>(),
-          3_000,
+          2_000,
           `Massey ${dateKey}`
         )
       ] as const)),
       Promise.all(snapshotKeys.map(async ([key, value]) => [
         key,
-        await within(loadStoredCfbSnapshot(value.season, value.throughWeek), null, 2_500, `stored snapshot ${key}`)
+        await within(loadStoredCfbSnapshot(value.season, value.throughWeek), null, 1_500, `stored snapshot ${key}`)
       ] as const))
     ]);
 
@@ -385,16 +358,6 @@ export async function GET(request: NextRequest) {
     const feiBySeason = new Map(feiEntries);
     const masseyByDate = new Map(masseyEntries);
     const snapshots = new Map(snapshotEntries);
-
-    const resultRatingsByDate = new Map<string, { srs: Map<string, number>; elo: Map<string, number> }>();
-    for (const dateKey of dates) {
-      const dateGames = games.filter(game => isoDateKey(game.commence_time) === dateKey);
-      const cutoff = dateGames.map(game => game.commence_time).sort()[0];
-      resultRatingsByDate.set(dateKey, {
-        srs: buildResultsSrsRatings(completedGames, cutoff),
-        elo: buildResultsEloRatings(completedGames, cutoff)
-      });
-    }
 
     const projections = games.map(game => {
       const season = cfbSeasonForDate(game.commence_time);
@@ -404,11 +367,9 @@ export async function GET(request: NextRequest) {
       const feiRows = feiBySeason.get(season) || [];
       const masseyRows = masseyByDate.get(dateKey) || new Map<string, number>();
       const snapshot = snapshots.get(`${season}:${throughWeek}`) || null;
-      const resultRatings = resultRatingsByDate.get(dateKey) || { srs: new Map<string, number>(), elo: new Map<string, number>() };
-
       const officialPairs = bundle.sources.map(source => pairForSource(game, source));
       const usedIds = new Set(officialPairs.filter(pair => pair.homeRating != null && pair.awayRating != null).map(pair => pair.id));
-      const fallbacks = fallbackPairs(game, usedIds, snapshot, resultRatings.srs, resultRatings.elo);
+      const fallbacks = fallbackPairs(game, usedIds, snapshot);
       const validPairs = [...officialPairs, ...fallbacks].filter((pair, index, all) =>
         pair.homeRating != null && pair.awayRating != null &&
         all.findIndex(other => other.id === pair.id && other.homeRating != null && other.awayRating != null) === index
