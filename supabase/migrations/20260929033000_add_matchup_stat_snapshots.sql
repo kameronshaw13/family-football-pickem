@@ -11,6 +11,7 @@ create table if not exists public.matchup_stat_snapshots (
 
 alter table public.matchup_stat_snapshots enable row level security;
 revoke all on table public.matchup_stat_snapshots from anon, authenticated;
+grant select, insert, update on table public.matchup_stat_snapshots to service_role;
 
 create index if not exists matchup_stat_snapshots_latest_idx
   on public.matchup_stat_snapshots (league, season, through_week desc);
