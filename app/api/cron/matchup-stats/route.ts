@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { falseyCsv, finiteNumber, parseCsv, type SportsDataRow } from "@/lib/cfbMatchupData";
+import { falseyCsv, finiteNumber, officialCfbWeek, officialNflWeek, parseCsv, type SportsDataRow } from "@/lib/cfbMatchupData";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
@@ -110,23 +110,30 @@ async function targetThroughWeek(league: League, season: number, now: Date) {
     .abortSignal(AbortSignal.timeout(8_000));
   if (error) throw new Error(error.message);
 
-  const nextWeek = (data || [])
-    .map((row) => finiteNumber(row.week))
-    .find((week): week is number => week != null && week > 0);
-  if (nextWeek != null) return Math.max(0, nextWeek - 1);
+  const nextKickoff = (data || []).find((row) => Boolean(row.commence_time))?.commence_time;
+  if (nextKickoff) {
+    const nextWeek = league === "CFB"
+      ? officialCfbWeek(nextKickoff)
+      : officialNflWeek(nextKickoff);
+    return Math.max(0, nextWeek - 1);
+  }
 
   const { data: completed, error: completedError } = await supabase
     .from("games")
-    .select("week")
+    .select("commence_time")
     .eq("league", league)
     .not("final_home_score", "is", null)
     .not("final_away_score", "is", null)
     .lte("commence_time", now.toISOString())
-    .order("week", { ascending: false })
+    .order("commence_time", { ascending: false })
     .limit(1)
     .abortSignal(AbortSignal.timeout(8_000));
   if (completedError) throw new Error(completedError.message);
-  return Math.max(0, finiteNumber(completed?.[0]?.week) ?? 0);
+  const lastKickoff = completed?.[0]?.commence_time;
+  if (!lastKickoff) return 0;
+  return league === "CFB"
+    ? officialCfbWeek(lastKickoff)
+    : officialNflWeek(lastKickoff);
 }
 
 async function saveSnapshot(

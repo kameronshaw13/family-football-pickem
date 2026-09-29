@@ -45,6 +45,17 @@ export function officialCfbWeek(dateIso: string, timezone = "America/Chicago") {
   return diff < 0 ? 0 : Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
 
+export function officialNflWeek(dateIso: string, timezone = "America/Chicago") {
+  const local = toZonedTime(new Date(dateIso), timezone);
+  const seasonYear = local.getMonth() >= 6 ? local.getFullYear() : local.getFullYear() - 1;
+  const laborDay = new Date(seasonYear, 8, 1, 0, 0, 0, 0);
+  while (laborDay.getDay() !== 1) laborDay.setDate(laborDay.getDate() + 1);
+  const weekOneStart = new Date(laborDay);
+  weekOneStart.setDate(weekOneStart.getDate() + 1);
+  const diff = local.getTime() - weekOneStart.getTime();
+  return diff < 0 ? 0 : Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1;
+}
+
 export type SportsDataRow = Record<string, string>;
 
 export function parseCsv(text: string, keep?: (header: string) => boolean): SportsDataRow[] {

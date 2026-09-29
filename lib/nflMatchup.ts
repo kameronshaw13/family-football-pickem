@@ -1,5 +1,5 @@
 import { createAsyncCache } from "./asyncCache";
-import { finiteNumber, parseCsv, type LocalGame, type SportsDataRow } from "./cfbMatchupData";
+import { finiteNumber, officialNflWeek, parseCsv, type LocalGame, type SportsDataRow } from "./cfbMatchupData";
 import { getSupabaseAdmin } from "./supabaseServer";
 import { normalizeTeamNameKey, teamDisplayName } from "./teamNames";
 import { loadStoredNflSnapshot } from "./matchupStatSnapshots";
@@ -241,7 +241,7 @@ function summarizeResults(games: LocalGame[], team: string) {
     pointsAgainst += opponentPoints;
     return {
       id: game.id,
-      week: game.week,
+      week: officialNflWeek(game.commence_time),
       date: game.commence_time,
       opponent: home ? game.away_team : game.home_team,
       home,
@@ -279,7 +279,7 @@ function summarizeAts(games: LocalGame[], team: string) {
     const coverMargin = teamPoints - opponentPoints + spread;
     return [{
       id: game.id,
-      week: game.week,
+      week: officialNflWeek(game.commence_time),
       date: game.commence_time,
       opponent: home ? game.away_team : game.home_team,
       home,
@@ -301,7 +301,7 @@ function summarizeAts(games: LocalGame[], team: string) {
 
 async function buildMatchup(game: NflMatchupGame) {
   const season = seasonFor(game);
-  const throughWeek = Math.max(0, game.week - 1);
+  const throughWeek = Math.max(0, officialNflWeek(game.commence_time) - 1);
   const cutoff = new Date(game.commence_time).getTime();
   const awayAbbr = nflAbbr(game.away_team);
   const homeAbbr = nflAbbr(game.home_team);

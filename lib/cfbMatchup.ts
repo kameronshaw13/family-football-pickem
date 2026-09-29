@@ -3,7 +3,7 @@ import { teamDisplayName } from "@/lib/teamNames";
 import { createAsyncCache } from "./asyncCache";
 import { loadStoredCfbSnapshot } from "./matchupStatSnapshots";
 import {
-  parseCsv, logoTeamId, exactWeeklySummaryRow, latestWeeklyRow,
+  parseCsv, logoTeamId, exactWeeklySummaryRow, latestWeeklyRow, officialCfbWeek,
   normalizeRelative, normalizePower, falseyCsv, dedupeLocalGames, localGamesForTeam,
   summarizeLocalGames, summarizeLocalAts, scheduleEvent, summarizeEspnSchedule,
   type SportsDataRow, type LocalGame
@@ -52,7 +52,7 @@ function seasonFor(game: MatchupGame) {
 
 async function buildMatchup(game: MatchupGame) {
   const season = seasonFor(game);
-  const throughWeek = Math.max(0, game.week - 1);
+  const throughWeek = Math.max(0, officialCfbWeek(game.commence_time) - 1);
   const targetDate = new Date(game.commence_time).getTime();
   const away = teamDisplayName("CFB", game.away_team);
   const home = teamDisplayName("CFB", game.home_team);

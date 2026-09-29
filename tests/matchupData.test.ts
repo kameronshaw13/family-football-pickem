@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseCsv, exactWeeklySummaryRow, normalizeRelative, latestWeeklyRow, normalizePower, summarizeLocalAts, localGamesForTeam, officialCfbWeek, type LocalGame } from "../lib/cfbMatchupData.ts";
+import { parseCsv, exactWeeklySummaryRow, normalizeRelative, latestWeeklyRow, normalizePower, summarizeLocalAts, localGamesForTeam, officialCfbWeek, officialNflWeek, type LocalGame } from "../lib/cfbMatchupData.ts";
 import { createAsyncCache } from "../lib/asyncCache.ts";
 import { ordinalDay, formatOrdinalDate, formatUppercaseOrdinalDate } from "../lib/displayDates.ts";
 
@@ -53,6 +53,13 @@ test("matchup form derives official CFB weeks from kickoff dates", () => {
   assert.equal(officialCfbWeek("2026-09-12T18:00:00Z"), 2);
   assert.equal(officialCfbWeek("2025-08-23T18:00:00Z"), 0);
   assert.equal(officialCfbWeek("2025-08-30T18:00:00Z"), 1);
+});
+test("NFL matchup stats use official NFL weeks rather than Pick'em weeks", () => {
+  assert.equal(officialNflWeek("2026-09-10T20:20:00-05:00"), 1);
+  assert.equal(officialNflWeek("2026-09-14T20:15:00-05:00"), 1);
+  assert.equal(officialNflWeek("2026-09-15T12:00:00-05:00"), 2);
+  assert.equal(officialNflWeek("2026-09-27T12:00:00-05:00"), 3);
+  assert.equal(officialNflWeek("2026-10-01T19:15:00-05:00"), 4);
 });
 test("January bowl results belong to the previous football season", () => {
   const bowl = { ...base, commence_time: "2027-01-01T18:00:00Z" };
