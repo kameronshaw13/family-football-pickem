@@ -126,7 +126,7 @@ async function loadRatings(season: number) {
 }
 
 async function loadFei(season: number, games: CfbModelGame[]) {
-  return feiCache(String(season), async () => {
+  return feiCache(`${season}:${games.map(game => game.id).sort().join(",")}`, async () => {
     try {
       const response = await fetch(`https://bcftoys.com/${season}-gp`, {
         headers: { "User-Agent": "FamilyFootballPickem/1.0 (+matchup model)" },
@@ -164,7 +164,7 @@ async function loadFei(season: number, games: CfbModelGame[]) {
 }
 
 async function loadMasseyDate(dateKey: string, games: CfbModelGame[]) {
-  return masseyCache(dateKey, async () => {
+  return masseyCache(`${dateKey}:${games.map(game => game.id).sort().join(",")}`, async () => {
     const values = new Map<string, number>();
     try {
       const response = await fetch(`https://masseyratings.com/cf/fbs/games?dt=${dateKey}`, {
