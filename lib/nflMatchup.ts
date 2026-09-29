@@ -1,7 +1,7 @@
 import { createAsyncCache } from "./asyncCache";
 import { finiteNumber, parseCsv, type LocalGame, type SportsDataRow } from "./cfbMatchupData";
 import { getSupabaseAdmin } from "./supabaseServer";
-import { normalizeTeamNameKey, teamDisplayName } from "./teamNames";
+import { normalizeTeamNameKey, teamDisplayName } from "./teamNames";\nimport { loadStoredNflSnapshot } from "./matchupStatSnapshots";
 
 const statsCache = createAsyncCache<SportsDataRow[]>(15 * 60_000, 4);
 const previewCache = createAsyncCache<Awaited<ReturnType<typeof buildMatchup>>>(5 * 60_000, 64);
@@ -304,8 +304,8 @@ async function buildMatchup(game: NflMatchupGame) {
   const cutoff = new Date(game.commence_time).getTime();
   const awayAbbr = nflAbbr(game.away_team);
   const homeAbbr = nflAbbr(game.home_team);
-  const [stats, local] = await Promise.all([
-    fetchTeamStats(season).catch(() => [] as SportsDataRow[]),
+  const [storedSnapshot, local] = await Promise.all([
+    loadStoredNflSnapshot(season, throughWeek).catch(() => null),
     getSupabaseAdmin().from("games")
       .select("id,week,commence_time,home_team,away_team,current_spread_team,current_spread,final_home_score,final_away_score")
       .eq("league", "NFL")
@@ -315,6 +315,7 @@ async function buildMatchup(game: NflMatchupGame) {
       .limit(200)
       .abortSignal(AbortSignal.timeout(8_000))
   ]);
+  const stats = storedSnapshot?.rows || await fetchTeamStats(season).catch(() => [] as SportsDataRow[]);
   const localGames = dedupeLocalGames((local.data || []) as LocalGame[]);
   const availableWeeks = stats
     .filter(row => String(row.season_type || "").toUpperCase() === "REG")
