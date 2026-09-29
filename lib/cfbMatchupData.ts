@@ -222,6 +222,31 @@ export function normalizePower(summaryRow: SportsDataRow | null, fpiRow: SportsD
   };
 }
 
+export function dedupeLocalGames(games: LocalGame[]) {
+  const unique = new Map<string, LocalGame>();
+  for (const game of games) {
+    const key = [
+      game.commence_time,
+      normalizeTeamNameKey(teamDisplayName("CFB", game.away_team)),
+      normalizeTeamNameKey(teamDisplayName("CFB", game.home_team))
+    ].join(":");
+    const existing = unique.get(key);
+    if (!existing) {
+      unique.set(key, game);
+      continue;
+    }
+
+    const existingHasEspnId = Boolean(existing.espn_event_id);
+    const candidateHasEspnId = Boolean(game.espn_event_id);
+    const existingFinal = existing.final_home_score != null && existing.final_away_score != null;
+    const candidateFinal = game.final_home_score != null && game.final_away_score != null;
+    if ((!existingHasEspnId && candidateHasEspnId) || (!existingFinal && candidateFinal)) {
+      unique.set(key, game);
+    }
+  }
+  return Array.from(unique.values()).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
+}
+
 export function localGamesForTeam(games: LocalGame[], team: string, targetDate: number, season: number) {
   return games
     .filter((game) => {
