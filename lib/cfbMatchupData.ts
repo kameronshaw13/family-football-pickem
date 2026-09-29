@@ -109,12 +109,19 @@ export function latestWeeklyRow(
 
 export function exactWeeklySummaryRow(rows: SportsDataRow[], teamId: string | null, team: string, throughWeek: number) {
   if (throughWeek < 0) return null;
-  return rows.find((row) => {
-    if (finiteNumber(row.through_week) !== throughWeek) return false;
-    const rowId = String(row.team_id || "").replace(/\.0$/, "");
-    if (teamId && rowId === String(teamId)) return true;
-    return sameTeam(row.pos_team || row.team, team);
-  }) || null;
+
+  // Weekly SportsDataverse snapshots are not always published before the next
+  // matchup week opens. Prefer the requested cutoff when it exists, but fall
+  // back to the newest prior snapshot so the advanced preview does not go blank.
+  return rows
+    .filter((row) => {
+      const rowWeek = finiteNumber(row.through_week);
+      if (rowWeek == null || rowWeek > throughWeek) return false;
+      const rowId = String(row.team_id || "").replace(/\.0$/, "");
+      if (teamId && rowId === String(teamId)) return true;
+      return sameTeam(row.pos_team || row.team, team);
+    })
+    .sort((a, b) => (finiteNumber(b.through_week) ?? -1) - (finiteNumber(a.through_week) ?? -1))[0] || null;
 }
 
 export function normalizeRelative(summaryRow: SportsDataRow | null) {
