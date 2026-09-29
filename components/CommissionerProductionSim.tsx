@@ -103,7 +103,7 @@ export default function CommissionerProductionSim() {
 
   const estimatedPrice = useMemo(() => Math.max(1, setup.maxMembers) * Math.max(0, setup.pricePerMember), [setup.maxMembers, setup.pricePerMember]);
 
-  const update = <K extends keyof SetupState>(key: K, value: SetupState[K]) => {
+  const update = <K extends keyof SetupState,>(key: K, value: SetupState[K]) => {
     setSetup((current) => ({ ...current, [key]: value }));
   };
 
