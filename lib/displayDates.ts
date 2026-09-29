@@ -1,20 +1,17 @@
 export function ordinalDay(day: number) {
-  const lastTwo = day % 100;
-  const suffix = lastTwo >= 11 && lastTwo <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[day % 10] || "th";
-  return `${day}${suffix}`;
+  return String(day);
 }
 
-/** Preserve locale punctuation and Central Time, changing only the displayed day. */
+/** Preserve locale punctuation and Central Time without ordinal day suffixes. */
 export function formatOrdinalDate(formatter: Intl.DateTimeFormat, date: Date) {
   if (!Number.isFinite(date.getTime())) return "Date unavailable";
-  return formatter.formatToParts(date).map(part => part.type === "day" ? ordinalDay(Number(part.value)) : part.value).join("");
+  return formatter.format(date);
 }
 
-/** Uppercase a date label while preserving the ordinal suffix in lowercase. */
+/** Uppercase a date label without adding ordinal day suffixes. */
 export function formatUppercaseOrdinalDate(formatter: Intl.DateTimeFormat, date: Date) {
-  return formatOrdinalDate(formatter, date)
-    .toUpperCase()
-    .replace(/(\d+)(ST|ND|RD|TH)\b/g, (_, day: string, suffix: string) => `${day}${suffix.toLowerCase()}`);
+  if (!Number.isFinite(date.getTime())) return "DATE UNAVAILABLE";
+  return formatter.format(date).toUpperCase();
 }
 
 export const matchupDateFormatter = new Intl.DateTimeFormat("en-US", {
