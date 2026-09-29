@@ -42,7 +42,7 @@ async function requestData<T>(gameId: string, section: string, token: string): P
 async function requestModel(gameId: string, token: string, group: string): Promise<CfbModelProjection> {
   const response = await fetch(`/api/cfb-model?gameId=${encodeURIComponent(gameId)}`, {
     headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-pickem-group": group },
-    cache: "no-store", signal: AbortSignal.timeout(25_000)
+    cache: "no-store", signal: AbortSignal.timeout(15_000)
   });
   const payload = await response.json();
   if (!response.ok) throw new Error(payload.error || "Model data could not load.");
