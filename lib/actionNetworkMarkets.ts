@@ -1,6 +1,7 @@
+import { officialNflWeek } from "@/lib/cfbMatchupData";
 import type { Game, SideBetMarketQuote, SideBetOfferPhase } from "@/lib/types";
 
-const ACTION_BASE = "https://api.actionnetwork.com/web/v2/scoreboard";
+const ACTION_BASE = "https://api.actionnetwork.com/web/v1/scoreboard";
 const ACTION_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15";
 const DRAFTKINGS_BOOK_ID = 15;
 const FANDUEL_BOOK_ID = 30;
@@ -208,8 +209,12 @@ function totalRow(rows: ActionOddsRow[]) {
   return rows.find((row) => finiteNumber(row.total) != null) || null;
 }
 
-async function fetchActionLeagueDate(league: Game["league"], marketDate: string) {
-  const cacheKey = `${league}:${marketDate}`;
+async function fetchActionLeagueQuery(
+  league: Game["league"],
+  selectorKey: "date" | "week",
+  selectorValue: string
+) {
+  const cacheKey = `${league}:${selectorKey}:${selectorValue}`;
   const now = Date.now();
   const cached = actionLeagueRequestCache.get(cacheKey);
   if (cached && cached.expiresAt > now) return cached.promise;
@@ -218,14 +223,14 @@ async function fetchActionLeagueDate(league: Game["league"], marketDate: string)
     const path = league === "NFL" ? "nfl" : "ncaaf";
     const params = new URLSearchParams({
       bookIds: ACTION_FALLBACK_BOOK_IDS.join(","),
-      date: marketDate
+      [selectorKey]: selectorValue
     });
     if (league === "CFB") params.set("division", "FBS");
     const response = await fetch(`${ACTION_BASE}/${path}?${params.toString()}`, {
       headers: { "User-Agent": ACTION_USER_AGENT },
       cache: "no-store"
     });
-    if (!response.ok) throw new Error(`Action Network ${league} market request failed with ${response.status} for ${marketDate}.`);
+    if (!response.ok) throw new Error(`Action Network ${league} market request failed with ${response.status} for ${selectorKey}=${selectorValue}.`);
     const payload = await response.json();
     return Array.isArray(payload?.games) ? payload.games as ActionGame[] : [];
   })();
@@ -239,9 +244,21 @@ async function fetchActionLeagueDate(league: Game["league"], marketDate: string)
   }
 }
 
+async function fetchActionLeagueSelections(league: Game["league"], dateHints: string[]) {
+  if (league === "NFL") {
+    const weeks = Array.from(new Set(dateHints
+      .map((hint) => officialNflWeek(hint))
+      .filter((week) => Number.isInteger(week) && week > 0)));
+    return weeks.map((week) => ({ key: "week" as const, value: String(week) }));
+  }
+  return Array.from(new Set(dateHints.map((hint) => dateKey(new Date(hint)))))
+    .map((date) => ({ key: "date" as const, value: date }));
+}
 async function fetchActionLeague(league: Game["league"], games: Game[]) {
-  const marketDates = Array.from(new Set(games.map((game) => dateKey(new Date(game.commence_time)))));
-  const results = await Promise.allSettled(marketDates.map((marketDate) => fetchActionLeagueDate(league, marketDate)));
+  const selections = await fetchActionLeagueSelections(league, games.map((game) => game.commence_time));
+  const results = await Promise.allSettled(selections.map((selection) =>
+    fetchActionLeagueQuery(league, selection.key, selection.value)
+  ));
   const successful = results.flatMap((result) => result.status === "fulfilled" ? result.value : []);
   if (!successful.length && results.some((result) => result.status === "rejected")) {
     const firstFailure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
@@ -251,8 +268,10 @@ async function fetchActionLeague(league: Game["league"], games: Game[]) {
 }
 
 export async function fetchActionNetworkScheduledGames(league: Game["league"], dateHints: string[]) {
-  const marketDates = Array.from(new Set(dateHints.map((hint) => dateKey(new Date(hint)))));
-  const results = await Promise.allSettled(marketDates.map((marketDate) => fetchActionLeagueDate(league, marketDate)));
+  const selections = await fetchActionLeagueSelections(league, dateHints);
+  const results = await Promise.allSettled(selections.map((selection) =>
+    fetchActionLeagueQuery(league, selection.key, selection.value)
+  ));
   const actionGames = Array.from(new Map(
     results.flatMap((result) => result.status === "fulfilled" ? result.value : [])
       .map((game) => [String(game.id || `${game.start_time}:${game.home_team_id}:${game.away_team_id}`), game])
