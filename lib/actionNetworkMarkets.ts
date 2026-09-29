@@ -1,9 +1,13 @@
 import type { Game, SideBetMarketQuote, SideBetOfferPhase } from "@/lib/types";
 
-const ACTION_BASE = "https://api.actionnetwork.com/web/v1/scoreboard";
+const ACTION_BASE = "https://api.actionnetwork.com/web/v2/scoreboard";
 const ACTION_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15";
-const DRAFTKINGS_BOOK_ID = 68;
-const ACTION_FALLBACK_BOOK_IDS = [DRAFTKINGS_BOOK_ID, 15, 30, 75, 123];
+const DRAFTKINGS_BOOK_ID = 15;
+const FANDUEL_BOOK_ID = 30;
+const BETMGM_BOOK_ID = 75;
+const CAESARS_BOOK_ID = 123;
+const BETRIVERS_BOOK_ID = 68;
+const ACTION_FALLBACK_BOOK_IDS = [DRAFTKINGS_BOOK_ID, FANDUEL_BOOK_ID, BETMGM_BOOK_ID, CAESARS_BOOK_ID, BETRIVERS_BOOK_ID];
 const LIVE_MAX_AGE_SECONDS = 45;
 const ACTION_CACHE_MS = 5_000;
 const actionLeagueRequestCache = new Map<string, { expiresAt: number; promise: Promise<ActionGame[]> }>();
@@ -160,8 +164,11 @@ function rowAgeSeconds(row: ActionOddsRow, now = Date.now()) {
 function bookPriority(row: ActionOddsRow) {
   const bookId = Number(row.book_id);
   if (bookId === DRAFTKINGS_BOOK_ID) return 0;
-  if (bookId === 15) return 1; // Action consensus is the safest full-game fallback.
-  return 2;
+  if (bookId === FANDUEL_BOOK_ID) return 1;
+  if (bookId === BETMGM_BOOK_ID) return 2;
+  if (bookId === CAESARS_BOOK_ID) return 3;
+  if (bookId === BETRIVERS_BOOK_ID) return 4;
+  return 5;
 }
 
 function sortPreferredMarketRows(rows: ActionOddsRow[]) {
