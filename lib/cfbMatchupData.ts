@@ -9,6 +9,7 @@ export type LocalGame = {
   away_team: string;
   home_logo_url?: string | null;
   away_logo_url?: string | null;
+  espn_event_id?: string | null;
   current_spread_team: string | null;
   current_spread: number | null;
   final_home_score: number | null;
