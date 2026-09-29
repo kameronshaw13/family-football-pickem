@@ -31,6 +31,27 @@ export const maxDuration = 30;
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+async function within<T>(promise: Promise<T>, fallback: T, timeoutMs: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<T>((resolve) => {
+    timer = setTimeout(() => {
+      console.warn(`[cfb-model] ${label} exceeded ${timeoutMs}ms; returning partial model data.`);
+      resolve(fallback);
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([
+      promise.catch((error) => {
+        console.warn(`[cfb-model] ${label} failed; returning partial model data.`, error);
+        return fallback;
+      }),
+      timeout
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function decodeHtml(value: string) {
   return value
     .replace(/&nbsp;|&#160;/gi, " ")
@@ -332,18 +353,31 @@ export async function GET(request: NextRequest) {
     })).entries());
 
     const [ratingEntries, feiEntries, masseyEntries, snapshotEntries] = await Promise.all([
-      Promise.all(seasons.map(async season => [season, await loadRatings(season)] as const)),
       Promise.all(seasons.map(async season => [
         season,
-        await loadFei(season, games.filter(game => cfbSeasonForDate(game.commence_time) === season))
+        await within(loadRatings(season), { fetchedAt: new Date().toISOString(), sources: [] }, 5_000, `CFBD ratings ${season}`)
+      ] as const)),
+      Promise.all(seasons.map(async season => [
+        season,
+        await within(
+          loadFei(season, games.filter(game => cfbSeasonForDate(game.commence_time) === season)),
+          [],
+          3_000,
+          `FEI ${season}`
+        )
       ] as const)),
       Promise.all(dates.map(async dateKey => [
         dateKey,
-        await loadMasseyDate(dateKey, games.filter(game => isoDateKey(game.commence_time) === dateKey))
+        await within(
+          loadMasseyDate(dateKey, games.filter(game => isoDateKey(game.commence_time) === dateKey)),
+          new Map<string, number>(),
+          3_000,
+          `Massey ${dateKey}`
+        )
       ] as const)),
       Promise.all(snapshotKeys.map(async ([key, value]) => [
         key,
-        await loadStoredCfbSnapshot(value.season, value.throughWeek).catch(() => null)
+        await within(loadStoredCfbSnapshot(value.season, value.throughWeek), null, 2_500, `stored snapshot ${key}`)
       ] as const))
     ]);
 

@@ -42,7 +42,7 @@ async function requestData<T>(gameId: string, section: string, token: string): P
 async function requestModel(gameId: string, token: string, group: string): Promise<CfbModelProjection> {
   const response = await fetch(`/api/cfb-model?gameId=${encodeURIComponent(gameId)}`, {
     headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-pickem-group": group },
-    cache: "no-store", signal: AbortSignal.timeout(15_000)
+    cache: "no-store", signal: AbortSignal.timeout(10_000)
   });
   const payload = await response.json();
   if (!response.ok) throw new Error(payload.error || "Model data could not load.");
@@ -184,6 +184,7 @@ export default function MatchupPreview({ game, onClose, showModel = false, model
   const [error, setError] = useState("");
   const [historyError, setHistoryError] = useState("");
   const [modelError, setModelError] = useState("");
+  const [modelLoading, setModelLoading] = useState(false);
   const [retry, setRetry] = useState(0);
   const [mounted, setMounted] = useState(false);
   const sheet = useRef<HTMLElement>(null);
@@ -222,7 +223,7 @@ export default function MatchupPreview({ game, onClose, showModel = false, model
 
   useEffect(() => {
     let active = true;
-    setPayload(null); setHistory(null); setModel(null); setError(""); setHistoryError(""); setModelError(""); setTab("matchup");
+    setPayload(null); setHistory(null); setModel(null); setError(""); setHistoryError(""); setModelError(""); setModelLoading(false); setTab("matchup");
     const token = window.localStorage.getItem("pickem_session_token") || "";
     void getPreview(`${token}:${game.id}`, () => requestData<MatchupPayload>(game.id, "matchup", token))
       .then(data => { if (active) setPayload(data); })
@@ -245,11 +246,29 @@ export default function MatchupPreview({ game, onClose, showModel = false, model
     if (!showModel || tab !== "model" || model) return;
     let active = true;
     setModelError("");
+    setModelLoading(true);
+    const watchdog = window.setTimeout(() => {
+      if (!active) return;
+      setModelLoading(false);
+      setModelError("Model request took too long. Try again.");
+    }, 11_000);
     const token = window.localStorage.getItem("pickem_session_token") || "";
-    void getModel(`${modelGroup}:${token}:${game.id}`, () => requestModel(game.id, token, modelGroup))
-      .then(data => { if (active) setModel(data); })
-      .catch(cause => { if (active) setModelError(cause instanceof Error ? cause.message : "Could not load model."); });
-    return () => { active = false; };
+    void getModel(`${modelGroup}:${token}:${game.id}:${retry}`, () => requestModel(game.id, token, modelGroup))
+      .then(data => {
+        if (!active) return;
+        if (!data) throw new Error("Model data returned empty.");
+        setModel(data);
+        setModelLoading(false);
+      })
+      .catch(cause => {
+        if (!active) return;
+        setModelLoading(false);
+        setModelError(cause instanceof Error ? cause.message : "Could not load model.");
+      });
+    return () => {
+      active = false;
+      window.clearTimeout(watchdog);
+    };
   }, [showModel, modelGroup, tab, game.id, model, retry]);
 
   if (!mounted) return null;
@@ -268,7 +287,7 @@ export default function MatchupPreview({ game, onClose, showModel = false, model
         {payload && tab === "matchup" && <Matchup payload={payload} awayLogo={game.away_logo_url} homeLogo={game.home_logo_url} />}
         {payload && tab === "form" && <div className="matchup-tab-body"><div className="matchup-split-lists"><FormTeam team={payload.teams.away} logo={game.away_logo_url} /><FormTeam team={payload.teams.home} logo={game.home_logo_url} /></div></div>}
         {payload && tab === "history" && (history ? <History history={history} away={away} home={home} /> : historyError ? <div className="matchup-empty-copy" role="alert"><p>{historyError}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div> : <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading history…</span></div>)}
-        {showModel && tab === "model" && (model ? <ModelTab model={model} /> : modelError ? <div className="matchup-empty-copy" role="alert"><p>{modelError}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div> : <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading model…</span></div>)}
+        {showModel && tab === "model" && (model ? <ModelTab model={model} /> : modelError ? <div className="matchup-empty-copy" role="alert"><p>{modelError}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div> : modelLoading ? <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading model…</span></div> : <div className="matchup-empty-copy"><p>Model data is not ready yet.</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div>)}
       </div>
     </section>
   </div>, document.body);
