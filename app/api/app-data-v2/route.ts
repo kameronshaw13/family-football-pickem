@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     for (const result of [gamesResult, lockedResult, bankResult, sideBetResult, seasonMoneyResult, sideBetDismissalResult]) if (result.error) throw new Error(result.error.message);
 
     const normalizedGames = (gamesResult.data || [])
-      .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game) && game.current_spread_team != null && game.current_spread != null)
+      .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game))
       .map((game: any) => {
         const lockTime = getGroupGameLockTime(context, game.commence_time).toISOString();
         return {
