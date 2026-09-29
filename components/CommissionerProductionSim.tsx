@@ -111,7 +111,7 @@ export default function CommissionerProductionSim() {
     setSetup(defaultSetup);
     setStep(0);
     setCreated(false);
-    try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
+    try { window.localStorage.removeItem(STORAGE_KEY); } catch {\n      // Storage cleanup is optional in prototype mode.\n    }
   };
 
   if (!loaded) return <main className="production-sim"><div className="sim-loading">Loading commissioner preview…</div></main>;
