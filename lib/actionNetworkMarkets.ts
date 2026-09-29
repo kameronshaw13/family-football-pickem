@@ -218,8 +218,7 @@ async function fetchActionLeagueDate(league: Game["league"], marketDate: string)
     const path = league === "NFL" ? "nfl" : "ncaaf";
     const params = new URLSearchParams({
       bookIds: ACTION_FALLBACK_BOOK_IDS.join(","),
-      date: marketDate,
-      periods: "event"
+      date: marketDate
     });
     if (league === "CFB") params.set("division", "FBS");
     const response = await fetch(`${ACTION_BASE}/${path}?${params.toString()}`, {
