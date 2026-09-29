@@ -1515,7 +1515,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   useEffect(() => { dataRef.current = data; }, [data]);
   useEffect(() => {
     const username = String(data?.currentUser?.username || "").trim().toLowerCase();
-    const enabled = appSlug === "shaw-family" && username === "kameron" && data?.week != null;
+    const enabled = (appSlug === "shaw-family" || appSlug === "friends") && username === "kameron" && data?.week != null;
     if (!enabled) {
       setCfbModelEdges({});
       return;
@@ -2347,7 +2347,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       ? <GameTracker game={matchupPreviewGame} onClose={closeMatchupPreview} />
       : matchupPreviewGame.league === "NFL"
         ? <NflMatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} />
-        : <MatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} showModel={appSlug === "shaw-family" && String(currentUser.username || "").trim().toLowerCase() === "kameron"} />)}
+        : <MatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} showModel={(appSlug === "shaw-family" || appSlug === "friends") && String(currentUser.username || "").trim().toLowerCase() === "kameron"} modelGroup={appSlug} />)}
     {!previewActive && stagedPicks !== null && autosaveBlockedSignatureRef.current !== pickCardSignature(stagedPicks) && !toast && <div className="autosave-toast" role="status" aria-live="polite"><LoaderCircle size={18} /><span>Saving…</span></div>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span><NumericText text={toast.message} /></span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
   </div>;

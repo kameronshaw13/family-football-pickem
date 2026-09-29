@@ -1,6 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildCfbModelProjection, marketHomeSpread, modelEdgeStars, modelHomeSpread } from "../lib/cfbModel.ts";
+import {
+  buildCfbModelProjection,
+  buildResultsEloRatings,
+  buildResultsSrsRatings,
+  marketHomeSpread,
+  modelEdgeStars,
+  modelHomeSpread,
+  pointRatingFromAdjustedEpa,
+  pointRatingFromCore,
+  pointRatingFromElo
+} from "../lib/cfbModel.ts";
 
 const game = {
   id: "g1",
@@ -16,16 +26,37 @@ test("rating differences convert to a home spread with home-field value", () => 
   assert.equal(marketHomeSpread(game), -6.5);
 });
 
-test("model consensus averages compatible rating-derived spreads", () => {
+test("non-point rating systems convert to point-strength units", () => {
+  assert.equal(pointRatingFromElo(1525), 1);
+  assert.equal(pointRatingFromCore(10), 6.8);
+  assert.equal(pointRatingFromAdjustedEpa(0.1), 6.5);
+});
+
+test("consensus combines rating models and direct FEI/Massey projections", () => {
   const projection = buildCfbModelProjection(game, [
     { id: "sp", label: "SP+", homeRating: 20, awayRating: 15 },
-    { id: "fpi", label: "FPI", homeRating: 21, awayRating: 15 },
-    { id: "srs", label: "SRS", homeRating: 19, awayRating: 15 }
+    { id: "fpi", label: "FPI", homeRating: 21, awayRating: 15 }
+  ], [
+    { id: "fei", label: "FEI", homeSpread: -10 },
+    { id: "massey", label: "Massey", homeSpread: -8 }
   ], "2026-09-29T00:00:00Z");
+  assert.equal(projection.models.length, 4);
   assert.equal(projection.consensus?.team, "Georgia");
-  assert.equal(projection.consensus?.spread, -7.5);
-  assert.equal(projection.edgePoints, 1);
+  assert.equal(projection.consensus?.spread, -8.3);
+  assert.equal(projection.edgePoints, 1.8);
   assert.equal(projection.stars, 0);
+});
+
+test("results SRS and Elo rate a repeat winner above a repeat loser", () => {
+  const results = [
+    { commence_time: "2026-09-05T18:00:00Z", home_team: "Georgia", away_team: "Alabama", final_home_score: 35, final_away_score: 14 },
+    { commence_time: "2026-09-12T18:00:00Z", home_team: "Alabama", away_team: "Georgia", final_home_score: 17, final_away_score: 31 }
+  ];
+  const cutoff = "2026-09-20T18:00:00Z";
+  const srs = buildResultsSrsRatings(results, cutoff);
+  const elo = buildResultsEloRatings(results, cutoff);
+  assert.ok((srs.get("georgia") || 0) > (srs.get("alabama") || 0));
+  assert.ok((elo.get("georgia") || 0) > (elo.get("alabama") || 0));
 });
 
 test("edge stars use 3, 5 and 7 point cutoffs", () => {

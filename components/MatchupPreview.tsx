@@ -39,9 +39,9 @@ async function requestData<T>(gameId: string, section: string, token: string): P
   return payload as T;
 }
 
-async function requestModel(gameId: string, token: string): Promise<CfbModelProjection> {
+async function requestModel(gameId: string, token: string, group: string): Promise<CfbModelProjection> {
   const response = await fetch(`/api/cfb-model?gameId=${encodeURIComponent(gameId)}`, {
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-pickem-group": "shaw-family" },
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-pickem-group": group },
     cache: "no-store", signal: AbortSignal.timeout(25_000)
   });
   const payload = await response.json();
@@ -176,7 +176,7 @@ function History({ history, away, home }: { history: MatchupHistory; away: strin
   </div>;
 }
 
-export default function MatchupPreview({ game, onClose, showModel = false }: { game: Game; onClose: () => void; showModel?: boolean }) {
+export default function MatchupPreview({ game, onClose, showModel = false, modelGroup = "shaw-family" }: { game: Game; onClose: () => void; showModel?: boolean; modelGroup?: string }) {
   const [tab, setTab] = useState<Tab>("matchup");
   const [payload, setPayload] = useState<MatchupPayload | null>(null);
   const [history, setHistory] = useState<MatchupHistory | null>(null);
@@ -246,11 +246,11 @@ export default function MatchupPreview({ game, onClose, showModel = false }: { g
     let active = true;
     setModelError("");
     const token = window.localStorage.getItem("pickem_session_token") || "";
-    void getModel(`${token}:${game.id}`, () => requestModel(game.id, token))
+    void getModel(`${modelGroup}:${token}:${game.id}`, () => requestModel(game.id, token, modelGroup))
       .then(data => { if (active) setModel(data); })
       .catch(cause => { if (active) setModelError(cause instanceof Error ? cause.message : "Could not load model."); });
     return () => { active = false; };
-  }, [showModel, tab, game.id, model, retry]);
+  }, [showModel, modelGroup, tab, game.id, model, retry]);
 
   if (!mounted) return null;
   const tabs: Array<[Tab, string]> = [["matchup", "Analytics"], ["form", "Form"], ["history", "History"], ...(showModel ? [["model", "Model"] as [Tab, string]] : [])];
