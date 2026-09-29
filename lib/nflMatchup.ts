@@ -205,6 +205,20 @@ function localSameTeam(team: string, candidate: string) {
   return Boolean(a && b && a === b);
 }
 
+function dedupeLocalGames(games: LocalGame[]) {
+  const unique = new Map<string, LocalGame>();
+  for (const game of games) {
+    const key = [
+      game.commence_time,
+      nflAbbr(game.away_team) || normalizeTeamNameKey(game.away_team),
+      nflAbbr(game.home_team) || normalizeTeamNameKey(game.home_team)
+    ].join(":");
+    const existing = unique.get(key);
+    if (!existing || (existing.final_home_score == null && game.final_home_score != null)) unique.set(key, game);
+  }
+  return Array.from(unique.values()).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
+}
+
 function localGamesFor(games: LocalGame[], team: string, cutoff: number) {
   return games.filter(game =>
     new Date(game.commence_time).getTime() < cutoff &&
@@ -301,7 +315,7 @@ async function buildMatchup(game: NflMatchupGame) {
       .limit(200)
       .abortSignal(AbortSignal.timeout(8_000))
   ]);
-  const localGames = (local.data || []) as LocalGame[];
+  const localGames = dedupeLocalGames((local.data || []) as LocalGame[]);
   const availableWeeks = stats
     .filter(row => String(row.season_type || "").toUpperCase() === "REG")
     .map(row => finiteNumber(row.week))
