@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 
 type LeagueMode = "CFB + NFL" | "CFB only" | "NFL only";
@@ -120,7 +121,7 @@ export default function CommissionerProductionSim() {
     return (
       <main className="production-sim">
         <header className="sim-topbar">
-          <img src="/football-pickem-wordmark.png" alt="Football Pick'em" />
+          <Image src="/football-pickem-wordmark.png" alt="Football Pick'em" width={800} height={100} priority />
           <span className="sim-preview-pill">PRODUCTION SIM</span>
         </header>
         <section className="sim-created">
@@ -167,7 +168,7 @@ export default function CommissionerProductionSim() {
   return (
     <main className="production-sim">
       <header className="sim-topbar">
-        <img src="/football-pickem-wordmark.png" alt="Football Pick'em" />
+        <Image src="/football-pickem-wordmark.png" alt="Football Pick'em" width={800} height={100} priority />
         <span className="sim-preview-pill">PRODUCTION SIM</span>
       </header>
 
@@ -236,13 +237,13 @@ export default function CommissionerProductionSim() {
                 <input className="sim-range" type="range" min="1" max="5" step="1" value={setup.pricePerMember} onChange={(event) => update("pricePerMember", Number(event.target.value))} />
                 <div className="sim-range-labels"><span>$1</span><span>$5</span></div>
               </div>
-              <div className="sim-callout"><strong>What the season pass includes</strong><span>Pick'em league · matchup previews · GameTracker · standings · side-bet ledger · commissioner controls</span></div>
+              <div className="sim-callout"><strong>What the season pass includes</strong><span>Pick&apos;em league · matchup previews · GameTracker · standings · side-bet ledger · commissioner controls</span></div>
             </>
           )}
 
           {step === 2 && (
             <>
-              <p className="sim-eyebrow">Pick'em rules</p>
+              <p className="sim-eyebrow">Pick&apos;em rules</p>
               <h1>Choose how the league plays.</h1>
               <p className="sim-lead">These choices would become the season rules shown to every member.</p>
               <div className="sim-section">
