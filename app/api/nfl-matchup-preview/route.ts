@@ -1,0 +1,49 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getProfileFromRequest } from "@/lib/authServer";
+import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { loadNflMatchup, type NflMatchupGame } from "@/lib/nflMatchup";
+
+const requests = new Map<string, { count: number; resetsAt: number }>();
+export const maxDuration = 30;
+
+export async function GET(request: NextRequest) {
+  const auth = await getProfileFromRequest(request);
+  if (!auth.profile) return NextResponse.json({ error: auth.error || "Unauthorized" }, { status: auth.status });
+
+  const now = Date.now();
+  for (const [id, entry] of requests) if (entry.resetsAt <= now) requests.delete(id);
+  const userId = String(auth.profile.id);
+  const entry = requests.get(userId) || { count: 0, resetsAt: now + 60_000 };
+  if (entry.count >= 30) {
+    return NextResponse.json(
+      { error: "Please wait a moment before opening another preview." },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
+  entry.count += 1;
+  if (requests.size >= 1000 && !requests.has(userId)) requests.delete(requests.keys().next().value!);
+  requests.set(userId, entry);
+
+  const gameId = request.nextUrl.searchParams.get("gameId");
+  if (!gameId || gameId.length > 120) {
+    return NextResponse.json({ error: "A valid game is required." }, { status: 400 });
+  }
+
+  try {
+    const { data: game, error } = await getSupabaseAdmin().from("games")
+      .select("id,espn_event_id,league,week,commence_time,home_team,away_team,home_logo_url,away_logo_url,current_spread_team,current_spread,final_home_score,final_away_score")
+      .eq("id", gameId)
+      .eq("league", "NFL")
+      .abortSignal(AbortSignal.timeout(5_000))
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!game) return NextResponse.json({ error: "This NFL matchup could not be found." }, { status: 404 });
+
+    const payload = await loadNflMatchup(game as NflMatchupGame);
+    return NextResponse.json(payload, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) {
+    console.error("[nfl-matchup-preview]", error);
+    return NextResponse.json({ error: "NFL matchup data is temporarily unavailable. Please try again." }, { status: 503 });
+  }
+}
