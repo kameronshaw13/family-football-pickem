@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { createAsyncCache } from "@/lib/asyncCache";
@@ -24,6 +25,7 @@ type HtmlCell = { text: string; raw: string };
 const ratingCache = createAsyncCache<RatingBundle>(10 * 60_000, 4);
 const feiCache = createAsyncCache<CfbDirectProjection[]>(15 * 60_000, 4);
 const masseyCache = createAsyncCache<Map<string, number>>(15 * 60_000, 16);
+const SUPABASE_CRON_TOKEN_SHA256 = "3907027700258fc50a7d4ea237b41402793ca1082da70fdc5751a81216c09dbb";
 export const maxDuration = 30;
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -278,29 +280,66 @@ function fallbackPairs(
   return pairs;
 }
 
-export async function GET(request: NextRequest) {
-  const auth = await getProfileFromRequest(request);
-  if (!auth.profile) return NextResponse.json({ error: auth.error || "Unauthorized" }, { status: auth.status });
+function hasValidRefreshToken(request: NextRequest) {
+  const token = request.headers.get("x-odds-cron-token");
+  if (token) {
+    const expectedHash = process.env.ODDS_CRON_TOKEN_SHA256 || SUPABASE_CRON_TOKEN_SHA256;
+    if (/^[a-f0-9]{64}$/i.test(expectedHash)) {
+      const actual = Buffer.from(createHash("sha256").update(token).digest("hex"), "hex");
+      const expected = Buffer.from(expectedHash, "hex");
+      if (actual.length === expected.length && timingSafeEqual(actual, expected)) return true;
+    }
+  }
 
-  const username = String(auth.profile.username || "").trim().toLowerCase();
-  const group = String(request.headers.get("x-pickem-group") || "").trim().toLowerCase();
-  if (username !== "kameron" || (group !== "shaw-family" && group !== "friends")) {
-    return NextResponse.json({ error: "Not found." }, { status: 404 });
+  const bearer = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") || "";
+  return Boolean(process.env.CRON_SECRET && bearer === process.env.CRON_SECRET);
+}
+
+export async function GET(request: NextRequest) {
+  const refresh = request.nextUrl.searchParams.get("refresh") === "1";
+
+  if (refresh) {
+    if (!hasValidRefreshToken(request)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  } else {
+    const auth = await getProfileFromRequest(request);
+    if (!auth.profile) return NextResponse.json({ error: auth.error || "Unauthorized" }, { status: auth.status });
+
+    const username = String(auth.profile.username || "").trim().toLowerCase();
+    const group = String(request.headers.get("x-pickem-group") || "").trim().toLowerCase();
+    if (username !== "kameron" || (group !== "shaw-family" && group !== "friends")) {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
   }
 
   const gameId = request.nextUrl.searchParams.get("gameId")?.trim() || "";
   const rawWeek = request.nextUrl.searchParams.get("week")?.trim() || "";
   const week = rawWeek === "" ? null : Number(rawWeek);
-  if ((!gameId && week == null) || (gameId && gameId.length > 120) || (week != null && (!Number.isInteger(week) || week < 0 || week > 30))) {
+  if (!refresh && ((!gameId && week == null) || (gameId && gameId.length > 120) || (week != null && (!Number.isInteger(week) || week < 0 || week > 30)))) {
     return NextResponse.json({ error: "A valid game or week is required." }, { status: 400 });
   }
 
   try {
     const supabase = getSupabaseAdmin();
-    const select = "id,commence_time,home_team,away_team,home_logo_url,away_logo_url,current_spread_team,current_spread";
+    const select = "id,week,commence_time,home_team,away_team,home_logo_url,away_logo_url,current_spread_team,current_spread";
     let games: CfbModelGame[] = [];
 
-    if (gameId) {
+    if (refresh) {
+      const now = Date.now();
+      const from = new Date(now - 12 * 60 * 60 * 1000).toISOString();
+      const through = new Date(now + 10 * 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await supabase.from("games")
+        .select(select)
+        .eq("league", "CFB")
+        .gte("commence_time", from)
+        .lte("commence_time", through)
+        .order("commence_time", { ascending: true })
+        .limit(150)
+        .abortSignal(AbortSignal.timeout(8_000));
+      if (error) throw error;
+      games = (data || []) as CfbModelGame[];
+    } else if (gameId) {
       const { data, error } = await supabase.from("games").select(select).eq("id", gameId).eq("league", "CFB").abortSignal(AbortSignal.timeout(5_000)).maybeSingle();
       if (error) throw error;
       if (!data) return NextResponse.json({ error: "This college football matchup could not be found." }, { status: 404 });
@@ -311,10 +350,41 @@ export async function GET(request: NextRequest) {
       games = (data || []) as CfbModelGame[];
     }
 
-    if (!games.length) {
-      console.info(`[cfb-model] completed ${gameId ? "game" : "week"} request with ${projections.length} projection(s); models=${projections.map(item => item.models.length).join(",")}`);
     const headers = { "Cache-Control": "private, no-store" };
+    if (!games.length) {
+      if (refresh) return NextResponse.json({ ok: true, refreshed: 0, games: [] }, { headers });
       return gameId ? NextResponse.json(null, { headers }) : NextResponse.json({ week, games: [] }, { headers });
+    }
+
+    if (!refresh) {
+      const ids = games.map(game => game.id);
+      const { data: savedRows, error: savedError } = await supabase
+        .from("cfb_model_snapshots")
+        .select("game_id,payload,fetched_at")
+        .in("game_id", ids)
+        .abortSignal(AbortSignal.timeout(5_000));
+      if (savedError) throw savedError;
+
+      const savedByGame = new Map((savedRows || []).map(row => [String(row.game_id), row]));
+      const projections = games.flatMap(game => {
+        const saved = savedByGame.get(game.id) as { payload?: { models?: Array<{ id: string; label: string; homeSpread: number }> }; fetched_at?: string } | undefined;
+        const models = Array.isArray(saved?.payload?.models) ? saved!.payload!.models! : [];
+        if (!models.length) return [];
+        const direct: CfbDirectProjection[] = models.flatMap(model =>
+          Number.isFinite(Number(model.homeSpread))
+            ? [{ id: String(model.id), label: String(model.label), homeSpread: Number(model.homeSpread) }]
+            : []
+        );
+        return [buildCfbModelProjection(game, [], direct, saved?.fetched_at || new Date().toISOString())];
+      });
+
+      if (gameId) {
+        if (!projections[0]) {
+          return NextResponse.json({ error: "Model snapshot is not ready yet. It refreshes daily." }, { status: 503, headers });
+        }
+        return NextResponse.json(projections[0], { headers });
+      }
+      return NextResponse.json({ week, games: projections }, { headers });
     }
 
     const seasons = Array.from(new Set(games.map(game => cfbSeasonForDate(game.commence_time))));
@@ -335,7 +405,7 @@ export async function GET(request: NextRequest) {
         await within(
           loadFei(season, games.filter(game => cfbSeasonForDate(game.commence_time) === season)),
           [],
-          2_000,
+          3_000,
           `FEI ${season}`
         )
       ] as const)),
@@ -344,13 +414,13 @@ export async function GET(request: NextRequest) {
         await within(
           loadMasseyDate(dateKey, games.filter(game => isoDateKey(game.commence_time) === dateKey)),
           new Map<string, number>(),
-          2_000,
+          3_000,
           `Massey ${dateKey}`
         )
       ] as const)),
       Promise.all(snapshotKeys.map(async ([key, value]) => [
         key,
-        await within(loadStoredCfbSnapshot(value.season, value.throughWeek), null, 1_500, `stored snapshot ${key}`)
+        await within(loadStoredCfbSnapshot(value.season, value.throughWeek), null, 2_000, `stored snapshot ${key}`)
       ] as const))
     ]);
 
@@ -358,12 +428,13 @@ export async function GET(request: NextRequest) {
     const feiBySeason = new Map(feiEntries);
     const masseyByDate = new Map(masseyEntries);
     const snapshots = new Map(snapshotEntries);
+    const refreshedAt = new Date().toISOString();
 
     const projections = games.map(game => {
       const season = cfbSeasonForDate(game.commence_time);
       const dateKey = isoDateKey(game.commence_time);
       const throughWeek = Math.max(0, officialCfbWeek(game.commence_time) - 1);
-      const bundle = ratingBundles.get(season) || { fetchedAt: new Date().toISOString(), sources: [] };
+      const bundle = ratingBundles.get(season) || { fetchedAt: refreshedAt, sources: [] };
       const feiRows = feiBySeason.get(season) || [];
       const masseyRows = masseyByDate.get(dateKey) || new Map<string, number>();
       const snapshot = snapshots.get(`${season}:${throughWeek}`) || null;
@@ -381,12 +452,36 @@ export async function GET(request: NextRequest) {
       const massey = masseyRows.get(game.id);
       if (massey != null) direct.push({ id: "massey", label: "Massey", homeSpread: massey });
 
-      return buildCfbModelProjection(game, validPairs, direct, bundle.fetchedAt);
+      return buildCfbModelProjection(game, validPairs, direct, refreshedAt);
     });
 
-    const headers = { "Cache-Control": "private, no-store" };
-    if (gameId) return NextResponse.json(projections[0] || null, { headers });
-    return NextResponse.json({ week, games: projections }, { headers });
+    const rows = projections
+      .filter(projection => projection.models.length > 0)
+      .map(projection => {
+        const game = games.find(item => item.id === projection.gameId)!;
+        return {
+          game_id: projection.gameId,
+          season: cfbSeasonForDate(game.commence_time),
+          official_week: officialCfbWeek(game.commence_time),
+          payload: { models: projection.models },
+          fetched_at: refreshedAt
+        };
+      });
+
+    if (rows.length) {
+      const { error: saveError } = await supabase
+        .from("cfb_model_snapshots")
+        .upsert(rows, { onConflict: "game_id" });
+      if (saveError) throw saveError;
+    }
+
+    console.info(`[cfb-model] daily refresh stored ${rows.length}/${games.length} upcoming projections`);
+    return NextResponse.json({
+      ok: true,
+      refreshedAt,
+      refreshed: rows.length,
+      games: projections.map(projection => ({ gameId: projection.gameId, models: projection.models.map(model => model.label) }))
+    }, { headers });
   } catch (error) {
     console.error("[cfb-model]", error);
     return NextResponse.json({ error: "Model data is temporarily unavailable. Please try again." }, { status: 503 });
