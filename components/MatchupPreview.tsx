@@ -6,15 +6,17 @@ import { createPortal } from "react-dom";
 import { LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
 import type { MatchupPayload, MatchupTeam, MatchupHistory } from "@/lib/cfbMatchup";
+import type { CfbModelProjection } from "@/lib/cfbModel";
 import { createAsyncCache } from "@/lib/asyncCache";
 import { formatOrdinalDate, matchupDateFormatter } from "@/lib/displayDates";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { teamDisplayName } from "@/lib/teamNames";
 
-type Tab = "matchup" | "form" | "history";
+type Tab = "matchup" | "form" | "history" | "model";
 type Unit = NonNullable<MatchupTeam["relative"]>["offense"];
 const getPreview = createAsyncCache<MatchupPayload>(5 * 60_000, 24);
 const getHistory = createAsyncCache<MatchupHistory>(15 * 60_000, 24);
+const getModel = createAsyncCache<CfbModelProjection>(10 * 60_000, 24);
 const signed = (value: number, digits = 1) => `${value > 0 ? "+" : ""}${value.toFixed(digits)}`;
 const metrics: Array<{ label: string; value: keyof Unit; rank: keyof Unit; format: (value: number) => string }> = [
   { label: "Adj. EPA / play", value: "adjustedEpa", rank: "adjustedEpaRank", format: value => signed(value, 3) },
@@ -35,6 +37,49 @@ async function requestData<T>(gameId: string, section: string, token: string): P
   const payload = await response.json();
   if (!response.ok) throw new Error(payload.error || "Matchup data could not load.");
   return payload as T;
+}
+
+async function requestModel(gameId: string, token: string): Promise<CfbModelProjection> {
+  const response = await fetch(`/api/cfb-model?gameId=${encodeURIComponent(gameId)}`, {
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-pickem-group": "shaw-family" },
+    cache: "no-store", signal: AbortSignal.timeout(25_000)
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "Model data could not load.");
+  return payload as CfbModelProjection;
+}
+
+function projectionText(team: string | null, spread: number | null) {
+  if (spread == null) return "—";
+  if (!team || Math.abs(spread) < 0.05) return "Pick'em";
+  const value = Number.isInteger(spread) ? spread.toFixed(0) : spread.toFixed(1);
+  return `${team} ${spread > 0 ? "+" : ""}${value}`;
+}
+
+function GoldStars({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return <span className="model-gold-stars" aria-label={`${count} model edge star${count === 1 ? "" : "s"}`}>{"★".repeat(count)}</span>;
+}
+
+function ModelTab({ model }: { model: CfbModelProjection }) {
+  const consensus = model.consensus;
+  return <div className="matchup-tab-body model-tab-body">
+    <section className="model-consensus-card">
+      <div className="model-consensus-topline"><small>MODEL CONSENSUS</small><GoldStars count={model.stars} /></div>
+      <strong className="model-consensus-line">{consensus ? projectionText(consensus.team, consensus.spread) : "Projection unavailable"}</strong>
+      <div className="model-consensus-meta">
+        <span><small>MARKET</small><b>{model.market.spread == null ? "—" : projectionText(model.market.team, model.market.spread)}</b></span>
+        <span><small>DIFFERENCE</small><b>{model.edgePoints == null ? "—" : `${model.edgePoints.toFixed(1)} pts`}</b></span>
+      </div>
+      {model.edgeTeam && model.stars > 0 && <p className="model-edge-copy">Models lean {model.edgeTeam} relative to the current market.</p>}
+    </section>
+    <section className="model-breakdown">
+      <div className="matchup-section-heading"><h3>Model Spreads</h3></div>
+      {model.models.length ? model.models.map(row => <div className="model-spread-row" key={row.id}><span>{row.label}</span><strong>{projectionText(row.team, row.spread)}</strong></div>) : <p className="matchup-empty-copy">No model ratings are available for both teams yet.</p>}
+      {consensus && <div className="model-spread-row model-spread-average"><span>Average</span><strong>{projectionText(consensus.team, consensus.spread)}</strong></div>}
+    </section>
+    <p className="matchup-data-note">Stars measure model-to-market spread difference: 1★ at 3+ points, 2★ at 5+ points, 3★ at 7+ points.</p>
+  </div>;
 }
 
 function Logo({ src, size = 40 }: { src?: string | null; size?: number }) {
@@ -131,12 +176,14 @@ function History({ history, away, home }: { history: MatchupHistory; away: strin
   </div>;
 }
 
-export default function MatchupPreview({ game, onClose }: { game: Game; onClose: () => void }) {
+export default function MatchupPreview({ game, onClose, showModel = false }: { game: Game; onClose: () => void; showModel?: boolean }) {
   const [tab, setTab] = useState<Tab>("matchup");
   const [payload, setPayload] = useState<MatchupPayload | null>(null);
   const [history, setHistory] = useState<MatchupHistory | null>(null);
+  const [model, setModel] = useState<CfbModelProjection | null>(null);
   const [error, setError] = useState("");
   const [historyError, setHistoryError] = useState("");
+  const [modelError, setModelError] = useState("");
   const [retry, setRetry] = useState(0);
   const [mounted, setMounted] = useState(false);
   const sheet = useRef<HTMLElement>(null);
@@ -175,7 +222,7 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
 
   useEffect(() => {
     let active = true;
-    setPayload(null); setHistory(null); setError(""); setHistoryError(""); setTab("matchup");
+    setPayload(null); setHistory(null); setModel(null); setError(""); setHistoryError(""); setModelError(""); setTab("matchup");
     const token = window.localStorage.getItem("pickem_session_token") || "";
     void getPreview(`${token}:${game.id}`, () => requestData<MatchupPayload>(game.id, "matchup", token))
       .then(data => { if (active) setPayload(data); })
@@ -194,22 +241,34 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
     return () => { active = false; };
   }, [tab, game.id, history, retry]);
 
+  useEffect(() => {
+    if (!showModel || tab !== "model" || model) return;
+    let active = true;
+    setModelError("");
+    const token = window.localStorage.getItem("pickem_session_token") || "";
+    void getModel(`${token}:${game.id}`, () => requestModel(game.id, token))
+      .then(data => { if (active) setModel(data); })
+      .catch(cause => { if (active) setModelError(cause instanceof Error ? cause.message : "Could not load model."); });
+    return () => { active = false; };
+  }, [showModel, tab, game.id, model, retry]);
+
   if (!mounted) return null;
-  const tabs: Array<[Tab, string]> = [["matchup", "Analytics"], ["form", "Form"], ["history", "History"]];
+  const tabs: Array<[Tab, string]> = [["matchup", "Analytics"], ["form", "Form"], ["history", "History"], ...(showModel ? [["model", "Model"] as [Tab, string]] : [])];
   return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="true" aria-label={`${away} at ${home} matchup preview`}>
       <header className="matchup-preview-header"><span>MATCHUP PREVIEW</span><button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={20} /></button></header>
       <div className="matchup-preview-kickoff">{formatOrdinalDate(matchupDateFormatter, new Date(game.commence_time))} CT</div>
       <div className="matchup-preview-hero">
-        {(["away", "home"] as const).map((side, index) => <div className="matchup-preview-team" key={side}><Logo src={side === "away" ? game.away_logo_url : game.home_logo_url} size={46} /><strong>{side === "away" ? away : home}</strong><span>{payload?.teams[side].resultsAvailable ? `${payload.teams[side].record.wins}–${payload.teams[side].record.losses}` : "—"}<b>{spreadText(normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread))}</b></span>{index === 0 && <small className="matchup-preview-at">AT</small>}</div>)}
+        {(["away", "home"] as const).map((side, index) => <div className="matchup-preview-team" key={side}><Logo src={side === "away" ? game.away_logo_url : game.home_logo_url} size={46} /><strong>{side === "away" ? away : home}</strong><span>{payload?.teams[side].resultsAvailable ? `${payload.teams[side].record.wins}–${payload.teams[side].record.losses}` : "—"}{normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread) != null && <b>{spreadText(normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread))}</b>}</span>{index === 0 && <small className="matchup-preview-at">AT</small>}</div>)}
       </div>
-      <nav className="matchup-preview-tabs" aria-label="Matchup sections">{tabs.map(([id, label]) => <button type="button" key={id} aria-current={tab === id ? "page" : undefined} className={tab === id ? "active" : ""} onClick={() => { setTab(id); sheet.current?.querySelector(".matchup-preview-scroll")?.scrollTo(0, 0); }}>{label}</button>)}</nav>
+      <nav className={`matchup-preview-tabs ${showModel ? "has-model-tab" : ""}`.trim()} aria-label="Matchup sections">{tabs.map(([id, label]) => <button type="button" key={id} aria-current={tab === id ? "page" : undefined} className={tab === id ? "active" : ""} onClick={() => { setTab(id); sheet.current?.querySelector(".matchup-preview-scroll")?.scrollTo(0, 0); }}>{label}</button>)}</nav>
       <div className="matchup-preview-scroll">
         {error && <div className="matchup-empty-copy" role="alert"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
         {!payload && !error && <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading matchup…</span></div>}
         {payload && tab === "matchup" && <Matchup payload={payload} awayLogo={game.away_logo_url} homeLogo={game.home_logo_url} />}
         {payload && tab === "form" && <div className="matchup-tab-body"><div className="matchup-split-lists"><FormTeam team={payload.teams.away} logo={game.away_logo_url} /><FormTeam team={payload.teams.home} logo={game.home_logo_url} /></div></div>}
         {payload && tab === "history" && (history ? <History history={history} away={away} home={home} /> : historyError ? <div className="matchup-empty-copy" role="alert"><p>{historyError}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div> : <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading history…</span></div>)}
+        {showModel && tab === "model" && (model ? <ModelTab model={model} /> : modelError ? <div className="matchup-empty-copy" role="alert"><p>{modelError}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div> : <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading model…</span></div>)}
       </div>
     </section>
   </div>, document.body);

@@ -1188,6 +1188,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [data, setData] = useState<AppData | null>(null);
   const [matchupPreviewGame, setMatchupPreviewGame] = useState<Game | null>(null);
   const closeMatchupPreview = useCallback(() => setMatchupPreviewGame(null), []);
+  const [cfbModelEdges, setCfbModelEdges] = useState<Record<string, { stars: number; edgePoints: number | null; edgeTeam: string | null }>>({});
   const [week, setWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [headerLogoReady, setHeaderLogoReady] = useState(false);
@@ -1512,6 +1513,36 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
   useEffect(() => { void load(null); return () => { loadSequence.current += 1; }; }, [load]);
   useEffect(() => { dataRef.current = data; }, [data]);
+  useEffect(() => {
+    const username = String(data?.currentUser?.username || "").trim().toLowerCase();
+    const enabled = appSlug === "shaw-family" && username === "kameron" && data?.week != null;
+    if (!enabled) {
+      setCfbModelEdges({});
+      return;
+    }
+    let active = true;
+    const token = window.localStorage.getItem("pickem_session_token") || "";
+    fetch(`/api/cfb-model?week=${encodeURIComponent(String(data!.week))}`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-pickem-group": appSlug },
+      cache: "no-store"
+    })
+      .then(async response => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Model edges unavailable.");
+        return payload;
+      })
+      .then(payload => {
+        if (!active) return;
+        const rows = Array.isArray(payload.games) ? payload.games : [];
+        setCfbModelEdges(Object.fromEntries(rows.map((row: { gameId: string; stars?: number; edgePoints?: number | null; edgeTeam?: string | null }) => [row.gameId, {
+          stars: Number(row.stars || 0),
+          edgePoints: row.edgePoints == null ? null : Number(row.edgePoints),
+          edgeTeam: row.edgeTeam || null
+        }])));
+      })
+      .catch(() => { if (active) setCfbModelEdges({}); });
+    return () => { active = false; };
+  }, [appSlug, data?.currentUser?.username, data?.week]);
   useEffect(() => {
     if (!data?.currentUser.id) return;
     const nextLedger = Array.isArray(data.sideBetLedger) ? data.sideBetLedger : [];
@@ -2171,7 +2202,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           <div className="game-days">
             {gameGroups.map((group) => <div className={`game-day-group ${statusFilter === "FINAL" ? "past-day-group" : ""}`} key={group.key}>
               <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong></div>
-              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} statusFilter={statusFilter} leagueFilter={leagueFilter} weekIsOpen={weekIsOpen} now={clock} pointsMode={pointsMode} addPick={addPick} openPreview={setMatchupPreviewGame} />)}</div>
+              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} statusFilter={statusFilter} leagueFilter={leagueFilter} weekIsOpen={weekIsOpen} now={clock} pointsMode={pointsMode} modelStars={cfbModelEdges[game.id]?.stars || 0} addPick={addPick} openPreview={setMatchupPreviewGame} />)}</div>
             </div>)}
           </div>
         </>}
@@ -2315,7 +2346,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       ? <GameTracker game={matchupPreviewGame} onClose={closeMatchupPreview} />
       : matchupPreviewGame.league === "NFL"
         ? <NflMatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} />
-        : <MatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} />)}
+        : <MatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} showModel={appSlug === "shaw-family" && String(currentUser.username || "").trim().toLowerCase() === "kameron"} />)}
     {!previewActive && stagedPicks !== null && autosaveBlockedSignatureRef.current !== pickCardSignature(stagedPicks) && !toast && <div className="autosave-toast" role="status" aria-live="polite"><LoaderCircle size={18} /><span>Saving…</span></div>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span><NumericText text={toast.message} /></span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
   </div>;
@@ -3237,7 +3268,7 @@ function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUser: Pro
   </div>;
 }
 
-function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, pointsMode, addPick, openPreview }: { game: Game; picks: Pick[]; statusFilter: GameStatusFilter; leagueFilter: LeagueFilter; weekIsOpen: boolean; now: number; pointsMode: boolean; addPick: (game: Game, team: string, pickType: PickType) => void; openPreview: (game: Game) => void }) {
+function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, pointsMode, modelStars = 0, addPick, openPreview }: { game: Game; picks: Pick[]; statusFilter: GameStatusFilter; leagueFilter: LeagueFilter; weekIsOpen: boolean; now: number; pointsMode: boolean; modelStars?: number; addPick: (game: Game, team: string, pickType: PickType) => void; openPreview: (game: Game) => void }) {
   const closed = isClosed(game) || !weekIsOpen;
   const hasFinalScore = game.final_away_score != null && game.final_home_score != null;
   const hasLiveScore = game.live_state !== "pre" && game.live_away_score != null && game.live_home_score != null;
@@ -3253,6 +3284,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
   const canChangeExisting = existing?.status === "draft" && existingMatchesView;
   const awayDogValue = teamDogValue(game, game.away_team);
   const homeDogValue = teamDogValue(game, game.home_team);
+  const hasSpread = Boolean(game.current_spread_team && game.current_spread != null && Number.isFinite(Number(game.current_spread)));
 
   function sideLine(team: string) {
     if (dogView) return dogLineText(game, team, pointsMode);
@@ -3340,7 +3372,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
       <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status"><NumericText text={livePeriodStatus(game)} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}</div>
       {gameIsLive && <button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>GameTracker</button>}
       {gameIsLive && liveSituation && <div className="game-live-situation"><LiveSituationText game={game} /></div>}
-      {!gameIsLive && <button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>{gameIsFinal ? "GameTracker" : "Matchup Preview"}</button>}
+      {!gameIsLive && <div className="matchup-preview-actions">{modelStars > 0 && game.league === "CFB" && !gameIsFinal && <span className="board-model-stars" aria-label={`${modelStars} model edge star${modelStars === 1 ? "" : "s"}`}>{"★".repeat(modelStars)}</span>}<button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>{gameIsFinal ? "GameTracker" : "Matchup Preview"}</button></div>}
     </div>
 
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
@@ -3352,7 +3384,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
       >
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
         {showScoreValues ? <span className="team-name-line"><BoardTeamName game={game} team={game.away_team} />{awayResultLine && <span className="team-board-market"><NumericText text={awayResultLine} /></span>}</span> : <BoardTeamName game={game} team={game.away_team} />}
-        {showScoreValues ? <span className="team-result-line"><PossessionIcon game={game} team={game.away_team} /><span className="team-result-score"><NumericText text={awayScore ?? "—"} /></span></span> : !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : <NumericText text={sideLine(game.away_team)} />}</span></span>}
+        {showScoreValues ? <span className="team-result-line"><PossessionIcon game={game} team={game.away_team} /><span className="team-result-score"><NumericText text={awayScore ?? "—"} /></span></span> : hasSpread && !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : <NumericText text={sideLine(game.away_team)} />}</span></span>}
       </button>
 
       <button
@@ -3363,7 +3395,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
       >
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
         {showScoreValues ? <span className="team-name-line"><BoardTeamName game={game} team={game.home_team} />{homeResultLine && <span className="team-board-market"><NumericText text={homeResultLine} /></span>}</span> : <BoardTeamName game={game} team={game.home_team} />}
-        {showScoreValues ? <span className="team-result-line"><PossessionIcon game={game} team={game.home_team} /><span className="team-result-score"><NumericText text={homeScore ?? "—"} /></span></span> : !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
+        {showScoreValues ? <span className="team-result-line"><PossessionIcon game={game} team={game.home_team} /><span className="team-result-score"><NumericText text={homeScore ?? "—"} /></span></span> : hasSpread && !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
       </button>
     </div>
   </article>;
