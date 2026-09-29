@@ -2231,6 +2231,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           saving={savingBet}
           savingBetId={savingBetId}
           offerNotificationCount={receivedNotificationCount + sentNotificationCount}
+          modelEdges={cfbModelEdges}
           setGame={(gameId) => { setBetGameId(gameId); setBetCreatorTeam(""); }}
           setGameLeague={(nextLeague) => { setBetLeagueFilter(nextLeague); setBetConferenceFilter("ALL"); setBetGameId(""); setBetCreatorTeam(""); }}
           setGameConference={(nextConference) => { setBetConferenceFilter(nextConference); setBetGameId(""); setBetCreatorTeam(""); }}
@@ -2548,7 +2549,7 @@ function ConfidenceOrder({ picks, regularTotal, saving, onMove }: { picks: Pick[
   </section>;
 }
 
-function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
+function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
   appSlug: AppSlug;
   view: BetView;
   setView: (value: BetView) => void;
@@ -2573,6 +2574,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   saving: boolean;
   savingBetId: string | null;
   offerNotificationCount: number;
+  modelEdges: Record<string, { stars: number; edgePoints: number | null; edgeTeam: string | null }>;
   setGame: (value: string) => void;
   setGameLeague: (value: SideBetLeagueFilter) => void;
   setGameConference: (value: string) => void;
@@ -2946,6 +2948,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
           market={marketQuotes[game.id]?.phase === offerPhase ? marketQuotes[game.id] : undefined}
           boardMarket={boardMarket}
           selectedTeam={selectedGame?.id === game.id ? selectedCreatorTeam : ""}
+          modelStars={modelEdges[game.id]?.stars || 0}
           disabled={!weekIsOpen || (() => {
             const quote = marketQuotes[game.id]?.phase === offerPhase ? marketQuotes[game.id] : undefined;
             return boardMarket === "total"
@@ -3067,7 +3070,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   </div>;
 }
 
-function SideBetGameCard({ game, market, boardMarket, selectedTeam, disabled, onSelect, openPreview }: { game: Game; market?: SideBetMarketQuote; boardMarket: SideBetBoardMarket; selectedTeam: string; disabled: boolean; onSelect: (game: Game, team: string) => void; openPreview: (game: Game) => void }) {
+function SideBetGameCard({ game, market, boardMarket, selectedTeam, disabled, modelStars = 0, onSelect, openPreview }: { game: Game; market?: SideBetMarketQuote; boardMarket: SideBetBoardMarket; selectedTeam: string; disabled: boolean; modelStars?: number; onSelect: (game: Game, team: string) => void; openPreview: (game: Game) => void }) {
   const lineFor = (team: string) => {
     if (boardMarket === "total") {
       if (!market?.total) return "—";
@@ -3080,7 +3083,7 @@ function SideBetGameCard({ game, market, boardMarket, selectedTeam, disabled, on
   return <article className={`game-card matchup-card side-bet-game-card ${disabled ? "closed" : ""} ${selectedTeam ? "selected" : ""}`.trim()}>
     <div className="game-head compact-game-head">
       <div className="game-time-group"><span className={live ? "game-live-status" : "game-time"}><NumericText text={live ? game.live_status || "Live" : timeText(game.commence_time)} /></span></div>
-      {!live && <button type="button" className="matchup-preview-trigger side-bet-matchup-preview-trigger" onClick={() => openPreview(game)}>Matchup Preview</button>}
+      {!live && <div className="matchup-preview-actions">{modelStars > 0 && game.league === "CFB" && <span className="board-model-stars" aria-label={`${modelStars} model edge star${modelStars === 1 ? "" : "s"}`}>{"★".repeat(modelStars)}</span>}<button type="button" className="matchup-preview-trigger side-bet-matchup-preview-trigger" onClick={() => openPreview(game)}>Matchup Preview</button></div>}
     </div>
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
       {[game.away_team, game.home_team].map((team) => <button
@@ -3095,7 +3098,7 @@ function SideBetGameCard({ game, market, boardMarket, selectedTeam, disabled, on
         <BoardTeamName game={game} team={team} />
         <span className={`team-spread ${boardMarket === "total" ? "side-bet-total-market" : ""}`.trim()}>{boardMarket === "total" && market?.total
           ? <><span className="side-bet-total-side">{team === game.away_team ? "O" : "U"}</span><NumericText text={market.total.points} /></>
-          : <NumericText text={lineFor(team)} />}</span>
+          : boardMarket === "spreads" && market?.spread ? <NumericText text={lineFor(team)} /> : null}</span>
       </button>)}
     </div>
   </article>;
