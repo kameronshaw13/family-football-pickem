@@ -689,11 +689,6 @@ export default function CommissionerProductionSim() {
     );
   }
 
-  if (screen !== "setup") {
-    setScreen("setup");
-    return null;
-  }
-
   return (
     <main className="production-sim">
       <ProductHeader screen="setup" onNavigate={navigate} />
