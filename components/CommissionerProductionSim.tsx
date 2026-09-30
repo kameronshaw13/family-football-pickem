@@ -388,6 +388,16 @@ export default function CommissionerProductionSim() {
   const [previewModal, setPreviewModal] = useState<PreviewModal>(null);
 
   useEffect(() => {
+    const removePreviewToolbar = () => {
+      document.querySelectorAll("vercel-live-feedback").forEach((element) => element.remove());
+    };
+    removePreviewToolbar();
+    const observer = new MutationObserver(removePreviewToolbar);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
