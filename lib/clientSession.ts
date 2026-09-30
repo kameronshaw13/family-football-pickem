@@ -23,9 +23,17 @@ function persistCookie(token: string) {
   document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(token)}; Max-Age=${SESSION_COOKIE_MAX_AGE_SECONDS}; Path=/; SameSite=Lax${secure}`;
 }
 
+function clearCookie() {
+  if (typeof document === "undefined") return;
+  document.cookie = `${SESSION_COOKIE}=; Max-Age=0; Path=/; SameSite=Lax`;
+}
+
 export function getClientSessionToken() {
   if (typeof window === "undefined") return "";
   try {
+    const sessionToken = window.sessionStorage.getItem(SESSION_TOKEN_KEY)?.trim() || "";
+    if (sessionToken) return sessionToken;
+
     const stored = window.localStorage.getItem(SESSION_TOKEN_KEY)?.trim() || "";
     if (stored) {
       persistCookie(stored);
@@ -43,27 +51,49 @@ export function getClientSessionToken() {
   return "";
 }
 
-export function storeClientSession(token: string, profile?: unknown) {
+export function getClientSessionProfile<T = unknown>(): T | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_PROFILE_KEY) || window.localStorage.getItem(SESSION_PROFILE_KEY);
+    return raw ? JSON.parse(raw) as T : null;
+  } catch {
+    return null;
+  }
+}
+
+export function storeClientSession(token: string, profile?: unknown, durable = true) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(SESSION_TOKEN_KEY, token);
-    if (profile !== undefined) window.localStorage.setItem(SESSION_PROFILE_KEY, JSON.stringify(profile));
+    if (durable) {
+      window.localStorage.setItem(SESSION_TOKEN_KEY, token);
+      window.sessionStorage.removeItem(SESSION_TOKEN_KEY);
+      if (profile !== undefined) {
+        window.localStorage.setItem(SESSION_PROFILE_KEY, JSON.stringify(profile));
+        window.sessionStorage.removeItem(SESSION_PROFILE_KEY);
+      }
+      persistCookie(token);
+    } else {
+      window.sessionStorage.setItem(SESSION_TOKEN_KEY, token);
+      window.localStorage.removeItem(SESSION_TOKEN_KEY);
+      if (profile !== undefined) {
+        window.sessionStorage.setItem(SESSION_PROFILE_KEY, JSON.stringify(profile));
+        window.localStorage.removeItem(SESSION_PROFILE_KEY);
+      }
+      clearCookie();
+    }
   } catch {
-    // The cookie still keeps the durable session available.
+    if (durable) persistCookie(token);
   }
-  persistCookie(token);
 }
 
 export function clearClientSession() {
   if (typeof window !== "undefined") {
     try {
+      window.sessionStorage.removeItem(SESSION_TOKEN_KEY);
+      window.sessionStorage.removeItem(SESSION_PROFILE_KEY);
       window.localStorage.removeItem(SESSION_TOKEN_KEY);
       window.localStorage.removeItem(SESSION_PROFILE_KEY);
-    } catch {
-      // Continue with cookie cleanup even when storage is unavailable.
-    }
+    } catch {}
   }
-  if (typeof document !== "undefined") {
-    document.cookie = `${SESSION_COOKIE}=; Max-Age=0; Path=/; SameSite=Lax`;
-  }
+  clearCookie();
 }
