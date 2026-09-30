@@ -1527,6 +1527,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     }
   }, [data?.groupRules?.productMode, data?.sideBetSettings?.enabled, picksView, tab]);
   useEffect(() => {
+    const eligible = (data?.groupRules?.eligibleLeagues || []).filter((league): league is "CFB" | "NFL" => league === "CFB" || league === "NFL");
+    if (eligible.length !== 1) return;
+    const onlyLeague = eligible[0];
+    if (leagueFilter !== "DOGS" && leagueFilter !== onlyLeague) setLeagueFilter(onlyLeague);
+    if (betLeagueFilter !== onlyLeague) setBetLeagueFilter(onlyLeague);
+  }, [betLeagueFilter, data?.groupRules?.eligibleLeagues, leagueFilter]);
+  useEffect(() => {
     const username = String(data?.currentUser?.username || "").trim().toLowerCase();
     const enabled = (appSlug === "shaw-family" || appSlug === "friends") && username === "kameron" && data?.week != null;
     if (!enabled) {
@@ -1951,6 +1958,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const viewedBankEntries = previewActive ? testWeek!.bankEntries : bankEntries;
   const viewedBankHistory = previewActive ? [] : data.bankHistory || [];
   const rule = previewActive ? getWeekRule(3) : data.weekRule || getWeekRule(data.week);
+  const eligibleFootballLeagues = ((data.groupRules?.eligibleLeagues || ["CFB", "NFL"])
+    .filter((league): league is "CFB" | "NFL" => league === "CFB" || league === "NFL"));
+  const boardLeagueFilters: LeagueFilter[] = [
+    ...eligibleFootballLeagues,
+    ...(rule.underdogTotal > 0 ? ["DOGS" as const] : [])
+  ];
   const boardActive = tab === "picks" && pickemEnabled && (!sideBetsEnabled || picksView === "board");
   const sideBetsActive = tab === "picks" && sideBetsEnabled && (!pickemEnabled || picksView === "sideBets");
   const standingsActive = tab === "standings" && standingsView === "standings";
@@ -2214,7 +2227,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         {pickemEnabled && (!sideBetsEnabled || picksView === "board") && <>
           <div className="view-select-row board-filter-row">
             <MenuSelect ariaLabel="Choose game status" className="compact-select status-select" value={statusFilter} sections={[{ options: (["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => { setStatusFilter(value as GameStatusFilter); setStatusFilterTouched(true); }} />
-            <MenuSelect ariaLabel="Choose league" className="compact-select league-select" value={leagueFilter} sections={[{ options: (["CFB", "NFL", "DOGS"] as LeagueFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => setLeagueFilter(value as LeagueFilter)} />
+            <MenuSelect ariaLabel="Choose league" className="compact-select league-select" value={leagueFilter} sections={[{ options: boardLeagueFilters.map((option) => ({ value: option, label: option })) }]} onChange={(value) => setLeagueFilter(value as LeagueFilter)} />
             {leagueFilter === "CFB" && <ConferenceFilter value={conferenceFilter} onChange={setConferenceFilter} />}
             {leagueFilter === "DOGS" && <MenuSelect ariaLabel="Filter dogs by win value" className="compact-select context-select" value={dogValueFilter} sections={[{ options: [{ value: "ALL", label: "ALL DOGS" }, ...(["1", "2", "3"] as const).map((value) => ({ value, label: dogBonusText(value, pointsMode) }))] }]} onChange={(value) => setDogValueFilter(value as DogValueFilter)} />}
           </div>
@@ -2237,6 +2250,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           maxPerWeek={data.sideBetSettings?.maxPerWeek ?? null}
           maxAmount={data.sideBetSettings?.maxAmount ?? MAX_SIDE_BET_AMOUNT}
           manualAmount={Boolean(data.sideBetSettings?.manualAmount)}
+          allowedLeagues={eligibleFootballLeagues}
           allowMoneyline={data.groupRules?.sideBets?.moneyline !== false}
           allowTotals={data.groupRules?.sideBets?.totals !== false}
           allowLive={data.groupRules?.sideBets?.live !== false}
@@ -2572,7 +2586,7 @@ function ConfidenceOrder({ picks, regularTotal, saving, onMove }: { picks: Pick[
   </section>;
 }
 
-function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, allowMoneyline, allowTotals, allowLive, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
+function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, allowedLeagues, allowMoneyline, allowTotals, allowLive, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
   appSlug: AppSlug;
   view: BetView;
   setView: (value: BetView) => void;
@@ -2583,6 +2597,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   maxPerWeek: number | null;
   maxAmount: number;
   manualAmount: boolean;
+  allowedLeagues: SideBetLeagueFilter[];
   allowMoneyline: boolean;
   allowTotals: boolean;
   allowLive: boolean;
@@ -2942,7 +2957,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
         ariaLabel="Filter side bet games by league"
         className="compact-select"
         value={gameLeague}
-        sections={[{ options: [{ value: "CFB", label: "CFB" }, { value: "NFL", label: "NFL" }] }]}
+        sections={[{ options: allowedLeagues.map((league) => ({ value: league, label: league })) }]}
         onChange={(value) => { setSlipExpanded(false); setGameLeague(value as SideBetLeagueFilter); }}
       />}
       {view === "new" && weekIsOpen && !weekConcluded && gameLeague === "CFB" && <MenuSelect
