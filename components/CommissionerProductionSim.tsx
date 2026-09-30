@@ -615,7 +615,7 @@ export default function CommissionerProductionSim() {
             >
               Create Account
             </button>
-            <p className="sim-auth-footnote">Prototype flow only — account credentials are not submitted yet.</p>
+            <p className="sim-auth-footnote">Development build — account persistence will be connected after the onboarding flow is finalized.</p>
           </div>
         </section>
       </main>
@@ -970,8 +970,8 @@ export default function CommissionerProductionSim() {
                   <SummaryRow label="Week opens" value={setup.weekOpen} />
                   {hasPickem && <SummaryRow label="Locks" value={setup.lockMode} />}
                 </div>
-                <button type="button" className="sim-create-button" onClick={() => setCreated(true)}>Simulate Checkout & Create League</button>
-                <p className="sim-fine-print">Prototype only — no payment or database record is created.</p>
+                <button type="button" className="sim-create-button" onClick={() => setCreated(true)}>Create League</button>
+                <p className="sim-fine-print">Development build — this flow is ready to be connected to league persistence and the existing member app.</p>
               </>
             )}
 
