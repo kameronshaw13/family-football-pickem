@@ -11,6 +11,7 @@ import { createAsyncCache } from "@/lib/asyncCache";
 import { formatOrdinalDate, matchupDateFormatter } from "@/lib/displayDates";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { teamDisplayName } from "@/lib/teamNames";
+import { getClientSessionToken } from "@/lib/clientSession";
 
 type Tab = "matchup" | "form" | "history" | "model";
 type Unit = NonNullable<MatchupTeam["relative"]>["offense"];
@@ -224,7 +225,7 @@ export default function MatchupPreview({ game, onClose, showModel = false, model
   useEffect(() => {
     let active = true;
     setPayload(null); setHistory(null); setModel(null); setError(""); setHistoryError(""); setModelError(""); setModelLoading(false); setTab("matchup");
-    const token = window.localStorage.getItem("pickem_session_token") || "";
+    const token = getClientSessionToken() || "";
     void getPreview(`${token}:${game.id}`, () => requestData<MatchupPayload>(game.id, "matchup", token))
       .then(data => { if (active) setPayload(data); })
       .catch(cause => { if (active) setError(cause instanceof Error ? cause.message : "Could not load matchup."); });
@@ -235,7 +236,7 @@ export default function MatchupPreview({ game, onClose, showModel = false, model
     if (tab !== "history" || history) return;
     let active = true;
     setHistoryError("");
-    const token = window.localStorage.getItem("pickem_session_token") || "";
+    const token = getClientSessionToken() || "";
     void getHistory(`${token}:${game.id}`, () => requestData<MatchupHistory>(game.id, "history", token))
       .then(data => { if (active) setHistory(data); })
       .catch(cause => { if (active) setHistoryError(cause instanceof Error ? cause.message : "Could not load history."); });
@@ -252,7 +253,7 @@ export default function MatchupPreview({ game, onClose, showModel = false, model
       setModelLoading(false);
       setModelError("Model request took too long. Try again.");
     }, 11_000);
-    const token = window.localStorage.getItem("pickem_session_token") || "";
+    const token = getClientSessionToken() || "";
     void getModel(`${modelGroup}:${token}:${game.id}:${retry}`, () => requestModel(game.id, token, modelGroup))
       .then(data => {
         if (!active) return;

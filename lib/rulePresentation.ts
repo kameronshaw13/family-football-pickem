@@ -1,6 +1,6 @@
 import { MAX_CUSTOM_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 
-export type AppSlug = "shaw-family" | "other-family" | "friends";
+export type AppSlug = string;
 export type RuleSection = { title: string; items: string[] };
 
 type PickRule = {
@@ -12,14 +12,30 @@ type PickRule = {
 };
 
 export type GroupRules = {
+  universalApp?: boolean;
+  productMode?: "pickem" | "pickem-sidebets" | "sidebets";
+  footballSlate?: "CFB" | "NFL" | "BOTH";
   eligibleLeagues?: string[];
   excludedTeams?: string[];
   pickRules?: { default?: PickRule; weekOverrides?: Record<string, PickRule> };
-  scoring?: { mode?: "record" | "confidence"; pushMultiplier?: number };
+  scoring?: { mode?: "record" | "confidence"; ranking?: "winning-percentage" | "total-wins"; pushMultiplier?: number };
   underdog?: { enabled?: boolean; minimumSpread?: number; tiers?: Array<{ min?: number; max?: number | null; bonusWins?: number }> };
   weeklyBank?: Record<string, number | string | boolean | null | undefined>;
   seasonPrizes?: Record<string, number | string | boolean | null | undefined>;
-  sideBets?: { enabled?: boolean; maxAmount?: number | null; maxPerWeek?: number | null; amountEntry?: string; fixedAmounts?: number[] };
+  sideBets?: {
+    enabled?: boolean;
+    maxAmount?: number | null;
+    maxPerWeek?: number | null;
+    amountEntry?: string;
+    fixedAmounts?: number[];
+    moneyline?: boolean;
+    totals?: boolean;
+    live?: boolean;
+    ledgerUnit?: "bucks" | "points";
+  };
+  schedule?: { weekOpen?: "monday-9" | "tuesday-9"; lockMode?: "kickoff" | "saturday-11" };
+  startMode?: "season" | "now";
+  startWeeks?: { CFB?: number | null; NFL?: number | null };
 };
 
 function numberValue(value: unknown, fallback: number) {
@@ -101,6 +117,58 @@ export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSect
   const week1 = pickRule(rules, 1, { regularTotal: 3, cfbMinimum: 3, nflMinimum: 0, underdogTotal: 1, perfectBonus: false });
   const week2 = pickRule(rules, 2, { regularTotal: 5, cfbMinimum: 5, nflMinimum: 0, underdogTotal: 1, perfectBonus: true });
   const mixed = pickRule(rules, 3, { regularTotal: 5, cfbMinimum: appSlug === "friends" ? 0 : 1, nflMinimum: appSlug === "friends" ? 0 : 1, underdogTotal: 1, perfectBonus: true });
+
+  if (rules.universalApp) {
+    const configured = pickRule(rules, 1, { regularTotal: 5, cfbMinimum: 0, nflMinimum: 0, underdogTotal: 1, perfectBonus: false });
+    const sections: RuleSection[] = [];
+    const productMode = rules.productMode || "pickem-sidebets";
+    const eligible = rules.eligibleLeagues?.length ? rules.eligibleLeagues : ["CFB", "NFL"];
+    const startText = eligible.map((league) => {
+      const start = rules.startWeeks?.[league as "CFB" | "NFL"];
+      return league + (start == null ? "" : " Week " + start);
+    }).join(" · ");
+
+    sections.push({ title: "League", items: [
+      "Eligible football: " + eligible.map((league) => league === "CFB" ? "College Football" : "NFL").join(" + ") + ".",
+      startText ? "League results begin with " + startText + "." : "The commissioner controls the league start week."
+    ] });
+
+    if (productMode !== "sidebets") {
+      const scoringText = rules.scoring?.mode === "confidence"
+        ? "Confidence Points: each regular pick receives one unique confidence value per week."
+        : rules.scoring?.ranking === "total-wins"
+        ? "Standings are ranked by total wins."
+        : "Standings are ranked by winning percentage.";
+      sections.push({ title: "Weekly Card", items: [
+        String(configured.regularTotal || 0) + " regular spread picks each week.",
+        Number(configured.underdogTotal || 0) > 0
+          ? String(configured.underdogTotal) + " dog pick" + (Number(configured.underdogTotal) === 1 ? "" : "s") + " each week."
+          : "Dog picks are disabled.",
+        scoringText
+      ] });
+      if (rules.underdog?.enabled !== false && Number(configured.underdogTotal || 0) > 0) {
+        sections.push({ title: "Dog Picks", items: dogItems(rules, rules.scoring?.mode === "confidence") });
+      }
+    }
+
+    if (rules.sideBets?.enabled !== false && productMode !== "pickem") {
+      const markets = ["Spreads"];
+      if (rules.sideBets?.moneyline !== false) markets.push("Moneylines");
+      if (rules.sideBets?.totals !== false) markets.push("Over / Unders");
+      sections.push({ title: "Side Bets", items: [
+        "Available markets: " + markets.join(", ") + ".",
+        rules.sideBets?.live === false ? "Live offers are disabled." : "Pregame and live offers are available.",
+        rules.sideBets?.ledgerUnit === "points" ? "The side-bet ledger is displayed in points." : "The side-bet ledger is displayed in bucks ($).",
+        "Football Pick'em records peer-to-peer results only; it does not hold or transfer funds."
+      ] });
+    }
+
+    sections.push({ title: "Schedule & Locks", items: [
+      rules.schedule?.weekOpen === "monday-9" ? "Each week opens Monday at 9:00 AM CT." : "Each week opens Tuesday at 9:00 AM CT.",
+      rules.schedule?.lockMode === "kickoff" ? "Each game locks at its scheduled kickoff." : "Weekend picks use the Saturday 11:00 AM CT lock."
+    ] });
+    return sections;
+  }
 
   if (appSlug === "other-family") {
     const pushMultiplier = numberValue(rules.scoring?.pushMultiplier, 0.5);

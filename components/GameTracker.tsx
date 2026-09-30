@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { ChevronDown, LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
 import { teamDisplayName } from "@/lib/teamNames";
+import { getClientSessionToken } from "@/lib/clientSession";
 
 type TrackerTab = "live" | "scoring" | "plays" | "box";
 type Side = "away" | "home";
@@ -111,7 +112,7 @@ function drivePeriod(drive: TrackerDrive) {
 }
 
 async function loadTracker(gameId: string) {
-  const token = window.localStorage.getItem("pickem_session_token") || "";
+  const token = getClientSessionToken() || "";
   const response = await fetch(`/api/game-tracker?gameId=${encodeURIComponent(gameId)}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     cache: "no-store"

@@ -10,6 +10,7 @@ import { createAsyncCache } from "@/lib/asyncCache";
 import { formatOrdinalDate, matchupDateFormatter } from "@/lib/displayDates";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { teamDisplayName } from "@/lib/teamNames";
+import { getClientSessionToken } from "@/lib/clientSession";
 
 type Tab = "matchup" | "form" | "history";
 type Snapshot = NonNullable<NflMatchupTeam["offense"]>;
@@ -234,7 +235,7 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
     setError("");
     setHistoryError("");
     setTab("matchup");
-    const token = window.localStorage.getItem("pickem_session_token") || "";
+    const token = getClientSessionToken() || "";
     void getPreview(`${token}:${game.id}`, () => requestData<NflMatchupPayload>(game.id, "matchup", token))
       .then(data => { if (active) setPayload(data); })
       .catch(cause => { if (active) setError(cause instanceof Error ? cause.message : "Could not load NFL matchup."); });
@@ -245,7 +246,7 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
     if (tab !== "history" || history) return;
     let active = true;
     setHistoryError("");
-    const token = window.localStorage.getItem("pickem_session_token") || "";
+    const token = getClientSessionToken() || "";
     void getHistory(`${token}:${game.id}`, () => requestData<NflMatchupHistory>(game.id, "history", token))
       .then(data => { if (active) setHistory(data); })
       .catch(cause => { if (active) setHistoryError(cause instanceof Error ? cause.message : "Could not load NFL history."); });
