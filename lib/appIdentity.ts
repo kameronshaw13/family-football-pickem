@@ -38,14 +38,17 @@ export function appSlugForPath(pathname: string): PickemAppSlug | null {
   return null;
 }
 
-export function appHomePath(appSlug: PickemAppSlug) {
-  return APP_IDENTITY_CONFIG[appSlug].homePath;
+export function appHomePath(appSlug: string) {
+  if (isPickemAppSlug(appSlug)) return APP_IDENTITY_CONFIG[appSlug].homePath;
+  return "/league/" + encodeURIComponent(appSlug);
 }
 
-export function appLoginPath(appSlug: PickemAppSlug) {
-  return APP_IDENTITY_CONFIG[appSlug].loginPath;
+export function appLoginPath(appSlug: string) {
+  if (isPickemAppSlug(appSlug)) return APP_IDENTITY_CONFIG[appSlug].loginPath;
+  return "/";
 }
 
-export function appWorkerScope(appSlug: PickemAppSlug) {
-  return APP_IDENTITY_CONFIG[appSlug].workerScope;
+export function appWorkerScope(appSlug: string) {
+  if (isPickemAppSlug(appSlug)) return APP_IDENTITY_CONFIG[appSlug].workerScope;
+  return "/";
 }

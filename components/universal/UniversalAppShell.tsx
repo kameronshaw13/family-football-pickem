@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Check, ChevronLeft, Eye, KeyRound, Link2, LockKeyhole, Mail, Plus, ShieldCheck, Users } from "lucide-react";
 import { getUniversalSupabase, setRememberMe } from "@/lib/universalAuthClient";
+import { clearClientSession, storeClientSession } from "@/lib/clientSession";
 
 type Membership = { role: string; group: { id: string; slug: string; name: string; short_name?: string | null; current_season_year: number } };
 type Stage = "loading" | "auth" | "home" | "create" | "created";
@@ -78,6 +79,8 @@ export default function UniversalAppShell() {
     const response = await fetch("/api/universal/bootstrap", { method: "POST", headers: { Authorization: "Bearer " + accessToken } });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Could not load account.");
+    const durableSession = window.sessionStorage.getItem("football_pickem_remember_me") !== "0";
+    storeClientSession(accessToken, payload.profile, durableSession);
     setProfile(payload.profile);
     setMemberships(payload.memberships || []);
     setStage("home");
@@ -151,6 +154,7 @@ export default function UniversalAppShell() {
 
   async function signOut() {
     await supabase.auth.signOut();
+    clearClientSession();
     setProfile(null); setMemberships([]); setStage("auth"); setMessage("");
   }
 
