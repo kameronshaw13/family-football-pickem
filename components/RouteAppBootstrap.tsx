@@ -16,7 +16,19 @@ export default function RouteAppBootstrap({ slug }: { slug: AppSlug }) {
     }
     document.documentElement.dataset.pickemGroup = slug;
     document.documentElement.dataset.pickemTheme = "shaw-retro";
+
+    let toolbarObserver: MutationObserver | null = null;
+    if (slug === "development") {
+      const removePreviewToolbar = () => {
+        document.querySelectorAll("vercel-live-feedback").forEach((element) => element.remove());
+      };
+      removePreviewToolbar();
+      toolbarObserver = new MutationObserver(removePreviewToolbar);
+      toolbarObserver.observe(document.documentElement, { childList: true, subtree: true });
+    }
+
     return () => {
+      toolbarObserver?.disconnect();
       if (document.documentElement.dataset.pickemGroup === slug) {
         delete document.documentElement.dataset.pickemGroup;
         delete document.documentElement.dataset.pickemTheme;
