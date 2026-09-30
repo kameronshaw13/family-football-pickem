@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import "./production-sim.css";
 
 export const metadata: Metadata = {
   title: "Football Pick'em",
