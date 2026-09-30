@@ -12,6 +12,7 @@ import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTe
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import type { BankHistoryWeek } from "@/lib/bankHistory";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
+import { computeGroupStandings } from "@/lib/groupScoring";
 import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, POWER_CONFERENCES } from "@/lib/cfbConferences";
 import MenuSelect from "@/components/MenuSelect";
 import NumericText from "@/components/NumericText";
@@ -956,21 +957,20 @@ function pickCardSignature(card: Pick[]) {
 
 function completeSeasonStandings(profiles: Profile[], rows: Standing[]) {
   const byUser = new Map(rows.map((row) => [row.user_id, row]));
-  const complete = profiles.map((profile) => byUser.get(profile.id) || {
-    user_id: profile.id,
-    display_name: profile.display_name,
-    wins: 0,
-    losses: 0,
-    pushes: 0,
-    win_pct: 0
-  });
-
-  return complete.sort((a, b) =>
-    (Number(b.win_pct) - Number(a.win_pct)) ||
-    (Number(b.wins) - Number(a.wins)) ||
-    (Number(a.losses) - Number(b.losses)) ||
-    a.display_name.localeCompare(b.display_name)
-  );
+  const ordered = rows.filter((row) => profiles.some((profile) => profile.id === row.user_id));
+  const missing = profiles
+    .filter((profile) => !byUser.has(profile.id))
+    .map((profile, index) => ({
+      user_id: profile.id,
+      display_name: profile.display_name,
+      wins: 0,
+      losses: 0,
+      pushes: 0,
+      win_pct: 0,
+      points: 0,
+      rank: ordered.length + index + 1
+    }));
+  return [...ordered, ...missing];
 }
 
 function buildTestWeek(profiles: Profile[], currentUserId: string) {
@@ -1987,7 +1987,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     ? []
     : previewActive
     ? testWeek!.standings
-    : data.weeklyStandingsByWeek?.[String(data.week)] || computeWeeklyStandings(profiles, picks);
+    : data.weeklyStandingsByWeek?.[String(data.week)] || computeGroupStandings(profiles, picks, data.groupRules || {});
   const bankResultWeek = previewActive ? 3 : data.week;
   const bankResultGames = previewActive ? testWeek!.games : games;
   const bankResultPicks = previewActive ? testWeek!.picks : picks;
@@ -1995,7 +1995,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     ? []
     : previewActive
     ? testWeek!.standings
-    : data.weeklyStandingsByWeek?.[String(bankResultWeek)] || computeWeeklyStandings(profiles, bankResultPicks);
+    : data.weeklyStandingsByWeek?.[String(bankResultWeek)] || computeGroupStandings(profiles, bankResultPicks, data.groupRules || {});
   const bankWeekAmounts = bankActive ? Object.fromEntries(profiles.map((profile) => {
     const entries = viewedBankEntries.filter((entry) => entry.week === bankResultWeek && entry.user_id === profile.id);
     return [profile.id, entries.length ? entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : null];
