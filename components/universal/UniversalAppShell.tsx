@@ -62,6 +62,19 @@ function Toggle({ checked, title, detail, onChange }: { checked: boolean; title:
   </button>;
 }
 
+function ProductHeader({ label }: { label?: string }) {
+  return <header className="scoreboard-header">
+    <div className="scoreboard-main">
+      <div className="brand-lockup">
+        <Image className="header-wordmark" src="/football-pickem-wordmark.png" alt="Football Pick'em" width={800} height={100} priority />
+      </div>
+      <div className="header-actions">
+        {label ? <div className="test-week-chip">{label}</div> : null}
+      </div>
+    </div>
+  </header>;
+}
+
 export default function UniversalAppShell() {
   const supabase = useMemo(() => getUniversalSupabase(), []);
   const [stage, setStage] = useState<Stage>("loading");
@@ -244,58 +257,82 @@ export default function UniversalAppShell() {
     } finally { setWorking(false); }
   }
 
-  if (stage === "loading") return <main className="universal-loading-shell"><div className="universal-loading-brand"><Image src="/football-pickem-wordmark.png" alt="Football Pick'em" width={800} height={100} priority /><span>Loading your account…</span></div></main>;
+  if (stage === "loading") return <div className="app-shell universal-entry-app">
+    <ProductHeader label="ACCOUNT" />
+    <main className="container universal-account-container"><section className="panel universal-account-panel universal-account-loading"><span className="spinner" />Loading your account…</section></main>
+  </div>;
 
-  if (stage === "auth") return <main className="universal-entry">
-    <section className="universal-entry-hero">
-      <Image src="/football-pickem-wordmark.png" alt="Football Pick'em" width={800} height={100} priority />
-      <span className="universal-eyebrow">YOUR LEAGUE. YOUR RULES.</span>
-      <h1>Pick games. Challenge friends. Follow every snap.</h1>
-      <p>Run a custom football league with weekly Pick&apos;em, peer-to-peer side bets, advanced matchup research and GameTracker.</p>
-      <Link href="/demo" className="universal-demo-cta"><Eye size={18} /><span><strong>Try Demo Mode</strong><small>No account needed · full sample week</small></span><ArrowRight size={18} /></Link>
-    </section>
+  if (stage === "auth") return <div className="app-shell universal-entry-app">
+    <ProductHeader label={authMode === "signin" ? "SIGN IN" : "CREATE"} />
+    <main className="container universal-account-container">
+      <section className="panel universal-account-panel">
+        <div className="section-tabs">
+          <button className={authMode==="signin"?"active":""} onClick={()=>setAuthMode("signin")}>Sign In</button>
+          <button className={authMode==="signup"?"active":""} onClick={()=>setAuthMode("signup")}>Create Account</button>
+        </div>
 
-    <section className="universal-login-card">
-      <div className="universal-auth-tabs"><button className={authMode==="signin"?"active":""} onClick={()=>setAuthMode("signin")}>Sign In</button><button className={authMode==="signup"?"active":""} onClick={()=>setAuthMode("signup")}>Create Account</button></div>
-      <div className="universal-login-copy"><span>{authMode==="signin"?"WELCOME BACK":"NEW ACCOUNT"}</span><h2>{authMode==="signin"?"Sign in to your leagues.":"Create your Football Pick'em account."}</h2></div>
-      {authMode==="signup" && <label className="universal-input"><span>Name</span><input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" autoComplete="name" /></label>}
-      <label className="universal-input"><span>Email</span><div><Mail size={16}/><input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="you@example.com" autoComplete="email" /></div></label>
-      <label className="universal-input"><span>Password</span><div><LockKeyhole size={16}/><input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder={authMode==="signup"?"8+ characters":"Password"} autoComplete={authMode==="signup"?"new-password":"current-password"} /></div></label>
-      {authMode==="signin" && <div className="universal-login-options"><label><input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)} />Keep me signed in</label><button onClick={()=>setForgotOpen(true)}>Forgot password?</button></div>}
-      {message && <div className="universal-form-message">{message}</div>}
-      <button className="universal-primary-button" disabled={working || !email || password.length<6 || (authMode==="signup"&&!name.trim())} onClick={submitAuth}>{working?"Working…":authMode==="signin"?"Sign In":"Create Account"}</button>
-      <small className="universal-legal">Football Pick&apos;em records peer-to-peer side bets but does not hold or transfer funds.</small>
-    </section>
+        <div className="universal-account-heading">
+          <span className="universal-eyebrow">{authMode==="signin"?"WELCOME BACK":"NEW ACCOUNT"}</span>
+          <h1>{authMode==="signin"?"Football Pick'em":"Create your account"}</h1>
+          <p>{authMode==="signin"?"Sign in to open your leagues.":"Create one account, then join a league or start your own."}</p>
+        </div>
 
-    {forgotOpen && <div className="universal-modal-backdrop"><section className="universal-small-modal"><button className="universal-modal-close" onClick={()=>setForgotOpen(false)}>×</button><KeyRound size={24}/><h2>Reset password</h2><p>We’ll email a secure link to the address above.</p><button className="universal-primary-button" disabled={working} onClick={resetPassword}>Send Reset Link</button></section></div>}
-  </main>;
+        {authMode==="signup" && <label className="universal-input"><span>Name</span><div><Users size={16}/><input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" autoComplete="name" /></div></label>}
+        <label className="universal-input"><span>Email</span><div><Mail size={16}/><input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="you@example.com" autoComplete="email" /></div></label>
+        <label className="universal-input"><span>Password</span><div><LockKeyhole size={16}/><input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder={authMode==="signup"?"8+ characters":"Password"} autoComplete={authMode==="signup"?"new-password":"current-password"} /></div></label>
 
-  if (stage === "home") return <main className="universal-dashboard">
-    <header className="universal-topbar"><Image src="/football-pickem-wordmark.png" alt="Football Pick'em" width={800} height={100}/><button onClick={signOut}>Sign out</button></header>
-    <section className="universal-dashboard-inner">
-      <div className="universal-welcome"><span className="universal-eyebrow">WELCOME BACK</span><h1>{profile?.display_name || "Player"}</h1><p>{memberships.length ? "Choose a league or start another one." : "You’re ready. Join a league or create your own."}</p></div>
-      {memberships.length>0 && <div className="universal-league-list">{memberships.map((m)=>{
-        const commissioner = m.role==="admin" || m.role==="owner";
-        const memberText = m.playerLimit == null
-          ? `${m.memberCount} member${m.memberCount===1?"":"s"}`
-          : `${m.memberCount}/${m.playerLimit} members`;
-        return <div key={m.group.id} className="universal-league-card">
-          <Link href={"/league/"+m.group.slug} className="universal-league-card-main"><span><strong>{m.group.name}</strong><small>{commissioner?"Commissioner":"Member"} · {memberText} · {m.group.current_season_year}</small></span><ArrowRight size={18}/></Link>
-          {commissioner && m.inviteCode && <button type="button" className="universal-league-invite-button" onClick={()=>void copyLeagueInvite(m)}><Link2 size={15}/><span>Invite</span></button>}
-        </div>;
-      })}</div>}
-      <div className="universal-action-grid">
-        <button onClick={openCreate} className="universal-action-card primary"><Plus/><span><strong>Create a League</strong><small>Set every rule and invite your group.</small></span><ArrowRight/></button>
-        <div className="universal-action-card"><Users/><span><strong>Join a League</strong><small>Enter the commissioner’s invite code.</small></span><div className="universal-join-inline"><input value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} placeholder="LEAGUE CODE"/><button disabled={working||joinCode.length<4} onClick={joinLeague}>Join</button></div></div>
-      </div>
-      <Link href="/demo" className="universal-secondary-link"><Eye size={16}/>Open Demo Mode</Link>
-      {message && <div className="universal-form-message">{message}</div>}
-    </section>
-  </main>;
+        {authMode==="signin" && <div className="universal-login-options"><label><input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)} />Keep me signed in</label><button onClick={()=>setForgotOpen(true)}>Forgot password?</button></div>}
+        {message && <div className="error-card universal-auth-error">{message}</div>}
+
+        <button className="btn gold full universal-auth-submit" disabled={working || !email || password.length<6 || (authMode==="signup"&&!name.trim())} onClick={submitAuth}>{working?"Working…":authMode==="signin"?"Sign In":"Create Account"}</button>
+
+        <div className="universal-demo-divider"><span>OR</span></div>
+        <Link href="/demo" className="universal-demo-real-link"><Eye size={18}/><span><strong>Open Demo Mode</strong><small>Use the actual app before creating an account</small></span><ArrowRight size={18}/></Link>
+
+        <small className="universal-legal">Football Pick&apos;em records peer-to-peer side bets but does not hold or transfer funds.</small>
+      </section>
+    </main>
+
+    {forgotOpen && <div className="universal-modal-backdrop"><section className="universal-small-modal"><button className="universal-modal-close" onClick={()=>setForgotOpen(false)}>×</button><KeyRound size={24}/><h2>Reset password</h2><p>We’ll email a secure link to the address above.</p><button className="btn gold full" disabled={working} onClick={resetPassword}>Send Reset Link</button></section></div>}
+  </div>;
+
+  if (stage === "home") return <div className="app-shell universal-entry-app">
+    <ProductHeader label="MY LEAGUES" />
+    <main className="container universal-account-container">
+      <section className="panel universal-leagues-panel">
+        <div className="section-title">
+          <div><h2>{profile?.display_name || "Player"}</h2><p>{memberships.length ? "Choose a league or create another one." : "Join a league or create your first one."}</p></div>
+          <button className="btn" onClick={signOut}>Sign Out</button>
+        </div>
+
+        {memberships.length>0 && <div className="universal-league-list">{memberships.map((m)=>{
+          const commissioner = m.role==="admin" || m.role==="owner";
+          const memberText = m.playerLimit == null
+            ? `${m.memberCount} member${m.memberCount===1?"":"s"}`
+            : `${m.memberCount}/${m.playerLimit} members`;
+          return <div key={m.group.id} className="universal-league-card">
+            <Link href={"/league/"+m.group.slug} className="universal-league-card-main"><span><strong>{m.group.name}</strong><small>{commissioner?"Commissioner":"Member"} · {memberText} · {m.group.current_season_year}</small></span><ArrowRight size={18}/></Link>
+            {commissioner && m.inviteCode && <button type="button" className="universal-league-invite-button" onClick={()=>void copyLeagueInvite(m)}><Link2 size={15}/><span>Invite</span></button>}
+          </div>;
+        })}</div>}
+
+        <div className="universal-home-actions">
+          <button onClick={openCreate} className="btn gold full"><Plus size={17}/>Create a League</button>
+          <div className="universal-join-panel">
+            <span><Users size={17}/><strong>Join a League</strong></span>
+            <div className="universal-join-inline"><input value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} placeholder="LEAGUE CODE"/><button disabled={working||joinCode.length<4} onClick={joinLeague}>Join</button></div>
+          </div>
+          <Link href="/demo" className="universal-demo-real-link compact"><Eye size={17}/><span><strong>Demo Mode</strong><small>Open the real app with demo data</small></span><ArrowRight size={17}/></Link>
+        </div>
+
+        {message && <div className="error-card universal-auth-error">{message}</div>}
+      </section>
+    </main>
+  </div>;
 
   if (stage === "created" && created) {
     const inviteUrl = typeof window !== "undefined" ? window.location.origin + "/join/" + created.inviteCode : "";
-    return <main className="universal-dashboard"><header className="universal-topbar"><Image src="/football-pickem-wordmark.png" alt="Football Pick'em" width={800} height={100}/></header><section className="universal-created-view"><span className="universal-success-icon"><Check/></span><span className="universal-eyebrow">LEAGUE CREATED</span><h1>{created.group.name}</h1><p>Your league is ready. Members join free with your code or invite link.</p><div className="universal-invite-box"><span><small>LEAGUE CODE</small><strong>{created.inviteCode}</strong></span><button onClick={()=>navigator.clipboard?.writeText(inviteUrl)}><Link2 size={16}/>Copy Invite Link</button></div><div className="universal-created-actions"><Link href={"/league/"+created.group.slug} className="universal-primary-link">Enter League</Link><button onClick={()=>setStage("home")}>Back to My Leagues</button></div></section></main>;
+    return <div className="app-shell universal-entry-app"><ProductHeader label="LEAGUE CREATED" /><section className="universal-created-view"><span className="universal-success-icon"><Check/></span><span className="universal-eyebrow">LEAGUE CREATED</span><h1>{created.group.name}</h1><p>Your league is ready. Members join free with your code or invite link.</p><div className="universal-invite-box"><span><small>LEAGUE CODE</small><strong>{created.inviteCode}</strong></span><button onClick={()=>navigator.clipboard?.writeText(inviteUrl)}><Link2 size={16}/>Copy Invite Link</button></div><div className="universal-created-actions"><Link href={"/league/"+created.group.slug} className="universal-primary-link">Enter League</Link><button onClick={()=>setStage("home")}>Back to My Leagues</button></div></section></div>;
   }
 
   const hasPickem = league.format !== "sidebets";
@@ -304,9 +341,10 @@ export default function UniversalAppShell() {
   const logical = [0,1,2].concat(hasPickem?[3]:[]).concat(hasSideBets?[4]:[]).concat([5,6]);
   const logicalStep = logical[setupStep] ?? 0;
 
-  return <main className="universal-setup">
-    <header className="universal-topbar"><button className="universal-back-home" onClick={()=>setStage("home")}><ChevronLeft/>My Leagues</button><Image src="/football-pickem-wordmark.png" alt="Football Pick'em" width={800} height={100}/><span /></header>
+  return <div className="app-shell universal-entry-app">
+    <ProductHeader label="CREATE LEAGUE" />
     <div className="universal-setup-layout">
+      <button className="universal-setup-back" onClick={()=>setStage("home")}><ChevronLeft size={16}/>My Leagues</button>
       <aside className="universal-step-rail"><span className="universal-eyebrow">CREATE LEAGUE</span><h2>{league.leagueName||"New League"}</h2>{steps.map((s,i)=><div key={s} className={i===setupStep?"active":i<setupStep?"done":""}><i>{i<setupStep?<Check size={12}/>:i+1}</i><span>{s}</span></div>)}</aside>
       <section key={logicalStep} className="universal-setup-card">
         <div className="universal-mobile-progress"><span>Step {setupStep+1} of {steps.length}</span><b style={{width:((setupStep+1)/steps.length*100)+"%"}}/></div>
@@ -320,5 +358,5 @@ export default function UniversalAppShell() {
         <footer className="universal-wizard-actions"><button disabled={setupStep===0} onClick={()=>setSetupStep(Math.max(0,setupStep-1))}>Back</button>{setupStep<steps.length-1&&<button className="primary" onClick={()=>setSetupStep(Math.min(steps.length-1,setupStep+1))}>Continue<ArrowRight size={16}/></button>}</footer>
       </section>
     </div>
-  </main>;
+  </div>;
 }
