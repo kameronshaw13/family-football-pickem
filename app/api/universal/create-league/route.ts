@@ -27,6 +27,13 @@ function slugBase(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 38) || "league";
 }
 
+function inviteMaxUses(tier: "1-10" | "11-24" | "25-39" | "40+") {
+  if (tier === "1-10") return 9;
+  if (tier === "11-24") return 23;
+  if (tier === "25-39") return 38;
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   const auth = await requireUniversalProfile(req);
   if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
@@ -130,7 +137,8 @@ export async function POST(req: NextRequest) {
       group_id: group.id,
       code: inviteCode,
       created_by_profile_id: auth.profile.id,
-      is_active: true
+      is_active: true,
+      max_uses: inviteMaxUses(body.playerTier)
     });
     if (inviteError) { await cleanup(); return NextResponse.json({ ok: false, error: inviteError.message }, { status: 500 }); }
 

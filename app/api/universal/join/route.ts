@@ -23,12 +23,35 @@ export async function POST(req: NextRequest) {
     if (inviteError) return NextResponse.json({ ok: false, error: inviteError.message }, { status: 500 });
     if (!invite || !invite.is_active) return NextResponse.json({ ok: false, error: "That invite code is not active." }, { status: 404 });
     if (invite.expires_at && new Date(invite.expires_at).getTime() < Date.now()) return NextResponse.json({ ok: false, error: "That invite link has expired." }, { status: 410 });
-    if (invite.max_uses != null && invite.use_count >= invite.max_uses) return NextResponse.json({ ok: false, error: "That invite has reached its member limit." }, { status: 409 });
+
+    const { data: existingMembership, error: membershipLookupError } = await supabase
+      .from("group_members")
+      .select("role,status")
+      .eq("group_id", invite.group_id)
+      .eq("profile_id", auth.profile.id)
+      .maybeSingle();
+    if (membershipLookupError) return NextResponse.json({ ok: false, error: membershipLookupError.message }, { status: 500 });
+    if (existingMembership?.status === "active") {
+      return NextResponse.json({ ok: true, group: invite.pickem_groups, alreadyMember: true });
+    }
+
+    if (invite.max_uses != null) {
+      const { count, error: countError } = await supabase
+        .from("group_members")
+        .select("profile_id", { count: "exact", head: true })
+        .eq("group_id", invite.group_id)
+        .eq("status", "active");
+      if (countError) return NextResponse.json({ ok: false, error: countError.message }, { status: 500 });
+      const totalPlayerLimit = Number(invite.max_uses) + 1;
+      if (Number(count || 0) >= totalPlayerLimit) {
+        return NextResponse.json({ ok: false, error: "That league has reached its player limit." }, { status: 409 });
+      }
+    }
 
     const { error: memberError } = await supabase.from("group_members").upsert({
       group_id: invite.group_id,
       profile_id: auth.profile.id,
-      role: "member",
+      role: existingMembership?.role || "member",
       status: "active",
       joined_at: new Date().toISOString()
     }, { onConflict: "group_id,profile_id" });
