@@ -1967,7 +1967,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const cardIsFullyLocked = cardPicks.length >= requiredCardPicks && allSubmittedPicksLocked;
   const hideCardProgress = universalLockReached || cardIsFullyLocked;
   const myRegular = orderCardPicks(cardPicks.filter((p) => p.pick_type === "regular"), viewedGames, pointsMode);
-  const myUnderdog = cardPicks.find((p) => p.pick_type === "underdog");
+  const myDogs = orderCardPicks(cardPicks.filter((p) => p.pick_type === "underdog"), viewedGames, false);
   const regularCounts = countRegularByLeague(cardPicks, viewedGames);
   const seasonStandings = standingsActive ? (previewActive ? testWeek!.standings : completeSeasonStandings(profiles, standings)) : [];
   const weeklyStandings = !standingsActive
@@ -2092,7 +2092,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     const nextDogs = nextCard.filter((pick) => pick.pick_type === "underdog");
     const counts = countRegularByLeague(nextCard, games);
     if (nextRegular.length > rule.regularTotal) return notify(`This week allows ${rule.regularTotal} regular picks.`, "error");
-    if (nextDogs.length > rule.underdogTotal) return notify("Only one underdog pick is allowed.", "error");
+    if (nextDogs.length > rule.underdogTotal) return notify(`This week allows ${rule.underdogTotal} dog pick${rule.underdogTotal === 1 ? "" : "s"}.`, "error");
     if (counts.cfb > rule.regularTotal - rule.nflMinimum) return notify(`This week requires ${rule.nflMinimum} NFL regular pick${rule.nflMinimum === 1 ? "" : "s"}.`, "error");
     if (counts.nfl > rule.regularTotal - rule.cfbMinimum) return notify(`This week requires ${rule.cfbMinimum} CFB regular pick${rule.cfbMinimum === 1 ? "" : "s"}.`, "error");
     stageCard(nextCard);
@@ -2271,9 +2271,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       {tab === "card" && pickemEnabled && <section className="panel card-panel">
         <SectionTabs items={[{ id: "mine", label: "My Card", badge: myCardNotificationCount }, { id: "group", label: "League Cards", badge: leagueCardsNotificationCount }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
         {cardView === "mine" && <>
-          {!hideCardProgress && <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />}
+          {!hideCardProgress && <CardProgress rule={rule} counts={regularCounts} dogCount={myDogs.length} dirty={stagedPicks !== null} />}
           <PickList
-            picks={myUnderdog ? [...myRegular, myUnderdog] : myRegular}
+            picks={[...myRegular, ...myDogs]}
             games={viewedGames}
             title="Picks"
             pointsMode={pointsMode}
@@ -3455,13 +3455,16 @@ function PossessionIcon({ game, team }: { game: Game; team: string }) {
   </span>;
 }
 
-function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number }; hasDog: boolean; dirty: boolean }) {
-  const ok = counts.total === rule.regularTotal && counts.cfb >= rule.cfbMinimum && counts.nfl >= rule.nflMinimum && hasDog;
-  const completeSlots = Math.min(counts.total + Number(hasDog), rule.regularTotal + 1);
-  const progress = completeSlots / (rule.regularTotal + 1) * 100;
+function CardProgress({ rule, counts, dogCount, dirty }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number }; dogCount: number; dirty: boolean }) {
+  const dogsComplete = dogCount === rule.underdogTotal;
+  const ok = counts.total === rule.regularTotal && counts.cfb >= rule.cfbMinimum && counts.nfl >= rule.nflMinimum && dogsComplete;
+  const totalSlots = rule.regularTotal + rule.underdogTotal;
+  const completeSlots = Math.min(counts.total, rule.regularTotal) + Math.min(dogCount, rule.underdogTotal);
+  const progress = totalSlots > 0 ? completeSlots / totalSlots * 100 : 100;
+  const dogText = rule.underdogTotal > 0 ? ` · dogs ${dogCount}/${rule.underdogTotal}` : "";
   const countText = rule.phase === "opening" || rule.phase === "college"
-    ? `${counts.cfb}/${rule.regularTotal} CFB spreads · dog ${hasDog ? "set" : "open"}`
-    : `${counts.total}/${rule.regularTotal} spreads · ${counts.cfb} CFB · ${counts.nfl} NFL · dog ${hasDog ? "set" : "open"}`;
+    ? `${counts.cfb}/${rule.regularTotal} CFB spreads${dogText}`
+    : `${counts.total}/${rule.regularTotal} spreads · ${counts.cfb} CFB · ${counts.nfl} NFL${dogText}`;
   return <div className={`card-progress ${ok ? "complete" : ""} ${dirty ? "dirty" : ""}`}>
     <div className="card-progress-copy">
       <div className="card-progress-heading">
