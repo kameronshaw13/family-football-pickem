@@ -77,7 +77,13 @@ function notificationStakeText(risk: number, win: number) {
 }
 
 function groupNotificationUrl(slug: string, destination: string) {
-  const base = slug === "friends" ? "/friends" : slug === "other-family" ? "/caleb-family" : "/";
+  const base = slug === "friends"
+    ? "/friends"
+    : slug === "other-family"
+      ? "/caleb-family"
+      : slug === "shaw-family"
+        ? "/"
+        : "/league/" + encodeURIComponent(slug);
   return `${base}?notification=${encodeURIComponent(destination)}`;
 }
 
