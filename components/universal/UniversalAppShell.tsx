@@ -7,7 +7,13 @@ import { ArrowRight, Check, ChevronLeft, Eye, KeyRound, Link2, LockKeyhole, Mail
 import { getUniversalSupabase, setRememberMe } from "@/lib/universalAuthClient";
 import { clearClientSession, storeClientSession } from "@/lib/clientSession";
 
-type Membership = { role: string; group: { id: string; slug: string; name: string; short_name?: string | null; current_season_year: number } };
+type Membership = {
+  role: string;
+  memberCount: number;
+  playerLimit: number | null;
+  inviteCode: string | null;
+  group: { id: string; slug: string; name: string; short_name?: string | null; current_season_year: number };
+};
 type Stage = "loading" | "auth" | "home" | "create" | "created";
 type AuthMode = "signin" | "signup";
 type LeagueFormat = "pickem" | "pickem-sidebets" | "sidebets";
@@ -183,6 +189,17 @@ export default function UniversalAppShell() {
     setProfile(null); setMemberships([]); setStage("auth"); setMessage("");
   }
 
+  async function copyLeagueInvite(membership: Membership) {
+    if (!membership.inviteCode) return;
+    const inviteUrl = window.location.origin + "/join/" + membership.inviteCode;
+    try {
+      await navigator.clipboard?.writeText(inviteUrl);
+      setMessage(`Invite link copied for ${membership.group.name}.`);
+    } catch {
+      setMessage(`League code: ${membership.inviteCode}`);
+    }
+  }
+
   async function joinLeague() {
     const session = (await supabase.auth.getSession()).data.session;
     if (!session?.access_token) return;
@@ -257,7 +274,16 @@ export default function UniversalAppShell() {
     <header className="universal-topbar"><Image src="/football-pickem-wordmark.png" alt="Football Pick'em" width={800} height={100}/><button onClick={signOut}>Sign out</button></header>
     <section className="universal-dashboard-inner">
       <div className="universal-welcome"><span className="universal-eyebrow">WELCOME BACK</span><h1>{profile?.display_name || "Player"}</h1><p>{memberships.length ? "Choose a league or start another one." : "You’re ready. Join a league or create your own."}</p></div>
-      {memberships.length>0 && <div className="universal-league-list">{memberships.map((m)=><Link key={m.group.id} href={"/league/"+m.group.slug} className="universal-league-card"><span><strong>{m.group.name}</strong><small>{m.role==="admin"?"Commissioner":"Member"} · {m.group.current_season_year}</small></span><ArrowRight size={18}/></Link>)}</div>}
+      {memberships.length>0 && <div className="universal-league-list">{memberships.map((m)=>{
+        const commissioner = m.role==="admin" || m.role==="owner";
+        const memberText = m.playerLimit == null
+          ? `${m.memberCount} member${m.memberCount===1?"":"s"}`
+          : `${m.memberCount}/${m.playerLimit} members`;
+        return <div key={m.group.id} className="universal-league-card">
+          <Link href={"/league/"+m.group.slug} className="universal-league-card-main"><span><strong>{m.group.name}</strong><small>{commissioner?"Commissioner":"Member"} · {memberText} · {m.group.current_season_year}</small></span><ArrowRight size={18}/></Link>
+          {commissioner && m.inviteCode && <button type="button" className="universal-league-invite-button" onClick={()=>void copyLeagueInvite(m)}><Link2 size={15}/><span>Invite</span></button>}
+        </div>;
+      })}</div>}
       <div className="universal-action-grid">
         <button onClick={openCreate} className="universal-action-card primary"><Plus/><span><strong>Create a League</strong><small>Set every rule and invite your group.</small></span><ArrowRight/></button>
         <div className="universal-action-card"><Users/><span><strong>Join a League</strong><small>Enter the commissioner’s invite code.</small></span><div className="universal-join-inline"><input value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} placeholder="LEAGUE CODE"/><button disabled={working||joinCode.length<4} onClick={joinLeague}>Join</button></div></div>
