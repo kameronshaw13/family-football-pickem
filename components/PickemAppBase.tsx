@@ -2114,7 +2114,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
   async function createSideBet(options: { marketType: SideBetMarketType; offerPhase: SideBetOfferPhase; creatorSpread: number; totalPoints?: number | null; creatorOdds: number; amount: number }): Promise<boolean> {
     if (!weekIsOpen) {
-      notify("Side bet offers open Tuesday at 9:00 AM.", "error");
+      notify("Side bet offers are not open yet.", "error");
       return false;
     }
     if (!selectedBetGame || !selectedCreatorTeam || !betRecipients.length) return false;
@@ -2237,6 +2237,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           maxPerWeek={data.sideBetSettings?.maxPerWeek ?? null}
           maxAmount={data.sideBetSettings?.maxAmount ?? MAX_SIDE_BET_AMOUNT}
           manualAmount={Boolean(data.sideBetSettings?.manualAmount)}
+          allowMoneyline={data.groupRules?.sideBets?.moneyline !== false}
+          allowTotals={data.groupRules?.sideBets?.totals !== false}
+          allowLive={data.groupRules?.sideBets?.live !== false}
           weekIsOpen={weekIsOpen}
           weekConcluded={weekConcluded}
           weekOpenTime={data.weekOpenTime}
@@ -2569,7 +2572,7 @@ function ConfidenceOrder({ picks, regularTotal, saving, onMove }: { picks: Pick[
   </section>;
 }
 
-function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
+function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, allowMoneyline, allowTotals, allowLive, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
   appSlug: AppSlug;
   view: BetView;
   setView: (value: BetView) => void;
@@ -2580,6 +2583,9 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   maxPerWeek: number | null;
   maxAmount: number;
   manualAmount: boolean;
+  allowMoneyline: boolean;
+  allowTotals: boolean;
+  allowLive: boolean;
   weekIsOpen: boolean;
   weekConcluded: boolean;
   weekOpenTime: string | null;
@@ -2612,6 +2618,15 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   const [marketType, setMarketType] = useState<SideBetMarketType>("spread");
   const [offerPhase, setOfferPhase] = useState<SideBetOfferPhase>("pregame");
   const [boardMarket, setBoardMarket] = useState<SideBetBoardMarket>("spreads");
+
+  useEffect(() => {
+    if (!allowLive && offerPhase === "live") setOfferPhase("pregame");
+    if (!allowTotals && boardMarket === "total") {
+      setBoardMarket("spreads");
+      setMarketType("spread");
+    }
+    if (!allowMoneyline && marketType === "moneyline") setMarketType("spread");
+  }, [allowLive, allowMoneyline, allowTotals, boardMarket, marketType, offerPhase]);
   const [marketQuotes, setMarketQuotes] = useState<Record<string, SideBetMarketQuote>>({});
   const marketQuotesRef = useRef<Record<string, SideBetMarketQuote>>({});
   const marketQuoteRefreshInFlightRef = useRef(false);
@@ -2939,15 +2954,15 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
       />}
     </div>
 
-    {view === "new" && weekIsOpen && !weekConcluded && <div className="side-bet-offer-mode-row">
-      <div className="side-bet-game-filter-toggle side-bet-two-option-toggle" role="group" aria-label="Choose pregame or live games">
+    {view === "new" && weekIsOpen && !weekConcluded && (allowLive || allowTotals) && <div className="side-bet-offer-mode-row">
+      {allowLive && <div className="side-bet-game-filter-toggle side-bet-two-option-toggle" role="group" aria-label="Choose pregame or live games">
         <button type="button" className={offerPhase === "pregame" ? "active" : ""} aria-pressed={offerPhase === "pregame"} onClick={() => { clearSlip(); setOfferPhase("pregame"); }}>Pregame</button>
         <button type="button" className={offerPhase === "live" ? "active" : ""} aria-pressed={offerPhase === "live"} onClick={() => { clearSlip(); setOfferPhase("live"); }}>Live</button>
-      </div>
-      <div className="side-bet-game-filter-toggle side-bet-two-option-toggle" role="group" aria-label="Choose spreads or over under">
+      </div>}
+      {allowTotals && <div className="side-bet-game-filter-toggle side-bet-two-option-toggle" role="group" aria-label="Choose spreads or over under">
         <button type="button" className={boardMarket === "spreads" ? "active" : ""} aria-pressed={boardMarket === "spreads"} onClick={() => { clearSlip(); setBoardMarket("spreads"); setMarketType("spread"); }}>Spreads</button>
         <button type="button" className={boardMarket === "total" ? "active" : ""} aria-pressed={boardMarket === "total"} onClick={() => { clearSlip(); setBoardMarket("total"); setMarketType("total"); }}>O/U</button>
-      </div>
+      </div>}
     </div>}
 
     {view === "offers" && <div className="side-bet-game-filter-toggle side-bet-offers-game-filter" role="group" aria-label="Filter offers by game status"><button type="button" className={offerGameFilter === "all" ? "active" : ""} aria-pressed={offerGameFilter === "all"} onClick={() => setOfferGameFilter("all")}>All</button><button type="button" className={offerGameFilter === "upcoming" ? "active" : ""} aria-pressed={offerGameFilter === "upcoming"} onClick={() => setOfferGameFilter("upcoming")}>Upcoming</button><button type="button" className={offerGameFilter === "completed" ? "active" : ""} aria-pressed={offerGameFilter === "completed"} onClick={() => setOfferGameFilter("completed")}>Completed</button></div>}
@@ -3006,7 +3021,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
 
         <section className="side-bet-slip-section side-bet-market-section">
           <div className="side-bet-slip-section-head"><span>Market</span></div>
-          {boardMarket === "spreads" && <div className="side-bet-market-toggle" role="group" aria-label="Side bet market">
+          {boardMarket === "spreads" && allowMoneyline && <div className="side-bet-market-toggle" role="group" aria-label="Side bet market">
             <button type="button" className={marketType === "spread" ? "active" : ""} aria-pressed={marketType === "spread"} onClick={() => {
               const quote = selectedGame ? marketQuotesRef.current[selectedGame.id]?.spread : null;
               const nextSpread = selectedGame && selectedCreatorTeam && quote
