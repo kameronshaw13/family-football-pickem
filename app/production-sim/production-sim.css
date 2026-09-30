@@ -267,3 +267,5 @@
   .universal-primary,
   .universal-secondary{transition:none}
 }
+
+vercel-live-feedback{display:none!important}
