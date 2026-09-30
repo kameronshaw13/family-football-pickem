@@ -12,9 +12,10 @@ import "./admin-no-submission.css";
 import "./component-styles.css";
 import "./presentation-fixes.css";
 import "./matchup-preview.css";
+import "./universal-app.css";
 import "./game-tracker.css";
 import type { Metadata, Viewport } from "next";
-import { Roboto_Slab } from "next/font/google";
+import { Roboto_Condensed, Roboto_Slab } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
 import DogPickAdjustmentAlerts from "@/components/DogPickAdjustmentAlerts";
@@ -24,6 +25,13 @@ import PlayerProfiles from "@/components/PlayerProfiles";
 const robotoSlab = Roboto_Slab({
   subsets: ["latin"],
   variable: "--font-roboto-slab",
+  display: "swap",
+  preload: true
+});
+
+const robotoCondensed = Roboto_Condensed({
+  subsets: ["latin"],
+  variable: "--font-roboto-condensed",
   display: "swap",
   preload: true
 });
@@ -162,7 +170,7 @@ declare global {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" className={robotoSlab.variable}>
+    <html lang="en" data-theme="light" className={robotoSlab.variable + " " + robotoCondensed.variable}>
       <head>
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_HEADER_CSS }} />
         <script dangerouslySetInnerHTML={{ __html: SESSION_RECOVERY_SCRIPT }} />
