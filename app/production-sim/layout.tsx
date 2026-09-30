@@ -1,5 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { Roboto_Condensed } from "next/font/google";
 import "./production-sim.css";
+
+const robotoCondensed = Roboto_Condensed({
+  subsets: ["latin"],
+  variable: "--font-roboto-condensed",
+  display: "swap",
+  preload: true
+});
 
 export const metadata: Metadata = {
   title: "Football Pick'em",
@@ -17,5 +25,5 @@ export const viewport: Viewport = {
 };
 
 export default function ProductionSimLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return <div className={robotoCondensed.variable}>{children}</div>;
 }

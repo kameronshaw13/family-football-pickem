@@ -30,7 +30,6 @@ type Setup = {
   lockMode: "Kickoff" | "Saturday 11:00 AM CT";
 };
 
-const STORAGE_KEY = "football_pickem_universal_setup_v1";
 
 const pricing: Record<LeagueTier, number> = {
   "1–10": 20,
@@ -80,7 +79,7 @@ function Choice({
           <strong>{title}</strong>
           {badge ? <em>{badge}</em> : null}
         </span>
-        {active && detail ? <small>{detail}</small> : null}
+        {detail ? <small>{detail}</small> : null}
       </span>
     </button>
   );
@@ -127,35 +126,6 @@ export default function CommissionerProductionSim() {
   const [step, setStep] = useState<Step>(0);
   const [setup, setSetup] = useState<Setup>(defaultSetup);
   const [showFeatures, setShowFeatures] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw) as {
-          stage?: Stage;
-          step?: Step;
-          name?: string;
-          email?: string;
-          setup?: Partial<Setup>;
-        };
-        if (saved.name) setName(saved.name);
-        if (saved.email) setEmail(saved.email);
-        if (saved.setup) setSetup((current) => ({ ...current, ...saved.setup }));
-        if (saved.stage && ["home", "setup", "created"].includes(saved.stage)) setStage(saved.stage);
-        if (typeof saved.step === "number" && saved.step >= 0 && saved.step <= 6) setStep(saved.step as Step);
-      }
-    } catch {}
-    setLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!loaded) return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ stage, step, name, email, setup }));
-    } catch {}
-  }, [email, loaded, name, setup, stage, step]);
 
   useEffect(() => {
     const removeToolbar = () => {
@@ -219,13 +189,6 @@ export default function CommissionerProductionSim() {
     setInviteCode("");
     setStep(0);
     setSetup(defaultSetup);
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {}
-  }
-
-  if (!loaded) {
-    return <main className="universal-app"><div className="universal-loading">Loading…</div></main>;
   }
 
   return (
@@ -248,7 +211,7 @@ export default function CommissionerProductionSim() {
       </header>
 
       {stage === "account" ? (
-        <section className="universal-account-shell">
+        <section className="universal-account-shell universal-screen">
           <div className="universal-account-intro">
             <span className="universal-kicker">FOOTBALL PICK&apos;EM</span>
             <h1>Build the league your group actually wants.</h1>
@@ -297,7 +260,7 @@ export default function CommissionerProductionSim() {
       ) : null}
 
       {stage === "home" ? (
-        <section className="universal-home">
+        <section className="universal-home universal-screen">
           <span className="universal-kicker">WELCOME{name ? ", " + name.toUpperCase() : ""}</span>
           <h1>What do you want to do?</h1>
           <p>Start a new league as commissioner, or enter an invite code to join one that already exists.</p>
@@ -324,7 +287,7 @@ export default function CommissionerProductionSim() {
       ) : null}
 
       {stage === "setup" ? (
-        <div className="universal-setup-shell">
+        <div className="universal-setup-shell universal-screen">
           <aside className="universal-steps">
             <span className="universal-kicker">CREATE LEAGUE</span>
             <h2>{setup.leagueName || "New League"}</h2>
@@ -338,8 +301,11 @@ export default function CommissionerProductionSim() {
             </div>
           </aside>
 
-          <section className="universal-setup-panel">
+          <section key={step} className="universal-setup-panel universal-step-screen">
             <div className="universal-mobile-step">Step {flowIndex + 1} of {flow.length} · {stepNames[step]}</div>
+            <div className="universal-progress" aria-hidden="true">
+              <span style={{ width: (((flowIndex + 1) / flow.length) * 100) + "%" }} />
+            </div>
 
             {step === 0 ? (
               <>
@@ -523,7 +489,7 @@ export default function CommissionerProductionSim() {
       ) : null}
 
       {stage === "created" ? (
-        <section className="universal-created">
+        <section className="universal-created universal-screen">
           <span className="universal-created-check">✓</span>
           <span className="universal-kicker">LEAGUE CREATED</span>
           <h1>{setup.leagueName || "Your League"}</h1>
