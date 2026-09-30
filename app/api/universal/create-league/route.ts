@@ -19,6 +19,7 @@ const schema = z.object({
   ledgerUnit: z.enum(["bucks","points"]),
   weekOpen: z.enum(["monday-9","tuesday-9"]),
   lockMode: z.enum(["kickoff","saturday-11"]),
+  startMode: z.enum(["season","now"]),
   startWeeks: z.object({ CFB: z.number().int().min(0).max(30).nullable(), NFL: z.number().int().min(1).max(30).nullable() })
 });
 
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
         ledgerUnit: body.ledgerUnit
       },
       schedule: { weekOpen: body.weekOpen, lockMode: body.lockMode },
+      startMode: body.startMode,
       startWeeks: body.startWeeks,
       playerTier: body.playerTier,
       universalApp: true

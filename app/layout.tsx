@@ -37,11 +37,11 @@ const robotoCondensed = Roboto_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: "Family Football Pick'em",
-  description: "Private Shaw Family football pick'em.",
-  applicationName: "Family Pick'em",
-  appleWebApp: { capable: true, title: "Family Pick'em", statusBarStyle: "black-translucent" },
-  icons: { icon: "/icon.png", apple: "/icon.png" }
+  title: "Football Pick'em",
+  description: "Create or join a custom football pick'em league with side bets, matchup research and GameTracker.",
+  applicationName: "Football Pick'em",
+  appleWebApp: { capable: true, title: "Football Pick'em", statusBarStyle: "black-translucent" },
+  icons: { icon: "/friends-app-icon-navy.png?v=3", apple: "/friends-app-icon-navy.png?v=3" }
 };
 
 export const viewport: Viewport = {
