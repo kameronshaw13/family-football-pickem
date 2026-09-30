@@ -248,6 +248,10 @@ function GameTrackerDemo({ onClose }: { onClose: () => void }) {
   );
 }
 
+function DemoLogo({ text }: { text: string }) {
+  return <span className="team-logo sim-demo-logo" aria-hidden="true">{text}</span>;
+}
+
 function AppPreview({
   tab,
   onTab,
@@ -260,112 +264,210 @@ function AppPreview({
   onModal: (modal: PreviewModal) => void;
 }) {
   return (
-    <div className="sim-preview-layout">
-      <section className="sim-phone">
-        <div className="sim-phone-header">
-          <Image src="/football-pickem-wordmark.png" alt="" width={800} height={100} />
-          <span>WEEK 5</span>
+    <div className="sim-preview-stage">
+      <div className="sim-preview-stage-head">
+        <div>
+          <span className="sim-section-kicker">DEMO LEAGUE · WEEK 5</span>
+          <strong>Same structure as the current Pick&apos;em app.</strong>
+          <small>Use the bottom navigation inside the preview. Only the data is simulated.</small>
         </div>
-        <div className="sim-phone-body">
-          {tab === "Picks" && (
-            <>
-              <div className="sim-phone-title">
-                <div><small>PICK BOARD</small><strong>College Football</strong></div>
-                <span>OPEN</span>
-              </div>
-              <div className="sim-filter-pills"><b>CFB</b><span>NFL</span><span>All Games</span></div>
-              <div className="sim-game">
-                <header><span>SAT · 6:30 PM</span><button type="button" onClick={() => onModal("matchup")}>Matchup Preview</button></header>
-                <div><i className="sim-logo-ball">O</i><strong><small>#8</small> Oregon</strong><b>-4.5</b></div>
-                <div><i className="sim-logo-ball">PS</i><strong><small>#12</small> Penn State</strong><b>+4.5</b></div>
-              </div>
-              <div className="sim-game live">
-                <header><span>LIVE · 3RD 7:42</span><button type="button" onClick={() => onModal("tracker")}>GameTracker</button></header>
-                <div><i className="sim-logo-ball">A</i><strong>Alabama</strong><b>24</b></div>
-                <div><i className="sim-logo-ball">UG</i><strong>Georgia</strong><b>21</b></div>
-              </div>
-              <div className="sim-dog-demo">
-                <div><strong>DOG PICK</strong><span>Optional weekly underdog challenge</span></div>
-                <p>The dog must win outright. A loss does not add a loss. Bigger underdogs earn a larger bonus when they win.</p>
-                <div><span>+7 to +9.5 <b>+1</b></span><span>+10 to +19.5 <b>+2</b></span><span>+20+ <b>+3</b></span></div>
-              </div>
-            </>
-          )}
-
-          {tab === "My Card" && (
-            <>
-              <div className="sim-phone-title"><div><small>MY CARD</small><strong>5 of 6 locked</strong></div><span>83%</span></div>
-              <div className="sim-card-list">
-                <div><span>ORE</span><strong>Oregon -4.5</strong><b>LOCKED</b></div>
-                <div><span>KC</span><strong>Kansas City -3</strong><b>LOCKED</b></div>
-                <div><span>PSU</span><strong>Penn State +7.5</strong><b>OPEN</b></div>
-                <div className="dog"><span>DOG</span><strong>Arizona +12.5 ML</strong><b>+2</b></div>
-              </div>
-              <div className="sim-progress-card"><strong>Weekly card</strong><span>Regular picks and dog selections stay together so players always know what remains before lock.</span></div>
-            </>
-          )}
-
-          {tab === "Side Bets" && (
-            <>
-              <div className="sim-phone-title"><div><small>SIDE BETS</small><strong>Make an offer</strong></div><span>3 OPEN</span></div>
-              <div className="sim-filter-pills"><b>Pregame</b><span>Live</span><span>Spread</span><span>O/U</span></div>
-              <div className="sim-offer-card">
-                <header><strong>Oregon at Penn State</strong><span>Market -4.5</span></header>
-                <p><b>Kameron</b> offers Oregon -3.5 to Mason</p>
-                <footer><span>Risk $20</span><b>Win $20</b></footer>
-              </div>
-              <div className="sim-offer-card">
-                <header><strong>Chiefs at Bills</strong><span>Live · 2nd</span></header>
-                <p><b>Josh</b> offers Over 47.5 to Caleb</p>
-                <footer><span>Risk $20</span><b>Win $20</b></footer>
-              </div>
-              <div className="sim-progress-card"><strong>Peer-to-peer ledger</strong><span>Pregame and live spreads, moneylines and totals can be tracked without the app holding funds or paying anyone out.</span></div>
-            </>
-          )}
-
-          {tab === "Standings" && (
-            <>
-              <div className="sim-phone-title"><div><small>STANDINGS</small><strong>Season</strong></div><span>WK 5</span></div>
-              <div className="sim-standings">
-                <div className="head"><span>RK</span><strong>PLAYER</strong><b>RECORD</b></div>
-                <div><span>1</span><strong>Dad</strong><b>18–7 · 72%</b></div>
-                <div><span>2</span><strong>Kameron</strong><b>17–8 · 68%</b></div>
-                <div><span>3</span><strong>Mason</strong><b>16–9 · 64%</b></div>
-                <div><span>4</span><strong>Josh</strong><b>15–10 · 60%</b></div>
-              </div>
-              <div className="sim-progress-card"><strong>Commissioner-selected scoring</strong><span>Standings can use winning percentage, total wins or confidence points.</span></div>
-            </>
-          )}
+        <div className="sim-demo-actions">
+          <button type="button" onClick={() => { onTab("Picks"); onModal("matchup"); }}>Matchup Preview</button>
+          <button type="button" onClick={() => { onTab("Picks"); onModal("tracker"); }}>GameTracker</button>
         </div>
-        <nav className="sim-phone-nav">
-          {(["Picks", "My Card", "Side Bets", "Standings"] as PreviewTab[]).map((item) => (
-            <button key={item} type="button" className={tab === item ? "active" : ""} onClick={() => onTab(item)}>
-              <span>{item === "Picks" ? "✓" : item === "My Card" ? "▣" : item === "Side Bets" ? "↔" : "≡"}</span>
-              {item}
-            </button>
-          ))}
-        </nav>
+      </div>
+
+      <section className="sim-app-demo">
+        <div className="app-shell">
+          <header className="scoreboard-header">
+            <div className="scoreboard-main">
+              <div className="brand-lockup">
+                <Image className="header-wordmark" src="/football-pickem-wordmark.png" alt="Football Pick'em" width={800} height={100} />
+              </div>
+              <div className="header-slate"><span className="test-week-chip">WEEK 5</span></div>
+            </div>
+          </header>
+
+          <main className="container">
+            {tab === "Picks" && (
+              <section className="panel picks-panel">
+                <div className="section-tabs">
+                  <button type="button" className="active">CFB</button>
+                  <button type="button">NFL</button>
+                </div>
+                <div className="game-days">
+                  <div>
+                    <div className="game-day-marker"><b>SAT</b><strong>OCT 3</strong></div>
+                    <div className="game-list">
+                      <article className="game-card status-open">
+                        <div className="game-head">
+                          <span className="badge open">Open</span>
+                          <div className="game-time-group">
+                            <span className="game-time">6:30 PM</span>
+                            <button type="button" className="sim-inline-app-link" onClick={() => onModal("matchup")}>Matchup Preview</button>
+                          </div>
+                        </div>
+                        <div className="stacked-matchup">
+                          <button type="button" className="team-row selectable">
+                            <DemoLogo text="O" />
+                            <span className="team-name-line"><span className="board-team-rank">#8</span><span className="team-name">Oregon</span></span>
+                            <span className="team-spread">−4.5</span>
+                          </button>
+                          <button type="button" className="team-row selectable">
+                            <DemoLogo text="PS" />
+                            <span className="team-name-line"><span className="board-team-rank">#12</span><span className="team-name">Penn State</span></span>
+                            <span className="team-spread">+4.5</span>
+                          </button>
+                        </div>
+                      </article>
+                      <article className="game-card score-values">
+                        <div className="game-head">
+                          <span className="badge live">Live</span>
+                          <div className="game-time-group">
+                            <span className="game-live-status">3rd Qtr · 7:42</span>
+                            <button type="button" className="sim-inline-app-link" onClick={() => onModal("tracker")}>GameTracker</button>
+                          </div>
+                        </div>
+                        <div className="stacked-matchup">
+                          <button type="button" className="team-row">
+                            <DemoLogo text="A" />
+                            <span className="team-name-line"><span className="team-name">Alabama</span></span>
+                            <span className="team-result-score">24</span>
+                          </button>
+                          <button type="button" className="team-row">
+                            <DemoLogo text="UG" />
+                            <span className="team-name-line"><span className="team-name">Georgia</span></span>
+                            <span className="team-result-score">21</span>
+                          </button>
+                        </div>
+                      </article>
+                    </div>
+                  </div>
+                </div>
+                <div className="sim-app-dog-note">
+                  <span>DOG PICK</span>
+                  <strong>Arizona +12.5 · ML</strong>
+                  <small>Win outright for a tiered bonus. A miss does not add a regular loss.</small>
+                </div>
+              </section>
+            )}
+
+            {tab === "My Card" && (
+              <section className="panel card-panel">
+                <div className="section-tabs">
+                  <button type="button" className="active">My Picks</button>
+                  <button type="button">League Card</button>
+                </div>
+                <div className="card-progress">
+                  <div className="card-progress-copy">
+                    <div className="card-progress-heading"><strong>Week 5 card</strong><span className="card-progress-state saved">5 of 6 locked</span></div>
+                    <span className="card-progress-count">1 pick remaining</span>
+                  </div>
+                  <div className="progress-track"><span style={{ width: "83%" }} /></div>
+                </div>
+                <div className="pick-section">
+                  <h3>Regular Picks</h3>
+                  {[
+                    ["O","Oregon","−4.5","Locked"],
+                    ["KC","Kansas City","−3","Locked"],
+                    ["PS","Penn State","+7.5","Open"]
+                  ].map(([logo, team, line, state]) => (
+                    <div className="pick-card" key={team}>
+                      <div className="pick-top">
+                        <DemoLogo text={logo} />
+                        <div className="pick-copy">
+                          <strong className="pick-title"><span className="pick-title-team">{team}</span><span className="pick-title-market">{line}</span></strong>
+                          <p className="pick-meta">Week 5</p>
+                        </div>
+                        <div className="pick-row-actions"><span className={state === "Locked" ? "badge pick-status-locked" : "badge open"}>{state === "Locked" ? "✓" : "Open"}</span></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="pick-section">
+                  <h3>Dog Pick</h3>
+                  <div className="pick-card">
+                    <div className="pick-top">
+                      <DemoLogo text="AZ" />
+                      <div className="pick-copy">
+                        <strong className="pick-title"><span className="pick-title-team">Arizona</span><span className="dog-tag">DOG +2</span></strong>
+                        <p className="pick-meta">+12.5 · moneyline upset pick</p>
+                      </div>
+                      <div className="pick-row-actions"><span className="badge pick-status-locked">✓</span></div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {tab === "Side Bets" && (
+              <section className="panel">
+                <div className="side-bet-offer-mode-row">
+                  <div className="side-bet-offer-mode-toggle"><button type="button" className="active">Pregame</button><button type="button">Live</button></div>
+                  <div className="side-bet-offer-mode-toggle"><button type="button" className="active">Spread</button><button type="button">O/U</button></div>
+                </div>
+                <div className="section-title"><div><h2>Open Offers</h2><p>League challenges in one place.</p></div></div>
+                <div className="side-bet-list">
+                  <div className="side-bet-card">
+                    <div className="side-bet-offer-row">
+                      <DemoLogo text="O" />
+                      <div className="side-bet-offer-copy"><strong>Oregon −3.5</strong><p>Kameron to Mason · market −4.5</p></div>
+                      <div className="side-bet-offer-amount">20 pts</div>
+                    </div>
+                  </div>
+                  <div className="side-bet-card">
+                    <div className="side-bet-offer-row">
+                      <DemoLogo text="KC" />
+                      <div className="side-bet-offer-copy"><strong>Over 47.5</strong><p>Josh to Caleb · Chiefs at Bills</p></div>
+                      <div className="side-bet-offer-amount">20 pts</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {tab === "Standings" && (
+              <section className="panel standings-panel">
+                <div className="section-tabs">
+                  <button type="button" className="active">Season</button>
+                  <button type="button">Week 5</button>
+                </div>
+                <div className="leaderboard">
+                  <div className="leaderboard-labels"><span>RK</span><span>PLAYER</span><span>W</span><span>L</span><span>P</span><span>PCT</span></div>
+                  {[
+                    ["1","Dad","18","7","0","72%"],
+                    ["2","Kameron","17","8","0","68%"],
+                    ["3","Mason","16","9","0","64%"],
+                    ["4","Josh","15","10","0","60%"]
+                  ].map(([rank, name, w, l, p, pct]) => (
+                    <div className="leaderboard-row" key={name}>
+                      <span className={"leaderboard-rank rank-" + rank}>{rank}</span>
+                      <span className="leaderboard-player"><strong>{name}</strong></span>
+                      <span className="leaderboard-stat">{w}</span>
+                      <span className="leaderboard-stat">{l}</span>
+                      <span className="leaderboard-stat">{p}</span>
+                      <strong className="leaderboard-pct">{pct}</strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </main>
+
+          <nav className="primary-nav">
+            <div className="primary-nav-inner">
+              {(["Picks", "My Card", "Side Bets", "Standings"] as PreviewTab[]).map((item) => (
+                <button key={item} type="button" className={tab === item ? "active" : ""} onClick={() => onTab(item)}>
+                  <span className="sim-demo-nav-icon">{item === "Picks" ? "✓" : item === "My Card" ? "▣" : item === "Side Bets" ? "↔" : "≡"}</span>
+                  <span>{item}</span>
+                </button>
+              ))}
+            </div>
+          </nav>
+        </div>
       </section>
 
-      <aside className="sim-preview-guide">
-        <span className="sim-section-kicker">INTERACTIVE PREVIEW</span>
-        <h2>See how the league feels before you create it.</h2>
-        <p>Use the bottom navigation just like a member would. The sample data is fake, but the layout and feature flow mirror the real app.</p>
-        <div className="sim-guide-list">
-          <button type="button" onClick={() => { onTab("Picks"); onModal("matchup"); }}>
-            <b>Matchup Preview</b><span>Advanced stats, ATS form, team strength and comparison metrics.</span>
-          </button>
-          <button type="button" onClick={() => { onTab("Picks"); onModal("tracker"); }}>
-            <b>GameTracker</b><span>Live score, field position, down & distance, drives, plays and box score.</span>
-          </button>
-          <button type="button" onClick={() => onTab("Side Bets")}>
-            <b>Side Bets</b><span>Pregame/live challenges with spread, moneyline and over/under markets.</span>
-          </button>
-          <button type="button" onClick={() => onTab("Standings")}>
-            <b>Standings</b><span>Season records update around the commissioner&apos;s scoring rules.</span>
-          </button>
-        </div>
-      </aside>
+      <p className="sim-preview-caption">The structure and styling now come from the current app. Only the demo data is fake.</p>
 
       {modal && (
         <div className="sim-modal-backdrop" onMouseDown={(event) => {
@@ -537,13 +639,30 @@ export default function CommissionerProductionSim() {
               <h2>More than a basic pick&apos;em pool.</h2>
               <p>The commissioner can keep it simple or turn on the deeper features.</p>
             </div>
-            <div className="sim-feature-grid">
-              <FeatureCard kicker="PICK'EM" title="Flexible weekly cards" copy="Choose 3–15 regular picks and rank the season by winning percentage, total wins or confidence points." items={["College Football, NFL or both", "Game-by-game or universal locks", "My Card keeps every selection together"]} />
-              <FeatureCard kicker="DOG PICKS" title="Reward the upset call" copy="An optional dog pick is an underdog moneyline selection that must win the game outright." items={["A losing dog does not add a loss", "+7 to +9.5 = +1 bonus", "+10 to +19.5 = +2 · +20+ = +3", "Win-based leagues award bonus wins; confidence leagues award bonus points"]} />
-              <FeatureCard kicker="SIDE BETS" title="Challenge people in the league" copy="Send peer-to-peer offers before or during games while the app keeps the offer and result organized." items={["Spreads, moneylines and totals", "Pregame and live offers", "Weekly and season ledger"]} action="See Side Bets" onAction={() => { setPreviewTab("Side Bets"); navigate("preview"); }} />
-              <FeatureCard kicker="MATCHUP PREVIEW" title="Advanced research in the matchup" copy="Open a game before picking it and compare the information that matters without leaving the league." items={["Season and ATS records", "Average cover margin and recent form", "Offense/defense comparison", "Late-down success and team strength"]} action="Open demo" onAction={() => { setPreviewTab("Picks"); setPreviewModal("matchup"); setScreen("preview"); }} />
-              <FeatureCard kicker="GAMETRACKER" title="Follow the game inside the app" copy="Once a game is live, the matchup becomes a live tracker instead of sending everyone somewhere else." items={["Quarter, clock, score and timeouts", "Down, distance and field position", "Scoring, drives and play-by-play", "Box score and team stats"]} action="Open demo" onAction={() => { setPreviewTab("Picks"); setPreviewModal("tracker"); setScreen("preview"); }} />
-              <FeatureCard kicker="LEAGUE HUB" title="Standings and commissioner control" copy="The league stays in one shared place from Week 1 through the end of the season." items={["Season standings", "Rule summary for every member", "Invite flow and commissioner settings", "Results and side-bet history"]} action="See Standings" onAction={() => { setPreviewTab("Standings"); navigate("preview"); }} />
+            <div className="sim-feature-groups">
+              <article className="sim-feature-group">
+                <span className="sim-feature-kicker">PLAY</span>
+                <h3>Weekly Pick&apos;em</h3>
+                <p>Regular picks, optional dog picks, My Card and season standings.</p>
+                <div className="sim-feature-pills"><span>3–15 picks</span><span>Dog picks</span><span>Confidence</span><span>Standings</span></div>
+              </article>
+              <article className="sim-feature-group">
+                <span className="sim-feature-kicker">CHALLENGE</span>
+                <h3>Side Bets</h3>
+                <p>Pregame and live league challenges with a shared history and ledger.</p>
+                <div className="sim-feature-pills"><span>Spread</span><span>Moneyline</span><span>O/U</span><span>Live</span></div>
+                <button type="button" onClick={() => { setPreviewTab("Side Bets"); navigate("preview"); }}>See Side Bets →</button>
+              </article>
+              <article className="sim-feature-group featured">
+                <span className="sim-feature-kicker">RESEARCH + FOLLOW</span>
+                <h3>Matchup Preview & GameTracker</h3>
+                <p>Advanced matchup research before kickoff, then live game tracking once it starts.</p>
+                <div className="sim-feature-pills"><span>ATS form</span><span>Advanced stats</span><span>Field view</span><span>Plays + box</span></div>
+                <div className="sim-feature-actions">
+                  <button type="button" onClick={() => { setPreviewTab("Picks"); setPreviewModal("matchup"); setScreen("preview"); }}>Matchup Preview</button>
+                  <button type="button" onClick={() => { setPreviewTab("Picks"); setPreviewModal("tracker"); setScreen("preview"); }}>GameTracker</button>
+                </div>
+              </article>
             </div>
           </section>
 
