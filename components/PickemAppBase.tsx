@@ -28,6 +28,7 @@ import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, 
 import { orderCardPicks } from "@/lib/cardOrdering";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 import { canRefreshSpread, getCurrentPickWeek } from "@/lib/lockRules";
+import { clearClientSession, getClientSessionProfile, getClientSessionToken } from "@/lib/clientSession";
 
 type Tab = "picks" | "card" | "standings" | "rules";
 type PicksView = "board" | "sideBets";
@@ -737,7 +738,7 @@ function readCachedAppData(appSlug: AppSlug, week: number | null) {
     const stored = window.sessionStorage.getItem(key);
     if (!stored) return null;
     const entry = JSON.parse(stored) as AppDataCacheEntry;
-    const storedProfile = JSON.parse(window.localStorage.getItem("pickem_profile") || "null") as Profile | null;
+    const storedProfile = getClientSessionProfile<Profile>();
     if (!entry?.payload?.currentUser || !storedProfile || entry.payload.currentUser.id !== storedProfile.id || Date.now() - entry.cachedAt > APP_DATA_CACHE_MAX_AGE) {
       window.sessionStorage.removeItem(key);
       return null;
@@ -1305,7 +1306,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }, []);
 
   const refreshNotificationCounts = useCallback(async () => {
-    const token = window.localStorage.getItem("pickem_session_token");
+    const token = getClientSessionToken();
     if (!token) return;
     try {
       const response = await fetch("/api/notifications", { headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, cache: "no-store" });
@@ -1339,7 +1340,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const refreshSideBets = useCallback(async () => {
     if (sideBetRefreshInFlightRef.current || sideBetMutationInFlightRef.current || document.visibilityState === "hidden") return;
     const current = dataRef.current;
-    const token = window.localStorage.getItem("pickem_session_token");
+    const token = getClientSessionToken();
     if (!current || !token) return;
 
     const requestId = ++sideBetRequestSequenceRef.current;
@@ -1369,7 +1370,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
   const refreshSideBetLedger = useCallback(async () => {
     if (sideBetLedgerRefreshInFlightRef.current || document.visibilityState === "hidden") return;
-    const token = window.localStorage.getItem("pickem_session_token");
+    const token = getClientSessionToken();
     if (!token) return;
     sideBetLedgerRefreshInFlightRef.current = true;
     try {
@@ -1392,7 +1393,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }, [appSlug]);
 
   const markNotificationsSeen = useCallback(async (destination: NotificationDestination) => {
-    const token = window.localStorage.getItem("pickem_session_token");
+    const token = getClientSessionToken();
     if (!token) return;
     setNotificationCounts((current) => ({
       ...current,
@@ -1436,7 +1437,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const load = useCallback(async (nextWeek: number | null = dataRef.current?.week ?? null) => {
     const sequence = ++loadSequence.current;
     const isInitialLoad = dataRef.current === null;
-    const token = window.localStorage.getItem("pickem_session_token");
+    const token = getClientSessionToken();
     if (!token) {
       window.location.href = loginPath;
       return;
@@ -1480,8 +1481,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       if (!response.ok) {
         if (response.status === 401) {
           window.sessionStorage.removeItem(appDataCacheKey(appSlug, nextWeek));
-          window.localStorage.removeItem("pickem_session_token");
-          window.localStorage.removeItem("pickem_profile");
+          clearClientSession();
           window.location.replace(loginPath);
           return;
         }
@@ -1521,7 +1521,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       return;
     }
     let active = true;
-    const token = window.localStorage.getItem("pickem_session_token") || "";
+    const token = getClientSessionToken() || "";
     fetch(`/api/cfb-model?week=${encodeURIComponent(String(data!.week))}`, {
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-pickem-group": appSlug },
       cache: "no-store"
@@ -1628,7 +1628,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
     async function refreshPickBoardMarkets() {
       if (document.visibilityState === "hidden" || refreshInFlight) return;
-      const token = window.localStorage.getItem("pickem_session_token");
+      const token = getClientSessionToken();
       if (!token) return;
       refreshInFlight = true;
       try {
@@ -1696,7 +1696,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
     async function finalizeCompletedGames() {
       if (finalizationInFlight) return;
-      const token = window.localStorage.getItem("pickem_session_token");
+      const token = getClientSessionToken();
       if (!token) return;
       finalizationInFlight = true;
       try {
@@ -1717,7 +1717,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
     async function refreshLiveScores() {
       if (document.visibilityState === "hidden" || scoreRefreshInFlight) return;
-      const token = window.localStorage.getItem("pickem_session_token");
+      const token = getClientSessionToken();
       if (!token) return;
       scoreRefreshInFlight = true;
       try {
@@ -1790,7 +1790,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
   async function savePicks(card: Pick[], autosave = false) {
     const submittedSignature = pickCardSignature(card);
-    const token = window.localStorage.getItem("pickem_session_token");
+    const token = getClientSessionToken();
     if (!token) {
       window.location.href = loginPath;
       return false;
@@ -1843,7 +1843,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }
 
   async function postSideBet(body: any) {
-    const token = window.localStorage.getItem("pickem_session_token");
+    const token = getClientSessionToken();
     if (!token) {
       window.location.href = loginPath;
       return false;
@@ -2695,7 +2695,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
 
   const refreshMarketQuotes = useCallback(async () => {
     if (marketQuoteRefreshInFlightRef.current) return marketQuotesRef.current;
-    const token = window.localStorage.getItem("pickem_session_token");
+    const token = getClientSessionToken();
     if (!token) return marketQuotesRef.current;
     marketQuoteRefreshInFlightRef.current = true;
     try {
