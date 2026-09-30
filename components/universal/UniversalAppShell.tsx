@@ -76,9 +76,34 @@ export default function UniversalAppShell() {
   const [created, setCreated] = useState<{ group: any; inviteCode: string } | null>(null);
 
   async function bootstrap(accessToken: string) {
-    const response = await fetch("/api/universal/bootstrap", { method: "POST", headers: { Authorization: "Bearer " + accessToken } });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "Could not load account.");
+    async function loadAccount() {
+      const response = await fetch("/api/universal/bootstrap", { method: "POST", headers: { Authorization: "Bearer " + accessToken } });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Could not load account.");
+      return payload;
+    }
+
+    let payload = await loadAccount();
+    const pendingJoinCode = new URL(window.location.href).searchParams.get("join")?.trim().toUpperCase() || "";
+    if (pendingJoinCode) {
+      const joinResponse = await fetch("/api/universal/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + accessToken },
+        body: JSON.stringify({ code: pendingJoinCode })
+      });
+      const joinPayload = await joinResponse.json();
+      if (joinResponse.ok) {
+        payload = await loadAccount();
+        setJoinCode("");
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.delete("join");
+        window.history.replaceState({}, "", currentUrl.pathname + currentUrl.search + currentUrl.hash);
+      } else {
+        setJoinCode(pendingJoinCode);
+        setMessage(joinPayload.error || "That league invite could not be joined.");
+      }
+    }
+
     const durableSession = window.sessionStorage.getItem("football_pickem_remember_me") !== "0";
     storeClientSession(accessToken, payload.profile, durableSession);
     setProfile(payload.profile);
