@@ -2,7 +2,6 @@ self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
 function appPath(pathname) {
-  if (pathname === "/production-sim" || pathname.startsWith("/production-sim/")) return "/production-sim";
   if (pathname === "/friends" || pathname.startsWith("/friends/")) return "/friends";
   if (pathname === "/caleb-family" || pathname.startsWith("/caleb-family/")) return "/caleb-family";
   return "/";
@@ -10,7 +9,6 @@ function appPath(pathname) {
 
 function registrationApp() {
   const scopePath = new URL(self.registration.scope).pathname;
-  if (scopePath.startsWith("/production-sim")) return "/production-sim";
   if (scopePath.startsWith("/friends")) return "/friends";
   if (scopePath.startsWith("/caleb-family")) return "/caleb-family";
   return "/";
@@ -18,7 +16,6 @@ function registrationApp() {
 
 function notificationIcon() {
   const app = registrationApp();
-  if (app === "/production-sim") return "/friends-app-icon-navy.png?v=3";
   if (app === "/friends") return "/friends-app-icon-navy.png?v=3";
   if (app === "/caleb-family") return "/caleb-app-icon-gold.png?v=3";
   return "/apple-icon.png";

@@ -19,16 +19,6 @@ export const APP_USERS = {
     { username: "tate", displayName: "Tate", isAdmin: false },
     { username: "jack", displayName: "Jack", isAdmin: false },
     { username: "caden", displayName: "Caden", isAdmin: false }
-  ],
-  development: [
-    { username: "kameron", displayName: "Kameron", isAdmin: true },
-    { username: "caleb", displayName: "Caleb", isAdmin: false },
-    { username: "mason", displayName: "Mason", isAdmin: false },
-    { username: "isaac", displayName: "Isaac", isAdmin: false },
-    { username: "josh", displayName: "Josh", isAdmin: false },
-    { username: "tate", displayName: "Tate", isAdmin: false },
-    { username: "jack", displayName: "Jack", isAdmin: false },
-    { username: "caden", displayName: "Caden", isAdmin: false }
   ]
 } as const;
 
@@ -39,7 +29,7 @@ export const FAMILY_USERS = Array.from(
 );
 
 export function normalizeAppSlug(value: string | null | undefined): PickemAppSlug {
-  return value === "other-family" || value === "friends" || value === "development" ? value : "shaw-family";
+  return value === "other-family" || value === "friends" ? value : "shaw-family";
 }
 
 export function usersForApp(groupSlug: string | null | undefined) {

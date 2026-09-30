@@ -23,22 +23,15 @@ export const APP_IDENTITY_CONFIG: Record<PickemAppSlug, {
     homePath: "/caleb-family",
     loginPath: "/caleb-family/login",
     workerScope: "/caleb-family"
-  },
-  development: {
-    name: "Development Pick'em",
-    homePath: "/production-sim",
-    loginPath: "/production-sim/login",
-    workerScope: "/production-sim"
   }
 };
 
 export function isPickemAppSlug(value: string | null | undefined): value is PickemAppSlug {
-  return value === "shaw-family" || value === "friends" || value === "other-family" || value === "development";
+  return value === "shaw-family" || value === "friends" || value === "other-family";
 }
 
 export function appSlugForPath(pathname: string): PickemAppSlug | null {
   const clean = pathname !== "/" ? pathname.replace(/\/+$/, "") : pathname;
-  if (clean === "/production-sim" || clean.startsWith("/production-sim/")) return "development";
   if (clean === "/friends" || clean.startsWith("/friends/")) return "friends";
   if (clean === "/caleb-family" || clean.startsWith("/caleb-family/") || clean === "/other-family" || clean.startsWith("/other-family/")) return "other-family";
   if (clean === "/" || clean === "/login") return "shaw-family";
