@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-type AppSlug = "shaw-family" | "other-family" | "friends";
+type AppSlug = "shaw-family" | "other-family" | "friends" | "development";
 
 export default function RouteAppBootstrap({ slug }: { slug: AppSlug }) {
   useEffect(() => {

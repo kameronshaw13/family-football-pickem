@@ -1,6 +1,6 @@
 import { MAX_CUSTOM_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 
-export type AppSlug = "shaw-family" | "other-family" | "friends";
+export type AppSlug = "shaw-family" | "other-family" | "friends" | "development";
 export type RuleSection = { title: string; items: string[] };
 
 type PickRule = {
@@ -100,7 +100,7 @@ const pickLocks = [
 export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSection[] {
   const week1 = pickRule(rules, 1, { regularTotal: 3, cfbMinimum: 3, nflMinimum: 0, underdogTotal: 1, perfectBonus: false });
   const week2 = pickRule(rules, 2, { regularTotal: 5, cfbMinimum: 5, nflMinimum: 0, underdogTotal: 1, perfectBonus: true });
-  const mixed = pickRule(rules, 3, { regularTotal: 5, cfbMinimum: appSlug === "friends" ? 0 : 1, nflMinimum: appSlug === "friends" ? 0 : 1, underdogTotal: 1, perfectBonus: true });
+  const mixed = pickRule(rules, 3, { regularTotal: 5, cfbMinimum: appSlug === "friends" || appSlug === "development" ? 0 : 1, nflMinimum: appSlug === "friends" || appSlug === "development" ? 0 : 1, underdogTotal: 1, perfectBonus: true });
 
   if (appSlug === "other-family") {
     const pushMultiplier = numberValue(rules.scoring?.pushMultiplier, 0.5);
@@ -136,7 +136,7 @@ export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSect
     ];
   }
 
-  if (appSlug === "friends") {
+  if (appSlug === "friends" || appSlug === "development") {
     const prizes = rules.seasonPrizes || {};
     const weekly = rules.weeklyBank || {};
     return [
