@@ -80,7 +80,7 @@ function Choice({
           <strong>{title}</strong>
           {badge && <em>{badge}</em>}
         </span>
-        {detail && <small>{detail}</small>}
+        {detail && active && <small>{detail}</small>}
       </span>
     </button>
   );
