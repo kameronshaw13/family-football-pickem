@@ -151,6 +151,9 @@ export function getGroupSideBetSettings(context: GroupContext) {
   const maxPerWeek = settings.maxPerWeek == null ? Infinity : Number(settings.maxPerWeek);
   return {
     enabled: settings.enabled !== false,
+    moneyline: settings.moneyline !== false,
+    totals: settings.totals !== false,
+    live: settings.live !== false,
     maxAmount: Number.isFinite(maxAmount) ? maxAmount : Infinity,
     maxPerWeek: Number.isFinite(maxPerWeek) ? maxPerWeek : Infinity
   };

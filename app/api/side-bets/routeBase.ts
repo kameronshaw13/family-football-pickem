@@ -190,6 +190,15 @@ export async function POST(req: NextRequest) {
 
       const offerPhase = body.offerPhase === "live" ? "live" : "pregame";
       const marketType = body.marketType || "spread";
+      if (offerPhase === "live" && !settings.live) {
+        return NextResponse.json({ ok: false, error: "Live side bets are disabled for this league." }, { status: 409 });
+      }
+      if (marketType === "moneyline" && !settings.moneyline) {
+        return NextResponse.json({ ok: false, error: "Moneyline side bets are disabled for this league." }, { status: 409 });
+      }
+      if (marketType === "total" && !settings.totals) {
+        return NextResponse.json({ ok: false, error: "Over / Under side bets are disabled for this league." }, { status: 409 });
+      }
       const kickoffReached = new Date(game.commence_time) <= now;
       const gameFinal = Boolean(game.live_completed || (game.final_home_score != null && game.final_away_score != null));
       if (offerPhase === "pregame" && kickoffReached) {
