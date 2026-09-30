@@ -40,8 +40,8 @@ const leaguePricing: Record<LeagueTier, number> = {
 };
 
 const defaultSetup: SetupState = {
-  commissioner: "Kameron",
-  leagueName: "Saturday Legends",
+  commissioner: "",
+  leagueName: "",
   leagueTier: "11–24",
   productMode: "Pick'em + Side Bets",
   footballSlate: "College + NFL",
@@ -126,22 +126,15 @@ function ProductHeader({
   screen: Screen;
   onNavigate: (next: Screen) => void;
 }) {
+  void screen;
+  void onNavigate;
   return (
-    <>
-      <header className="sim-scoreboard-header">
-        <div className="sim-scoreboard-main">
-          <Image src="/football-pickem-wordmark.png" alt="Football Pick'em" width={800} height={100} priority />
-          <span className="sim-preview-chip">PREVIEW</span>
-        </div>
-      </header>
-      <nav className="sim-product-tabs" aria-label="Preview navigation">
-        <div>
-          <button type="button" className={screen === "overview" ? "active" : ""} onClick={() => onNavigate("overview")}>Overview</button>
-          <button type="button" className={screen === "preview" ? "active" : ""} onClick={() => onNavigate("preview")}>App Preview</button>
-          <button type="button" className={screen === "setup" ? "active" : ""} onClick={() => onNavigate("setup")}>Create League</button>
-        </div>
-      </nav>
-    </>
+    <header className="sim-scoreboard-header">
+      <div className="sim-scoreboard-main">
+        <Image src="/football-pickem-wordmark.png" alt="Football Pick'em" width={800} height={100} priority />
+        <span className="sim-preview-chip">CREATE LEAGUE</span>
+      </div>
+    </header>
   );
 }
 
@@ -488,6 +481,11 @@ export default function CommissionerProductionSim() {
   const [loaded, setLoaded] = useState(false);
   const [previewTab, setPreviewTab] = useState<PreviewTab>("Picks");
   const [previewModal, setPreviewModal] = useState<PreviewModal>(null);
+  const [onboardingStage, setOnboardingStage] = useState<"signup" | "home" | "setup">("signup");
+  const [accountName, setAccountName] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
 
   useEffect(() => {
     const removePreviewToolbar = () => {
@@ -563,7 +561,12 @@ export default function CommissionerProductionSim() {
     setSetup(defaultSetup);
     setStep(0);
     setCreated(false);
-    setScreen("overview");
+    setScreen("setup");
+    setOnboardingStage("signup");
+    setAccountName("");
+    setAccountEmail("");
+    setAccountPassword("");
+    setInviteCode("");
     try {
       window.localStorage.removeItem(STORAGE_KEY);
     } catch {
@@ -575,6 +578,88 @@ export default function CommissionerProductionSim() {
     return <main className="production-sim"><div className="sim-loading">Loading preview…</div></main>;
   }
 
+  if (onboardingStage === "signup") {
+    const canCreateAccount = accountName.trim().length > 0 && accountEmail.trim().length > 0 && accountPassword.length >= 6;
+    return (
+      <main className="production-sim">
+        <ProductHeader screen="setup" onNavigate={() => undefined} />
+        <section className="sim-signup-shell">
+          <div className="sim-signup-intro">
+            <p className="sim-eyebrow">FOOTBALL PICK&apos;EM</p>
+            <h1>Build the league your group actually wants to play.</h1>
+            <p>Start with a commissioner account, create the league rules, then invite everyone else. The member app gets connected after the league is created.</p>
+            <div className="sim-signup-features">
+              <span><strong>Pick&apos;em</strong><small>Weekly cards + standings</small></span>
+              <span><strong>Dog Picks</strong><small>Optional upset bonuses</small></span>
+              <span><strong>Side Bets</strong><small>Pregame + live challenges</small></span>
+            </div>
+          </div>
+
+          <div className="sim-signup-card">
+            <div className="sim-auth-heading">
+              <span>NEW ACCOUNT</span>
+              <h2>Create your account</h2>
+              <p>You&apos;ll become the commissioner of any league you create.</p>
+            </div>
+            <label className="sim-field"><span>Your name</span><input value={accountName} onChange={(event) => setAccountName(event.target.value)} placeholder="Your name" /></label>
+            <label className="sim-field"><span>Email</span><input value={accountEmail} onChange={(event) => setAccountEmail(event.target.value)} placeholder="you@example.com" type="email" /></label>
+            <label className="sim-field"><span>Password</span><input value={accountPassword} onChange={(event) => setAccountPassword(event.target.value)} placeholder="At least 6 characters" type="password" /></label>
+            <button
+              type="button"
+              className="sim-primary sim-auth-submit"
+              disabled={!canCreateAccount}
+              onClick={() => {
+                setSetup((current) => ({ ...current, commissioner: accountName.trim() }));
+                setOnboardingStage("home");
+              }}
+            >
+              Create Account
+            </button>
+            <p className="sim-auth-footnote">Prototype flow only — account credentials are not submitted yet.</p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (onboardingStage === "home") {
+    return (
+      <main className="production-sim">
+        <ProductHeader screen="setup" onNavigate={() => undefined} />
+        <section className="sim-new-user-home">
+          <p className="sim-eyebrow">WELCOME{accountName ? ", " + accountName.toUpperCase() : ""}</p>
+          <h1>What do you want to do?</h1>
+          <p className="sim-created-copy">Create a new league as commissioner, or join one with an invite code.</p>
+          <div className="sim-entry-grid">
+            <button
+              type="button"
+              className="sim-entry-card primary"
+              onClick={() => {
+                setStep(0);
+                setScreen("setup");
+                setOnboardingStage("setup");
+              }}
+            >
+              <span>COMMISSIONER</span>
+              <strong>Create a League</strong>
+              <small>Choose size, format, football slate, scoring, dog picks, side bets and lock rules.</small>
+              <b>Start setup →</b>
+            </button>
+            <div className="sim-entry-card">
+              <span>PLAYER</span>
+              <strong>Join a League</strong>
+              <small>Enter the invite code your commissioner sent you.</small>
+              <label className="sim-invite-entry">
+                <input value={inviteCode} onChange={(event) => setInviteCode(event.target.value.toUpperCase())} placeholder="INVITE CODE" />
+                <button type="button" disabled={!inviteCode.trim()}>Join</button>
+              </label>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   if (created) {
     return (
       <main className="production-sim">
@@ -583,7 +668,7 @@ export default function CommissionerProductionSim() {
           <div className="sim-created-check">✓</div>
           <p className="sim-eyebrow">League created</p>
           <h1>{setup.leagueName}</h1>
-          <p className="sim-created-copy">This is the post-checkout state a commissioner would see before inviting the league.</p>
+          <p className="sim-created-copy">The league setup is complete. This is the handoff point where we can connect the existing Pick&apos;em member app to the league&apos;s saved rules.</p>
           <div className="sim-invite-card">
             <div><small>INVITE CODE</small><strong>SHAW-26</strong></div>
             <button type="button">Copy Invite Link</button>
@@ -595,18 +680,23 @@ export default function CommissionerProductionSim() {
             <SummaryRow label="Season price" value={"$" + leaguePrice} />
           </div>
           <div className="sim-created-actions">
-            <button type="button" className="sim-secondary" onClick={() => { setCreated(false); navigate("setup"); }}>Edit Setup</button>
+            <button type="button" className="sim-secondary" onClick={() => { setCreated(false); setOnboardingStage("setup"); navigate("setup"); }}>Edit Setup</button>
             <button type="button" className="sim-primary" onClick={reset}>Start Over</button>
           </div>
-          <p className="sim-safety-note">Simulation only. No checkout, database record, deposit or payout is created.</p>
+          <p className="sim-safety-note">Prototype only. The next build phase is saving this league and opening the existing member app with these rules.</p>
         </section>
       </main>
     );
   }
 
+  if (screen !== "setup") {
+    setScreen("setup");
+    return null;
+  }
+
   return (
     <main className="production-sim">
-      <ProductHeader screen={screen} onNavigate={navigate} />
+      <ProductHeader screen="setup" onNavigate={navigate} />
 
       {screen === "overview" && (
         <div className="sim-overview">
