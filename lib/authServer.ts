@@ -90,9 +90,27 @@ export async function getProfileFromToken(token: string) {
     .eq("session_token", clean)
     .maybeSingle();
 
-  if (error || !profile) return null;
-  cacheProfile(tokenHash, profile);
-  return profile;
+  if (!error && profile) {
+    cacheProfile(tokenHash, profile);
+    return profile;
+  }
+
+  // Universal accounts use Supabase Auth access tokens instead of the
+  // legacy private-league session table. Accept those tokens here so all
+  // existing Pick'em APIs can be reused without changing private logins.
+  const { data: authData, error: authError } = await supabase.auth.getUser(clean);
+  const authUser = authData?.user;
+  if (authError || !authUser) return null;
+
+  const { data: authProfile, error: authProfileError } = await supabase
+    .from("profiles")
+    .select("id,username,display_name,is_admin")
+    .eq("auth_user_id", authUser.id)
+    .maybeSingle();
+
+  if (authProfileError || !authProfile) return null;
+  cacheProfile(tokenHash, authProfile);
+  return authProfile;
 }
 
 export async function getProfileFromRequest(req: NextRequest) {
