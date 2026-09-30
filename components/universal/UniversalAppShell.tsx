@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Check, ChevronLeft, Eye, KeyRound, Link2, LockKeyhole, Mail, Plus, ShieldCheck, Users } from "lucide-react";
+import { Activity, ArrowRight, BarChart3, Check, ChevronLeft, CircleDollarSign, Eye, KeyRound, Link2, LockKeyhole, Mail, Plus, Settings2, ShieldCheck, Trophy, Users, Zap } from "lucide-react";
 import { getUniversalSupabase, setRememberMe } from "@/lib/universalAuthClient";
 import { clearClientSession, storeClientSession } from "@/lib/clientSession";
 
@@ -78,7 +78,7 @@ function ProductHeader({ label }: { label?: string }) {
 export default function UniversalAppShell() {
   const supabase = useMemo(() => getUniversalSupabase(), []);
   const [stage, setStage] = useState<Stage>("loading");
-  const [authMode, setAuthMode] = useState<AuthMode>("signin");
+  const [authMode, setAuthMode] = useState<AuthMode>("signup");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -262,19 +262,51 @@ export default function UniversalAppShell() {
     <main className="container universal-account-container"><section className="panel universal-account-panel universal-account-loading"><span className="spinner" />Loading your account…</section></main>
   </div>;
 
-  if (stage === "auth") return <div className="app-shell universal-entry-app">
-    <ProductHeader label={authMode === "signin" ? "SIGN IN" : "CREATE"} />
-    <main className="container universal-account-container">
-      <section className="panel universal-account-panel">
-        <div className="section-tabs">
-          <button className={authMode==="signin"?"active":""} onClick={()=>setAuthMode("signin")}>Sign In</button>
-          <button className={authMode==="signup"?"active":""} onClick={()=>setAuthMode("signup")}>Create Account</button>
+  if (stage === "auth") return <div className="app-shell universal-entry-app universal-overview-page">
+    <ProductHeader label="FOOTBALL PICK'EM" />
+    <main className="container universal-overview-container">
+      <section className="panel universal-overview-hero">
+        <span className="universal-eyebrow">YOUR LEAGUE. YOUR RULES.</span>
+        <h1>Pick games. Challenge friends. Follow every snap.</h1>
+        <p>Football Pick&apos;em brings the full season into one league: weekly picks, peer-to-peer side bets, advanced matchup research and live GameTracker.</p>
+        <div className="universal-overview-actions">
+          <a href="#account" className="btn gold"><Plus size={17}/>Create Account</a>
+          <Link href="/demo" className="btn"><Eye size={17}/>Try Demo</Link>
+        </div>
+      </section>
+
+      <section className="panel universal-feature-overview">
+        <div className="section-title"><div><h2>Everything in one league</h2><p>The same features you use every football week, built into one app.</p></div></div>
+        <div className="universal-feature-grid">
+          <article className="universal-feature-card"><span><Zap size={18}/></span><div><strong>Weekly Pick&apos;em</strong><p>Build your card from college football, NFL or both. Commissioners control pick count, scoring and weekly rules.</p></div></article>
+          <article className="universal-feature-card"><span><Trophy size={18}/></span><div><strong>Dog Picks</strong><p>Take an underdog to win outright and earn bigger bonuses for bigger upsets. Leagues can use 1–3 dogs per week.</p></div></article>
+          <article className="universal-feature-card"><span><CircleDollarSign size={18}/></span><div><strong>Peer-to-Peer Side Bets</strong><p>Send spread, moneyline and over/under challenges to league members, including live offers during games.</p></div></article>
+          <article className="universal-feature-card"><span><BarChart3 size={18}/></span><div><strong>Matchup Preview</strong><p>Research games with records, ATS performance, form and advanced team metrics before making a pick.</p></div></article>
+          <article className="universal-feature-card"><span><Activity size={18}/></span><div><strong>GameTracker</strong><p>Follow the score, down and distance, field position, drives, scoring, plays and box score without leaving the app.</p></div></article>
+          <article className="universal-feature-card"><span><Settings2 size={18}/></span><div><strong>Commissioner Controls</strong><p>Choose league format, scoring, sports, side-bet markets, start week, lock rules and invite your group with one code.</p></div></article>
+        </div>
+      </section>
+
+      <section className="panel universal-how-panel">
+        <div className="section-title"><div><h2>How it works</h2><p>Set up once, then use the same league all season.</p></div></div>
+        <div className="universal-how-steps">
+          <div><b>1</b><span><strong>Create or join</strong><small>A commissioner creates the league. Everyone else joins free with the invite link or code.</small></span></div>
+          <div><b>2</b><span><strong>Play each week</strong><small>Make your Pick&apos;em card, send side bets and use matchup data before kickoff.</small></span></div>
+          <div><b>3</b><span><strong>Follow it live</strong><small>Track games, results, standings and side-bet history through the season.</small></span></div>
+        </div>
+        <Link href="/demo" className="universal-demo-real-link compact"><Eye size={17}/><span><strong>See the real app first</strong><small>Demo Mode opens the actual Pick&apos;em experience with demo data</small></span><ArrowRight size={17}/></Link>
+      </section>
+
+      <section id="account" className="panel universal-account-panel universal-account-bottom">
+        <div className="universal-account-intro">
+          <span className="universal-eyebrow">GET STARTED</span>
+          <h2>{authMode==="signup"?"Create your account":"Welcome back"}</h2>
+          <p>{authMode==="signup"?"Create one account, then join a league or start your own.":"Sign in to open your leagues."}</p>
         </div>
 
-        <div className="universal-account-heading">
-          <span className="universal-eyebrow">{authMode==="signin"?"WELCOME BACK":"NEW ACCOUNT"}</span>
-          <h1>{authMode==="signin"?"Football Pick'em":"Create your account"}</h1>
-          <p>{authMode==="signin"?"Sign in to open your leagues.":"Create one account, then join a league or start your own."}</p>
+        <div className="section-tabs">
+          <button className={authMode==="signup"?"active":""} onClick={()=>setAuthMode("signup")}>Create Account</button>
+          <button className={authMode==="signin"?"active":""} onClick={()=>setAuthMode("signin")}>Sign In</button>
         </div>
 
         {authMode==="signup" && <label className="universal-input"><span>Name</span><div><Users size={16}/><input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" autoComplete="name" /></div></label>}
@@ -284,11 +316,7 @@ export default function UniversalAppShell() {
         {authMode==="signin" && <div className="universal-login-options"><label><input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)} />Keep me signed in</label><button onClick={()=>setForgotOpen(true)}>Forgot password?</button></div>}
         {message && <div className="error-card universal-auth-error">{message}</div>}
 
-        <button className="btn gold full universal-auth-submit" disabled={working || !email || password.length<6 || (authMode==="signup"&&!name.trim())} onClick={submitAuth}>{working?"Working…":authMode==="signin"?"Sign In":"Create Account"}</button>
-
-        <div className="universal-demo-divider"><span>OR</span></div>
-        <Link href="/demo" className="universal-demo-real-link"><Eye size={18}/><span><strong>Open Demo Mode</strong><small>Use the actual app before creating an account</small></span><ArrowRight size={18}/></Link>
-
+        <button className="btn gold full universal-auth-submit" disabled={working || !email || password.length<6 || (authMode==="signup"&&!name.trim())} onClick={submitAuth}>{working?"Working…":authMode==="signup"?"Create Account":"Sign In"}</button>
         <small className="universal-legal">Football Pick&apos;em records peer-to-peer side bets but does not hold or transfer funds.</small>
       </section>
     </main>

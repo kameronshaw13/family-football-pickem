@@ -88,3 +88,48 @@
   .universal-account-heading h1{font-size:24px}
   .universal-setup-layout{padding-top:calc(env(safe-area-inset-top) + var(--header-height) + 12px)}
 }
+
+/* Initial app overview */
+.universal-overview-container{padding-top:calc(env(safe-area-inset-top) + var(--header-height) + 14px);padding-bottom:46px;max-width:760px}
+.universal-overview-container>.panel{margin-bottom:12px}
+.universal-overview-hero{padding:22px 18px 20px;background:linear-gradient(180deg,#fff 0%,var(--panel) 100%);box-shadow:inset 4px 0 0 var(--blue)}
+.universal-overview-hero .universal-eyebrow{margin-top:0}
+.universal-overview-hero h1{max-width:620px;margin:0;font-size:34px;line-height:1.02;letter-spacing:-.025em}
+.universal-overview-hero>p{max-width:650px;margin-top:10px;color:var(--muted);font-family:var(--font-roboto-condensed);font-size:14px;line-height:1.45}
+.universal-overview-actions{display:flex;gap:8px;margin-top:18px}
+.universal-overview-actions .btn{min-height:42px;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.universal-feature-overview,.universal-how-panel{padding:17px 16px}
+.universal-feature-overview .section-title,.universal-how-panel .section-title{margin-bottom:11px}
+.universal-feature-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.universal-feature-card{display:flex;min-height:108px;gap:10px;padding:12px;border:1px solid var(--line-strong);background:#fff}
+.universal-feature-card>span{display:grid;width:34px;height:34px;flex:0 0 34px;place-items:center;background:var(--graphite);color:#fff;box-shadow:inset 0 -2px 0 var(--blue)}
+.universal-feature-card>div{display:grid;align-content:start;gap:4px}
+.universal-feature-card strong{font-size:13px}
+.universal-feature-card p{color:var(--muted);font-family:var(--font-roboto-condensed);font-size:11.5px;line-height:1.35}
+.universal-how-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.universal-how-steps>div{display:flex;gap:9px;padding:11px;border:1px solid var(--line-strong);background:#fff}
+.universal-how-steps b{display:grid;width:25px;height:25px;flex:0 0 25px;place-items:center;background:var(--blue-dark);color:#fff;font-size:11px}
+.universal-how-steps span{display:grid;align-content:start;gap:3px}
+.universal-how-steps strong{font-size:12px}
+.universal-how-steps small{color:var(--muted);font-family:var(--font-roboto-condensed);font-size:10.5px;line-height:1.35}
+.universal-account-bottom{scroll-margin-top:calc(env(safe-area-inset-top) + var(--header-height) + 10px);max-width:none;padding:18px 16px 20px}
+.universal-account-intro{margin-bottom:13px}
+.universal-account-intro .universal-eyebrow{margin-top:0}
+.universal-account-intro h2{margin:0;font-size:22px}
+.universal-account-intro p{margin-top:4px;color:var(--muted);font-family:var(--font-roboto-condensed);font-size:12px}
+.universal-account-bottom .section-tabs{margin:0 0 14px}
+.universal-account-bottom .universal-input{max-width:520px}
+.universal-account-bottom .universal-login-options{max-width:520px}
+.universal-account-bottom .universal-auth-submit{max-width:520px}
+.universal-account-bottom .universal-legal{max-width:520px}
+@media(max-width:760px){
+  .universal-overview-container{padding-top:calc(env(safe-area-inset-top) + var(--header-height) + 10px);padding-inline:var(--page-gutter)}
+  .universal-overview-hero{padding:18px 14px}
+  .universal-overview-hero h1{font-size:29px}
+  .universal-overview-actions{display:grid;grid-template-columns:1fr 1fr}
+  .universal-feature-overview,.universal-how-panel{padding:14px 12px}
+  .universal-feature-grid{grid-template-columns:1fr}
+  .universal-feature-card{min-height:0}
+  .universal-how-steps{grid-template-columns:1fr}
+  .universal-account-bottom{padding:16px 12px 18px}
+}
