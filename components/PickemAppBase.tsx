@@ -1514,6 +1514,19 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   useEffect(() => { void load(null); return () => { loadSequence.current += 1; }; }, [load]);
   useEffect(() => { dataRef.current = data; }, [data]);
   useEffect(() => {
+    const productMode = data?.groupRules?.productMode;
+    if (!productMode) return;
+    const pickemEnabled = productMode !== "sidebets";
+    const sideBetsEnabled = productMode !== "pickem" && data?.sideBetSettings?.enabled !== false;
+
+    if (!pickemEnabled) {
+      if (tab === "card") setTab("picks");
+      if (picksView !== "sideBets") setPicksView("sideBets");
+    } else if (!sideBetsEnabled && picksView === "sideBets") {
+      setPicksView("board");
+    }
+  }, [data?.groupRules?.productMode, data?.sideBetSettings?.enabled, picksView, tab]);
+  useEffect(() => {
     const username = String(data?.currentUser?.username || "").trim().toLowerCase();
     const enabled = (appSlug === "shaw-family" || appSlug === "friends") && username === "kameron" && data?.week != null;
     if (!enabled) {
@@ -1910,6 +1923,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   if (!data) return <div className="app-shell"><main className="container"><div className="error-card">{message || "Could not load app."}</div></main></div>;
 
   const { currentUser, games, picks, profiles, standings, availableWeeks, bankEntries } = data;
+  const productMode = data.groupRules?.productMode || "pickem-sidebets";
+  const pickemEnabled = productMode !== "sidebets";
+  const sideBetsEnabled = productMode !== "pickem" && data.sideBetSettings?.enabled !== false;
+  const pickemAndSideBets = pickemEnabled && sideBetsEnabled;
   const pointsMode = data.groupRules?.scoring?.mode === "confidence";
   const leagueCardProfiles = [
     profiles.find((profile) => profile.id === currentUser.id) || currentUser,
@@ -1934,8 +1951,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const viewedBankEntries = previewActive ? testWeek!.bankEntries : bankEntries;
   const viewedBankHistory = previewActive ? [] : data.bankHistory || [];
   const rule = previewActive ? getWeekRule(3) : data.weekRule || getWeekRule(data.week);
-  const boardActive = tab === "picks" && picksView === "board";
-  const sideBetsActive = tab === "picks" && picksView === "sideBets";
+  const boardActive = tab === "picks" && pickemEnabled && (!sideBetsEnabled || picksView === "board");
+  const sideBetsActive = tab === "picks" && sideBetsEnabled && (!pickemEnabled || picksView === "sideBets");
   const standingsActive = tab === "standings" && standingsView === "standings";
   const bankActive = tab === "standings" && standingsView === "bank";
   const myPicks = viewedPicks.filter((p) => p.user_id === currentUser.id && p.week === viewedWeek);
@@ -2151,8 +2168,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }
 
   const primaryNav: Array<{ id: Tab; label: string; icon: typeof Trophy }> = [
-    { id: "picks", label: "Picks", icon: Zap },
-    { id: "card", label: "My Card", icon: SquareCheck },
+    ...(pickemEnabled
+      ? [{ id: "picks" as Tab, label: "Picks", icon: Zap }, { id: "card" as Tab, label: "My Card", icon: SquareCheck }]
+      : sideBetsEnabled
+        ? [{ id: "picks" as Tab, label: "Side Bets", icon: CircleDollarSign }]
+        : []),
     { id: "standings", label: "Standings", icon: Trophy },
     { id: "rules", label: "Rules", icon: Shield }
   ];
@@ -2190,8 +2210,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
       {tab === "picks" && <section className="panel picks-panel">
         {!previewActive && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens on <NumericText text={openText(data.weekOpenTime)} />.</div>}
-        <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: "Side Bets", badge: picksNotificationCount }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
-        {picksView === "board" && <>
+        {pickemAndSideBets && <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: "Side Bets", badge: picksNotificationCount }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />}
+        {pickemEnabled && (!sideBetsEnabled || picksView === "board") && <>
           <div className="view-select-row board-filter-row">
             <MenuSelect ariaLabel="Choose game status" className="compact-select status-select" value={statusFilter} sections={[{ options: (["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => { setStatusFilter(value as GameStatusFilter); setStatusFilterTouched(true); }} />
             <MenuSelect ariaLabel="Choose league" className="compact-select league-select" value={leagueFilter} sections={[{ options: (["CFB", "NFL", "DOGS"] as LeagueFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => setLeagueFilter(value as LeagueFilter)} />
@@ -2206,7 +2226,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             </div>)}
           </div>
         </>}
-        {picksView === "sideBets" && <SideBetCenter
+        {sideBetsEnabled && (!pickemEnabled || picksView === "sideBets") && <SideBetCenter
           appSlug={appSlug}
           view={betView}
           setView={setBetView}
@@ -2245,7 +2265,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         />}
       </section>}
 
-      {tab === "card" && <section className="panel card-panel">
+      {tab === "card" && pickemEnabled && <section className="panel card-panel">
         <SectionTabs items={[{ id: "mine", label: "My Card", badge: myCardNotificationCount }, { id: "group", label: "League Cards", badge: leagueCardsNotificationCount }]} value={cardView} onChange={(value) => setCardView(value as CardView)} />
         {cardView === "mine" && <>
           {!hideCardProgress && <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />}
