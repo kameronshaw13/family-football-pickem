@@ -1,11 +1,5 @@
-import type { Metadata } from "next";
-import PickemApp from "@/components/PickemApp";
-import RouteAppBootstrap from "@/components/RouteAppBootstrap";
+import UniversalAppShell from "@/components/universal/UniversalAppShell";
 
-export const metadata: Metadata = {
-  manifest: "/shaw-manifest.webmanifest"
-};
-
-export default function Home() {
-  return <><RouteAppBootstrap slug="shaw-family" /><PickemApp appSlug="shaw-family" /></>;
+export default function HomePage() {
+  return <UniversalAppShell />;
 }
