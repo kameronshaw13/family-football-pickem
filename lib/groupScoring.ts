@@ -10,7 +10,24 @@ export function isConfidenceMode(rules: any) {
 }
 
 export function computeGroupStandings(profiles: ProfileSummary[], picks: FootballPick[], rules: any): GroupStanding[] {
-  if (!isConfidenceMode(rules)) return computeWeeklyStandings(profiles, picks);
+  if (!isConfidenceMode(rules)) {
+    const base = computeWeeklyStandings(profiles, picks);
+    if (rules?.scoring?.ranking !== "total-wins") return base;
+    const sorted = [...base].sort((a, b) =>
+      b.wins - a.wins ||
+      a.losses - b.losses ||
+      b.pushes - a.pushes ||
+      a.display_name.localeCompare(b.display_name)
+    );
+    let rank = 1;
+    return sorted.map((row, index) => {
+      if (index > 0) {
+        const prior = sorted[index - 1];
+        if (row.wins !== prior.wins || row.losses !== prior.losses || row.pushes !== prior.pushes) rank = index + 1;
+      }
+      return { ...row, rank };
+    });
+  }
   const pushMultiplier = Number.isFinite(Number(rules?.scoring?.pushMultiplier)) ? Number(rules.scoring.pushMultiplier) : 0.5;
 
   const map = new Map<string, GroupStanding>();

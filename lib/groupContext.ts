@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game, WeekRule } from "@/lib/types";
-import { getGameLockTime, getPickWeekOpenTime, getSpreadFreezeTime } from "@/lib/lockRules";
+import { getGameLockTime, getPickWeekOpenTime, getSpreadFreezeTime, getWeekOpenTimeFromCommenceTimes } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
 
 export const DEFAULT_GROUP_SLUG = "shaw-family";
@@ -114,9 +114,11 @@ export function isGameAllowedForGroup(context: GroupContext, game: Pick<Game, "l
   return isGameAllowedByRules(context.rules, game);
 }
 
-export function isGameAllowedByRules(rules: Record<string, any> | null | undefined, game: Pick<Game, "league" | "home_team" | "away_team">) {
+export function isGameAllowedByRules(rules: Record<string, any> | null | undefined, game: Pick<Game, "league" | "home_team" | "away_team"> & { week?: number | null }) {
   const leagues = Array.isArray(rules?.eligibleLeagues) ? rules.eligibleLeagues.map(String) : ["CFB", "NFL"];
   if (!leagues.includes(game.league)) return false;
+  const startWeek = Number(rules?.startWeeks?.[game.league]);
+  if (Number.isFinite(startWeek) && game.week != null && Number(game.week) < startWeek) return false;
   const excluded = new Set((Array.isArray(rules?.excludedTeams) ? rules.excludedTeams : []).map(normalizeTeam));
   return !excluded.has(normalizeTeam(game.home_team)) && !excluded.has(normalizeTeam(game.away_team));
 }
@@ -161,10 +163,17 @@ export function getGroupPickWeekOpenTime(context: GroupContext, week: number, co
     const parsed = new Date(override);
     if (!Number.isNaN(parsed.getTime())) return parsed;
   }
+  if (context.rules?.universalApp) {
+    const base = getWeekOpenTimeFromCommenceTimes(commenceTimes, context.group.timezone);
+    if (!base) return null;
+    if (context.rules?.schedule?.weekOpen === "monday-9") return new Date(base.getTime() - 23 * 60 * 60 * 1000);
+    if (context.rules?.schedule?.weekOpen === "tuesday-9") return new Date(base.getTime() + 60 * 60 * 1000);
+  }
   return getPickWeekOpenTime(week, commenceTimes, context.group.timezone);
 }
 
 export function getGroupGameLockTime(context: GroupContext, commenceTimeIso: string) {
+  if (context.rules?.universalApp && context.rules?.schedule?.lockMode === "kickoff") return new Date(commenceTimeIso);
   return getGameLockTime(commenceTimeIso, context.group.timezone);
 }
 

@@ -48,26 +48,51 @@ export async function POST(req: NextRequest) {
       slug = base + "-" + Math.random().toString(36).slice(2, 6);
     }
 
+    const eligibleLeagues = body.footballSlate === "BOTH" ? ["CFB", "NFL"] : [body.footballSlate];
     const rules = {
+      universalApp: true,
       productMode: body.format,
       footballSlate: body.footballSlate,
-      scoringMode: body.scoringMode,
-      weeklyPicks: body.weeklyPicks,
-      dogEnabled: body.dogEnabled,
-      dogPicks: body.dogPicks,
-      dogScoring: { "7-9.5": 1, "10-19.5": 2, "20+": 3, lossCounts: false },
+      eligibleLeagues,
+      excludedTeams: [],
+      playerTier: body.playerTier,
+      pickRules: {
+        default: {
+          regularTotal: body.format === "sidebets" ? 0 : body.weeklyPicks,
+          cfbMinimum: 0,
+          nflMinimum: 0,
+          underdogTotal: body.format === "sidebets" || !body.dogEnabled ? 0 : body.dogPicks,
+          perfectBonus: false
+        },
+        weekOverrides: {}
+      },
+      scoring: {
+        mode: body.scoringMode === "confidence" ? "confidence" : "record",
+        ranking: body.scoringMode === "total-wins" ? "total-wins" : "winning-percentage",
+        pushMultiplier: 0.5
+      },
+      underdog: {
+        enabled: body.format !== "sidebets" && body.dogEnabled,
+        minimumSpread: 7,
+        tiers: [
+          { min: 7, max: 9.5, bonusWins: 1 },
+          { min: 10, max: 19.5, bonusWins: 2 },
+          { min: 20, max: null, bonusWins: 3 }
+        ]
+      },
       sideBets: {
         enabled: body.format !== "pickem",
         moneyline: body.sideBetMoneyline,
         totals: body.sideBetTotals,
         live: body.sideBetLive,
-        ledgerUnit: body.ledgerUnit
+        ledgerUnit: body.ledgerUnit,
+        amountEntry: "free",
+        maxAmount: null,
+        maxPerWeek: null
       },
       schedule: { weekOpen: body.weekOpen, lockMode: body.lockMode },
       startMode: body.startMode,
-      startWeeks: body.startWeeks,
-      playerTier: body.playerTier,
-      universalApp: true
+      startWeeks: body.startWeeks
     };
 
     const { data: group, error: groupError } = await supabase.from("pickem_groups").insert({
