@@ -133,3 +133,6 @@
   .universal-how-steps{grid-template-columns:1fr}
   .universal-account-bottom{padding:16px 12px 18px}
 }
+
+.universal-motto{display:grid;gap:2px}
+.universal-motto span:last-child{color:var(--blue-dark)}

@@ -267,8 +267,8 @@ export default function UniversalAppShell() {
     <main className="container universal-overview-container">
       <section className="panel universal-overview-hero">
         <span className="universal-eyebrow">YOUR LEAGUE. YOUR RULES.</span>
-        <h1>Pick games. Challenge friends. Follow every snap.</h1>
-        <p>Football Pick&apos;em brings the full season into one league: weekly picks, peer-to-peer side bets, advanced matchup research and live GameTracker.</p>
+        <h1 className="universal-motto"><span>Bet Your Friends.</span><span>Not the Sportsbook.</span></h1>
+        <p>Custom Pick&apos;em leagues, peer-to-peer side bets, advanced matchup stats and live GameTracker — all in one app.</p>
         <div className="universal-overview-actions">
           <a href="#account" className="btn gold"><Plus size={17}/>Create Account</a>
           <Link href="/demo" className="btn"><Eye size={17}/>Try Demo</Link>
