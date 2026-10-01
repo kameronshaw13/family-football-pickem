@@ -2,6 +2,7 @@
 
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
 import NextImage from "next/image";
+import Link from "next/link";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Shield, SquareCheck, Trash2, Trophy, UserRound, X, Zap } from "lucide-react";
@@ -2219,7 +2220,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         </div>
       </div>
       {universalAccountLeague && accountMenuOpen && <div className="header-account-menu">
-        <a href="/">My Leagues</a>
+        <Link href="/">My Leagues</Link>
         <a href="/profile">Profile</a>
         {commissioner && <a href={"/league/"+encodeURIComponent(appSlug)+"/settings"}>League Settings</a>}
       </div>}
