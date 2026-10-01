@@ -145,11 +145,11 @@
 .universal-account-intro p,
 .universal-feature-overview .section-title p,
 .universal-how-panel .section-title p{color:var(--universal-copy)}
-.universal-feature-card{position:relative;display:block;min-height:0;height:auto;padding:15px 14px 14px;border:1px solid var(--line);background:var(--surface-soft);box-shadow:none}
+.universal-feature-card{position:relative;display:block;min-height:86px;height:auto;padding:18px 16px 16px;border:1px solid var(--line);background:var(--surface-soft);box-shadow:none}
 .universal-feature-card>div{display:grid;gap:5px}
 .universal-feature-card>.universal-feature-kicker{display:block;width:auto;height:auto;place-items:unset;align-self:auto;justify-self:start;flex:initial;padding:0;background:transparent;box-shadow:none;color:#66737a;font-family:var(--font-roboto-condensed);font-size:9px;font-weight:900;line-height:1.2;letter-spacing:.12em}
-.universal-feature-card strong{font-size:14px;line-height:1.2;color:var(--ink)}
-.universal-feature-card p{margin:0;font-size:11.5px;line-height:1.4}
+.universal-feature-card strong{font-size:15px;line-height:1.2;color:var(--ink)}
+.universal-feature-card p{margin:0;font-size:12px;line-height:1.42}
 .header-account-button{display:grid;width:32px;height:32px;flex:0 0 32px;place-items:center;border:1px solid rgba(255,255,255,.34);border-radius:50%;background:transparent;color:#fff}
 .header-account-button:active{background:rgba(255,255,255,.08)}
 .header-account-menu{position:fixed;top:calc(env(safe-area-inset-top) + var(--header-height) - 5px);right:max(10px,calc((100vw - 760px)/2 + 10px));z-index:80;display:grid;width:170px;border:1px solid var(--line-strong);background:var(--panel);box-shadow:0 12px 28px rgba(20,33,43,.18)}
@@ -199,4 +199,22 @@ button.universal-first-league-choice{cursor:pointer}
   .universal-first-league-panel{padding:18px 13px}
   .universal-first-league-grid{grid-template-columns:1fr}
   .universal-first-league-choice{min-height:132px}
+}
+
+/* Normalize mobile text inputs + autofill */
+.universal-entry-app input[type="text"],
+.universal-entry-app input[type="email"],
+.universal-entry-app input[type="password"]{
+  -webkit-appearance:none;
+  appearance:none;
+}
+.universal-entry-app input:-webkit-autofill,
+.universal-entry-app input:-webkit-autofill:hover,
+.universal-entry-app input:-webkit-autofill:focus,
+.universal-entry-app input:-webkit-autofill:active{
+  -webkit-text-fill-color:var(--ink)!important;
+  caret-color:var(--ink);
+  box-shadow:0 0 0 1000px #fff inset!important;
+  -webkit-box-shadow:0 0 0 1000px #fff inset!important;
+  transition:background-color 9999s ease-out 0s;
 }
