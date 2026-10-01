@@ -262,11 +262,26 @@ export async function GET(req: NextRequest) {
     if (!eventId) return NextResponse.json({ ok: false, error: "Live game data is not available yet." }, { status: 404, headers: NO_STORE });
 
     const sportPath = league === "NFL" ? "nfl" : "college-football";
-    const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/summary`);
-    url.searchParams.set("event", eventId);
-    const response = await fetch(url.toString(), { cache: "no-store" });
-    if (!response.ok) throw new Error(`ESPN summary failed (${response.status})`);
-    const payload = await response.json();
+    let payload: any = null;
+
+    if (context.group.slug === "demo") {
+      const { data: snapshot, error: snapshotError } = await supabase
+        .from("demo_week_snapshots")
+        .select("live_game_summaries,status")
+        .eq("snapshot_key", "saturday-2026-10-03-1725")
+        .eq("status", "captured")
+        .maybeSingle();
+      if (snapshotError) throw snapshotError;
+      payload = snapshot?.live_game_summaries?.[gameId] || null;
+    }
+
+    if (!payload) {
+      const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/summary`);
+      url.searchParams.set("event", eventId);
+      const response = await fetch(url.toString(), { cache: "no-store" });
+      if (!response.ok) throw new Error(`ESPN summary failed (${response.status})`);
+      payload = await response.json();
+    }
 
     const competition = payload?.header?.competitions?.[0];
     const home = competition?.competitors?.find((row: any) => row.homeAway === "home");

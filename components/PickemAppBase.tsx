@@ -123,6 +123,7 @@ type AppData = {
   weekRule: WeekRule;
   weekOpenTime: string | null;
   availableWeeks: number[];
+  demoSnapshotAt?: string | null;
   activeGroup?: { id: string; slug: string; name?: string };
   groupRules?: GroupRules;
   sideBetSettings?: { enabled: boolean; maxAmount: number | null; maxPerWeek: number | null; manualAmount: boolean };
@@ -1204,6 +1205,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [sideBetLedgerReady, setSideBetLedgerReady] = useState(false);
   const [stagedPicks, setStagedPicks] = useState<Pick[] | null>(null);
   const [clock, setClock] = useState(() => Date.now());
+  const effectiveClock = data?.demoSnapshotAt ? new Date(data.demoSnapshotAt).getTime() : clock;
   const [betGameId, setBetGameId] = useState("");
   const [betCreatorTeam, setBetCreatorTeam] = useState("");
   const [betAmount, setBetAmount] = useState("20");
@@ -1220,13 +1222,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const sideBetRefreshInFlightRef = useRef(false);
   const sideBetMutationInFlightRef = useRef(false);
   const sideBetLedgerRefreshInFlightRef = useRef(false);
-  const hasActiveGames = Boolean(data?.games.some((game) => {
+  const hasActiveGames = appSlug !== "demo" && Boolean(data?.games.some((game) => {
     const start = new Date(game.commence_time).getTime();
     return game.final_home_score == null &&
       game.final_away_score == null &&
       !game.live_completed &&
-      start <= clock &&
-      start >= clock - 18 * 60 * 60 * 1000;
+      start <= effectiveClock &&
+      start >= effectiveClock - 18 * 60 * 60 * 1000;
   }));
 
   useEffect(() => {
@@ -1445,7 +1447,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     const cachedPayload = isInitialLoad ? readCachedAppData(appSlug, nextWeek) : null;
     if (cachedPayload) {
       await preloadInitialBoardLogos(cachedPayload);
-      const cachedAt = Date.now();
+      const cachedAt = cachedPayload.demoSnapshotAt ? new Date(cachedPayload.demoSnapshotAt).getTime() : Date.now();
       const cachedWeekIsOpen = !cachedPayload.weekOpenTime || new Date(cachedPayload.weekOpenTime).getTime() <= cachedAt;
       dataRef.current = cachedPayload;
       setData(cachedPayload);
@@ -1489,7 +1491,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         return;
       }
       setSessionValidated(true);
-      const loadedAt = Date.now();
+      const loadedAt = payload.demoSnapshotAt ? new Date(payload.demoSnapshotAt).getTime() : Date.now();
       const loadedWeekIsOpen = !payload.weekOpenTime || new Date(payload.weekOpenTime).getTime() <= loadedAt;
       if (!cachedPayload) await preloadInitialBoardLogos(payload);
       if (sequence !== loadSequence.current) return;
@@ -1637,10 +1639,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }, []);
   useEffect(() => {
     if (!data || statusFilterTouched) return;
-    const weekIsOpenNow = !data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock;
-    const hasCurrentStatus = data.games.some((game) => boardStatusForGame(game, clock, weekIsOpenNow) === statusFilter);
-    if (!hasCurrentStatus) setStatusFilter(defaultBoardStatus(data.games, clock, weekIsOpenNow));
-  }, [clock, data, statusFilter, statusFilterTouched]);
+    const weekIsOpenNow = !data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= effectiveClock;
+    const hasCurrentStatus = data.games.some((game) => boardStatusForGame(game, effectiveClock, weekIsOpenNow) === statusFilter);
+    if (!hasCurrentStatus) setStatusFilter(defaultBoardStatus(data.games, effectiveClock, weekIsOpenNow));
+  }, [effectiveClock, data, statusFilter, statusFilterTouched]);
   useEffect(() => {
     if (!dataRef.current || week == null || testWeekActive || tab !== "picks" || picksView !== "board") return;
     let cancelled = false;
@@ -1971,7 +1973,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const myPicks = viewedPicks.filter((p) => p.user_id === currentUser.id && p.week === viewedWeek);
   const cardPicks = previewActive ? myPicks : stagedPicks ?? myPicks;
   const universalLockAt = universalWeekendLockTime(viewedGames);
-  const universalLockReached = universalLockAt != null && universalLockAt <= clock;
+  const universalLockReached = universalLockAt != null && universalLockAt <= effectiveClock;
   const requiredCardPicks = rule.regularTotal + rule.underdogTotal;
   const allSubmittedPicksLocked = cardPicks.length > 0 && cardPicks.every((pick) => {
     const game = viewedGames.find((item) => item.id === pick.game_id) || pick.game;
@@ -2000,7 +2002,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     const entries = viewedBankEntries.filter((entry) => entry.week === bankResultWeek && entry.user_id === profile.id);
     return [profile.id, entries.length ? entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : null];
   })) : {};
-  const weekIsOpen = !previewActive && !weekNotOpenYet && (!data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock);
+  const weekIsOpen = !previewActive && !weekNotOpenYet && (!data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= effectiveClock);
   const receivedNotificationCount = previewActive ? 1 : notificationCounts.side_bets_received;
   const sentNotificationCount = previewActive ? 1 : notificationCounts.side_bets_sent;
   const myCardNotificationCount = previewActive ? 1 : notificationCounts.my_card;
@@ -2039,7 +2041,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }
 
   const filteredGames = boardActive ? viewedGames.filter((g) => {
-    if (boardStatusForGame(g, clock, weekIsOpen) !== statusFilter) return false;
+    if (boardStatusForGame(g, effectiveClock, weekIsOpen) !== statusFilter) return false;
     if (leagueFilter === "CFB") {
       return g.league === "CFB" && (conferenceFilter === "ALL" || gameConferences(g).includes(conferenceFilter));
     }
@@ -2198,7 +2200,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
-          {previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><MenuSelect
+          {appSlug === "demo" && data.demoSnapshotAt
+            ? <div className="test-week-chip">DEMO · SAT 5:25</div>
+            : previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><MenuSelect
             ariaLabel="Select week"
             className="week-select-wrap header-menu-select"
             plainText
@@ -2235,7 +2239,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           <div className="game-days">
             {gameGroups.map((group) => <div className={`game-day-group ${statusFilter === "FINAL" ? "past-day-group" : ""}`} key={group.key}>
               <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong></div>
-              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} statusFilter={statusFilter} leagueFilter={leagueFilter} weekIsOpen={weekIsOpen} now={clock} pointsMode={pointsMode} modelStars={cfbModelEdges[game.id]?.stars || 0} addPick={addPick} openPreview={setMatchupPreviewGame} />)}</div>
+              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} statusFilter={statusFilter} leagueFilter={leagueFilter} weekIsOpen={weekIsOpen} now={effectiveClock} pointsMode={pointsMode} modelStars={cfbModelEdges[game.id]?.stars || 0} addPick={addPick} openPreview={setMatchupPreviewGame} />)}</div>
             </div>)}
           </div>
         </>}
@@ -2380,7 +2384,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         </div>
       </section>}
     </main>
-    {matchupPreviewGame && (isFinalGame(matchupPreviewGame) || new Date(matchupPreviewGame.commence_time).getTime() <= clock
+    {matchupPreviewGame && (isFinalGame(matchupPreviewGame) || new Date(matchupPreviewGame.commence_time).getTime() <= effectiveClock
       ? <GameTracker game={matchupPreviewGame} onClose={closeMatchupPreview} />
       : matchupPreviewGame.league === "NFL"
         ? <NflMatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} />

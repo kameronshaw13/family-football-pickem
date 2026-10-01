@@ -19,12 +19,32 @@ export async function GET(req: NextRequest) {
     const supabase = getSupabaseAdmin();
     const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
     const sideBetSettings = getGroupSideBetSettings(context);
-    const now = new Date();
-    const nowIso = now.toISOString();
     const requestedWeek = req.nextUrl.searchParams.get("week");
 
+    let demoSnapshot: any = null;
+    if (context.group.slug === "demo") {
+      const { data: snapshot, error: snapshotError } = await supabase
+        .from("demo_week_snapshots")
+        .select("snapshot_at,games,live_scores,status")
+        .eq("snapshot_key", "saturday-2026-10-03-1725")
+        .eq("status", "captured")
+        .maybeSingle();
+      if (snapshotError) throw new Error(snapshotError.message);
+      demoSnapshot = snapshot;
+    }
+
+    const now = demoSnapshot?.snapshot_at ? new Date(demoSnapshot.snapshot_at) : new Date();
+    const nowIso = now.toISOString();
+    const demoGames = Array.isArray(demoSnapshot?.games) ? demoSnapshot.games : null;
+    const demoLiveScores = new Map(
+      (Array.isArray(demoSnapshot?.live_scores) ? demoSnapshot.live_scores : []).map((row: any) => [String(row.id), row])
+    );
+    const gamesSource = demoGames
+      ? Promise.resolve({ data: demoGames, error: null })
+      : supabase.from("games").select("*").order("commence_time", { ascending: true });
+
     const [gamesResult, lockedResult, bankResult, sideBetResult, seasonMoneyResult, sideBetDismissalResult] = await Promise.all([
-      supabase.from("games").select("*").order("commence_time", { ascending: true }),
+      gamesSource,
       supabase.from("picks").select("user_id,week,pick_type,status,result,underdog_win_value,confidence_points").eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("status", "locked"),
       supabase.from("bank_entries").select("*, profile:profiles(display_name)").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("week", { ascending: false }).order("created_at", { ascending: false }),
       supabase.from("side_bets").select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("created_at", { ascending: false }),
@@ -37,8 +57,10 @@ export async function GET(req: NextRequest) {
       .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game))
       .map((game: any) => {
         const lockTime = getGroupGameLockTime(context, game.commence_time).toISOString();
+        const frozenScore = demoLiveScores.get(String(game.id)) || {};
         return {
           ...game,
+          ...frozenScore,
           home_logo_url: normalizeEspnLogoUrl(game.home_logo_url),
           away_logo_url: normalizeEspnLogoUrl(game.away_logo_url),
           lock_time: lockTime,
@@ -180,7 +202,8 @@ export async function GET(req: NextRequest) {
       currentWeek: defaultWeek,
       weekRule: getGroupWeekRule(context, week),
       weekOpenTime: weekOpen ? weekOpen.toISOString() : null,
-      availableWeeks: standingsWeeks
+      availableWeeks: standingsWeeks,
+      demoSnapshotAt: demoSnapshot?.snapshot_at || null
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
