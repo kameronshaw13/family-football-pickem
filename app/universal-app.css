@@ -965,3 +965,162 @@ button.universal-first-league-choice{cursor:pointer}
     margin-bottom:12px;
   }
 }
+
+
+/* Second phone-first pass: prioritize native-app density and thumb flow. */
+@media(max-width:760px){
+  .universal-overview-page .scoreboard-main{
+    justify-content:center;
+  }
+
+  .universal-overview-page .brand-lockup{
+    flex:0 1 auto;
+    margin-left:0;
+    justify-content:center;
+  }
+
+  .universal-overview-page .header-wordmark{
+    width:min(210px,72vw);
+    object-position:center;
+  }
+
+  .universal-overview-container{
+    padding-top:calc(env(safe-area-inset-top) + var(--header-height) + 8px);
+  }
+
+  .universal-overview-hero{
+    padding-top:15px;
+  }
+
+  .universal-overview-actions .btn{
+    border-radius:0;
+    min-height:48px;
+  }
+
+  .universal-account-bottom{
+    scroll-margin-top:calc(env(safe-area-inset-top) + var(--header-height) + 8px);
+  }
+
+  .universal-account-bottom .section-tabs{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:0;
+  }
+
+  .universal-account-bottom .section-tabs button{
+    width:100%;
+    text-align:center;
+  }
+
+  .universal-setup-scroll>.universal-eyebrow{
+    display:none;
+  }
+
+  .universal-setup-scroll>h1{
+    margin-top:0;
+  }
+
+  .universal-mobile-progress{
+    position:sticky;
+    top:0;
+    z-index:3;
+    margin:-14px -12px 14px;
+    padding:10px 12px 8px;
+    background:rgba(251,250,246,.97);
+    backdrop-filter:blur(8px);
+  }
+
+  .universal-mobile-progress>i{
+    margin-top:2px;
+  }
+
+  .universal-option{
+    touch-action:manipulation;
+  }
+
+  .universal-option:active,
+  .universal-toggle-row:active{
+    background:var(--surface-muted);
+  }
+
+  .universal-option.active:active{
+    background:var(--blue-soft);
+  }
+
+  .universal-wizard-actions{
+    border-top:1px solid var(--line);
+  }
+
+  .universal-wizard-actions button:first-child{
+    flex:.72;
+  }
+
+  .universal-wizard-actions button.primary{
+    flex:1.28;
+  }
+
+  .universal-created-view{
+    width:100%;
+    padding:
+      calc(env(safe-area-inset-top) + var(--header-height) + 28px)
+      12px
+      calc(28px + env(safe-area-inset-bottom));
+  }
+
+  .universal-created-view h1{
+    font-size:30px;
+    line-height:1.04;
+  }
+
+  .universal-invite-box{
+    align-items:stretch;
+    gap:10px;
+    padding:12px;
+  }
+
+  .universal-invite-box button{
+    min-height:44px;
+    justify-content:center;
+  }
+
+  .universal-created-actions{
+    grid-template-columns:1fr;
+  }
+
+  .universal-created-actions>a,
+  .universal-created-actions>button{
+    min-height:46px;
+  }
+}
+
+@media(max-width:390px){
+  .universal-overview-hero h1{
+    font-size:31px;
+  }
+
+  .universal-overview-hero>p,
+  .universal-feature-card p,
+  .universal-how-steps small{
+    font-size:12px;
+  }
+
+  .universal-mobile-progress{
+    margin-inline:-10px;
+    padding-inline:10px;
+  }
+
+  .universal-option{
+    min-height:60px;
+    padding:9px 10px;
+  }
+
+  .universal-toggle-row{
+    min-height:58px;
+    padding:9px 10px;
+  }
+
+  .universal-option small,
+  .universal-toggle-row small{
+    font-size:11px;
+  }
+}
