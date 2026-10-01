@@ -149,7 +149,7 @@
 .universal-feature-card>div{display:grid;gap:5px}
 .universal-feature-card>.universal-feature-kicker{display:block;width:auto;height:auto;place-items:unset;align-self:auto;justify-self:start;flex:initial;padding:0;background:transparent;box-shadow:none;color:#66737a;font-family:var(--font-roboto-condensed);font-size:9px;font-weight:900;line-height:1.2;letter-spacing:.12em}
 .universal-feature-card strong{font-size:15px;line-height:1.2;color:var(--ink)}
-.universal-feature-card p{margin:0;font-size:12px;line-height:1.42}
+.universal-feature-card p{margin:0;font-size:13px;line-height:1.45}
 .header-account-button{display:grid;width:32px;height:32px;flex:0 0 32px;place-items:center;border:1px solid rgba(255,255,255,.34);border-radius:50%;background:transparent;color:#fff}
 .header-account-button:active{background:rgba(255,255,255,.08)}
 .header-account-menu{position:fixed;top:calc(env(safe-area-inset-top) + var(--header-height) - 5px);right:max(10px,calc((100vw - 760px)/2 + 10px));z-index:80;display:grid;width:170px;border:1px solid var(--line-strong);background:var(--panel);box-shadow:0 12px 28px rgba(20,33,43,.18)}
