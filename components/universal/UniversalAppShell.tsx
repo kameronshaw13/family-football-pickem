@@ -325,33 +325,60 @@ export default function UniversalAppShell() {
   </div>;
 
   if (stage === "home") return <div className="app-shell universal-entry-app">
-    <ProductHeader label="MY LEAGUES" />
+    <ProductHeader label={memberships.length ? "MY LEAGUES" : "GET STARTED"} />
     <main className="container universal-account-container">
-      <section className="panel universal-leagues-panel">
-        <div className="section-title">
-          <div><h2>{profile?.display_name || "Player"}</h2><p>{memberships.length ? "Choose a league or create another one." : "Join a league or create your first one."}</p></div>
-          <button className="btn" onClick={signOut}>Sign Out</button>
-        </div>
-
-        {memberships.length>0 && <div className="universal-league-list">{memberships.map((m)=>{
-          const commissioner = m.role==="admin" || m.role==="owner";
-          const memberText = m.playerLimit == null
-            ? `${m.memberCount} member${m.memberCount===1?"":"s"}`
-            : `${m.memberCount}/${m.playerLimit} members`;
-          return <div key={m.group.id} className="universal-league-card">
-            <Link href={"/league/"+m.group.slug} className="universal-league-card-main"><span><strong>{m.group.name}</strong><small>{commissioner?"Commissioner":"Member"} · {memberText} · {m.group.current_season_year}</small></span><ArrowRight size={18}/></Link>
-            {commissioner && m.inviteCode && <button type="button" className="universal-league-invite-button" onClick={()=>void copyLeagueInvite(m)}><Link2 size={15}/><span>Invite</span></button>}
-          </div>;
-        })}</div>}
-
-        <div className="universal-home-actions">
-          <button onClick={openCreate} className="btn gold full"><Plus size={17}/>Create a League</button>
-          <div className="universal-join-panel">
-            <span><Users size={17}/><strong>Join a League</strong></span>
-            <div className="universal-join-inline"><input value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} placeholder="LEAGUE CODE"/><button disabled={working||joinCode.length<4} onClick={joinLeague}>Join</button></div>
+      <section className={"panel universal-leagues-panel " + (!memberships.length ? "universal-first-league-panel" : "")}>
+        {memberships.length === 0 ? <>
+          <div className="universal-first-league-intro">
+            <span className="universal-eyebrow">ACCOUNT CREATED</span>
+            <h1>How do you want to start?</h1>
+            <p>Join a league someone invited you to, or create your own and become the commissioner.</p>
           </div>
-          <Link href="/demo" className="universal-demo-real-link compact"><Eye size={17}/><span><strong>Demo Mode</strong><small>Open the real app with demo data</small></span><ArrowRight size={17}/></Link>
-        </div>
+
+          <div className="universal-first-league-grid">
+            <button type="button" className="universal-first-league-choice primary" onClick={openCreate}>
+              <Plus size={20}/>
+              <span><strong>Create a League</strong><small>Set the sports, format, scoring, side bets and league rules.</small></span>
+              <ArrowRight size={18}/>
+            </button>
+
+            <div className="universal-first-league-choice">
+              <Users size={20}/>
+              <span><strong>Join with a Code</strong><small>Enter the league code your commissioner sent you.</small></span>
+              <div className="universal-join-inline">
+                <input value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} placeholder="LEAGUE CODE"/>
+                <button disabled={working||joinCode.length<4} onClick={joinLeague}>Join</button>
+              </div>
+            </div>
+          </div>
+
+          <Link href="/demo" className="universal-demo-real-link compact"><Eye size={17}/><span><strong>Try Demo Mode</strong><small>Look around the real app before joining or creating a league</small></span><ArrowRight size={17}/></Link>
+          <button className="universal-first-signout" onClick={signOut}>Sign Out</button>
+        </> : <>
+          <div className="section-title">
+            <div><h2>{profile?.display_name || "Player"}</h2><p>Choose a league, join another one or create a new league.</p></div>
+            <button className="btn" onClick={signOut}>Sign Out</button>
+          </div>
+
+          <div className="universal-league-list">{memberships.map((m)=>{
+            const commissioner = m.role==="admin" || m.role==="owner";
+            const memberText = m.playerLimit == null
+              ? `${m.memberCount} member${m.memberCount===1?"":"s"}`
+              : `${m.memberCount}/${m.playerLimit} members`;
+            return <div key={m.group.id} className="universal-league-card">
+              <Link href={"/league/"+m.group.slug} className="universal-league-card-main"><span><strong>{m.group.name}</strong><small>{commissioner?"Commissioner":"Member"} · {memberText} · {m.group.current_season_year}</small></span><ArrowRight size={18}/></Link>
+              {commissioner && m.inviteCode && <button type="button" className="universal-league-invite-button" onClick={()=>void copyLeagueInvite(m)}><Link2 size={15}/><span>Invite</span></button>}
+            </div>;
+          })}</div>
+
+          <div className="universal-home-actions">
+            <button onClick={openCreate} className="btn gold full"><Plus size={17}/>Create Another League</button>
+            <div className="universal-join-panel">
+              <span><Users size={17}/><strong>Join Another League</strong></span>
+              <div className="universal-join-inline"><input value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} placeholder="LEAGUE CODE"/><button disabled={working||joinCode.length<4} onClick={joinLeague}>Join</button></div>
+            </div>
+          </div>
+        </>}
 
         {message && <div className="error-card universal-auth-error">{message}</div>}
       </section>
