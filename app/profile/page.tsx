@@ -1,0 +1,1 @@
+import ProfilePage from "@/components/universal/ProfilePage"; export default function Page(){return <ProfilePage/>;}

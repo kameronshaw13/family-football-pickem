@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, ArrowRight, BarChart3, Check, ChevronLeft, CircleDollarSign, Eye, KeyRound, Link2, LockKeyhole, Mail, Plus, Settings2, ShieldCheck, Trophy, Users, Zap } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, Eye, KeyRound, Link2, LockKeyhole, Mail, Plus, ShieldCheck, Users } from "lucide-react";
 import { getUniversalSupabase, setRememberMe } from "@/lib/universalAuthClient";
 import { clearClientSession, storeClientSession } from "@/lib/clientSession";
 
@@ -278,12 +278,12 @@ export default function UniversalAppShell() {
       <section className="panel universal-feature-overview">
         <div className="section-title"><div><h2>Everything in one league</h2><p>The same features you use every football week, built into one app.</p></div></div>
         <div className="universal-feature-grid">
-          <article className="universal-feature-card"><span><Zap size={18}/></span><div><strong>Weekly Pick&apos;em</strong><p>Build your card from college football, NFL or both. Commissioners control pick count, scoring and weekly rules.</p></div></article>
-          <article className="universal-feature-card"><span><Trophy size={18}/></span><div><strong>Dog Picks</strong><p>Take an underdog to win outright and earn bigger bonuses for bigger upsets. Leagues can use 1–3 dogs per week.</p></div></article>
-          <article className="universal-feature-card"><span><CircleDollarSign size={18}/></span><div><strong>Peer-to-Peer Side Bets</strong><p>Send spread, moneyline and over/under challenges to league members, including live offers during games.</p></div></article>
-          <article className="universal-feature-card"><span><BarChart3 size={18}/></span><div><strong>Matchup Preview</strong><p>Research games with records, ATS performance, form and advanced team metrics before making a pick.</p></div></article>
-          <article className="universal-feature-card"><span><Activity size={18}/></span><div><strong>GameTracker</strong><p>Follow the score, down and distance, field position, drives, scoring, plays and box score without leaving the app.</p></div></article>
-          <article className="universal-feature-card"><span><Settings2 size={18}/></span><div><strong>Commissioner Controls</strong><p>Choose league format, scoring, sports, side-bet markets, start week, lock rules and invite your group with one code.</p></div></article>
+          <article className="universal-feature-card"><span className="universal-feature-kicker">PLAY</span><div><strong>Weekly Pick&apos;em</strong><p>Build your card from college football, NFL or both. Commissioners control pick count, scoring and weekly rules.</p></div></article>
+          <article className="universal-feature-card"><span className="universal-feature-kicker">UPSET</span><div><strong>Dog Picks</strong><p>Take an underdog to win outright and earn bigger bonuses for bigger upsets. Leagues can use 1–3 dogs per week.</p></div></article>
+          <article className="universal-feature-card"><span className="universal-feature-kicker">CHALLENGE</span><div><strong>Peer-to-Peer Side Bets</strong><p>Send spread, moneyline and over/under challenges to league members, including live offers during games.</p></div></article>
+          <article className="universal-feature-card"><span className="universal-feature-kicker">RESEARCH</span><div><strong>Matchup Preview</strong><p>Research games with records, ATS performance, form and advanced team metrics before making a pick.</p></div></article>
+          <article className="universal-feature-card"><span className="universal-feature-kicker">LIVE</span><div><strong>GameTracker</strong><p>Follow the score, down and distance, field position, drives, scoring, plays and box score without leaving the app.</p></div></article>
+          <article className="universal-feature-card"><span className="universal-feature-kicker">COMMISSIONER</span><div><strong>League Controls</strong><p>Choose league format, scoring, sports, side-bet markets, start week, lock rules and invite your group with one code.</p></div></article>
         </div>
       </section>
 

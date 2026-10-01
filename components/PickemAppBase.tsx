@@ -4,7 +4,7 @@ import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDate
 import NextImage from "next/image";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Shield, SquareCheck, Trash2, Trophy, UserRound, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, SideBetMarketQuote, SideBetOfferPhase, SideBetTotalSide, Standing, WeekRule } from "@/lib/types";
 import { MAX_CUSTOM_SIDE_BET_AMOUNT, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
 import { americanOddsText, fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, fairSymmetricMoneyline, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
@@ -123,6 +123,7 @@ type AppData = {
   weekRule: WeekRule;
   weekOpenTime: string | null;
   availableWeeks: number[];
+  currentGroupRole?: string;
   demoSnapshotAt?: string | null;
   activeGroup?: { id: string; slug: string; name?: string };
   groupRules?: GroupRules;
@@ -1214,6 +1215,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [betConferenceFilter, setBetConferenceFilter] = useState("ALL");
   const [toast, setToast] = useState<Toast>(null);
   const [testWeekActive, setTestWeekActive] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [notificationCounts, setNotificationCounts] = useState<NotificationCounts>(EMPTY_NOTIFICATION_COUNTS);
   const autosaveBlockedSignatureRef = useRef<string | null>(null);
   const dataRef = useRef<AppData | null>(null);
@@ -1937,6 +1939,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const sideBetsEnabled = productMode !== "pickem" && data.sideBetSettings?.enabled !== false;
   const pickemAndSideBets = pickemEnabled && sideBetsEnabled;
   const pointsMode = data.groupRules?.scoring?.mode === "confidence";
+  const universalAccountLeague = !["shaw-family", "friends", "other-family", "demo"].includes(appSlug);
+  const commissioner = data.currentGroupRole === "admin" || data.currentGroupRole === "owner";
   const leagueCardProfiles = [
     profiles.find((profile) => profile.id === currentUser.id) || currentUser,
     ...profiles.filter((profile) => profile.id !== currentUser.id)
@@ -2211,8 +2215,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             sections={[{ options: availableWeeks.map((w) => ({ value: String(w), label: w === 0 ? "Week 0" : `Week ${w}` })) }]}
             onChange={(nextWeek) => { setStagedPicks(null); void load(Number(nextWeek)); }}
           /></div>}
+          {universalAccountLeague && <button type="button" className="header-account-button" aria-label="Account and league settings" aria-expanded={accountMenuOpen} onClick={()=>setAccountMenuOpen((open)=>!open)}><UserRound size={18}/></button>}
         </div>
       </div>
+      {universalAccountLeague && accountMenuOpen && <div className="header-account-menu">
+        <a href="/">My Leagues</a>
+        <a href="/profile">Profile</a>
+        {commissioner && <a href={"/league/"+encodeURIComponent(appSlug)+"/settings"}>League Settings</a>}
+      </div>}
     </header>
 
     <nav className="primary-nav" aria-label="Main navigation">
