@@ -173,7 +173,17 @@ export default function UniversalAppShell() {
         if (data.session?.access_token) await bootstrap(data.session.access_token);
         else setMessage("Check your email to confirm your account, then sign in.");
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+        const normalizedEmail = email.trim().toLowerCase();
+        if (normalizedEmail === "commissioner.demo@pickem.test") {
+          const demoResponse = await fetch("/api/universal/demo-user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: normalizedEmail, password })
+          });
+          const demoPayload = await demoResponse.json().catch(() => ({}));
+          if (!demoResponse.ok) throw new Error(demoPayload.error || "Could not prepare demo account.");
+        }
+        const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (error) throw error;
         if (!data.session?.access_token) throw new Error("Could not create a session.");
         await bootstrap(data.session.access_token);
@@ -309,9 +319,9 @@ export default function UniversalAppShell() {
           <button className={authMode==="signin"?"active":""} onClick={()=>setAuthMode("signin")}>Sign In</button>
         </div>
 
-        {authMode==="signup" && <label className="universal-input"><span>Name</span><div><Users size={16}/><input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" autoComplete="name" /></div></label>}
-        <label className="universal-input"><span>Email</span><div><Mail size={16}/><input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="you@example.com" autoComplete="email" /></div></label>
-        <label className="universal-input"><span>Password</span><div><LockKeyhole size={16}/><input value={password} onChange={e=>setPassword(e.target.value)} type="password" placeholder={authMode==="signup"?"8+ characters":"Password"} autoComplete={authMode==="signup"?"new-password":"current-password"} /></div></label>
+        {authMode==="signup" && <label className="universal-input"><span>Name</span><div><Users size={16}/><input value={name} onChange={e=>setName(e.target.value)} type="text" inputMode="text" enterKeyHint="next" autoCapitalize="words" placeholder="Your name" autoComplete="name" /></div></label>}
+        <label className="universal-input"><span>Email</span><div><Mail size={16}/><input value={email} onChange={e=>setEmail(e.target.value)} type="text" inputMode="text" enterKeyHint="next" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="you@example.com" autoComplete="email" /></div></label>
+        <label className="universal-input"><span>Password</span><div><LockKeyhole size={16}/><input value={password} onChange={e=>setPassword(e.target.value)} type="password" inputMode="text" enterKeyHint="done" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder={authMode==="signup"?"8+ characters":"Password"} autoComplete={authMode==="signup"?"new-password":"current-password"} /></div></label>
 
         {authMode==="signin" && <div className="universal-login-options"><label><input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)} />Keep me signed in</label><button onClick={()=>setForgotOpen(true)}>Forgot password?</button></div>}
         {message && <div className="error-card universal-auth-error">{message}</div>}
@@ -346,7 +356,7 @@ export default function UniversalAppShell() {
               <Users size={20}/>
               <span><strong>Join with a Code</strong><small>Enter the league code your commissioner sent you.</small></span>
               <div className="universal-join-inline">
-                <input value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} placeholder="LEAGUE CODE"/>
+                <input value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} type="text" inputMode="text" enterKeyHint="done" autoCapitalize="characters" autoCorrect="off" spellCheck={false} placeholder="LEAGUE CODE"/>
                 <button disabled={working||joinCode.length<4} onClick={joinLeague}>Join</button>
               </div>
             </div>
@@ -375,7 +385,7 @@ export default function UniversalAppShell() {
             <button onClick={openCreate} className="btn gold full"><Plus size={17}/>Create Another League</button>
             <div className="universal-join-panel">
               <span><Users size={17}/><strong>Join Another League</strong></span>
-              <div className="universal-join-inline"><input value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} placeholder="LEAGUE CODE"/><button disabled={working||joinCode.length<4} onClick={joinLeague}>Join</button></div>
+              <div className="universal-join-inline"><input value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} type="text" inputMode="text" enterKeyHint="done" autoCapitalize="characters" autoCorrect="off" spellCheck={false} placeholder="LEAGUE CODE"/><button disabled={working||joinCode.length<4} onClick={joinLeague}>Join</button></div>
             </div>
           </div>
         </>}
@@ -403,7 +413,7 @@ export default function UniversalAppShell() {
       <aside className="universal-step-rail"><span className="universal-eyebrow">CREATE LEAGUE</span><h2>{league.leagueName||"New League"}</h2>{steps.map((s,i)=><div key={s} className={i===setupStep?"active":i<setupStep?"done":""}><i>{i<setupStep?<Check size={12}/>:i+1}</i><span>{s}</span></div>)}</aside>
       <section key={logicalStep} className="universal-setup-card">
         <div className="universal-mobile-progress"><span>Step {setupStep+1} of {steps.length}</span><b style={{width:((setupStep+1)/steps.length*100)+"%"}}/></div>
-        {logicalStep===0 && <><span className="universal-eyebrow">LEAGUE BASICS</span><h1>Name it and size it.</h1><p>One commissioner payment covers the whole league for the season. Members join free.</p><label className="universal-input simple"><span>League name</span><input value={league.leagueName} onChange={e=>setLeague({...league,leagueName:e.target.value})} placeholder="Saturday Legends"/></label><label className="universal-input simple"><span>Custom invite code</span><input value={league.inviteCode} onChange={e=>setLeague({...league,inviteCode:e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g,"").slice(0,20)})} placeholder="SATURDAY-26"/></label><div className="universal-option-grid two">{(Object.keys(prices) as Tier[]).map(t=><Choice key={t} active={league.playerTier===t} title={t+" players"} detail={"$"+prices[t]+" for the season"} onClick={()=>setLeague({...league,playerTier:t})}/>)}</div></>}
+        {logicalStep===0 && <><span className="universal-eyebrow">LEAGUE BASICS</span><h1>Name it and size it.</h1><p>One commissioner payment covers the whole league for the season. Members join free.</p><label className="universal-input simple"><span>League name</span><input value={league.leagueName} onChange={e=>setLeague({...league,leagueName:e.target.value})} type="text" inputMode="text" enterKeyHint="next" autoCapitalize="words" placeholder="Saturday Legends"/></label><label className="universal-input simple"><span>Custom invite code</span><input value={league.inviteCode} onChange={e=>setLeague({...league,inviteCode:e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g,"").slice(0,20)})} type="text" inputMode="text" enterKeyHint="done" autoCapitalize="characters" autoCorrect="off" spellCheck={false} placeholder="SATURDAY-26"/></label><div className="universal-option-grid two">{(Object.keys(prices) as Tier[]).map(t=><Choice key={t} active={league.playerTier===t} title={t+" players"} detail={"$"+prices[t]+" for the season"} onClick={()=>setLeague({...league,playerTier:t})}/>)}</div></>}
         {logicalStep===1 && <><span className="universal-eyebrow">LEAGUE FORMAT</span><h1>Choose how your group plays.</h1><p>You can run a traditional Pick&apos;em, add peer-to-peer side bets, or use side bets by themselves.</p><div className="universal-option-grid"><Choice active={league.format==="pickem"} title="Pick'em" detail="Weekly picks, My Card and season standings." onClick={()=>setLeague({...league,format:"pickem"})}/><Choice active={league.format==="pickem-sidebets"} title="Pick'em + Side Bets" detail="The complete experience and recommended default." onClick={()=>setLeague({...league,format:"pickem-sidebets"})}/><Choice active={league.format==="sidebets"} title="Side Bets Only" detail="No weekly card; members challenge each other directly." onClick={()=>setLeague({...league,format:"sidebets"})}/></div></>}
         {logicalStep===2 && <><span className="universal-eyebrow">FOOTBALL</span><h1>Which games belong in the league?</h1><p>Choose college, NFL, or let members use both boards.</p><div className="universal-option-grid"><Choice active={league.footballSlate==="CFB"} title="College Football" detail="FBS college football only." onClick={()=>setLeague({...league,footballSlate:"CFB"})}/><Choice active={league.footballSlate==="NFL"} title="NFL" detail="NFL games only." onClick={()=>setLeague({...league,footballSlate:"NFL"})}/><Choice active={league.footballSlate==="BOTH"} title="College + NFL" detail="Both sports inside the same league." onClick={()=>setLeague({...league,footballSlate:"BOTH"})}/></div></>}
         {logicalStep===3 && hasPickem && <><span className="universal-eyebrow">PICK&apos;EM RULES</span><h1>Build the weekly card.</h1><p>Set the standings method, regular pick count and optional dog picks.</p><div className="universal-option-grid"><Choice active={league.scoringMode==="winning-percentage"} title="Winning Percentage" detail="Correct picks divided by graded picks." onClick={()=>setLeague({...league,scoringMode:"winning-percentage"})}/><Choice active={league.scoringMode==="total-wins"} title="Total Wins" detail="Most correct picks across the season wins." onClick={()=>setLeague({...league,scoringMode:"total-wins"})}/><Choice active={league.scoringMode==="confidence"} title="Confidence Points" detail={"Assign 1–"+league.weeklyPicks+" once each week. Correct picks earn their assigned points."} onClick={()=>setLeague({...league,scoringMode:"confidence"})}/></div><div className="universal-slider-block"><div><span>Regular picks each week</span><strong>{league.weeklyPicks}</strong></div><input type="range" min="3" max="15" value={league.weeklyPicks} onChange={e=>setLeague({...league,weeklyPicks:Number(e.target.value)})}/></div><Toggle checked={league.dogEnabled} title="Dog picks" detail="Pick an underdog to win outright. A losing dog does not add a regular loss." onChange={v=>setLeague({...league,dogEnabled:v})}/>{league.dogEnabled&&<><div className="universal-option-grid"><Choice active={league.dogPicks===1} title="1 dog" detail="One underdog pick each week." onClick={()=>setLeague({...league,dogPicks:1})}/><Choice active={league.dogPicks===2} title="2 dogs" detail="Two underdog picks each week." onClick={()=>setLeague({...league,dogPicks:2})}/><Choice active={league.dogPicks===3} title="3 dogs" detail="Three underdog picks each week." onClick={()=>setLeague({...league,dogPicks:3})}/></div><div className="universal-dog-explainer"><span>DOG BONUS</span><div><b>+7 to +9.5<strong>+1</strong></b><b>+10 to +19.5<strong>+2</strong></b><b>+20+<strong>+3</strong></b></div><small>Bigger successful underdogs earn bigger bonuses.</small></div></>}</>}
