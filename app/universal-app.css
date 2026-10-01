@@ -522,3 +522,427 @@ button.universal-first-league-choice{cursor:pointer}
   .universal-dog-explainer b{padding:8px 4px}
   .universal-review-card header{padding:12px}
 }
+
+
+/* Mobile-first product pass: overview, onboarding, and commissioner league setup */
+@media(max-width:760px){
+  .universal-overview-page{
+    background:var(--canvas);
+  }
+
+  .universal-overview-container{
+    width:100%;
+    max-width:none;
+    padding:
+      calc(env(safe-area-inset-top) + var(--header-height) + 10px)
+      10px
+      calc(28px + env(safe-area-inset-bottom));
+  }
+
+  .universal-overview-container>.panel{
+    margin-bottom:10px;
+    border-radius:0;
+    box-shadow:none;
+  }
+
+  .universal-overview-hero{
+    padding:17px 13px 16px;
+    border-left:0;
+    box-shadow:inset 0 3px 0 var(--blue);
+  }
+
+  .universal-overview-hero .universal-eyebrow{
+    margin-bottom:6px;
+    font-size:9px;
+  }
+
+  .universal-overview-hero h1{
+    max-width:360px;
+    font-size:clamp(30px,9.2vw,38px);
+    line-height:.98;
+    letter-spacing:-.035em;
+  }
+
+  .universal-overview-hero>p{
+    max-width:390px;
+    margin:11px 0 0;
+    font-size:13px;
+    line-height:1.42;
+  }
+
+  .universal-overview-actions{
+    grid-template-columns:1fr;
+    gap:7px;
+    margin-top:15px;
+  }
+
+  .universal-overview-actions .btn{
+    width:100%;
+    min-height:46px;
+    font-size:13px;
+  }
+
+  .universal-feature-overview,
+  .universal-how-panel{
+    padding:15px 12px;
+  }
+
+  .universal-feature-overview .section-title,
+  .universal-how-panel .section-title{
+    margin-bottom:11px;
+  }
+
+  .universal-feature-overview .section-title h2,
+  .universal-how-panel .section-title h2{
+    font-size:20px;
+    line-height:1.05;
+  }
+
+  .universal-feature-overview .section-title p,
+  .universal-how-panel .section-title p{
+    margin-top:4px;
+    font-size:12px;
+    line-height:1.35;
+  }
+
+  .universal-feature-grid{
+    gap:0;
+    border-top:1px solid var(--line);
+  }
+
+  .universal-feature-card{
+    min-height:0;
+    padding:13px 2px 12px;
+    border:0;
+    border-bottom:1px solid var(--line);
+    background:transparent;
+  }
+
+  .universal-feature-card strong{
+    font-size:14px;
+  }
+
+  .universal-feature-card p{
+    margin-top:3px;
+    font-size:12.5px;
+    line-height:1.38;
+  }
+
+  .universal-how-steps{
+    gap:0;
+    border-top:1px solid var(--line);
+  }
+
+  .universal-how-steps>div{
+    min-height:0;
+    gap:10px;
+    padding:13px 2px 12px;
+    border:0;
+    border-bottom:1px solid var(--line);
+    background:transparent;
+  }
+
+  .universal-how-steps b{
+    width:30px;
+    height:30px;
+    flex-basis:30px;
+    font-size:13px;
+  }
+
+  .universal-how-steps strong{
+    font-size:14px;
+  }
+
+  .universal-how-steps small{
+    font-size:12.5px;
+    line-height:1.38;
+  }
+
+  .universal-demo-real-link.compact{
+    margin-top:12px;
+    min-height:58px;
+    padding:10px 11px;
+  }
+
+  .universal-account-bottom{
+    padding:16px 12px calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .universal-account-intro h2{
+    font-size:21px;
+  }
+
+  .universal-account-bottom .section-tabs{
+    width:100%;
+  }
+
+  .universal-account-bottom .universal-input,
+  .universal-account-bottom .universal-login-options,
+  .universal-account-bottom .universal-auth-submit,
+  .universal-account-bottom .universal-legal{
+    max-width:none;
+  }
+
+  .universal-input>div,
+  .universal-input.simple input{
+    height:50px;
+  }
+
+  .universal-input input{
+    font-size:16px;
+  }
+
+  .universal-account-container{
+    width:100%;
+    max-width:none;
+    padding:
+      calc(env(safe-area-inset-top) + var(--header-height) + 10px)
+      10px
+      calc(28px + env(safe-area-inset-bottom));
+  }
+
+  .universal-first-league-panel{
+    padding:17px 12px 15px;
+    border-radius:0;
+    box-shadow:none;
+  }
+
+  .universal-first-league-intro{
+    margin-bottom:14px;
+  }
+
+  .universal-first-league-intro h1{
+    font-size:27px;
+  }
+
+  .universal-first-league-grid{
+    gap:8px;
+    margin-bottom:10px;
+  }
+
+  .universal-first-league-choice{
+    min-height:0;
+    display:grid;
+    grid-template-columns:28px minmax(0,1fr) auto;
+    align-items:center;
+    gap:10px;
+    padding:13px 12px;
+  }
+
+  .universal-first-league-choice>span{
+    align-self:center;
+  }
+
+  .universal-first-league-choice strong{
+    font-size:16px;
+  }
+
+  .universal-first-league-choice small{
+    font-size:12px;
+    line-height:1.35;
+  }
+
+  .universal-first-league-choice>svg:last-child{
+    margin:0;
+  }
+
+  .universal-first-league-choice:not(button){
+    grid-template-columns:28px minmax(0,1fr);
+  }
+
+  .universal-first-league-choice .universal-join-inline{
+    grid-column:1/-1;
+    margin-top:2px;
+  }
+
+  .universal-join-inline input,
+  .universal-join-inline button{
+    min-height:44px;
+  }
+
+  .universal-setup-shell{
+    height:100dvh;
+    min-height:100dvh;
+    overflow:hidden;
+    background:var(--canvas);
+  }
+
+  .universal-setup-layout{
+    height:100dvh;
+    grid-template-rows:42px minmax(0,1fr);
+    padding:calc(env(safe-area-inset-top) + var(--header-height)) 0 0;
+    background:var(--panel);
+  }
+
+  .universal-setup-nav{
+    height:42px;
+    padding:0 11px;
+    border-bottom:1px solid var(--line);
+    background:var(--panel);
+  }
+
+  .universal-setup-back{
+    min-height:42px;
+    font-size:12px;
+  }
+
+  .universal-setup-nav>span{
+    font-size:8.5px;
+    letter-spacing:.07em;
+  }
+
+  .universal-setup-card{
+    display:grid;
+    grid-template-rows:minmax(0,1fr) auto;
+    height:100%;
+    background:var(--panel);
+  }
+
+  .universal-setup-scroll{
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    padding:14px 12px 18px;
+  }
+
+  .universal-mobile-progress{
+    margin-bottom:14px;
+  }
+
+  .universal-mobile-progress span{
+    font-size:9px;
+  }
+
+  .universal-mobile-progress strong{
+    font-size:10.5px;
+  }
+
+  .universal-setup-scroll>.universal-eyebrow{
+    margin:0 0 5px;
+    font-size:9px;
+  }
+
+  .universal-setup-scroll>h1{
+    max-width:390px;
+    font-size:clamp(26px,8vw,31px);
+    line-height:1.02;
+    letter-spacing:-.025em;
+  }
+
+  .universal-setup-scroll>p{
+    max-width:400px;
+    margin:7px 0 15px;
+    font-size:12.5px;
+    line-height:1.4;
+  }
+
+  .universal-option-grid,
+  .universal-option-grid.two{
+    gap:7px;
+    margin-top:10px;
+  }
+
+  .universal-option{
+    min-height:64px;
+    padding:10px 11px;
+    align-items:center;
+  }
+
+  .universal-option>span{
+    gap:2px;
+  }
+
+  .universal-option strong{
+    font-size:13.5px;
+  }
+
+  .universal-option small{
+    font-size:11.5px;
+    line-height:1.3;
+  }
+
+  .universal-toggle-stack{
+    gap:7px;
+  }
+
+  .universal-toggle-row{
+    min-height:60px;
+    padding:10px 11px;
+  }
+
+  .universal-toggle-row strong{
+    font-size:13.5px;
+  }
+
+  .universal-toggle-row small{
+    font-size:11.5px;
+    line-height:1.3;
+  }
+
+  .universal-slider-block{
+    margin:14px 0 8px;
+    padding:11px;
+  }
+
+  .universal-dog-explainer{
+    margin-top:8px;
+  }
+
+  .universal-review-card header{
+    align-items:center;
+    padding:12px 11px;
+  }
+
+  .universal-review-card header b{
+    font-size:22px;
+  }
+
+  .universal-review-card>div{
+    grid-template-columns:minmax(82px,.72fr) minmax(0,1.28fr);
+    gap:8px;
+    padding:9px 10px;
+    font-size:12px;
+  }
+
+  .universal-wizard-actions{
+    position:relative;
+    min-height:60px;
+    margin:0;
+    padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+    background:var(--panel);
+    box-shadow:0 -8px 20px rgba(17,28,34,.06);
+  }
+
+  .universal-wizard-actions button{
+    min-width:0;
+    min-height:44px;
+    flex:1;
+  }
+
+  .universal-wizard-actions button.primary{
+    justify-content:center;
+  }
+}
+
+@media(max-width:380px){
+  .universal-overview-container,
+  .universal-account-container{
+    padding-inline:8px;
+  }
+
+  .universal-overview-hero,
+  .universal-feature-overview,
+  .universal-how-panel,
+  .universal-account-bottom,
+  .universal-first-league-panel{
+    padding-inline:10px;
+  }
+
+  .universal-setup-scroll{
+    padding-inline:10px;
+  }
+
+  .universal-wizard-actions{
+    padding-inline:10px;
+  }
+}
