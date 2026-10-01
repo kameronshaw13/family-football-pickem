@@ -158,6 +158,35 @@ export default function UniversalAppShell() {
     }).catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const updateKeyboardInset = () => {
+      const keyboardInset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      document.documentElement.style.setProperty("--universal-keyboard-inset", keyboardInset + "px");
+      document.body.classList.toggle("universal-keyboard-open", keyboardInset > 120);
+    };
+
+    updateKeyboardInset();
+    viewport.addEventListener("resize", updateKeyboardInset);
+    viewport.addEventListener("scroll", updateKeyboardInset);
+
+    return () => {
+      viewport.removeEventListener("resize", updateKeyboardInset);
+      viewport.removeEventListener("scroll", updateKeyboardInset);
+      document.documentElement.style.removeProperty("--universal-keyboard-inset");
+      document.body.classList.remove("universal-keyboard-open");
+    };
+  }, []);
+
+  function keepInputVisible(event: React.FocusEvent<HTMLInputElement>) {
+    const target = event.currentTarget;
+    window.setTimeout(() => {
+      target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+    }, 260);
+  }
+
   async function submitAuth() {
     setMessage("");
     setWorking(true);
@@ -319,9 +348,9 @@ export default function UniversalAppShell() {
           <button className={authMode==="signin"?"active":""} onClick={()=>setAuthMode("signin")}>Sign In</button>
         </div>
 
-        {authMode==="signup" && <label className="universal-input"><span>Name</span><div><Users size={16}/><input value={name} onChange={e=>setName(e.target.value)} type="text" inputMode="text" enterKeyHint="next" autoCapitalize="words" placeholder="Your name" autoComplete="name" /></div></label>}
-        <label className="universal-input"><span>Email</span><div><Mail size={16}/><input value={email} onChange={e=>setEmail(e.target.value)} type="text" inputMode="text" enterKeyHint="next" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="you@example.com" autoComplete="email" /></div></label>
-        <label className="universal-input"><span>Password</span><div><LockKeyhole size={16}/><input value={password} onChange={e=>setPassword(e.target.value)} type="password" inputMode="text" enterKeyHint="done" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder={authMode==="signup"?"8+ characters":"Password"} autoComplete={authMode==="signup"?"new-password":"current-password"} /></div></label>
+        {authMode==="signup" && <label className="universal-input"><span>Name</span><div><Users size={16}/><input value={name} onChange={e=>setName(e.target.value)} onFocus={keepInputVisible} type="text" inputMode="text" enterKeyHint="next" autoCapitalize="words" placeholder="Your name" autoComplete="name" /></div></label>}
+        <label className="universal-input"><span>Email</span><div><Mail size={16}/><input value={email} onChange={e=>setEmail(e.target.value)} onFocus={keepInputVisible} type="email" inputMode="email" enterKeyHint="next" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="you@example.com" autoComplete="email" /></div></label>
+        <label className="universal-input"><span>Password</span><div><LockKeyhole size={16}/><input value={password} onChange={e=>setPassword(e.target.value)} onFocus={keepInputVisible} type="password" inputMode="text" enterKeyHint="done" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder={authMode==="signup"?"8+ characters":"Password"} autoComplete={authMode==="signup"?"new-password":"current-password"} /></div></label>
 
         {authMode==="signin" && <div className="universal-login-options"><label><input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)} />Keep me signed in</label><button onClick={()=>setForgotOpen(true)}>Forgot password?</button></div>}
         {message && <div className="error-card universal-auth-error">{message}</div>}
