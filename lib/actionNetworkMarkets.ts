@@ -192,45 +192,18 @@ function marketRowsForPhase(game: ActionGame, phase: SideBetOfferPhase) {
 }
 
 function spreadRow(rows: ActionOddsRow[]) {
-  const candidates = rows.flatMap((row) => {
+  // Rows are already sorted DraftKings first, then our fallback books. Use the
+  // first valid two-way spread so DraftKings remains the source of truth when
+  // it is available, while still rejecting malformed provider data.
+  return rows.find((row) => {
     const awayPoint = finiteNumber(row.spread_away);
     const homePoint = finiteNumber(row.spread_home);
-    if (awayPoint == null || homePoint == null) return [];
+    if (awayPoint == null || homePoint == null) return false;
 
-    // A two-way football spread must be exact opposites. Ignore malformed
-    // provider rows instead of ever rendering both teams with the same sign.
-    if (Math.abs(awayPoint + homePoint) >= 0.001) return [];
-
-    return [{ row, awayPoint }];
-  });
-  if (!candidates.length) return null;
-  if (candidates.length === 1) return candidates[0].row;
-
-  // Do not let one sportsbook's bad/stale row flip the favorite. Prefer the
-  // most common line across the books we fetched; when counts tie, choose the
-  // line closest to the median. Candidate order still preserves book priority
-  // as the final tie-breaker.
-  const sortedAwayPoints = candidates.map((candidate) => candidate.awayPoint).sort((a, b) => a - b);
-  const medianAwayPoint = sortedAwayPoints[Math.floor(sortedAwayPoints.length / 2)];
-  const counts = new Map<number, number>();
-  for (const candidate of candidates) {
-    counts.set(candidate.awayPoint, (counts.get(candidate.awayPoint) || 0) + 1);
-  }
-
-  let best = candidates[0];
-  let bestCount = counts.get(best.awayPoint) || 0;
-  let bestMedianDistance = Math.abs(best.awayPoint - medianAwayPoint);
-  for (const candidate of candidates.slice(1)) {
-    const count = counts.get(candidate.awayPoint) || 0;
-    const medianDistance = Math.abs(candidate.awayPoint - medianAwayPoint);
-    if (count > bestCount || (count === bestCount && medianDistance < bestMedianDistance)) {
-      best = candidate;
-      bestCount = count;
-      bestMedianDistance = medianDistance;
-    }
-  }
-
-  return best.row;
+    // A two-way football spread must be exact opposites. This prevents a bad
+    // provider row from ever rendering both teams with the same sign.
+    return Math.abs(awayPoint + homePoint) < 0.001;
+  }) || null;
 }
 
 function moneylineRow(rows: ActionOddsRow[]) {
