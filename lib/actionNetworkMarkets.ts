@@ -192,10 +192,45 @@ function marketRowsForPhase(game: ActionGame, phase: SideBetOfferPhase) {
 }
 
 function spreadRow(rows: ActionOddsRow[]) {
-  return rows.find((row) =>
-    finiteNumber(row.spread_away) != null &&
-    finiteNumber(row.spread_home) != null
-  ) || null;
+  const candidates = rows.flatMap((row) => {
+    const awayPoint = finiteNumber(row.spread_away);
+    const homePoint = finiteNumber(row.spread_home);
+    if (awayPoint == null || homePoint == null) return [];
+
+    // A two-way football spread must be exact opposites. Ignore malformed
+    // provider rows instead of ever rendering both teams with the same sign.
+    if (Math.abs(awayPoint + homePoint) >= 0.001) return [];
+
+    return [{ row, awayPoint }];
+  });
+  if (!candidates.length) return null;
+  if (candidates.length === 1) return candidates[0].row;
+
+  // Do not let one sportsbook's bad/stale row flip the favorite. Prefer the
+  // most common line across the books we fetched; when counts tie, choose the
+  // line closest to the median. Candidate order still preserves book priority
+  // as the final tie-breaker.
+  const sortedAwayPoints = candidates.map((candidate) => candidate.awayPoint).sort((a, b) => a - b);
+  const medianAwayPoint = sortedAwayPoints[Math.floor(sortedAwayPoints.length / 2)];
+  const counts = new Map<number, number>();
+  for (const candidate of candidates) {
+    counts.set(candidate.awayPoint, (counts.get(candidate.awayPoint) || 0) + 1);
+  }
+
+  let best = candidates[0];
+  let bestCount = counts.get(best.awayPoint) || 0;
+  let bestMedianDistance = Math.abs(best.awayPoint - medianAwayPoint);
+  for (const candidate of candidates.slice(1)) {
+    const count = counts.get(candidate.awayPoint) || 0;
+    const medianDistance = Math.abs(candidate.awayPoint - medianAwayPoint);
+    if (count > bestCount || (count === bestCount && medianDistance < bestMedianDistance)) {
+      best = candidate;
+      bestCount = count;
+      bestMedianDistance = medianDistance;
+    }
+  }
+
+  return best.row;
 }
 
 function moneylineRow(rows: ActionOddsRow[]) {
