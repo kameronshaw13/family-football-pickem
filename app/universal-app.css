@@ -946,3 +946,22 @@ button.universal-first-league-choice{cursor:pointer}
     padding-inline:10px;
   }
 }
+
+
+/* Keep focused mobile auth fields above the software keyboard. */
+@media(max-width:760px){
+  .universal-overview-container,
+  .universal-account-container,
+  .universal-setup-scroll{
+    scroll-padding-bottom:calc(var(--universal-keyboard-inset, 0px) + 28px);
+  }
+
+  body.universal-keyboard-open .universal-overview-container,
+  body.universal-keyboard-open .universal-account-container{
+    padding-bottom:calc(var(--universal-keyboard-inset, 0px) + 28px);
+  }
+
+  body.universal-keyboard-open .universal-account-bottom{
+    margin-bottom:12px;
+  }
+}
