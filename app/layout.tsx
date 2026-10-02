@@ -10,6 +10,7 @@ import "./universal-card-dividers.css";
 import "./final-polish.css";
 import "./admin-no-submission.css";
 import "./component-styles.css";
+import "./side-bet-batch.css";
 import "./presentation-fixes.css";
 import "./matchup-preview.css";
 import "./game-tracker.css";
@@ -20,6 +21,8 @@ import AppUiCoordinator from "@/components/AppUiCoordinator";
 import DogPickAdjustmentAlerts from "@/components/DogPickAdjustmentAlerts";
 import LedgerScopeMenuEnhancement from "@/components/LedgerScopeMenuEnhancement";
 import PlayerProfiles from "@/components/PlayerProfiles";
+import SideBetBatchEnhancements from "@/components/SideBetBatchEnhancements";
+import SideBetBatchPresentationEnhancement from "@/components/SideBetBatchPresentationEnhancement";
 
 const robotoSlab = Roboto_Slab({
   subsets: ["latin"],
@@ -170,7 +173,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/header-wordmark.png" as="image" type="image/png" />
         <link rel="preload" href="/football-pickem-wordmark.png" as="image" type="image/png" />
       </head>
-      <body>{children}<AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /><LedgerScopeMenuEnhancement /></body>
+      <body>{children}<AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /><SideBetBatchEnhancements /><SideBetBatchPresentationEnhancement /><LedgerScopeMenuEnhancement /></body>
     </html>
   );
 }
