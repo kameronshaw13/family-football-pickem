@@ -457,12 +457,12 @@ export default function SideBetBatchEnhancements() {
 
         const meta = document.createElement("span");
         meta.className = "side-bet-batch-ticket-meta";
-        if (ticketIsComplete(selection)) {
-          const recipientsText = recipientSummary(selection, payload);
-          meta.textContent = `${Number(selection.amount).toFixed(Number(selection.amount) % 1 ? 2 : 0)} · ${recipientsText || "Recipient set"}`;
-        } else {
-          meta.textContent = "Tap to finish amount, line and recipient";
-        }
+        const ticketAmount = Number(selection.amount);
+        const amountText = Number.isFinite(ticketAmount) && ticketAmount > 0
+          ? "$" + ticketAmount.toFixed(ticketAmount % 1 ? 2 : 0)
+          : "Choose amount";
+        const recipientsText = recipientSummary(selection, payload);
+        meta.textContent = amountText + " · " + (recipientsText || "Choose recipient");
         copy.append(choice, meta);
 
         const remove = document.createElement("button");

@@ -781,3 +781,101 @@
     font-size: 11px !important;
   }
 }
+
+
+/* 2026-10-02 final side-bet sheet/ledger alignment pass. */
+
+/* Matchup lines use one normal rhythm: Matchup · Date Time. */
+.side-bet-batch-header-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.side-bet-batch-header-matchup,
+.side-bet-batch-header-separator,
+.side-bet-batch-header-datetime {
+  color: #dce5e9;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.side-bet-batch-header-separator {
+  padding: 0;
+}
+.side-bet-batch-header-matchup + .side-bet-batch-header-date {
+  margin-left: 0;
+}
+
+/* The chosen game cell remains visible while the ticket controls scroll,
+   matching the already-fixed multi-selection behavior. */
+.side-bet-slip-sheet:not(.batch-mode) .side-bet-slip-scroll > .side-bet-slip-selection {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--panel);
+}
+
+/* Keep the final selected batch row visibly divided from Market. */
+.side-bet-batch-ticket-row:last-child {
+  border-bottom: 1px solid var(--line-strong) !important;
+}
+.side-bet-batch-list {
+  border-bottom: 0 !important;
+}
+
+/* Ledger title/summary share the same vertical center, while the controls
+   sit a little closer without becoming cramped. */
+.side-bet-ledger-heading-row {
+  min-height: 35px;
+  align-items: center !important;
+  margin-bottom: 2px;
+  padding: 1px 2px 4px;
+}
+.side-bet-ledger-heading {
+  display: flex !important;
+  min-height: 28px;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 5px;
+  line-height: 1.2;
+}
+.side-bet-ledger-heading-title {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
+}
+.side-bet-ledger-summary {
+  display: inline-flex;
+  align-self: center;
+  align-items: center !important;
+  margin-left: 4px;
+  gap: 4px;
+  font-size: 10px;
+  line-height: 1.2;
+}
+.side-bet-ledger-summary-label,
+.side-bet-potential-label,
+.side-bet-potential-separator {
+  color: var(--muted);
+}
+.side-bet-potential-profit {
+  color: var(--green);
+}
+.side-bet-potential-loss {
+  color: var(--red);
+}
+.side-bet-ledger-filter-row {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+@media (max-width: 390px) {
+  .side-bet-ledger-heading {
+    gap: 4px;
+  }
+  .side-bet-ledger-summary {
+    margin-left: 3px;
+    gap: 3px;
+    font-size: 9.5px;
+  }
+}

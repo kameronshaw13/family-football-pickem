@@ -215,16 +215,13 @@ function updateHeader(sheet: HTMLElement, infos: SelectionInfo[]) {
       line.appendChild(matchup);
       if (info.dateTime) {
         const [dateText, timeText] = info.dateTime.split("|");
-        const date = document.createElement("span");
-        date.className = "side-bet-batch-header-datetime side-bet-batch-header-date";
-        date.textContent = dateText || "";
         const separator = document.createElement("span");
         separator.className = "side-bet-batch-header-separator";
         separator.textContent = "·";
-        const time = document.createElement("span");
-        time.className = "side-bet-batch-header-datetime";
-        time.textContent = timeText || "";
-        line.append(date, separator, time);
+        const dateTime = document.createElement("span");
+        dateTime.className = "side-bet-batch-header-datetime";
+        dateTime.textContent = [dateText, timeText].filter(Boolean).join(" ");
+        line.append(separator, dateTime);
       }
       lines!.appendChild(line);
     });
@@ -235,16 +232,16 @@ function updateHeader(sheet: HTMLElement, infos: SelectionInfo[]) {
     const [dateText, timeText] = infos[0].dateTime.split("|");
     const line = document.createElement("div");
     line.className = "side-bet-batch-header-line";
-    const date = document.createElement("span");
-    date.className = "side-bet-batch-header-datetime";
-    date.textContent = dateText || "";
+    const matchup = document.createElement("span");
+    matchup.className = "side-bet-batch-header-matchup";
+    matchup.textContent = infos[0].matchup;
     const separator = document.createElement("span");
     separator.className = "side-bet-batch-header-separator";
     separator.textContent = "·";
-    const time = document.createElement("span");
-    time.className = "side-bet-batch-header-datetime";
-    time.textContent = timeText || "";
-    line.append(date, separator, time);
+    const dateTime = document.createElement("span");
+    dateTime.className = "side-bet-batch-header-datetime";
+    dateTime.textContent = [dateText, timeText].filter(Boolean).join(" ");
+    line.append(matchup, separator, dateTime);
     lines.appendChild(line);
   }
 }
