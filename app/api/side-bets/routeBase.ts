@@ -113,8 +113,12 @@ function liveOfferScoreChanged(bet: any, score: LiveScoreSnapshot | null) {
   if (!score || bet?.offer_phase !== "live") return false;
   const sentHome = Number(bet.live_offer_home_score);
   const sentAway = Number(bet.live_offer_away_score);
-  if (!Number.isFinite(sentHome) || !Number.isFinite(sentAway)) return false;
-  return score.home !== sentHome || score.away !== sentAway;
+  if (!Number.isFinite(sentHome) || !Number.isFinite(sentAway) || !Number.isFinite(score.home) || !Number.isFinite(score.away)) return false;
+
+  // A live offer should expire only when new points are actually added.
+  // ESPN can briefly regress a score or return home/away data inconsistently;
+  // treating any mismatch as scoring can falsely expire an unchanged offer.
+  return score.home + score.away > sentHome + sentAway;
 }
 
 async function allGroupBets(supabase: any, groupId: string, seasonYear: number) {
