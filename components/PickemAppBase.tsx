@@ -2807,8 +2807,9 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
     }
     setGame(game.id);
     setCreatorTeam(team);
-    if (slipExpanded) collapseSlip();
-    else setSlipExpanded(false);
+    // Keep an already-open slip open while changing the active side. This lets
+    // multi-bet tickets switch in-place instead of collapsing the editor.
+    if (!slipExpanded) setSlipExpanded(false);
   }
 
   function clearSlip() {

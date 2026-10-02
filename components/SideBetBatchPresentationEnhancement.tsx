@@ -95,7 +95,7 @@ function gameDateTime(game: CachedGame) {
   if (!game.commence_time) return "";
   const date = new Date(game.commence_time);
   if (Number.isNaN(date.getTime())) return "";
-  return `${CENTRAL_DATE.format(date)} · ${CENTRAL_TIME.format(date)}`;
+  return `${CENTRAL_DATE.format(date)}|${CENTRAL_TIME.format(date)}`;
 }
 
 function ensureNativeRemoveButton(row: HTMLElement) {
@@ -212,13 +212,17 @@ function updateHeader(sheet: HTMLElement, infos: SelectionInfo[]) {
       matchup.textContent = info.matchup;
       line.appendChild(matchup);
       if (info.dateTime) {
+        const [dateText, timeText] = info.dateTime.split("|");
         const separator = document.createElement("span");
         separator.className = "side-bet-batch-header-separator";
-        separator.textContent = " · ";
-        const dateTime = document.createElement("span");
-        dateTime.className = "side-bet-batch-header-datetime";
-        dateTime.textContent = info.dateTime;
-        line.append(separator, dateTime);
+        separator.textContent = "·";
+        const date = document.createElement("span");
+        date.className = "side-bet-batch-header-datetime";
+        date.textContent = dateText || "";
+        const time = document.createElement("span");
+        time.className = "side-bet-batch-header-datetime";
+        time.textContent = timeText || "";
+        line.append(separator, date, time);
       }
       lines!.appendChild(line);
     });
@@ -226,12 +230,19 @@ function updateHeader(sheet: HTMLElement, infos: SelectionInfo[]) {
   }
 
   if (infos[0].dateTime) {
+    const [dateText, timeText] = infos[0].dateTime.split("|");
     const line = document.createElement("div");
     line.className = "side-bet-batch-header-line";
-    const dateTime = document.createElement("span");
-    dateTime.className = "side-bet-batch-header-datetime";
-    dateTime.textContent = infos[0].dateTime;
-    line.appendChild(dateTime);
+    const date = document.createElement("span");
+    date.className = "side-bet-batch-header-datetime";
+    date.textContent = dateText || "";
+    const separator = document.createElement("span");
+    separator.className = "side-bet-batch-header-separator";
+    separator.textContent = "·";
+    const time = document.createElement("span");
+    time.className = "side-bet-batch-header-datetime";
+    time.textContent = timeText || "";
+    line.append(date, separator, time);
     lines.appendChild(line);
   }
 }

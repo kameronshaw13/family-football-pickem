@@ -664,3 +664,68 @@
   .side-bet-ledger-summary { font-size: 9.5px; }
   .side-bet-ledger-meta { font-size: 11px !important; }
 }
+
+
+/* Side bet editor follow-up polish. */
+.side-bet-slip-copy .team-name,
+.side-bet-slip-team-choice .team-name {
+  flex: 0 1 auto;
+}
+.side-bet-slip-copy:has(.team-spread) > .responsive-text,
+.side-bet-slip-team-choice:has(.team-spread) > .responsive-text {
+  flex: 0 1 auto;
+}
+
+/* Matchup/date/time use one visual language in the slip header. */
+.side-bet-slip-title p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #dce5e9;
+  font-size: 10px;
+  font-weight: 700;
+}
+.side-bet-batch-header-line {
+  gap: 6px;
+}
+.side-bet-batch-header-matchup,
+.side-bet-batch-header-separator,
+.side-bet-batch-header-datetime {
+  color: #dce5e9;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.side-bet-batch-header-separator {
+  padding-inline: 1px;
+}
+
+/* Batch send stays visibly locked until every selected ticket is complete. */
+.side-bet-slip-sheet.batch-mode .side-bet-slip-submit:not([data-batch-ready="true"]) {
+  pointer-events: none;
+  opacity: .5;
+  filter: saturate(.35);
+}
+
+/* Slightly larger ledger copy and more separation from the section title. */
+.side-bet-ledger-summary {
+  margin-left: 8px;
+  font-size: 10.75px;
+  gap: 5px;
+}
+.side-bet-ledger-meta {
+  font-size: 12px !important;
+}
+.ledger-row.side-bet-ledger-row .side-bet-ledger-title,
+.ledger-row.side-bet-ledger-row .side-bet-ledger-amount {
+  font-size: 15px;
+}
+@media (max-width: 390px) {
+  .side-bet-ledger-summary {
+    margin-left: 6px;
+    font-size: 10px;
+  }
+  .side-bet-ledger-meta {
+    font-size: 11.5px !important;
+  }
+}
