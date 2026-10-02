@@ -941,3 +941,16 @@
     font-size: 9px;
   }
 }
+
+
+/* 2026-10-02 side-bet offer market rhythm + grouped-history polish. */
+.side-bet-offer-copy:has(> .side-bet-market-reference) {
+  display: grid;
+  min-width: 0;
+  row-gap: 3px;
+}
+.side-bet-offer-copy:has(> .side-bet-market-reference) > strong,
+.side-bet-offer-copy:has(> .side-bet-market-reference) > .side-bet-market-reference,
+.side-bet-offer-copy:has(> .side-bet-market-reference) > .side-bet-response-line {
+  margin: 0;
+}

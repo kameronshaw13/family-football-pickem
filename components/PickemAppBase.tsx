@@ -1919,11 +1919,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const testWeek = testWeekActive && profiles.length === 3 ? buildTestWeek(profiles, currentUser.id) : null;
   const previewActive = Boolean(testWeekActive && testWeek);
   const sideBets = previewActive ? testWeek!.sideBets : liveSideBets;
-  const viewedSideBetLedger = (previewActive ? testWeek!.sideBets : sideBetLedger)
-    .filter((bet) => bet.status === "accepted" || bet.status === "settled")
-    .filter((bet) => sideBetLedgerScope === "all" || bet.creator_id === currentUser.id || bet.accepted_by === currentUser.id)
-    .filter((bet) => sideBetMatchesGameFilter(bet, sideBetLedgerGameFilter))
-    .sort(sortSideBetsByGameStatus);
+  const viewedSideBetLedger = sortSideBetsGroupedByGame(
+    (previewActive ? testWeek!.sideBets : sideBetLedger)
+      .filter((bet) => bet.status === "accepted" || bet.status === "settled")
+      .filter((bet) => sideBetLedgerScope === "all" || bet.creator_id === currentUser.id || bet.accepted_by === currentUser.id)
+      .filter((bet) => sideBetMatchesGameFilter(bet, sideBetLedgerGameFilter))
+  );
   const viewedSideBetBankTotals = previewActive ? testWeek!.sideBetBankTotals : data.sideBetBankTotals;
   const viewedGames = previewActive ? testWeek!.games : games;
   const viewedPicks = previewActive ? testWeek!.picks : picks;
@@ -3052,7 +3053,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
         </div>
       </section>}
 
-    {view === "offers" && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter)).sort(sortSideBetsByGameStatus)} currentUser={currentUser} marketQuotes={marketQuotes} empty={weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
+    {view === "offers" && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter))} currentUser={currentUser} marketQuotes={marketQuotes} empty={weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
@@ -3132,6 +3133,11 @@ function sideBetCompletionTime(bet: SideBet) {
   return Number.isFinite(updated) ? updated : 0;
 }
 
+function sideBetCreatedTime(bet: SideBet) {
+  const created = new Date(bet.created_at).getTime();
+  return Number.isFinite(created) ? created : 0;
+}
+
 function sortSideBetsByGameStatus(a: SideBet, b: SideBet) {
   const aCompleted = sideBetGameCompleted(a);
   const bCompleted = sideBetGameCompleted(b);
@@ -3139,17 +3145,57 @@ function sortSideBetsByGameStatus(a: SideBet, b: SideBet) {
   if (aCompleted) return sideBetCompletionTime(b) - sideBetCompletionTime(a);
   const kickoffDiff = sideBetKickoffTime(a) - sideBetKickoffTime(b);
   if (kickoffDiff !== 0) return kickoffDiff;
-  return new Date(b.accepted_at || b.created_at).getTime() - new Date(a.accepted_at || a.created_at).getTime();
+  return sideBetCreatedTime(a) - sideBetCreatedTime(b);
+}
+
+function sortSideBetsGroupedByGame(bets: SideBet[]) {
+  const groups = new Map<string, SideBet[]>();
+  bets.forEach((bet) => {
+    const key = bet.game_id || bet.game?.id || bet.id;
+    const group = groups.get(key);
+    if (group) group.push(bet);
+    else groups.set(key, [bet]);
+  });
+
+  const orderedGroups = Array.from(groups.values()).sort((a, b) => {
+    const aFirst = a[0];
+    const bFirst = b[0];
+    const aCompleted = a.some(sideBetGameCompleted);
+    const bCompleted = b.some(sideBetGameCompleted);
+    if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
+
+    if (aCompleted) {
+      const aCompletion = Math.max(...a.map(sideBetCompletionTime));
+      const bCompletion = Math.max(...b.map(sideBetCompletionTime));
+      if (aCompletion !== bCompletion) return bCompletion - aCompletion;
+    } else {
+      const kickoffDiff = sideBetKickoffTime(aFirst) - sideBetKickoffTime(bFirst);
+      if (kickoffDiff !== 0) return kickoffDiff;
+    }
+
+    const aFirstCreated = Math.min(...a.map(sideBetCreatedTime));
+    const bFirstCreated = Math.min(...b.map(sideBetCreatedTime));
+    if (aFirstCreated !== bFirstCreated) return aFirstCreated - bFirstCreated;
+    return String(aFirst.game_id || aFirst.id).localeCompare(String(bFirst.game_id || bFirst.id));
+  });
+
+  return orderedGroups.flatMap((group) =>
+    [...group].sort((a, b) => {
+      const createdDiff = sideBetCreatedTime(a) - sideBetCreatedTime(b);
+      if (createdDiff !== 0) return createdDiff;
+      return String(a.id).localeCompare(String(b.id));
+    })
+  );
 }
 
 function SideBetList({ bets, currentUser, marketQuotes, empty, historyOnly = false, saving, savingBetId, canAccept, acceptDisabledText, requestAccept, respond }: { bets: SideBet[]; currentUser: Profile; marketQuotes: Record<string, SideBetMarketQuote>; empty: string; historyOnly?: boolean; saving: boolean; savingBetId: string | null; canAccept: (bet: SideBet) => boolean; acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {
   const modeFor = (bet: SideBet) => bet.creator_id === currentUser.id ? "sent" as const : "received" as const;
-  const pending = bets
-    .filter((bet) => sideBetOfferIsPending(bet, currentUser.id, modeFor(bet)))
-    .sort(sortSideBetsByGameStatus);
-  const history = bets
-    .filter((bet) => !sideBetOfferIsPending(bet, currentUser.id, modeFor(bet)))
-    .sort(sortSideBetsByGameStatus);
+  const pending = sortSideBetsGroupedByGame(
+    bets.filter((bet) => sideBetOfferIsPending(bet, currentUser.id, modeFor(bet)))
+  );
+  const history = sortSideBetsGroupedByGame(
+    bets.filter((bet) => !sideBetOfferIsPending(bet, currentUser.id, modeFor(bet)))
+  );
   const card = (bet: SideBet) => <SideBetCard key={bet.id} bet={bet} mode={modeFor(bet)} currentUser={currentUser} marketQuote={marketQuotes[bet.game_id]} saving={saving} working={savingBetId === bet.id} canAccept={canAccept(bet)} acceptDisabledText={acceptDisabledText} requestAccept={requestAccept} respond={respond} />;
 
   if (!bets.length) return <div className="side-bet-list"><div className="empty-state">{empty}</div></div>;
