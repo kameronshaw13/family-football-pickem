@@ -3253,7 +3253,7 @@ function SideBetCard({ bet, mode, currentUser, marketQuote, saving, working, can
   return <article className={`side-bet-card mode-${mode} ${offerOpen ? "open" : ""} ${hasActionRow ? "has-actions" : ""} ${saving && !working ? "background-busy" : ""}`.trim()}>
     <div className="side-bet-offer-row">
       <TeamLogo url={game ? logoForTeam(game, perspectiveTeam) : null} name={perspectiveTeam} />
-      <div className="side-bet-offer-copy"><strong>{bet.offer_phase === "live" && offerOpen && <span className="side-bet-live-offer-label">Offer: </span>}<ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} /></strong>{marketReference && <span className="side-bet-market-reference"><NumericText text={marketReference.text} /></span>}<SideBetResponseLine summary={responseSummary} teamFull={offeredSideName} teamCompact={offeredSideCompact} spread={responseSpread} date={game ? dt(game.commence_time) : undefined} /></div>
+      <div className="side-bet-offer-copy"><strong><ResponsiveText full={matchup.full} intermediate={matchup.intermediate} compact={matchup.compact} /></strong>{marketReference && <span className="side-bet-market-reference"><NumericText text={marketReference.text} /></span>}<SideBetResponseLine summary={responseSummary} teamFull={offeredSideName} teamCompact={offeredSideCompact} spread={responseSpread} date={game ? dt(game.commence_time) : undefined} /></div>
       {amountDisplay.settled || amountDisplay.evenPayout
         ? <strong className={`side-bet-offer-amount ${amountDisplay.tone}`}><NumericText text={amountDisplay.text} /></strong>
         : <div className="side-bet-offer-amount side-bet-offer-payout" aria-label={`Risk ${amountDisplay.risk} to win ${amountDisplay.win}`}>
