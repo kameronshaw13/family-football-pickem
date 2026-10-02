@@ -643,10 +643,10 @@
 }
 .side-bet-slip-bar[data-batch-count] .side-bet-slip-copy .team-spread {
   flex: 0 0 auto;
+  margin-right: auto;
 }
 .side-bet-slip-bar[data-batch-count] .side-bet-batch-more {
-  flex: 0 0 auto;
-  margin-left: 2px;
+  margin-left: auto;
 }
 
 /* Slightly larger Side Bet Ledger typography without changing row density. */
