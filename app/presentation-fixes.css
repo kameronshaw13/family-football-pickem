@@ -536,46 +536,45 @@
 }
 
 
-/* Side Bet Ledger active exposure + kickoff metadata. */
+/* Side Bet Ledger realized/potential summary + kickoff metadata. */
 .side-bet-ledger-heading {
   width: 100%;
+  min-width: 0;
   justify-content: flex-start;
   gap: 5px;
-}
-.side-bet-exposure-summary {
-  display: inline-grid;
-  min-width: 0;
-  gap: 2px;
-  margin-left: 3px;
-  color: var(--muted);
-  font-family: var(--font-display);
-  font-size: 8.5px;
-  font-weight: 800;
-  line-height: 1.05;
   white-space: nowrap;
 }
-.side-bet-exposure-summary > span:last-child {
+.side-bet-ledger-summary {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  min-width: 0;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
 }
+.side-bet-ledger-summary-label { color: var(--muted); }
+.side-bet-ledger-summary-divider { color: var(--line-strong); }
 .side-bet-potential-profit { color: var(--green); font-size: inherit; }
 .side-bet-potential-loss { color: var(--red); font-size: inherit; }
+
 .side-bet-ledger-meta {
   display: flex !important;
   min-width: 0;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.side-bet-ledger-people {
-  min-width: 0;
+  justify-content: flex-start;
+  gap: 4px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.side-bet-ledger-date {
+.side-bet-ledger-meta > span {
   flex: 0 0 auto;
+}
+.side-bet-ledger-meta-dot { color: var(--muted); }
+.side-bet-ledger-date {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -583,10 +582,5 @@
 
 @media (max-width: 390px) {
   .side-bet-ledger-heading { gap: 4px; }
-  .side-bet-week-total { margin-left: 2px; }
-  .side-bet-exposure-summary {
-    margin-left: 1px;
-    font-size: 8px;
-  }
-  .side-bet-exposure-summary > span:last-child { gap: 4px; }
+  .side-bet-ledger-summary { gap: 3px; font-size: 8.5px; }
 }
