@@ -304,7 +304,7 @@ function showBatchLimitError() {
   const toast = document.createElement("div");
   toast.className = "batch-side-bet-toast error";
   toast.setAttribute("role", "alert");
-  toast.textContent = "You can select up to 4 side bets at a time.";
+  toast.textContent = "You can select up to 8 side bets at a time.";
   document.body.appendChild(toast);
   window.setTimeout(() => toast.remove(), 3000);
 }
@@ -379,7 +379,7 @@ export default function SideBetBatchPresentationEnhancement() {
       const cardAlreadySelected = Boolean(card.querySelector(".team-row.batch-picked-side"));
       if (cardAlreadySelected) return;
       const selectedCount = document.querySelectorAll(".side-bet-game-card .team-row.batch-picked-side").length;
-      if (selectedCount < 4) return;
+      if (selectedCount < 8) return;
       event.preventDefault();
       event.stopPropagation();
       showBatchLimitError();

@@ -42,17 +42,43 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function deliverPush(supabase: SupabaseClient, userId: string, payload: Omit<PushPayload, "badgeCount">, groupId?: string) {
+type PushDeliveryResult = {
+  sent: number;
+  configured: boolean;
+  subscriptions: number;
+  error: string | null;
+};
+
+type NotificationDeliveryRow = {
+  id: string;
+  user_id: string;
+  group_id: string | null;
+  title: string;
+  body: string;
+  url: string;
+  dedupe_key: string;
+  push_sent_at?: string | null;
+  push_attempts?: number | null;
+};
+
+function pushErrorText(error: unknown) {
+  const value = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  return value.slice(0, 1000);
+}
+
+async function deliverPush(supabase: SupabaseClient, userId: string, payload: Omit<PushPayload, "badgeCount">, groupId?: string): Promise<PushDeliveryResult> {
   const config = pushConfiguration();
-  if (!config.configured) return { sent: 0, configured: false };
+  if (!config.configured) return { sent: 0, configured: false, subscriptions: 0, error: "Push delivery is not configured." };
   let subscriptionQuery = supabase.from("push_subscriptions").select("endpoint,p256dh,auth").eq("user_id", userId);
   if (groupId) subscriptionQuery = subscriptionQuery.eq("group_id", groupId);
   const { data: subscriptions, error } = await subscriptionQuery;
   if (error) throw new Error(error.message);
-  if (!subscriptions?.length) return { sent: 0, configured: true };
+  if (!subscriptions?.length) return { sent: 0, configured: true, subscriptions: 0, error: "No active push subscription." };
   const counts = await getNotificationCounts(supabase, userId, groupId);
   webPush.setVapidDetails(config.subject, config.publicKey, config.privateKey);
   let sent = 0;
+  const failures: string[] = [];
+
   await Promise.all(subscriptions.map(async (row) => {
     const subscription: PushSubscription = { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } };
     for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -63,17 +89,53 @@ async function deliverPush(supabase: SupabaseClient, userId: string, payload: Om
       } catch (error) {
         if (error instanceof WebPushError && [404, 410].includes(error.statusCode)) {
           await supabase.from("push_subscriptions").delete().eq("endpoint", row.endpoint);
+          failures.push("Push subscription expired and was removed.");
           return;
         }
         if (attempt === 0) {
           await sleep(300);
           continue;
         }
+        const message = pushErrorText(error);
+        failures.push(message);
         console.error("Push delivery failed after retry", error);
       }
     }
   }));
-  return { sent, configured: true };
+
+  return {
+    sent,
+    configured: true,
+    subscriptions: subscriptions.length,
+    error: sent > 0 ? null : (failures[0] || "Push provider did not confirm delivery.")
+  };
+}
+
+async function deliverNotificationPush(supabase: SupabaseClient, row: NotificationDeliveryRow) {
+  if (row.push_sent_at) return { sent: 0, alreadySent: true, error: null as string | null };
+  const attemptAt = new Date().toISOString();
+  const nextAttempts = Number(row.push_attempts || 0) + 1;
+  const attemptUpdate = await supabase.from("notifications").update({
+    push_attempts: nextAttempts,
+    push_last_attempt_at: attemptAt
+  }).eq("id", row.id);
+  if (attemptUpdate.error) throw new Error(attemptUpdate.error.message);
+
+  const delivery = await deliverPush(
+    supabase,
+    row.user_id,
+    { title: row.title, body: row.body, url: row.url, tag: row.dedupe_key.slice(0, 64) },
+    row.group_id || undefined
+  );
+
+  const deliveryUpdate: Record<string, unknown> = {
+    push_last_error: delivery.sent > 0 ? null : delivery.error
+  };
+  if (delivery.sent > 0) deliveryUpdate.push_sent_at = new Date().toISOString();
+  const update = await supabase.from("notifications").update(deliveryUpdate).eq("id", row.id);
+  if (update.error) throw new Error(update.error.message);
+
+  return { sent: delivery.sent, alreadySent: false, error: delivery.error };
 }
 
 async function inferGroupId(supabase: SupabaseClient, input: NotificationInput) {
@@ -126,6 +188,7 @@ async function normalizedBody(supabase: SupabaseClient, input: NotificationInput
 export async function createNotification(supabase: SupabaseClient, input: NotificationInput) {
   const groupId = await inferGroupId(supabase, input);
   const body = await normalizedBody(supabase, input);
+  const selectFields = "id,user_id,group_id,title,body,url,dedupe_key,push_sent_at,push_attempts";
   const { data, error } = await supabase.from("notifications").upsert({
     group_id: groupId,
     user_id: input.userId,
@@ -137,11 +200,26 @@ export async function createNotification(supabase: SupabaseClient, input: Notifi
     body,
     url: input.url,
     action_required: Boolean(input.actionRequired)
-  }, { onConflict: "group_id,user_id,dedupe_key", ignoreDuplicates: true }).select("id").maybeSingle();
+  }, { onConflict: "group_id,user_id,dedupe_key", ignoreDuplicates: true }).select(selectFields).maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) return { created: false, sent: 0 };
-  const delivery = await deliverPush(supabase, input.userId, { title: input.title, body, url: input.url, tag: input.dedupeKey.slice(0, 64) }, groupId);
-  return { created: true, sent: delivery.sent };
+
+  let row = data as NotificationDeliveryRow | null;
+  const created = Boolean(row);
+  if (!row) {
+    const existing = await supabase.from("notifications")
+      .select(selectFields)
+      .eq("group_id", groupId)
+      .eq("user_id", input.userId)
+      .eq("dedupe_key", input.dedupeKey)
+      .maybeSingle();
+    if (existing.error) throw new Error(existing.error.message);
+    row = existing.data as NotificationDeliveryRow | null;
+  }
+  if (!row) return { created: false, sent: 0 };
+  if (row.push_sent_at) return { created, sent: 0 };
+
+  const delivery = await deliverNotificationPush(supabase, row);
+  return { created, sent: delivery.sent };
 }
 
 export async function createNotificationSafely(supabase: SupabaseClient, input: NotificationInput) {
@@ -151,6 +229,39 @@ export async function createNotificationSafely(supabase: SupabaseClient, input: 
 
 export function createNotificationInBackground(supabase: SupabaseClient, input: NotificationInput) {
   waitUntil(createNotificationSafely(supabase, input).then(() => undefined));
+}
+
+export async function retryPendingPushNotifications(supabase: SupabaseClient, limit = 40) {
+  const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const { data, error } = await supabase.from("notifications")
+    .select("id,user_id,group_id,title,body,url,dedupe_key,push_sent_at,push_attempts")
+    .is("push_sent_at", null)
+    .is("read_at", null)
+    .is("resolved_at", null)
+    .lt("push_attempts", 5)
+    .gte("created_at", cutoff)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+
+  const rows = (data || []) as NotificationDeliveryRow[];
+  let sent = 0;
+  let failed = 0;
+  for (let index = 0; index < rows.length; index += 8) {
+    const batch = rows.slice(index, index + 8);
+    const outcomes = await Promise.all(batch.map(async (row) => {
+      try {
+        return await deliverNotificationPush(supabase, row);
+      } catch (error) {
+        console.error("Push retry failed", error);
+        return { sent: 0, alreadySent: false, error: pushErrorText(error) };
+      }
+    }));
+    sent += outcomes.reduce((sum, outcome) => sum + Number(outcome.sent || 0), 0);
+    failed += outcomes.filter((outcome) => !outcome.sent && !outcome.alreadySent).length;
+  }
+
+  return { attempted: rows.length, sent, failed };
 }
 
 export async function resolveSideBetOfferNotifications(supabase: SupabaseClient, sideBetIds: string[], userId?: string, groupId?: string) {

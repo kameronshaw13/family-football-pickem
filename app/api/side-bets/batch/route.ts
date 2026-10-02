@@ -14,7 +14,7 @@ const bodySchema = z.object({
     gameId: z.string().min(1),
     creatorTeam: z.string().min(1),
     creatorSpread: z.number().finite().min(-100).max(100).optional()
-  })).min(1).max(4),
+  })).min(1).max(8),
   amount: z.number().positive(),
   marketType: z.enum(["spread", "moneyline"]).optional(),
   creatorOdds: z.number().int().optional(),
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
 
     const parsed = bodySchema.safeParse(await req.json());
-    if (!parsed.success) return NextResponse.json({ ok: false, error: "Choose 1 to 4 valid side bets and at least one recipient." }, { status: 400 });
+    if (!parsed.success) return NextResponse.json({ ok: false, error: "Choose 1 to 8 valid side bets and at least one recipient." }, { status: 400 });
     const body = parsed.data;
 
     const supabase = getSupabaseAdmin();

@@ -26,7 +26,7 @@ type CachedPayload = {
 };
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v2";
-const MAX_BATCH_SELECTIONS = 4;
+const MAX_BATCH_SELECTIONS = 8;
 
 function appSlugFromPath(): AppSlug {
   if (window.location.pathname.startsWith("/friends")) return "friends";

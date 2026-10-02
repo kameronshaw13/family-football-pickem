@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { settleWeekIfReady } from "@/lib/autoSettlement";
 import { fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
@@ -7,6 +8,18 @@ import { settleSeasonIfReady } from "@/lib/seasonSettlement";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import type { Game, League } from "@/lib/types";
 
+const SUPABASE_RESULTS_CRON_TOKEN_SHA256 = "3907027700258fc50a7d4ea237b41402793ca1082da70fdc5751a81216c09dbb";
+
+function hasValidSupabaseCronToken(req: NextRequest) {
+  const token = req.headers.get("x-odds-cron-token");
+  if (!token) return false;
+  const actual = Buffer.from(createHash("sha256").update(token).digest("hex"), "hex");
+  const expectedHash = process.env.ODDS_CRON_TOKEN_SHA256 || SUPABASE_RESULTS_CRON_TOKEN_SHA256;
+  if (!/^[a-f0-9]{64}$/i.test(expectedHash)) return false;
+  const expected = Buffer.from(expectedHash, "hex");
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
 function unauthorized() {
   return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 }
@@ -14,7 +27,9 @@ function unauthorized() {
 export async function GET(req: NextRequest) {
   try {
     const secret = req.headers.get("authorization")?.replace("Bearer ", "") || req.nextUrl.searchParams.get("secret");
-    if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) return unauthorized();
+    const hasValidVercelSecret = Boolean(process.env.CRON_SECRET && secret === process.env.CRON_SECRET);
+    const hasValidSupabaseSecret = hasValidSupabaseCronToken(req);
+    if (!hasValidVercelSecret && !hasValidSupabaseSecret) return unauthorized();
 
     const supabase = getSupabaseAdmin();
     const lockResult = await lockDuePicks(supabase);

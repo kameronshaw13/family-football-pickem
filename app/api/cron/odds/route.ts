@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { refreshActionNetworkSpreads, syncUpcomingFootballSchedule } from "@/lib/footballMarketSync";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { retryPendingPushNotifications } from "@/lib/notifications";
 import type { Game } from "@/lib/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -54,6 +55,14 @@ export async function GET(req: NextRequest) {
   const hasValidSupabaseSecret = hasValidSupabaseOddsCronToken(req);
   if (!hasValidVercelSecret && !hasValidSupabaseSecret) return unauthorized();
 
+  const supabase = getSupabaseAdmin();
+  let pushRetries = { attempted: 0, sent: 0, failed: 0 };
+  try {
+    pushRetries = await retryPendingPushNotifications(supabase);
+  } catch (error) {
+    console.error("[cron/odds] push retry pass failed", error);
+  }
+
   const scheduled = Boolean(req.headers.get("x-vercel-cron-schedule")) || hasValidSupabaseSecret;
   const force = req.nextUrl.searchParams.get("force") === "1";
   const now = new Date();
@@ -65,12 +74,12 @@ export async function GET(req: NextRequest) {
       skipped: true,
       provider: "Action Network",
       refreshCadenceMinutes: refreshCadence,
-      reason: "Waiting for the next market refresh interval."
+      reason: "Waiting for the next market refresh interval.",
+      pushRetries
     });
   }
 
   try {
-    const supabase = getSupabaseAdmin();
     const defaultWindow = {
       gamesDiscovered: 0,
       start: new Date(now.getTime() - DAY_MS).toISOString(),
@@ -124,7 +133,8 @@ export async function GET(req: NextRequest) {
         removed: nearResult.dogAdjustments.removed + futureResult.dogAdjustments.removed,
         tierChanged: nearResult.dogAdjustments.tierChanged + futureResult.dogAdjustments.tierChanged
       },
-      scheduleSync
+      scheduleSync,
+      pushRetries
     });
   } catch (error) {
     console.error("[cron/odds] token-free market refresh failed", error);
