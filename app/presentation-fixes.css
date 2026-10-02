@@ -879,3 +879,65 @@
     font-size: 9.5px;
   }
 }
+
+
+/* 2026-10-02 ledger baseline + responsive recipient refinement. */
+
+/* Match the standard Weekly Results/Weekly Standings heading geometry exactly
+   above the title; only the spacing below toward the filters is tightened. */
+.side-bet-ledger-heading-row {
+  min-height: 42px;
+  align-items: center !important;
+  margin-bottom: 0;
+  padding: 2px 2px 8px;
+}
+.side-bet-ledger-heading {
+  min-height: 0;
+  align-items: baseline !important;
+  gap: 5px;
+  line-height: 1.2;
+}
+.side-bet-ledger-heading-title {
+  align-items: baseline;
+  line-height: 1.2;
+}
+.side-bet-ledger-summary {
+  align-self: baseline;
+  align-items: baseline !important;
+  margin-left: 4px;
+  gap: 4px;
+  font-size: 10px;
+  line-height: 1;
+}
+.side-bet-ledger-filter-row {
+  margin-top: -3px;
+  margin-bottom: 8px;
+}
+
+/* Keep the labels readable, but make the actual ledger dollar figures just
+   a half-step smaller. */
+.side-bet-ledger-summary .money-pos,
+.side-bet-ledger-summary .money-neg,
+.side-bet-ledger-summary .money-neutral,
+.side-bet-ledger-summary .side-bet-potential-profit,
+.side-bet-ledger-summary .side-bet-potential-loss {
+  font-size: 9.5px;
+}
+
+@media (max-width: 390px) {
+  .side-bet-ledger-heading {
+    gap: 4px;
+  }
+  .side-bet-ledger-summary {
+    margin-left: 3px;
+    gap: 3px;
+    font-size: 9.5px;
+  }
+  .side-bet-ledger-summary .money-pos,
+  .side-bet-ledger-summary .money-neg,
+  .side-bet-ledger-summary .money-neutral,
+  .side-bet-ledger-summary .side-bet-potential-profit,
+  .side-bet-ledger-summary .side-bet-potential-loss {
+    font-size: 9px;
+  }
+}

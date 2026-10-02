@@ -197,13 +197,30 @@ export default function SideBetBatchEnhancements() {
       return Boolean(document.querySelector<HTMLInputElement>('.side-bet-recipient-grid input[aria-label="All recipients"]')?.checked);
     }
 
-    function recipientSummary(selection: BatchSelection, payload: CachedPayload | null) {
-      if (selection.recipientAll) return "All";
-      const names = (selection.recipientIds || [])
+    function recipientNames(selection: BatchSelection, payload: CachedPayload | null) {
+      return (selection.recipientIds || [])
         .map((id) => payload?.profiles?.find((profile) => profile.id === id)?.display_name)
         .filter((name): name is string => Boolean(name));
-      if (names.length <= 2) return names.join(", ");
-      return `${names.slice(0, 2).join(", ")} +${names.length - 2} More`;
+    }
+
+    function recipientSummary(selection: BatchSelection, payload: CachedPayload | null) {
+      if (selection.recipientAll) return "All";
+      return recipientNames(selection, payload).join(", ");
+    }
+
+    function fitRecipientSummary(meta: HTMLElement, amountText: string, selection: BatchSelection, payload: CachedPayload | null) {
+      if (selection.recipientAll) return;
+      const names = recipientNames(selection, payload);
+      if (names.length <= 1) return;
+
+      window.requestAnimationFrame(() => {
+        if (!meta.isConnected || meta.scrollWidth <= meta.clientWidth + 1) return;
+        for (let keep = names.length - 1; keep >= 1; keep -= 1) {
+          meta.textContent = amountText + " · " + names.slice(0, keep).join(", ") + " +" + (names.length - keep) + " More";
+          if (meta.scrollWidth <= meta.clientWidth + 1) return;
+        }
+        meta.textContent = amountText + " · +" + names.length + " More";
+      });
     }
 
     function readNativeTicket(selection: BatchSelection, payload: CachedPayload | null): BatchSelection {
@@ -485,6 +502,7 @@ export default function SideBetBatchEnhancements() {
 
         row.append(copy, remove);
         list!.appendChild(row);
+        fitRecipientSummary(meta, amountText, selection, payload);
       });
     }
 
