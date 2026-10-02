@@ -161,12 +161,14 @@ function selectionInfo(row: HTMLElement, payload: CachedPayload | null): Selecti
     ? datasetOdds
     : Number(document.querySelector<HTMLInputElement>(".side-bet-odds-input")?.value || 100);
   const offeredOdds = oppositeAmericanOdds(creatorOdds);
+  const selectedOddsSuffix = creatorOdds === 100 ? "" : ` ${americanOddsText(creatorOdds)}`;
+  const offeredOddsSuffix = offeredOdds === 100 ? "" : ` ${americanOddsText(offeredOdds)}`;
   const selectedLine = marketType === "moneyline"
-    ? `ML ${americanOddsText(creatorOdds)}`
-    : `${row.dataset.batchSpread || spreadText(creatorSpread)} ${americanOddsText(creatorOdds)}`;
+    ? `ML${selectedOddsSuffix}`
+    : `${row.dataset.batchSpread || spreadText(creatorSpread)}${selectedOddsSuffix}`;
   const offeredLine = marketType === "moneyline"
-    ? `ML ${americanOddsText(offeredOdds)}`
-    : creatorSpread == null ? "" : `${spreadText(-creatorSpread)} ${americanOddsText(offeredOdds)}`;
+    ? `ML${offeredOddsSuffix}`
+    : creatorSpread == null ? "" : `${spreadText(-creatorSpread)}${offeredOddsSuffix}`;
 
   return {
     game,
@@ -213,16 +215,16 @@ function updateHeader(sheet: HTMLElement, infos: SelectionInfo[]) {
       line.appendChild(matchup);
       if (info.dateTime) {
         const [dateText, timeText] = info.dateTime.split("|");
+        const date = document.createElement("span");
+        date.className = "side-bet-batch-header-datetime side-bet-batch-header-date";
+        date.textContent = dateText || "";
         const separator = document.createElement("span");
         separator.className = "side-bet-batch-header-separator";
         separator.textContent = "·";
-        const date = document.createElement("span");
-        date.className = "side-bet-batch-header-datetime";
-        date.textContent = dateText || "";
         const time = document.createElement("span");
         time.className = "side-bet-batch-header-datetime";
         time.textContent = timeText || "";
-        line.append(separator, date, time);
+        line.append(date, separator, time);
       }
       lines!.appendChild(line);
     });

@@ -729,3 +729,55 @@
     font-size: 11.5px !important;
   }
 }
+
+
+/* Final multi-bet spacing, market-grid, and ledger alignment refinements. */
+.side-bet-batch-header-line {
+  gap: 5px;
+}
+.side-bet-batch-header-matchup + .side-bet-batch-header-date {
+  margin-left: 8px;
+}
+
+/* When Spread + American Odds are both present, they always stay as two
+   equal columns, including immediately after switching active batch tickets. */
+.side-bet-slip-sheet.batch-mode .side-bet-market-fields:has(> label:nth-child(2)) {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-auto-flow: column;
+}
+.side-bet-slip-sheet.batch-mode .side-bet-market-fields:has(> label:nth-child(2)) > label {
+  width: auto !important;
+  min-width: 0 !important;
+  grid-column: auto !important;
+  grid-row: 1 !important;
+}
+
+/* Return ledger typography to the previous scale, but center the money
+   summary vertically alongside the Side Bet Ledger heading. */
+.side-bet-ledger-heading {
+  align-items: center !important;
+}
+.side-bet-ledger-summary {
+  align-self: center;
+  align-items: center;
+  margin-left: 8px;
+  font-size: 10px;
+  line-height: 1;
+}
+.side-bet-ledger-meta {
+  font-size: 11.5px !important;
+}
+.ledger-row.side-bet-ledger-row .side-bet-ledger-title,
+.ledger-row.side-bet-ledger-row .side-bet-ledger-amount {
+  font-size: 14.5px;
+}
+@media (max-width: 390px) {
+  .side-bet-ledger-summary {
+    margin-left: 6px;
+    font-size: 9.5px;
+  }
+  .side-bet-ledger-meta {
+    font-size: 11px !important;
+  }
+}

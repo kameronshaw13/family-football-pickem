@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
-import { validAmericanOdds } from "@/lib/sideBetMarkets";
+import { americanOddsText, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { teamDisplayName } from "@/lib/teamNames";
 
 type AppSlug = "shaw-family" | "other-family" | "friends";
@@ -446,10 +446,12 @@ export default function SideBetBatchEnhancements() {
         team.textContent = teamDisplayName(game.league, selection.creatorTeam);
         const spread = document.createElement("span");
         spread.className = "team-spread";
+        const ticketOdds = Number(selection.creatorOdds ?? 100);
+        const oddsSuffix = ticketOdds === 100 ? "" : ` ${americanOddsText(ticketOdds)}`;
         spread.textContent = (selection.marketType || "spread") === "moneyline"
-          ? "ML"
+          ? `ML${oddsSuffix}`
           : Number.isFinite(Number(selection.creatorSpread))
-            ? spreadText(Number(selection.creatorSpread))
+            ? `${spreadText(Number(selection.creatorSpread))}${oddsSuffix}`
             : "—";
         choice.append(team, spread);
 
