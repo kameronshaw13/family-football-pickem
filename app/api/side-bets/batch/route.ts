@@ -13,12 +13,12 @@ const bodySchema = z.object({
   selections: z.array(z.object({
     gameId: z.string().min(1),
     creatorTeam: z.string().min(1),
-    creatorSpread: z.number().finite().min(-100).max(100).optional()
+    creatorSpread: z.number().finite().min(-100).max(100).optional(),
+    amount: z.number().positive(),
+    marketType: z.enum(["spread", "moneyline"]),
+    creatorOdds: z.number().int(),
+    recipientIds: z.array(z.string().uuid()).min(1).max(10)
   })).min(1).max(8),
-  amount: z.number().positive(),
-  marketType: z.enum(["spread", "moneyline"]).optional(),
-  creatorOdds: z.number().int().optional(),
-  recipientIds: z.array(z.string().uuid()).min(1).max(10),
   viewWeek: z.number().int().nonnegative().optional()
 });
 
@@ -59,24 +59,7 @@ export async function POST(req: NextRequest) {
     const settings = getGroupSideBetSettings(context);
     if (!settings.enabled) return NextResponse.json({ ok: false, error: "Side bets are disabled for this Pick'em group." }, { status: 409 });
 
-    if (context.rules?.sideBets?.amountEntry === "fixed" && ![5, 10, 15, 20].includes(Number(body.amount))) {
-      return NextResponse.json({ ok: false, error: "Choose a side bet amount of $20, $15, $10, or $5." }, { status: 409 });
-    }
-    const amountCap = context.rules?.sideBets?.amountEntry === "free" ? MAX_CUSTOM_SIDE_BET_AMOUNT : settings.maxAmount;
-    if (Number.isFinite(amountCap) && Number(body.amount) > amountCap) {
-      return NextResponse.json({ ok: false, error: `Side bets are capped at ${amountCap}.` }, { status: 409 });
-    }
-
-    const marketType = body.marketType || "spread";
-    const creatorOdds = body.creatorOdds ?? 100;
-    if (!validAmericanOdds(creatorOdds)) {
-      return NextResponse.json({ ok: false, error: "American odds must be -100 or lower, or +100 or higher." }, { status: 400 });
-    }
-
     const memberIds = new Set(context.members.map((member) => member.id));
-    const recipientIds = Array.from(new Set(body.recipientIds)).filter((id) => id !== auth.profile.id && memberIds.has(id));
-    if (!recipientIds.length) return NextResponse.json({ ok: false, error: "Choose at least one other player in this group." }, { status: 400 });
-
     const gameIds = body.selections.map((selection) => selection.gameId);
     if (new Set(gameIds).size !== gameIds.length) {
       return NextResponse.json({ ok: false, error: "Choose only one side from each game." }, { status: 400 });
@@ -88,7 +71,17 @@ export async function POST(req: NextRequest) {
 
     const gameById = new Map(games.map((game: any) => [game.id, game]));
     const now = new Date();
-    const prepared = [] as Array<{ game: any; creatorTeam: string; offeredTeam: string; creatorSpread: number }>;
+    const amountCap = context.rules?.sideBets?.amountEntry === "free" ? MAX_CUSTOM_SIDE_BET_AMOUNT : settings.maxAmount;
+    const prepared = [] as Array<{
+      game: any;
+      creatorTeam: string;
+      offeredTeam: string;
+      creatorSpread: number;
+      amount: number;
+      marketType: "spread" | "moneyline";
+      creatorOdds: number;
+      recipientIds: string[];
+    }>;
 
     for (const selection of body.selections) {
       const game = gameById.get(selection.gameId);
@@ -96,14 +89,39 @@ export async function POST(req: NextRequest) {
       if (!isGameAllowedForGroup(context, game)) return NextResponse.json({ ok: false, error: "One of those games is not available in this Pick'em group." }, { status: 409 });
       if (new Date(game.commence_time) <= now) return NextResponse.json({ ok: false, error: "Every side bet in the batch must be sent before kickoff." }, { status: 409 });
       if (![game.away_team, game.home_team].includes(selection.creatorTeam)) return NextResponse.json({ ok: false, error: "Choose one valid side from each game." }, { status: 400 });
+
+      const amount = Math.round(Number(selection.amount) * 100) / 100;
+      if (context.rules?.sideBets?.amountEntry === "fixed" && ![5, 10, 15, 20].includes(amount)) {
+        return NextResponse.json({ ok: false, error: "Each side bet must use an allowed amount." }, { status: 409 });
+      }
+      if (Number.isFinite(amountCap) && amount > amountCap) {
+        return NextResponse.json({ ok: false, error: `Side bets are capped at $${amountCap}.` }, { status: 409 });
+      }
+      if (!validAmericanOdds(selection.creatorOdds)) {
+        return NextResponse.json({ ok: false, error: "Every side bet must have valid American odds." }, { status: 400 });
+      }
+
+      const recipientIds = Array.from(new Set(selection.recipientIds))
+        .filter((id) => id !== auth.profile.id && memberIds.has(id));
+      if (!recipientIds.length) {
+        return NextResponse.json({ ok: false, error: "Every selected side bet needs at least one recipient." }, { status: 400 });
+      }
+
       const currentCreatorSpread = normalizeSpreadForSelectedTeam(selection.creatorTeam, game.current_spread_team, game.current_spread);
-      const creatorSpread = marketType === "moneyline" ? 0 : (selection.creatorSpread ?? currentCreatorSpread);
-      if (marketType === "spread" && creatorSpread == null) return NextResponse.json({ ok: false, error: "Every selected spread bet must have a line." }, { status: 409 });
+      const creatorSpread = selection.marketType === "moneyline" ? 0 : (selection.creatorSpread ?? currentCreatorSpread);
+      if (selection.marketType === "spread" && creatorSpread == null) {
+        return NextResponse.json({ ok: false, error: "Every selected spread bet must have a line." }, { status: 409 });
+      }
+
       prepared.push({
         game,
         creatorTeam: selection.creatorTeam,
         offeredTeam: selection.creatorTeam === game.home_team ? game.away_team : game.home_team,
-        creatorSpread: Number(creatorSpread ?? 0)
+        creatorSpread: Number(creatorSpread ?? 0),
+        amount,
+        marketType: selection.marketType,
+        creatorOdds: selection.creatorOdds,
+        recipientIds
       });
     }
 
@@ -119,7 +137,14 @@ export async function POST(req: NextRequest) {
         const remaining = Math.max(0, settings.maxPerWeek - (counts[auth.profile.id] || 0));
         return NextResponse.json({ ok: false, error: `You only have ${remaining} side bet slot${remaining === 1 ? "" : "s"} left this week.` }, { status: 409 });
       }
-      const fullRecipientId = recipientIds.find((id) => (counts[id] || 0) + batchSize > settings.maxPerWeek);
+      const recipientUsage = new Map<string, number>();
+      for (const selection of prepared) {
+        for (const recipientId of selection.recipientIds) {
+          recipientUsage.set(recipientId, (recipientUsage.get(recipientId) || 0) + 1);
+        }
+      }
+      const fullRecipientId = Array.from(recipientUsage.entries())
+        .find(([id, added]) => (counts[id] || 0) + added > settings.maxPerWeek)?.[0];
       if (fullRecipientId) {
         const member = context.members.find((candidate) => candidate.id === fullRecipientId);
         const remaining = Math.max(0, settings.maxPerWeek - (counts[fullRecipientId] || 0));
@@ -127,8 +152,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const amount = Math.round(Number(body.amount) * 100) / 100;
-    const insertRows = prepared.map(({ game, creatorTeam, offeredTeam, creatorSpread }) => ({
+    const insertRows = prepared.map(({ game, creatorTeam, offeredTeam, creatorSpread, amount, marketType, creatorOdds }) => ({
       group_id: context.group.id,
       season_year: context.seasonYear,
       creator_id: auth.profile.id,
@@ -150,18 +174,22 @@ export async function POST(req: NextRequest) {
     if (insertError) throw new Error(insertError.message);
     if (!created || created.length !== prepared.length) throw new Error("The side bet batch could not be created completely.");
 
-    const targetRows = created.flatMap((sideBet: any) => recipientIds.map((recipientId) => ({ side_bet_id: sideBet.id, recipient_id: recipientId })));
+    const createdByGame = new Map(created.map((sideBet: any) => [sideBet.game_id, sideBet]));
+    const targetRows = prepared.flatMap((selection) => {
+      const sideBet: any = createdByGame.get(selection.game.id);
+      if (!sideBet) return [];
+      return selection.recipientIds.map((recipientId) => ({ side_bet_id: sideBet.id, recipient_id: recipientId }));
+    });
     const targetResult = await supabase.from("side_bet_targets").insert(targetRows);
     if (targetResult.error) {
       await supabase.from("side_bets").delete().eq("group_id", context.group.id).in("id", created.map((sideBet: any) => sideBet.id));
       throw new Error(targetResult.error.message);
     }
 
-    const createdByGame = new Map(created.map((sideBet: any) => [sideBet.game_id, sideBet]));
     for (const selection of prepared) {
       const sideBet: any = createdByGame.get(selection.game.id);
       if (!sideBet) continue;
-      for (const recipientId of recipientIds) {
+      for (const recipientId of selection.recipientIds) {
         createNotificationInBackground(supabase, {
           groupId: context.group.id,
           userId: recipientId,
@@ -170,7 +198,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-offer:${sideBet.id}`,
           title: `Side bet from ${auth.profile.display_name}`,
-          body: `Risk ${profitForRisk(amount, creatorOdds)} · ${notificationTeamName(selection.offeredTeam, selection.game.league)} ${marketType === "moneyline" ? "ML" : notificationSpread(-selection.creatorSpread)} ${americanOddsText(oppositeAmericanOdds(creatorOdds))}`,
+          body: `Risk ${profitForRisk(selection.amount, selection.creatorOdds)} · ${notificationTeamName(selection.offeredTeam, selection.game.league)} ${selection.marketType === "moneyline" ? "ML" : notificationSpread(-selection.creatorSpread)} ${americanOddsText(oppositeAmericanOdds(selection.creatorOdds))}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_received"),
           actionRequired: true
         });

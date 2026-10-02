@@ -139,17 +139,27 @@ function selectionInfo(row: HTMLElement, payload: CachedPayload | null): Selecti
   const selectedTeam = game
     ? [game.away_team, game.home_team].find((candidate) => teamDisplayName(game.league, candidate) === selectedDisplay) || null
     : null;
-  const creatorSpread = game && selectedTeam
-    ? normalizeSpreadForSelectedTeam(selectedTeam, game.current_spread_team, game.current_spread)
-    : null;
+  const datasetSpread = Number(row.dataset.batchSpreadValue);
+  const creatorSpread = Number.isFinite(datasetSpread)
+    ? datasetSpread
+    : game && selectedTeam
+      ? normalizeSpreadForSelectedTeam(selectedTeam, game.current_spread_team, game.current_spread)
+      : null;
   const offeredTeam = game && selectedTeam
     ? (selectedTeam === game.home_team ? game.away_team : game.home_team)
     : null;
   const offeredDisplay = game && offeredTeam ? teamDisplayName(game.league, offeredTeam) : "";
   const marketButton = Array.from(document.querySelectorAll<HTMLButtonElement>(".side-bet-market-toggle button"))
     .find((button) => button.classList.contains("active"));
-  const marketType = /moneyline/i.test(marketButton?.textContent || "") ? "moneyline" : "spread";
-  const creatorOdds = Number(document.querySelector<HTMLInputElement>(".side-bet-odds-input")?.value || 100);
+  const marketType = row.dataset.batchMarketType === "moneyline"
+    ? "moneyline"
+    : row.dataset.batchMarketType === "spread"
+      ? "spread"
+      : /moneyline/i.test(marketButton?.textContent || "") ? "moneyline" : "spread";
+  const datasetOdds = Number(row.dataset.batchCreatorOdds);
+  const creatorOdds = Number.isFinite(datasetOdds)
+    ? datasetOdds
+    : Number(document.querySelector<HTMLInputElement>(".side-bet-odds-input")?.value || 100);
   const offeredOdds = oppositeAmericanOdds(creatorOdds);
   const selectedLine = marketType === "moneyline"
     ? `ML ${americanOddsText(creatorOdds)}`
@@ -326,6 +336,11 @@ export default function SideBetBatchPresentationEnhancement() {
         if (!copy) return;
         const info = selectionInfo(row, payload);
         infos.push(info);
+
+        if (row.classList.contains("side-bet-batch-ticket-row")) {
+          ensureNativeRemoveButton(row);
+          return;
+        }
 
         if (!row.classList.contains("side-bet-batch-native-row")) {
           row.classList.add("team-row", "side-bet-slip-selection", "side-bet-batch-native-row");

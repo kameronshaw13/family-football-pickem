@@ -2,10 +2,21 @@
 
 import { useEffect } from "react";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
+import { validAmericanOdds } from "@/lib/sideBetMarkets";
 import { teamDisplayName } from "@/lib/teamNames";
 
 type AppSlug = "shaw-family" | "other-family" | "friends";
-type BatchSelection = { gameId: string; creatorTeam: string };
+type BatchMarketType = "spread" | "moneyline";
+type BatchSelection = {
+  gameId: string;
+  creatorTeam: string;
+  amount?: number | null;
+  marketType?: BatchMarketType;
+  creatorOdds?: number | null;
+  creatorSpread?: number | null;
+  recipientIds?: string[];
+  configured?: boolean;
+};
 type CachedProfile = { id: string; display_name: string };
 type CachedGame = {
   id: string;
@@ -122,6 +133,7 @@ export default function SideBetBatchEnhancements() {
     let sending = false;
     let suppressSelectionCapture = false;
     let pendingNativeSync = false;
+    let suppressFormCapture = false;
 
     const selectionKey = (selection: BatchSelection) => `${selection.gameId}::${selection.creatorTeam}`;
     const sameSelection = (left: BatchSelection | null, right: BatchSelection | null) => Boolean(left && right && left.gameId === right.gameId && left.creatorTeam === right.creatorTeam);
@@ -142,6 +154,145 @@ export default function SideBetBatchEnhancements() {
     function rowForSelection(selection: BatchSelection) {
       return Array.from(document.querySelectorAll<HTMLButtonElement>(".side-bet-game-card .team-row"))
         .find((row) => row.closest<HTMLElement>(".side-bet-game-card")?.dataset.batchGameId === selection.gameId && row.dataset.batchTeam === selection.creatorTeam) || null;
+    }
+
+    function initialTicket(game: CachedGame, creatorTeam: string): BatchSelection {
+      return {
+        gameId: game.id,
+        creatorTeam,
+        amount: 20,
+        marketType: "spread",
+        creatorOdds: 100,
+        creatorSpread: normalizeSpreadForSelectedTeam(creatorTeam, game.current_spread_team, game.current_spread),
+        recipientIds: [],
+        configured: false
+      };
+    }
+
+    function ticketIsComplete(selection: BatchSelection) {
+      const amount = Number(selection.amount);
+      const odds = Number(selection.creatorOdds);
+      const recipients = selection.recipientIds || [];
+      const spreadOk = selection.marketType === "moneyline" || Number.isFinite(Number(selection.creatorSpread));
+      return Number.isFinite(amount) && amount > 0 && validAmericanOdds(odds) && recipients.length > 0 && spreadOk;
+    }
+
+    function nativeAmount() {
+      const amountButton = document.querySelector<HTMLButtonElement>(".side-bet-amount-grid button.active");
+      const riskInput = document.querySelector<HTMLInputElement>(".side-bet-risk-input");
+      const raw = riskInput?.value || (amountButton?.textContent || "").replace(/[^0-9.]/g, "");
+      const amount = Number(raw);
+      return Number.isFinite(amount) && amount > 0 ? amount : null;
+    }
+
+    function nativeRecipients() {
+      return Array.from(document.querySelectorAll<HTMLInputElement>(".side-bet-recipient-grid input:checked"))
+        .map((input) => input.closest<HTMLElement>("label")?.dataset.batchRecipientId || "")
+        .filter(Boolean);
+    }
+
+    function readNativeTicket(selection: BatchSelection, payload: CachedPayload | null): BatchSelection {
+      const marketButton = Array.from(document.querySelectorAll<HTMLButtonElement>(".side-bet-market-toggle button"))
+        .find((button) => button.classList.contains("active"));
+      const marketType: BatchMarketType = /moneyline/i.test(marketButton?.textContent || "") ? "moneyline" : "spread";
+      const oddsValue = Number(document.querySelector<HTMLInputElement>(".side-bet-odds-input")?.value || 100);
+      const spreadInput = document.querySelector<HTMLInputElement>(".side-bet-spread-input");
+      const spreadValue = spreadInput?.value?.trim() === "" ? null : Number(spreadInput?.value);
+      const game = payload?.games?.find((candidate) => candidate.id === selection.gameId);
+      const fallbackSpread = game
+        ? normalizeSpreadForSelectedTeam(selection.creatorTeam, game.current_spread_team, game.current_spread)
+        : null;
+      const next: BatchSelection = {
+        ...selection,
+        amount: nativeAmount(),
+        marketType,
+        creatorOdds: Number.isFinite(oddsValue) ? oddsValue : null,
+        creatorSpread: marketType === "moneyline"
+          ? 0
+          : Number.isFinite(Number(spreadValue)) ? Number(spreadValue) : fallbackSpread,
+        recipientIds: nativeRecipients()
+      };
+      return { ...next, configured: ticketIsComplete(next) };
+    }
+
+    function captureCurrentTicket() {
+      if (suppressFormCapture) return;
+      const current = currentNativeSelection();
+      if (!current) return;
+      const index = selections.findIndex((selection) => sameSelection(selection, current));
+      if (index < 0) return;
+      const payload = readCachedPayload(appSlug);
+      selections = selections.map((selection, selectionIndex) =>
+        selectionIndex === index ? readNativeTicket(selection, payload) : selection
+      );
+    }
+
+    function setInputValue(input: HTMLInputElement, value: string) {
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      setter?.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    function applyTicketToNative(selection: BatchSelection) {
+      suppressFormCapture = true;
+      const desiredMarket = selection.marketType || "spread";
+      const marketButton = Array.from(document.querySelectorAll<HTMLButtonElement>(".side-bet-market-toggle button"))
+        .find((button) => desiredMarket === "moneyline"
+          ? /moneyline/i.test(button.textContent || "")
+          : /^spread$/i.test((button.textContent || "").trim()));
+      if (marketButton && !marketButton.classList.contains("active")) marketButton.click();
+
+      window.requestAnimationFrame(() => {
+        const spreadInput = document.querySelector<HTMLInputElement>(".side-bet-spread-input");
+        if (desiredMarket === "spread" && spreadInput && Number.isFinite(Number(selection.creatorSpread))) {
+          setInputValue(spreadInput, String(selection.creatorSpread));
+        }
+        const oddsInput = document.querySelector<HTMLInputElement>(".side-bet-odds-input");
+        if (oddsInput && Number.isFinite(Number(selection.creatorOdds))) {
+          setInputValue(oddsInput, String(selection.creatorOdds));
+        }
+
+        const desiredAmount = Number(selection.amount);
+        const amountButton = Array.from(document.querySelectorAll<HTMLButtonElement>(".side-bet-amount-grid button"))
+          .find((button) => Number((button.textContent || "").replace(/[^0-9.]/g, "")) === desiredAmount);
+        if (amountButton) amountButton.click();
+        else {
+          const riskInput = document.querySelector<HTMLInputElement>(".side-bet-risk-input");
+          if (riskInput && Number.isFinite(desiredAmount) && desiredAmount > 0) setInputValue(riskInput, String(desiredAmount));
+        }
+
+        const allInput = document.querySelector<HTMLInputElement>('.side-bet-recipient-grid input[aria-label="All recipients"]');
+        if (allInput?.checked) allInput.click();
+        const desiredRecipients = new Set(selection.recipientIds || []);
+        document.querySelectorAll<HTMLInputElement>(".side-bet-recipient-grid input").forEach((input) => {
+          const recipientId = input.closest<HTMLElement>("label")?.dataset.batchRecipientId;
+          if (!recipientId) return;
+          const shouldBeChecked = desiredRecipients.has(recipientId);
+          if (input.checked !== shouldBeChecked) input.click();
+        });
+
+        window.requestAnimationFrame(() => {
+          suppressFormCapture = false;
+          captureCurrentTicket();
+          schedule();
+        });
+      });
+    }
+
+    function activateTicket(selection: BatchSelection) {
+      captureCurrentTicket();
+      const current = currentNativeSelection();
+      const row = rowForSelection(selection);
+      if (row && !sameSelection(current, selection)) {
+        suppressSelectionCapture = true;
+        row.click();
+        suppressSelectionCapture = false;
+      }
+      window.requestAnimationFrame(() => {
+        annotateRecipients(readCachedPayload(appSlug));
+        applyTicketToNative(selection);
+      });
     }
 
     function syncNativeSelection() {
@@ -214,25 +365,40 @@ export default function SideBetBatchEnhancements() {
         sheet.querySelector(".side-bet-slip-sheet-head")?.insertAdjacentElement("afterend", list);
       }
 
-      const signature = selections.map(selectionKey).join("|");
+      const active = currentNativeSelection();
+      const signature = selections.map((selection) => [
+        selectionKey(selection),
+        selection.marketType || "spread",
+        selection.creatorSpread ?? "",
+        selection.creatorOdds ?? "",
+        selection.amount ?? "",
+        (selection.recipientIds || []).join(","),
+        selection.configured ? "ready" : "open",
+        sameSelection(active, selection) ? "active" : ""
+      ].join("::")).join("|");
       if (list.dataset.signature === signature) return;
       list.dataset.signature = signature;
       list.replaceChildren();
 
-      const head = document.createElement("div");
-      head.className = "side-bet-slip-section-head side-bet-batch-head";
-      const label = document.createElement("span");
-      label.textContent = "Selected bets";
-      const count = document.createElement("strong");
-      count.textContent = String(selections.length);
-      head.append(label, count);
-      list.appendChild(head);
-
       selections.forEach((selection) => {
         const game = payload?.games?.find((candidate) => candidate.id === selection.gameId);
         if (!game) return;
+
         const row = document.createElement("div");
-        row.className = "side-bet-batch-row";
+        row.className = `side-bet-batch-row side-bet-batch-ticket-row${sameSelection(active, selection) ? " active-ticket" : ""}`;
+        row.dataset.batchMatchup = gameLabel(game);
+        row.dataset.batchMarketType = selection.marketType || "spread";
+        row.dataset.batchCreatorOdds = String(selection.creatorOdds ?? 100);
+        if (Number.isFinite(Number(selection.creatorSpread))) {
+          row.dataset.batchSpread = spreadText(Number(selection.creatorSpread));
+          row.dataset.batchSpreadValue = String(selection.creatorSpread);
+        }
+        row.addEventListener("click", (event) => {
+          if ((event.target as Element).closest(".side-bet-batch-remove")) return;
+          event.preventDefault();
+          event.stopPropagation();
+          activateTicket(selection);
+        });
 
         const logoUrl = logoForTeam(game, selection.creatorTeam);
         if (logoUrl) {
@@ -252,12 +418,32 @@ export default function SideBetBatchEnhancements() {
 
         const copy = document.createElement("div");
         copy.className = "side-bet-batch-copy";
+        const choice = document.createElement("div");
+        choice.className = "side-bet-batch-ticket-choice";
         const team = document.createElement("strong");
+        team.className = "team-name";
         team.textContent = teamDisplayName(game.league, selection.creatorTeam);
-        const spread = normalizeSpreadForSelectedTeam(selection.creatorTeam, game.current_spread_team, game.current_spread);
+        const spread = document.createElement("span");
+        spread.className = "team-spread";
+        spread.textContent = (selection.marketType || "spread") === "moneyline"
+          ? "ML"
+          : Number.isFinite(Number(selection.creatorSpread))
+            ? spreadText(Number(selection.creatorSpread))
+            : "—";
+        choice.append(team, spread);
+
         const meta = document.createElement("span");
-        meta.textContent = `${spreadText(spread)} · ${gameLabel(game)}`;
-        copy.append(team, meta);
+        meta.className = "side-bet-batch-ticket-meta";
+        if (ticketIsComplete(selection)) {
+          const recipientNames = (selection.recipientIds || [])
+            .map((id) => payload?.profiles?.find((profile) => profile.id === id)?.display_name)
+            .filter(Boolean)
+            .join(", ");
+          meta.textContent = `$${Number(selection.amount).toFixed(Number(selection.amount) % 1 ? 2 : 0)} · ${recipientNames || "Recipient set"}`;
+        } else {
+          meta.textContent = "Tap to finish amount, line and recipient";
+        }
+        copy.append(choice, meta);
 
         const remove = document.createElement("button");
         remove.type = "button";
@@ -267,11 +453,13 @@ export default function SideBetBatchEnhancements() {
         remove.addEventListener("click", (event) => {
           event.preventDefault();
           event.stopPropagation();
+          captureCurrentTicket();
           const nativeBefore = currentNativeSelection();
           const removedWasNative = sameSelection(nativeBefore, selection);
           selections = selections.filter((candidate) => selectionKey(candidate) !== selectionKey(selection));
           pendingNativeSync = removedWasNative && selections.length > 0;
           if (!selections.length) syncNativeSelection();
+          else if (removedWasNative) window.requestAnimationFrame(() => activateTicket(selections[selections.length - 1]));
           schedule();
         });
 
@@ -298,6 +486,14 @@ export default function SideBetBatchEnhancements() {
       const sheet = document.querySelector<HTMLElement>(".side-bet-slip-sheet");
       if (sheet) buildBatchList(sheet, payload);
 
+      const submit = document.querySelector<HTMLButtonElement>(".side-bet-slip-submit");
+      if (submit && batchPresentationActive) {
+        const allReady = selections.length > 0 && selections.every(ticketIsComplete);
+        submit.disabled = sending || !allReady;
+        submit.dataset.batchReady = allReady ? "true" : "false";
+        submit.setAttribute("aria-label", allReady ? `Send ${selections.length} side bet offers` : "Finish every selected side bet before sending");
+      }
+
       if (pendingNativeSync && !sheet) {
         syncNativeSelection();
       }
@@ -305,6 +501,7 @@ export default function SideBetBatchEnhancements() {
 
     async function sendBatch() {
       if (sending || selections.length < 1) return;
+      captureCurrentTicket();
       const payload = readCachedPayload(appSlug);
       const token = window.localStorage.getItem("pickem_session_token");
       if (!payload || !token) {
@@ -312,24 +509,14 @@ export default function SideBetBatchEnhancements() {
         return;
       }
 
-      const amountButton = document.querySelector<HTMLButtonElement>(".side-bet-amount-grid button.active");
-      const riskInput = document.querySelector<HTMLInputElement>(".side-bet-risk-input");
-      const amount = Number(riskInput?.value || (amountButton?.textContent || "").replace(/[^0-9.]/g, ""));
-      const marketButton = Array.from(document.querySelectorAll<HTMLButtonElement>(".side-bet-market-toggle button"))
-        .find((button) => button.classList.contains("active"));
-      const marketType = /moneyline/i.test(marketButton?.textContent || "") ? "moneyline" : "spread";
-      const creatorOdds = Number(document.querySelector<HTMLInputElement>(".side-bet-odds-input")?.value || 100);
-      const customSpread = Number(document.querySelector<HTMLInputElement>(".side-bet-spread-input")?.value);
-      const recipientIds = Array.from(document.querySelectorAll<HTMLInputElement>(".side-bet-recipient-grid input:checked"))
-        .map((input) => input.closest<HTMLElement>("label")?.dataset.batchRecipientId || "")
-        .filter(Boolean);
-      if (!amount || !recipientIds.length) {
-        showBatchMessage("Choose an amount and at least one person to send the bets to.", "error");
+      const unfinished = selections.find((selection) => !ticketIsComplete(selection));
+      if (unfinished) {
+        showBatchMessage("Finish the amount, line and recipient for every selected bet before sending.", "error");
+        activateTicket(unfinished);
         return;
       }
 
       const submit = document.querySelector<HTMLButtonElement>(".side-bet-slip-submit");
-      const wasDisabled = Boolean(submit?.disabled);
       sending = true;
       if (submit) submit.disabled = true;
       try {
@@ -341,22 +528,15 @@ export default function SideBetBatchEnhancements() {
             "x-pickem-group": appSlug
           },
           body: JSON.stringify({
-            selections: selections.map((selection) => {
-              const game = payload.games?.find((candidate) => candidate.id === selection.gameId);
-              const currentSpread = game
-                ? normalizeSpreadForSelectedTeam(selection.creatorTeam, game.current_spread_team, game.current_spread)
-                : null;
-              return {
-                ...selection,
-                creatorSpread: marketType === "spread"
-                  ? (selections.length === 1 && Number.isFinite(customSpread) ? customSpread : currentSpread ?? undefined)
-                  : 0
-              };
-            }),
-            amount,
-            marketType,
-            creatorOdds,
-            recipientIds,
+            selections: selections.map((selection) => ({
+              gameId: selection.gameId,
+              creatorTeam: selection.creatorTeam,
+              creatorSpread: selection.marketType === "moneyline" ? 0 : Number(selection.creatorSpread),
+              amount: Number(selection.amount),
+              marketType: selection.marketType || "spread",
+              creatorOdds: Number(selection.creatorOdds ?? 100),
+              recipientIds: selection.recipientIds || []
+            })),
             viewWeek: payload.week ?? selectedWeekFromHeader() ?? undefined
           })
         });
@@ -374,7 +554,7 @@ export default function SideBetBatchEnhancements() {
         showBatchMessage(error instanceof Error ? error.message : "The side bet batch could not be sent.", "error");
       } finally {
         sending = false;
-        if (submit) submit.disabled = wasDisabled;
+        schedule();
       }
     }
 
@@ -420,6 +600,14 @@ export default function SideBetBatchEnhancements() {
         return;
       }
 
+      const formControl = target.closest(".side-bet-market-section button, .side-bet-amount-grid button, .side-bet-recipient-grid label, .side-bet-recipient-grid input");
+      if (formControl && selections.length > 1 && !suppressFormCapture) {
+        window.requestAnimationFrame(() => {
+          captureCurrentTicket();
+          schedule();
+        });
+      }
+
       const row = target.closest<HTMLButtonElement>(".side-bet-game-card .team-row");
       if (!row || row.disabled || suppressSelectionCapture) return;
       const liveMode = /live/i.test(document.querySelector<HTMLButtonElement>('.side-bet-two-option-toggle[aria-label="Choose pregame or live games"] button.active')?.textContent || "");
@@ -432,6 +620,7 @@ export default function SideBetBatchEnhancements() {
       const team = rawTeamForRow(row, game);
       if (!team) return;
 
+      captureCurrentTicket();
       const clickedSelection = { gameId: game.id, creatorTeam: team };
       const nativeBefore = currentNativeSelection();
       const existingIndex = selections.findIndex((selection) => selection.gameId === game.id);
@@ -439,8 +628,9 @@ export default function SideBetBatchEnhancements() {
         selections = selections.filter((_, index) => index !== existingIndex);
         pendingNativeSync = sameSelection(nativeBefore, clickedSelection) && selections.length > 0;
       } else if (existingIndex >= 0) {
-        selections = selections.map((selection, index) => index === existingIndex ? clickedSelection : selection);
+        selections = selections.map((selection, index) => index === existingIndex ? initialTicket(game, team) : selection);
         pendingNativeSync = false;
+        window.requestAnimationFrame(() => applyTicketToNative(selections[existingIndex]));
       } else {
         if (selections.length >= MAX_BATCH_SELECTIONS) {
           event.preventDefault();
@@ -448,22 +638,38 @@ export default function SideBetBatchEnhancements() {
           showBatchMessage(`You can select up to ${MAX_BATCH_SELECTIONS} side bets at a time.`, "error");
           return;
         }
-        selections = [...selections, clickedSelection];
+        const nextTicket = initialTicket(game, team);
+        selections = [...selections, nextTicket];
         pendingNativeSync = false;
+        window.requestAnimationFrame(() => applyTicketToNative(nextTicket));
       }
       schedule();
       window.requestAnimationFrame(schedule);
     }
 
+    function onFormInput(event: Event) {
+      const target = event.target;
+      if (!(target instanceof Element) || suppressFormCapture || selections.length < 2) return;
+      if (!target.matches(".side-bet-spread-input, .side-bet-odds-input, .side-bet-risk-input")) return;
+      window.requestAnimationFrame(() => {
+        captureCurrentTicket();
+        schedule();
+      });
+    }
+
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true });
     document.addEventListener("click", onDocumentClick, true);
+    document.addEventListener("input", onFormInput, true);
+    document.addEventListener("change", onFormInput, true);
     schedule();
 
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
       observer.disconnect();
       document.removeEventListener("click", onDocumentClick, true);
+      document.removeEventListener("input", onFormInput, true);
+      document.removeEventListener("change", onFormInput, true);
       document.body.classList.remove("side-bet-batch-active");
       document.querySelector(".batch-side-bet-toast")?.remove();
     };

@@ -584,3 +584,83 @@
   .side-bet-ledger-heading { gap: 4px; }
   .side-bet-ledger-summary { gap: 3px; font-size: 8.5px; }
 }
+
+
+/* Multi-bet ticket editor: each selected matchup owns its own terms. */
+.side-bet-slip-sheet.batch-mode .side-bet-slip-scroll > .side-bet-slip-selection {
+  display: none !important;
+}
+.side-bet-batch-ticket-row {
+  cursor: pointer;
+  grid-template-columns: 38px minmax(0, 1fr) 32px !important;
+}
+.side-bet-batch-ticket-row.active-ticket {
+  background:
+    linear-gradient(var(--blue), var(--blue)) left top / 4px 100% no-repeat,
+    var(--blue-soft) !important;
+}
+.side-bet-batch-ticket-row .side-bet-batch-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.side-bet-batch-ticket-choice {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+}
+.side-bet-batch-ticket-choice .team-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-bet-batch-ticket-choice .team-spread {
+  width: auto;
+  flex: 0 0 auto;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.side-bet-batch-ticket-meta {
+  overflow: hidden;
+  color: var(--muted) !important;
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-bet-slip-bar[data-batch-count] .side-bet-slip-copy .team-name {
+  flex: 0 1 auto;
+}
+.side-bet-slip-bar[data-batch-count] .side-bet-slip-copy .team-spread {
+  flex: 0 0 auto;
+  margin-right: auto;
+}
+.side-bet-slip-bar[data-batch-count] .side-bet-batch-more {
+  margin-left: auto;
+}
+
+/* Slightly larger Side Bet Ledger typography without changing row density. */
+.side-bet-ledger-summary {
+  font-size: 10px;
+}
+.side-bet-ledger-meta {
+  font-size: 11.5px !important;
+}
+.ledger-row.side-bet-ledger-row .side-bet-ledger-title,
+.ledger-row.side-bet-ledger-row .side-bet-ledger-amount {
+  font-size: 14.5px;
+}
+@media (max-width: 390px) {
+  .side-bet-ledger-summary { font-size: 9.5px; }
+  .side-bet-ledger-meta { font-size: 11px !important; }
+}
