@@ -1007,3 +1007,18 @@
 .side-bet-ledger-summary {
   align-items: center !important;
 }
+
+
+/* 2026-10-03: Offer History response rows are baseline-aligned, unlike the
+   Ledger summary. Center the date separator with its own date text locally
+   so the larger middle dot does not sit low in this one context. */
+.side-bet-response-value > span:has(> .text-separator-dot),
+.side-bet-response-measure > span:has(> .text-separator-dot) {
+  display: inline-flex;
+  align-items: center;
+  line-height: inherit;
+}
+.side-bet-response-line .text-separator-dot {
+  align-self: center;
+  transform: none;
+}
