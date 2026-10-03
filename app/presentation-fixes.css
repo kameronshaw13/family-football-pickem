@@ -988,8 +988,24 @@
   align-self: center;
 }
 
-/* Pending Offers + Offer History use slightly different line metrics than
-   the Ledger; lift only their circles by a fraction for optical centering. */
+/* Pending Offers + Offer History: their response row already inserts a 3px
+   flex gap before the date group. Cancel that extra left gap so the circle
+   has the same normal-space distance on both sides. */
+.side-bet-list-section .side-bet-response-value > span:has(> .ui-separator-dot),
+.side-bet-list-section .side-bet-response-measure > span:has(> .ui-separator-dot) {
+  margin-left: -3px;
+}
+
+/* Keep the small optical lift that centered these offer/history circles. */
 .side-bet-list-section .ui-separator-dot {
   transform: translateY(-0.04em);
+}
+
+/* Ledger circles sit in a different line box. Drop them only a fraction,
+   and let their rendered circle box breathe so the round edges are not clipped. */
+.side-bet-ledger-meta .ui-separator-dot,
+.side-bet-ledger-summary .ui-separator-dot {
+  overflow: visible;
+  text-indent: 0;
+  transform: translateY(0.035em);
 }
