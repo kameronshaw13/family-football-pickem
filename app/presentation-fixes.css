@@ -957,7 +957,7 @@
 
 
 /* 2026-10-03: adaptive true-circle separators.
-   My Card is the source of truth: proportional size, 0.25em visual spacing,
+   My Card is the source of truth: proportional size, 0.5em visual spacing,
    and true center alignment with the local text row. */
 .ui-separator-dot {
   display: inline-block;
@@ -982,7 +982,7 @@
 }
 
 /* Pending Offers + Offer History response rows:
-   use the same 0.25em rhythm as My Card without negative margins.
+   use the same 0.5em rhythm as My Card without negative margins.
    The parent gap supplies the left space; the dot supplies the right space. */
 .side-bet-response-value,
 .side-bet-response-measure {
@@ -1010,7 +1010,7 @@
 }
 .side-bet-ledger-summary {
   align-items: center !important;
-  gap: 0.25em !important;
+  gap: 0.5em !important;
 }
 .side-bet-ledger-meta .ui-separator-dot,
 .side-bet-ledger-summary .ui-separator-dot {
