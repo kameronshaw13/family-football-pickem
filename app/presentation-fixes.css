@@ -963,7 +963,7 @@
   width: clamp(2.5px, 0.28em, 4px);
   height: clamp(2.5px, 0.28em, 4px);
   flex: 0 0 auto;
-  margin-inline: 0.42em;
+  margin-inline: 0.25em;
   overflow: hidden;
   border-radius: 50%;
   color: transparent !important;
@@ -975,11 +975,21 @@
   transform: none;
 }
 
-/* Rows that already distribute children with flex gaps do not need the full
-   inline margin; keep their visual spacing balanced with neighboring text. */
+/* Flex rows already provide the equivalent of a normal space through gap. */
 .side-bet-ledger-meta .ui-separator-dot,
-.side-bet-ledger-summary .ui-separator-dot,
-.pick-title-market .ui-separator-dot {
-  margin-inline: 0.18em;
+.side-bet-ledger-summary .ui-separator-dot {
+  margin-inline: 0;
   align-self: center;
+}
+
+/* Keep card-title separators at one normal-space rhythm around the circle. */
+.pick-title-market .ui-separator-dot {
+  margin-inline: 0.25em;
+  align-self: center;
+}
+
+/* Pending Offers + Offer History use slightly different line metrics than
+   the Ledger; lift only their circles by a fraction for optical centering. */
+.side-bet-list-section .ui-separator-dot {
+  transform: translateY(-0.04em);
 }
