@@ -1180,3 +1180,10 @@
   line-height: 1 !important;
   align-self: flex-end;
 }
+
+
+/* 2026-10-03: final Market separator spacing only. */
+.side-bet-market-reference .side-bet-market-dot,
+.confirmation-market-line .side-bet-market-dot {
+  margin-inline: 0.4em;
+}
