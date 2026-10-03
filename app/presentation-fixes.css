@@ -1201,9 +1201,16 @@
 /* 2026-10-03: main Pick Board live-header separator dots. */
 /* Match the adjacent live-header text, keep both header dots optically centered,
    and pull the neighboring text in only slightly. Scoped away from My Card / League Card. */
-.matchup-card:not(.side-bet-game-card) .compact-game-head .game-live-status .ui-separator-dot,
-.matchup-card:not(.side-bet-game-card) .compact-game-head .game-live-situation .ui-separator-dot {
+.matchup-card:not(.side-bet-game-card) .compact-game-head .game-live-status .ui-separator-dot {
   margin-inline: 0.18em;
+  background: var(--ink);
+  transform: translateY(0);
+}
+
+/* LiveSituationText renders its separator without literal spaces around it,
+   so give the right-side dot enough margin to visually match the left status dot. */
+.matchup-card:not(.side-bet-game-card) .compact-game-head .game-live-situation .ui-separator-dot {
+  margin-inline: 0.42em;
   background: var(--ink);
   transform: translateY(0);
 }
