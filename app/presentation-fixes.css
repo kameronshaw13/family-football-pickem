@@ -956,8 +956,8 @@
 }
 
 
-/* 2026-10-03: keep the text middle-dot look, scale it relative to
-   surrounding text, and optically center the glyph within the line. */
+/* 2026-10-03: middle dots scale with their local text and align to
+   each line box instead of sharing one global vertical offset. */
 .text-separator-dot,
 .dog-separator,
 .live-situation-dot,
@@ -973,9 +973,24 @@
   background: none;
   font-size: 1.2em;
   font-weight: 800;
-  line-height: inherit;
-  vertical-align: baseline;
-  transform: translateY(0.08em);
+  line-height: 1;
+  vertical-align: middle;
+  transform: none;
+}
+
+/* Flex-based rows can center their separator against neighboring text
+   directly, avoiding the line-height differences that made a global nudge
+   look correct in one place and too low in another. */
+.dog-separator,
+.side-bet-ledger-meta-dot,
+.side-bet-ledger-summary-divider {
+  align-self: center;
+}
+
+/* Live situation text is inline rather than flex, so its middle alignment is
+   allowed to follow the surrounding line box with no extra offset. */
+.live-situation-dot {
+  margin-inline: 0.08em;
 }
 
 /* Keep the entire ledger summary line at one stronger neutral contrast,
@@ -984,4 +999,11 @@
 .side-bet-ledger-summary-label,
 .side-bet-ledger-summary-divider {
   color: var(--header-muted);
+}
+
+
+/* 2026-10-03: center the Side Bet Ledger summary's mixed-size children
+   without moving the heading or changing its spacing. */
+.side-bet-ledger-summary {
+  align-items: center !important;
 }
