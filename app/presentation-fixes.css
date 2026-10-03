@@ -1085,3 +1085,39 @@
   display: inline-block;
   transform: translateY(0.04em);
 }
+
+
+/* 2026-10-03: correct the actual My Card / League Card metadata dots.
+   These are the smaller matchup/status lines underneath each pick. */
+.pick-meta .ui-separator-dot,
+.visible-pick-copy p .ui-separator-dot {
+  transform: translateY(-0.015em);
+}
+
+/* Undo the earlier title-market optical override; it was the wrong target. */
+.pick-title-market .ui-separator-dot {
+  transform: translateY(0.025em);
+}
+
+/* Keep Market: base line • offered line as one physical row.
+   Lock the NumericText token itself, not only the outer market label. */
+.side-bet-market-reference,
+.confirmation-market-line {
+  white-space: nowrap !important;
+  overflow: hidden;
+}
+.side-bet-market-reference .numeric-token,
+.confirmation-market-line .numeric-token {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
+  white-space: nowrap !important;
+}
+.side-bet-market-reference .numeric-fragment,
+.confirmation-market-line .numeric-fragment,
+.side-bet-market-reference .ui-separator-dot,
+.confirmation-market-line .ui-separator-dot {
+  flex: 0 0 auto;
+}
