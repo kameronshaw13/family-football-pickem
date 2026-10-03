@@ -557,7 +557,7 @@
   white-space: nowrap;
 }
 .side-bet-ledger-summary-label { color: var(--muted); }
-.side-bet-ledger-summary-divider { color: var(--header-muted); }
+.side-bet-ledger-summary-divider { color: var(--line-strong); }
 .side-bet-potential-profit { color: var(--green); font-size: inherit; }
 .side-bet-potential-loss { color: var(--red); font-size: inherit; }
 
@@ -953,72 +953,4 @@
 .side-bet-offer-copy:has(> .side-bet-market-reference) > .side-bet-market-reference,
 .side-bet-offer-copy:has(> .side-bet-market-reference) > .side-bet-response-line {
   margin: 0;
-}
-
-
-/* 2026-10-03: middle dots scale with their local text and align to
-   each line box instead of sharing one global vertical offset. */
-.text-separator-dot,
-.dog-separator,
-.live-situation-dot,
-.side-bet-ledger-meta-dot,
-.side-bet-ledger-summary-divider {
-  display: inline-block;
-  width: auto;
-  height: auto;
-  flex: 0 0 auto;
-  margin-inline: 0;
-  border-radius: 0;
-  color: currentColor;
-  background: none;
-  font-size: 1.2em;
-  font-weight: 800;
-  line-height: 1;
-  vertical-align: middle;
-  transform: none;
-}
-
-/* Flex-based rows can center their separator against neighboring text
-   directly, avoiding the line-height differences that made a global nudge
-   look correct in one place and too low in another. */
-.dog-separator,
-.side-bet-ledger-meta-dot,
-.side-bet-ledger-summary-divider {
-  align-self: center;
-}
-
-/* Live situation text is inline rather than flex, so its middle alignment is
-   allowed to follow the surrounding line box with no extra offset. */
-.live-situation-dot {
-  margin-inline: 0.08em;
-}
-
-/* Keep the entire ledger summary line at one stronger neutral contrast,
-   including Settled, Active, Potential and their separators. */
-.side-bet-ledger-summary,
-.side-bet-ledger-summary-label,
-.side-bet-ledger-summary-divider {
-  color: var(--header-muted);
-}
-
-
-/* 2026-10-03: center the Side Bet Ledger summary's mixed-size children
-   without moving the heading or changing its spacing. */
-.side-bet-ledger-summary {
-  align-items: center !important;
-}
-
-
-/* 2026-10-03: Offer History response rows are baseline-aligned, unlike the
-   Ledger summary. Center the date separator with its own date text locally
-   so the larger middle dot does not sit low in this one context. */
-.side-bet-response-value > span:has(> .text-separator-dot),
-.side-bet-response-measure > span:has(> .text-separator-dot) {
-  display: inline-flex;
-  align-items: center;
-  line-height: inherit;
-}
-.side-bet-response-line .text-separator-dot {
-  align-self: center;
-  transform: none;
 }
