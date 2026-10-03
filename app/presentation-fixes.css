@@ -957,7 +957,7 @@
 
 
 /* 2026-10-03: adaptive true-circle separators.
-   Scale with local typography while staying subtle across metadata and cards. */
+   My Card is the visual source of truth for size, spacing, and centering. */
 .ui-separator-dot {
   display: inline-block;
   width: clamp(2.5px, 0.28em, 4px);
@@ -975,37 +975,43 @@
   transform: none;
 }
 
-/* Flex rows already provide the equivalent of a normal space through gap. */
-.side-bet-ledger-meta .ui-separator-dot,
-.side-bet-ledger-summary .ui-separator-dot {
-  margin-inline: 0;
-  align-self: center;
-}
-
-/* Keep card-title separators at one normal-space rhythm around the circle. */
+/* My Card / League Card already use this exact flex-centered behavior. */
 .pick-title-market .ui-separator-dot {
-  margin-inline: 0.25em;
   align-self: center;
 }
 
-/* Pending Offers + Offer History: their response row already inserts a 3px
-   flex gap before the date group. Cancel that extra left gap so the circle
-   has the same normal-space distance on both sides. */
+/* Pending Offers + Offer History have a 3px parent flex gap immediately
+   before the date group. Remove only that inherited gap, then center the
+   date group like My Card so the circle keeps 0.25em on both sides. */
 .side-bet-list-section .side-bet-response-value > span:has(> .ui-separator-dot),
 .side-bet-list-section .side-bet-response-measure > span:has(> .ui-separator-dot) {
+  display: inline-flex;
+  align-items: center;
   margin-left: -3px;
 }
-
-/* Keep the small optical lift that centered these offer/history circles. */
 .side-bet-list-section .ui-separator-dot {
-  transform: translateY(-0.04em);
+  align-self: center;
+  transform: none;
 }
 
-/* Ledger circles sit in a different line box. Drop them only a fraction,
-   and let their rendered circle box breathe so the round edges are not clipped. */
+/* Ledger rows use their own flex gap. Cancel that gap only around separator
+   circles so the final visible spacing matches My Card's 0.25em exactly. */
+.side-bet-ledger-meta {
+  --separator-parent-gap: 4px;
+}
+.side-bet-ledger-summary {
+  --separator-parent-gap: 4px;
+}
 .side-bet-ledger-meta .ui-separator-dot,
 .side-bet-ledger-summary .ui-separator-dot {
-  overflow: visible;
-  text-indent: 0;
-  transform: translateY(0.035em);
+  margin-inline: calc(0.25em - var(--separator-parent-gap));
+  align-self: center;
+  overflow: hidden;
+  text-indent: -9999px;
+  transform: none;
+}
+@media (max-width: 390px) {
+  .side-bet-ledger-summary {
+    --separator-parent-gap: 3px;
+  }
 }
