@@ -957,7 +957,8 @@
 
 
 /* 2026-10-03: adaptive true-circle separators.
-   My Card is the visual source of truth for size, spacing, and centering. */
+   My Card is the source of truth: proportional size, 0.25em visual spacing,
+   and true center alignment with the local text row. */
 .ui-separator-dot {
   display: inline-block;
   width: clamp(2.5px, 0.28em, 4px);
@@ -975,43 +976,45 @@
   transform: none;
 }
 
-/* My Card / League Card already use this exact flex-centered behavior. */
+/* My Card / League Card already render correctly with this geometry. */
 .pick-title-market .ui-separator-dot {
   align-self: center;
 }
 
-/* Pending Offers + Offer History have a 3px parent flex gap immediately
-   before the date group. Remove only that inherited gap, then center the
-   date group like My Card so the circle keeps 0.25em on both sides. */
-.side-bet-list-section .side-bet-response-value > span:has(> .ui-separator-dot),
-.side-bet-list-section .side-bet-response-measure > span:has(> .ui-separator-dot) {
+/* Pending Offers + Offer History response rows:
+   use the same 0.25em rhythm as My Card without negative margins.
+   The parent gap supplies the left space; the dot supplies the right space. */
+.side-bet-response-value,
+.side-bet-response-measure {
+  align-items: center !important;
+  gap: 0.25em !important;
+}
+.side-bet-response-value > span:has(> .ui-separator-dot),
+.side-bet-response-measure > span:has(> .ui-separator-dot) {
   display: inline-flex;
   align-items: center;
-  margin-left: -3px;
 }
-.side-bet-list-section .ui-separator-dot {
+.side-bet-response-line .ui-separator-dot {
+  margin-left: 0;
+  margin-right: 0.25em;
   align-self: center;
   transform: none;
 }
 
-/* Ledger rows use their own flex gap. Cancel that gap only around separator
-   circles so the final visible spacing matches My Card's 0.25em exactly. */
+/* Side Bet Ledger rows:
+   use the exact same proportional spacing and center alignment as My Card.
+   The row gap itself becomes the separator spacing, so dots add no extra margin. */
 .side-bet-ledger-meta {
-  --separator-parent-gap: 4px;
+  align-items: center !important;
+  gap: 0.25em !important;
 }
 .side-bet-ledger-summary {
-  --separator-parent-gap: 4px;
+  align-items: center !important;
+  gap: 0.25em !important;
 }
 .side-bet-ledger-meta .ui-separator-dot,
 .side-bet-ledger-summary .ui-separator-dot {
-  margin-inline: calc(0.25em - var(--separator-parent-gap));
+  margin-inline: 0;
   align-self: center;
-  overflow: hidden;
-  text-indent: -9999px;
   transform: none;
-}
-@media (max-width: 390px) {
-  .side-bet-ledger-summary {
-    --separator-parent-gap: 3px;
-  }
 }
