@@ -1562,7 +1562,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     };
 
     refreshVisibleSideBets();
-    const timer = window.setInterval(refreshVisibleSideBets, 2500);
+    const timer = window.setInterval(refreshVisibleSideBets, offersVisible ? 5000 : 15000);
     window.addEventListener("focus", refreshVisibleSideBets);
     window.addEventListener("online", refreshVisibleSideBets);
     document.addEventListener("visibilitychange", refreshVisibleSideBets);
@@ -1581,7 +1581,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     const receiveClick = (event: MessageEvent<{ type?: string; url?: string }>) => {
       if (event.data?.type === "notification-click" && event.data.url) openNotificationDestination(event.data.url);
     };
-    const timer = window.setInterval(refresh, 30_000);
+    const timer = window.setInterval(refresh, 60_000);
     window.addEventListener("focus", refresh);
     document.addEventListener("visibilitychange", refresh);
     navigator.serviceWorker?.addEventListener("message", receiveClick);
@@ -1675,7 +1675,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     }
 
     void refreshPickBoardMarkets();
-    const timer = window.setInterval(refreshPickBoardMarkets, 15_000);
+    const timer = window.setInterval(refreshPickBoardMarkets, 30_000);
     const refreshOnResume = () => void refreshPickBoardMarkets();
     window.addEventListener("focus", refreshOnResume);
     window.addEventListener("online", refreshOnResume);
@@ -2730,7 +2730,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
       if (document.visibilityState === "visible") void refreshMarketQuotes();
     };
     refreshVisibleMarkets();
-    const interval = window.setInterval(refreshVisibleMarkets, offerPhase === "live" || hasPendingLiveOffer ? 5000 : 15000);
+    const interval = window.setInterval(refreshVisibleMarkets, offerPhase === "live" || hasPendingLiveOffer ? 5000 : 30000);
     window.addEventListener("focus", refreshVisibleMarkets);
     window.addEventListener("online", refreshVisibleMarkets);
     document.addEventListener("visibilitychange", refreshVisibleMarkets);

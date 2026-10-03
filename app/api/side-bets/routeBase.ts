@@ -118,10 +118,10 @@ async function currentLiveScore(game: any, freshness: boolean | number = true): 
   return storedLiveScore(game);
 }
 
-async function scoreboardLiveScore(game: any): Promise<LiveScoreSnapshot | null> {
+async function scoreboardLiveScore(game: any, freshness: boolean | number = true): Promise<LiveScoreSnapshot | null> {
   if (!game?.espn_event_id || (game?.league !== "CFB" && game?.league !== "NFL")) return null;
   try {
-    const schedule = await fetchEspnSchedule(game.league, [game.commence_time], true, 0);
+    const schedule = await fetchEspnSchedule(game.league, [game.commence_time], freshness, 0);
     const event = schedule.find((candidate) => String(candidate.id) === String(game.espn_event_id));
     if (event?.homeScore == null || event?.awayScore == null) return null;
     return {
@@ -166,13 +166,14 @@ function liveScoreSnapshotStable(summaryScore: LiveScoreSnapshot | null, scorebo
   );
 }
 
-async function allGroupBets(supabase: any, groupId: string, seasonYear: number) {
-  const { data, error } = await supabase
+async function allGroupBets(supabase: any, groupId: string, seasonYear: number, week?: number) {
+  let query = supabase
     .from("side_bets")
     .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
     .eq("group_id", groupId)
-    .eq("season_year", seasonYear)
-    .order("created_at", { ascending: false });
+    .eq("season_year", seasonYear);
+  if (week != null) query = query.eq("week", week);
+  const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return data || [];
 }
@@ -216,7 +217,7 @@ async function applyLiveScoreCandidateAction(
 }
 
 async function snapshot(supabase: any, context: any, profileId: string, week: number) {
-  let rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
+  let rows = await allGroupBets(supabase, context.group.id, context.seasonYear, week);
   const now = new Date();
   const nowIso = now.toISOString();
   const expiredIds: string[] = [];
@@ -230,8 +231,8 @@ async function snapshot(supabase: any, context: any, profileId: string, week: nu
     }
     if (!liveScores.has(bet.game.id)) {
       liveScores.set(bet.game.id, await Promise.all([
-        currentLiveScore(bet.game, true),
-        scoreboardLiveScore(bet.game)
+        currentLiveScore(bet.game, 4),
+        scoreboardLiveScore(bet.game, 4)
       ]));
     }
     const [summaryScore, scoreboardScore] = liveScores.get(bet.game.id) || [null, null];
@@ -570,8 +571,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (Number.isFinite(settings.maxPerWeek)) {
-      const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
-      const counts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === Number(sideBet.week)), context.members.map((member) => member.id), sideBet.id);
+      const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, Number(sideBet.week));
+      const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id), sideBet.id);
       if ((counts[auth.profile.id] || 0) >= settings.maxPerWeek || (counts[sideBet.creator_id] || 0) >= settings.maxPerWeek) {
         return NextResponse.json({ ok: false, error: "A player has reached the weekly side bet limit." }, { status: 409 });
       }

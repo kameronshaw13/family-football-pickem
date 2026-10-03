@@ -3,11 +3,13 @@ import { getProfileFromRequest } from "@/lib/authServer";
 import { isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { createAsyncCache } from "@/lib/asyncCache";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const NO_STORE = { "Cache-Control": "no-store, max-age=0" };
+const espnSummaryCache = createAsyncCache<any>(4_000, 64);
 
 function finite(value: unknown) {
   const parsed = Number(value);
@@ -264,9 +266,11 @@ export async function GET(req: NextRequest) {
     const sportPath = league === "NFL" ? "nfl" : "college-football";
     const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/summary`);
     url.searchParams.set("event", eventId);
-    const response = await fetch(url.toString(), { cache: "no-store" });
-    if (!response.ok) throw new Error(`ESPN summary failed (${response.status})`);
-    const payload = await response.json();
+    const payload = await espnSummaryCache(`${league}:${eventId}`, async () => {
+      const response = await fetch(url.toString(), { next: { revalidate: 4 } });
+      if (!response.ok) throw new Error(`ESPN summary failed (${response.status})`);
+      return response.json();
+    });
 
     const competition = payload?.header?.competitions?.[0];
     const home = competition?.competitors?.find((row: any) => row.homeAway === "home");

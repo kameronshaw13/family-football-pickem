@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
           await fetchEspnSchedule(
             league,
             leagueGames.map((game) => game.commence_time),
-            true,
+            4,
             0
           )
         );
@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
     let needsFinalization = false;
 
     for (const game of candidates || []) {
-      const match = await resolveEspnScheduleMatch(game, schedules.get(game.league) || [], game.league as "CFB" | "NFL", { freshness: true });
+      const match = await resolveEspnScheduleMatch(game, schedules.get(game.league) || [], game.league as "CFB" | "NFL", { freshness: 4 });
       if (!match || match.game.homeScore == null || match.game.awayScore == null) continue;
 
       const homeScore = match.swapped ? match.game.awayScore : match.game.homeScore;
