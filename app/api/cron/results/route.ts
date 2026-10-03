@@ -31,10 +31,14 @@ export async function GET(req: NextRequest) {
     const hasValidSupabaseSecret = hasValidSupabaseCronToken(req);
     if (!hasValidVercelSecret && !hasValidSupabaseSecret) return unauthorized();
 
+    const isVercelScheduledRun = Boolean(req.headers.get("x-vercel-cron-schedule"));
     const supabase = getSupabaseAdmin();
     const lockResult = await lockDuePicks(supabase);
     const now = new Date();
-    const oldestRelevantKickoff = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString();
+    // The frequent Supabase cron only needs to finalize games from the current
+    // live window. The once-daily Vercel cron remains a deeper recovery pass.
+    const lookbackMs = (isVercelScheduledRun ? 10 * 24 : 36) * 60 * 60 * 1000;
+    const oldestRelevantKickoff = new Date(now.getTime() - lookbackMs).toISOString();
     const [{ data, error }, { data: recentWeekRows, error: recentWeekError }] = await Promise.all([
       supabase
         .from("games")
@@ -93,6 +97,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       gamesChecked: games.length,
+      lookbackHours: Math.round(lookbackMs / (60 * 60 * 1000)),
       ...lockResult,
       gamesFinalized,
       picksGraded,

@@ -37,16 +37,19 @@ function chicagoParts(date = new Date()) {
   };
 }
 
-function chicagoMarketRefreshCadence(date = new Date()) {
-  const { weekday, hour } = chicagoParts(date);
+function scheduledMarketRefreshWindow(date = new Date()) {
+  const { weekday, hour, minute } = chicagoParts(date);
+  if (minute !== 50) return { shouldRefresh: false, refreshFuture: false };
 
-  // During the active pick week, keep current markets warm every five minutes.
-  if (["Tue", "Wed", "Thu", "Fri"].includes(weekday)) return 5;
-  if (weekday === "Sat" && hour < 10) return 5;
-
-  // After the current week's spread freeze and through Monday, keep future
-  // slates warm without hammering the provider or the database.
-  return 30;
+  // User-specified market refresh cadence in America/Chicago:
+  // Tue-Fri hourly from 8:50 AM through 8:50 PM, plus Sat 8:50 PM and 9:50 PM.
+  if (["Tue", "Wed", "Thu", "Fri"].includes(weekday) && hour >= 8 && hour <= 20) {
+    return { shouldRefresh: true, refreshFuture: hour === 8 };
+  }
+  if (weekday === "Sat" && (hour === 20 || hour === 21)) {
+    return { shouldRefresh: true, refreshFuture: hour === 20 };
+  }
+  return { shouldRefresh: false, refreshFuture: false };
 }
 
 export async function GET(req: NextRequest) {
@@ -66,15 +69,15 @@ export async function GET(req: NextRequest) {
   const scheduled = Boolean(req.headers.get("x-vercel-cron-schedule")) || hasValidSupabaseSecret;
   const force = req.nextUrl.searchParams.get("force") === "1";
   const now = new Date();
-  const { minute } = chicagoParts(now);
-  const refreshCadence = chicagoMarketRefreshCadence(now);
-  if (scheduled && !force && minute % refreshCadence !== 0) {
+  const { hour, weekday } = chicagoParts(now);
+  const refreshWindow = scheduledMarketRefreshWindow(now);
+  if (scheduled && !force && !refreshWindow.shouldRefresh) {
     return NextResponse.json({
       ok: true,
       skipped: true,
       provider: "Action Network",
-      refreshCadenceMinutes: refreshCadence,
-      reason: "Waiting for the next market refresh interval.",
+      refreshSchedule: "Tue-Fri hourly 8:50 AM-8:50 PM CT; Sat 8:50 PM and 9:50 PM CT",
+      reason: "Outside the scheduled market refresh window.",
       pushRetries
     });
   }
@@ -86,7 +89,7 @@ export async function GET(req: NextRequest) {
       end: new Date(now.getTime() + 14 * DAY_MS).toISOString()
     };
     let scheduleSync: { gamesDiscovered: number; start: string; end: string; error?: string } = defaultWindow;
-    const refreshFuture = force || !scheduled || minute % 30 === 0;
+    const refreshFuture = force || !scheduled || refreshWindow.refreshFuture;
 
     if (refreshFuture) {
       try {
@@ -126,8 +129,8 @@ export async function GET(req: NextRequest) {
       gamesChecked: games.length,
       nearGamesChecked: nearGames.length,
       futureGamesChecked: refreshFuture ? futureGames.length : 0,
-      refreshCadenceMinutes: refreshCadence,
-      futureRefreshCadence: "30 minutes",
+      refreshSchedule: "Tue-Fri hourly 8:50 AM-8:50 PM CT; Sat 8:50 PM and 9:50 PM CT",
+      futureRefreshCadence: refreshFuture ? "refreshed this run" : "first scheduled refresh of the active day",
       gamesUpdated: nearResult.gamesUpdated + futureResult.gamesUpdated,
       dogAdjustments: {
         removed: nearResult.dogAdjustments.removed + futureResult.dogAdjustments.removed,
