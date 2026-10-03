@@ -957,64 +957,77 @@
 
 
 /* 2026-10-03: adaptive true-circle separators.
-   My Card is the source of truth: proportional size, 0.25em dot margin plus the literal spaces in its metadata text,
-   and true center alignment with the local text row. */
+   Keep normal text/token spacing untouched; extra breathing room belongs
+   only to the separator circle itself. */
 .ui-separator-dot {
   display: inline-block;
-  width: clamp(2.5px, 0.28em, 4px);
-  height: clamp(2.5px, 0.28em, 4px);
+  width: clamp(3px, 0.28em, 4px);
+  height: clamp(3px, 0.28em, 4px);
   flex: 0 0 auto;
   margin-inline: 0.25em;
-  overflow: hidden;
-  border-radius: 50%;
+  overflow: visible;
+  border-radius: 999px;
   color: transparent !important;
   background: var(--muted);
   font-size: inherit;
   line-height: 0;
   vertical-align: middle;
-  text-indent: -9999px;
-  transform: none;
+  text-indent: 0;
+  transform: translateY(0.025em);
 }
 
-/* My Card / League Card already render correctly with this geometry. */
+/* My Card / League Card keep their existing geometry. */
 .pick-title-market .ui-separator-dot {
   align-self: center;
 }
 
-/* Pending Offers + Offer History response rows:
-   use the same 0.5em rhythm as My Card without negative margins.
-   The parent gap supplies the left space; the dot supplies the right space. */
+/* Pending Offers + Offer History:
+   restore the original 3px spacing between normal text tokens.
+   Only the date separator receives the wider My Card-style breathing room. */
 .side-bet-response-value,
 .side-bet-response-measure {
   align-items: center !important;
-  gap: 0.5em !important;
+  gap: 3px !important;
 }
 .side-bet-response-value > span:has(> .ui-separator-dot),
 .side-bet-response-measure > span:has(> .ui-separator-dot) {
   display: inline-flex;
   align-items: center;
+  margin-left: calc(0.5em - 3px);
 }
 .side-bet-response-line .ui-separator-dot {
   margin-left: 0;
   margin-right: 0.5em;
   align-self: center;
-  transform: none;
 }
 
-/* Side Bet Ledger rows:
-   use the exact same proportional spacing and center alignment as My Card.
-   The row gap itself becomes the separator spacing, so dots add no extra margin. */
+/* Side Bet Ledger metadata:
+   restore its original 4px token gap, then add only enough circle margin
+   to make the visible space around each separator equal about 0.5em. */
 .side-bet-ledger-meta {
+  --ledger-separator-gap: 4px;
   align-items: center !important;
-  gap: 0.5em !important;
+  gap: var(--ledger-separator-gap) !important;
 }
-.side-bet-ledger-summary {
-  align-items: center !important;
-  gap: 0.5em !important;
-}
-.side-bet-ledger-meta .ui-separator-dot,
-.side-bet-ledger-summary .ui-separator-dot {
-  margin-inline: 0;
+.side-bet-ledger-meta .ui-separator-dot {
+  margin-inline: max(0px, calc(0.5em - var(--ledger-separator-gap)));
   align-self: center;
-  transform: none;
+}
+
+/* Settled / Active / Potential:
+   normal words, money values, and the slash return to their original gap.
+   Wider spacing remains only immediately around the separator circles. */
+.side-bet-ledger-summary {
+  --ledger-summary-gap: 4px;
+  align-items: center !important;
+  gap: var(--ledger-summary-gap) !important;
+}
+.side-bet-ledger-summary .ui-separator-dot {
+  margin-inline: max(0px, calc(0.5em - var(--ledger-summary-gap)));
+  align-self: center;
+}
+@media (max-width: 390px) {
+  .side-bet-ledger-summary {
+    --ledger-summary-gap: 3px;
+  }
 }
