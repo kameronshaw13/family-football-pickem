@@ -954,3 +954,32 @@
 .side-bet-offer-copy:has(> .side-bet-market-reference) > .side-bet-response-line {
   margin: 0;
 }
+
+
+/* 2026-10-03: adaptive true-circle separators.
+   Scale with local typography while staying subtle across metadata and cards. */
+.ui-separator-dot {
+  display: inline-block;
+  width: clamp(2.5px, 0.28em, 4px);
+  height: clamp(2.5px, 0.28em, 4px);
+  flex: 0 0 auto;
+  margin-inline: 0.42em;
+  overflow: hidden;
+  border-radius: 50%;
+  color: transparent !important;
+  background: var(--muted);
+  font-size: inherit;
+  line-height: 0;
+  vertical-align: middle;
+  text-indent: -9999px;
+  transform: none;
+}
+
+/* Rows that already distribute children with flex gaps do not need the full
+   inline margin; keep their visual spacing balanced with neighboring text. */
+.side-bet-ledger-meta .ui-separator-dot,
+.side-bet-ledger-summary .ui-separator-dot,
+.pick-title-market .ui-separator-dot {
+  margin-inline: 0.18em;
+  align-self: center;
+}
