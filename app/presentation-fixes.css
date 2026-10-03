@@ -954,3 +954,17 @@
 .side-bet-offer-copy:has(> .side-bet-market-reference) > .side-bet-response-line {
   margin: 0;
 }
+
+
+/* 2026-10-02: make middle-dot separators easier to read on phone screens. */
+.text-separator-dot,
+.dog-separator,
+.live-situation-dot,
+.side-bet-ledger-meta-dot,
+.side-bet-ledger-summary-divider {
+  display: inline-block;
+  font-size: 1.2em;
+  font-weight: 900;
+  line-height: 0.9;
+  transform: translateY(-0.015em);
+}
