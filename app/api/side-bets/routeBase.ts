@@ -10,7 +10,6 @@ import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { americanOddsText, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { notificationTeamName } from "@/lib/notificationTeamName";
-import { liveOfferScoreCandidateAction, type LiveOfferScoreCandidateAction, type LiveOfferScoreState } from "@/lib/liveOfferExpiration";
 
 const viewWeek = z.number().int().nonnegative().optional();
 const bodySchema = z.discriminatedUnion("action", [
@@ -29,10 +28,25 @@ const bodySchema = z.discriminatedUnion("action", [
     visibleLiveAwayScore: z.number().int().nonnegative().optional(),
     viewWeek
   }),
-  z.object({ action: z.literal("accept"), sideBetId: z.string().uuid(), viewWeek }),
+  z.object({
+    action: z.literal("accept"),
+    sideBetId: z.string().uuid(),
+    visibleLiveHomeScore: z.number().int().nonnegative().optional(),
+    visibleLiveAwayScore: z.number().int().nonnegative().optional(),
+    viewWeek
+  }),
   z.object({ action: z.literal("decline"), sideBetId: z.string().uuid(), viewWeek }),
   z.object({ action: z.literal("cancel"), sideBetId: z.string().uuid(), viewWeek }),
-  z.object({ action: z.literal("clear"), sideBetId: z.string().uuid(), viewWeek })
+  z.object({ action: z.literal("clear"), sideBetId: z.string().uuid(), viewWeek }),
+  z.object({
+    action: z.literal("expireLiveScores"),
+    offers: z.array(z.object({
+      sideBetId: z.string().uuid(),
+      visibleLiveHomeScore: z.number().int().nonnegative(),
+      visibleLiveAwayScore: z.number().int().nonnegative()
+    })).min(1).max(20),
+    viewWeek
+  })
 ]);
 
 export const dynamic = "force-dynamic";
@@ -134,29 +148,6 @@ async function scoreboardLiveScore(game: any, freshness: boolean | number = true
   }
 }
 
-function liveOfferScoreState(
-  bet: any,
-  summaryScore: LiveScoreSnapshot | null,
-  scoreboardScore: LiveScoreSnapshot | null
-): LiveOfferScoreState {
-  if (bet?.offer_phase !== "live") return "unchanged";
-  const sentHome = scoreNumber(bet.live_offer_home_score);
-  const sentAway = scoreNumber(bet.live_offer_away_score);
-  if (sentHome == null || sentAway == null) return "uncertain";
-  if (!summaryScore || !scoreboardScore) return "uncertain";
-  if (summaryScore.home !== scoreboardScore.home || summaryScore.away !== scoreboardScore.away) return "uncertain";
-
-  const sentTotal = sentHome + sentAway;
-  const summaryIncreased = summaryScore.home + summaryScore.away > sentTotal;
-  const scoreboardIncreased = scoreboardScore.home + scoreboardScore.away > sentTotal;
-
-  // Require ESPN's event summary and date scoreboard to both confirm that new
-  // points were added. A single transient/overturned score must not expire a bet.
-  if (summaryIncreased && scoreboardIncreased) return "changed";
-  if (summaryIncreased !== scoreboardIncreased) return "uncertain";
-  return "unchanged";
-}
-
 function liveScoreSnapshotStable(summaryScore: LiveScoreSnapshot | null, scoreboardScore: LiveScoreSnapshot | null) {
   return Boolean(
     summaryScore &&
@@ -164,6 +155,18 @@ function liveScoreSnapshotStable(summaryScore: LiveScoreSnapshot | null, scorebo
     summaryScore.home === scoreboardScore.home &&
     summaryScore.away === scoreboardScore.away
   );
+}
+
+function liveScoreDiffersFromOffer(bet: any, score: LiveScoreSnapshot | null) {
+  if (!score) return false;
+  const sentHome = scoreNumber(bet?.live_offer_home_score);
+  const sentAway = scoreNumber(bet?.live_offer_away_score);
+  if (sentHome == null || sentAway == null) return false;
+  return score.home !== sentHome || score.away !== sentAway;
+}
+
+function liveScoreMatches(score: LiveScoreSnapshot | null, home: number, away: number) {
+  return Boolean(score && score.home === home && score.away === away);
 }
 
 async function allGroupBets(supabase: any, groupId: string, seasonYear: number, week?: number) {
@@ -197,31 +200,12 @@ async function expireOpenSideBets(supabase: any, groupId: string, ids: string[],
   await resolveSideBetOfferNotifications(supabase, ids, undefined, groupId);
 }
 
-async function applyLiveScoreCandidateAction(
-  supabase: any,
-  groupId: string,
-  sideBetId: string,
-  action: LiveOfferScoreCandidateAction
-) {
-  if (action.kind !== "start" && action.kind !== "clear") return;
-  const update = action.kind === "start"
-    ? { live_score_candidate_total: action.total, live_score_candidate_seen_at: action.seenAt }
-    : { live_score_candidate_total: null, live_score_candidate_seen_at: null };
-  const { error } = await supabase
-    .from("side_bets")
-    .update(update)
-    .eq("group_id", groupId)
-    .eq("id", sideBetId)
-    .eq("status", "open");
-  if (error) throw new Error(error.message);
-}
-
 async function snapshot(supabase: any, context: any, profileId: string, week: number) {
   let rows = await allGroupBets(supabase, context.group.id, context.seasonYear, week);
   const now = new Date();
   const nowIso = now.toISOString();
   const expiredIds: string[] = [];
-  const liveScores = new Map<string, [LiveScoreSnapshot | null, LiveScoreSnapshot | null]>();
+
   for (const bet of rows) {
     if (bet.status !== "open" || !bet.game) continue;
     const phase = bet.offer_phase === "live" ? "live" : "pregame";
@@ -229,40 +213,24 @@ async function snapshot(supabase: any, context: any, profileId: string, week: nu
       if (new Date(bet.game.commence_time) <= now) expiredIds.push(bet.id);
       continue;
     }
-    if (!liveScores.has(bet.game.id)) {
-      liveScores.set(bet.game.id, await Promise.all([
-        currentLiveScore(bet.game, 4),
-        scoreboardLiveScore(bet.game, 4)
-      ]));
-    }
-    const [summaryScore, scoreboardScore] = liveScores.get(bet.game.id) || [null, null];
-    const scoreState = liveOfferScoreState(bet, summaryScore, scoreboardScore);
-    const gameCompleted = Boolean(summaryScore?.completed && scoreboardScore?.completed);
-    if (gameCompleted) {
-      expiredIds.push(bet.id);
-      continue;
-    }
 
-    const candidateAction = liveOfferScoreCandidateAction({
-      scoreState,
-      currentTotal: scoreState === "changed" && summaryScore ? summaryScore.home + summaryScore.away : null,
-      candidateTotal: scoreNumber(bet.live_score_candidate_total),
-      candidateSeenAt: bet.live_score_candidate_seen_at || null,
-      nowMs: now.getTime()
-    });
-    if (candidateAction.kind === "expire") {
+    // Live offers are intentionally not expired by background ESPN polling.
+    // They stay open until the score shown in the app changes and the client
+    // asks the server to verify that exact new score. A finalized game is the
+    // only server-side exception.
+    if (bet.game.final_home_score != null && bet.game.final_away_score != null) {
       expiredIds.push(bet.id);
-      continue;
     }
-    await applyLiveScoreCandidateAction(supabase, context.group.id, bet.id, candidateAction);
   }
+
   if (expiredIds.length) {
     await expireOpenSideBets(supabase, context.group.id, expiredIds, nowIso);
     const expired = new Set(expiredIds);
     rows = rows.map((bet: any) => expired.has(bet.id) ? { ...bet, status: "expired" } : bet);
   }
+
   const settings = getGroupSideBetSettings(context);
-  const rawCounts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === week), context.members.map((member: any) => member.id));
+  const rawCounts = sideBetSlotCounts(rows, context.members.map((member: any) => member.id));
   const dismissed = await dismissedSideBetIds(supabase, context.group.id, profileId);
   return {
     sideBets: rows.filter((bet: any) => !dismissed.has(bet.id) && (bet.creator_id === profileId || bet.accepted_by === profileId || bet.targets?.some((target: any) => target.recipient_id === profileId))),
@@ -352,7 +320,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, error: "The live score is updating. Try the offer again in a moment." }, { status: 409 });
       }
       if (offerPhase === "live" && visibleLiveScore && sentLiveScore &&
-          visibleLiveScore.home + visibleLiveScore.away !== sentLiveScore.home + sentLiveScore.away) {
+          (visibleLiveScore.home !== sentLiveScore.home || visibleLiveScore.away !== sentLiveScore.away)) {
         return NextResponse.json({ ok: false, error: "The live score changed while you were sending the offer. Try again with the current score." }, { status: 409 });
       }
 
@@ -380,8 +348,8 @@ export async function POST(req: NextRequest) {
       const resolvedCreatorSpread = Number(creatorSpread ?? 0);
 
       if (Number.isFinite(settings.maxPerWeek)) {
-        const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);
-        const counts = sideBetSlotCounts(rows.filter((bet: any) => Number(bet.week) === Number(game.week)), context.members.map((member) => member.id));
+        const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, Number(game.week));
+        const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id));
         if ((counts[auth.profile.id] || 0) >= settings.maxPerWeek) {
           return NextResponse.json({ ok: false, error: `You already have ${settings.maxPerWeek} accepted or pending side bets this week.` }, { status: 409 });
         }
@@ -446,6 +414,58 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, sideBet, ...nextSnapshot });
     }
 
+    if (body.action === "expireLiveScores") {
+      const requested = new Map(body.offers.map((offer) => [offer.sideBetId, offer]));
+      const offerIds = Array.from(requested.keys());
+      const { data: liveOffers, error: liveOffersError } = await supabase
+        .from("side_bets")
+        .select("*, game:games(*), targets:side_bet_targets(*)")
+        .eq("group_id", context.group.id)
+        .eq("season_year", context.seasonYear)
+        .in("id", offerIds);
+      if (liveOffersError) throw new Error(liveOffersError.message);
+
+      const scoreChecks = new Map<string, Promise<[LiveScoreSnapshot | null, LiveScoreSnapshot | null]>>();
+      const expireIds: string[] = [];
+
+      for (const bet of liveOffers || []) {
+        const visible = requested.get(bet.id);
+        if (!visible || bet.status !== "open" || bet.offer_phase !== "live" || !bet.game) continue;
+        const target = bet.targets?.find((row: any) => row.recipient_id === auth.profile.id);
+        if (bet.creator_id !== auth.profile.id && !target) continue;
+
+        const visibleScore: LiveScoreSnapshot = {
+          home: visible.visibleLiveHomeScore,
+          away: visible.visibleLiveAwayScore,
+          completed: false
+        };
+        if (!liveScoreDiffersFromOffer(bet, visibleScore)) continue;
+
+        if (bet.game.final_home_score != null && bet.game.final_away_score != null) {
+          expireIds.push(bet.id);
+          continue;
+        }
+
+        if (!scoreChecks.has(bet.game.id)) {
+          scoreChecks.set(bet.game.id, Promise.all([
+            currentLiveScore(bet.game, 4),
+            scoreboardLiveScore(bet.game, 4)
+          ]));
+        }
+        const [summaryScore, scoreboardScore] = await scoreChecks.get(bet.game.id)!;
+        if (!liveScoreSnapshotStable(summaryScore, scoreboardScore)) continue;
+        if (!liveScoreMatches(summaryScore, visible.visibleLiveHomeScore, visible.visibleLiveAwayScore)) continue;
+        if (!liveScoreMatches(scoreboardScore, visible.visibleLiveHomeScore, visible.visibleLiveAwayScore)) continue;
+        expireIds.push(bet.id);
+      }
+
+      if (expireIds.length) {
+        await expireOpenSideBets(supabase, context.group.id, Array.from(new Set(expireIds)), nowIso);
+      }
+      const fallbackWeek = Number((liveOffers || [])[0]?.week ?? 0);
+      return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? fallbackWeek)) });
+    }
+
     const { data: sideBet, error: sideBetError } = await supabase
       .from("side_bets")
       .select("*, game:games(*), targets:side_bet_targets(*)")
@@ -506,7 +526,7 @@ export async function POST(req: NextRequest) {
     if (!sideBet.game) return NextResponse.json({ ok: false, error: "Game unavailable." }, { status: 409 });
     const sideBetPhase = sideBet.offer_phase === "live" ? "live" : "pregame";
     const [acceptLiveScore, acceptScoreboardScore] = sideBetPhase === "live"
-      ? await Promise.all([currentLiveScore(sideBet.game, true), scoreboardLiveScore(sideBet.game)])
+      ? await Promise.all([currentLiveScore(sideBet.game, 4), scoreboardLiveScore(sideBet.game, 4)])
       : [null, null];
     const sideBetGameFinal = Boolean(
       (acceptLiveScore?.completed && acceptScoreboardScore?.completed) ||
@@ -516,26 +536,44 @@ export async function POST(req: NextRequest) {
     if (sideBetPhase === "pregame" && new Date(sideBet.game.commence_time) <= now) {
       return NextResponse.json({ ok: false, error: "Kickoff has passed. This pregame offer expired." }, { status: 409 });
     }
-    const acceptScoreState = liveOfferScoreState(sideBet, acceptLiveScore, acceptScoreboardScore);
     if (sideBetPhase === "live" && sideBetGameFinal) {
       await expireOpenSideBets(supabase, context.group.id, [sideBet.id], nowIso);
       return NextResponse.json({ ok: false, error: "This game is final." }, { status: 409 });
     }
-    if (sideBetPhase === "live") {
-      const candidateAction = liveOfferScoreCandidateAction({
-        scoreState: acceptScoreState,
-        currentTotal: acceptScoreState === "changed" && acceptLiveScore ? acceptLiveScore.home + acceptLiveScore.away : null,
-        candidateTotal: scoreNumber(sideBet.live_score_candidate_total),
-        candidateSeenAt: sideBet.live_score_candidate_seen_at || null,
-        nowMs: now.getTime()
-      });
-      if (candidateAction.kind === "expire") {
-        await expireOpenSideBets(supabase, context.group.id, [sideBet.id], nowIso);
-        return NextResponse.json({ ok: false, error: "A team scored after this live offer was sent, so the offer expired." }, { status: 409 });
+    if (sideBetPhase === "live" && body.action === "accept") {
+      const sentHome = scoreNumber(sideBet.live_offer_home_score);
+      const sentAway = scoreNumber(sideBet.live_offer_away_score);
+      if (sentHome == null || sentAway == null) {
+        return NextResponse.json({ ok: false, error: "The live score is updating. This offer is still active; try accepting again in a moment." }, { status: 409 });
       }
-      await applyLiveScoreCandidateAction(supabase, context.group.id, sideBet.id, candidateAction);
-      if (body.action === "accept" && (acceptScoreState === "changed" || acceptScoreState === "uncertain")) {
-        return NextResponse.json({ ok: false, error: "The live score is being confirmed. This offer is still active; try accepting again in a moment." }, { status: 409 });
+
+      const providerStable = liveScoreSnapshotStable(acceptLiveScore, acceptScoreboardScore);
+      if (!providerStable) {
+        return NextResponse.json({ ok: false, error: "The live score is updating. This offer is still active; try accepting again in a moment." }, { status: 409 });
+      }
+
+      const visibleProvided = body.visibleLiveHomeScore != null && body.visibleLiveAwayScore != null;
+      if (visibleProvided) {
+        const visibleScore: LiveScoreSnapshot = {
+          home: Number(body.visibleLiveHomeScore),
+          away: Number(body.visibleLiveAwayScore),
+          completed: false
+        };
+        if (liveScoreDiffersFromOffer(sideBet, visibleScore)) {
+          if (liveScoreMatches(acceptLiveScore, visibleScore.home, visibleScore.away) &&
+              liveScoreMatches(acceptScoreboardScore, visibleScore.home, visibleScore.away)) {
+            await expireOpenSideBets(supabase, context.group.id, [sideBet.id], nowIso);
+            return NextResponse.json({ ok: false, error: "The score changed after this live offer was sent, so the offer expired." }, { status: 409 });
+          }
+          return NextResponse.json({ ok: false, error: "The live score is updating. This offer is still active; try accepting again in a moment." }, { status: 409 });
+        }
+      }
+
+      // If ESPN is ahead of the score currently shown in the app, block the
+      // acceptance but do not expire the offer. The offer expires only after
+      // the app itself displays that new score and the server verifies it.
+      if (liveScoreDiffersFromOffer(sideBet, acceptLiveScore)) {
+        return NextResponse.json({ ok: false, error: "The live score is updating. This offer is still active; try accepting again in a moment." }, { status: 409 });
       }
     }
 

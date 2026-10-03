@@ -1218,6 +1218,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const sideBetAppliedRequestRef = useRef(0);
   const sideBetRefreshInFlightRef = useRef(false);
   const sideBetMutationInFlightRef = useRef(false);
+  const liveOfferExpiryInFlightRef = useRef(false);
   const sideBetLedgerRefreshInFlightRef = useRef(false);
   const hasActiveGames = Boolean(data?.games.some((game) => {
     const start = new Date(game.commence_time).getTime();
@@ -1739,6 +1740,44 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         const nextData = { ...current, games: nextGames };
         dataRef.current = nextData;
         setData(nextData);
+
+        const changedLiveOffers = current.sideBets.flatMap((bet) => {
+          if (bet.status !== "open" || bet.offer_phase !== "live") return [];
+          const sentHome = bet.live_offer_home_score == null ? null : Number(bet.live_offer_home_score);
+          const sentAway = bet.live_offer_away_score == null ? null : Number(bet.live_offer_away_score);
+          const game = nextGames.find((item) => item.id === bet.game_id);
+          const visibleHome = game?.live_home_score == null ? null : Number(game.live_home_score);
+          const visibleAway = game?.live_away_score == null ? null : Number(game.live_away_score);
+          if (sentHome == null || sentAway == null || visibleHome == null || visibleAway == null) return [];
+          if (sentHome === visibleHome && sentAway === visibleAway) return [];
+          return [{
+            sideBetId: bet.id,
+            visibleLiveHomeScore: visibleHome,
+            visibleLiveAwayScore: visibleAway
+          }];
+        });
+
+        if (changedLiveOffers.length && !liveOfferExpiryInFlightRef.current) {
+          const token = window.localStorage.getItem("pickem_session_token");
+          if (token) {
+            const requestId = ++sideBetRequestSequenceRef.current;
+            liveOfferExpiryInFlightRef.current = true;
+            void fetch("/api/side-bets", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
+              body: JSON.stringify({ action: "expireLiveScores", offers: changedLiveOffers, viewWeek: week })
+            })
+              .then(async (response) => response.ok ? response.json() as Promise<SideBetSnapshot> : null)
+              .then((payload) => {
+                if (!payload) return;
+                applySideBetSnapshot({ ...payload, sideBets: payload.sideBets || [] }, requestId);
+                void refreshNotificationCounts();
+              })
+              .catch(() => undefined)
+              .finally(() => { liveOfferExpiryInFlightRef.current = false; });
+          }
+        }
+
         if (alert) setToast(alert);
         if (payload.needsFinalization) void finalizeCompletedGames();
       } catch {
@@ -1853,7 +1892,21 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     setSavingBet(true);
     setSavingBetId(body.sideBetId || null);
     try {
-      const response = await fetch("/api/side-bets", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, body: JSON.stringify({ ...body, viewWeek: data?.week }) });
+      const current = dataRef.current;
+      const liveBet = body.action === "accept" && body.sideBetId
+        ? current?.sideBets.find((bet) => bet.id === body.sideBetId)
+        : null;
+      const liveGame = liveBet?.offer_phase === "live"
+        ? current?.games.find((game) => game.id === liveBet.game_id)
+        : null;
+      const requestBody = liveGame
+        ? {
+            ...body,
+            visibleLiveHomeScore: liveGame.live_home_score ?? undefined,
+            visibleLiveAwayScore: liveGame.live_away_score ?? undefined
+          }
+        : body;
+      const response = await fetch("/api/side-bets", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, body: JSON.stringify({ ...requestBody, viewWeek: current?.week ?? data?.week }) });
       const payload = await response.json();
       if (!response.ok) {
         notify(payload.error || "Side bet action failed.", "error");
