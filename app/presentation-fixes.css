@@ -557,7 +557,7 @@
   white-space: nowrap;
 }
 .side-bet-ledger-summary-label { color: var(--muted); }
-.side-bet-ledger-summary-divider { color: var(--line-strong); }
+.side-bet-ledger-summary-divider { color: var(--muted); }
 .side-bet-potential-profit { color: var(--green); font-size: inherit; }
 .side-bet-potential-loss { color: var(--red); font-size: inherit; }
 
@@ -956,15 +956,29 @@
 }
 
 
-/* 2026-10-02: make middle-dot separators easier to read on phone screens. */
+/* 2026-10-03: use a true round separator instead of a font glyph.
+   This keeps the dot neutral, circular, and vertically centered on phone screens. */
 .text-separator-dot,
 .dog-separator,
 .live-situation-dot,
 .side-bet-ledger-meta-dot,
 .side-bet-ledger-summary-divider {
   display: inline-block;
-  font-size: 1.2em;
-  font-weight: 900;
-  line-height: 0.9;
-  transform: translateY(-0.015em);
+  width: 4px;
+  height: 4px;
+  flex: 0 0 4px;
+  margin-inline: 2px;
+  border-radius: 50%;
+  color: transparent;
+  background: var(--muted);
+  font-size: 0;
+  line-height: 0;
+  vertical-align: middle;
+  transform: none;
+}
+
+/* The ledger header separators need more contrast than the surrounding
+   secondary copy so Settled / Active / Potential remain visually distinct. */
+.side-bet-ledger-summary-divider {
+  background: var(--header-muted);
 }
