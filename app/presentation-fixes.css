@@ -557,7 +557,7 @@
   white-space: nowrap;
 }
 .side-bet-ledger-summary-label { color: var(--muted); }
-.side-bet-ledger-summary-divider { color: var(--muted); }
+.side-bet-ledger-summary-divider { color: var(--header-muted); }
 .side-bet-potential-profit { color: var(--green); font-size: inherit; }
 .side-bet-potential-loss { color: var(--red); font-size: inherit; }
 
@@ -956,29 +956,32 @@
 }
 
 
-/* 2026-10-03: use a true round separator instead of a font glyph.
-   This keeps the dot neutral, circular, and vertically centered on phone screens. */
+/* 2026-10-03: restore the text middle-dot look, but size it relative
+   to whatever text it sits beside so it stays balanced across the app. */
 .text-separator-dot,
 .dog-separator,
 .live-situation-dot,
 .side-bet-ledger-meta-dot,
 .side-bet-ledger-summary-divider {
   display: inline-block;
-  width: 4px;
-  height: 4px;
-  flex: 0 0 4px;
-  margin-inline: 2px;
-  border-radius: 50%;
-  color: transparent;
-  background: var(--muted);
-  font-size: 0;
-  line-height: 0;
-  vertical-align: middle;
+  width: auto;
+  height: auto;
+  flex: 0 0 auto;
+  margin-inline: 0;
+  border-radius: 0;
+  color: currentColor;
+  background: none;
+  font-size: 1.1em;
+  font-weight: 800;
+  line-height: inherit;
+  vertical-align: baseline;
   transform: none;
 }
 
-/* The ledger header separators need more contrast than the surrounding
-   secondary copy so Settled / Active / Potential remain visually distinct. */
+/* Keep the entire ledger summary line at one stronger neutral contrast,
+   including Settled, Active, Potential and their separators. */
+.side-bet-ledger-summary,
+.side-bet-ledger-summary-label,
 .side-bet-ledger-summary-divider {
-  background: var(--header-muted);
+  color: var(--header-muted);
 }
