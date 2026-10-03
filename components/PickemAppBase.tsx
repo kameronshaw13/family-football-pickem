@@ -781,12 +781,12 @@ function logoForTeam(game: Game, team: string) {
 function money(value: number) {
   const sign = value > 0 ? "+" : value < 0 ? "-" : "";
   const absolute = Math.abs(value);
-  return `${sign}${absolute.toFixed(Number.isInteger(absolute) ? 0 : 2)}`;
+  return sign + "$" + absolute.toFixed(Number.isInteger(absolute) ? 0 : 2);
 }
 function roundedMoney(value: number) {
   const rounded = Math.round(Number(value) || 0);
   const sign = rounded > 0 ? "+" : rounded < 0 ? "-" : "";
-  return `${sign}${Math.abs(rounded)}`;
+  return sign + "$" + Math.abs(rounded);
 }
 function stakeMoney(value: number) {
   const absolute = Math.abs(Number(value));
