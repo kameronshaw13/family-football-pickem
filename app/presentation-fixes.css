@@ -1031,3 +1031,18 @@
     --ledger-summary-gap: 3px;
   }
 }
+
+
+/* 2026-10-03: final optical separator refinements.
+   Keep correctly aligned offer/history and ledger-row circles unchanged. */
+.pick-title-market .ui-separator-dot {
+  transform: translateY(0.005em);
+}
+
+.side-bet-ledger-summary .ui-separator-dot {
+  transform: translateY(0.055em);
+}
+
+.side-bet-ledger-summary .side-bet-potential-separator {
+  margin-inline: -1px;
+}
