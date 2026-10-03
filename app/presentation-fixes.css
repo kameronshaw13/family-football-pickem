@@ -975,7 +975,7 @@
   font-weight: 800;
   line-height: inherit;
   vertical-align: baseline;
-  transform: translateY(0.08em);
+  transform: translateY(0.04em);
 }
 
 /* Keep the entire ledger summary line at one stronger neutral contrast,
