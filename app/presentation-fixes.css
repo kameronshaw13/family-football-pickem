@@ -1046,3 +1046,42 @@
 .side-bet-ledger-summary .side-bet-potential-separator {
   margin-inline: -1px;
 }
+
+
+/* 2026-10-03: targeted final separator/status polish. */
+
+/* Market reference must remain a single compact line. */
+.side-bet-market-reference,
+.side-bet-market-reference .numeric-token {
+  white-space: nowrap;
+}
+.side-bet-market-reference {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* My Card / League Card circles sit a fraction higher than the global dot. */
+.pick-title-market .ui-separator-dot {
+  transform: translateY(-0.02em);
+}
+
+/* The Side Bet Ledger heading summary needs a slightly lower optical center. */
+.side-bet-ledger-summary .ui-separator-dot {
+  transform: translateY(0.08em);
+}
+
+/* Remove the summary flex-gap around only the slash, leaving about 1px. */
+.side-bet-ledger-summary .side-bet-potential-separator {
+  margin-inline: calc((var(--ledger-summary-gap) * -1) + 1px);
+}
+
+/* The smaller dollar figures sit optically high next to the labels; lower only
+   those summary amounts without changing font size or row geometry. */
+.side-bet-ledger-summary .money-pos,
+.side-bet-ledger-summary .money-neg,
+.side-bet-ledger-summary .money-neutral,
+.side-bet-ledger-summary .side-bet-potential-profit,
+.side-bet-ledger-summary .side-bet-potential-loss {
+  display: inline-block;
+  transform: translateY(0.04em);
+}
