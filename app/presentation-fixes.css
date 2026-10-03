@@ -1204,7 +1204,7 @@
 .matchup-card:not(.side-bet-game-card) .compact-game-head .game-live-status .ui-separator-dot {
   margin-inline: 0.18em;
   background: var(--ink);
-  transform: translateY(0);
+  transform: translateY(-0.025em);
 }
 
 /* LiveSituationText renders its separator without literal spaces around it,
