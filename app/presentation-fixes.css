@@ -957,14 +957,14 @@
 
 
 /* 2026-10-03: adaptive true-circle separators.
-   My Card is the source of truth: proportional size, 0.5em visual spacing,
+   My Card is the source of truth: proportional size, 0.25em dot margin plus the literal spaces in its metadata text,
    and true center alignment with the local text row. */
 .ui-separator-dot {
   display: inline-block;
   width: clamp(2.5px, 0.28em, 4px);
   height: clamp(2.5px, 0.28em, 4px);
   flex: 0 0 auto;
-  margin-inline: 0.5em;
+  margin-inline: 0.25em;
   overflow: hidden;
   border-radius: 50%;
   color: transparent !important;
