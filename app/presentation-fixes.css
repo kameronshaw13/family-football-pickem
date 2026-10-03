@@ -1192,5 +1192,8 @@
 /* 2026-10-03: keep the My Card / League Card live tracker quarter and clock compact.
    NumericText already supplies a normal text space on both sides of the dot. */
 .pick-score-bug.live .score-bug-meta > span:first-child .ui-separator-dot {
+  width: 2.75px;
+  height: 2.75px;
   margin-inline: 0 !important;
+  transform: translateY(-0.035em);
 }
