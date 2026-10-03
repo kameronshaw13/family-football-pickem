@@ -1,5 +1,6 @@
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { normalizeEspnLogoUrl } from "@/lib/espnLogos";
+import { createAsyncCache } from "@/lib/asyncCache";
 
 type EspnTeam = {
   displayName: string;
@@ -54,6 +55,8 @@ const MIN_TWO_SIDED_IDENTITY_SCORE = 80;
 const STRONG_ONE_SIDED_IDENTITY_SCORE = 110;
 const ONE_SIDED_MATCH_MAX_DISTANCE_MS = 36 * 60 * 60 * 1000;
 const discoveredEventIdCache = new Map<string, string>();
+const parsedScheduleCache = createAsyncCache<EspnScheduleGame[]>(4_000, 128);
+const parsedEventCache = createAsyncCache<EspnScheduleGame | null>(4_000, 128);
 
 function normalize(value: string | null | undefined) {
   return (value || "")
@@ -238,7 +241,7 @@ export async function fetchEspnWinProbability(league: "NFL" | "CFB", eventId: st
   return null;
 }
 
-export async function fetchEspnEvent(
+async function fetchEspnEventUncached(
   league: "NFL" | "CFB",
   eventId: string,
   freshness: boolean | number = true
@@ -292,6 +295,15 @@ export async function fetchEspnEvent(
     homeTeam: teamFromCompetitor(home),
     awayTeam: teamFromCompetitor(away)
   };
+}
+
+export async function fetchEspnEvent(
+  league: "NFL" | "CFB",
+  eventId: string,
+  freshness: boolean | number = true
+): Promise<EspnScheduleGame | null> {
+  if (freshness === true) return fetchEspnEventUncached(league, eventId, freshness);
+  return parsedEventCache(`${league}:${eventId}:${String(freshness)}`, () => fetchEspnEventUncached(league, eventId, freshness));
 }
 
 async function fetchEspnTeamSchedule(
@@ -356,7 +368,7 @@ async function fetchEspnTeamSchedule(
   });
 }
 
-export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string[], freshness: boolean | number = false, paddingDays = 3) {
+async function fetchEspnScheduleUncached(league: "NFL" | "CFB", dateHints: string[], freshness: boolean | number = false, paddingDays = 3) {
   const parsedDates = dateHints.map((date) => new Date(date)).filter((date) => !Number.isNaN(date.getTime()));
   if (!parsedDates.length) return [];
 
@@ -460,6 +472,12 @@ export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string
       awayTeam: teamFromCompetitor(away)
     }];
   });
+}
+
+export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string[], freshness: boolean | number = false, paddingDays = 3) {
+  if (freshness === true) return fetchEspnScheduleUncached(league, dateHints, freshness, paddingDays);
+  const key = [league, String(freshness), String(paddingDays), ...dateHints].join("|");
+  return parsedScheduleCache(key, () => fetchEspnScheduleUncached(league, dateHints, freshness, paddingDays));
 }
 
 export function resolveEspnCommenceTime(match: EspnScheduleMatch, fallbackIso: string, timezone = "America/Chicago") {

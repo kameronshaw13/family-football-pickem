@@ -1563,7 +1563,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     };
 
     refreshVisibleSideBets();
-    const timer = window.setInterval(refreshVisibleSideBets, offersVisible ? 5000 : 15000);
+    const timer = window.setInterval(refreshVisibleSideBets, offersVisible ? 5000 : 30000);
     window.addEventListener("focus", refreshVisibleSideBets);
     window.addEventListener("online", refreshVisibleSideBets);
     document.addEventListener("visibilitychange", refreshVisibleSideBets);

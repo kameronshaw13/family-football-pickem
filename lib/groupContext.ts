@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game, WeekRule } from "@/lib/types";
 import { getGameLockTime, getPickWeekOpenTime, getSpreadFreezeTime } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
+import { createAsyncCache } from "@/lib/asyncCache";
 
 export const DEFAULT_GROUP_SLUG = "shaw-family";
 export const GROUP_COOKIE = "pickem_group";
@@ -69,7 +70,7 @@ export async function listActiveGroupsForProfile(supabase: SupabaseClient, profi
   }).sort((a, b) => Number(b.isDefault) - Number(a.isDefault) || a.name.localeCompare(b.name));
 }
 
-export async function resolveGroupContext(supabase: SupabaseClient, profileId: string, requestedGroup?: string | null): Promise<GroupContext> {
+async function loadGroupContext(supabase: SupabaseClient, profileId: string, requestedGroup?: string | null): Promise<GroupContext> {
   const groups = await listActiveGroupsForProfile(supabase, profileId);
   if (!groups.length) throw new Error("Your account is not assigned to an active Pick'em group.");
   const requested = requestedGroup?.trim();
@@ -90,6 +91,13 @@ export async function resolveGroupContext(supabase: SupabaseClient, profileId: s
   }).sort((a, b) => a.display_name.localeCompare(b.display_name));
 
   return { group, seasonYear: Number(season.season_year), seasonStatus: season.status, rules: season.rules || {}, members };
+}
+
+const groupContextCache = createAsyncCache<GroupContext>(10_000, 128);
+
+export async function resolveGroupContext(supabase: SupabaseClient, profileId: string, requestedGroup?: string | null): Promise<GroupContext> {
+  const requested = requestedGroup?.trim() || "";
+  return groupContextCache(`${profileId}:${requested}`, () => loadGroupContext(supabase, profileId, requestedGroup));
 }
 
 export function requestedGroupFromRequest(req: Request) {
