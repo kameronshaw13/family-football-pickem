@@ -956,8 +956,8 @@
 }
 
 
-/* 2026-10-03: restore the text middle-dot look, but size it relative
-   to whatever text it sits beside so it stays balanced across the app. */
+/* 2026-10-03: keep the text middle-dot look, scale it relative to
+   surrounding text, and optically center the glyph within the line. */
 .text-separator-dot,
 .dog-separator,
 .live-situation-dot,
@@ -971,11 +971,11 @@
   border-radius: 0;
   color: currentColor;
   background: none;
-  font-size: 1.1em;
+  font-size: 1.2em;
   font-weight: 800;
   line-height: inherit;
   vertical-align: baseline;
-  transform: none;
+  transform: translateY(0.08em);
 }
 
 /* Keep the entire ledger summary line at one stronger neutral contrast,
