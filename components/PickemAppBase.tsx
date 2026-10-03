@@ -1767,7 +1767,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
               body: JSON.stringify({ action: "expireLiveScores", offers: changedLiveOffers, viewWeek: week })
             })
-              .then(async (response) => response.ok ? response.json() as Promise<SideBetSnapshot> : null)
+              .then(async (response) => {
+                if (!response.ok) return null;
+                return await response.json() as SideBetSnapshot;
+              })
               .then((payload) => {
                 if (!payload) return;
                 applySideBetSnapshot({ ...payload, sideBets: payload.sideBets || [] }, requestId);
@@ -1800,7 +1803,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       window.removeEventListener("online", refreshOnResume);
       document.removeEventListener("visibilitychange", refreshOnResume);
     };
-  }, [appSlug, hasActiveGames, load, week]);
+  }, [appSlug, applySideBetSnapshot, hasActiveGames, load, refreshNotificationCounts, week]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 3200);
