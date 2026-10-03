@@ -2143,7 +2143,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       offerPhase: options.offerPhase,
       creatorSpread: options.marketType === "spread" ? options.creatorSpread : 0,
       totalPoints: options.marketType === "total" ? options.totalPoints : undefined,
-      creatorOdds: options.creatorOdds
+      creatorOdds: options.creatorOdds,
+      visibleLiveHomeScore: options.offerPhase === "live" ? selectedBetGame.live_home_score ?? undefined : undefined,
+      visibleLiveAwayScore: options.offerPhase === "live" ? selectedBetGame.live_away_score ?? undefined : undefined
     });
     if (ok) {
       setBetGameId("");

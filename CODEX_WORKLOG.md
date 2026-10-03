@@ -1,6 +1,6 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
-**Last updated:** 2026-09-03  
+**Last updated:** 2026-10-02  
 **Current production baseline when this file was created:** `79ef0c88b7377cbf1fc9ae3d3f0c93a854791885`  
 **Production status at creation:** Vercel READY
 
@@ -33,10 +33,10 @@
 
 ## 2. Current production state
 
-Current live baseline at the time this file was created:
+Current production baseline before the live-offer expiration hardening:
 
-- `main`: `79ef0c88b7377cbf1fc9ae3d3f0c93a854791885`
-- Commit message: **Restore base league empty row styling and lock weight**
+- `main`: `38a06ebf656805ea92276aafd177b2c807c2016e`
+- Commit message: **Confirm live score changes before expiring offers**
 - Vercel production: **READY**
 
 Important effective styling in `components/Batch1bSideBetStyles.tsx`:
@@ -146,6 +146,25 @@ Current approach:
 - this replaced the earlier unreliable `:has()`-dependent sizing behavior
 
 If Clear fails again, trace the status/presentation logic first. Do not add another independent height rule for each status.
+
+---
+
+## 4. LIVE SIDE-BET EXPIRATION RELIABILITY
+
+**Status: IMPLEMENTED and preview/build verified on `fix/live-offer-visible-score-20261002`; ready for production promotion.**
+
+- Live offers now send the score visible in the app at the moment the user submits the offer.
+- The server rejects creation if the visible score total and fresh ESPN score total changed during submission.
+- Missing/null score values remain unknown instead of being coerced to 0-0.
+- A higher live score no longer expires an offer on the first observation.
+- Expiration now requires the same higher score to remain confirmed for 20 seconds while ESPN event-summary and scoreboard feeds agree exactly.
+- If the score reverts or the feeds disagree, the pending expiration candidate is cleared.
+- Accept is blocked while a possible score change is being confirmed, preventing acceptance of a stale line during the confirmation window.
+- Final games still expire open live offers immediately.
+- Supabase migration `20261003001451_add_live_score_confirmation_state.sql` adds the nullable confirmation-state columns.
+- Unit coverage lives in `tests/liveOfferExpiration.test.ts`.
+
+The user explicitly asked to leave the previously expired +13.5 offer alone; do not repair or recreate that historical offer.
 
 ---
 

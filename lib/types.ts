@@ -149,6 +149,8 @@ export type SideBet = {
   creator_odds?: number;
   live_offer_home_score?: number | null;
   live_offer_away_score?: number | null;
+  live_score_candidate_total?: number | null;
+  live_score_candidate_seen_at?: string | null;
   amount: number;
   status: SideBetStatus;
   accepted_by: string | null;
