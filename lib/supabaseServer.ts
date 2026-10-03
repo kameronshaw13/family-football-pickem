@@ -1,11 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 
+let supabaseAdmin: any = null;
+
 export function getSupabaseAdmin() {
+  if (supabaseAdmin) return supabaseAdmin;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("Missing Supabase server environment variables.");
 
-  return createClient<any>(url, key, {
+  supabaseAdmin = createClient<any>(url, key, {
     accessToken: async () => key,
     auth: {
       autoRefreshToken: false,
@@ -13,4 +16,5 @@ export function getSupabaseAdmin() {
       detectSessionInUrl: false
     }
   });
+  return supabaseAdmin;
 }
