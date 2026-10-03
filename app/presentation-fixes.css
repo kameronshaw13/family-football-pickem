@@ -1121,3 +1121,62 @@
 .confirmation-market-line .ui-separator-dot {
   flex: 0 0 auto;
 }
+
+
+/* 2026-10-03: explicit one-row market reference.
+   Each market leg stays intact, while spaces inside "+15.5 -110" remain normal text spaces. */
+.side-bet-market-reference .side-bet-market-inline,
+.confirmation-market-line .side-bet-market-inline {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.side-bet-market-reference .side-bet-market-leg,
+.confirmation-market-line .side-bet-market-leg {
+  display: inline-block;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.side-bet-market-reference .side-bet-market-leg .numeric-token,
+.confirmation-market-line .side-bet-market-leg .numeric-token {
+  display: inline;
+  width: auto;
+  max-width: none;
+  white-space: nowrap !important;
+}
+.side-bet-market-reference .side-bet-market-leg .numeric-fragment,
+.confirmation-market-line .side-bet-market-leg .numeric-fragment {
+  display: inline;
+  white-space: nowrap;
+}
+.side-bet-market-reference .side-bet-market-dot,
+.confirmation-market-line .side-bet-market-dot {
+  flex: 0 0 auto;
+}
+
+/* Side Bet Ledger overview: one type size and one visual bottom line.
+   Keep the current circle and slash spacing/position intact. */
+.side-bet-ledger-summary {
+  align-items: flex-end !important;
+}
+.side-bet-ledger-summary .side-bet-ledger-summary-label,
+.side-bet-ledger-summary > span:not(.ui-separator-dot) {
+  font-size: inherit !important;
+  line-height: 1 !important;
+}
+.side-bet-ledger-summary .money-pos,
+.side-bet-ledger-summary .money-neg,
+.side-bet-ledger-summary .money-neutral,
+.side-bet-ledger-summary .side-bet-potential-profit,
+.side-bet-ledger-summary .side-bet-potential-loss {
+  font-size: inherit !important;
+  line-height: 1 !important;
+  transform: none !important;
+  align-self: flex-end;
+}
+.side-bet-ledger-summary .side-bet-potential-separator {
+  line-height: 1 !important;
+  align-self: flex-end;
+}
