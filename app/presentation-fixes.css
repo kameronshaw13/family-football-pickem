@@ -964,7 +964,7 @@
   width: clamp(2.5px, 0.28em, 4px);
   height: clamp(2.5px, 0.28em, 4px);
   flex: 0 0 auto;
-  margin-inline: 0.25em;
+  margin-inline: 0.5em;
   overflow: hidden;
   border-radius: 50%;
   color: transparent !important;
@@ -987,7 +987,7 @@
 .side-bet-response-value,
 .side-bet-response-measure {
   align-items: center !important;
-  gap: 0.25em !important;
+  gap: 0.5em !important;
 }
 .side-bet-response-value > span:has(> .ui-separator-dot),
 .side-bet-response-measure > span:has(> .ui-separator-dot) {
@@ -996,7 +996,7 @@
 }
 .side-bet-response-line .ui-separator-dot {
   margin-left: 0;
-  margin-right: 0.25em;
+  margin-right: 0.5em;
   align-self: center;
   transform: none;
 }
@@ -1006,7 +1006,7 @@
    The row gap itself becomes the separator spacing, so dots add no extra margin. */
 .side-bet-ledger-meta {
   align-items: center !important;
-  gap: 0.25em !important;
+  gap: 0.5em !important;
 }
 .side-bet-ledger-summary {
   align-items: center !important;
