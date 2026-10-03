@@ -59,6 +59,21 @@ test("cancelled offers identify the sender in offer history", () => {
   });
 });
 
+test("expired offers remain only in the sender's offer history", () => {
+  const expired = bet({ status: "expired" });
+
+  assert.deepEqual(sideBetsForView([expired], "sender", "sent").map((row) => row.id), ["bet-1"]);
+  assert.deepEqual(sideBetsForView([expired], "recipient", "received").map((row) => row.id), []);
+
+  const senderRow = sideBetsForView([expired], "sender", "sent")[0];
+  assert.deepEqual(sideBetResponseSummary(senderRow, "sender", "sent"), {
+    subjectFull: "Offer",
+    subjectCompact: "Offer",
+    action: "Expired",
+    tone: "declined"
+  });
+});
+
 test("pending status follows the current recipient response", () => {
   const open = bet();
   assert.equal(sideBetOfferIsPending(open, "sender", "sent"), true);

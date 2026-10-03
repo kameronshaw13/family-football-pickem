@@ -32,9 +32,9 @@ export function sideBetsForView(bets: SideBet[], userId: string, mode: SideBetVi
     if (mode === "sent") return bet.creator_id === userId;
     if (bet.creator_id === userId) return false;
 
-    // A creator should retain a cancelled offer in their own history, but
-    // recipients should not keep cancelled offers in their Offers history.
-    if (bet.status === "cancelled") return false;
+    // Closed offers that expire or are cancelled stay in the sender's
+    // Offer History only; recipients should not retain those rows.
+    if (bet.status === "cancelled" || bet.status === "expired") return false;
 
     // Once an offer has been accepted, it becomes a two-person bet. Other
     // original recipients should no longer see that accepted/settled bet in
