@@ -468,11 +468,18 @@ function liveSituationStatus(game: Game) {
   return (game.live_situation?.trim() || "").replace(/\s+at\s+/i, " · ");
 }
 
+function LivePeriodText({ game }: { game: Game }) {
+  const status = livePeriodStatus(game);
+  const parts = status.split(/\s*·\s*/, 2);
+  if (parts.length < 2) return <NumericText text={status} />;
+  return <><NumericText text={parts[0]} /><span className="live-header-dot ui-separator-dot">·</span><NumericText text={parts[1]} /></>;
+}
+
 function LiveSituationText({ game }: { game: Game }) {
   const situation = game.live_situation?.trim() || "";
   const match = situation.match(/^(.*?)\s+at\s+(.+)$/i);
   if (!match) return <NumericText text={situation} />;
-  return <><NumericText text={match[1]} /><span className="live-situation-dot ui-separator-dot">·</span><span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={match[2]} /></span></>;
+  return <><NumericText text={match[1]} /><span className="live-header-dot ui-separator-dot">·</span><span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={match[2]} /></span></>;
 }
 function liveGameStatus(game: Game) {
   const status = livePeriodStatus(game);
@@ -3498,7 +3505,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
 
   return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${!weekIsOpen && !gameIsLive && !gameIsFinal ? "locked-out" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
     <div className={`game-head compact-game-head ${gameIsLive ? "live-tracker-head" : ""}`.trim()}>
-      <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status"><NumericText text={livePeriodStatus(game)} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}</div>
+      <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status"><LivePeriodText game={game} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}</div>
       {gameIsLive && <button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>GameTracker</button>}
       {gameIsLive && liveSituation && <div className="game-live-situation"><LiveSituationText game={game} /></div>}
       {!gameIsLive && <div className="matchup-preview-actions">{modelStars > 0 && game.league === "CFB" && !gameIsFinal && <span className="board-model-stars" aria-label={`${modelStars} model edge star${modelStars === 1 ? "" : "s"}`}>{"★".repeat(modelStars)}</span>}<button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>{gameIsFinal ? "GameTracker" : "Matchup Preview"}</button></div>}
