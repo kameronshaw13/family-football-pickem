@@ -140,17 +140,21 @@ function gameCenterState(payload: TrackerPayload | null, game: Game) {
 function gameCenterSituation(payload: TrackerPayload | null) {
   if (!payload) return "";
   const situation = payload.situation;
+  const redZonePosition = (position: string) => position
+    ? `${position}${situation.redZone ? " in Red" : ""}`
+    : situation.redZone ? "Red Zone" : "";
   const direct = String(situation.downDistanceText || "").trim();
   if (direct) {
-    if (/\bat\s+/i.test(direct)) return direct.replace(/\s+at\s+/i, " · ");
-    return [direct, situation.fieldPosition].filter(Boolean).join(" · ");
+    const atMatch = direct.match(/^(.*?)\s+at\s+(.+)$/i);
+    if (atMatch) return [atMatch[1], redZonePosition(atMatch[2])].filter(Boolean).join(" · ");
+    return [direct, redZonePosition(situation.fieldPosition)].filter(Boolean).join(" · ");
   }
   if (situation.down != null) {
     const suffix = situation.down === 1 ? "st" : situation.down === 2 ? "nd" : situation.down === 3 ? "rd" : "th";
     const downDistance = `${situation.down}${suffix} & ${situation.distance != null ? situation.distance : "Goal"}`;
-    return [downDistance, situation.fieldPosition].filter(Boolean).join(" · ");
+    return [downDistance, redZonePosition(situation.fieldPosition)].filter(Boolean).join(" · ");
   }
-  return situation.fieldPosition || "";
+  return redZonePosition(situation.fieldPosition);
 }
 
 function ScoreboardCenter({ payload, game, completed }: { payload: TrackerPayload | null; game: Game; completed: boolean }) {
@@ -583,11 +587,11 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
         if (!active) return;
         setPayload(next);
         setError("");
-        if (!next.status.completed) timer = window.setTimeout(refresh, 5000);
+        if (!next.status.completed) timer = window.setTimeout(refresh, 3000);
       } catch (cause) {
         if (!active) return;
         setError(cause instanceof Error ? cause.message : "Could not load GameTracker.");
-        timer = window.setTimeout(refresh, 10000);
+        timer = window.setTimeout(refresh, 5000);
       }
     };
     void refresh();

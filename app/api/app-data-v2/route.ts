@@ -51,14 +51,54 @@ export async function GET(req: NextRequest) {
         .map((value) => String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, " "))
         .join(":");
       const prior = unique.get(key);
-      const gameIsFinal = game.final_away_score != null && game.final_home_score != null;
-      const priorIsFinal = prior?.final_away_score != null && prior?.final_home_score != null;
-      const gameUpdatedAt = new Date(game.updated_at || 0).getTime();
-      const priorUpdatedAt = new Date(prior?.updated_at || 0).getTime();
-
-      if (!prior || (gameIsFinal && !priorIsFinal) || (gameIsFinal === priorIsFinal && gameUpdatedAt > priorUpdatedAt)) {
+      if (!prior) {
         unique.set(key, game);
+        continue;
       }
+
+      const gameHasSpread = game.current_spread_team != null && game.current_spread != null;
+      const priorHasSpread = prior.current_spread_team != null && prior.current_spread != null;
+      const gameIsFinal = game.final_away_score != null && game.final_home_score != null;
+      const priorIsFinal = prior.final_away_score != null && prior.final_home_score != null;
+      const gameUpdatedAt = new Date(game.updated_at || 0).getTime();
+      const priorUpdatedAt = new Date(prior.updated_at || 0).getTime();
+
+      // A spread-bearing row is the canonical Pick Board identity because picks,
+      // side bets and odds snapshots are attached to that row. ESPN schedule
+      // refreshes historically created a second event-id row with scores but no
+      // spread; preferring the newer final row made completed games lose their line.
+      const preferred = gameHasSpread !== priorHasSpread
+        ? (gameHasSpread ? game : prior)
+        : gameIsFinal !== priorIsFinal
+          ? (gameIsFinal ? game : prior)
+          : gameUpdatedAt >= priorUpdatedAt ? game : prior;
+      const other = preferred === game ? prior : game;
+      const newest = gameUpdatedAt >= priorUpdatedAt ? game : prior;
+
+      unique.set(key, {
+        ...preferred,
+        espn_event_id: preferred.espn_event_id || other.espn_event_id || null,
+        home_logo_url: preferred.home_logo_url || other.home_logo_url || null,
+        away_logo_url: preferred.away_logo_url || other.away_logo_url || null,
+        home_rank: preferred.home_rank ?? other.home_rank ?? null,
+        away_rank: preferred.away_rank ?? other.away_rank ?? null,
+        final_home_score: preferred.final_home_score ?? other.final_home_score ?? null,
+        final_away_score: preferred.final_away_score ?? other.final_away_score ?? null,
+        live_home_score: newest.live_home_score ?? preferred.live_home_score ?? other.live_home_score ?? null,
+        live_away_score: newest.live_away_score ?? preferred.live_away_score ?? other.live_away_score ?? null,
+        live_status: newest.live_status ?? preferred.live_status ?? other.live_status ?? null,
+        live_state: newest.live_state ?? preferred.live_state ?? other.live_state ?? null,
+        live_completed: Boolean(newest.live_completed || preferred.live_completed || other.live_completed),
+        live_possession_team: newest.live_possession_team ?? preferred.live_possession_team ?? other.live_possession_team ?? null,
+        live_situation: newest.live_situation ?? preferred.live_situation ?? other.live_situation ?? null,
+        live_red_zone: Boolean(newest.live_red_zone ?? preferred.live_red_zone ?? other.live_red_zone),
+        live_down: newest.live_down ?? preferred.live_down ?? other.live_down ?? null,
+        live_distance: newest.live_distance ?? preferred.live_distance ?? other.live_distance ?? null,
+        live_yards_to_goal: newest.live_yards_to_goal ?? preferred.live_yards_to_goal ?? other.live_yards_to_goal ?? null,
+        live_home_timeouts: newest.live_home_timeouts ?? preferred.live_home_timeouts ?? other.live_home_timeouts ?? null,
+        live_away_timeouts: newest.live_away_timeouts ?? preferred.live_away_timeouts ?? other.live_away_timeouts ?? null,
+        updated_at: newest.updated_at || preferred.updated_at
+      });
     }
     const allGames = Array.from(unique.values()).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
     const standingsWeeks = Array.from(new Set(allGames.map((game) => Number(game.week)))).sort((a, b) => a - b);
@@ -82,7 +122,16 @@ export async function GET(req: NextRequest) {
 
     let allSideBets = sideBetResult.data || [];
     const expiredIds = allSideBets
-      .filter((bet: any) => bet.status === "open" && bet.game && new Date(bet.game.commence_time) <= now)
+      .filter((bet: any) => {
+        if (bet.status !== "open" || !bet.game) return false;
+        if (bet.offer_phase === "live") {
+          return Boolean(
+            bet.game.live_completed ||
+            (bet.game.final_home_score != null && bet.game.final_away_score != null)
+          );
+        }
+        return new Date(bet.game.commence_time) <= now;
+      })
       .map((bet: any) => bet.id);
     if (expiredIds.length) {
       await Promise.all([

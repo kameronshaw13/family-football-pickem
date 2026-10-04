@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
-import { fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
+import { fetchEspnEvent, fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
@@ -75,7 +75,23 @@ export async function GET(req: NextRequest) {
     let needsFinalization = false;
 
     for (const game of candidates || []) {
-      const match = await resolveEspnScheduleMatch(game, schedules.get(game.league) || [], game.league as "CFB" | "NFL", { freshness: 4 });
+      const league = game.league as "CFB" | "NFL";
+      let match = await resolveEspnScheduleMatch(game, schedules.get(game.league) || [], league, { freshness: 4 });
+
+      // ESPN's date scoreboard occasionally returns the event shell before it
+      // fills in a score (most often on smaller college games). When that
+      // happens, query the exact event summary rather than leaving the board on
+      // "Score updating" until the scoreboard feed catches up or the game ends.
+      if (!match || match.game.homeScore == null || match.game.awayScore == null) {
+        const eventId = String(game.espn_event_id || match?.game.id || "");
+        if (eventId) {
+          const exact = await fetchEspnEvent(league, eventId, true);
+          if (exact) {
+            const exactMatch = await resolveEspnScheduleMatch(game, [exact], league, { freshness: true });
+            if (exactMatch) match = exactMatch;
+          }
+        }
+      }
       if (!match || match.game.homeScore == null || match.game.awayScore == null) continue;
 
       const homeScore = match.swapped ? match.game.awayScore : match.game.homeScore;

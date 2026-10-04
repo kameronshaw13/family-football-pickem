@@ -122,7 +122,7 @@ export async function syncUpcomingFootballSchedule(
       const matchupKey = matchupIdentityKey(league, event.awayTeam.displayName, event.homeTeam.displayName);
       const existing = existingByMatchup.get(matchupKey);
       const row = {
-        id: existingByEspnId.get(event.id) || event.id,
+        id: existing?.id || existingByEspnId.get(event.id) || event.id,
         espn_event_id: event.id,
         week: getFootballWeek(event.commenceTime),
         league,
