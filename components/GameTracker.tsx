@@ -143,6 +143,11 @@ function gameCenterSituation(payload: TrackerPayload | null) {
   const redZonePosition = (position: string) => position
     ? `${position}${situation.redZone ? " in Red" : ""}`
     : situation.redZone ? "Red Zone" : "";
+
+  // In the red zone, keep the top header focused on field position only.
+  // Down/distance still remains available in the live play/drive details.
+  if (situation.redZone) return redZonePosition(situation.fieldPosition);
+
   const direct = String(situation.downDistanceText || "").trim();
   if (direct) {
     const atMatch = direct.match(/^(.*?)\s+at\s+(.+)$/i);
