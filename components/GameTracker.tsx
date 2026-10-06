@@ -5,7 +5,7 @@ import Image from "next/image";
 import { createPortal } from "react-dom";
 import { ChevronDown, LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
-import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
+import { teamDisplayName } from "@/lib/teamNames";
 
 type TrackerTab = "live" | "scoring" | "plays" | "box";
 type Side = "away" | "home";
