@@ -661,3 +661,55 @@
 .model-spread-average { border-bottom: 0; background: var(--surface-soft); }
 .model-spread-average > span,
 .model-spread-average > strong { font-weight: 900; }
+
+
+/* 2026-10-06 full-width phone-first matchup sheet. */
+.matchup-preview-backdrop {
+  top: calc(env(safe-area-inset-top) + var(--header-height));
+  right: 0;
+  bottom: 0;
+  left: 0;
+  align-items: flex-end;
+  justify-content: stretch;
+  padding: 0;
+}
+.matchup-preview-sheet {
+  width: 100%;
+  height: calc(100dvh - env(safe-area-inset-top) - var(--header-height));
+  max-height: none;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 0;
+  box-shadow: 0 -8px 22px rgba(20, 33, 43, .12);
+}
+.matchup-preview-matchup-line {
+  flex: 0 0 auto;
+  padding: 7px 12px 5px;
+  color: var(--ink);
+  background: var(--panel);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+}
+.matchup-preview-kickoff {
+  padding-top: 2px;
+}
+.matchup-preview-scroll {
+  scrollbar-width: none;
+  scrollbar-gutter: auto;
+}
+.matchup-preview-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+}
+@media (max-width: 520px) {
+  .matchup-preview-backdrop { padding: 0; }
+  .matchup-preview-sheet {
+    width: 100%;
+    height: calc(100dvh - env(safe-area-inset-top) - var(--header-height));
+  }
+}
