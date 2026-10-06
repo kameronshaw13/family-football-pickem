@@ -4,11 +4,7 @@ import type { Game, SideBetMarketQuote, SideBetOfferPhase } from "@/lib/types";
 const ACTION_BASE = "https://api.actionnetwork.com/web/v1/scoreboard";
 const ACTION_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15";
 const DRAFTKINGS_BOOK_ID = 15;
-const FANDUEL_BOOK_ID = 30;
-const BETMGM_BOOK_ID = 75;
-const CAESARS_BOOK_ID = 123;
-const BETRIVERS_BOOK_ID = 68;
-const ACTION_FALLBACK_BOOK_IDS = [DRAFTKINGS_BOOK_ID, FANDUEL_BOOK_ID, BETMGM_BOOK_ID, CAESARS_BOOK_ID, BETRIVERS_BOOK_ID];
+const ACTION_BOOK_IDS = [DRAFTKINGS_BOOK_ID];
 const LIVE_MAX_AGE_SECONDS = 45;
 const ACTION_CACHE_MS = 5_000;
 const actionLeagueRequestCache = new Map<string, { expiresAt: number; promise: Promise<ActionGame[]> }>();
@@ -162,26 +158,17 @@ function rowAgeSeconds(row: ActionOddsRow, now = Date.now()) {
   return Number.isFinite(inserted) ? (now - inserted) / 1000 : null;
 }
 
-function bookPriority(row: ActionOddsRow) {
-  const bookId = Number(row.book_id);
-  if (bookId === DRAFTKINGS_BOOK_ID) return 0;
-  if (bookId === FANDUEL_BOOK_ID) return 1;
-  if (bookId === BETMGM_BOOK_ID) return 2;
-  if (bookId === CAESARS_BOOK_ID) return 3;
-  if (bookId === BETRIVERS_BOOK_ID) return 4;
-  return 5;
-}
-
 function sortPreferredMarketRows(rows: ActionOddsRow[]) {
-  return [...rows].sort((a, b) => {
-    const priority = bookPriority(a) - bookPriority(b);
-    if (priority !== 0) return priority;
-    return new Date(b.inserted || 0).getTime() - new Date(a.inserted || 0).getTime();
-  });
+  return [...rows].sort((a, b) =>
+    new Date(b.inserted || 0).getTime() - new Date(a.inserted || 0).getTime()
+  );
 }
 
 function marketRowsForPhase(game: ActionGame, phase: SideBetOfferPhase) {
   const rows = (game.odds || [])
+    // DraftKings is the market source of truth. Fail closed when DK has no
+    // usable row instead of silently substituting a different sportsbook.
+    .filter((row) => Number(row.book_id) === DRAFTKINGS_BOOK_ID)
     .filter((row) => phase === "live" ? row.type === "live" : row.type === "game")
     .filter((row) => phase !== "live" || (() => {
       const age = rowAgeSeconds(row);
@@ -192,9 +179,8 @@ function marketRowsForPhase(game: ActionGame, phase: SideBetOfferPhase) {
 }
 
 function spreadRow(rows: ActionOddsRow[]) {
-  // Rows are already sorted DraftKings first, then our fallback books. Use the
-  // first valid two-way spread so DraftKings remains the source of truth when
-  // it is available, while still rejecting malformed provider data.
+  // Rows are DraftKings-only and newest-first. Use the newest valid two-way
+  // spread while still rejecting malformed provider data.
   return rows.find((row) => {
     const awayPoint = finiteNumber(row.spread_away);
     const homePoint = finiteNumber(row.spread_home);
@@ -230,7 +216,7 @@ async function fetchActionLeagueQuery(
   const request = (async () => {
     const path = league === "NFL" ? "nfl" : "ncaaf";
     const params = new URLSearchParams({
-      bookIds: ACTION_FALLBACK_BOOK_IDS.join(","),
+      bookIds: ACTION_BOOK_IDS.join(","),
       [selectorKey]: selectorValue
     });
     if (league === "CFB") params.set("division", "FBS");
