@@ -297,7 +297,7 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
     <div className="game-tracker-live-meta">
       <div className="game-tracker-possession-label">
         <TeamLogo src={offense.logo} name={offense.name} size={22} />
-        <strong>{offense.shortName || offense.name}</strong>
+        <strong>{trackerTeamLabel(offense)}</strong>
         <span>Ball</span>
       </div>
     </div>
@@ -533,7 +533,7 @@ function TeamBox({ payload, side }: { payload: TrackerPayload; side: Side }) {
   return <div className="game-tracker-team-box">
     <div className="game-tracker-team-box-heading">
       <TeamLogo src={team.logo} name={team.name} size={30} />
-      <strong>{team.name}</strong>
+      <strong>{trackerTeamLabel(team)}</strong>
     </div>
     {rows.length ? rows.map((row) => <section className="game-tracker-box-section" key={row.category}>
       <h3>{row.title}</h3>
