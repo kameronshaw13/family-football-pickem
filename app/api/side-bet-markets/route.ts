@@ -35,7 +35,13 @@ export async function GET(req: NextRequest) {
     const eligible = (games || []).filter((game) => isGameAllowedForGroup(context, game));
     const markets = await fetchActionNetworkMarkets(eligible);
     const persisted = await persistActionNetworkSpreads(supabase, eligible, markets, new Date());
-    return NextResponse.json({ ok: true, markets, gamesUpdated: persisted.gamesUpdated }, { headers: NO_STORE_HEADERS });
+    const schedule = eligible.map((game) => ({
+      id: game.id,
+      commence_time: game.commence_time,
+      lock_time: game.lock_time,
+      is_locked: game.is_locked
+    }));
+    return NextResponse.json({ ok: true, markets, schedule, gamesUpdated: persisted.gamesUpdated }, { headers: NO_STORE_HEADERS });
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Could not load side bet markets." },
