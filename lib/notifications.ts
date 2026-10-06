@@ -3,6 +3,7 @@ import webPush, { WebPushError, type PushSubscription } from "web-push";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { waitUntil } from "@vercel/functions";
 import { notificationTeamName } from "@/lib/notificationTeamName";
+import { notificationMoney } from "@/lib/notificationMoney";
 import { countUnreadNotifications, type NotificationCounts, type NotificationDestination } from "@/lib/notificationCounts";
 
 export type { NotificationCounts, NotificationDestination } from "@/lib/notificationCounts";
@@ -154,11 +155,12 @@ async function inferGroupId(supabase: SupabaseClient, input: NotificationInput) 
 }
 
 function normalizeSideBetMoneySegment(segment: string) {
-  if (/^\d+(?:\.\d{1,2})?$/.test(segment)) return `${segment}`;
+  const standalone = segment.match(/^(\d+(?:\.\d{1,2})?)$/);
+  if (standalone) return notificationMoney(Number(standalone[1]));
   return segment
-    .replace(/\bRisk\s+\$?(\d+(?:\.\d{1,2})?)/g, "Risk $$1")
-    .replace(/\bto win\s+\$?(\d+(?:\.\d{1,2})?)/g, "to win $$1")
-    .replace(/\b(Won|Lost|Pushed)\s+\$?(\d+(?:\.\d{1,2})?)/g, "$1 $$2");
+    .replace(/\bRisk\s+\$?(\d+(?:\.\d{1,2})?)/g, (_match, value) => `Risk ${notificationMoney(Number(value))}`)
+    .replace(/\bto win\s+\$?(\d+(?:\.\d{1,2})?)/g, (_match, value) => `to win ${notificationMoney(Number(value))}`)
+    .replace(/\b(Won|Lost|Pushed)\s+\$?(\d+(?:\.\d{1,2})?)/g, (_match, label, value) => `${label} ${notificationMoney(Number(value))}`);
 }
 
 function normalizeSideBetMarketSegment(segment: string, league?: string) {
