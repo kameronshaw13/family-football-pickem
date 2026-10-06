@@ -693,3 +693,228 @@
   width: 100%;
   height: 100%;
 }
+
+
+/* 2026-10-06 GameTracker phone-first polish batch. */
+.game-tracker-backdrop {
+  top: calc(env(safe-area-inset-top) + var(--header-height));
+  right: 0;
+  bottom: 0;
+  left: 0;
+  align-items: flex-end;
+  justify-content: stretch;
+  padding: 0;
+}
+.game-tracker-sheet {
+  width: 100%;
+  height: calc(100dvh - env(safe-area-inset-top) - var(--header-height));
+  max-height: none;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 0;
+  box-shadow: 0 -8px 22px rgba(20, 33, 43, .12);
+}
+.game-tracker-header > span {
+  max-width: calc(100% - 96px);
+  overflow: hidden;
+  font-size: 12px;
+  letter-spacing: .04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.game-tracker-scoreboard-grid {
+  min-height: 98px;
+  grid-template-columns: minmax(0, 1fr) minmax(112px, 124px) minmax(0, 1fr);
+  padding: 8px 10px;
+}
+.game-tracker-score-team-name {
+  display: inline-flex;
+  width: 100%;
+  max-width: none;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  padding-inline: 2px;
+  font-size: clamp(11.5px, 3.4vw, 15px);
+  text-overflow: clip;
+}
+.game-tracker-team-rank {
+  flex: 0 0 auto;
+  color: var(--ink);
+  font-size: .72em;
+  font-weight: 900;
+}
+.game-tracker-score-team-main { gap: 12px; }
+.game-tracker-score-team-main > img,
+.game-tracker-score-team-main > .game-tracker-logo-fallback {
+  width: 44px;
+  height: 44px;
+}
+.game-tracker-score-stack > b { font-size: 27px; }
+
+.game-tracker-tabs { height: 46px; padding-inline: 8px; }
+.game-tracker-tabs button { font-size: 13px; }
+
+.game-tracker-scroll,
+.game-tracker-player-table-scroll {
+  scrollbar-width: none;
+}
+.game-tracker-scroll::-webkit-scrollbar,
+.game-tracker-player-table-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.game-tracker-scroll { scrollbar-gutter: auto; }
+
+.game-tracker-endzone {
+  gap: 4px;
+  align-content: center;
+}
+.game-tracker-endzone img,
+.game-tracker-endzone .game-tracker-logo-fallback {
+  width: 20px;
+  height: 20px;
+  filter:
+    drop-shadow(0 0 1px rgba(255,255,255,.98))
+    drop-shadow(0 0 2px rgba(255,255,255,.9));
+}
+.game-tracker-endzone > span {
+  max-height: 82px;
+  font-size: 8px;
+  text-align: center;
+}
+.game-tracker-field-football {
+  width: 22px;
+  height: 13px;
+}
+
+/* Scoring rows: scoring-team logo, score type/time, drive detail, score delta. */
+.game-tracker-score-play {
+  min-height: 74px;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 9px;
+  padding-block: 9px;
+}
+.game-tracker-scoring-team-logo {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+}
+.game-tracker-scoring-team-logo img,
+.game-tracker-scoring-team-logo .game-tracker-logo-fallback {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+.game-tracker-scoring-copy { min-width: 0; }
+.game-tracker-scoring-meta {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.game-tracker-scoring-meta strong {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+.game-tracker-scoring-meta time {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.game-tracker-scoring-copy > p {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.3;
+}
+.game-tracker-scoring-copy > small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  text-transform: none;
+}
+.game-tracker-score-values b.unchanged { color: var(--muted); }
+.game-tracker-score-values b.changed { color: var(--ink); }
+
+/* Play rows: down/field position + result share the top line; clock leads the description. */
+.game-tracker-play-context {
+  justify-content: space-between;
+  gap: 8px;
+}
+.game-tracker-play-context > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.game-tracker-play-context .game-tracker-play-outcome {
+  flex: 0 0 auto;
+  align-self: baseline;
+}
+.game-tracker-drive-play > div > strong time {
+  margin-right: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Box score: more player-name room, tighter stats, no visible scrollbars. */
+.game-tracker-box-selector button {
+  min-width: 0;
+  padding-inline: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.game-tracker-stat-team b {
+  max-width: 100%;
+  white-space: nowrap;
+}
+.game-tracker-player-table { min-width: 390px; }
+.game-tracker-player-table th:first-child,
+.game-tracker-player-table td:first-child {
+  width: 118px;
+  min-width: 118px;
+  max-width: 118px;
+}
+.game-tracker-player-table th:not(:first-child),
+.game-tracker-player-table td:not(:first-child) {
+  min-width: 36px;
+  padding-inline: 3px;
+}
+
+@media (max-width: 520px) {
+  .game-tracker-backdrop { padding: 0; }
+  .game-tracker-sheet {
+    width: 100%;
+    height: calc(100dvh - env(safe-area-inset-top) - var(--header-height));
+  }
+  .game-tracker-scoreboard-grid {
+    min-height: 94px;
+    grid-template-columns: minmax(0, 1fr) minmax(102px, 112px) minmax(0, 1fr);
+    padding: 7px 6px;
+  }
+  .game-tracker-score-team-name {
+    max-width: none;
+    font-size: clamp(11px, 3.35vw, 13px);
+  }
+  .game-tracker-score-team-main { gap: 9px; }
+  .game-tracker-score-team-main > img,
+  .game-tracker-score-team-main > .game-tracker-logo-fallback {
+    width: 39px;
+    height: 39px;
+  }
+  .game-tracker-score-stack > b { font-size: 24px; }
+  .game-tracker-tabs button { font-size: 12.5px; }
+}
