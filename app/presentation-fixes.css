@@ -981,6 +981,13 @@
   align-self: center;
 }
 
+/* Dog pick separator: match the normal card text instead of the muted
+   global separator color, with a touch more breathing room. */
+.pick-title-market .dog-separator.ui-separator-dot {
+  margin-inline: 0.36em;
+  background: var(--ink);
+}
+
 /* Pending Offers + Offer History:
    restore the original 3px spacing between normal text tokens.
    Only the date separator receives the wider My Card-style breathing room. */
