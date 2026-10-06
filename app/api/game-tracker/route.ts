@@ -69,7 +69,7 @@ function playOutcome(play: any) {
 
   const yards = finite(play?.statYardage ?? play?.yards);
   if (yards === 0) return "No Gain";
-  if (yards != null) return `${yards > 0 ? "+" : ""}${yards} YD`;
+  if (yards != null) return `${yards} YD`;
   return "";
 }
 
@@ -362,8 +362,9 @@ export async function GET(req: NextRequest) {
     const kickoff = /kickoff/.test(latestDescriptor);
     const punt = /punt/.test(latestDescriptor) && !/fake punt/.test(latestDescriptor);
     const turnover = /intercept|turnover on downs|missed field goal/.test(latestDescriptor);
-    const fumbleTurnover = /fumble/.test(latestDescriptor) && /recover/.test(latestDescriptor);
+    const fumbleRecovery = /fumble/.test(latestDescriptor) && /recover/.test(latestDescriptor);
     const currentDriveTeamId = String(currentDrive?.team?.id || latestRawPlay?.team?.id || "");
+    const competitionPossessionId = String(competitionSituation?.possession || "");
     const explicitEndPossession = String(
       latestRawPlay?.end?.team?.id ||
       latestRawPlay?.end?.possessionTeam?.id ||
@@ -371,12 +372,18 @@ export async function GET(req: NextRequest) {
       ""
     );
     const oppositeTeamId = currentDriveTeamId === homeId ? awayId : currentDriveTeamId === awayId ? homeId : "";
-    const derivedChangePossession = !kickoff && (punt || turnover || fumbleTurnover) ? oppositeTeamId : "";
+    const derivedChangePossession = !kickoff && (punt || turnover) ? oppositeTeamId : "";
+    const fumblePossession = fumbleRecovery &&
+      competitionPossessionId &&
+      competitionPossessionId !== currentDriveTeamId
+      ? competitionPossessionId
+      : "";
     const possessionId = String(
       explicitEndPossession ||
       derivedChangePossession ||
+      fumblePossession ||
       currentDriveTeamId ||
-      competitionSituation?.possession ||
+      competitionPossessionId ||
       ""
     );
     const possessionSide = possessionId === homeId ? "home" : possessionId === awayId ? "away" : null;
@@ -403,7 +410,7 @@ export async function GET(req: NextRequest) {
       fallbackDistance != null &&
       competitionDistance != null &&
       competitionDistance > fallbackDistance + 1;
-    const preferLatestSituation = Boolean(latestRawPlay && (deadBallMoment || punt || turnover || fumbleTurnover || staleDistanceReset));
+    const preferLatestSituation = Boolean(latestRawPlay && (deadBallMoment || punt || turnover || fumbleRecovery || staleDistanceReset));
     const situation = preferLatestSituation
       ? { ...payloadSituation, ...competitionSituation, ...fallbackSituation }
       : { ...fallbackSituation, ...payloadSituation, ...competitionSituation };
