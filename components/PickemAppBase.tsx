@@ -2360,6 +2360,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             pointsMode={pointsMode}
             universalLockReached={universalLockReached}
             removePick={removePick}
+            openPreview={setMatchupPreviewGame}
             headerContent={pointsMode && myRegular.length > 0 ? <ConfidenceOrder
               picks={myRegular}
               regularTotal={rule.regularTotal}
@@ -2381,7 +2382,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             return <div key={profile.id} className="group-card">
               <h3>{profile.display_name}</h3>
               {playerPicks.length === 0 && <p className="muted group-empty-picks">No visible picks yet.</p>}
-              {playerPicks.map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} pointsMode={pointsMode} universalLockReached={universalLockReached} />)}
+              {playerPicks.map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} pointsMode={pointsMode} universalLockReached={universalLockReached} openPreview={setMatchupPreviewGame} />)}
             </div>;
           })}
         </div>}
@@ -3008,6 +3009,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
         setView(value as BetView);
         stabilizeViewportAfterLayoutChange();
       }} />
+      {view === "offers" && <div className="side-bet-game-filter-toggle side-bet-offers-game-filter" role="group" aria-label="Filter offers by game status"><button type="button" className={offerGameFilter === "all" ? "active" : ""} aria-pressed={offerGameFilter === "all"} onClick={() => setOfferGameFilter("all")}>All</button><button type="button" className={offerGameFilter === "upcoming" ? "active" : ""} aria-pressed={offerGameFilter === "upcoming"} onClick={() => setOfferGameFilter("upcoming")}>Upcoming</button><button type="button" className={offerGameFilter === "completed" ? "active" : ""} aria-pressed={offerGameFilter === "completed"} onClick={() => setOfferGameFilter("completed")}>Completed</button></div>}
       {view === "new" && weekIsOpen && !weekConcluded && <MenuSelect
         ariaLabel="Filter side bet games by league"
         className="compact-select"
@@ -3034,8 +3036,6 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
         <button type="button" className={boardMarket === "total" ? "active" : ""} aria-pressed={boardMarket === "total"} onClick={() => { clearSlip(); setBoardMarket("total"); setMarketType("total"); }}>O/U</button>
       </div>
     </div>}
-
-    {view === "offers" && <div className="side-bet-game-filter-toggle side-bet-offers-game-filter" role="group" aria-label="Filter offers by game status"><button type="button" className={offerGameFilter === "all" ? "active" : ""} aria-pressed={offerGameFilter === "all"} onClick={() => setOfferGameFilter("all")}>All</button><button type="button" className={offerGameFilter === "upcoming" ? "active" : ""} aria-pressed={offerGameFilter === "upcoming"} onClick={() => setOfferGameFilter("upcoming")}>Upcoming</button><button type="button" className={offerGameFilter === "completed" ? "active" : ""} aria-pressed={offerGameFilter === "completed"} onClick={() => setOfferGameFilter("completed")}>Completed</button></div>}
 
     {view === "new" && weekConcluded && <div className="side-bet-sportsbook-board"><div className="empty-state side-bet-empty-state">This week has concluded.</div></div>}
 
@@ -3628,7 +3628,7 @@ function PickScoreBug({ game, pick, spread }: { game: Game; pick: Pick; spread: 
   </span>;
 }
 
-function PickList({ picks, games, title, pointsMode, universalLockReached, removePick, headerContent }: { picks: Pick[]; games: Game[]; title: string; pointsMode: boolean; universalLockReached: boolean; removePick: (p: Pick) => void; headerContent?: React.ReactNode }) {
+function PickList({ picks, games, title, pointsMode, universalLockReached, removePick, openPreview, headerContent }: { picks: Pick[]; games: Game[]; title: string; pointsMode: boolean; universalLockReached: boolean; removePick: (p: Pick) => void; openPreview: (game: Game) => void; headerContent?: React.ReactNode }) {
   return <div className="pick-section"><h3>{title}</h3>{headerContent}{!picks.length && <p className="muted card-empty-picks">None yet.</p>}{picks.map((pick) => {
     const game = games.find((g) => g.id === pick.game_id) || pick.game;
     const locked = pick.status === "locked" || Boolean(game && isClosed(game));
@@ -3641,12 +3641,12 @@ function PickList({ picks, games, title, pointsMode, universalLockReached, remov
     const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip"><span className="ui-separator-dot" aria-hidden="true">·</span><NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator ui-separator-dot" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <LockedPickIndicator hidden={universalLockReached} /> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip"><span className="ui-separator-dot" aria-hidden="true">·</span><NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator ui-separator-dot" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <button type="button" className="pick-score-bug-button" aria-label={`Open GameTracker for ${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`} onClick={() => openPreview(game)}><PickScoreBug game={game} pick={pick} spread={displayedSpread} /></button> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <LockedPickIndicator hidden={universalLockReached} /> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
 
-function VisiblePick({ pick, games, pointsMode, universalLockReached }: { pick: Pick; games: Game[]; pointsMode: boolean; universalLockReached: boolean }) {
+function VisiblePick({ pick, games, pointsMode, universalLockReached, openPreview }: { pick: Pick; games: Game[]; pointsMode: boolean; universalLockReached: boolean; openPreview: (game: Game) => void }) {
   const game = games.find((g) => g.id === pick.game_id) || pick.game;
   const locked = pick.status === "locked" || Boolean(game && isClosed(game));
   const graded = pick.result !== "pending";
@@ -3657,5 +3657,5 @@ function VisiblePick({ pick, games, pointsMode, universalLockReached }: { pick: 
   const metaState = game ? hasPickScoreBug(game) ? isFinalGame(game) ? "Final" : "Live" : cardGameStateText(game, locked) : "";
   const metaText = [matchupText, metaState].filter(Boolean).join(" · ");
   const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");
-  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip"><span className="ui-separator-dot" aria-hidden="true">·</span><NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator ui-separator-dot" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{metaText && <p><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="visible-pick-actions">{game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <LockedPickIndicator hidden={universalLockReached} /> : null}</div></div>;
+  return <div className="visible-pick"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="visible-pick-copy"><strong>{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip"><span className="ui-separator-dot" aria-hidden="true">·</span><NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator ui-separator-dot" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{metaText && <p><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="visible-pick-actions">{game && hasPickScoreBug(game) ? <button type="button" className="pick-score-bug-button" aria-label={`Open GameTracker for ${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`} onClick={() => openPreview(game)}><PickScoreBug game={game} pick={pick} spread={displayedSpread} /></button> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <LockedPickIndicator hidden={universalLockReached} /> : null}</div></div>;
 }
