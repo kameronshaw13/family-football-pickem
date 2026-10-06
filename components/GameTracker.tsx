@@ -5,7 +5,7 @@ import Image from "next/image";
 import { createPortal } from "react-dom";
 import { ChevronDown, LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
-import { teamDisplayName } from "@/lib/teamNames";
+import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 
 type TrackerTab = "live" | "scoring" | "plays" | "box";
 type Side = "away" | "home";
@@ -74,6 +74,7 @@ type TrackerPayload = {
     homeScore: number | null;
     awayScore: number | null;
     type: string;
+    drive?: { playsCount: number; yards: number | null; timeElapsed: string } | null;
   }>;
   drives: TrackerDrive[];
   teamStats: Array<{ label: string; away: string; home: string }>;
@@ -194,6 +195,10 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   const opponent = payload?.teams[side === "away" ? "home" : "away"];
   const fullName = team?.name || fallbackName;
   const shortName = team?.shortName || fullName;
+  const rank = game.league === "CFB"
+    ? Number(side === "away" ? game.away_rank : game.home_rank)
+    : null;
+  const ranked = rank != null && Number.isInteger(rank) && rank >= 1 && rank <= 25;
   const score = team?.score ?? ownFallbackScore;
   const opponentScore = opponent?.score ?? opponentFallbackScore;
   const scoreTone = completed && score != null && opponentScore != null
@@ -204,7 +209,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
     : null;
 
   return <div className={`game-tracker-score-team ${side}`} aria-label={`${fullName} ${score ?? "score unavailable"}`}>
-    <span className="game-tracker-score-team-name">{shortName}</span>
+    <span className="game-tracker-score-team-name">{ranked && <span className="game-tracker-team-rank">#{rank}</span>}{shortName}</span>
     <div className="game-tracker-score-team-main">
       <TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={38} />
       <div className="game-tracker-score-stack">
@@ -229,11 +234,10 @@ function PlayRow({ play, compact = false }: { play: TrackerPlay; compact?: boole
     <div>
       <div className="game-tracker-play-context">
         {play.situation && <span>{play.situation}</span>}
-        {play.clock && <time>{play.clock}</time>}
+        {play.outcome && <b className="game-tracker-play-outcome">{play.outcome}</b>}
       </div>
-      <strong>{play.text}</strong>
+      <strong>{play.clock && <time>{play.clock}</time>}{play.text}</strong>
     </div>
-    {play.outcome && <b className="game-tracker-play-outcome">{play.outcome}</b>}
   </div>;
 }
 
@@ -290,7 +294,7 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
         className="game-tracker-endzone left"
         style={{ backgroundColor: `#${offense.color || "34444c"}`, color: `#${offense.alternateColor || "ffffff"}` }}
       >
-        <TeamLogo src={offense.logo} name={offense.name} size={24} />
+        <TeamLogo src={offense.logo} name={offense.name} size={20} />
         <span>{offense.shortName || offense.abbreviation}</span>
       </div>
 
@@ -318,7 +322,7 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
         className="game-tracker-endzone right"
         style={{ backgroundColor: `#${defense.color || "34444c"}`, color: `#${defense.alternateColor || "ffffff"}` }}
       >
-        <TeamLogo src={defense.logo} name={defense.name} size={24} />
+        <TeamLogo src={defense.logo} name={defense.name} size={20} />
         <span>{defense.shortName || defense.abbreviation}</span>
       </div>
     </div>
@@ -337,10 +341,22 @@ function ScoringQuarterHeader({ payload, label }: { payload: TrackerPayload; lab
   </div>;
 }
 
-function ScoringScore({ awayScore, homeScore }: { awayScore: number | null; homeScore: number | null }) {
+function ScoringScore({
+  play,
+  previous
+}: {
+  play: TrackerPayload["scoringPlays"][number];
+  previous?: TrackerPayload["scoringPlays"][number];
+}) {
+  const awayChanged = previous
+    ? play.awayScore != null && play.awayScore !== previous.awayScore
+    : play.teamSide === "away";
+  const homeChanged = previous
+    ? play.homeScore != null && play.homeScore !== previous.homeScore
+    : play.teamSide === "home";
   return <div className="game-tracker-score-values">
-    <b>{awayScore ?? "—"}</b>
-    <b>{homeScore ?? "—"}</b>
+    <b className={awayChanged ? "changed" : "unchanged"}>{play.awayScore ?? "—"}</b>
+    <b className={homeChanged ? "changed" : "unchanged"}>{play.homeScore ?? "—"}</b>
   </div>;
 }
 
@@ -356,11 +372,22 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
       return <Fragment key={play.id}>
         {showQuarter && <ScoringQuarterHeader payload={payload} label={quarter} />}
         <div className="game-tracker-score-play">
-          <div>
-            <small>{[quarter, play.clock, play.type].filter(Boolean).join(" · ")}</small>
-            <strong>{play.text}</strong>
+          <span className="game-tracker-scoring-team-logo">
+            {play.teamSide && <TeamLogo src={payload.teams[play.teamSide].logo} name={payload.teams[play.teamSide].name} size={28} />}
+          </span>
+          <div className="game-tracker-scoring-copy">
+            <div className="game-tracker-scoring-meta">
+              <strong>{play.type || "Score"}</strong>
+              {play.clock && <time>{play.clock}</time>}
+            </div>
+            <p>{play.text}</p>
+            {play.drive && <small>{[
+              play.drive.playsCount ? `${play.drive.playsCount} plays` : "",
+              play.drive.yards != null ? `${play.drive.yards} yds` : "",
+              play.drive.timeElapsed ? `${play.drive.timeElapsed} possession` : ""
+            ].filter(Boolean).join(" · ")}</small>}
           </div>
-          <ScoringScore awayScore={play.awayScore} homeScore={play.homeScore} />
+          <ScoringScore play={play} previous={previous} />
         </div>
       </Fragment>;
     })}
@@ -606,17 +633,28 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
     };
   }, [game.id]);
 
+  useEffect(() => {
+    if (payload?.status.completed && tab === "live") setTab("scoring");
+  }, [payload?.status.completed, tab]);
+
   if (!mounted) return null;
 
   const awayName = teamDisplayName(game.league, game.away_team);
   const homeName = teamDisplayName(game.league, game.home_team);
-  const tabs: Array<[TrackerTab, string]> = [["live", "Live"], ["scoring", "Scoring"], ["plays", "Plays"], ["box", "Box Score"]];
   const completed = Boolean(payload?.status.completed ?? game.live_completed ?? (game.final_home_score != null && game.final_away_score != null));
+  const tabs: Array<[TrackerTab, string]> = [
+    ...(completed ? [] : [["live", "Live"] as [TrackerTab, string]]),
+    ["scoring", "Scoring"],
+    ["plays", "Plays"],
+    ["box", "Box Score"]
+  ];
+  const awayHeader = teamAbbreviatedName(game.league, game.away_team);
+  const homeHeader = teamAbbreviatedName(game.league, game.home_team);
 
   return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="true" aria-label={`${awayName} at ${homeName} GameTracker`}>
       <header className="game-tracker-header">
-        <span>GAMETRACKER</span>
+        <span>{awayHeader} @ {homeHeader}</span>
         <button type="button" onClick={onClose} aria-label="Close GameTracker"><X size={20} /></button>
       </header>
 
@@ -641,7 +679,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
         >{label}</button>)}
       </nav>
 
-      <div ref={scrollArea} className="game-tracker-scroll">
+      <div ref={scrollArea} className={`game-tracker-scroll ${tab === "box" ? "box-score" : ""}`.trim()}>
         {!payload && !error && <div className="game-tracker-loading"><LoaderCircle size={22} /><span>Loading GameTracker…</span></div>}
         {error && !payload && <div className="game-tracker-empty" role="alert">{error}</div>}
         {payload && tab === "live" && <LiveField payload={payload} />}
