@@ -41,7 +41,13 @@ function scheduledMarketRefreshWindow(date = new Date()) {
   const { weekday, hour, minute } = chicagoParts(date);
   if (minute !== 50) return { shouldRefresh: false, refreshFuture: false };
 
-  // User-specified market refresh cadence in America/Chicago:
+  // Refresh once before the Tuesday 8:00 AM CT week-open so a newly opened
+  // slate never depends on the later 8:50 run for kickoff times or lines.
+  if (weekday === "Tue" && hour === 7) {
+    return { shouldRefresh: true, refreshFuture: true };
+  }
+
+  // Normal market refresh cadence in America/Chicago:
   // Tue-Fri hourly from 8:50 AM through 8:50 PM, plus Sat 8:50 PM and 9:50 PM.
   if (["Tue", "Wed", "Thu", "Fri"].includes(weekday) && hour >= 8 && hour <= 20) {
     return { shouldRefresh: true, refreshFuture: hour === 8 };
@@ -75,8 +81,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       skipped: true,
-      provider: "Action Network",
-      refreshSchedule: "Tue-Fri hourly 8:50 AM-8:50 PM CT; Sat 8:50 PM and 9:50 PM CT",
+      provider: "DraftKings",
+      refreshSchedule: "Tue 7:50 AM pre-open; Tue-Fri hourly 8:50 AM-8:50 PM CT; Sat 8:50 PM and 9:50 PM CT",
       reason: "Outside the scheduled market refresh window.",
       pushRetries
     });
@@ -124,12 +130,13 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      provider: "Action Network",
-      scheduleSource: "ESPN",
+      provider: "DraftKings",
+      scheduleSource: "ESPN (provider-verified fallback for TBD kickoff times)",
+      marketFeed: "Action Network",
       gamesChecked: games.length,
       nearGamesChecked: nearGames.length,
       futureGamesChecked: refreshFuture ? futureGames.length : 0,
-      refreshSchedule: "Tue-Fri hourly 8:50 AM-8:50 PM CT; Sat 8:50 PM and 9:50 PM CT",
+      refreshSchedule: "Tue 7:50 AM pre-open; Tue-Fri hourly 8:50 AM-8:50 PM CT; Sat 8:50 PM and 9:50 PM CT",
       futureRefreshCadence: refreshFuture ? "refreshed this run" : "first scheduled refresh of the active day",
       gamesUpdated: nearResult.gamesUpdated + futureResult.gamesUpdated,
       dogAdjustments: {
@@ -143,7 +150,7 @@ export async function GET(req: NextRequest) {
     console.error("[cron/odds] token-free market refresh failed", error);
     return NextResponse.json({
       ok: false,
-      provider: "Action Network",
+      provider: "DraftKings",
       error: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
