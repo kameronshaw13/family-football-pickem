@@ -679,7 +679,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
         </div>
       </div>
 
-      <nav className="game-tracker-tabs" aria-label="GameTracker sections">
+      <nav className={`game-tracker-tabs ${completed ? "completed" : ""}`.trim()} aria-label="GameTracker sections">
         {tabs.map(([id, label]) => <button
           type="button"
           key={id}
