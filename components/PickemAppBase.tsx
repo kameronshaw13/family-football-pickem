@@ -1666,7 +1666,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         if (!response.ok) return;
         const payload = await response.json() as {
           markets?: SideBetMarketQuote[];
-          schedule?: Array<Pick<Game, "id" | "commence_time" | "lock_time" | "is_locked">>;
+          schedule?: Array<{ id: string; commence_time: string; lock_time: string; is_locked: boolean }>;
         };
         if (cancelled || !Array.isArray(payload.markets)) return;
 
