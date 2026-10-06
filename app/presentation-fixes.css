@@ -1257,3 +1257,27 @@
     font-size: 8.5px;
   }
 }
+
+
+/* 2026-10-06 bank-history orientation typography lock.
+   Keep the intended divider hierarchy unchanged; only prevent iOS text autosizing. */
+.bank-balance-player-history,
+.bank-history-week,
+.bank-history-week-body,
+.bank-history-line {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+.bank-history-week > summary > strong,
+.bank-history-week > summary > span { font-size: 12px !important; }
+.bank-history-line > span,
+.bank-history-game-copy,
+.bank-history-game-copy .responsive-text {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
+.bank-history-line > strong { font-size: 12px !important; }
+.bank-history-game-copy small {
+  font-size: 9px !important;
+  line-height: 1.2 !important;
+}
