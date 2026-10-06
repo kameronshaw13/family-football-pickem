@@ -1664,27 +1664,44 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           cache: "no-store"
         });
         if (!response.ok) return;
-        const payload = await response.json() as { markets?: SideBetMarketQuote[] };
+        const payload = await response.json() as {
+          markets?: SideBetMarketQuote[];
+          schedule?: Array<Pick<Game, "id" | "commence_time" | "lock_time" | "is_locked">>;
+        };
         if (cancelled || !Array.isArray(payload.markets)) return;
 
         const quotesById = new Map(payload.markets.map((quote) => [quote.gameId, quote]));
+        const scheduleById = new Map((payload.schedule || []).map((game) => [game.id, game]));
         setData((current) => {
           if (!current || Number(current.week) !== Number(week)) return current;
           let changed = false;
           const now = new Date();
           const nextGames = current.games.map((game) => {
+            const scheduleGame = scheduleById.get(game.id);
+            let nextGame = game;
+            if (scheduleGame && (
+              scheduleGame.commence_time !== game.commence_time ||
+              scheduleGame.lock_time !== game.lock_time ||
+              scheduleGame.is_locked !== game.is_locked
+            )) {
+              changed = true;
+              nextGame = { ...game, ...scheduleGame };
+            }
+
             const quote = quotesById.get(game.id);
             const spread = quote?.phase === "pregame" && quote.spread && !quote.spread.suspended ? quote.spread : null;
-            if (!spread || !canRefreshSpread(game.commence_time, now)) return game;
+            if (!spread || !canRefreshSpread(nextGame.commence_time, now)) return nextGame;
             const nextAwaySpread = Number(spread.awayPoint);
-            const currentAwaySpread = normalizeSpreadForSelectedTeam(game.away_team, game.current_spread_team, game.current_spread);
-            if (!Number.isFinite(nextAwaySpread) || (currentAwaySpread != null && Math.abs(currentAwaySpread - nextAwaySpread) < 0.001)) return game;
+            const currentAwaySpread = normalizeSpreadForSelectedTeam(nextGame.away_team, nextGame.current_spread_team, nextGame.current_spread);
+            if (!Number.isFinite(nextAwaySpread)) return nextGame;
+            const spreadUnchanged = currentAwaySpread != null && Math.abs(currentAwaySpread - nextAwaySpread) < 0.001;
+            if (spreadUnchanged && nextGame.current_bookmaker === "DraftKings") return nextGame;
             changed = true;
             return {
-              ...game,
-              current_spread_team: game.away_team,
+              ...nextGame,
+              current_spread_team: nextGame.away_team,
               current_spread: nextAwaySpread,
-              current_bookmaker: "Market",
+              current_bookmaker: "DraftKings",
               updated_at: now.toISOString()
             };
           });
