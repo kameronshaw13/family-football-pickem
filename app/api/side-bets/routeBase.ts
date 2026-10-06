@@ -10,6 +10,7 @@ import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { americanOddsText, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { notificationTeamName } from "@/lib/notificationTeamName";
+import { notificationStakeText } from "@/lib/notificationMoney";
 
 const viewWeek = z.number().int().nonnegative().optional();
 const bodySchema = z.discriminatedUnion("action", [
@@ -78,20 +79,6 @@ function notificationMarketText(
     return `${notificationTeamName(awayTeam, league)} at ${notificationTeamName(homeTeam, league)} ${line}${oddsText}`;
   }
   return `${notificationTeamName(team, league)} ${line}${oddsText}`;
-}
-
-function notificationMoney(value: number) {
-  const rounded = Math.round(Number(value) * 100) / 100;
-  return `${rounded.toLocaleString("en-US", {
-    minimumFractionDigits: Number.isInteger(rounded) ? 0 : 2,
-    maximumFractionDigits: 2
-  })}`;
-}
-
-function notificationStakeText(risk: number, win: number) {
-  return Math.abs(risk - win) < 0.005
-    ? notificationMoney(risk)
-    : `Risk ${notificationMoney(risk)} to win ${notificationMoney(win)}`;
 }
 
 function groupNotificationUrl(slug: string, destination: string) {

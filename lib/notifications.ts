@@ -153,6 +153,14 @@ async function inferGroupId(supabase: SupabaseClient, input: NotificationInput) 
   return data.id as string;
 }
 
+function normalizeSideBetMoneySegment(segment: string) {
+  if (/^\d+(?:\.\d{1,2})?$/.test(segment)) return `${segment}`;
+  return segment
+    .replace(/\bRisk\s+\$?(\d+(?:\.\d{1,2})?)/g, "Risk $$1")
+    .replace(/\bto win\s+\$?(\d+(?:\.\d{1,2})?)/g, "to win $$1")
+    .replace(/\b(Won|Lost|Pushed)\s+\$?(\d+(?:\.\d{1,2})?)/g, "$1 $$2");
+}
+
 function normalizeSideBetMarketSegment(segment: string, league?: string) {
   const trimmed = segment.trim();
   const marketPrefix = trimmed.startsWith("Market ") ? "Market " : "";
@@ -171,7 +179,8 @@ async function normalizedBody(supabase: SupabaseClient, input: NotificationInput
   const parts = input.body.split(" · ").map((part) => part.trim()).filter(Boolean);
   const normalized: string[] = [];
 
-  for (const part of parts) {
+  for (const rawPart of parts) {
+    const part = normalizeSideBetMoneySegment(rawPart);
     const standaloneOdds = part.match(/^[+-]\d+$/);
     const previous = normalized.at(-1);
     const previousIsMarket = Boolean(previous && /(?:ML|Pick'em|[+-]\d+(?:\.\d+)?)(?:\s+[+-]\d+)?$/.test(previous));

@@ -44,7 +44,9 @@ async function appRegistration(appSlug: AppSlug) {
 
   for (const registration of registrations) {
     const scopePath = new URL(registration.scope).pathname.replace(/\/$/, "") || "/";
-    if (appSlug !== "shaw-family" && scopePath === "/") await registration.unregister();
+    // Keep the Shaw root registration alongside the narrower Friends/Caleb scopes.
+    // Service workers use the most-specific matching scope, so removing "/" here
+    // only invalidates Shaw's push subscription when another league app is opened.
     if (!["/", "/friends", "/caleb-family"].includes(scopePath)) await registration.unregister();
   }
 

@@ -4,6 +4,7 @@ import { settleWeekIfReady } from "@/lib/autoSettlement";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { createNotificationSafely } from "@/lib/notifications";
 import { notificationTeamName } from "@/lib/notificationTeamName";
+import { notificationMoney } from "@/lib/notificationMoney";
 import { getGameLockTime } from "@/lib/lockRules";
 import { getUnderdogBonusForRules, isGameAllowedByRules } from "@/lib/groupContext";
 import { sideBetCreatorProfit } from "@/lib/sideBetMarkets";
@@ -129,8 +130,8 @@ export async function finalizeGame(supabase: SupabaseClient, game: Game, homeSco
     const creatorProfit = sideBetCreatorProfit(sideBet);
     const creatorAmount = result === "win" ? creatorProfit : result === "loss" ? Number(sideBet.amount) : 0;
     const acceptorAmount = result === "loss" ? Number(sideBet.amount) : result === "win" ? creatorProfit : 0;
-    notificationTasks.push(createNotificationSafely(supabase, { groupId: sideBet.group_id, userId: sideBet.creator_id, type: "side_bet_final", destination: "side_bet_ledger", entityId: sideBet.id, dedupeKey: `side-bet-final:${sideBet.id}`, title: "Your side bet is final", body: `${creatorResult} ${creatorAmount} · ${score}`, url: `/?group=${group.slug}&notification=side_bet_ledger` }));
-    notificationTasks.push(createNotificationSafely(supabase, { groupId: sideBet.group_id, userId: sideBet.accepted_by, type: "side_bet_final", destination: "side_bet_ledger", entityId: sideBet.id, dedupeKey: `side-bet-final:${sideBet.id}`, title: "Your side bet is final", body: `${acceptorResult} ${acceptorAmount} · ${score}`, url: `/?group=${group.slug}&notification=side_bet_ledger` }));
+    notificationTasks.push(createNotificationSafely(supabase, { groupId: sideBet.group_id, userId: sideBet.creator_id, type: "side_bet_final", destination: "side_bet_ledger", entityId: sideBet.id, dedupeKey: `side-bet-final:${sideBet.id}`, title: "Your side bet is final", body: `${creatorResult} ${notificationMoney(creatorAmount)} · ${score}`, url: `/?group=${group.slug}&notification=side_bet_ledger` }));
+    notificationTasks.push(createNotificationSafely(supabase, { groupId: sideBet.group_id, userId: sideBet.accepted_by, type: "side_bet_final", destination: "side_bet_ledger", entityId: sideBet.id, dedupeKey: `side-bet-final:${sideBet.id}`, title: "Your side bet is final", body: `${acceptorResult} ${notificationMoney(acceptorAmount)} · ${score}`, url: `/?group=${group.slug}&notification=side_bet_ledger` }));
   }
 
   await Promise.all(notificationTasks);

@@ -4,6 +4,7 @@ import { settleWeekIfReady } from "@/lib/autoSettlement";
 import { fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
 import { finalizeGame } from "@/lib/finalizeGame";
 import { lockDuePicks } from "@/lib/lockDuePicks";
+import { retryPendingPushNotifications } from "@/lib/notifications";
 import { settleSeasonIfReady } from "@/lib/seasonSettlement";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import type { Game, League } from "@/lib/types";
@@ -34,6 +35,14 @@ export async function GET(req: NextRequest) {
     const isVercelScheduledRun = Boolean(req.headers.get("x-vercel-cron-schedule"));
     const supabase = getSupabaseAdmin();
     const lockResult = await lockDuePicks(supabase);
+    let pushRetry = { attempted: 0, sent: 0, failed: 0 };
+    try {
+      // The immediate send already retries once. This second pass catches transient
+      // provider/network failures without ever blocking grading if push is unhealthy.
+      pushRetry = await retryPendingPushNotifications(supabase, 8);
+    } catch (error) {
+      console.error("Pending push retry pass failed", error);
+    }
     const now = new Date();
     // The frequent Supabase cron only needs to finalize games from the current
     // live window. The once-daily Vercel cron remains a deeper recovery pass.
@@ -102,6 +111,7 @@ export async function GET(req: NextRequest) {
       gamesFinalized,
       picksGraded,
       sideBetsGraded,
+      pushRetry,
       weeksCheckedForSettlement: Array.from(weeksToSettle),
       weeksSettled: Array.from(weeksSettled),
       seasonSettled: seasonSettlement.settled,

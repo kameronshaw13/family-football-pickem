@@ -8,6 +8,7 @@ import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { americanOddsText, oppositeAmericanOdds, profitForRisk, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { notificationTeamName } from "@/lib/notificationTeamName";
+import { notificationStakeText } from "@/lib/notificationMoney";
 
 const bodySchema = z.object({
   selections: z.array(z.object({
@@ -198,7 +199,7 @@ export async function POST(req: NextRequest) {
           entityId: sideBet.id,
           dedupeKey: `side-bet-offer:${sideBet.id}`,
           title: `Side bet from ${auth.profile.display_name}`,
-          body: `Risk ${profitForRisk(selection.amount, selection.creatorOdds)} · ${notificationTeamName(selection.offeredTeam, selection.game.league)} ${selection.marketType === "moneyline" ? "ML" : notificationSpread(-selection.creatorSpread)} ${americanOddsText(oppositeAmericanOdds(selection.creatorOdds))}`,
+          body: `${notificationStakeText(profitForRisk(selection.amount, selection.creatorOdds), selection.amount)} · ${notificationTeamName(selection.offeredTeam, selection.game.league)} ${selection.marketType === "moneyline" ? "ML" : notificationSpread(-selection.creatorSpread)} ${americanOddsText(oppositeAmericanOdds(selection.creatorOdds))}`,
           url: groupNotificationUrl(context.group.slug, "side_bets_received"),
           actionRequired: true
         });
