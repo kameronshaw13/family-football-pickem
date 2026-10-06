@@ -47,7 +47,7 @@ function normalizeScoringPlay(play: any, homeId: string, awayId: string, index: 
     teamSide: teamId === homeId ? "home" : teamId === awayId ? "away" : null,
     homeScore: finite(play?.homeScore),
     awayScore: finite(play?.awayScore),
-    type: String(play?.type?.text || "")
+    type: playOutcome(play) || String(play?.type?.text || "")
   };
 }
 
@@ -323,21 +323,27 @@ export async function GET(req: NextRequest) {
         ];
 
     const scoringDriveByPlay = new Map<string, { playsCount: number; yards: number | null; timeElapsed: string }>();
+    const scoringDriveByMoment = new Map<string, { playsCount: number; yards: number | null; timeElapsed: string }>();
     for (const drive of drives) {
       for (const play of drive.plays || []) {
         if (!play.scoringPlay) continue;
-        scoringDriveByPlay.set(String(play.id), {
+        const meta = {
           playsCount: Number(drive.playsCount || 0),
           yards: drive.yards == null ? null : Number(drive.yards),
           timeElapsed: String(drive.timeElapsed || "")
-        });
+        };
+        scoringDriveByPlay.set(String(play.id), meta);
+        scoringDriveByMoment.set(`${play.period}|${play.clock}`, meta);
       }
     }
 
     const scoringPlays = (Array.isArray(payload?.scoringPlays) ? payload.scoringPlays : [])
       .map((play: any, index: number) => {
         const normalized = normalizeScoringPlay(play, homeId, awayId, index);
-        return { ...normalized, drive: scoringDriveByPlay.get(normalized.id) || null };
+        const drive = scoringDriveByPlay.get(normalized.id) ||
+          scoringDriveByMoment.get(`${normalized.period}|${normalized.clock}`) ||
+          null;
+        return { ...normalized, drive };
       })
       .sort((a: any, b: any) => {
         const periodDiff = periodNumber(a.period) - periodNumber(b.period);
