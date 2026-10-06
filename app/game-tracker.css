@@ -202,6 +202,7 @@
   border-bottom: 1px solid var(--line-strong);
   background: var(--canvas);
 }
+.game-tracker-tabs.completed { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .game-tracker-tabs button {
   width: 100%;
   padding: 8px 0 7px;
