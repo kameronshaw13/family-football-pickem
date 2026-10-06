@@ -45,6 +45,7 @@ type TrackerTeam = {
   name: string;
   shortName: string;
   abbreviation: string;
+  endZoneName: string;
   logo: string;
   color: string;
   alternateColor: string;
@@ -307,7 +308,7 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
         style={{ backgroundColor: `#${offense.color || "34444c"}`, color: `#${offense.alternateColor || "ffffff"}` }}
       >
         <TeamLogo src={offense.logo} name={offense.name} size={20} />
-        <span>{offense.shortName || offense.abbreviation}</span>
+        <span>{offense.endZoneName || offense.shortName || offense.abbreviation}</span>
       </div>
 
       <div className="game-tracker-field-lines">
@@ -335,7 +336,7 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
         style={{ backgroundColor: `#${defense.color || "34444c"}`, color: `#${defense.alternateColor || "ffffff"}` }}
       >
         <TeamLogo src={defense.logo} name={defense.name} size={20} />
-        <span>{defense.shortName || defense.abbreviation}</span>
+        <span>{defense.endZoneName || defense.shortName || defense.abbreviation}</span>
       </div>
     </div>
 
