@@ -6,17 +6,15 @@ import { createPortal } from "react-dom";
 import { LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
 import type { MatchupPayload, MatchupTeam, MatchupHistory } from "@/lib/cfbMatchup";
-import type { CfbModelProjection } from "@/lib/cfbModel";
 import { createAsyncCache } from "@/lib/asyncCache";
 import { formatOrdinalDate, matchupDateFormatter } from "@/lib/displayDates";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 
-type Tab = "matchup" | "form" | "history" | "model";
+type Tab = "matchup" | "form" | "history";
 type Unit = NonNullable<MatchupTeam["relative"]>["offense"];
 const getPreview = createAsyncCache<MatchupPayload>(5 * 60_000, 24);
 const getHistory = createAsyncCache<MatchupHistory>(15 * 60_000, 24);
-const getModel = createAsyncCache<CfbModelProjection>(10 * 60_000, 24);
 const signed = (value: number, digits = 1) => `${value > 0 ? "+" : ""}${value.toFixed(digits)}`;
 const metrics: Array<{ label: string; value: keyof Unit; rank: keyof Unit; format: (value: number) => string }> = [
   { label: "Adj. EPA / play", value: "adjustedEpa", rank: "adjustedEpaRank", format: value => signed(value, 3) },
@@ -39,51 +37,22 @@ async function requestData<T>(gameId: string, section: string, token: string): P
   return payload as T;
 }
 
-async function requestModel(gameId: string, token: string, group: string): Promise<CfbModelProjection> {
-  const response = await fetch(`/api/cfb-model?gameId=${encodeURIComponent(gameId)}`, {
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-pickem-group": group },
-    cache: "no-store", signal: AbortSignal.timeout(10_000)
-  });
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || "Model data could not load.");
-  return payload as CfbModelProjection;
-}
-
-function projectionText(team: string | null, spread: number | null) {
-  if (spread == null) return "—";
-  if (!team || Math.abs(spread) < 0.05) return "Pick'em";
-  const value = Number.isInteger(spread) ? spread.toFixed(0) : spread.toFixed(1);
-  return `${team} ${spread > 0 ? "+" : ""}${value}`;
-}
-
-function GoldStars({ count }: { count: number }) {
-  if (count <= 0) return null;
-  return <span className="model-gold-stars" aria-label={`${count} model edge star${count === 1 ? "" : "s"}`}>{"★".repeat(count)}</span>;
-}
-
-function ModelTab({ model }: { model: CfbModelProjection }) {
-  const consensus = model.consensus;
-  return <div className="matchup-tab-body model-tab-body">
-    <section className="model-consensus-card">
-      <div className="model-consensus-topline"><small>MODEL CONSENSUS</small><GoldStars count={model.stars} /></div>
-      <strong className="model-consensus-line">{consensus ? projectionText(consensus.team, consensus.spread) : "Projection unavailable"}</strong>
-      <div className="model-consensus-meta">
-        <span><small>MARKET</small><b>{model.market.spread == null ? "—" : projectionText(model.market.team, model.market.spread)}</b></span>
-        <span><small>DIFFERENCE</small><b>{model.edgePoints == null ? "—" : `${model.edgePoints.toFixed(1)} pts`}</b></span>
-      </div>
-      {model.edgeTeam && model.stars > 0 && <p className="model-edge-copy">Models lean {model.edgeTeam} relative to the current market.</p>}
-    </section>
-    <section className="model-breakdown">
-      <div className="matchup-section-heading"><h3>Model Spreads</h3></div>
-      {model.models.length ? model.models.map(row => <div className="model-spread-row" key={row.id}><span>{row.label}</span><strong>{projectionText(row.team, row.spread)}</strong></div>) : <p className="matchup-empty-copy">No model ratings are available for both teams yet.</p>}
-      {consensus && <div className="model-spread-row model-spread-average"><span>Average</span><strong>{projectionText(consensus.team, consensus.spread)}</strong></div>}
-    </section>
-    <p className="matchup-data-note">Stars measure model-to-market spread difference: 1★ at 3+ points, 2★ at 5+ points, 3★ at 7+ points.</p>
-  </div>;
-}
-
 function Logo({ src, size = 40 }: { src?: string | null; size?: number }) {
   return src ? <Image unoptimized src={src} alt="" width={size} height={size} /> : <span className="matchup-logo-fallback" />;
+}
+
+function RecordValue({ wins, losses, pushes = null }: { wins: number; losses: number; pushes?: number | null }) {
+  const aria = pushes == null
+    ? `${wins} wins, ${losses} losses`
+    : `${wins} wins, ${losses} losses, ${pushes} pushes`;
+  return <span className="matchup-record-value" aria-label={aria}>
+    <span>{wins}</span><i className="matchup-record-separator" aria-hidden="true" /><span>{losses}</span>
+    {pushes != null && <><i className="matchup-record-separator" aria-hidden="true" /><span>{pushes}</span></>}
+  </span>;
+}
+
+function InlineDot() {
+  return <span className="matchup-inline-dot" aria-hidden="true" />;
 }
 
 function rankTone(rank?: number | null) {
@@ -158,33 +127,60 @@ function FormTeam({ team, logo }: { team: MatchupTeam; logo?: string | null }) {
   const count = team.ats.wins + team.ats.losses + team.ats.pushes;
   return <section className="matchup-form-team">
     <div className="matchup-form-heading"><Logo src={logo} size={30} /><h3>{team.name}</h3></div>
-    <div className="matchup-form-stats"><div><small>RECORD</small><strong>{team.resultsAvailable ? `${team.record.wins}–${team.record.losses}` : "—"}</strong></div><div><small>AVG. MARGIN</small><strong>{team.scoring.margin == null ? "—" : signed(team.scoring.margin)}</strong></div><div><small>ATS</small><strong>{count ? `${team.ats.wins}–${team.ats.losses}–${team.ats.pushes}` : "—"}</strong></div><div><small>AVG. COVER</small><strong>{team.ats.avgCoverMargin == null ? "—" : signed(team.ats.avgCoverMargin)}</strong></div></div>
+    <div className="matchup-form-stats">
+      <div><small>RECORD</small><strong>{team.resultsAvailable ? <RecordValue wins={team.record.wins} losses={team.record.losses} /> : "—"}</strong></div>
+      <div><small>AVG. MARGIN</small><strong>{team.scoring.margin == null ? "—" : signed(team.scoring.margin)}</strong></div>
+      <div><small>ATS</small><strong>{count ? <RecordValue wins={team.ats.wins} losses={team.ats.losses} pushes={team.ats.pushes} /> : "—"}</strong></div>
+      <div><small>AVG. COVER</small><strong>{team.ats.avgCoverMargin == null ? "—" : signed(team.ats.avgCoverMargin)}</strong></div>
+    </div>
     <h4>Season Results</h4>
-    {team.recent.length ? team.recent.map(row => <div className="matchup-result-row" key={row.id}><span className={row.result === "W" ? "matchup-result-win" : "matchup-result-loss"}>{row.result}</span><div><strong>{row.home ? "vs" : "at"} {teamDisplayName("CFB", row.opponent)}</strong><small>Week {row.week}</small></div><strong>{row.teamPoints}–{row.opponentPoints}</strong></div>) : <p className="matchup-empty-copy">No completed results available.</p>}
+    {team.recent.length ? team.recent.map(row => <div className="matchup-result-row" key={row.id}>
+      <span className={row.result === "W" ? "matchup-result-win" : row.result === "L" ? "matchup-result-loss" : "matchup-result-push"}>{row.result}</span>
+      <div><strong>{row.home ? "vs" : "at"} {teamDisplayName("CFB", row.opponent)}</strong><small>Week {row.week}</small></div>
+      <strong>{row.teamPoints}–{row.opponentPoints}</strong>
+    </div>) : <p className="matchup-empty-copy">No completed results available.</p>}
     <h4>Against the Spread</h4>
-    {team.ats.recent.length ? team.ats.recent.map(row => <div className="matchup-result-row" key={row.id}><span className={row.result === "W" ? "matchup-result-win" : row.result === "L" ? "matchup-result-loss" : "matchup-result-push"}>{row.result}</span><div><strong>{row.home ? "vs" : "at"} {teamDisplayName("CFB", row.opponent)} {spreadText(row.spread)}</strong><small>Week {row.week} · Cover {signed(row.coverMargin)}</small></div><strong>{row.teamPoints}–{row.opponentPoints}</strong></div>) : <p className="matchup-empty-copy">No graded spreads.</p>}
+    {team.ats.recent.length ? team.ats.recent.map(row => <div className="matchup-result-row" key={row.id}>
+      <span className={row.result === "W" ? "matchup-result-win" : row.result === "L" ? "matchup-result-loss" : "matchup-result-push"}>{row.result}</span>
+      <div><strong>{row.home ? "vs" : "at"} {teamDisplayName("CFB", row.opponent)} {spreadText(row.spread)}</strong><small className="matchup-result-meta"><span>Week {row.week}</span><InlineDot /><span>Cover {signed(row.coverMargin)}</span></small></div>
+      <strong>{row.teamPoints}–{row.opponentPoints}</strong>
+    </div>) : <p className="matchup-empty-copy">No graded spreads.</p>}
   </section>;
 }
 
-function History({ history, away, home }: { history: MatchupHistory; away: string; home: string }) {
+function History({ history, away, home, awayLogo, homeLogo }: { history: MatchupHistory; away: string; home: string; awayLogo?: string | null; homeLogo?: string | null }) {
   const wins = history.games.filter(row => Number(row.teamPoints) > Number(row.opponentPoints)).length;
   const losses = history.games.filter(row => Number(row.teamPoints) < Number(row.opponentPoints)).length;
+  const meetingCount = history.games.length;
   return <div className="matchup-tab-body">
-    <div className="matchup-section-heading"><h3>Head-to-head · 8 seasons</h3></div>
-    {!history.complete && <p className="matchup-data-note">Some seasons are unavailable; showing verified meetings.</p>}
-    {history.games.length ? <><div className="matchup-series-summary"><span>{away}<strong>{wins}</strong></span><small>WINS</small><span>{home}<strong>{losses}</strong></span></div>{history.games.map(row => <div className="matchup-history-row" key={row.id}><span>{new Date(row.date).getUTCFullYear()}</span><div><strong>{away} {row.teamPoints} · {home} {row.opponentPoints}</strong><small>{row.venue || (row.neutralSite ? "Neutral site" : "Previous meeting")}</small></div></div>)}</> : <p className="matchup-empty-copy">{history.complete ? "No meetings in the last eight seasons." : "History is temporarily unavailable."}</p>}
+    <div className="matchup-section-heading"><h3>Head-to-head · Last 10 meetings</h3></div>
+    {!history.complete && meetingCount < 10 && <p className="matchup-data-note">Showing the verified previous meetings available from ESPN history.</p>}
+    {meetingCount ? <>
+      <div className="matchup-series-summary">
+        <div className="matchup-series-side">
+          <Logo src={awayLogo} size={28} />
+          <div className="matchup-series-copy"><strong>{away}</strong><small><b>{wins}</b> wins</small></div>
+        </div>
+        <small className="matchup-series-center">{meetingCount >= 10 ? "LAST 10" : `LAST ${meetingCount}`}</small>
+        <div className="matchup-series-side">
+          <Logo src={homeLogo} size={28} />
+          <div className="matchup-series-copy"><strong>{home}</strong><small><b>{losses}</b> wins</small></div>
+        </div>
+      </div>
+      {history.games.map(row => <div className="matchup-history-row" key={row.id}>
+        <span>{new Date(row.date).getUTCFullYear()}</span>
+        <div><strong className="matchup-history-scoreline"><span>{away} {row.teamPoints}</span><InlineDot /><span>{home} {row.opponentPoints}</span></strong><small>{row.venue || (row.neutralSite ? "Neutral site" : "Previous meeting")}</small></div>
+      </div>)}
+    </> : <p className="matchup-empty-copy">{history.complete ? "No verified previous meetings found." : "History is temporarily unavailable."}</p>}
   </div>;
 }
 
-export default function MatchupPreview({ game, onClose, showModel = false, modelGroup = "shaw-family" }: { game: Game; onClose: () => void; showModel?: boolean; modelGroup?: string }) {
+export default function MatchupPreview({ game, onClose }: { game: Game; onClose: () => void; showModel?: boolean; modelGroup?: string }) {
   const [tab, setTab] = useState<Tab>("matchup");
   const [payload, setPayload] = useState<MatchupPayload | null>(null);
   const [history, setHistory] = useState<MatchupHistory | null>(null);
-  const [model, setModel] = useState<CfbModelProjection | null>(null);
   const [error, setError] = useState("");
   const [historyError, setHistoryError] = useState("");
-  const [modelError, setModelError] = useState("");
-  const [modelLoading, setModelLoading] = useState(false);
   const [retry, setRetry] = useState(0);
   const [mounted, setMounted] = useState(false);
   const sheet = useRef<HTMLElement>(null);
@@ -225,7 +221,7 @@ export default function MatchupPreview({ game, onClose, showModel = false, model
 
   useEffect(() => {
     let active = true;
-    setPayload(null); setHistory(null); setModel(null); setError(""); setHistoryError(""); setModelError(""); setModelLoading(false); setTab("matchup");
+    setPayload(null); setHistory(null); setError(""); setHistoryError(""); setTab("matchup");
     const token = window.localStorage.getItem("pickem_session_token") || "";
     void getPreview(`${token}:${game.id}`, () => requestData<MatchupPayload>(game.id, "matchup", token))
       .then(data => { if (active) setPayload(data); })
@@ -244,53 +240,22 @@ export default function MatchupPreview({ game, onClose, showModel = false, model
     return () => { active = false; };
   }, [tab, game.id, history, retry]);
 
-  useEffect(() => {
-    if (!showModel || tab !== "model" || model) return;
-    let active = true;
-    setModelError("");
-    setModelLoading(true);
-    const watchdog = window.setTimeout(() => {
-      if (!active) return;
-      setModelLoading(false);
-      setModelError("Model request took too long. Try again.");
-    }, 11_000);
-    const token = window.localStorage.getItem("pickem_session_token") || "";
-    void getModel(`${modelGroup}:${token}:${game.id}:${retry}`, () => requestModel(game.id, token, modelGroup))
-      .then(data => {
-        if (!active) return;
-        if (!data) throw new Error("Model data returned empty.");
-        setModel(data);
-        setModelLoading(false);
-      })
-      .catch(cause => {
-        if (!active) return;
-        setModelLoading(false);
-        setModelError(cause instanceof Error ? cause.message : "Could not load model.");
-      });
-    return () => {
-      active = false;
-      window.clearTimeout(watchdog);
-    };
-  }, [showModel, modelGroup, tab, game.id, model, retry]);
-
   if (!mounted) return null;
-  const tabs: Array<[Tab, string]> = [["matchup", "Analytics"], ["form", "Form"], ["history", "History"], ...(showModel ? [["model", "Model"] as [Tab, string]] : [])];
+  const tabs: Array<[Tab, string]> = [["matchup", "Analytics"], ["form", "Form"], ["history", "History"]];
   return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="true" aria-label={`${away} at ${home} matchup preview`}>
-      <header className="matchup-preview-header"><span>MATCHUP PREVIEW</span><button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={20} /></button></header>
-      <div className="matchup-preview-matchup-line">{awayHeader} @ {homeHeader}</div>
+      <header className="matchup-preview-header"><span>{awayHeader} @ {homeHeader}</span><button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={20} /></button></header>
       <div className="matchup-preview-kickoff">{formatOrdinalDate(matchupDateFormatter, new Date(game.commence_time))} CT</div>
       <div className="matchup-preview-hero">
-        {(["away", "home"] as const).map((side, index) => <div className="matchup-preview-team" key={side}><Logo src={side === "away" ? game.away_logo_url : game.home_logo_url} size={46} /><strong>{side === "away" ? away : home}</strong><span>{payload?.teams[side].resultsAvailable ? `${payload.teams[side].record.wins}–${payload.teams[side].record.losses}` : "—"}{normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread) != null && <b>{spreadText(normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread))}</b>}</span>{index === 0 && <small className="matchup-preview-at">AT</small>}</div>)}
+        {(["away", "home"] as const).map((side, index) => <div className="matchup-preview-team" key={side}><Logo src={side === "away" ? game.away_logo_url : game.home_logo_url} size={46} /><strong>{side === "away" ? away : home}</strong><span>{payload?.teams[side].resultsAvailable ? <RecordValue wins={payload.teams[side].record.wins} losses={payload.teams[side].record.losses} /> : "—"}{normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread) != null && <b>{spreadText(normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread))}</b>}</span>{index === 0 && <small className="matchup-preview-at">AT</small>}</div>)}
       </div>
-      <nav className={`matchup-preview-tabs ${showModel ? "has-model-tab" : ""}`.trim()} aria-label="Matchup sections">{tabs.map(([id, label]) => <button type="button" key={id} aria-current={tab === id ? "page" : undefined} className={tab === id ? "active" : ""} onClick={() => { setTab(id); sheet.current?.querySelector(".matchup-preview-scroll")?.scrollTo(0, 0); }}>{label}</button>)}</nav>
+      <nav className="matchup-preview-tabs" aria-label="Matchup sections">{tabs.map(([id, label]) => <button type="button" key={id} aria-current={tab === id ? "page" : undefined} className={tab === id ? "active" : ""} onClick={() => { setTab(id); sheet.current?.querySelector(".matchup-preview-scroll")?.scrollTo(0, 0); }}>{label}</button>)}</nav>
       <div className="matchup-preview-scroll">
         {error && <div className="matchup-empty-copy" role="alert"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
         {!payload && !error && <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading matchup…</span></div>}
         {payload && tab === "matchup" && <Matchup payload={payload} awayLogo={game.away_logo_url} homeLogo={game.home_logo_url} />}
         {payload && tab === "form" && <div className="matchup-tab-body"><div className="matchup-split-lists"><FormTeam team={payload.teams.away} logo={game.away_logo_url} /><FormTeam team={payload.teams.home} logo={game.home_logo_url} /></div></div>}
-        {payload && tab === "history" && (history ? <History history={history} away={away} home={home} /> : historyError ? <div className="matchup-empty-copy" role="alert"><p>{historyError}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div> : <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading history…</span></div>)}
-        {showModel && tab === "model" && (model ? <ModelTab model={model} /> : modelError ? <div className="matchup-empty-copy" role="alert"><p>{modelError}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div> : modelLoading ? <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading model…</span></div> : <div className="matchup-empty-copy"><p>Model data is not ready yet.</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div>)}
+        {payload && tab === "history" && (history ? <History history={history} away={away} home={home} awayLogo={game.away_logo_url} homeLogo={game.home_logo_url} /> : historyError ? <div className="matchup-empty-copy" role="alert"><p>{historyError}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div> : <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading history…</span></div>)}
       </div>
     </section>
   </div>, document.body);
