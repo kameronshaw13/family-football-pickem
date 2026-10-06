@@ -918,3 +918,31 @@
   .game-tracker-score-stack > b { font-size: 24px; }
   .game-tracker-tabs button { font-size: 12.5px; }
 }
+
+
+.game-tracker-drive-meta {
+  display: inline-flex !important;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+.game-tracker-drive-meta > span:not(.game-tracker-meta-dot),
+.game-tracker-scoring-copy > small > span:not(.game-tracker-meta-dot) {
+  min-width: 0;
+}
+.game-tracker-meta-dot {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  flex: 0 0 3px;
+  margin-inline: 2px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .9;
+  transform: translateY(-.02em);
+}
+.game-tracker-scoring-copy > small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
