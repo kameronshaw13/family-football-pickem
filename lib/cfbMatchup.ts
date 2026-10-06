@@ -106,14 +106,44 @@ async function buildHistory(game: MatchupGame) {
   const season = seasonFor(game);
   const awayId = logoTeamId(game.away_logo_url);
   const homeId = logoTeamId(game.home_logo_url);
-  if (!awayId || !homeId) return { games: [], seasons: 8, complete: false };
-  const snapshots = await Promise.all(Array.from({ length: 8 }, (_, index) =>
-    schedule(awayId, season - index).then(games => ({ games, ok: true })).catch(() => ({ games: [] as Schedule, ok: false }))));
-  const games = snapshots.flatMap(row => row.games)
-    .filter(row => row.completed && row.teamPoints != null && row.opponentPoints != null &&
-      row.opponentId === homeId && new Date(row.date).getTime() < new Date(game.commence_time).getTime())
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  return { games, seasons: 8, complete: snapshots.every(row => row.ok) };
+  if (!awayId || !homeId) return { games: [], seasons: 0, complete: false };
+
+  const targetTime = new Date(game.commence_time).getTime();
+  const meetingTarget = 10;
+  const batchSize = 10;
+  const maxSeasons = 50;
+  const meetings = new Map<string, Schedule[number]>();
+  let searchedSeasons = 0;
+  let allRequestsOk = true;
+
+  while (searchedSeasons < maxSeasons && meetings.size < meetingTarget) {
+    const count = Math.min(batchSize, maxSeasons - searchedSeasons);
+    const seasons = Array.from({ length: count }, (_, index) => season - searchedSeasons - index);
+    const snapshots = await Promise.all(seasons.map(year =>
+      schedule(awayId, year)
+        .then(games => ({ games, ok: true }))
+        .catch(() => ({ games: [] as Schedule, ok: false }))
+    ));
+
+    for (const snapshot of snapshots) {
+      if (!snapshot.ok) allRequestsOk = false;
+      for (const row of snapshot.games) {
+        if (!row.completed || row.teamPoints == null || row.opponentPoints == null) continue;
+        if (row.opponentId !== homeId || new Date(row.date).getTime() >= targetTime) continue;
+        meetings.set(String(row.id || row.date), row);
+      }
+    }
+    searchedSeasons += count;
+  }
+
+  const games = Array.from(meetings.values())
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, meetingTarget);
+  return {
+    games,
+    seasons: searchedSeasons,
+    complete: games.length >= meetingTarget || (searchedSeasons >= maxSeasons && allRequestsOk)
+  };
 }
 
 export function loadMatchup(game: MatchupGame) {
