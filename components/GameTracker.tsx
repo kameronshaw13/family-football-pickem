@@ -182,6 +182,18 @@ function TimeoutDots({ remaining }: { remaining: number | null }) {
   </span>;
 }
 
+function MetaDots({ items }: { items: string[] }) {
+  return <>{items.filter(Boolean).map((item, index) => <Fragment key={`${item}-${index}`}>
+    {index > 0 && <span className="game-tracker-meta-dot" aria-hidden="true" />}
+    <span>{item}</span>
+  </Fragment>)}</>;
+}
+
+function trackerTeamLabel(team: TrackerTeam) {
+  const label = team.shortName || team.name || team.abbreviation;
+  return label.length > 14 && team.abbreviation ? team.abbreviation : label;
+}
+
 function TeamScore({ side, payload, game, completed }: { side: Side; payload: TrackerPayload | null; game: Game; completed: boolean }) {
   const fallbackName = teamDisplayName(game.league, side === "away" ? game.away_team : game.home_team);
   const fallbackLogo = side === "away" ? game.away_logo_url : game.home_logo_url;
@@ -194,7 +206,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   const team = payload?.teams[side];
   const opponent = payload?.teams[side === "away" ? "home" : "away"];
   const fullName = team?.name || fallbackName;
-  const shortName = team?.shortName || fullName;
+  const shortName = team ? trackerTeamLabel(team) : fullName;
   const rank = game.league === "CFB"
     ? Number(side === "away" ? game.away_rank : game.home_rank)
     : null;
@@ -247,12 +259,12 @@ function LiveCurrentDrive({ drive, payload }: { drive: TrackerDrive; payload: Tr
     drive.playsCount ? `${drive.playsCount} plays` : "",
     drive.yards != null ? `${drive.yards} yds` : "",
     drive.timeElapsed ? `${drive.timeElapsed} Possession` : "Possession"
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean);
 
   return <section className="game-tracker-live-drive">
     <header>
       <span>{team && <TeamLogo src={team.logo} name={team.name} size={28} />}</span>
-      <div><strong>Current Drive</strong><small>{meta}</small></div>
+      <div><strong>Current Drive</strong><small className="game-tracker-drive-meta"><MetaDots items={meta} /></small></div>
     </header>
     <div className="game-tracker-live-drive-plays">
       {drive.plays.length ? drive.plays.slice(0, 4).map((play) => <PlayRow key={play.id} play={play} compact />) : <p className="game-tracker-drive-empty">Waiting for the first play…</p>}
@@ -381,11 +393,11 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
               {play.clock && <time>{play.clock}</time>}
             </div>
             <p>{play.text}</p>
-            {play.drive && <small>{[
+            {play.drive && <small><MetaDots items={[
               play.drive.playsCount ? `${play.drive.playsCount} plays` : "",
               play.drive.yards != null ? `${play.drive.yards} yds` : "",
               play.drive.timeElapsed ? `${play.drive.timeElapsed} possession` : ""
-            ].filter(Boolean).join(" · ")}</small>}
+            ].filter(Boolean)} /></small>}
           </div>
           <ScoringScore play={play} previous={previous} />
         </div>
@@ -408,13 +420,13 @@ function DriveSummary({ drive, payload }: { drive: TrackerDrive; payload: Tracke
   const timeAndPossession = drive.timeElapsed
     ? `${drive.timeElapsed}${team ? " Possession" : ""}`
     : team ? "Possession" : "";
-  const detail = [...detailParts, timeAndPossession].filter(Boolean).join(" · ");
+  const detail = [...detailParts, timeAndPossession].filter(Boolean);
 
   return <summary>
     <span className="game-tracker-drive-logo">{team && <TeamLogo src={team.logo} name={team.name} size={28} />}</span>
     <div>
       <strong>{title}{scoreText}</strong>
-      <small className="game-tracker-drive-meta">{detail || drive.description || "Drive summary"}</small>
+      <small className="game-tracker-drive-meta">{detail.length ? <MetaDots items={detail} /> : drive.description || "Drive summary"}</small>
     </div>
     <ChevronDown size={16} />
   </summary>;
@@ -456,9 +468,9 @@ function Plays({ payload }: { payload: TrackerPayload }) {
 function TeamStats({ payload }: { payload: TrackerPayload }) {
   return <section className="game-tracker-team-stats">
     <div className="game-tracker-stat-table-head">
-      <span className="game-tracker-stat-team"><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><b>{payload.teams.away.shortName || payload.teams.away.abbreviation || "Away"}</b></span>
+      <span className="game-tracker-stat-team"><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><b>{trackerTeamLabel(payload.teams.away) || "Away"}</b></span>
       <strong>TEAM STATS</strong>
-      <span className="game-tracker-stat-team home"><b>{payload.teams.home.shortName || payload.teams.home.abbreviation || "Home"}</b><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /></span>
+      <span className="game-tracker-stat-team home"><b>{trackerTeamLabel(payload.teams.home) || "Home"}</b><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /></span>
     </div>
     {payload.teamStats.map((stat) => <div className="game-tracker-stat-row" key={stat.label}>
       <strong>{stat.away}</strong>
@@ -534,9 +546,9 @@ function BoxScore({ payload }: { payload: TrackerPayload }) {
 
   return <div className="game-tracker-box">
     <div className="game-tracker-box-selector" role="group" aria-label="Choose box score team">
-      <button type="button" className={view === "away" ? "active" : ""} onClick={() => setView("away")}>{payload.teams.away.shortName || payload.teams.away.abbreviation || "Away"}</button>
+      <button type="button" className={view === "away" ? "active" : ""} onClick={() => setView("away")}>{trackerTeamLabel(payload.teams.away) || "Away"}</button>
       <button type="button" className={view === "all" ? "active" : ""} onClick={() => setView("all")}>All</button>
-      <button type="button" className={view === "home" ? "active" : ""} onClick={() => setView("home")}>{payload.teams.home.shortName || payload.teams.home.abbreviation || "Home"}</button>
+      <button type="button" className={view === "home" ? "active" : ""} onClick={() => setView("home")}>{trackerTeamLabel(payload.teams.home) || "Home"}</button>
     </div>
     {view === "all" ? <TeamStats payload={payload} /> : <TeamBox payload={payload} side={view} />}
   </div>;
