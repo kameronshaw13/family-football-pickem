@@ -9,7 +9,7 @@ import type { NflMatchupHistory, NflMatchupPayload, NflMatchupTeam } from "@/lib
 import { createAsyncCache } from "@/lib/asyncCache";
 import { formatOrdinalDate, matchupDateFormatter } from "@/lib/displayDates";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
-import { teamDisplayName } from "@/lib/teamNames";
+import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 
 type Tab = "matchup" | "form" | "history";
 type Snapshot = NonNullable<NflMatchupTeam["offense"]>;
@@ -198,6 +198,8 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
   close.current = onClose;
   const away = teamDisplayName("NFL", game.away_team);
   const home = teamDisplayName("NFL", game.home_team);
+  const awayHeader = teamAbbreviatedName("NFL", game.away_team);
+  const homeHeader = teamAbbreviatedName("NFL", game.home_team);
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
@@ -258,6 +260,7 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
   return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="true" aria-label={`${away} at ${home} NFL matchup preview`}>
       <header className="matchup-preview-header"><span>NFL MATCHUP PREVIEW</span><button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={20} /></button></header>
+      <div className="matchup-preview-matchup-line">{awayHeader} @ {homeHeader}</div>
       <div className="matchup-preview-kickoff">{formatOrdinalDate(matchupDateFormatter, new Date(game.commence_time))} CT</div>
       <div className="matchup-preview-hero">
         {(["away", "home"] as const).map((side, index) => <div className="matchup-preview-team" key={side}>
