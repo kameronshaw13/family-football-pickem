@@ -1213,3 +1213,47 @@
   background: var(--ink);
   transform: translateY(0);
 }
+
+
+/* 2026-10-06 card/offer navigation polish. */
+.side-bet-filter-row:not(.make-offer) {
+  grid-template-columns: minmax(0, 120px) minmax(0, 1fr);
+  align-items: center;
+}
+.side-bet-filter-row:not(.make-offer) .side-bet-offers-game-filter {
+  width: min(238px, 100%);
+  justify-self: end;
+  margin: 0;
+}
+.side-bet-filter-row:not(.make-offer) .side-bet-offers-game-filter button {
+  padding-inline: 5px;
+  font-size: 9px;
+}
+.pick-score-bug-button {
+  display: grid;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+}
+.pick-score-bug-button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+.pick-score-bug-button:active {
+  background: var(--surface-muted);
+}
+.board-team-rank {
+  color: var(--ink) !important;
+}
+@media (max-width: 360px) {
+  .side-bet-filter-row:not(.make-offer) {
+    grid-template-columns: minmax(0, 108px) minmax(0, 1fr);
+    gap: 6px;
+  }
+  .side-bet-filter-row:not(.make-offer) .side-bet-offers-game-filter button {
+    padding-inline: 3px;
+    font-size: 8.5px;
+  }
+}
