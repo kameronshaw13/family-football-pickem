@@ -986,6 +986,7 @@
 .pick-title-market .dog-separator.ui-separator-dot {
   margin-inline: 0.36em;
   background: var(--ink);
+  transform: translateY(0.04em);
 }
 
 /* Pending Offers + Offer History:
