@@ -285,7 +285,7 @@ p { margin: 0; }
 .pick-title-team { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pick-title-team.responsive-text { max-width: 100%; flex: 0 1 auto; }
 .pick-title-market { display: inline-flex; flex: 0 0 auto; align-items: center; white-space: nowrap; }
-.dog-separator { margin-inline: 4px; font-size: .92em; line-height: inherit; }
+.dog-separator { margin-inline: 5px; color: var(--ink); font-size: .92em; line-height: inherit; }
 .pick-meta, .visible-pick p { margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; }
 .visible-pick { position: relative; display: grid; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); grid-template-columns: var(--card-logo-column) minmax(0, 1fr) max-content; align-items: center; gap: var(--card-logo-gap); margin: 0; padding: 7px var(--pick-content-inset); border: 0; border-bottom: 1px solid var(--line); background: var(--panel); }
 .group-card .visible-pick:first-of-type::before { position: absolute; top: 0; right: 0; left: 0; height: 1px; background: var(--line-strong); content: ""; pointer-events: none; }
