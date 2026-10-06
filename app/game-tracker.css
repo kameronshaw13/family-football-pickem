@@ -946,3 +946,11 @@
   align-items: center;
   gap: 4px;
 }
+
+
+.game-tracker-team-box-heading strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
