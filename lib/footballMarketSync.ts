@@ -1,4 +1,4 @@
-import { fetchActionNetworkMarkets, fetchActionNetworkScheduledGames } from "@/lib/actionNetworkMarkets";
+import { fetchActionNetworkMarkets, fetchActionNetworkScheduledGames, type ActionNetworkScheduledGame } from "@/lib/actionNetworkMarkets";
 import { fetchEspnSchedule } from "@/lib/espnSchedule";
 import { espnRankForLogo, fetchEspnCfbRankMap } from "@/lib/espnRankings";
 import { canRefreshSpread, getFootballWeek, getGameLockTime, getSpreadFreezeTime } from "@/lib/lockRules";
@@ -27,6 +27,23 @@ function matchupIdentityKey(league: League, awayTeam: string, homeTeam: string) 
     normalizeTeamNameKey(teamDisplayName(league, awayTeam)),
     normalizeTeamNameKey(teamDisplayName(league, homeTeam))
   ].join(":");
+}
+
+function teamIdentitiesOverlap(league: League, left: string[], right: string[]) {
+  const leftKeys = new Set(teamIdentityKeys(league, left));
+  return teamIdentityKeys(league, right).some((key) => leftKeys.has(key));
+}
+
+function findActionScheduleMatch(
+  league: League,
+  awayValues: string[],
+  homeValues: string[],
+  actionSchedule: ActionNetworkScheduledGame[]
+) {
+  return actionSchedule.find((game) =>
+    teamIdentitiesOverlap(league, awayValues, [game.awayTeam, ...game.awayAliases]) &&
+    teamIdentitiesOverlap(league, homeValues, [game.homeTeam, ...game.homeAliases])
+  ) || null;
 }
 
 function winWord(value: number) {
@@ -104,13 +121,48 @@ export async function syncUpcomingFootballSchedule(
   const dateHints = dateHintsForWindow(now);
   const rows: any[] = [];
   const rowByMatchup = new Map<string, any>();
+  const actionSchedules = new Map<League, ActionNetworkScheduledGame[]>();
+  const matchedActionIds = new Set<string>();
+
+  // Load the DraftKings-backed provider schedule first. ESPN is still the
+  // canonical event identity, but ESPN can publish TBD games with timeValid=false
+  // and a placeholder timestamp (commonly 04:00 UTC / 11:00 PM CT the prior day).
+  // The provider timestamp is used only to resolve those invalid ESPN times and
+  // to seed the current DraftKings spread on the canonical ESPN row.
+  for (const league of ["CFB", "NFL"] as League[]) {
+    actionSchedules.set(league, await fetchActionNetworkScheduledGames(league, dateHints));
+  }
 
   for (const league of ["CFB", "NFL"] as League[]) {
+    const actionSchedule = actionSchedules.get(league) || [];
     const schedule = await fetchEspnSchedule(league, dateHints, 15 * 60, 0);
     for (const event of schedule) {
+      const matchupKey = matchupIdentityKey(league, event.awayTeam.displayName, event.homeTeam.displayName);
+      const existing = existingByMatchup.get(matchupKey);
+      const actionMatch = findActionScheduleMatch(
+        league,
+        [event.awayTeam.displayName, event.awayTeam.location, event.awayTeam.nickname, event.awayTeam.abbreviation],
+        [event.homeTeam.displayName, event.homeTeam.location, event.homeTeam.nickname, event.homeTeam.abbreviation],
+        actionSchedule
+      );
+      if (actionMatch) matchedActionIds.add(actionMatch.actionId);
+
+      const existingTime = existing?.commence_time ? new Date(existing.commence_time).getTime() : NaN;
+      const espnTime = new Date(event.commenceTime).getTime();
+      const existingHasNonPlaceholderTime = Number.isFinite(existingTime) && Math.abs(existingTime - espnTime) > 60 * 1000;
+      const commenceTime = event.timeValid
+        ? event.commenceTime
+        : actionMatch?.commenceTime || (existingHasNonPlaceholderTime ? existing.commence_time : null);
+
+      // Never write ESPN's invalid/TBD placeholder as a real kickoff. If no
+      // verified provider or previously verified time exists yet, wait for the
+      // next schedule refresh rather than showing a fake Friday 11 PM game.
+      if (!commenceTime) continue;
+
+      const providerSpread = actionMatch?.spread && !actionMatch.spread.suspended ? actionMatch.spread : null;
       const game = {
         league,
-        commence_time: event.commenceTime,
+        commence_time: commenceTime,
         home_team: event.homeTeam.displayName,
         away_team: event.awayTeam.displayName,
         home_logo_url: event.homeTeam.logoUrl,
@@ -118,24 +170,22 @@ export async function syncUpcomingFootballSchedule(
       };
       if (!isEligibleSeasonGame(game)) continue;
 
-      const lockTime = getGameLockTime(event.commenceTime);
-      const matchupKey = matchupIdentityKey(league, event.awayTeam.displayName, event.homeTeam.displayName);
-      const existing = existingByMatchup.get(matchupKey);
+      const lockTime = getGameLockTime(commenceTime);
       const row = {
         id: existing?.id || existingByEspnId.get(event.id) || event.id,
         espn_event_id: event.id,
-        week: getFootballWeek(event.commenceTime),
+        week: getFootballWeek(commenceTime),
         league,
-        commence_time: event.commenceTime,
+        commence_time: commenceTime,
         home_team: event.homeTeam.displayName,
         away_team: event.awayTeam.displayName,
         home_logo_url: event.homeTeam.logoUrl,
         away_logo_url: event.awayTeam.logoUrl,
         home_rank: league === "CFB" ? espnRankForLogo(rankMap, event.homeTeam.logoUrl) : null,
         away_rank: league === "CFB" ? espnRankForLogo(rankMap, event.awayTeam.logoUrl) : null,
-        current_spread_team: existing?.current_spread_team ?? null,
-        current_spread: existing?.current_spread ?? null,
-        current_bookmaker: existing?.current_bookmaker ?? null,
+        current_spread_team: providerSpread ? event.awayTeam.displayName : existing?.current_spread_team ?? null,
+        current_spread: providerSpread ? providerSpread.awayPoint : existing?.current_spread ?? null,
+        current_bookmaker: providerSpread ? "DraftKings" : existing?.current_bookmaker ?? null,
         lock_time: lockTime.toISOString(),
         is_locked: now >= lockTime,
         updated_at: now.toISOString()
@@ -147,8 +197,9 @@ export async function syncUpcomingFootballSchedule(
 
   let actionGamesDiscovered = 0;
   for (const league of ["CFB", "NFL"] as League[]) {
-    const actionSchedule = await fetchActionNetworkScheduledGames(league, dateHints);
+    const actionSchedule = actionSchedules.get(league) || [];
     for (const actionGame of actionSchedule) {
+      if (matchedActionIds.has(actionGame.actionId)) continue;
       const resolveTeam = (name: string, aliases: string[]) => {
         for (const key of teamIdentityKeys(league, [name, ...aliases])) {
           const identity = teamIdentityMap.get(`${league}:${key}`);
@@ -193,7 +244,7 @@ export async function syncUpcomingFootballSchedule(
         away_rank: league === "CFB" ? espnRankForLogo(rankMap, awayIdentity?.logo || null) : null,
         current_spread_team: spread ? awayTeam : existing?.current_spread_team || null,
         current_spread: spread ? spread.awayPoint : existing?.current_spread ?? null,
-        current_bookmaker: spread ? "Market" : existing?.current_bookmaker || null,
+        current_bookmaker: spread ? "DraftKings" : existing?.current_bookmaker || null,
         lock_time: lockTime.toISOString(),
         is_locked: now >= lockTime,
         updated_at: now.toISOString()
@@ -326,7 +377,7 @@ export async function persistActionNetworkSpreads(
       ...game,
       current_spread_team: game.away_team,
       current_spread: nextAwaySpread,
-      current_bookmaker: "Market",
+      current_bookmaker: "DraftKings",
       updated_at: now.toISOString()
     };
     changedGames.push(changed);
@@ -335,7 +386,7 @@ export async function persistActionNetworkSpreads(
       league: game.league,
       spread_team: game.away_team,
       spread: nextAwaySpread,
-      bookmaker: "Market",
+      bookmaker: "DraftKings",
       raw: {
         provider: "Action Network",
         phase: quote?.phase,
