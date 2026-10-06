@@ -5,7 +5,7 @@ import Image from "next/image";
 import { createPortal } from "react-dom";
 import { ChevronDown, LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
-import { teamDisplayName } from "@/lib/teamNames";
+import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 
 type TrackerTab = "live" | "scoring" | "plays" | "box";
 type Side = "away" | "home";
@@ -45,6 +45,7 @@ type TrackerTeam = {
   name: string;
   shortName: string;
   abbreviation: string;
+  endZoneName: string;
   logo: string;
   color: string;
   alternateColor: string;
@@ -74,6 +75,7 @@ type TrackerPayload = {
     homeScore: number | null;
     awayScore: number | null;
     type: string;
+    drive?: { playsCount: number; yards: number | null; timeElapsed: string } | null;
   }>;
   drives: TrackerDrive[];
   teamStats: Array<{ label: string; away: string; home: string }>;
@@ -181,6 +183,18 @@ function TimeoutDots({ remaining }: { remaining: number | null }) {
   </span>;
 }
 
+function MetaDots({ items }: { items: string[] }) {
+  return <>{items.filter(Boolean).map((item, index) => <Fragment key={`${item}-${index}`}>
+    {index > 0 && <span className="game-tracker-meta-dot" aria-hidden="true" />}
+    <span>{item}</span>
+  </Fragment>)}</>;
+}
+
+function trackerTeamLabel(team: TrackerTeam) {
+  const label = team.shortName || team.name || team.abbreviation;
+  return label.length > 14 && team.abbreviation ? team.abbreviation : label;
+}
+
 function TeamScore({ side, payload, game, completed }: { side: Side; payload: TrackerPayload | null; game: Game; completed: boolean }) {
   const fallbackName = teamDisplayName(game.league, side === "away" ? game.away_team : game.home_team);
   const fallbackLogo = side === "away" ? game.away_logo_url : game.home_logo_url;
@@ -193,7 +207,11 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   const team = payload?.teams[side];
   const opponent = payload?.teams[side === "away" ? "home" : "away"];
   const fullName = team?.name || fallbackName;
-  const shortName = team?.shortName || fullName;
+  const shortName = team ? trackerTeamLabel(team) : fullName;
+  const rank = game.league === "CFB"
+    ? Number(side === "away" ? game.away_rank : game.home_rank)
+    : null;
+  const ranked = rank != null && Number.isInteger(rank) && rank >= 1 && rank <= 25;
   const score = team?.score ?? ownFallbackScore;
   const opponentScore = opponent?.score ?? opponentFallbackScore;
   const scoreTone = completed && score != null && opponentScore != null
@@ -204,7 +222,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
     : null;
 
   return <div className={`game-tracker-score-team ${side}`} aria-label={`${fullName} ${score ?? "score unavailable"}`}>
-    <span className="game-tracker-score-team-name">{shortName}</span>
+    <span className="game-tracker-score-team-name">{ranked && <span className="game-tracker-team-rank">#{rank}</span>}{shortName}</span>
     <div className="game-tracker-score-team-main">
       <TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={38} />
       <div className="game-tracker-score-stack">
@@ -229,11 +247,10 @@ function PlayRow({ play, compact = false }: { play: TrackerPlay; compact?: boole
     <div>
       <div className="game-tracker-play-context">
         {play.situation && <span>{play.situation}</span>}
-        {play.clock && <time>{play.clock}</time>}
+        {play.outcome && <b className="game-tracker-play-outcome">{play.outcome}</b>}
       </div>
-      <strong>{play.text}</strong>
+      <strong>{play.clock && <time>{play.clock}</time>}{play.text}</strong>
     </div>
-    {play.outcome && <b className="game-tracker-play-outcome">{play.outcome}</b>}
   </div>;
 }
 
@@ -243,12 +260,12 @@ function LiveCurrentDrive({ drive, payload }: { drive: TrackerDrive; payload: Tr
     drive.playsCount ? `${drive.playsCount} plays` : "",
     drive.yards != null ? `${drive.yards} yds` : "",
     drive.timeElapsed ? `${drive.timeElapsed} Possession` : "Possession"
-  ].filter(Boolean).join(" · ");
+  ].filter(Boolean);
 
   return <section className="game-tracker-live-drive">
     <header>
       <span>{team && <TeamLogo src={team.logo} name={team.name} size={28} />}</span>
-      <div><strong>Current Drive</strong><small>{meta}</small></div>
+      <div><strong>Current Drive</strong><small className="game-tracker-drive-meta"><MetaDots items={meta} /></small></div>
     </header>
     <div className="game-tracker-live-drive-plays">
       {drive.plays.length ? drive.plays.slice(0, 4).map((play) => <PlayRow key={play.id} play={play} compact />) : <p className="game-tracker-drive-empty">Waiting for the first play…</p>}
@@ -280,7 +297,7 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
     <div className="game-tracker-live-meta">
       <div className="game-tracker-possession-label">
         <TeamLogo src={offense.logo} name={offense.name} size={22} />
-        <strong>{offense.shortName || offense.name}</strong>
+        <strong>{trackerTeamLabel(offense)}</strong>
         <span>Ball</span>
       </div>
     </div>
@@ -290,8 +307,8 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
         className="game-tracker-endzone left"
         style={{ backgroundColor: `#${offense.color || "34444c"}`, color: `#${offense.alternateColor || "ffffff"}` }}
       >
-        <TeamLogo src={offense.logo} name={offense.name} size={24} />
-        <span>{offense.shortName || offense.abbreviation}</span>
+        <TeamLogo src={offense.logo} name={offense.name} size={20} />
+        <span>{offense.endZoneName || offense.shortName || offense.abbreviation}</span>
       </div>
 
       <div className="game-tracker-field-lines">
@@ -318,8 +335,8 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
         className="game-tracker-endzone right"
         style={{ backgroundColor: `#${defense.color || "34444c"}`, color: `#${defense.alternateColor || "ffffff"}` }}
       >
-        <TeamLogo src={defense.logo} name={defense.name} size={24} />
-        <span>{defense.shortName || defense.abbreviation}</span>
+        <TeamLogo src={defense.logo} name={defense.name} size={20} />
+        <span>{defense.endZoneName || defense.shortName || defense.abbreviation}</span>
       </div>
     </div>
 
@@ -337,10 +354,22 @@ function ScoringQuarterHeader({ payload, label }: { payload: TrackerPayload; lab
   </div>;
 }
 
-function ScoringScore({ awayScore, homeScore }: { awayScore: number | null; homeScore: number | null }) {
+function ScoringScore({
+  play,
+  previous
+}: {
+  play: TrackerPayload["scoringPlays"][number];
+  previous?: TrackerPayload["scoringPlays"][number];
+}) {
+  const awayChanged = previous
+    ? play.awayScore != null && play.awayScore !== previous.awayScore
+    : play.teamSide === "away";
+  const homeChanged = previous
+    ? play.homeScore != null && play.homeScore !== previous.homeScore
+    : play.teamSide === "home";
   return <div className="game-tracker-score-values">
-    <b>{awayScore ?? "—"}</b>
-    <b>{homeScore ?? "—"}</b>
+    <b className={awayChanged ? "changed" : "unchanged"}>{play.awayScore ?? "—"}</b>
+    <b className={homeChanged ? "changed" : "unchanged"}>{play.homeScore ?? "—"}</b>
   </div>;
 }
 
@@ -356,11 +385,22 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
       return <Fragment key={play.id}>
         {showQuarter && <ScoringQuarterHeader payload={payload} label={quarter} />}
         <div className="game-tracker-score-play">
-          <div>
-            <small>{[quarter, play.clock, play.type].filter(Boolean).join(" · ")}</small>
-            <strong>{play.text}</strong>
+          <span className="game-tracker-scoring-team-logo">
+            {play.teamSide && <TeamLogo src={payload.teams[play.teamSide].logo} name={payload.teams[play.teamSide].name} size={28} />}
+          </span>
+          <div className="game-tracker-scoring-copy">
+            <div className="game-tracker-scoring-meta">
+              <strong>{play.type || "Score"}</strong>
+              {play.clock && <time>{play.clock}</time>}
+            </div>
+            <p>{play.text}</p>
+            {play.drive && <small><MetaDots items={[
+              play.drive.playsCount ? `${play.drive.playsCount} plays` : "",
+              play.drive.yards != null ? `${play.drive.yards} yds` : "",
+              play.drive.timeElapsed ? `${play.drive.timeElapsed} possession` : ""
+            ].filter(Boolean)} /></small>}
           </div>
-          <ScoringScore awayScore={play.awayScore} homeScore={play.homeScore} />
+          <ScoringScore play={play} previous={previous} />
         </div>
       </Fragment>;
     })}
@@ -381,13 +421,13 @@ function DriveSummary({ drive, payload }: { drive: TrackerDrive; payload: Tracke
   const timeAndPossession = drive.timeElapsed
     ? `${drive.timeElapsed}${team ? " Possession" : ""}`
     : team ? "Possession" : "";
-  const detail = [...detailParts, timeAndPossession].filter(Boolean).join(" · ");
+  const detail = [...detailParts, timeAndPossession].filter(Boolean);
 
   return <summary>
     <span className="game-tracker-drive-logo">{team && <TeamLogo src={team.logo} name={team.name} size={28} />}</span>
     <div>
       <strong>{title}{scoreText}</strong>
-      <small className="game-tracker-drive-meta">{detail || drive.description || "Drive summary"}</small>
+      <small className="game-tracker-drive-meta">{detail.length ? <MetaDots items={detail} /> : drive.description || "Drive summary"}</small>
     </div>
     <ChevronDown size={16} />
   </summary>;
@@ -429,9 +469,9 @@ function Plays({ payload }: { payload: TrackerPayload }) {
 function TeamStats({ payload }: { payload: TrackerPayload }) {
   return <section className="game-tracker-team-stats">
     <div className="game-tracker-stat-table-head">
-      <span className="game-tracker-stat-team"><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><b>{payload.teams.away.shortName || payload.teams.away.abbreviation || "Away"}</b></span>
+      <span className="game-tracker-stat-team"><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><b>{trackerTeamLabel(payload.teams.away) || "Away"}</b></span>
       <strong>TEAM STATS</strong>
-      <span className="game-tracker-stat-team home"><b>{payload.teams.home.shortName || payload.teams.home.abbreviation || "Home"}</b><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /></span>
+      <span className="game-tracker-stat-team home"><b>{trackerTeamLabel(payload.teams.home) || "Home"}</b><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /></span>
     </div>
     {payload.teamStats.map((stat) => <div className="game-tracker-stat-row" key={stat.label}>
       <strong>{stat.away}</strong>
@@ -493,7 +533,7 @@ function TeamBox({ payload, side }: { payload: TrackerPayload; side: Side }) {
   return <div className="game-tracker-team-box">
     <div className="game-tracker-team-box-heading">
       <TeamLogo src={team.logo} name={team.name} size={30} />
-      <strong>{team.name}</strong>
+      <strong>{trackerTeamLabel(team)}</strong>
     </div>
     {rows.length ? rows.map((row) => <section className="game-tracker-box-section" key={row.category}>
       <h3>{row.title}</h3>
@@ -507,9 +547,9 @@ function BoxScore({ payload }: { payload: TrackerPayload }) {
 
   return <div className="game-tracker-box">
     <div className="game-tracker-box-selector" role="group" aria-label="Choose box score team">
-      <button type="button" className={view === "away" ? "active" : ""} onClick={() => setView("away")}>{payload.teams.away.shortName || payload.teams.away.abbreviation || "Away"}</button>
+      <button type="button" className={view === "away" ? "active" : ""} onClick={() => setView("away")}>{trackerTeamLabel(payload.teams.away) || "Away"}</button>
       <button type="button" className={view === "all" ? "active" : ""} onClick={() => setView("all")}>All</button>
-      <button type="button" className={view === "home" ? "active" : ""} onClick={() => setView("home")}>{payload.teams.home.shortName || payload.teams.home.abbreviation || "Home"}</button>
+      <button type="button" className={view === "home" ? "active" : ""} onClick={() => setView("home")}>{trackerTeamLabel(payload.teams.home) || "Home"}</button>
     </div>
     {view === "all" ? <TeamStats payload={payload} /> : <TeamBox payload={payload} side={view} />}
   </div>;
@@ -606,17 +646,28 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
     };
   }, [game.id]);
 
+  useEffect(() => {
+    if (payload?.status.completed && tab === "live") setTab("scoring");
+  }, [payload?.status.completed, tab]);
+
   if (!mounted) return null;
 
   const awayName = teamDisplayName(game.league, game.away_team);
   const homeName = teamDisplayName(game.league, game.home_team);
-  const tabs: Array<[TrackerTab, string]> = [["live", "Live"], ["scoring", "Scoring"], ["plays", "Plays"], ["box", "Box Score"]];
   const completed = Boolean(payload?.status.completed ?? game.live_completed ?? (game.final_home_score != null && game.final_away_score != null));
+  const tabs: Array<[TrackerTab, string]> = [
+    ...(completed ? [] : [["live", "Live"] as [TrackerTab, string]]),
+    ["scoring", "Scoring"],
+    ["plays", "Plays"],
+    ["box", "Box Score"]
+  ];
+  const awayHeader = teamAbbreviatedName(game.league, game.away_team);
+  const homeHeader = teamAbbreviatedName(game.league, game.home_team);
 
   return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="true" aria-label={`${awayName} at ${homeName} GameTracker`}>
       <header className="game-tracker-header">
-        <span>GAMETRACKER</span>
+        <span>{awayHeader} @ {homeHeader}</span>
         <button type="button" onClick={onClose} aria-label="Close GameTracker"><X size={20} /></button>
       </header>
 
@@ -628,7 +679,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
         </div>
       </div>
 
-      <nav className="game-tracker-tabs" aria-label="GameTracker sections">
+      <nav className={`game-tracker-tabs ${completed ? "completed" : ""}`.trim()} aria-label="GameTracker sections">
         {tabs.map(([id, label]) => <button
           type="button"
           key={id}
@@ -641,7 +692,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
         >{label}</button>)}
       </nav>
 
-      <div ref={scrollArea} className="game-tracker-scroll">
+      <div ref={scrollArea} className={`game-tracker-scroll ${tab === "box" ? "box-score" : ""}`.trim()}>
         {!payload && !error && <div className="game-tracker-loading"><LoaderCircle size={22} /><span>Loading GameTracker…</span></div>}
         {error && !payload && <div className="game-tracker-empty" role="alert">{error}</div>}
         {payload && tab === "live" && <LiveField payload={payload} />}

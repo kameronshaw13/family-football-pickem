@@ -10,7 +10,7 @@ import type { CfbModelProjection } from "@/lib/cfbModel";
 import { createAsyncCache } from "@/lib/asyncCache";
 import { formatOrdinalDate, matchupDateFormatter } from "@/lib/displayDates";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
-import { teamDisplayName } from "@/lib/teamNames";
+import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 
 type Tab = "matchup" | "form" | "history" | "model";
 type Unit = NonNullable<MatchupTeam["relative"]>["offense"];
@@ -192,6 +192,8 @@ export default function MatchupPreview({ game, onClose, showModel = false, model
   close.current = onClose;
   const away = teamDisplayName("CFB", game.away_team);
   const home = teamDisplayName("CFB", game.home_team);
+  const awayHeader = teamAbbreviatedName("CFB", game.away_team);
+  const homeHeader = teamAbbreviatedName("CFB", game.home_team);
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => {
@@ -276,6 +278,7 @@ export default function MatchupPreview({ game, onClose, showModel = false, model
   return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="true" aria-label={`${away} at ${home} matchup preview`}>
       <header className="matchup-preview-header"><span>MATCHUP PREVIEW</span><button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={20} /></button></header>
+      <div className="matchup-preview-matchup-line">{awayHeader} @ {homeHeader}</div>
       <div className="matchup-preview-kickoff">{formatOrdinalDate(matchupDateFormatter, new Date(game.commence_time))} CT</div>
       <div className="matchup-preview-hero">
         {(["away", "home"] as const).map((side, index) => <div className="matchup-preview-team" key={side}><Logo src={side === "away" ? game.away_logo_url : game.home_logo_url} size={46} /><strong>{side === "away" ? away : home}</strong><span>{payload?.teams[side].resultsAvailable ? `${payload.teams[side].record.wins}–${payload.teams[side].record.losses}` : "—"}{normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread) != null && <b>{spreadText(normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread))}</b>}</span>{index === 0 && <small className="matchup-preview-at">AT</small>}</div>)}

@@ -47,7 +47,7 @@ function normalizeScoringPlay(play: any, homeId: string, awayId: string, index: 
     teamSide: teamId === homeId ? "home" : teamId === awayId ? "away" : null,
     homeScore: finite(play?.homeScore),
     awayScore: finite(play?.awayScore),
-    type: String(play?.type?.text || "")
+    type: playOutcome(play) || String(play?.type?.text || "")
   };
 }
 
@@ -69,8 +69,32 @@ function playOutcome(play: any) {
 
   const yards = finite(play?.statYardage ?? play?.yards);
   if (yards === 0) return "No Gain";
-  if (yards != null) return `${yards > 0 ? "+" : ""}${yards} YD`;
+  if (yards != null) return `${yards} YD`;
   return "";
+}
+
+function playDescriptor(play: any) {
+  return `${String(play?.type?.text || "")} ${String(play?.text || play?.shortText || "")}`.toLowerCase();
+}
+
+function playFieldPosition(play: any) {
+  const start = play?.start || {};
+  const direct = String(start?.possessionText || start?.yardLine || "").trim();
+  if (direct) return direct;
+  const detail = String(start?.downDistanceText || start?.shortDownDistanceText || "");
+  return detail.match(/\bat\s+(.+)$/i)?.[1]?.trim() || "";
+}
+
+function playSituationText(play: any) {
+  const descriptor = playDescriptor(play);
+  if (/kickoff/.test(descriptor)) return playFieldPosition(play);
+  return String(
+    play?.start?.downDistanceText ||
+    play?.start?.shortDownDistanceText ||
+    play?.end?.downDistanceText ||
+    play?.end?.shortDownDistanceText ||
+    ""
+  );
 }
 
 function normalizePlay(play: any, homeId: string, awayId: string, drive: any, index: number) {
@@ -82,7 +106,7 @@ function normalizePlay(play: any, homeId: string, awayId: string, drive: any, in
     text: String(play?.text || play?.shortText || play?.type?.text || "Play"),
     period: String(play?.period?.displayValue || play?.period?.number || ""),
     clock: String(play?.clock?.displayValue || ""),
-    situation: String(play?.start?.downDistanceText || play?.start?.shortDownDistanceText || play?.end?.downDistanceText || play?.end?.shortDownDistanceText || ""),
+    situation: playSituationText(play),
     outcome: playOutcome(play),
     teamSide: teamId === homeId ? "home" : teamId === awayId ? "away" : null,
     scoringPlay: Boolean(play?.scoringPlay),
@@ -298,8 +322,29 @@ export async function GET(req: NextRequest) {
           ...uniquePreviousDrives.slice().reverse().map((drive: any, index: number) => normalizeDrive(drive, homeId, awayId, false, index + 1, true))
         ];
 
+    const scoringDriveByPlay = new Map<string, { playsCount: number; yards: number | null; timeElapsed: string }>();
+    const scoringDriveByMoment = new Map<string, { playsCount: number; yards: number | null; timeElapsed: string }>();
+    for (const drive of drives) {
+      for (const play of drive.plays || []) {
+        if (!play.scoringPlay) continue;
+        const meta = {
+          playsCount: Number(drive.playsCount || 0),
+          yards: drive.yards == null ? null : Number(drive.yards),
+          timeElapsed: String(drive.timeElapsed || "")
+        };
+        scoringDriveByPlay.set(String(play.id), meta);
+        scoringDriveByMoment.set(`${play.period}|${play.clock}`, meta);
+      }
+    }
+
     const scoringPlays = (Array.isArray(payload?.scoringPlays) ? payload.scoringPlays : [])
-      .map((play: any, index: number) => normalizeScoringPlay(play, homeId, awayId, index))
+      .map((play: any, index: number) => {
+        const normalized = normalizeScoringPlay(play, homeId, awayId, index);
+        const drive = scoringDriveByPlay.get(normalized.id) ||
+          scoringDriveByMoment.get(`${normalized.period}|${normalized.clock}`) ||
+          null;
+        return { ...normalized, drive };
+      })
       .sort((a: any, b: any) => {
         const periodDiff = periodNumber(a.period) - periodNumber(b.period);
         if (periodDiff !== 0) return periodDiff;
@@ -311,19 +356,71 @@ export async function GET(req: NextRequest) {
     const fallbackSituation = latestRawPlay?.end || latestRawPlay?.start || {};
     const payloadSituation = payload?.situation || {};
     const competitionSituation = competition?.situation || {};
-    const situation = { ...fallbackSituation, ...payloadSituation, ...competitionSituation };
-    const possessionId = String(competitionSituation?.possession || currentDrive?.team?.id || latestRawPlay?.team?.id || "");
+    const latestDescriptor = playDescriptor(latestRawPlay);
+    const statusDetail = String(status?.shortDetail || status?.detail || "");
+    const deadBallMoment = /timeout|end of|end quarter|halftime/i.test(statusDetail);
+    const kickoff = /kickoff/.test(latestDescriptor);
+    const punt = /punt/.test(latestDescriptor) && !/fake punt/.test(latestDescriptor);
+    const turnover = /intercept|turnover on downs|missed field goal/.test(latestDescriptor);
+    const fumbleRecovery = /fumble/.test(latestDescriptor) && /recover/.test(latestDescriptor);
+    const currentDriveTeamId = String(currentDrive?.team?.id || latestRawPlay?.team?.id || "");
+    const competitionPossessionId = String(competitionSituation?.possession || "");
+    const explicitEndPossession = String(
+      latestRawPlay?.end?.team?.id ||
+      latestRawPlay?.end?.possessionTeam?.id ||
+      latestRawPlay?.possessionTeam?.id ||
+      ""
+    );
+    const oppositeTeamId = currentDriveTeamId === homeId ? awayId : currentDriveTeamId === awayId ? homeId : "";
+    const derivedChangePossession = !kickoff && (punt || turnover) ? oppositeTeamId : "";
+    const fumblePossession = fumbleRecovery &&
+      competitionPossessionId &&
+      competitionPossessionId !== currentDriveTeamId
+      ? competitionPossessionId
+      : "";
+    const possessionId = String(
+      explicitEndPossession ||
+      derivedChangePossession ||
+      fumblePossession ||
+      currentDriveTeamId ||
+      competitionPossessionId ||
+      ""
+    );
     const possessionSide = possessionId === homeId ? "home" : possessionId === awayId ? "away" : null;
-    const downDistanceText = String(
+
+    const competitionDownText = String(
       competitionSituation?.shortDownDistanceText ||
       competitionSituation?.downDistanceText ||
+      payloadSituation?.shortDownDistanceText ||
+      payloadSituation?.downDistanceText ||
+      ""
+    );
+    const fallbackDownText = String(
       fallbackSituation?.shortDownDistanceText ||
       fallbackSituation?.downDistanceText ||
       ""
     );
-    const down = finite(situation?.down ?? downDistanceText.match(/^(\d)/)?.[1]);
+    const fallbackDown = finite(fallbackSituation?.down ?? fallbackDownText.match(/^(\d)/)?.[1]);
+    const fallbackDistance = finite(fallbackSituation?.distance ?? fallbackDownText.match(/&\s*(\d+)/)?.[1]);
+    const competitionDown = finite(competitionSituation?.down ?? competitionDownText.match(/^(\d)/)?.[1]);
+    const competitionDistance = finite(competitionSituation?.distance ?? competitionDownText.match(/&\s*(\d+)/)?.[1]);
+    const staleDistanceReset = deadBallMoment &&
+      fallbackDown != null &&
+      competitionDown === fallbackDown &&
+      fallbackDistance != null &&
+      competitionDistance != null &&
+      competitionDistance > fallbackDistance + 1;
+    const preferLatestSituation = Boolean(latestRawPlay && (deadBallMoment || punt || turnover || fumbleRecovery || staleDistanceReset));
+    const situation = preferLatestSituation
+      ? { ...payloadSituation, ...competitionSituation, ...fallbackSituation }
+      : { ...fallbackSituation, ...payloadSituation, ...competitionSituation };
+
+    const downDistanceText = kickoff
+      ? ""
+      : String((preferLatestSituation ? fallbackDownText : competitionDownText) || fallbackDownText || competitionDownText);
+    const down = kickoff ? null : finite(situation?.down ?? downDistanceText.match(/^(\d)/)?.[1]);
     const yardsToGoal = situationYardsToGoal(situation, possessionSide, home, away);
-    const distance = finite(situation?.distance ?? downDistanceText.match(/&\s*(\d+)/)?.[1])
+    const distance = kickoff ? null : finite(situation?.distance ?? downDistanceText.match(/&\s*(\d+)/)?.[1])
       ?? (/&\s*goal/i.test(downDistanceText) ? yardsToGoal : null);
 
     return NextResponse.json({
@@ -339,8 +436,13 @@ export async function GET(req: NextRequest) {
         away: {
           id: awayId,
           name: String(away?.team?.displayName || game.away_team),
-          shortName: String(away?.team?.shortDisplayName || away?.team?.location || away?.team?.displayName || game.away_team),
+          shortName: String(league === "NFL"
+            ? away?.team?.name || away?.team?.shortDisplayName || away?.team?.displayName || game.away_team
+            : away?.team?.shortDisplayName || away?.team?.location || away?.team?.displayName || game.away_team),
           abbreviation: String(away?.team?.abbreviation || ""),
+          endZoneName: String(league === "NFL"
+            ? away?.team?.location || away?.team?.shortDisplayName || game.away_team
+            : away?.team?.shortDisplayName || away?.team?.location || game.away_team),
           logo: String(away?.team?.logo || game.away_logo_url || ""),
           color: String(away?.team?.color || "34444c"),
           alternateColor: String(away?.team?.alternateColor || "ffffff"),
@@ -349,8 +451,13 @@ export async function GET(req: NextRequest) {
         home: {
           id: homeId,
           name: String(home?.team?.displayName || game.home_team),
-          shortName: String(home?.team?.shortDisplayName || home?.team?.location || home?.team?.displayName || game.home_team),
+          shortName: String(league === "NFL"
+            ? home?.team?.name || home?.team?.shortDisplayName || home?.team?.displayName || game.home_team
+            : home?.team?.shortDisplayName || home?.team?.location || home?.team?.displayName || game.home_team),
           abbreviation: String(home?.team?.abbreviation || ""),
+          endZoneName: String(league === "NFL"
+            ? home?.team?.location || home?.team?.shortDisplayName || game.home_team
+            : home?.team?.shortDisplayName || home?.team?.location || game.home_team),
           logo: String(home?.team?.logo || game.home_logo_url || ""),
           color: String(home?.team?.color || "34444c"),
           alternateColor: String(home?.team?.alternateColor || "ffffff"),
