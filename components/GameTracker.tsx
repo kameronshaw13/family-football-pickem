@@ -207,11 +207,6 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   const team = payload?.teams[side];
   const opponent = payload?.teams[side === "away" ? "home" : "away"];
   const fullName = team?.name || fallbackName;
-  const shortName = team ? trackerTeamLabel(team) : fullName;
-  const rank = game.league === "CFB"
-    ? Number(side === "away" ? game.away_rank : game.home_rank)
-    : null;
-  const ranked = rank != null && Number.isInteger(rank) && rank >= 1 && rank <= 25;
   const score = team?.score ?? ownFallbackScore;
   const opponentScore = opponent?.score ?? opponentFallbackScore;
   const scoreTone = completed && score != null && opponentScore != null
@@ -222,9 +217,8 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
     : null;
 
   return <div className={`game-tracker-score-team ${side}`} aria-label={`${fullName} ${score ?? "score unavailable"}`}>
-    <span className="game-tracker-score-team-name">{ranked && <span className="game-tracker-team-rank">#{rank}</span>}{shortName}</span>
     <div className="game-tracker-score-team-main">
-      <TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={38} />
+      <TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={50} />
       <div className="game-tracker-score-stack">
         <b className={scoreTone}>{score ?? "—"}</b>
         {!completed && <TimeoutDots remaining={timeouts} />}
@@ -661,13 +655,12 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
     ["plays", "Plays"],
     ["box", "Box Score"]
   ];
-  const awayHeader = teamAbbreviatedName(game.league, game.away_team);
-  const homeHeader = teamAbbreviatedName(game.league, game.home_team);
+  const matchupHeader = `${awayName} at ${homeName}`;
 
   return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="true" aria-label={`${awayName} at ${homeName} GameTracker`}>
       <header className="game-tracker-header">
-        <span>{awayHeader} @ {homeHeader}</span>
+        <span>{matchupHeader}</span>
         <button type="button" onClick={onClose} aria-label="Close GameTracker"><X size={20} /></button>
       </header>
 
