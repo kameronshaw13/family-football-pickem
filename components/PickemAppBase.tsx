@@ -59,14 +59,13 @@ function stabilizeViewportAfterLayoutChange() {
   if (typeof window === "undefined") return;
   window.requestAnimationFrame(() => {
     window.requestAnimationFrame(() => {
+      // Only correct an invalid scroll position after content shrinks.
+      // The primary nav is pure fixed app chrome and must never be mutated
+      // during scroll/visualViewport events; doing so makes iOS Safari/PWA
+      // visibly lift the bar while the user scrolls.
       const doc = document.documentElement;
       const maxScroll = Math.max(0, doc.scrollHeight - window.innerHeight);
       if (window.scrollY > maxScroll) window.scrollTo(0, maxScroll);
-      const nav = document.querySelector<HTMLElement>(".primary-nav");
-      if (nav) {
-        nav.style.bottom = "0px";
-        void nav.offsetHeight;
-      }
     });
   });
 }
@@ -1267,14 +1266,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     window.addEventListener("orientationchange", stabilize);
     window.addEventListener("pageshow", stabilize);
     viewport?.addEventListener("resize", stabilize);
-    viewport?.addEventListener("scroll", stabilize);
     stabilize();
     return () => {
       window.removeEventListener("resize", stabilize);
       window.removeEventListener("orientationchange", stabilize);
       window.removeEventListener("pageshow", stabilize);
       viewport?.removeEventListener("resize", stabilize);
-      viewport?.removeEventListener("scroll", stabilize);
     };
   }, []);
 
