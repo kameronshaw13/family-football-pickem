@@ -1,0 +1,349 @@
+/* Settings + light/dark appearance.
+   Light mode intentionally inherits the existing production design unchanged. */
+
+.settings-panel { padding-bottom: var(--space-3); }
+.settings-page-title { margin-bottom: var(--space-4); }
+.settings-section { margin-top: var(--space-4); }
+.settings-section:first-of-type { margin-top: 0; }
+.settings-section > h3 {
+  margin: 0 0 7px 2px;
+  color: var(--header-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .015em;
+  text-transform: uppercase;
+}
+.settings-card {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  color: var(--ink);
+  background: var(--panel);
+  box-shadow: none;
+}
+.settings-profile-card,
+.settings-row-heading,
+.settings-signout,
+.settings-detail > summary {
+  display: grid;
+  min-height: 58px;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 11px;
+}
+.settings-leading-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+}
+.settings-row-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  text-align: left;
+}
+.settings-row-copy strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-row-copy span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-row-action {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 1px 4px 7px;
+  border: 0;
+  color: var(--blue-dark);
+  background: transparent;
+  font-size: 10px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.settings-row-action.player-profile-link {
+  text-decoration: none;
+}
+.settings-appearance-card { overflow: hidden; }
+.settings-appearance-card .settings-row-heading { border-bottom: 1px solid var(--line); }
+.theme-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px;
+}
+.theme-toggle button {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface-soft);
+  font-size: 11px;
+  font-weight: 800;
+}
+.theme-toggle button.active {
+  border-color: #8dbbd4;
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+}
+.settings-notification-card { overflow: hidden; }
+.settings-notification-heading { border-bottom: 1px solid var(--line); }
+.settings-panel .notification-settings {
+  position: static;
+  display: flex;
+  min-height: 50px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 8px 11px;
+  border: 0;
+  background: transparent;
+}
+.settings-panel .notification-settings-copy { display: block; min-width: 0; flex: 1 1 auto; }
+.settings-panel .notification-settings-heading { display: none; }
+.settings-panel .notification-settings-copy p,
+.settings-panel .notification-settings-copy small {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.settings-panel .notification-settings-actions { display: flex; flex: 0 0 auto; }
+.settings-panel .notification-settings .btn {
+  min-height: 32px;
+  height: 32px;
+  padding: 5px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--surface-soft);
+  font-size: 10px;
+}
+.settings-panel .notification-compact-state { font-weight: 800; }
+.settings-panel .notification-compact-toggle.enabled .notification-compact-state { color: var(--green); }
+.settings-panel .notification-compact-toggle.disabled .notification-compact-state { color: var(--muted); }
+
+.settings-detail { overflow: hidden; }
+.settings-detail > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+.settings-detail > summary::-webkit-details-marker { display: none; }
+.settings-detail-chevron { color: var(--muted); transition: transform .15s ease; }
+.settings-detail[open] > summary .settings-detail-chevron { transform: rotate(180deg); }
+.settings-detail-body { border-top: 1px solid var(--line); background: var(--surface-soft); }
+.settings-rules-list { padding: 8px; }
+.settings-rule-item {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel);
+}
+.settings-rule-item + .settings-rule-item { margin-top: 6px; }
+.settings-rule-item > summary {
+  display: flex;
+  min-height: 39px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 9px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  list-style: none;
+  cursor: pointer;
+}
+.settings-rule-item > summary::-webkit-details-marker { display: none; }
+.settings-rule-item[open] > summary { border-bottom: 1px solid var(--line); }
+.settings-rule-item[open] > summary svg { transform: rotate(180deg); }
+.settings-rule-item ul {
+  margin: 0;
+  padding: 8px 10px 9px 28px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.settings-rule-item li + li { margin-top: 5px; }
+
+.settings-password-detail { margin-bottom: 8px; }
+.settings-password-form {
+  padding: 10px 11px 11px;
+}
+.settings-password-form label {
+  display: block;
+  margin: 8px 0 5px;
+  color: var(--header-muted);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.settings-password-form label:first-child { margin-top: 0; }
+.settings-password-form .input { min-height: 40px; }
+.settings-password-submit { margin-top: 10px; }
+.settings-password-message {
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.settings-password-message.success { color: var(--green); }
+.settings-password-message.error { color: var(--red); }
+.settings-signout {
+  border-color: #d6aaa6;
+  color: var(--red);
+  cursor: pointer;
+}
+.settings-signout .settings-leading-icon {
+  color: var(--red);
+  background: var(--red-soft);
+}
+.settings-signout .settings-row-copy span { color: var(--muted); }
+.settings-signout > svg { justify-self: end; }
+
+/* Dark mode: same geometry and typography, dark palette only. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #101418;
+  --canvas-deep: #0b0f12;
+  --panel: #191f24;
+  --ink: #f2f4f5;
+  --muted: #9aa4aa;
+  --header-muted: #b2bbc0;
+  --line: #30383d;
+  --line-strong: #465158;
+  --graphite: #171d22;
+  --graphite-light: #222b31;
+  --blue: #67a8cc;
+  --blue-dark: #8ac2df;
+  --blue-soft: #203743;
+  --gold: #d6ad3d;
+  --green: #58b792;
+  --green-soft: #1c382f;
+  --win-soft: #1d392d;
+  --red: #e47a75;
+  --red-soft: #3a2626;
+  --push-soft: #3c3522;
+  --shadow: 0 8px 24px rgba(0, 0, 0, .22);
+  --nav-surface: rgba(23, 29, 34, .99);
+  --surface-soft: #20272c;
+  --surface-muted: #293137;
+  --canvas-muted: #171d22;
+  --hover: #26323a;
+  --saved: #20292e;
+  --saved-dirty: #3a3322;
+  --bank-status: #242d32;
+  --skeleton: #2a3237;
+  --rank-gold: #d7b44e;
+  --rank-silver: #a6b0b6;
+  --rank-bronze: #c68b63;
+}
+
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  background: var(--graphite) !important;
+}
+html[data-theme="dark"] .app-shell { background: var(--canvas); }
+html[data-theme="dark"] .scoreboard-header,
+html[data-theme="dark"] .scoreboard-header::before { background: var(--graphite); }
+html[data-theme="dark"] .primary-nav { background: var(--nav-surface); }
+html[data-theme="dark"] .picks-panel > .section-tabs,
+html[data-theme="dark"] .card-panel > .section-tabs,
+html[data-theme="dark"] .standings-panel > .section-tabs { background: var(--canvas); }
+
+html[data-theme="dark"] .side-bet-slip-bar {
+  border-color: var(--line-strong);
+  color: var(--ink);
+  background: #20272c;
+}
+html[data-theme="dark"] .confirmation-sheet,
+html[data-theme="dark"] .side-bet-slip-sheet,
+html[data-theme="dark"] .custom-select-menu,
+html[data-theme="dark"] .custom-select-option,
+html[data-theme="dark"] .login-card {
+  color: var(--ink);
+  background: var(--panel);
+}
+html[data-theme="dark"] .custom-select-option.selected { background: var(--blue-soft); }
+html[data-theme="dark"] .custom-select-group-label { background: var(--surface-soft); }
+html[data-theme="dark"] .confirmation-backdrop { background: rgba(0, 0, 0, .34) !important; }
+html[data-theme="dark"] .player-profile-content,
+html[data-theme="dark"] .player-profile-block,
+html[data-theme="dark"] .player-profile-highlights,
+html[data-theme="dark"] .player-profile-side-bet-metrics { background: var(--panel); }
+html[data-theme="dark"] .player-profile-performance,
+html[data-theme="dark"] .player-profile-side-bets,
+html[data-theme="dark"] .player-profile-legacy-row { background: var(--surface-soft); }
+
+html[data-theme="dark"] .matchup-preview-sheet,
+html[data-theme="dark"] .matchup-preview-scroll,
+html[data-theme="dark"] .game-tracker-sheet,
+html[data-theme="dark"] .game-tracker-scroll { color: var(--ink); background: var(--canvas); }
+html[data-theme="dark"] .matchup-preview-header,
+html[data-theme="dark"] .game-tracker-header,
+html[data-theme="dark"] .game-tracker-scoreboard { background: var(--graphite); border-color: var(--line); }
+html[data-theme="dark"] .matchup-preview-tabs,
+html[data-theme="dark"] .game-tracker-tabs { background: var(--panel); border-color: var(--line); }
+html[data-theme="dark"] .matchup-preview-tabs button,
+html[data-theme="dark"] .game-tracker-tabs button { color: var(--muted); }
+html[data-theme="dark"] .matchup-preview-tabs button.active,
+html[data-theme="dark"] .game-tracker-tabs button.active { color: var(--ink); }
+html[data-theme="dark"] .game-tracker-field { border-color: #59636a; }
+html[data-theme="dark"] .game-tracker-field-lines { opacity: .82; }
+
+html[data-theme="dark"] .side-bet-batch-head,
+html[data-theme="dark"] .bank-history-week-label,
+html[data-theme="dark"] .side-bet-market-reference { background: var(--surface-soft); }
+html[data-theme="dark"] .side-bet-ledger-row,
+html[data-theme="dark"] .ledger-list,
+html[data-theme="dark"] .bank-history-week,
+html[data-theme="dark"] .bank-history-week-body { background: var(--panel) !important; }
+
+/* Shape-following white halo for team marks that can disappear on dark surfaces. */
+html[data-theme="dark"] .team-logo:not(.fallback),
+html[data-theme="dark"] .matchup-preview-sheet img,
+html[data-theme="dark"] .game-tracker-sheet img {
+  filter:
+    drop-shadow(.7px 0 0 rgba(255, 255, 255, .82))
+    drop-shadow(-.7px 0 0 rgba(255, 255, 255, .82))
+    drop-shadow(0 .7px 0 rgba(255, 255, 255, .82))
+    drop-shadow(0 -.7px 0 rgba(255, 255, 255, .82));
+}
+
+html[data-theme="dark"] .game-card.final-outcome .team-row.outcome-loss .team-logo,
+html[data-theme="dark"] .score-bug-team.outcome-loss .team-logo {
+  opacity: .62;
+}
+
+@media (max-width: 420px) {
+  .settings-profile-card,
+  .settings-row-heading,
+  .settings-signout,
+  .settings-detail > summary { padding-inline: 10px; }
+  .settings-row-copy strong { font-size: 12.5px; }
+}
