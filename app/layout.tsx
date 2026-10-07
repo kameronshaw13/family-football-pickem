@@ -14,8 +14,9 @@ import "./side-bet-batch.css";
 import "./presentation-fixes.css";
 import "./matchup-preview.css";
 import "./game-tracker.css";
+import "./dark-bubble-experiment.css";
 import type { Metadata, Viewport } from "next";
-import { Roboto_Slab } from "next/font/google";
+import { Inter } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
 import DogPickAdjustmentAlerts from "@/components/DogPickAdjustmentAlerts";
@@ -24,9 +25,9 @@ import PlayerProfiles from "@/components/PlayerProfiles";
 import SideBetBatchEnhancements from "@/components/SideBetBatchEnhancements";
 import SideBetBatchPresentationEnhancement from "@/components/SideBetBatchPresentationEnhancement";
 
-const robotoSlab = Roboto_Slab({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-roboto-slab",
+  variable: "--font-ui",
   display: "swap",
   preload: true
 });
@@ -44,7 +45,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#20282d"
+  themeColor: "#090d13"
 };
 
 const CRITICAL_HEADER_CSS = `
@@ -165,7 +166,7 @@ declare global {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" className={robotoSlab.variable}>
+    <html lang="en" data-theme="dark" className={inter.variable}>
       <head>
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_HEADER_CSS }} />
         <script dangerouslySetInnerHTML={{ __html: SESSION_RECOVERY_SCRIPT }} />
