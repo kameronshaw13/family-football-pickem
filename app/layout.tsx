@@ -14,6 +14,7 @@ import "./side-bet-batch.css";
 import "./presentation-fixes.css";
 import "./matchup-preview.css";
 import "./game-tracker.css";
+import "./theme-settings.css";
 import type { Metadata, Viewport } from "next";
 import { Roboto_Slab } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
@@ -67,6 +68,20 @@ body { margin: 0; background: #eef0ed; }
   }
 }
 `;
+
+const THEME_INIT_SCRIPT = `
+(() => {
+  try {
+    const profile = JSON.parse(window.localStorage.getItem("pickem_profile") || "null");
+    const personal = profile?.id ? window.localStorage.getItem("pickem_theme:" + profile.id) : null;
+    const stored = personal || window.localStorage.getItem("pickem_theme");
+    const theme = stored === "dark" ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+  } catch {
+    document.documentElement.dataset.theme = "light";
+  }
+})();`;
 
 const SESSION_RECOVERY_SCRIPT = `
 (() => {
@@ -165,9 +180,10 @@ declare global {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" className={robotoSlab.variable}>
+    <html lang="en" data-theme="light" className={robotoSlab.variable} suppressHydrationWarning>
       <head>
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_HEADER_CSS }} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: SESSION_RECOVERY_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: APP_DATA_STARTUP_GUARD_SCRIPT }} />
         <link rel="preload" href="/header-wordmark.png" as="image" type="image/png" />
