@@ -4,7 +4,7 @@ import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDate
 import NextImage from "next/image";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Shield, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Settings as SettingsIcon, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, SideBetMarketQuote, SideBetOfferPhase, SideBetTotalSide, Standing, WeekRule } from "@/lib/types";
 import { MAX_CUSTOM_SIDE_BET_AMOUNT, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
 import { americanOddsText, fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, fairSymmetricMoneyline, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
@@ -19,7 +19,7 @@ import NotificationBadge from "@/components/NotificationBadge";
 import MatchupPreview from "@/components/MatchupPreview";
 import NflMatchupPreview from "@/components/NflMatchupPreview";
 import GameTracker from "@/components/GameTracker";
-import PushNotificationControls from "@/components/PushNotificationControls";
+import SettingsPanel from "@/components/SettingsPanel";
 import GroupMoneyControls from "@/components/GroupMoneyControls";
 import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoints";
 import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
@@ -29,7 +29,7 @@ import { orderCardPicks } from "@/lib/cardOrdering";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 import { canRefreshSpread, getCurrentPickWeek } from "@/lib/lockRules";
 
-type Tab = "picks" | "card" | "standings" | "rules";
+type Tab = "picks" | "card" | "standings" | "settings";
 type PicksView = "board" | "sideBets";
 type CardView = "mine" | "group";
 type StandingsView = "standings" | "bank";
@@ -1977,7 +1977,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       { label: "Picks", icon: Zap },
       { label: "My Card", icon: SquareCheck },
       { label: "Standings", icon: Trophy },
-      { label: "Rules", icon: Shield }
+      { label: "Settings", icon: SettingsIcon }
     ];
 
     return <div className="app-shell loading-shell">
@@ -2093,7 +2093,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const openBetGames = sideBetsActive ? games.filter((game) => !isFinalGame(game)) : [];
   const selectedBetGame = openBetGames.find((game) => game.id === betGameId);
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : "";
-  const displayedRules = tab === "rules" ? ruleSections(appSlug, data.groupRules || {}) : [];
+  const displayedRules = tab === "settings" ? ruleSections(appSlug, data.groupRules || {}) : [];
 
   function stageCard(nextCard: Pick[]) {
     const normalizedCard = pointsMode ? normalizeConfidenceCard(nextCard, rule.regularTotal) : nextCard;
@@ -2255,7 +2255,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     { id: "picks", label: "Picks", icon: Zap },
     { id: "card", label: "My Card", icon: SquareCheck },
     { id: "standings", label: "Standings", icon: Trophy },
-    { id: "rules", label: "Rules", icon: Shield }
+    { id: "settings", label: "Settings", icon: SettingsIcon }
   ];
 
   return <div className="app-shell">
@@ -2437,13 +2437,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         </>}
       </section>}
 
-      {tab === "rules" && <section className="panel rules-panel">
-        <div className="section-title"><div><h2>League Rules</h2></div></div>
-        <PushNotificationControls appSlug={appSlug} onCountsChanged={updateNotificationCounts} />
-        <div className="rules-list">
-          {displayedRules.map((section) => <RuleItem title={section.title} key={section.title}><ul>{section.items.map((item) => <li key={item}><NumericText text={item} /></li>)}</ul></RuleItem>)}
-        </div>
-      </section>}
+      {tab === "settings" && <SettingsPanel
+        appSlug={appSlug}
+        currentUser={currentUser}
+        leagueName={data.activeGroup?.name}
+        rules={displayedRules}
+        loginPath={loginPath}
+        onCountsChanged={updateNotificationCounts}
+      />}
     </main>
     {matchupPreviewGame && (isFinalGame(matchupPreviewGame) || new Date(matchupPreviewGame.commence_time).getTime() <= clock
       ? <GameTracker game={matchupPreviewGame} onClose={closeMatchupPreview} />
