@@ -124,7 +124,7 @@ export default function SettingsPanel({
     <div className="settings-section">
       <h3>Profile</h3>
       <div className="settings-card settings-profile-card">
-        <div className="arc-profile-avatar" aria-hidden="true">{currentUser.display_name.trim().split(/\\s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || <UserRound size={17} />}</div>
+        <div className="arc-profile-avatar" aria-hidden="true">{currentUser.display_name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || <UserRound size={17} />}</div>
         <div className="settings-row-copy"><strong>{currentUser.display_name}</strong><span>@{currentUser.username}</span></div>
         <button
           type="button"
