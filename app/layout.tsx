@@ -15,6 +15,7 @@ import "./presentation-fixes.css";
 import "./matchup-preview.css";
 import "./game-tracker.css";
 import "./theme-settings.css";
+import "./arc-redesign.css";
 import type { Metadata, Viewport } from "next";
 import { Roboto_Slab } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";

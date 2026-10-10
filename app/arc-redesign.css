@@ -1,0 +1,256 @@
+/*
+ * Arc UI redesign experiment — branch only.
+ * Uses Arc's principles of calm motion, semantic surfaces, tactile segmented
+ * controls, responsive cards and clear focus. Does not change betting logic.
+ * Original Arc component library: https://uiarc.dev/ (MIT).
+ */
+
+/* Replace the slab type with a compact, readable product sans; keep sizes
+   and grid geometry controlled by existing app selectors. */
+:root {
+  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --canvas: #f2f5fa;
+  --canvas-deep: #e9eef6;
+  --panel: #ffffff;
+  --ink: #172338;
+  --muted: #6a7890;
+  --header-muted: #748198;
+  --line: #e4eaf2;
+  --line-strong: #ccd6e3;
+  --graphite: #111d32;
+  --graphite-light: #1d2e4c;
+  --blue: #4c88e8;
+  --blue-dark: #2a68c6;
+  --blue-soft: #e8f1ff;
+  --green: #157c62;
+  --green-soft: #e5f6ef;
+  --red: #c54f5c;
+  --red-soft: #fff0f0;
+  --surface-soft: #f8faff;
+  --surface-muted: #edf2fa;
+  --canvas-muted: #edf2f8;
+  --hover: #eff5ff;
+  --nav-surface: rgba(16, 28, 47, .98);
+  --shadow: 0 8px 28px rgba(30, 51, 83, .075);
+  --arc-border: #d9e3ef;
+  --arc-surface: #ffffff;
+  --arc-surface-muted: #ecf2fb;
+  --arc-foreground: #172338;
+  --arc-text-muted: #71829c;
+}
+html[data-theme="dark"] {
+  --canvas: #0e1524;
+  --canvas-deep: #0a111e;
+  --panel: #192337;
+  --ink: #f1f5fc;
+  --muted: #9aabc4;
+  --header-muted: #9aabc4;
+  --line: #303d53;
+  --line-strong: #45536c;
+  --graphite: #0b1323;
+  --graphite-light: #1d2d48;
+  --blue: #76a8ff;
+  --blue-dark: #a4c8ff;
+  --blue-soft: #243b59;
+  --green: #58caa3;
+  --green-soft: #204837;
+  --red: #ff8996;
+  --red-soft: #492d37;
+  --surface-soft: #202c42;
+  --surface-muted: #283751;
+  --canvas-muted: #182439;
+  --hover: #263a58;
+  --nav-surface: rgba(10, 18, 32, .99);
+  --shadow: 0 12px 36px rgba(0, 0, 0, .2);
+  --arc-border: #41516b;
+  --arc-surface: #22324a;
+  --arc-surface-muted: #182438;
+  --arc-foreground: #f1f5fc;
+  --arc-text-muted: #b1bfd3;
+}
+html, html body, .app-shell { background: var(--canvas); }
+html body { font-family: var(--font-display); font-weight: 550; }
+html[data-theme="dark"] body,
+html[data-theme="dark"] .app-shell { background: var(--canvas) !important; }
+html .scoreboard-header,
+html[data-theme="dark"] .scoreboard-header {
+  background: var(--graphite);
+  box-shadow: inset 0 -2px 0 var(--blue), 0 4px 18px rgba(13, 29, 48, .13);
+}
+html .scoreboard-header::before,
+html[data-theme="dark"] .scoreboard-header::before { background: var(--graphite); }
+.scoreboard-main { gap: 8px; }
+.header-menu-select .custom-select-trigger { font-weight: 700; letter-spacing: -.01em; }
+.header-wordmark { object-fit: contain; }
+
+/* Critical mobile constraint: never change the bottom nav's position,
+   translate, height, or safe-area calculation. Visual treatment only. */
+html .primary-nav {
+  border-top: 1px solid rgba(184, 204, 233, .16);
+  background: var(--nav-surface);
+  box-shadow: 0 -8px 28px rgba(8, 17, 33, .19);
+}
+.primary-nav-inner { padding-inline: 5px; }
+.primary-nav button { gap: 5px; color: #a2b1c8; font-weight: 600; }
+.primary-nav button .nav-icon { width: 37px; height: 31px; border-radius: 11px; transition: background .18s ease, color .18s ease; }
+.primary-nav button.active { color: #fff; font-weight: 750; }
+.primary-nav button.active .nav-icon { background: rgba(117, 171, 255, .18); }
+.primary-nav button.active svg { fill: none; stroke: #fff; }
+.primary-nav button.active .nav-icon-card svg rect { fill: none; stroke: #fff; }
+.primary-nav button.active .nav-icon-standings svg path:last-child { fill: none; }
+
+/* Core content and navigation — keep sticky top tabs working at the same offset. */
+.container { padding-inline: max(12px, var(--page-gutter)); }
+.section-title { margin-block: 6px 16px; gap: 9px; }
+.section-title h2 { color: var(--ink); font-size: 21px; font-weight: 800; letter-spacing: -.035em; }
+.section-title p { color: var(--muted); font-size: 11.5px; font-weight: 500; }
+.picks-panel > .section-tabs,
+.card-panel > .section-tabs,
+.standings-panel > .section-tabs {
+  height: 48px;
+  gap: 4px;
+  margin: 0 0 15px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface-muted);
+}
+.picks-panel > .section-tabs button,
+.card-panel > .section-tabs button,
+.standings-panel > .section-tabs button {
+  min-width: 0;
+  padding: 8px 5px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  transition: background-color .17s ease, color .17s ease, box-shadow .17s ease;
+}
+.picks-panel > .section-tabs button.active,
+.card-panel > .section-tabs button.active,
+.standings-panel > .section-tabs button.active {
+  border: 0;
+  color: var(--ink);
+  background: var(--panel);
+  box-shadow: 0 2px 8px rgba(24, 45, 75, .1);
+}
+.section-tabs:not(.picks-panel > .section-tabs):not(.card-panel > .section-tabs):not(.standings-panel > .section-tabs) button.active { color: var(--blue-dark); }
+.compact-select, .custom-select { min-width: 0; }
+.view-select-row { gap: 8px; }
+.view-select-row .compact-select,
+.view-select-row .custom-select {
+  min-height: 37px;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  background: var(--panel);
+}
+.view-select-row .custom-select-trigger { min-height: 36px; padding-inline: 10px 25px; font-size: 11px; font-weight: 750; }
+.custom-select-menu {
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(22, 39, 65, .14);
+}
+.custom-select-option { font-weight: 650; }
+
+/* Game lists become independently legible cards, with original selections,
+   locked states, scoreboard, team logo and market row markup untouched. */
+.game-days { gap: 20px; }
+.game-day-marker { margin-bottom: 9px; }
+.game-day-marker > b { border-radius: 7px; background: var(--graphite-light); box-shadow: none; letter-spacing: .025em; }
+.game-day-marker strong { font-weight: 700; }
+.picks-panel .game-list, .side-bets-panel .game-list,
+.game-list { gap: 10px; overflow: visible; margin-inline: 0; border: 0; background: transparent; }
+.game-list .game-card, .game-list .side-bet-game-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.game-card:last-child { border-bottom: 1px solid var(--line); }
+.game-card .game-head { background: var(--surface-soft); }
+.badge, .status-mark { border-radius: 7px; padding: 3px 7px; font-weight: 750; letter-spacing: .01em; }
+.team-row { transition: background-color .16s ease, box-shadow .16s ease; }
+.team-row.picked-side { box-shadow: inset 3px 0 var(--blue); }
+.team-row.picked-win { box-shadow: inset 3px 0 var(--green); }
+.team-row.picked-loss { box-shadow: inset 3px 0 var(--red); }
+.team-row.picked-push { box-shadow: inset 3px 0 var(--gold); }
+.team-name, .team-spread, .team-board-market { font-weight: 700; }
+.game-time, .game-final-status, .game-live-status { font-weight: 700; }
+
+/* Card, league and standings: rounded grouping while preserving fixed row height
+   and no over-wide or reflowing money and score columns. */
+.card-panel .pick-section > h3,
+.card-panel .group-card > h3 { border-radius: 9px 9px 0 0; background: var(--surface-muted); }
+.card-panel .pick-section > h3 { margin-inline: 0; }
+.card-panel .pick-section .pick-card,
+.card-panel .group-card .visible-pick,
+.card-panel .pick-section .card-empty-picks,
+.card-panel .group-card .group-empty-picks { margin-inline: 0; }
+.pick-card, .visible-pick { background: var(--panel); }
+.card-panel .pick-section, .card-panel .group-card { overflow: hidden; border-radius: 13px; }
+.card-panel .pick-section + .pick-section { margin-top: 12px; }
+.leaderboard, .bank-summary-grid, .bank-week-results, .ledger-list, .side-bet-list {
+  overflow: hidden;
+  margin-inline: 0;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.leaderboard-row, .ledger-row { border-bottom-color: var(--line); }
+.leaderboard-labels { background: var(--surface-muted); }
+.leaderboard-player strong, .leaderboard-pct, .leaderboard-stat { font-weight: 700; }
+.bank-balance-player > summary { background: var(--panel); }
+.side-bet-offer-mode-toggle { border-color: var(--line-strong); border-radius: 12px; background: var(--surface-muted); }
+.side-bet-offer-mode-toggle button.active { border-radius: 10px; box-shadow: none; background: var(--panel); }
+.side-bet-card, .side-bet-ledger-row { background: var(--panel); }
+.side-bet-slip-sheet, .confirmation-sheet { border-radius: 18px; }
+.slip-icon-btn, .icon-btn { border-radius: 9px; }
+.btn { border-radius: 10px; font-weight: 750; }
+.btn.accent { background: var(--blue-dark); color: #fff; }
+.input { border-radius: 10px; }
+.input:focus-visible, .custom-select-trigger:focus-visible { outline: 2px solid var(--blue); outline-offset: 0; }
+
+/* Settings uses Arc's grouped rows and an actual locally vendored Arc-derived
+   segmented control. All existing notifications/password/session actions stay. */
+.settings-panel { padding-bottom: 22px; }
+.settings-section { margin-top: 20px; }
+.settings-section > h3 { margin: 0 0 8px 3px; color: var(--header-muted); font-size: 10px; font-weight: 800; letter-spacing: .075em; }
+.settings-page-title { margin-bottom: 17px; }
+.settings-card { overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); box-shadow: var(--shadow); }
+.settings-profile-card, .settings-row-heading, .settings-signout, .settings-detail > summary { min-height: 66px; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 11px; padding: 12px 13px; }
+.settings-leading-icon { width: 38px; height: 38px; border-radius: 12px; color: var(--blue-dark); background: var(--blue-soft); }
+.arc-profile-avatar { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 13px; color: #fff; background: linear-gradient(140deg, #356bc7, #779df7); box-shadow: 0 3px 10px rgba(55, 102, 185, .19); font-size: 13px; font-weight: 800; letter-spacing: -.03em; }
+.settings-row-copy strong { font-size: 13px; font-weight: 750; }
+.settings-row-copy span { color: var(--muted); font-size: 11px; font-weight: 500; line-height: 1.4; }
+.settings-row-action { color: var(--blue-dark); font-size: 11px; }
+.settings-appearance-card .settings-row-heading { border-color: var(--line); }
+.arc-appearance-toggle { padding: 11px 12px 12px; }
+.settings-panel .notification-settings { padding: 11px 13px; }
+.settings-panel .notification-settings-copy p,
+.settings-panel .notification-settings-copy small { font-size: 10.5px; }
+.settings-panel .notification-settings .btn { border-radius: 10px; }
+.settings-rules-list { padding: 11px; }
+.settings-rule-item { border-radius: 10px; }
+.settings-rule-item > summary { min-height: 43px; font-size: 12px; }
+.settings-rule-item ul { font-size: 11px; line-height: 1.55; }
+.settings-password-form { padding: 13px; }
+.settings-password-form label { font-size: 10px; }
+.settings-signout { border-color: var(--line); }
+.settings-signout .settings-leading-icon { border-radius: 12px; }
+.settings-detail-body { background: var(--surface-soft); }
+html[data-theme="dark"] .settings-card, html[data-theme="dark"] .game-card,
+html[data-theme="dark"] .leaderboard { background: var(--panel); }
+html[data-theme="dark"] .side-bet-ledger-row, html[data-theme="dark"] .bank-history-week-body { background: var(--panel) !important; }
+html[data-theme="dark"] .team-logo:not(.fallback) { filter: drop-shadow(.7px 0 0 #fff) drop-shadow(-.7px 0 0 #fff) drop-shadow(0 .7px 0 #fff) drop-shadow(0 -.7px 0 #fff); }
+@media (max-width: 390px) {
+  .container { padding-inline: 10px; }
+  .picks-panel > .section-tabs, .card-panel > .section-tabs, .standings-panel > .section-tabs { margin-bottom: 11px; }
+  .section-title h2 { font-size: 19px; }
+  .settings-profile-card, .settings-row-heading, .settings-signout, .settings-detail > summary { padding-inline: 10px; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .primary-nav button .nav-icon, .section-tabs button, .btn, .team-row { transition: none !important; }
+}

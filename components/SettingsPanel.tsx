@@ -5,6 +5,7 @@ import { Bell, ChevronDown, ChevronRight, KeyRound, LogOut, Moon, ScrollText, Su
 import type { Profile } from "@/lib/types";
 import type { AppSlug } from "@/lib/rulePresentation";
 import NumericText from "@/components/NumericText";
+import ArcSegmentedControl from "@/components/arc/segmented-control/segmented-control";
 import PushNotificationControls from "@/components/PushNotificationControls";
 import { clearClientSession } from "@/lib/clientSession";
 
@@ -123,7 +124,7 @@ export default function SettingsPanel({
     <div className="settings-section">
       <h3>Profile</h3>
       <div className="settings-card settings-profile-card">
-        <div className="settings-leading-icon"><UserRound size={17} /></div>
+        <div className="arc-profile-avatar" aria-hidden="true">{currentUser.display_name.trim().split(/\\s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || <UserRound size={17} />}</div>
         <div className="settings-row-copy"><strong>{currentUser.display_name}</strong><span>@{currentUser.username}</span></div>
         <button
           type="button"
@@ -142,9 +143,16 @@ export default function SettingsPanel({
           <div className="settings-leading-icon">{theme === "dark" ? <Moon size={17} /> : <Sun size={17} />}</div>
           <div className="settings-row-copy"><strong>Appearance</strong><span>Choose how the app looks on this device.</span></div>
         </div>
-        <div className="theme-toggle" role="group" aria-label="Appearance">
-          <button type="button" className={theme === "light" ? "active" : ""} aria-pressed={theme === "light"} onClick={() => chooseTheme("light")}><Sun size={14} /> Light</button>
-          <button type="button" className={theme === "dark" ? "active" : ""} aria-pressed={theme === "dark"} onClick={() => chooseTheme("dark")}><Moon size={14} /> Dark</button>
+        <div className="arc-appearance-toggle">
+          <ArcSegmentedControl
+            label="Appearance"
+            value={theme}
+            onValueChange={(value) => chooseTheme(value === "dark" ? "dark" : "light")}
+            options={[
+              { value: "light", label: "Light", accessory: <Sun size={14} aria-hidden="true" /> },
+              { value: "dark", label: "Dark", accessory: <Moon size={14} aria-hidden="true" /> }
+            ]}
+          />
         </div>
       </div>
     </div>
