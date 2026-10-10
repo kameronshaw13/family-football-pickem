@@ -2,6 +2,9 @@
 
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
 import NextImage from "next/image";
+import ArcBrand from "@/components/arc-app/ArcBrand";
+import ArcPageIntro from "@/components/arc-app/ArcPageIntro";
+import ArcSegmentedControl from "@/components/arc/segmented-control/segmented-control";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Settings as SettingsIcon, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
@@ -1983,7 +1986,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return <div className="app-shell loading-shell">
       <header className="scoreboard-header">
         <div className="scoreboard-main">
-          <div className="brand-lockup"><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>
+          <div className="brand-lockup"><ArcBrand appSlug={appSlug} /></div>
           <div className="header-actions" aria-hidden="true">
             <span className="header-refresh-indicator" />
             <div className="header-slate">
@@ -2262,7 +2265,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} />
+          <ArcBrand appSlug={appSlug} />
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
@@ -2289,12 +2292,41 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       {message && <div className="error-card"><NumericText text={message} /></div>}
       {previewActive && <div className="test-mode-banner"><span><FlaskConical size={16} /><span><strong>Board state preview</strong><small>No real picks or bank balances are changed</small></span></span><button type="button" onClick={() => { setTestWeekActive(false); setStatusFilter(defaultBoardStatus(data.games, clock, !data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock)); setStatusFilterTouched(false); }}><X size={16} /> Exit</button></div>}
 
+      <ArcPageIntro
+        section={tab}
+        subview={tab === "picks" ? picksView : tab === "card" ? cardView : tab === "standings" ? standingsView : "settings"}
+        week={viewedWeek}
+        league={data.activeGroup?.name || "Football Pick'em"}
+        user={currentUser.display_name}
+        metrics={tab === "picks" ? [
+          { label: "Games on slate", value: viewedGames.length.toString(), detail: "This week" },
+          { label: "In progress", value: viewedGames.filter((game) => game.live_state === "in").length.toString(), detail: "Live now", live: true },
+          { label: "Completed", value: viewedGames.filter((game) => isFinalGame(game)).length.toString(), detail: "Final results" }
+        ] : tab === "card" ? [
+          { label: "Your picks", value: cardPicks.length.toString(), detail: `of ${requiredCardPicks} total` },
+          { label: "Spread picks", value: myRegular.length.toString(), detail: "Selected" },
+          { label: "Dog pick", value: myUnderdog ? "1" : "0", detail: myUnderdog ? "Selected" : "Not selected" }
+        ] : tab === "standings" ? [
+          { label: "League players", value: profiles.length.toString(), detail: "In the running" },
+          { label: "Games final", value: viewedGames.filter((game) => isFinalGame(game)).length.toString(), detail: "This week" },
+          { label: "Active side bets", value: myActiveSideBetCount.toString(), detail: "On your card" }
+        ] : []}
+      />
+
       {tab === "picks" && <section className="panel picks-panel">
         {!previewActive && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens on <NumericText text={openText(data.weekOpenTime)} />.</div>}
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: "Side Bets", badge: picksNotificationCount }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
         {picksView === "board" && <>
+          <div className="arc-board-status" role="group" aria-label="Game status">
+            <ArcSegmentedControl
+              label="Game status"
+              options={[{ value: "OPEN", label: "Upcoming" }, { value: "LOCKED", label: "Live & locked" }, { value: "FINAL", label: "Final" }]}
+              value={statusFilter}
+              onValueChange={(next) => { setStatusFilter(next as GameStatusFilter); setStatusFilterTouched(true); }}
+            />
+          </div>
           <div className="view-select-row board-filter-row">
-            <MenuSelect ariaLabel="Choose game status" className="compact-select status-select" value={statusFilter} sections={[{ options: (["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => { setStatusFilter(value as GameStatusFilter); setStatusFilterTouched(true); }} />
+
             <MenuSelect ariaLabel="Choose league" className="compact-select league-select" value={leagueFilter} sections={[{ options: (["CFB", "NFL", "DOGS"] as LeagueFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => setLeagueFilter(value as LeagueFilter)} />
             {leagueFilter === "CFB" && <ConferenceFilter value={conferenceFilter} onChange={setConferenceFilter} />}
             {leagueFilter === "DOGS" && <MenuSelect ariaLabel="Filter dogs by win value" className="compact-select context-select" value={dogValueFilter} sections={[{ options: [{ value: "ALL", label: "ALL DOGS" }, ...(["1", "2", "3"] as const).map((value) => ({ value, label: dogBonusText(value, pointsMode) }))] }]} onChange={(value) => setDogValueFilter(value as DogValueFilter)} />}
