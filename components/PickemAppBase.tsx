@@ -112,6 +112,8 @@ type AppData = {
   bankEntries: BankEntry[];
   bankHistory: BankHistoryWeek[];
   bankBalances?: Record<string, number>;
+  bankAvailable?: Record<string, number>;
+  bankReserved?: Record<string, number>;
   sideBets: SideBet[];
   sideBetLedger: SideBet[];
   sideBetSlotCounts: Record<string, number>;
@@ -2326,6 +2328,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           currentUser={currentUser}
           profiles={profiles.filter((profile) => !isSideBetRestricted(data.groupRules, profile.id))}
           sideBets={sideBets}
+          availableFunds={appSlug === "friends" ? Number(data.bankAvailable?.[currentUser.id] || 0) : null}
+          reservedFunds={appSlug === "friends" ? Number(data.bankReserved?.[currentUser.id] || 0) : 0}
           slotCounts={data.sideBetSlotCounts || {}}
           maxPerWeek={data.sideBetSettings?.maxPerWeek ?? null}
           maxAmount={data.sideBetSettings?.maxAmount ?? MAX_SIDE_BET_AMOUNT}
@@ -2680,13 +2684,15 @@ function ConfidenceOrder({ picks, regularTotal, saving, onMove }: { picks: Pick[
   </section>;
 }
 
-function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
+function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, availableFunds, reservedFunds, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
   appSlug: AppSlug;
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
   profiles: Profile[];
   sideBets: SideBet[];
+  availableFunds: number | null;
+  reservedFunds: number;
   slotCounts: Record<string, number>;
   maxPerWeek: number | null;
   maxAmount: number;
@@ -2768,7 +2774,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   const offeredOdds = oppositeAmericanOdds(creatorOdds);
   const parsedRisk = Number(amount);
   const wagerMax = manualAmount ? MAX_CUSTOM_SIDE_BET_AMOUNT : maxAmount;
-  const riskIsValid = Number.isFinite(parsedRisk) && parsedRisk > 0 && parsedRisk <= wagerMax;
+  const riskIsValid = Number.isFinite(parsedRisk) && parsedRisk > 0 && parsedRisk <= wagerMax && (availableFunds == null || Math.round(parsedRisk * 100) <= Math.round(availableFunds * 100));
   const creatorRisk = riskIsValid ? Math.round(parsedRisk * 100) / 100 : 0;
   const creatorWin = validAmericanOdds(creatorOdds) ? profitForRisk(creatorRisk, creatorOdds) : 0;
   const offeredRisk = creatorWin;
@@ -3022,6 +3028,10 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   }
 
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
+    {availableFunds != null && <div className="side-bet-bank-available muted">
+      Available: <strong><NumericText text={stakeMoney(availableFunds)} /></strong>
+      {reservedFunds > 0 && <span> · <NumericText text={stakeMoney(reservedFunds)} /> in outstanding bets</span>}
+    </div>}
     <div className={`view-select-row side-bet-filter-row ${view === "new" && weekIsOpen && !weekConcluded ? "make-offer" : ""}`.trim()}>
       <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "offers", label: "Offers", badge: offerNotificationCount }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => {
         setSlipExpanded(false);
@@ -3151,7 +3161,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
             const value = Number(amount);
             if (Number.isFinite(value) && value > 0) setAmount(String(Math.min(wagerMax, Math.round(value * 100) / 100)));
           }} /></div></label>}
-          {manualAmount && amount !== "" && !riskIsValid && <p className="side-bet-field-error">Enter a valid risk amount.</p>}
+          {manualAmount && amount !== "" && !riskIsValid && <p className="side-bet-field-error">{availableFunds != null && Number(amount) > availableFunds ? `Only ${availableFunds.toFixed(2)} is available after outstanding bets.` : "Enter a valid risk amount."}</p>}
           {!evenPayout && <div className="side-bet-payout-preview">
             <span>You risk <strong><NumericText text={stakeMoney(creatorRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorWin)} /></strong></span>
             <span>They risk <strong><NumericText text={stakeMoney(offeredRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorRisk)} /></strong></span>
