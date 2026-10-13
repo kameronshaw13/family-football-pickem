@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
       if (!canCoverSideBetRisk(available, totalRisk)) {
         return NextResponse.json({ ok: false, error: available <= 0
           ? "No available bank funds. Deposit money before making Side Bets."
-          : `Only ${available.toFixed(2)} is available after outstanding bets.` }, { status: 409 });
+          : `Only $${available.toFixed(2)} is available after outstanding bets.` }, { status: 409 });
       }
     }
 
