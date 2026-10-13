@@ -620,3 +620,52 @@ html[data-theme="dark"] .matchup-preview-sheet img {filter:
 .game-tracker-header button svg,.matchup-preview-close svg {
  display:block;position:static;flex:none;inset:auto;margin:0;transform:none;
 }
+
+/* A live broadcast-like pulse module differentiates the redesigned Pick Board. */
+.app-shell .design-command-pulse {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  margin:0 0 12px;
+}
+.app-shell .design-command-pulse > div {
+  display:grid;
+  grid-template-columns:7px minmax(0,1fr) auto;
+  min-height:49px;
+  align-items:center;
+  gap:7px;
+  padding:9px 11px;
+  border:1px solid var(--line-strong);
+  border-radius:11px;
+  background:var(--panel);
+  box-shadow:0 4px 12px rgba(0,0,0,.07);
+}
+.app-shell .design-command-pulse small {
+  min-width:0;
+  overflow:hidden;
+  color:var(--header-muted);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.035em;
+  white-space:nowrap;
+}
+.app-shell .design-command-pulse strong {
+  justify-self:end;
+  color:var(--ink);
+  font-size:17px;
+  font-weight:900;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.app-shell .design-command-signal {
+  display:block;width:6px;height:6px;
+  border-radius:50%;background:var(--blue);
+}
+.app-shell .design-command-signal.live {background:var(--red);box-shadow:0 0 0 3px rgba(245,123,129,.11);}
+.app-shell .design-command-signal.final {background:var(--green);}
+@media(max-width:360px){
+ .app-shell .design-command-pulse {gap:5px;}
+ .app-shell .design-command-pulse > div {padding:8px 6px;gap:4px;}
+ .app-shell .design-command-pulse small {font-size:8px;}
+ .app-shell .design-command-pulse strong {font-size:15px;}
+}
