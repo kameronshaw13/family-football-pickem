@@ -398,7 +398,7 @@ export async function POST(req: NextRequest) {
         if (!canCoverSideBetRisk(available, amount)) {
           return NextResponse.json({ ok: false, error: available <= 0
             ? "No available bank funds. Deposit money before making Side Bets."
-            : `Only ${available.toFixed(2)} is available after outstanding bets.` }, { status: 409 });
+            : `Only $${available.toFixed(2)} is available after outstanding bets.` }, { status: 409 });
         }
       }
       const { data: sideBet, error: insertError } = await supabase.from("side_bets").insert({
@@ -648,7 +648,7 @@ export async function POST(req: NextRequest) {
       if (!canCoverSideBetRisk(available, acceptingRisk)) {
         return NextResponse.json({ ok: false, error: available <= 0
           ? "No available bank funds. Deposit money before accepting Side Bets."
-          : `Only ${available.toFixed(2)} is available after outstanding bets.` }, { status: 409 });
+          : `Only $${available.toFixed(2)} is available after outstanding bets.` }, { status: 409 });
       }
       const creatorBalance = funds.balances[sideBet.creator_id] || 0;
       const creatorHeld = funds.held[sideBet.creator_id] || 0;
