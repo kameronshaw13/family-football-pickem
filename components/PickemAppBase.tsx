@@ -2812,7 +2812,11 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
   const confirmingBet = received.find((bet) => bet.id === confirmingBetId);
   const slotCount = slotCounts[currentUser.id] || 0;
   const weeklyLimit = maxPerWeek == null ? Infinity : maxPerWeek;
-  const recipientGridColumns = appSlug === "friends" ? (otherPlayers.length === 7 ? 4 : 3) : appSlug === "shaw-family" ? Math.min(otherPlayers.length || 1, 3) : Math.min(otherPlayers.length || 1, 2);
+  const availableRecipientIds = otherPlayers
+    .filter((profile) => !Number.isFinite(weeklyLimit) || (slotCounts[profile.id] || 0) < weeklyLimit)
+    .map((profile) => profile.id);
+  const allRecipientsSelected = availableRecipientIds.length > 0 && availableRecipientIds.every((id) => recipients.includes(id));
+  const recipientGridColumns = appSlug === "friends" ? 4 : appSlug === "shaw-family" ? 3 : 2;
   const limitReached = Number.isFinite(weeklyLimit) && slotCount >= weeklyLimit;
   const filteredOpenGames = openGames
     .filter((game) => {
@@ -3173,7 +3177,8 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
 
         <section className="side-bet-slip-section">
           <div className="side-bet-slip-section-head"><span>Send to</span></div>
-          <fieldset aria-label="Send side bet to"><div className={`side-bet-recipient-grid${appSlug === "friends" && otherPlayers.length === 7 ? " seven-recipients" : ""}`} style={{ gridTemplateColumns: `repeat(${appSlug === "friends" && otherPlayers.length === 7 ? 12 : recipientGridColumns}, minmax(0, 1fr))` }}>
+          <fieldset aria-label="Send side bet to"><div className="side-bet-recipient-grid" style={{ gridTemplateColumns: `repeat(${recipientGridColumns}, minmax(0, 1fr))` }}>
+            <label className={`${allRecipientsSelected ? "checked" : ""} ${availableRecipientIds.length === 0 ? "disabled" : ""}`.trim()}><input type="checkbox" aria-label="All recipients" disabled={availableRecipientIds.length === 0} checked={allRecipientsSelected} onChange={() => setRecipients(allRecipientsSelected ? [] : availableRecipientIds)} /><span>All</span></label>
             {otherPlayers.map((profile) => {
               const recipientFull = Number.isFinite(weeklyLimit) && (slotCounts[profile.id] || 0) >= weeklyLimit;
               return <label key={profile.id} className={`${recipients.includes(profile.id) ? "checked" : ""} ${recipientFull ? "disabled" : ""}`.trim()}><input type="checkbox" aria-label={profile.display_name} disabled={recipientFull} checked={recipients.includes(profile.id)} onChange={() => toggleRecipient(profile.id)} /><span>{profile.display_name}</span></label>;
