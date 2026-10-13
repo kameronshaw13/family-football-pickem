@@ -1,0 +1,341 @@
+/*
+ * Design study B: Reimagined dock.
+ * Live app chrome remains on screen and navigable, while a card-like
+ * nonmodal game detail panel owns the central content region.
+ */
+.game-tracker-backdrop,
+.matchup-preview-backdrop {
+  position: fixed;
+  inset: calc(env(safe-area-inset-top) + var(--header-height)) 0 calc(var(--nav-height) + env(safe-area-inset-bottom));
+  z-index: 54;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 8px;
+  background: rgba(19, 31, 39, .19);
+  overscroll-behavior: contain;
+  -webkit-tap-highlight-color: transparent;
+}
+.game-tracker-sheet,
+.matchup-preview-sheet {
+  box-sizing: border-box;
+  width: min(720px, 100%);
+  height: min(93%, 880px);
+  min-height: 0;
+  max-height: 100%;
+  flex: 0 1 auto;
+  border: 1px solid var(--line-strong);
+  border-bottom: 0;
+  border-radius: 17px 17px 0 0;
+  color: var(--ink);
+  background: var(--canvas);
+  box-shadow: 0 -9px 30px rgba(22, 33, 39, .18);
+}
+.game-tracker-header,
+.matchup-preview-header {
+  display: grid;
+  min-height: 70px;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 9px 49px 9px 17px;
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  color: #fff;
+  background: var(--graphite);
+}
+.detail-panel-title {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  justify-items: start;
+  gap: 4px;
+  text-align: left;
+}
+.detail-panel-title > small {
+  color: #98b9cd;
+  font-family: var(--font-display);
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  line-height: 1.1;
+}
+.detail-panel-title > strong {
+  width: 100%;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(12.5px, 3.6vw, 17px);
+  font-weight: 850;
+  line-height: 1.2;
+  letter-spacing: .005em;
+  overflow-wrap: anywhere;
+}
+.game-tracker-header button,
+.matchup-preview-close {
+  inset: 14px 12px auto auto;
+  display: grid;
+  width: 35px;
+  height: 35px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 10px;
+  color: #fff;
+  background: rgba(255,255,255,.13);
+}
+.game-tracker-header button:hover,
+.matchup-preview-close:hover,
+.game-tracker-header button:focus-visible,
+.matchup-preview-close:focus-visible { background: rgba(255,255,255,.24); }
+.game-tracker-scoreboard {
+  border-bottom: 0;
+  background: var(--panel);
+}
+.game-tracker-scoreboard-grid {
+  min-height: 100px;
+  grid-template-columns: minmax(0, 1fr) minmax(90px, 112px) minmax(0, 1fr);
+  padding: 10px 10px 7px;
+}
+.game-tracker-score-team {
+  justify-items: center;
+  gap: 4px;
+}
+.game-tracker-score-team-main,
+.game-tracker-score-team.home .game-tracker-score-team-main {
+  gap: 8px;
+  justify-content: center;
+}
+.game-tracker-score-team-main > img,
+.game-tracker-score-team-main > .game-tracker-logo-fallback {
+  width: 37px;
+  height: 37px;
+}
+.game-tracker-score-stack { gap: 5px; }
+.game-tracker-score-stack > b {
+  font-size: 27px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.game-tracker-panel-team-name {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 130px;
+  overflow: hidden;
+  padding: 0 3px;
+  color: var(--header-muted);
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.game-tracker-score-center { gap: 4px; }
+.game-tracker-center-period {
+  color: var(--blue-dark);
+  font-size: 9.5px;
+  font-weight: 850;
+  letter-spacing: .02em;
+}
+.game-tracker-center-clock { font-size: 16px; font-weight: 900; }
+.game-tracker-score-center > small { max-width: 107px; font-size: 9px; line-height: 1.23; }
+.game-tracker-tabs,
+.matchup-preview-tabs {
+  display: grid;
+  height: 51px;
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 6px 10px;
+  border-block: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+.game-tracker-tabs button,
+.matchup-preview-tabs button {
+  min-height: 37px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--muted);
+  background: transparent;
+  font-size: clamp(10px, 2.8vw, 12px);
+  font-weight: 750;
+  line-height: 1.2;
+}
+.game-tracker-tabs button.active,
+.matchup-preview-tabs button.active {
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  background: var(--panel);
+  box-shadow: 0 2px 5px rgba(13,32,42,.07);
+  font-weight: 900;
+}
+.game-tracker-scroll,
+.matchup-preview-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 16px;
+  background: var(--canvas);
+  scrollbar-width: none;
+  scrollbar-gutter: auto;
+}
+.game-tracker-scroll::-webkit-scrollbar,
+.matchup-preview-scroll::-webkit-scrollbar { display: none; }
+.game-tracker-live { padding: 13px 12px 18px; }
+.game-tracker-live-meta { margin-bottom: 10px; }
+.game-tracker-field {
+  height: clamp(122px, 21dvh, 180px);
+  border-radius: 11px;
+  border-color: var(--line-strong);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+}
+.game-tracker-live-drive {
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+}
+.game-tracker-live-drive > header { min-height: 53px; padding-inline: 12px; }
+.game-tracker-quarter-header {
+  min-height: 37px;
+  margin-top: 8px;
+  padding-inline: 15px;
+  border-top: 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--header-muted);
+  background: transparent;
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: .055em;
+}
+.game-tracker-scoring-list > .game-tracker-quarter-header:first-child,
+.game-tracker-drives > .game-tracker-quarter-header:first-child { margin-top: 0; }
+.game-tracker-score-play {
+  min-height: 72px;
+  grid-template-columns: 26px minmax(0, 1fr) 60px;
+  align-items: center;
+  gap: 8px;
+  margin: 5px 10px;
+  padding: 10px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.game-tracker-scoring-team-logo {
+  display: grid;
+  width: 26px;
+  place-items: center;
+}
+.game-tracker-scoring-team-logo img { width: 24px; height: 24px; }
+.game-tracker-scoring-copy { display: grid; min-width: 0; gap: 3px; align-content: center; }
+.game-tracker-scoring-meta { min-height: 15px; align-items: center; gap: 6px; margin: 0; line-height: 1.15; }
+.game-tracker-scoring-meta strong { font-size: 10px; font-weight: 900; }
+.game-tracker-scoring-copy > p { margin: 0; font-size: 11.5px; line-height: 1.28; }
+.game-tracker-scoring-copy > small { margin: 0; font-size: 9px; line-height: 1.2; }
+.game-tracker-score-values { grid-template-columns: repeat(2, 26px); gap: 4px; }
+.game-tracker-score-values b { font-size: 15px; }
+.game-tracker-drive {
+  contain: none;
+  margin: 5px 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.game-tracker-drive > summary {
+  min-height: 61px;
+  grid-template-columns: 30px minmax(0, 1fr) 17px;
+  padding: 9px 11px;
+}
+.game-tracker-drive > summary > div { gap: 4px; }
+.game-tracker-drive > summary strong { font-size: 12px; line-height: 1.22; }
+.game-tracker-drive > summary small { margin: 0; font-size: 9.5px; line-height: 1.2; }
+.game-tracker-drive-play { padding: 10px 12px; }
+.game-tracker-drive-play strong { font-size: 12px; line-height: 1.4; }
+.game-tracker-drive-play strong time {
+  display: inline-block;
+  margin-right: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+}
+.game-tracker-player-table th,
+.game-tracker-player-table td { padding-block: 7px; }
+.game-tracker-team-box-heading,
+.game-tracker-stat-table-head { background: var(--panel); }
+.game-tracker-box-section { margin-top: 11px; }
+.game-tracker-box-section h3 { min-height: 34px; padding-inline: 12px; }
+.matchup-preview-kickoff {
+  padding: 10px 12px 5px;
+  color: var(--blue-dark);
+  background: var(--panel);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .02em;
+}
+.matchup-preview-hero {
+  gap: 12px;
+  padding: 7px 13px 14px;
+  background: var(--panel);
+}
+.matchup-preview-team { gap: 5px; }
+.matchup-preview-team > img { width: 44px; height: 44px; }
+.matchup-preview-team > strong {
+  font-size: clamp(11.5px, 3.4vw, 15px);
+  line-height: 1.25;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+.matchup-preview-team > span { font-size: 10px; }
+.matchup-preview-team b { color: var(--blue-dark); }
+.matchup-preview-at { top: 36px; }
+.matchup-column-heads,
+.matchup-metric-row {
+  grid-template-columns: minmax(64px, 1fr) minmax(104px, 1.3fr) minmax(64px, 1fr);
+  gap: 4px;
+  padding-inline: 9px;
+}
+.matchup-strength,
+.matchup-comparison-block {
+  margin: 0 10px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.matchup-section-heading {
+  min-height: 36px;
+  padding-inline: 15px;
+  background: transparent;
+}
+.matchup-metric-row { min-height: 56px; padding-block: 8px; }
+.matchup-metric-label strong { font-size: 10.5px; }
+.matchup-rank-value strong { font-size: 12.5px; }
+.matchup-data-note { border-radius: 6px; }
+.matchup-form-team { border: 1px solid var(--line); border-radius: 10px; }
+.matchup-split-lists { padding-inline: 10px; gap: 10px; }
+@media (min-width: 720px) {
+  .game-tracker-backdrop,
+  .matchup-preview-backdrop { padding-inline: 18px; }
+  .game-tracker-sheet,
+  .matchup-preview-sheet { height: min(92%, 860px); }
+}
+@media (max-width: 380px) {
+  .game-tracker-backdrop,
+  .matchup-preview-backdrop { padding-inline: 4px; }
+  .game-tracker-scoreboard-grid { grid-template-columns: minmax(0, 1fr) 90px minmax(0, 1fr); padding-inline: 4px; }
+  .game-tracker-score-team-main,
+  .game-tracker-score-team.home .game-tracker-score-team-main { gap: 4px; }
+  .game-tracker-score-team-main > img,
+  .game-tracker-score-team-main > .game-tracker-logo-fallback { width: 31px; height: 31px; }
+  .game-tracker-score-stack > b { font-size: 24px; }
+  .game-tracker-score-play { gap: 5px; margin-inline: 5px; padding-inline: 7px; }
+  .matchup-strength, .matchup-comparison-block { margin-inline: 5px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .game-tracker-sheet,
+  .matchup-preview-sheet { animation: detail-panel-enter 180ms cubic-bezier(.22,.8,.3,1) both; }
+  @keyframes detail-panel-enter {
+    from { opacity: .85; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
