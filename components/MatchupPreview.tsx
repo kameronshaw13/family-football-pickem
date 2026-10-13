@@ -125,26 +125,30 @@ function Matchup({ payload, awayLogo, homeLogo }: { payload: MatchupPayload; awa
 
 function FormTeam({ team, logo }: { team: MatchupTeam; logo?: string | null }) {
   const count = team.ats.wins + team.ats.losses + team.ats.pushes;
+  const coverByWeek = new Map(team.ats.recent.map(result => [result.week, result]));
   return <section className="matchup-form-team">
-    <div className="matchup-form-heading"><Logo src={logo} size={30} /><h3>{team.name}</h3></div>
+    <div className="matchup-form-heading"><Logo src={logo} size={42} /><h3>{team.name}</h3></div>
     <div className="matchup-form-stats">
       <div><small>RECORD</small><strong>{team.resultsAvailable ? <RecordValue wins={team.record.wins} losses={team.record.losses} /> : "—"}</strong></div>
       <div><small>AVG. MARGIN</small><strong>{team.scoring.margin == null ? "—" : signed(team.scoring.margin)}</strong></div>
       <div><small>ATS</small><strong>{count ? <RecordValue wins={team.ats.wins} losses={team.ats.losses} pushes={team.ats.pushes} /> : "—"}</strong></div>
       <div><small>AVG. COVER</small><strong>{team.ats.avgCoverMargin == null ? "—" : signed(team.ats.avgCoverMargin)}</strong></div>
     </div>
-    <h4>Season Results</h4>
-    {team.recent.length ? team.recent.map(row => <div className="matchup-result-row" key={row.id}>
-      <span className={row.result === "W" ? "matchup-result-win" : row.result === "L" ? "matchup-result-loss" : "matchup-result-push"}>{row.result}</span>
-      <div><strong>{row.home ? "vs" : "at"} {teamDisplayName("CFB", row.opponent)}</strong><small>Week {row.week}</small></div>
-      <strong>{row.teamPoints}–{row.opponentPoints}</strong>
-    </div>) : <p className="matchup-empty-copy">No completed results available.</p>}
-    <h4>Against the Spread</h4>
-    {team.ats.recent.length ? team.ats.recent.map(row => <div className="matchup-result-row" key={row.id}>
-      <span className={row.result === "W" ? "matchup-result-win" : row.result === "L" ? "matchup-result-loss" : "matchup-result-push"}>{row.result}</span>
-      <div><strong>{row.home ? "vs" : "at"} {teamDisplayName("CFB", row.opponent)} {spreadText(row.spread)}</strong><small className="matchup-result-meta"><span>Week {row.week}</span><InlineDot /><span>Cover {signed(row.coverMargin)}</span></small></div>
-      <strong>{row.teamPoints}–{row.opponentPoints}</strong>
-    </div>) : <p className="matchup-empty-copy">No graded spreads.</p>}
+    <h4>Season Games</h4>
+    {team.recent.length ? team.recent.map(row => {
+      const cover = coverByWeek.get(row.week);
+      return <div className="matchup-result-row matchup-form-combined-row" key={row.id}>
+        <span className={row.result === "W" ? "matchup-result-win" : row.result === "L" ? "matchup-result-loss" : "matchup-result-push"}>{row.result}</span>
+        <div className="matchup-result-opponent">
+          <strong>{row.home ? "vs" : "at"} {teamDisplayName("CFB", row.opponent)}</strong>
+          <small>Week {row.week}{cover ? <> <span className="matchup-result-text-dot" aria-hidden="true">·</span> {spreadText(cover.spread)}</> : null}</small>
+        </div>
+        <div className="matchup-result-outcome">
+          <strong>{row.teamPoints}-{row.opponentPoints}</strong>
+          {cover && <small>ATS <b className={cover.result === "W" ? "matchup-cover-win" : cover.result === "L" ? "matchup-cover-loss" : "matchup-cover-push"}>{cover.result}</b></small>}
+        </div>
+      </div>;
+    }) : <p className="matchup-empty-copy">No completed games available.</p>}
   </section>;
 }
 
@@ -152,25 +156,40 @@ function History({ history, away, home, awayLogo, homeLogo }: { history: Matchup
   const wins = history.games.filter(row => Number(row.teamPoints) > Number(row.opponentPoints)).length;
   const losses = history.games.filter(row => Number(row.teamPoints) < Number(row.opponentPoints)).length;
   const meetingCount = history.games.length;
-  return <div className="matchup-tab-body">
-    <div className="matchup-section-heading"><h3>Head-to-head · Last 10 meetings</h3></div>
-    {!history.complete && meetingCount < 10 && <p className="matchup-data-note">Showing the verified previous meetings available from ESPN history.</p>}
+  return <div className="matchup-tab-body matchup-history-body">
+    <div className="matchup-section-heading"><h3>Head-to-head</h3></div>
+    {!history.complete && meetingCount < 10 && <p className="matchup-data-note">Showing verified previous meetings available from ESPN.</p>}
     {meetingCount ? <>
       <div className="matchup-series-summary">
         <div className="matchup-series-side">
-          <Logo src={awayLogo} size={28} />
-          <div className="matchup-series-copy"><strong>{away}</strong><small><b>{wins}</b> wins</small></div>
+          <Logo src={awayLogo} size={36} />
+          <strong title={away}>{away}</strong>
+          <span className="matchup-series-wins"><b>{wins}</b> {wins === 1 ? "win" : "wins"}</span>
         </div>
-        <small className="matchup-series-center">{meetingCount >= 10 ? "LAST 10" : `LAST ${meetingCount}`}</small>
+        <div className="matchup-series-center"><small>LAST</small><strong>{meetingCount}</strong><small>{meetingCount === 1 ? "MEETING" : "MEETINGS"}</small></div>
         <div className="matchup-series-side">
-          <Logo src={homeLogo} size={28} />
-          <div className="matchup-series-copy"><strong>{home}</strong><small><b>{losses}</b> wins</small></div>
+          <Logo src={homeLogo} size={36} />
+          <strong title={home}>{home}</strong>
+          <span className="matchup-series-wins"><b>{losses}</b> {losses === 1 ? "win" : "wins"}</span>
         </div>
       </div>
-      {history.games.map(row => <div className="matchup-history-row" key={row.id}>
-        <span>{new Date(row.date).getUTCFullYear()}</span>
-        <div><strong className="matchup-history-scoreline"><span>{away} {row.teamPoints}</span><InlineDot /><span>{home} {row.opponentPoints}</span></strong><small>{row.venue || (row.neutralSite ? "Neutral site" : "Previous meeting")}</small></div>
-      </div>)}
+      <div className="matchup-history-list">
+        {history.games.map(row => {
+          const awayWins = Number(row.teamPoints) > Number(row.opponentPoints);
+          const homeWins = Number(row.opponentPoints) > Number(row.teamPoints);
+          return <div className="matchup-history-game" key={row.id}>
+            <div className="matchup-history-game-meta">
+              <time dateTime={row.date}>{new Date(row.date).getUTCFullYear()}</time>
+              <span>{row.venue || (row.neutralSite ? "Neutral site" : "Previous meeting")}</span>
+            </div>
+            <div className="matchup-history-matchup">
+              <div className={awayWins ? "winner" : ""}><span>{away}</span><strong>{row.teamPoints}</strong></div>
+              <span className="matchup-history-vs" aria-hidden="true">–</span>
+              <div className={homeWins ? "winner" : ""}><strong>{row.opponentPoints}</strong><span>{home}</span></div>
+            </div>
+          </div>;
+        })}
+      </div>
     </> : <p className="matchup-empty-copy">{history.complete ? "No verified previous meetings found." : "History is temporarily unavailable."}</p>}
   </div>;
 }
@@ -246,13 +265,13 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
     <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="false" aria-label={`${away} at ${home} matchup preview`}>
       <header className="matchup-preview-header">
         <div className="matchup-detail-title">
-          <small>MATCHUP PREVIEW <span aria-hidden="true">·</span> CFB</small>
+          
           <strong>{away} at {home}</strong>
         </div>
         <button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={18} /></button>
       </header>
-      <div className="matchup-preview-kickoff">{formatOrdinalDate(matchupDateFormatter, new Date(game.commence_time))} CT</div>
       <div className="matchup-preview-hero">
+        <div className="matchup-preview-kickoff">{formatOrdinalDate(matchupDateFormatter, new Date(game.commence_time))} CT</div>
         {(["away", "home"] as const).map(side => <div className="matchup-preview-team" key={side}><Logo src={side === "away" ? game.away_logo_url : game.home_logo_url} size={46} /><strong>{side === "away" ? away : home}</strong><span>{payload?.teams[side].resultsAvailable ? <RecordValue wins={payload.teams[side].record.wins} losses={payload.teams[side].record.losses} /> : "—"}{normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread) != null && <b>{spreadText(normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread))}</b>}</span></div>)}
         <span className="matchup-center-at" aria-hidden="true">AT</span>
       </div>
