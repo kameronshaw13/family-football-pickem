@@ -1,0 +1,193 @@
+/* Matchup Preview precision pass — October 13, 2026.
+   Scoped to matchup preview only; GameTracker and core Pick'em are unchanged. */
+
+/* Restore the gentle capped sheet and the lighter blue rule from the earlier UI. */
+.matchup-preview-sheet {
+  border-radius: 9px 9px 0 0;
+  overflow: hidden;
+}
+.matchup-preview-header {
+  border-radius: 9px 9px 0 0;
+  border-bottom: 2px solid #7fb2d1;
+  background: var(--graphite);
+}
+.matchup-preview-header::before {
+  top: 5px;
+  height: 3px;
+  width: 35px;
+  background: rgba(235, 246, 255, .62);
+}
+/* CFB + NFL long names: never silently hide the school/club behind ellipses.
+   Let analytics group headers grow naturally with full names wrapping. */
+.matchup-column-heads.matchup-role-heads,
+.matchup-column-heads.matchup-strength-heads {
+  height: auto;
+  min-height: 52px;
+  padding-block: 9px;
+  align-items: center;
+}
+.matchup-role-side {
+  min-width: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.matchup-role-copy {
+  display: grid;
+  flex: 1 1 0;
+  min-width: 0;
+  align-content: center;
+  gap: 4px;
+}
+.matchup-role-copy > small {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  overflow: visible;
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0;
+  line-height: 1.23;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.matchup-role-copy > strong {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.matchup-strength-team {
+  display: flex;
+  min-width: 0;
+  gap: 5px;
+  align-items: center;
+}
+.matchup-strength-team > strong {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.24;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.matchup-strength-team > img,
+.matchup-role-side > img { flex-shrink: 0; }
+.matchup-strength-right {text-align:right;}
+.matchup-role-right .matchup-role-copy {text-align:right;}
+
+/* Form: less blank space per stat, stronger label and number readability. */
+.matchup-form-stats {
+  min-height: 58px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  padding: 0;
+}
+.matchup-form-stats > div {
+  min-width: 0;
+  min-height: 58px;
+  gap: 4px;
+  padding: 7px 3px;
+}
+.matchup-form-stats small {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1.13;
+  letter-spacing: 0;
+}
+.matchup-form-stats strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.14;
+  font-variant-numeric: tabular-nums;
+}
+.matchup-form-combined-row .matchup-result-opponent > small {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  min-height: 14px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+.matchup-form-week-dot,
+.matchup-inline-dot.matchup-form-week-dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  min-width: 4px;
+  min-height: 4px;
+  flex: 0 0 4px;
+  margin: 0 6px;
+  border: 0;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .8;
+  vertical-align: middle;
+  transform: none;
+}
+
+/* History: "1 win" is one equal-sized typographic unit; no huge 1s. */
+.matchup-history-body .matchup-series-wins {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  color: var(--header-muted);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.matchup-history-body .matchup-series-wins b {
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.matchup-history-body .matchup-series-center > strong {
+  font-size: 16px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+.matchup-history-body .matchup-series-center > small {font-size: 9px;}
+.matchup-history-body .matchup-series-summary {
+  min-height: 102px;
+  padding-block: 9px;
+  align-items: center;
+}
+.matchup-history-game-meta {
+  min-height: 18px;
+  gap: 10px;
+}
+.matchup-history-game-meta > span {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: normal;
+  text-align: right;
+}
+@media (max-width: 360px) {
+  .matchup-form-stats small { font-size: 8.5px; }
+  .matchup-form-stats strong { font-size: 13px; }
+  .matchup-role-copy > small {font-size: 9.5px;}
+  .matchup-strength-team > strong {font-size: 9.5px;}
+}

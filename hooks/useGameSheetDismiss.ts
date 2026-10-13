@@ -15,6 +15,8 @@ export default function useGameSheetDismiss(
 ) {
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
+  // Consumers can use the same animated dismissal for the X button.
+  const animatedCloseRef = useRef<() => void>(() => closeRef.current());
 
   useEffect(() => {
     if (!mounted) return;
@@ -29,14 +31,28 @@ export default function useGameSheetDismiss(
     let dragDistance = 0;
     let dismissTimer = 0;
     let snapTimer = 0;
+    let isClosing = false;
     const originalTransform = sheet.style.transform;
     const originalTransition = sheet.style.transition;
 
     const scrollerSelector = ".game-tracker-scroll, .matchup-preview-scroll";
-    const headerSelector = ".game-tracker-header, .matchup-preview-header";
+    const headerSelector = ".game-tracker-header, .matchup-preview-header, .matchup-preview-hero, .game-tracker-scoreboard";
+    const dismissTime = 275;
+    const settleTime = 240;
+
+    // Matching the X and swipe-down exits avoids sudden unmounts or jumps.
+    const animateClose = () => {
+      if (isClosing) return;
+      isClosing = true;
+      window.clearTimeout(snapTimer);
+      sheet.style.transition = `transform ${dismissTime}ms cubic-bezier(.32, 0, .75, 1)`;
+      sheet.style.transform = "translate3d(0, calc(100% + 4px), 0)";
+      dismissTimer = window.setTimeout(() => closeRef.current(), dismissTime);
+    };
+    animatedCloseRef.current = animateClose;
 
     function start(event: TouchEvent) {
-      if (event.touches.length !== 1) return;
+      if (event.touches.length !== 1 || isClosing) return;
       const target = event.target;
       if (!(target instanceof Element)) return;
       const isHeader = target.closest(headerSelector) !== null && target.closest("button") === null;
@@ -74,15 +90,14 @@ export default function useGameSheetDismiss(
       dragging = false;
       const duration = performance.now() - startedAt;
       const dismiss = dragDistance >= 110 || (dragDistance >= 62 && duration < 330);
-      sheet!.style.transition = "transform 175ms cubic-bezier(.24,.8,.3,1)";
       if (dismiss) {
-        sheet!.style.transform = "translate3d(0, 100%, 0)";
-        dismissTimer = window.setTimeout(() => closeRef.current(), 175);
+        animateClose();
       } else {
+        sheet!.style.transition = `transform ${settleTime}ms cubic-bezier(.22, 1, .36, 1)`;
         sheet!.style.transform = originalTransform;
         snapTimer = window.setTimeout(() => {
           sheet!.style.transition = originalTransition;
-        }, 180);
+        }, settleTime);
       }
       dragDistance = 0;
     }
@@ -98,8 +113,10 @@ export default function useGameSheetDismiss(
       sheet.removeEventListener("touchcancel", finish, true);
       window.clearTimeout(dismissTimer);
       window.clearTimeout(snapTimer);
+      animatedCloseRef.current = () => closeRef.current();
       sheet.style.transform = originalTransform;
       sheet.style.transition = originalTransition;
     };
   }, [sheetRef, mounted]);
+  return () => animatedCloseRef.current();
 }

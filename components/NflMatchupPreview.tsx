@@ -165,7 +165,7 @@ function FormTeam({ team, logo }: { team: NflMatchupTeam; logo?: string | null }
         <span className={row.result === "W" ? "matchup-result-win" : row.result === "L" ? "matchup-result-loss" : "matchup-result-push"}>{row.result}</span>
         <div className="matchup-result-opponent">
           <strong>{row.home ? "vs" : "at"} {teamDisplayName("NFL", row.opponent)}</strong>
-          <small>Week {row.week}{cover ? <> <span className="matchup-result-text-dot" aria-hidden="true">·</span> {spreadText(cover.spread)}</> : null}</small>
+          <small>Week {row.week}{cover ? <> <span className="matchup-inline-dot matchup-form-week-dot" aria-hidden="true" /> Spread {spreadText(cover.spread)}</> : null}</small>
         </div>
         <div className="matchup-result-outcome">
           <strong>{row.teamPoints}-{row.opponentPoints}</strong>
@@ -204,7 +204,7 @@ function History({ history, away, home, awayLogo, homeLogo }: { history: NflMatc
           return <div className="matchup-history-game" key={row.id}>
             <div className="matchup-history-game-meta">
               <time dateTime={row.date}>{new Date(row.date).getUTCFullYear()}</time>
-              <span>{row.venue || (row.neutralSite ? "Neutral site" : "Previous meeting")}</span>
+              <span>{row.neutralSite ? "Neutral site" : `Home: ${row.home ? away : home}`}</span>
             </div>
             <div className="matchup-history-matchup">
               <div className={awayWins ? "winner" : ""}><span>{away}</span><strong>{row.teamPoints}</strong></div>
@@ -229,7 +229,7 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
   const sheet = useRef<HTMLElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
-  useGameSheetDismiss(sheet, mounted, onClose);
+  const closeWithMotion = useGameSheetDismiss(sheet, mounted, onClose);
   const away = teamDisplayName("NFL", game.away_team);
   const home = teamDisplayName("NFL", game.home_team);
 
@@ -290,14 +290,14 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
   if (!mounted) return null;
   const tabs: Array<[Tab, string]> = [["matchup", "Analytics"], ["form", "Form"], ["history", "History"]];
 
-  return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+  return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) closeWithMotion(); }}>
     <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="false" aria-label={`${away} at ${home} NFL matchup preview`}>
       <header className="matchup-preview-header">
         <div className="matchup-detail-title">
           
           <strong>{away} at {home}</strong>
         </div>
-        <button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={18} /></button>
+        <button className="matchup-preview-close" type="button" onClick={closeWithMotion} aria-label="Close matchup preview"><X size={18} /></button>
       </header>
       <div className="matchup-preview-hero">
         <div className="matchup-preview-kickoff">{formatOrdinalDate(matchupDateFormatter, new Date(game.commence_time))} CT</div>
