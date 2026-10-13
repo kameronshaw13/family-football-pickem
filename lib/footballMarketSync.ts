@@ -149,10 +149,17 @@ export async function syncUpcomingFootballSchedule(
 
       const existingTime = existing?.commence_time ? new Date(existing.commence_time).getTime() : NaN;
       const espnTime = new Date(event.commenceTime).getTime();
+      const providerTime = actionMatch?.commenceTime ? new Date(actionMatch.commenceTime).getTime() : NaN;
       const existingHasNonPlaceholderTime = Number.isFinite(existingTime) && Math.abs(existingTime - espnTime) > 60 * 1000;
+      const providerHasNonPlaceholderTime = Number.isFinite(providerTime) && Math.abs(providerTime - espnTime) > 60 * 1000;
+      // An invalid ESPN start (usually Sat 04:00 UTC / Fri 11 PM CT) is TBD.
+      // An identical provider placeholder isn't verification. Keep a previously
+      // confirmed kickoff when the provider reports the placeholder, too.
       const commenceTime = event.timeValid
         ? event.commenceTime
-        : actionMatch?.commenceTime || (existingHasNonPlaceholderTime ? existing.commence_time : null);
+        : providerHasNonPlaceholderTime ? actionMatch!.commenceTime
+        : existingHasNonPlaceholderTime ? existing!.commence_time
+        : null;
 
       // Never write ESPN's invalid/TBD placeholder as a real kickoff. If no
       // verified provider or previously verified time exists yet, wait for the
