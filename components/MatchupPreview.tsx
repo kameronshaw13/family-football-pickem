@@ -205,7 +205,7 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
   const sheet = useRef<HTMLElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
-  useGameSheetDismiss(sheet, mounted, onClose);
+  const closeWithMotion = useGameSheetDismiss(sheet, mounted, onClose);
   const away = teamDisplayName("CFB", game.away_team);
   const home = teamDisplayName("CFB", game.home_team);
 
@@ -261,14 +261,14 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
 
   if (!mounted) return null;
   const tabs: Array<[Tab, string]> = [["matchup", "Analytics"], ["form", "Form"], ["history", "History"]];
-  return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+  return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) closeWithMotion(); }}>
     <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="false" aria-label={`${away} at ${home} matchup preview`}>
       <header className="matchup-preview-header">
         <div className="matchup-detail-title">
           
           <strong>{away} at {home}</strong>
         </div>
-        <button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={18} /></button>
+        <button className="matchup-preview-close" type="button" onClick={closeWithMotion} aria-label="Close matchup preview"><X size={18} /></button>
       </header>
       <div className="matchup-preview-hero">
         <div className="matchup-preview-kickoff">{formatOrdinalDate(matchupDateFormatter, new Date(game.commence_time))} CT</div>
