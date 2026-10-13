@@ -308,3 +308,17 @@
 .app-shell .side-bet-market-reference .side-bet-market-inline {
   justify-content:center;
 }
+
+/* Friends 4 × 2 grid: the restored "All" tile gets identical geometry and borders. */
+.route-app.group-friends .side-bet-recipient-grid:not(.seven-recipients) > label:nth-child(3n) {
+  border-right:1px solid var(--line);
+}
+.route-app.group-friends .side-bet-recipient-grid:not(.seven-recipients) > label:nth-child(n+4) {
+  border-top:0;
+}
+.route-app.group-friends .side-bet-recipient-grid > label:nth-child(4n) {
+  border-right:0;
+}
+.route-app.group-friends .side-bet-recipient-grid > label:nth-child(n+5) {
+  border-top:1px solid var(--line);
+}
