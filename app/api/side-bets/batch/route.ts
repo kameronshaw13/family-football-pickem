@@ -7,6 +7,7 @@ import { MAX_CUSTOM_SIDE_BET_AMOUNT, sideBetSlotCounts } from "@/lib/sideBetLimi
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { americanOddsText, oppositeAmericanOdds, profitForRisk, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { isSideBetRestricted } from "@/lib/sideBetAccess";
 import { notificationTeamName } from "@/lib/notificationTeamName";
 import { notificationStakeText } from "@/lib/notificationMoney";
 
@@ -57,6 +58,12 @@ export async function POST(req: NextRequest) {
 
     const supabase = getSupabaseAdmin();
     const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
+    if (isSideBetRestricted(context.rules, auth.profile.id)) {
+      return NextResponse.json({ ok: false, error: "No access to Side Bets." }, { status: 403 });
+    }
+    if (body.selections.some((selection) => selection.recipientIds.some((id) => isSideBetRestricted(context.rules, id)))) {
+      return NextResponse.json({ ok: false, error: "This player does not have access to Side Bets." }, { status: 403 });
+    }
     const settings = getGroupSideBetSettings(context);
     if (!settings.enabled) return NextResponse.json({ ok: false, error: "Side bets are disabled for this Pick'em group." }, { status: 409 });
 
