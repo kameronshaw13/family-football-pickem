@@ -2503,7 +2503,7 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
       ? Number(week.openingBalances[player.id] || 0)
       : null;
     return { week: week.week, weeklyAmount, openingBalance, games };
-  }).filter((week) => week.openingBalance != null || week.weeklyAmount != null || week.games.length > 0);
+  }).filter((week) => Number(week.openingBalance || 0) !== 0 || week.weeklyAmount != null || week.games.length > 0);
 
   return <details className="bank-balance-player">
     <summary>
@@ -2522,7 +2522,7 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
           <ChevronDown size={16} />
         </summary>
         <div className="bank-history-week-body">
-          {week.openingBalance != null && <div className="bank-history-line">
+          {week.openingBalance != null && Number(week.openingBalance) !== 0 && <div className="bank-history-line">
             <span>Deposit</span>
             <strong className={week.openingBalance > 0 ? "money-pos" : week.openingBalance < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.openingBalance)} /></strong>
           </div>}
