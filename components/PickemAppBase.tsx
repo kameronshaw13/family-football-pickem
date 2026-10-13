@@ -2210,11 +2210,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       return false;
     }
     if (!selectedBetGame || !selectedCreatorTeam || !betRecipients.length) return false;
-    const available = appSlug === "friends" ? Number(data?.bankAvailable?.[currentUser.id] || 0) : null;
-    if (available != null && Math.round(Number(options.amount) * 100) > Math.round(available * 100)) {
-      notify(available <= 0 ? "No available bank funds for Side Bets." : `Only $${available.toFixed(2)} is available after outstanding bets.`, "error");
-      return false;
-    }
     const submittedAmount = Math.round(Number(options.amount) * 100) / 100;
     const maxAmount = data?.sideBetSettings?.manualAmount
       ? MAX_CUSTOM_SIDE_BET_AMOUNT
@@ -2336,8 +2331,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           currentUser={currentUser}
           profiles={profiles.filter((profile) => !isSideBetRestricted(data.groupRules, profile.id))}
           sideBets={sideBets}
-          availableFunds={appSlug === "friends" ? Number(data.bankAvailable?.[currentUser.id] || 0) : null}
-          reservedFunds={appSlug === "friends" ? Number(data.bankReserved?.[currentUser.id] || 0) : 0}
+          availableFunds={null}
+          reservedFunds={0}
           slotCounts={data.sideBetSlotCounts || {}}
           maxPerWeek={data.sideBetSettings?.maxPerWeek ?? null}
           maxAmount={data.sideBetSettings?.maxAmount ?? MAX_SIDE_BET_AMOUNT}
