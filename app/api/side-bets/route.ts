@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { isSideBetRestricted } from "@/lib/sideBetAccess";
 import { GET as baseGET, POST as basePOST } from "./routeBase";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,9 @@ export async function POST(req: NextRequest) {
     if (!auth.profile) return NextResponse.json({ ok: false, error: auth.error }, { status: auth.status });
     const supabase = getSupabaseAdmin();
     const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
+    if (isSideBetRestricted(context.rules, auth.profile.id)) {
+      return NextResponse.json({ ok: false, error: "No access to Side Bets." }, { status: 403 });
+    }
     const { data: sideBet, error } = await supabase
       .from("side_bets")
       .select("id,creator_id,week,status,targets:side_bet_targets(recipient_id)")
