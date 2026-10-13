@@ -196,7 +196,7 @@ export async function GET(req: NextRequest) {
         sideBetWeekTotals[loserId] = Number(sideBetWeekTotals[loserId] || 0) - transfer;
       }
     }
-    const bankResets = bankResetResult.data || [];
+    const bankResets = context.group.slug === 'friends' ? (bankResetResult.data || []) : [];
     const bankHistory = buildBankHistory(bankResult.data || [], allSideBets, bankResets);
     const bankBalances = Object.fromEntries(profiles.map((profile) => {
       const latestReset = bankResets
