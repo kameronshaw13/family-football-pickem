@@ -9,6 +9,21 @@ function explicitGroup(request: NextRequest) {
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  // These branches are design previews of real leagues, not staging databases.
+  // Keep account sign-in available, but reject all other mutable API requests.
+  if (
+    process.env.VERCEL_ENV === "preview" &&
+    pathname.startsWith("/api/") &&
+    !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
+    !pathname.startsWith("/api/auth/login") &&
+    !pathname.startsWith("/api/auth/logout")
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "This full-app design preview is read-only. Use the live app to submit picks or side bets." },
+      { status: 403, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
   if (pathname === "/other-family" || pathname.startsWith("/other-family/")) {
     const url = request.nextUrl.clone();
     url.pathname = pathname.replace(/^\/other-family/, "/caleb-family");
