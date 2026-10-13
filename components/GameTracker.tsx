@@ -568,10 +568,16 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
     const priorOverflow = document.body.style.overflow;
     const priorFocus = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
-    const backdrop = sheet.current?.parentElement;
-    const siblings = Array.from(document.body.children).filter((node): node is HTMLElement => node instanceof HTMLElement && node !== backdrop);
-    const inertStates = siblings.map((node) => node.inert);
-    siblings.forEach((node) => { node.inert = true; });
+    // Keep the global navigation working; this panel covers only the area above it.
+    let navigatedAway = false;
+    const onNavigation = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(".primary-nav button")) {
+        navigatedAway = true;
+        close.current();
+      }
+    };
+    document.addEventListener("click", onNavigation);
     sheet.current?.querySelector<HTMLButtonElement>("button")?.focus();
     const keydown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -583,8 +589,8 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
     return () => {
       document.removeEventListener("keydown", keydown);
       document.body.style.overflow = priorOverflow;
-      siblings.forEach((node, index) => { node.inert = inertStates[index]; });
-      priorFocus?.focus();
+      document.removeEventListener("click", onNavigation);
+      if (!navigatedAway) priorFocus?.focus();
     };
   }, [mounted]);
 
@@ -659,7 +665,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
   const matchupHeader = `${awayName} at ${homeName}`;
 
   return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="true" aria-label={`${awayName} at ${homeName} GameTracker`}>
+    <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="false" aria-label={`${awayName} at ${homeName} GameTracker`}>
       <header className="game-tracker-header">
         <div className="game-tracker-heading">
           <small><span className={`game-tracker-heading-dot ${completed ? "final" : "live"}`} aria-hidden="true" />{completed ? "FINAL" : "GAME CENTER"} <span aria-hidden="true">·</span> {game.league}</small>
