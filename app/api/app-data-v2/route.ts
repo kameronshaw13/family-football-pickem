@@ -23,15 +23,31 @@ export async function GET(req: NextRequest) {
     const nowIso = now.toISOString();
     const requestedWeek = req.nextUrl.searchParams.get("week");
 
-    const [gamesResult, lockedResult, bankResult, sideBetResult, seasonMoneyResult, sideBetDismissalResult] = await Promise.all([
+    const [gamesResult, lockedResult, bankResult, sideBetResult, seasonMoneyResult, sideBetDismissalResult, bankResetResult] = await Promise.all([
       supabase.from("games").select("*").order("commence_time", { ascending: true }),
       supabase.from("picks").select("user_id,week,pick_type,status,result,underdog_win_value,confidence_points").eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("status", "locked"),
       supabase.from("bank_entries").select("*, profile:profiles(display_name)").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("week", { ascending: false }).order("created_at", { ascending: false }),
-      supabase.from("side_bets").select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("created_at", { ascending: false }),
+      supabase.from("side_bets").select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("created_at", { ascending: false }).range(0, 999),
       supabase.from("group_season_money").select("winner_take_all_amount,updated_by,updated_at,submitted_at").eq("group_id", context.group.id).eq("season_year", context.seasonYear).maybeSingle(),
-      supabase.from("side_bet_dismissals").select("side_bet_id").eq("group_id", context.group.id).eq("user_id", auth.profile.id)
+      supabase.from("side_bet_dismissals").select("side_bet_id").eq("group_id", context.group.id).eq("user_id", auth.profile.id),
+      supabase.from("bank_resets").select("user_id,week,opening_balance,note").eq("group_id", context.group.id).eq("season_year", context.seasonYear)
     ]);
-    for (const result of [gamesResult, lockedResult, bankResult, sideBetResult, seasonMoneyResult, sideBetDismissalResult]) if (result.error) throw new Error(result.error.message);
+    for (const result of [gamesResult, lockedResult, bankResult, sideBetResult, seasonMoneyResult, sideBetDismissalResult, bankResetResult]) if (result.error) throw new Error(result.error.message);
+
+    // Supabase limits a REST query to 1,000 rows. Without paging, older settled
+    // bets disappear from both the bank history and running balance.
+    const allSideBets = [...(sideBetResult.data || [])];
+    for (let offset = 1000; allSideBets.length === offset; offset += 1000) {
+      const { data: page, error: pageError } = await supabase.from("side_bets")
+        .select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))")
+        .eq("group_id", context.group.id)
+        .eq("season_year", context.seasonYear)
+        .order("created_at", { ascending: false })
+        .range(offset, offset + 999);
+      if (pageError) throw new Error(pageError.message);
+      allSideBets.push(...(page || []));
+      if ((page || []).length < 1000) break;
+    }
 
     const normalizedGames = (gamesResult.data || [])
       .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game))
@@ -120,7 +136,6 @@ export async function GET(req: NextRequest) {
     if (picksResult.error) throw new Error(picksResult.error.message);
     if (weekMoneyResult.error) throw new Error(weekMoneyResult.error.message);
 
-    let allSideBets = sideBetResult.data || [];
     const expiredIds = allSideBets
       .filter((bet: any) => {
         if (bet.status !== "open" || !bet.game) return false;
@@ -139,7 +154,7 @@ export async function GET(req: NextRequest) {
         supabase.from("side_bet_targets").update({ response: "closed", responded_at: nowIso }).in("side_bet_id", expiredIds).eq("response", "pending")
       ]);
       const expired = new Set(expiredIds);
-      allSideBets = allSideBets.map((bet: any) => expired.has(bet.id) ? { ...bet, status: "expired" } : bet);
+      for (const bet of allSideBets) if (expired.has(bet.id)) bet.status = "expired";
     }
 
     const profiles = context.members;
@@ -181,7 +196,18 @@ export async function GET(req: NextRequest) {
         sideBetWeekTotals[loserId] = Number(sideBetWeekTotals[loserId] || 0) - transfer;
       }
     }
-    const bankHistory = buildBankHistory(bankResult.data || [], allSideBets);
+    const bankResets = bankResetResult.data || [];
+    const bankHistory = buildBankHistory(bankResult.data || [], allSideBets, bankResets);
+    const bankBalances = Object.fromEntries(profiles.map((profile) => {
+      const latestReset = bankResets
+        .filter((reset: any) => reset.user_id === profile.id)
+        .sort((a: any, b: any) => Number(b.week) - Number(a.week))[0];
+      const earnedSinceReset = bankHistory
+        .filter((historyWeek) => !latestReset || historyWeek.week >= Number(latestReset.week))
+        .reduce((sum, historyWeek) => sum + Number(historyWeek.totals[profile.id] || 0), 0);
+      const balance = Number(latestReset?.opening_balance || 0) + earnedSinceReset;
+      return [profile.id, Math.round(balance * 100) / 100];
+    }));
     const weeklyBank = context.rules?.weeklyBank || {};
     const moneyAdmin = context.group.slug === "other-family"
       ? context.members.find((member) => member.display_name.toLowerCase() === "caleb") || null
@@ -220,6 +246,7 @@ export async function GET(req: NextRequest) {
       },
       bankEntries: bankResult.data || [],
       bankHistory,
+      bankBalances,
       sideBets,
       sideBetLedger,
       sideBetSlotCounts: sideBetSlotCountsByPlayer,
