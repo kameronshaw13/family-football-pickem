@@ -175,19 +175,35 @@ function History({ history, away, home, awayLogo, homeLogo }: { history: Matchup
       </div>
       <div className="matchup-history-list">
         {history.games.map(row => {
-          const awayWins = Number(row.teamPoints) > Number(row.opponentPoints);
-          const homeWins = Number(row.opponentPoints) > Number(row.teamPoints);
-          return <div className="matchup-history-game" key={row.id}>
+          // Games are returned from the selected away team's perspective.
+          // Reorder each historical result by the actual away/home side.
+          const awayWasHome = row.home && !row.neutralSite;
+          const visitorName = awayWasHome ? home : away;
+          const hostName = awayWasHome ? away : home;
+          const visitorLogo = awayWasHome ? homeLogo : awayLogo;
+          const hostLogo = awayWasHome ? awayLogo : homeLogo;
+          const visitorScore = Number(awayWasHome ? row.opponentPoints : row.teamPoints);
+          const hostScore = Number(awayWasHome ? row.teamPoints : row.opponentPoints);
+          return <article className="matchup-history-game" key={row.id}>
             <div className="matchup-history-game-meta">
               <time dateTime={row.date}>{new Date(row.date).getUTCFullYear()}</time>
-              <span>{row.neutralSite ? "Neutral site" : `Home: ${row.home ? away : home}`}</span>
+              <span>{row.neutralSite ? "Neutral site" : `Home: ${hostName}`}</span>
             </div>
-            <div className="matchup-history-matchup">
-              <div className={awayWins ? "winner" : ""}><span>{away}</span><strong>{row.teamPoints}</strong></div>
-              <span className="matchup-history-vs" aria-hidden="true">–</span>
-              <div className={homeWins ? "winner" : ""}><strong>{row.opponentPoints}</strong><span>{home}</span></div>
+            <div className="matchup-history-scoreboard">
+              <div className={visitorScore > hostScore ? "matchup-history-score-team winner" : "matchup-history-score-team"}>
+                <Logo src={visitorLogo} size={24} />
+                <span>{visitorName}</span>
+                <small>AWAY</small>
+                <strong>{visitorScore}</strong>
+              </div>
+              <div className={hostScore > visitorScore ? "matchup-history-score-team winner" : "matchup-history-score-team"}>
+                <Logo src={hostLogo} size={24} />
+                <span>{hostName}</span>
+                <small>{row.neutralSite ? "NEUTRAL" : "HOME"}</small>
+                <strong>{hostScore}</strong>
+              </div>
             </div>
-          </div>;
+          </article>;
         })}
       </div>
     </> : <p className="matchup-empty-copy">{history.complete ? "No verified previous meetings found." : "History is temporarily unavailable."}</p>}
