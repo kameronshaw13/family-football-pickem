@@ -238,3 +238,73 @@
  border-radius:7px;
  background:var(--red-soft);
 }
+
+/* Final pixel-grid audit: every square action owns a centered icon, no inherited baseline. */
+.app-shell .slip-icon-btn,
+.app-shell .toast-close,
+.app-shell .pick-row-actions .icon-btn,
+.app-shell .visible-pick-actions .icon-btn,
+.app-shell .player-profile-close-wrap button,
+.app-shell .player-profile-head button {
+  display:grid;
+  place-items:center;
+  padding:0;
+  text-align:center;
+  line-height:0;
+}
+.app-shell .slip-icon-btn svg,
+.app-shell .toast-close svg,
+.app-shell .pick-row-actions .icon-btn svg,
+.app-shell .visible-pick-actions .icon-btn svg,
+.app-shell .player-profile-close-wrap button svg,
+.app-shell .player-profile-head button svg {
+  position:static;
+  display:block;
+  margin:0;
+  vertical-align:middle;
+  transform:none;
+  flex:0 0 auto;
+}
+.app-shell .side-bet-slip-sheet-head .side-bet-header-collapse {
+  width:34px;
+  height:34px;
+  min-height:34px;
+  flex:0 0 34px;
+  align-self:center;
+}
+.app-shell .side-bet-slip-selection > .side-bet-selection-clear {
+  width:34px;
+  height:34px;
+  min-height:34px;
+  align-self:center;
+  justify-self:end;
+}
+.app-shell .side-bet-market-toggle button,
+.app-shell .side-bet-amount-grid button,
+.app-shell .side-bet-two-option-toggle button,
+.app-shell .side-bet-game-filter-toggle button {
+  min-width:0;
+  text-align:center;
+  align-items:center;
+  justify-content:center;
+}
+.app-shell .side-bet-recipient-grid label {
+  display:grid;
+  grid-template-columns:16px minmax(0,1fr);
+  align-items:center;
+}
+.app-shell .side-bet-recipient-grid label > span {
+  align-self:center;
+  min-width:0;
+}
+.app-shell .side-bet-amount-grid button {
+  display:grid;
+  place-items:center;
+  padding:5px;
+}
+.app-shell .side-bet-market-reference {
+  align-items:center;
+}
+.app-shell .side-bet-market-reference .side-bet-market-inline {
+  justify-content:center;
+}
