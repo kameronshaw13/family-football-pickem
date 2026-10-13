@@ -15,11 +15,19 @@ export type BankHistoryGame = {
   selections: Record<string, { team: string; spread: number; marketType: "spread" | "moneyline" | "total"; odds: number; totalPoints?: number | null; totalSide?: "over" | "under" | null }>;
 };
 
-export type BankReset = { week: number; user_id: string; opening_balance: number; note?: string | null };
+export type BankReset = {
+  week: number;
+  user_id: string;
+  opening_balance: number;
+  note?: string | null;
+  settlement_week?: number | null;
+  settlement_amount?: number | null;
+};
 
 export type BankHistoryWeek = {
   week: number;
   openingBalances: Record<string, number>;
+  payoutAmounts: Record<string, number>;
   weeklyAmounts: Record<string, number>;
   games: BankHistoryGame[];
   totals: Record<string, number>;
@@ -41,7 +49,7 @@ function addAmount(amounts: Record<string, number>, userId: string, amount: numb
 function ensureWeek(map: Map<number, BankHistoryWeek>, week: number) {
   let row = map.get(week);
   if (!row) {
-    row = { week, openingBalances: {}, weeklyAmounts: {}, games: [], totals: {} };
+    row = { week, openingBalances: {}, payoutAmounts: {}, weeklyAmounts: {}, games: [], totals: {} };
     map.set(week, row);
   }
   return row;
@@ -55,6 +63,15 @@ export function buildBankHistory(bankEntries: BankEntry[], sideBets: HistorySide
     const week = Number(reset.week);
     if (!Number.isFinite(week)) continue;
     ensureWeek(byWeek, week).openingBalances[reset.user_id] = Number(reset.opening_balance || 0);
+    if (reset.settlement_week != null && reset.settlement_amount != null) {
+      const settlementWeek = Number(reset.settlement_week);
+      const payout = Number(reset.settlement_amount);
+      if (Number.isInteger(settlementWeek) && Number.isFinite(payout)) {
+        const settlement = ensureWeek(byWeek, settlementWeek);
+        addAmount(settlement.payoutAmounts, reset.user_id, payout);
+        addAmount(settlement.totals, reset.user_id, payout);
+      }
+    }
   }
 
   for (const entry of bankEntries || []) {
