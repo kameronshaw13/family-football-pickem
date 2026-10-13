@@ -1961,6 +1961,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       } else {
         await load(week);
       }
+      if (appSlug === "friends" && ["create", "accept", "cancel", "decline"].includes(body.action)) {
+        void load(current?.week ?? data?.week ?? week);
+      }
       if (body.action === "accept") void refreshSideBetLedger();
       void refreshNotificationCounts();
       stabilizeViewportAfterLayoutChange();
@@ -2207,6 +2210,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       return false;
     }
     if (!selectedBetGame || !selectedCreatorTeam || !betRecipients.length) return false;
+    const available = appSlug === "friends" ? Number(data?.bankAvailable?.[currentUser.id] || 0) : null;
+    if (available != null && Math.round(Number(options.amount) * 100) > Math.round(available * 100)) {
+      notify(available <= 0 ? "No available bank funds for Side Bets." : `Only ${available.toFixed(2)} is available after outstanding bets.`, "error");
+      return false;
+    }
     const submittedAmount = Math.round(Number(options.amount) * 100) / 100;
     const maxAmount = data?.sideBetSettings?.manualAmount
       ? MAX_CUSTOM_SIDE_BET_AMOUNT
@@ -3187,7 +3195,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
         </div>
       </section>}
 
-    {view === "offers" && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter))} currentUser={currentUser} marketQuotes={marketQuotes} empty={weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
+    {view === "offers" && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter))} currentUser={currentUser} marketQuotes={marketQuotes} empty={weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id) && (availableFunds == null || Math.round(sideBetCreatorProfit(bet) * 100) <= Math.round(availableFunds * 100))} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : availableFunds != null ? "Insufficient funds" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
