@@ -2212,7 +2212,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     if (!selectedBetGame || !selectedCreatorTeam || !betRecipients.length) return false;
     const available = appSlug === "friends" ? Number(data?.bankAvailable?.[currentUser.id] || 0) : null;
     if (available != null && Math.round(Number(options.amount) * 100) > Math.round(available * 100)) {
-      notify(available <= 0 ? "No available bank funds for Side Bets." : `Only ${available.toFixed(2)} is available after outstanding bets.`, "error");
+      notify(available <= 0 ? "No available bank funds for Side Bets." : `Only $${available.toFixed(2)} is available after outstanding bets.`, "error");
       return false;
     }
     const submittedAmount = Math.round(Number(options.amount) * 100) / 100;
@@ -2527,7 +2527,7 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
       ? Number(week.payoutAmounts[player.id] || 0)
       : null;
     return { week: week.week, weeklyAmount, openingBalance, payoutAmount, games };
-  }).filter((week) => Number(week.openingBalance || 0) !== 0 || week.weeklyAmount != null || week.payoutAmount != null || week.games.length > 0);
+  }).filter((week) => week.openingBalance != null || week.weeklyAmount != null || week.payoutAmount != null || week.games.length > 0);
 
   return <details className="bank-balance-player">
     <summary>
@@ -3169,7 +3169,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
             const value = Number(amount);
             if (Number.isFinite(value) && value > 0) setAmount(String(Math.min(wagerMax, Math.round(value * 100) / 100)));
           }} /></div></label>}
-          {manualAmount && amount !== "" && !riskIsValid && <p className="side-bet-field-error">{availableFunds != null && Number(amount) > availableFunds ? `Only ${availableFunds.toFixed(2)} is available after outstanding bets.` : "Enter a valid risk amount."}</p>}
+          {manualAmount && amount !== "" && !riskIsValid && <p className="side-bet-field-error">{availableFunds != null && Number(amount) > availableFunds ? `Only $${availableFunds.toFixed(2)} is available after outstanding bets.` : "Enter a valid risk amount."}</p>}
           {!evenPayout && <div className="side-bet-payout-preview">
             <span>You risk <strong><NumericText text={stakeMoney(creatorRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorWin)} /></strong></span>
             <span>They risk <strong><NumericText text={stakeMoney(offeredRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorRisk)} /></strong></span>
