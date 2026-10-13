@@ -1,3 +1,4 @@
+import DesignAlignmentAudit from "@/components/DesignAlignmentAudit";
 "use client";
 
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
@@ -2269,6 +2270,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   ];
 
   return <div className="app-shell">
+    <DesignAlignmentAudit />
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
