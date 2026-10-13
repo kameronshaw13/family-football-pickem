@@ -201,7 +201,7 @@ function History({ history, away, home, awayLogo, homeLogo }: { history: NflMatc
         {history.games.map(row => {
           // Games are returned from the selected away team's perspective.
           // Reorder each historical result by the actual away/home side.
-          const awayWasHome = row.home && !row.neutralSite;
+          const awayWasHome = row.home;
           const visitorName = awayWasHome ? home : away;
           const hostName = awayWasHome ? away : home;
           const visitorLogo = awayWasHome ? homeLogo : awayLogo;
