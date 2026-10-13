@@ -2543,7 +2543,7 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
         {week.payoutAmount != null && <div className="bank-history-week bank-history-payout">
           <div className="bank-history-payout-row">
             <strong className="bank-history-week-label">Weeks 1-7 Payout</strong>
-            <span className={week.payoutAmount > 0 ? "money-pos" : week.payoutAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.payoutAmount)} /></span>
+            <span className={week.payoutAmount < 0 ? "money-pos" : week.payoutAmount > 0 ? "money-neg" : "money-neutral"}><NumericText text={`${week.payoutAmount < 0 ? "Received" : week.payoutAmount > 0 ? "Paid" : "Settled"} ${stakeMoney(week.payoutAmount)}`} /></span>
             <span aria-hidden="true" className="bank-history-payout-spacer" />
           </div>
         </div>}
