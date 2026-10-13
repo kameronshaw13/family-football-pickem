@@ -17,6 +17,7 @@ import "./game-tracker.css";
 import "./theme-settings.css";
 import "./full-design-geometry.css";
 import "./full-editorial-app.css";
+import "./editorial-v2.css";
 import type { Metadata, Viewport } from "next";
 import { Roboto_Slab } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
