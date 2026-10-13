@@ -1,0 +1,225 @@
+/*
+ * FULL-APP EXPERIMENT A: MODERN EDITORIAL.
+ * Familiar sports-pick'em DNA, deliberately precise geometry and premium
+ * print-like information hierarchy. CSS is last to avoid changing behavior.
+ */
+:root, html[data-theme="light"] {
+  --header-height:72px;
+  --nav-height:70px;
+  --page-gutter:14px;
+  --pick-content-inset:16px;
+  --data-header-height:39px;
+  --data-row-height:61px;
+  --pick-card-row-height:65px;
+  --canvas:#f0f2f2;
+  --canvas-deep:#e4e9e9;
+  --panel:#ffffff;
+  --ink:#1e2930;
+  --muted:#657780;
+  --header-muted:#586e78;
+  --line:#e0e5e6;
+  --line-strong:#b9c8ce;
+  --graphite:#1f2d36;
+  --graphite-light:#34444e;
+  --blue:#4588ac;
+  --blue-dark:#24688b;
+  --blue-soft:#e1edf4;
+  --nav-surface:#1f2d36;
+  --surface-soft:#f7f9f9;
+  --surface-muted:#ebf0f2;
+  --canvas-muted:#edf0ef;
+  --hover:#e8f2f6;
+  --saved:#e9f0f1;
+  --shadow:0 5px 20px rgba(18,39,52,.07);
+  --font-display:var(--font-roboto-slab), Georgia, serif;
+}
+.app-shell { background:var(--canvas); }
+.app-shell .container { padding-top:calc(env(safe-area-inset-top) + var(--header-height) + 14px); padding-bottom:calc(var(--nav-height) + env(safe-area-inset-bottom) + 25px); }
+.app-shell .scoreboard-header {
+  border-bottom:0;
+  background:var(--graphite);
+  box-shadow:inset 0 -3px 0 var(--blue), 0 3px 11px rgba(13,28,39,.08);
+}
+.app-shell .scoreboard-header::before {background:var(--graphite);}
+.app-shell .scoreboard-main { max-width:760px; }
+.app-shell .header-wordmark { max-height:46px; width:min(219px,100%); }
+.app-shell .header-menu-select { border:1px solid rgba(231,244,249,.34); border-radius:7px; background:rgba(255,255,255,.075); }
+.app-shell .header-menu-select .custom-select-trigger { min-height:37px; font-weight:800; font-size:11.5px; padding-inline:10px 24px; }
+.app-shell .primary-nav {
+  height:calc(var(--nav-height) + env(safe-area-inset-bottom));
+  min-height:calc(var(--nav-height) + env(safe-area-inset-bottom));
+  border-top:1px solid rgba(134,175,197,.26);
+  box-shadow:0 -5px 18px rgba(10,28,40,.16);
+  background:var(--nav-surface);
+  z-index:35;
+}
+.app-shell .primary-nav-inner {height:var(--nav-height);}
+.app-shell .primary-nav button { font-family:Arial,system-ui,sans-serif; font-size:10.5px; font-weight:750; letter-spacing:.015em; color:#b9c9d0; }
+.app-shell .primary-nav button.active { color:#fff; background:rgba(94,161,196,.12); box-shadow:inset 0 3px 0 #79bbdb; }
+.app-shell .primary-nav button.active svg,
+.app-shell .primary-nav button.active .nav-icon svg { fill:none; stroke:#f8fcfe; stroke-width:2.1; }
+.app-shell .design-edition-ribbon {
+  display:flex; min-width:0; align-items:center; justify-content:space-between; gap:8px;
+  margin:0 0 13px; padding:10px 12px;
+  border:1px solid #c5d7dd; border-left:3px solid var(--blue);
+  background:#fafdfe; color:#345668;
+  font-family:Arial,system-ui,sans-serif; line-height:1.23;
+}
+.app-shell .design-edition-ribbon span { font-size:9px; font-weight:900; letter-spacing:.085em; }
+.app-shell .design-edition-ribbon strong { font-size:10px; font-weight:750; text-align:right; }
+.app-shell .picks-panel > .section-tabs,
+.app-shell .card-panel > .section-tabs,
+.app-shell .standings-panel > .section-tabs {
+  height:46px; margin-inline:calc(var(--page-gutter)*-1); padding-inline:var(--page-gutter);
+  gap:8px; border-bottom:1px solid var(--line-strong); background:var(--canvas);
+}
+.app-shell .section-tabs button { display:grid;place-items:center;min-width:0; padding:5px 7px; font-size:12px; font-weight:800; line-height:1.2; }
+.app-shell .section-tabs button.active { border-bottom-color:var(--blue-dark); color:var(--ink); }
+.app-shell .section-tab-label { gap:6px; }
+.app-shell .board-filter-row,
+.app-shell .side-bet-filter-row { margin-bottom:13px; align-items:stretch; gap:8px; }
+.app-shell .compact-select { min-width:0; min-height:37px; border:1px solid var(--line-strong); border-radius:6px; background:var(--panel); }
+.app-shell .compact-select .custom-select-trigger { min-height:36px; padding:8px 27px 8px 10px; font-size:10.5px; font-family:Arial,system-ui,sans-serif; font-weight:800; }
+.app-shell .compact-select .custom-select-chevron { right:7px; }
+.app-shell .custom-select-menu { border:1px solid var(--line-strong); border-radius:8px; overflow:auto; box-shadow:0 10px 24px rgba(16,40,52,.12); }
+.app-shell .custom-select-option { min-height:41px; font-family:Arial,system-ui,sans-serif; font-size:11.5px; }
+.app-shell .game-days { gap:15px; }
+.app-shell .game-day-marker { margin-bottom:8px; gap:8px; }
+.app-shell .game-day-marker > b { border-radius:5px; box-shadow:none; min-height:29px; font-size:10px; letter-spacing:.015em; }
+.app-shell .game-day-marker strong { font-size:11px; }
+.app-shell .game-list {
+  margin-inline:0; gap:9px; border:0; background:transparent; overflow:visible;
+}
+.app-shell .game-card {
+  border:1px solid var(--line-strong); border-radius:9px; overflow:hidden;
+  background:var(--panel);
+  box-shadow:var(--shadow);
+  contain-intrinsic-block-size:160px;
+}
+.app-shell .game-card:last-child {border-bottom:1px solid var(--line-strong);}
+.app-shell .game-head {
+  min-height:var(--data-header-height); height:var(--data-header-height);
+  padding:0 var(--pick-content-inset); border-bottom:1px solid var(--line);
+  background:var(--surface-soft);
+}
+.app-shell .game-time,
+.app-shell .game-final-status,
+.app-shell .game-live-status,
+.app-shell .game-live-situation { font-family:Arial,system-ui,sans-serif; font-size:10.8px; font-weight:800; line-height:1.2; }
+.app-shell .team-row { min-height:var(--data-row-height); padding-block:10px; }
+.app-shell .game-card .team-row:last-child { border-bottom:0; }
+.app-shell .team-row .team-name { font-size:13.3px; font-weight:850; }
+.app-shell .team-row .team-spread { font-size:12.5px; font-variant-numeric:tabular-nums; }
+.app-shell .team-row.selected { background:var(--blue-soft); box-shadow:inset 3px 0 0 var(--blue); }
+.app-shell .pick-card,
+.app-shell .visible-pick { height:var(--pick-card-row-height); min-height:var(--pick-card-row-height); padding-inline:var(--pick-content-inset); background:var(--panel); }
+.app-shell .card-progress {
+  margin-inline:0; padding:13px 14px; border:1px solid var(--line-strong); border-left:4px solid var(--blue);
+  border-radius:8px; background:var(--panel); box-shadow:var(--shadow);
+}
+.app-shell .card-progress.complete { border-left-color:var(--green); }
+.app-shell .pick-title, .app-shell .visible-pick-copy strong { font-size:13.3px; line-height:1.25; }
+.app-shell .card-panel .pick-section > h3,
+.app-shell .card-panel .group-card > h3 {
+  min-height:34px; padding-inline:var(--pick-content-inset); border-color:var(--line);
+  background:var(--surface-muted); font-size:10px; letter-spacing:.02em;
+}
+.app-shell .card-panel .pick-section > h3 {margin-inline:calc(var(--page-gutter)*-1);}
+.app-shell .group-card { border:1px solid var(--line-strong); border-radius:8px; overflow:hidden; background:var(--panel); }
+.app-shell .group-list { gap:11px; margin-inline:0; background:transparent; }
+.app-shell .group-card h3 { margin-inline:0; }
+.app-shell .group-card .visible-pick { border-bottom:1px solid var(--line); }
+.app-shell .leaderboard,
+.app-shell .bank-summary-grid,
+.app-shell .bank-week-results,
+.app-shell .ledger-list,
+.app-shell .side-bet-list { background:var(--panel); }
+.app-shell .leaderboard-labels,
+.app-shell .bank-summary-head { min-height:39px; color:var(--header-muted); background:var(--surface-muted); font-family:Arial,system-ui,sans-serif; font-weight:850; letter-spacing:.02em; }
+.app-shell .leaderboard-row,
+.app-shell .bank-player-result > summary,
+.app-shell .bank-history-week-label { min-height:52px; }
+.app-shell .standings-heading-row,
+.app-shell .scoreboard-heading { display:flex; align-items:center; min-height:47px; }
+.app-shell .standings-heading-row h2,
+.app-shell .scoreboard-heading h2 { line-height:1.24; }
+.app-shell .bank-history-week-label { display:flex; align-items:center; }
+.app-shell .side-bet-ledger-filter-row { align-items:center; }
+.app-shell .side-bet-ledger-summary { display:inline-flex; align-items:center; }
+.app-shell .side-bet-card { background:var(--panel); }
+.app-shell .side-bet-list-section > h3 { min-height:34px; align-items:center; font-size:10px; letter-spacing:.025em; }
+.app-shell .side-bet-list-section-body { background:var(--panel); }
+.app-shell .side-bet-offer-row { align-items:center; min-height:65px; }
+.app-shell .side-bet-offer-copy { align-self:center; }
+.app-shell .side-bet-offer-copy > strong { line-height:1.24; }
+.app-shell .side-bet-offer-mode-toggle { border-radius:7px; overflow:hidden; }
+.app-shell .side-bet-offer-mode-toggle button { min-height:38px; border-radius:0; font-family:Arial,system-ui,sans-serif; letter-spacing:.02em; }
+.app-shell .side-bet-offer-mode-toggle button.active { box-shadow:inset 0 -3px 0 var(--blue); }
+.app-shell .side-bet-recipient-grid { grid-auto-rows:49px; overflow:hidden; }
+.app-shell .side-bet-recipient-grid label { min-height:49px; padding-inline:9px; font-family:Arial,system-ui,sans-serif; }
+.app-shell .side-bet-slip-bar {
+  border-color:var(--line-strong); border-radius:10px; background:#fff; box-shadow:0 10px 30px rgba(21,52,68,.19);
+}
+.app-shell .side-bet-slip-sheet { border-radius:11px; box-shadow:0 17px 40px rgba(13,44,55,.23); }
+.app-shell .side-bet-slip-section-head,
+.app-shell .side-bet-batch-head { min-height:37px; }
+.app-shell .side-bet-ledger-row { min-height:65px; }
+.app-shell .settings-panel { padding-bottom:18px; }
+.app-shell .settings-section > h3 { font-family:Arial,system-ui,sans-serif; font-weight:900; letter-spacing:.06em; font-size:10px; }
+.app-shell .settings-card { border:1px solid var(--line-strong); border-radius:9px; background:var(--panel); box-shadow:var(--shadow); }
+.app-shell .settings-row-heading,
+.app-shell .settings-profile-card,
+.app-shell .settings-detail > summary { min-height:61px; padding-block:10px; align-items:center; }
+.app-shell .settings-leading-icon { width:37px; height:37px; border-radius:9px; }
+.app-shell .settings-row-copy strong { font-size:12.5px; }
+.app-shell .settings-row-copy span { font-size:10px; }
+.app-shell .theme-toggle { padding:5px; }
+.app-shell .theme-toggle button { min-height:38px; display:flex; align-items:center; justify-content:center; gap:7px; }
+.app-shell .player-profile-sheet { border-radius:12px 12px 0 0; box-shadow:0 -12px 35px rgba(16,45,57,.19); }
+.app-shell .player-profile-head { min-height:56px; }
+.app-shell .player-profile-block { border-color:var(--line); }
+.app-shell .login-screen { background:var(--canvas); }
+.app-shell .login-card { border:1px solid var(--line-strong); border-radius:14px; box-shadow:var(--shadow); }
+.app-shell .login-card .btn { min-height:43px; }
+.game-tracker-backdrop, .matchup-preview-backdrop { inset:0; padding:0; align-items:stretch; justify-content:center; background:var(--canvas); }
+.game-tracker-sheet, .matchup-preview-sheet {
+  width:min(760px,100%); height:100dvh; max-height:100dvh; border:0; border-radius:0;
+  background:var(--canvas); box-shadow:none;
+}
+.game-tracker-header,.matchup-preview-header { min-height:calc(54px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) 52px 0; border-bottom:2px solid var(--blue); background:var(--graphite); }
+.game-tracker-header > span,.matchup-preview-header > span { font-size:clamp(11px,3.5vw,15px); font-weight:850; letter-spacing:.012em; }
+.game-tracker-scoreboard { background:var(--panel); }
+html[data-theme="dark"] .game-tracker-scoreboard { background:var(--panel); }
+.game-tracker-scoreboard-grid { min-height:93px; padding:8px 12px; grid-template-columns:minmax(0,1fr) minmax(104px,120px) minmax(0,1fr); }
+.game-tracker-score-team-main,
+.game-tracker-score-team.home .game-tracker-score-team-main { gap:11px; }
+.game-tracker-score-stack > b { font-size:29px; }
+.game-tracker-tabs,.matchup-preview-tabs { height:49px; padding-inline:10px; background:var(--panel); }
+.game-tracker-tabs button,.matchup-preview-tabs button { font-size:11.5px; font-weight:800; }
+.game-tracker-score-play { padding-block:10px; min-height:72px; align-items:center; }
+.game-tracker-scoring-copy > p { line-height:1.33; }
+.game-tracker-drive > summary { min-height:59px; padding-block:8px; align-items:center; }
+.game-tracker-drive-play { min-height:60px; padding-block:10px; }
+.game-tracker-live { padding:14px 12px 18px; }
+.game-tracker-field { height:clamp(140px,23dvh,182px); }
+.game-tracker-quarter-header { min-height:36px; }
+.matchup-preview-hero { padding:13px 13px 17px; }
+.matchup-preview-team > strong { font-size:clamp(13px,3.7vw,16px); }
+.matchup-preview-kickoff { padding-top:12px; }
+.matchup-metric-row { min-height:57px; }
+.matchup-section-heading { min-height:36px; }
+.matchup-rank-value { gap:5px; }
+.matchup-rank-value strong { font-size:13px; }
+@media(max-width:520px) {
+  .app-shell .container { padding-inline:var(--page-gutter); }
+  .app-shell .game-list { margin-inline:0; }
+  .app-shell .scoreboard-header { padding-inline:12px; }
+  .app-shell .game-card { border-radius:8px; }
+  .app-shell .game-head { padding-inline:12px; }
+  .app-shell .team-row { padding-inline:12px; gap:9px; }
+  .app-shell .side-bet-game-card .team-row { padding-inline:11px; }
+  .game-tracker-scoreboard-grid { padding-inline:5px; }
+}
+@media (prefers-reduced-motion:reduce) {
+ .app-shell *, .game-tracker-sheet *, .matchup-preview-sheet * { scroll-behavior:auto !important; }
+}
