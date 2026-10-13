@@ -421,3 +421,71 @@ html[data-theme="dark"] .matchup-preview-sheet img {filter:
 @media(prefers-reduced-motion:reduce) {
  .app-shell *, .game-tracker-sheet *, .matchup-preview-sheet * {scroll-behavior:auto!important;}
 }
+
+/* Page-wide composition, not merely a recolored component set. */
+.app-shell .design-command-masthead {
+ display:grid;
+ grid-template-columns:minmax(0,1fr) 46px;
+ align-items:center;
+ gap:11px;
+ min-height:91px;
+ margin:0 0 15px;
+ padding:14px 15px;
+ border:1px solid var(--line-strong);
+ border-radius:14px;
+ background:
+   radial-gradient(circle at 90% -20%,rgba(81,207,224,.18),transparent 39%),
+   linear-gradient(105deg,var(--panel),var(--graphite-light));
+ box-shadow:var(--shadow);
+}
+.app-shell .design-command-masthead-main {
+ display:grid;min-width:0;gap:4px;align-content:center;
+}
+.app-shell .design-command-kicker {
+ display:block;min-width:0;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ color:var(--blue-dark);
+ font-size:9px;font-weight:900;letter-spacing:.075em;
+}
+.app-shell .design-command-kicker > span {
+ margin-inline:4px;color:var(--muted);
+}
+.app-shell .design-command-masthead-main > strong {
+ display:block;min-width:0;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ color:var(--ink);
+ font-size:clamp(20px,5vw,27px);font-weight:900;line-height:1.1;
+ letter-spacing:-.028em;
+}
+.app-shell .design-command-masthead-main > small {
+ display:block;min-width:0;
+ color:var(--muted);
+ font-size:10px;line-height:1.25;
+}
+.app-shell .design-command-masthead-symbol {
+ display:grid;width:43px;height:43px;place-items:center;
+ border:1px solid var(--line-strong);
+ border-radius:12px;
+ color:var(--blue-dark);background:var(--blue-soft);
+}
+.app-shell .design-command-masthead-symbol svg {display:block;margin:0;}
+.app-shell .login-card {
+ background:var(--panel);
+ box-shadow:var(--shadow);
+ border-radius:16px;
+}
+.app-shell .initial-loading {color:var(--blue-dark);}
+.app-shell :is(.pick-row-actions,.visible-pick-actions) .icon-btn {
+ border-radius:8px;
+}
+.app-shell :is(.side-bet-ledger-scope-toggle,.side-bet-game-filter-toggle,.side-bet-two-option-toggle) button {
+ font-family:Arial,system-ui,sans-serif;
+ font-weight:850;
+}
+.app-shell .side-bet-batch-ticket-row,
+.app-shell .side-bet-batch-native-row {border-color:var(--line);}
+@media(max-width:380px) {
+ .app-shell .design-command-masthead {padding:12px;min-height:87px;}
+ .app-shell .design-command-masthead-main > strong {font-size:21px;}
+ .app-shell .design-command-masthead-symbol {width:37px;height:37px;}
+}
