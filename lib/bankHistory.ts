@@ -15,8 +15,11 @@ export type BankHistoryGame = {
   selections: Record<string, { team: string; spread: number; marketType: "spread" | "moneyline" | "total"; odds: number; totalPoints?: number | null; totalSide?: "over" | "under" | null }>;
 };
 
+export type BankReset = { week: number; user_id: string; opening_balance: number; note?: string | null };
+
 export type BankHistoryWeek = {
   week: number;
+  openingBalances: Record<string, number>;
   weeklyAmounts: Record<string, number>;
   games: BankHistoryGame[];
   totals: Record<string, number>;
@@ -38,15 +41,21 @@ function addAmount(amounts: Record<string, number>, userId: string, amount: numb
 function ensureWeek(map: Map<number, BankHistoryWeek>, week: number) {
   let row = map.get(week);
   if (!row) {
-    row = { week, weeklyAmounts: {}, games: [], totals: {} };
+    row = { week, openingBalances: {}, weeklyAmounts: {}, games: [], totals: {} };
     map.set(week, row);
   }
   return row;
 }
 
-export function buildBankHistory(bankEntries: BankEntry[], sideBets: HistorySideBet[]) {
+export function buildBankHistory(bankEntries: BankEntry[], sideBets: HistorySideBet[], bankResets: BankReset[] = []) {
   const byWeek = new Map<number, BankHistoryWeek>();
   const gameMaps = new Map<number, Map<string, BankHistoryGame>>();
+
+  for (const reset of bankResets) {
+    const week = Number(reset.week);
+    if (!Number.isFinite(week)) continue;
+    ensureWeek(byWeek, week).openingBalances[reset.user_id] = Number(reset.opening_balance || 0);
+  }
 
   for (const entry of bankEntries || []) {
     const week = Number(entry.week);
