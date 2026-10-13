@@ -489,3 +489,121 @@ html[data-theme="dark"] .matchup-preview-sheet img {filter:
  .app-shell .design-command-masthead-main > strong {font-size:21px;}
  .app-shell .design-command-masthead-symbol {width:37px;height:37px;}
 }
+
+/* Major interaction difference: an immersive dock that does NOT bury navigation. */
+.game-tracker-backdrop,
+.matchup-preview-backdrop {
+ position:fixed;
+ top:calc(env(safe-area-inset-top) + var(--header-height));
+ right:0;
+ bottom:calc(var(--nav-height) + env(safe-area-inset-bottom));
+ left:0;
+ inset:calc(env(safe-area-inset-top) + var(--header-height)) 0 calc(var(--nav-height) + env(safe-area-inset-bottom));
+ z-index:34;
+ display:flex;
+ align-items:flex-end;
+ justify-content:center;
+ padding:0 7px;
+ background:rgba(4,12,17,.45);
+}
+.game-tracker-sheet,
+.matchup-preview-sheet {
+ box-sizing:border-box;
+ width:min(720px,100%);
+ height:min(94%,860px);
+ min-height:0;
+ max-height:100%;
+ border:1px solid var(--line-strong);
+ border-bottom:0;
+ border-radius:17px 17px 0 0;
+ background:var(--canvas);
+ box-shadow:0 -12px 32px rgba(0,0,0,.35);
+}
+.game-tracker-header,
+.matchup-preview-header {
+ min-height:70px;
+ flex:0 0 70px;
+ padding:10px 52px 10px 16px;
+ display:flex;
+ align-items:center;
+ justify-content:flex-start;
+ border-bottom:1px solid var(--line-strong);
+ border-radius:16px 16px 0 0;
+ background:var(--graphite);
+}
+.detail-panel-title {
+ display:grid;
+ min-width:0;
+ align-content:center;
+ justify-items:start;
+ gap:4px;
+ text-align:left;
+}
+.detail-panel-title > small {
+ display:block;
+ color:var(--blue-dark);
+ font:900 9px/1.1 Arial,system-ui,sans-serif;
+ letter-spacing:.11em;
+}
+.detail-panel-title > strong {
+ display:block;
+ color:#f4f8fa;
+ font:900 clamp(12px,3.7vw,17px)/1.22 Arial,system-ui,sans-serif;
+ letter-spacing:.005em;
+ overflow-wrap:anywhere;
+}
+.game-tracker-header button,
+.matchup-preview-close {
+ top:16px;
+ right:12px;
+ bottom:auto;
+ width:36px;height:36px;
+ border:1px solid rgba(201,236,240,.45);
+ border-radius:10px;
+ color:#d7f4f7;
+ background:rgba(100,185,200,.12);
+}
+.game-tracker-header button svg,
+.matchup-preview-close svg {display:block;width:18px;height:18px;margin:0;}
+.game-tracker-scoreboard-grid {
+ min-height:112px;
+ padding-block:10px;
+}
+.game-tracker-score-team {gap:4px;}
+.game-tracker-score-team-main > img,
+.game-tracker-score-team-main > .game-tracker-logo-fallback {
+ width:39px;height:39px;
+}
+.game-tracker-score-stack > b {font-size:28px;}
+.game-tracker-panel-team-name {
+ display:block;max-width:145px;min-width:0;
+ color:var(--header-muted);
+ font-size:9.5px;
+ font-weight:850;
+ line-height:1.15;
+ text-align:center;
+ white-space:nowrap;
+ overflow:hidden;
+ text-overflow:ellipsis;
+}
+.game-tracker-tabs,.matchup-preview-tabs {
+ height:54px;flex:0 0 54px;
+}
+.matchup-preview-hero {padding-block:11px 15px;}
+.game-tracker-field {height:clamp(125px,20dvh,175px);}
+.game-tracker-score-play {min-height:72px;}
+.game-tracker-drive > summary {min-height:61px;}
+@media(max-width:380px) {
+ .game-tracker-backdrop,.matchup-preview-backdrop {padding-inline:4px;}
+ .game-tracker-sheet,.matchup-preview-sheet {border-radius:14px 14px 0 0;}
+ .game-tracker-header,.matchup-preview-header {border-radius:13px 13px 0 0;}
+ .game-tracker-score-team-main > img {width:34px;height:34px;}
+ .game-tracker-score-stack > b {font-size:24px;}
+}
+@media(prefers-reduced-motion:no-preference) {
+ .game-tracker-sheet,.matchup-preview-sheet {animation:fullCommandPanelEnter 160ms ease-out;}
+ @keyframes fullCommandPanelEnter {
+  from {opacity:.74;transform:translateY(10px);}
+  to {opacity:1;transform:translateY(0);}
+ }
+}
