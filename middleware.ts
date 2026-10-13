@@ -9,6 +9,21 @@ function explicitGroup(request: NextRequest) {
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  // Design-study previews read production football data but must never change it.
+  // Authentication/login is allowed so existing members can inspect the UI.
+  if (
+    process.env.VERCEL_ENV === "preview" &&
+    pathname.startsWith("/api/") &&
+    !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
+    !pathname.startsWith("/api/auth/login") &&
+    !pathname.startsWith("/api/auth/logout")
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "Design preview is read-only. Open the live app to make changes." },
+      { status: 403, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
   if (pathname === "/other-family" || pathname.startsWith("/other-family/")) {
     const url = request.nextUrl.clone();
     url.pathname = pathname.replace(/^\/other-family/, "/caleb-family");
