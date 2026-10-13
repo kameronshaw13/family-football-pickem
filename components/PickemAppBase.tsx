@@ -1,5 +1,6 @@
-import DesignAlignmentAudit from "@/components/DesignAlignmentAudit";
 "use client";
+
+import DesignAlignmentAudit from "@/components/DesignAlignmentAudit";
 
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
 import NextImage from "next/image";
