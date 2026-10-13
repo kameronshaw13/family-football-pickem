@@ -224,6 +224,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
         {!completed && <TimeoutDots remaining={timeouts} />}
       </div>
     </div>
+    <span className="game-tracker-panel-team-name">{team?.shortName || fallbackName}</span>
   </div>;
 }
 
@@ -567,10 +568,12 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
     const priorOverflow = document.body.style.overflow;
     const priorFocus = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
-    const backdrop = sheet.current?.parentElement;
-    const siblings = Array.from(document.body.children).filter((node): node is HTMLElement => node instanceof HTMLElement && node !== backdrop);
-    const inertStates = siblings.map((node) => node.inert);
-    siblings.forEach((node) => { node.inert = true; });
+    // This design deliberately keeps the global navigation operable while the panel is open.
+    const chromeClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(".primary-nav button, .scoreboard-header button")) close.current();
+    };
+    document.addEventListener("click", chromeClick, true);
     sheet.current?.querySelector<HTMLButtonElement>("button")?.focus();
     const keydown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -582,7 +585,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
     return () => {
       document.removeEventListener("keydown", keydown);
       document.body.style.overflow = priorOverflow;
-      siblings.forEach((node, index) => { node.inert = inertStates[index]; });
+      document.removeEventListener("click", chromeClick, true);
       priorFocus?.focus();
     };
   }, [mounted]);
@@ -658,9 +661,9 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
   const matchupHeader = `${awayName} at ${homeName}`;
 
   return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="true" aria-label={`${awayName} at ${homeName} GameTracker`}>
+    <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="false" aria-label={`${awayName} at ${homeName} GameTracker`}>
       <header className="game-tracker-header">
-        <span>{matchupHeader}</span>
+        <div className="detail-panel-title"><small>GAME CENTER</small><strong>{matchupHeader}</strong></div>
         <button type="button" onClick={onClose} aria-label="Close GameTracker"><X size={20} /></button>
       </header>
 
