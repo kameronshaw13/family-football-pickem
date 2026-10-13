@@ -2263,6 +2263,15 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return ok;
   }
 
+  const designWeekPulse = data.games.reduce((summary, game) => {
+    const final = Boolean(game.live_completed || game.live_state === "post" || (game.final_away_score != null && game.final_home_score != null));
+    const live = !final && (game.live_state === "in" || game.live_state === "live");
+    if (final) summary.final++;
+    else if (live) summary.live++;
+    else summary.upcoming++;
+    return summary;
+  }, { live: 0, upcoming: 0, final: 0 });
+
   const primaryNav: Array<{ id: Tab; label: string; icon: typeof Trophy }> = [
     { id: "picks", label: "Picks", icon: Zap },
     { id: "card", label: "My Card", icon: SquareCheck },
@@ -2312,6 +2321,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       {previewActive && <div className="test-mode-banner"><span><FlaskConical size={16} /><span><strong>Board state preview</strong><small>No real picks or bank balances are changed</small></span></span><button type="button" onClick={() => { setTestWeekActive(false); setStatusFilter(defaultBoardStatus(data.games, clock, !data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock)); setStatusFilterTouched(false); }}><X size={16} /> Exit</button></div>}
 
       {tab === "picks" && <section className="panel picks-panel">
+        <div className="design-command-pulse" aria-label="Week game status">
+          <div><span className="design-command-signal live" /><small>LIVE</small><strong>{designWeekPulse.live}</strong></div>
+          <div><span className="design-command-signal" /><small>UPCOMING</small><strong>{designWeekPulse.upcoming}</strong></div>
+          <div><span className="design-command-signal final" /><small>FINAL</small><strong>{designWeekPulse.final}</strong></div>
+        </div>
         {!previewActive && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens on <NumericText text={openText(data.weekOpenTime)} />.</div>}
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: "Side Bets", badge: picksNotificationCount }]} value={picksView} onChange={(value) => {
           if (value === "sideBets" && sideBetAccessDenied) {
