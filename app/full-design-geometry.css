@@ -196,3 +196,45 @@
   :root { --design-row-inset:10px; }
   .game-tracker-header button,.matchup-preview-close { right:7px; }
 }
+
+/* Last-mile close-button geometry: red destructive affordances, true SVG centering. */
+.app-shell .toast-close,
+.app-shell .pick-row-actions .icon-btn,
+.app-shell .player-profile-close-wrap .icon-btn,
+.app-shell .side-bet-selection-clear,
+.app-shell .side-bet-batch-remove,
+.game-tracker-header button,
+.matchup-preview-close {
+ display:grid;
+ place-items:center;
+ align-content:center;
+ justify-items:center;
+ line-height:0;
+ padding:0;
+ text-align:center;
+}
+.app-shell .toast-close svg,
+.app-shell .pick-row-actions .icon-btn svg,
+.app-shell .player-profile-close-wrap .icon-btn svg,
+.app-shell .side-bet-selection-clear svg,
+.app-shell .side-bet-batch-remove svg,
+.game-tracker-header button svg,
+.matchup-preview-close svg {
+ display:block;
+ position:static;
+ inset:auto;
+ flex:none;
+ margin:0;
+ transform:none;
+ vertical-align:middle;
+}
+.app-shell .player-profile-close-wrap .icon-btn,
+.app-shell .pick-row-actions .icon-btn,
+.app-shell .side-bet-selection-clear {
+ width:33px;height:33px;
+ min-width:33px;min-height:33px;
+ color:var(--red);
+ border:1px solid color-mix(in srgb,var(--red) 47%,var(--line-strong));
+ border-radius:7px;
+ background:var(--red-soft);
+}
