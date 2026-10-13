@@ -47,25 +47,25 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#20282d"
+  themeColor: "#1f2d36"
 };
 
 const CRITICAL_HEADER_CSS = `
-html { background: #eef0ed; }
-body { margin: 0; background: #eef0ed; }
+html { background: var(--canvas, #f0f2f2); }
+body { margin: 0; background: var(--canvas, #f0f2f2); }
 .scoreboard-header {
   position: fixed;
   inset: 0 0 auto;
   z-index: 40;
-  height: calc(env(safe-area-inset-top) + 76px);
+  height: calc(env(safe-area-inset-top) + var(--header-height, 72px));
   padding: env(safe-area-inset-top) 14px 0;
   color: #fff;
-  background: #20282d;
-  box-shadow: inset 0 -3px 0 #4d91b8;
+  background: var(--graphite, #1f2d36);
+  box-shadow: inset 0 -3px 0 var(--blue, #4588ac);
 }
 @media (max-width: 520px) {
   .scoreboard-header {
-    height: calc(env(safe-area-inset-top) + 74px);
+    height: calc(env(safe-area-inset-top) + var(--header-height, 72px));
     padding-inline: 11px;
   }
 }
