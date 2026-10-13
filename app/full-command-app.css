@@ -607,3 +607,16 @@ html[data-theme="dark"] .matchup-preview-sheet img {filter:
   to {opacity:1;transform:translateY(0);}
  }
 }
+
+/* Both design systems use the same centered red close affordance. */
+.game-tracker-header button,
+.matchup-preview-close {
+ display:grid;place-items:center;align-content:center;justify-items:center;
+ padding:0;line-height:0;
+ color:var(--red);
+ border:1px solid color-mix(in srgb,var(--red) 49%,var(--line-strong));
+ background:var(--red-soft);
+}
+.game-tracker-header button svg,.matchup-preview-close svg {
+ display:block;position:static;flex:none;inset:auto;margin:0;transform:none;
+}
