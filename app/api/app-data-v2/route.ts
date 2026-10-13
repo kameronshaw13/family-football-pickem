@@ -7,6 +7,7 @@ import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { buildBankHistory } from "@/lib/bankHistory";
 import { sideBetCreatorProfit } from "@/lib/sideBetMarkets";
+import { sideBetReservedFunds, availableSideBetFunds } from "@/lib/sideBetBank";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
@@ -208,6 +209,11 @@ export async function GET(req: NextRequest) {
       const balance = Number(latestReset?.opening_balance || 0) + earnedSinceReset;
       return [profile.id, Math.round(balance * 100) / 100];
     }));
+    const bankReserved = context.group.slug === "friends" ? sideBetReservedFunds(allSideBets) : {};
+    const bankAvailable = Object.fromEntries(profiles.map((profile) => [
+      profile.id,
+      availableSideBetFunds(Number(bankBalances[profile.id] || 0), Number(bankReserved[profile.id] || 0))
+    ]));
     const weeklyBank = context.rules?.weeklyBank || {};
     const moneyAdmin = context.group.slug === "other-family"
       ? context.members.find((member) => member.display_name.toLowerCase() === "caleb") || null
@@ -247,6 +253,8 @@ export async function GET(req: NextRequest) {
       bankEntries: bankResult.data || [],
       bankHistory,
       bankBalances,
+      bankReserved,
+      bankAvailable,
       sideBets,
       sideBetLedger,
       sideBetSlotCounts: sideBetSlotCountsByPlayer,
