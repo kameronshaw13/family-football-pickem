@@ -47,25 +47,25 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#20282d"
+  themeColor: "#08131d"
 };
 
 const CRITICAL_HEADER_CSS = `
-html { background: #eef0ed; }
-body { margin: 0; background: #eef0ed; }
+html { background: var(--canvas, #0b1620); }
+body { margin: 0; background: var(--canvas, #0b1620); }
 .scoreboard-header {
   position: fixed;
   inset: 0 0 auto;
   z-index: 40;
-  height: calc(env(safe-area-inset-top) + 76px);
+  height: calc(env(safe-area-inset-top) + var(--header-height, 75px));
   padding: env(safe-area-inset-top) 14px 0;
   color: #fff;
-  background: #20282d;
-  box-shadow: inset 0 -3px 0 #4d91b8;
+  background: var(--graphite, #08131d);
+  box-shadow: inset 0 -3px 0 var(--blue, #5bd4e2);
 }
 @media (max-width: 520px) {
   .scoreboard-header {
-    height: calc(env(safe-area-inset-top) + 74px);
+    height: calc(env(safe-area-inset-top) + var(--header-height, 75px));
     padding-inline: 11px;
   }
 }
@@ -182,7 +182,7 @@ declare global {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" className={robotoSlab.variable} suppressHydrationWarning>
+    <html lang="en" data-theme="dark" className={robotoSlab.variable} suppressHydrationWarning>
       <head>
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_HEADER_CSS }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
