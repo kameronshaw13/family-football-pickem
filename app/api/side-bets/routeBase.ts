@@ -10,6 +10,8 @@ import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { americanOddsText, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { isSideBetRestricted } from "@/lib/sideBetAccess";
+import { canCoverSideBetRisk } from "@/lib/sideBetBank";
+import { getFriendsSideBetFunds } from "@/lib/sideBetBankServer";
 import { notificationTeamName } from "@/lib/notificationTeamName";
 import { notificationStakeText } from "@/lib/notificationMoney";
 
@@ -390,6 +392,15 @@ export async function POST(req: NextRequest) {
         ? ` · Market ${notificationTeamName(offeredTeam, game.league)} ${notificationSpread(appOfferedSpread)}`
         : "";
       const amount = Math.round(Number(body.amount) * 100) / 100;
+      if (context.group.slug === "friends") {
+        const funds = await getFriendsSideBetFunds(supabase, context.group.id, context.seasonYear);
+        const available = funds.available[auth.profile.id] || 0;
+        if (!canCoverSideBetRisk(available, amount)) {
+          return NextResponse.json({ ok: false, error: available <= 0
+            ? "No available bank funds. Deposit money before making Side Bets."
+            : `Only ${available.toFixed(2)} is available after outstanding bets.` }, { status: 409 });
+        }
+      }
       const { data: sideBet, error: insertError } = await supabase.from("side_bets").insert({
         group_id: context.group.id,
         season_year: context.seasonYear,
@@ -627,6 +638,22 @@ export async function POST(req: NextRequest) {
       const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id), sideBet.id);
       if ((counts[auth.profile.id] || 0) >= settings.maxPerWeek || (counts[sideBet.creator_id] || 0) >= settings.maxPerWeek) {
         return NextResponse.json({ ok: false, error: "A player has reached the weekly side bet limit." }, { status: 409 });
+      }
+    }
+
+    if (context.group.slug === "friends") {
+      const funds = await getFriendsSideBetFunds(supabase, context.group.id, context.seasonYear);
+      const available = funds.available[auth.profile.id] || 0;
+      const acceptingRisk = profitForRisk(Number(sideBet.amount), Number(sideBet.creator_odds ?? 100));
+      if (!canCoverSideBetRisk(available, acceptingRisk)) {
+        return NextResponse.json({ ok: false, error: available <= 0
+          ? "No available bank funds. Deposit money before accepting Side Bets."
+          : `Only ${available.toFixed(2)} is available after outstanding bets.` }, { status: 409 });
+      }
+      const creatorBalance = funds.balances[sideBet.creator_id] || 0;
+      const creatorHeld = funds.held[sideBet.creator_id] || 0;
+      if (Math.round(creatorBalance * 100) < Math.round(creatorHeld * 100)) {
+        return NextResponse.json({ ok: false, error: "The sender no longer has sufficient available funds for this offer." }, { status: 409 });
       }
     }
 
