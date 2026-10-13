@@ -16,7 +16,7 @@ This project explores a genuine product-wide redesign of the football Pick'em ex
 - Never allow a design experiment to change production picks, side bets, settlements, users or bank accounts.
 - Bottom navigation must never shift vertically when the user scrolls the page.
 - Respect user's existing light/dark preference, but default Design B to dark when no stored choice exists.
-- The **same** app code, component tree and working data sources are used in both variants; visual behavior is altered using scoped CSS and an optional measurement aid.
+- Both variants reuse the existing app's working data sources and league logic. Shared controls are aligned through a common geometry layer. Version B deliberately changes the GameTracker/Matchup Preview presentation and keeps global navigation usable while the game panels are open.
 
 ### Read-only safety
 In Vercel *preview* deployments, the request middleware rejects write requests to `/api/*` except normal session login/logout. Users may browse data. **Making or accepting offers, editing picks, changing account password and other state-changing actions are intentionally not functional on these preview URLs.** This is deliberate to avoid changing a real league during design review.
@@ -80,7 +80,7 @@ A substantially different UI, still recognizably a **football** product. Inspire
 3. Arrange individual games and activity groups as distinct rounded panels on a deep background.
 4. Use title/metric hierarchy rather than decorative boxes everywhere.
 5. Dark surfaces get stronger layering; critical numbers use tabular numerals.
-6. Preserve full-screen game details for this first full-app version, because the GameTracker field and scoring lists are information-dense. The earlier docked-panel experiment remains separately available for reconsideration.
+6. Use **docked, nonmodal GameTracker and Matchup Preview panels** below the persistent header and above the fixed navigation. Users can change primary navigation without first closing the game panel. This is a deliberate contrast to Design A's full-screen detail views.\n7. On the Pick Board, show a compact, live data-driven weekly status strip (Live / Upcoming / Final).
 
 ### Screen-level changes
 | Area | What changed | What should be checked visually |
@@ -88,7 +88,7 @@ A substantially different UI, still recognizably a **football** product. Inspire
 | Global header | Dark navy with cyan accent; week control in rounded frame | Logo contrast; no clipping or crunched header |
 | Screen masthead | New screen identity with context, title, subtitle and icon | Consistent icon centering and short-screen space cost |
 | Bottom navigation | Dark selected-tab capsule with cyan line icons | Active state, fixed viewport height, no bounce |
-| Pick Board | Rounded game pods, high-contrast status lines | Matchup hierarchy, scores and spreads in one glance |
+| Pick Board | Rounded game pods, a Live / Upcoming / Final pulse strip and high-contrast status lines | Status totals, matchup hierarchy, scores and spreads in one glance |
 | Pick filters | Rounded dark controls, stronger selection color | All filter combinations; dropdown overlay contrast |
 | My Card | More prominent completion/status cards, larger row rhythm | Pick/win/locked state readability |
 | League Card | Contained round-corner cards with cyan-highlighted headings | Comparison vs My Card on same visual grid |
@@ -97,8 +97,8 @@ A substantially different UI, still recognizably a **football** product. Inspire
 | Offers/History | Dark transaction cards and prominent outcomes | The $ symbol, amount, odds, dates and potential summary |
 | Standings | Dark, grid-like scoreboard with highlighted headers | Tight rankings, player order, season numbers |
 | Bank | Legible accounting in dark theme, no unwanted deposit UI | Positive/negative colors, history dividers, payout row |
-| GameTracker | Higher contrast full-screen game view, brighter live labels | Large scores, central time, tab heights, field inset |
-| Matchup Preview | Stats-first darker comparisons with modern sans typography | Every metric, record, logo and rank centered |
+| GameTracker | Docked nonmodal panel under the app header, above persistent navigation; higher-contrast live data | Large scores, field visibility within reduced height, close X and nav switch |
+| Matchup Preview | Docked nonmodal CFB/NFL analytics view with global navigation visible | Every metric, record, logo and rank centered; scroll within panel |
 | Profiles | Dark modal/sheet with clearer hierarchy | Year dropdown, close button, per-player totals |
 | Settings | Dark setting cards with legible toggles and notification states | Profile actions, reset password and theme switch |
 
@@ -177,13 +177,13 @@ Example: `/friends?alignmentAudit=1`
 - [ ] Strong positive/negative money colors without confusing settled-to-zero amounts.
 
 ### GameTracker
-- [ ] Live / Scoring / Plays / Box tabs retain the correct content.
+- [ ] Live / Scoring / Plays / Box tabs retain the correct content in both full-screen (A) and docked (B) layouts.
 - [ ] Scoreboard two team logos, scores, timeouts and clock centered.
 - [ ] Football field, line of scrimmage, first-down line and end zones appear correctly.
 - [ ] Scoring-play metadata and result do not have asymmetrical top/bottom space.
 - [ ] Quarter score columns and play-by-play time stay aligned, including long text.
 - [ ] Expandable drive rows and horizontally scrollable box score remain usable.
-- [ ] X icon centrally aligned in its colored close square and clickable without accidental backdrop closes.
+- [ ] X icon centrally aligned in its colored close square and clickable without accidental backdrop closes.\n- [ ] Version B leaves the header and fixed bottom navigation visible and clicking a navigation destination closes the dock without a layout jump.
 
 ### Matchup Preview
 - [ ] Same design quality and structure for both CFB and NFL.
