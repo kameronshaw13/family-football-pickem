@@ -205,24 +205,21 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
     const priorFocus = document.activeElement as HTMLElement | null;
     const priorOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const backdrop = sheet.current?.parentElement;
-    const siblings = Array.from(document.body.children).filter((node): node is HTMLElement => node instanceof HTMLElement && node !== backdrop);
-    const inertStates = siblings.map(node => node.inert);
-    siblings.forEach(node => { node.inert = true; });
+    // Nonmodal dock: keep main navigation operable while details are open.
+    const chromeClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(".primary-nav button, .scoreboard-header button")) close.current();
+    };
+    document.addEventListener("click", chromeClick, true);
     sheet.current?.querySelector<HTMLButtonElement>("button")?.focus();
     const keydown = (event: KeyboardEvent) => {
       if (event.key === "Escape") { event.preventDefault(); close.current(); }
-      if (event.key !== "Tab") return;
-      const elements = Array.from(sheet.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], summary, [tabindex="0"]') || []).filter(node => node.getClientRects().length > 0);
-      const first = elements[0], last = elements.at(-1);
-      if (event.shiftKey && (document.activeElement === first || !sheet.current?.contains(document.activeElement))) { event.preventDefault(); last?.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
     };
     document.addEventListener("keydown", keydown);
     return () => {
       document.removeEventListener("keydown", keydown);
       document.body.style.overflow = priorOverflow;
-      siblings.forEach((node, index) => { node.inert = inertStates[index]; });
+      document.removeEventListener("click", chromeClick, true);
       priorFocus?.focus();
     };
   }, [mounted]);
@@ -256,8 +253,8 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
   const tabs: Array<[Tab, string]> = [["matchup", "Analytics"], ["form", "Form"], ["history", "History"]];
 
   return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-    <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="true" aria-label={`${away} at ${home} NFL matchup preview`}>
-      <header className="matchup-preview-header"><span>{away} at {home}</span><button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={18} /></button></header>
+    <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="false" aria-label={`${away} at ${home} NFL matchup preview`}>
+      <header className="matchup-preview-header"><div className="detail-panel-title"><small>PRE-GAME INTELLIGENCE</small><strong>{away} at {home}</strong></div><button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={18} /></button></header>
       <div className="matchup-preview-kickoff">{formatOrdinalDate(matchupDateFormatter, new Date(game.commence_time))} CT</div>
       <div className="matchup-preview-hero">
         {(["away", "home"] as const).map((side, index) => <div className="matchup-preview-team" key={side}>
