@@ -2511,8 +2511,11 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
     const openingBalance = Object.prototype.hasOwnProperty.call(week.openingBalances || {}, player.id)
       ? Number(week.openingBalances[player.id] || 0)
       : null;
-    return { week: week.week, weeklyAmount, openingBalance, games };
-  }).filter((week) => Number(week.openingBalance || 0) !== 0 || week.weeklyAmount != null || week.games.length > 0);
+    const payoutAmount = Object.prototype.hasOwnProperty.call(week.payoutAmounts || {}, player.id)
+      ? Number(week.payoutAmounts[player.id] || 0)
+      : null;
+    return { week: week.week, weeklyAmount, openingBalance, payoutAmount, games };
+  }).filter((week) => Number(week.openingBalance || 0) !== 0 || week.weeklyAmount != null || week.payoutAmount != null || week.games.length > 0);
 
   return <details className="bank-balance-player">
     <summary>
@@ -2523,7 +2526,7 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
     <div className="bank-balance-player-history">
       {!playerWeeks.length && <p className="muted bank-history-empty">No bank history yet.</p>}
       {playerWeeks.map((week) => {
-        const weekTotal = Number(week.openingBalance || 0) + Number(week.weeklyAmount || 0) + week.games.reduce((sum, game) => sum + game.playerAmount, 0);
+        const weekTotal = Number(week.openingBalance || 0) + Number(week.weeklyAmount || 0) + Number(week.payoutAmount || 0) + week.games.reduce((sum, game) => sum + game.playerAmount, 0);
         return <details className="bank-history-week" key={week.week}>
         <summary>
           <strong className="bank-history-week-label">{`Week ${week.week}`}</strong>
@@ -2572,6 +2575,10 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
               <strong className={game.playerAmount > 0 ? "money-pos" : game.playerAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(game.playerAmount)} /></strong>
             </div>;
           })}
+          {week.payoutAmount != null && <div className="bank-history-line">
+            <span>Payout</span>
+            <strong className={week.payoutAmount > 0 ? "money-pos" : week.payoutAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.payoutAmount)} /></strong>
+          </div>}
         </div>
       </details>;
       })}
