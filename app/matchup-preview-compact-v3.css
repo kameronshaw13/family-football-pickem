@@ -1,0 +1,413 @@
+/* Matchup Preview V3 — compact phone-first header + integrated game form + clear series history.
+   Strictly scoped to the CFB/NFL Matchup Preview; GameTracker and other app screens unchanged. */
+
+.matchup-preview-header {
+  min-height:62px;
+  height:62px;
+  flex:0 0 62px;
+  padding:15px 50px 6px;
+  border-bottom:1px solid var(--line-strong);
+}
+.matchup-preview-header::before {
+  top:6px;
+  width:36px;
+  height:4px;
+}
+.matchup-detail-title {gap:0;min-width:0;width:100%;align-content:center;}
+.matchup-detail-title > strong {
+  font-size:clamp(12.5px,3.8vw,16px);
+  font-weight:900;
+  line-height:1.18;
+  max-height:38px;
+  letter-spacing:0;
+  overflow-wrap:normal;
+}
+.matchup-preview-close {
+  top:15px;
+  right:10px;
+  width:34px;
+  height:34px;
+  min-width:34px;
+  min-height:34px;
+}
+/* Kickoff now lives inside the team hero, rather than consuming another full bar. */
+.matchup-preview-hero {
+  display:grid;
+  min-height:150px;
+  height:150px;
+  flex:0 0 150px;
+  grid-template-columns:minmax(0,1fr) 26px minmax(0,1fr);
+  grid-template-rows:26px minmax(0,1fr);
+  align-items:center;
+  gap:0 5px;
+  padding:4px 12px 10px;
+  border-bottom:1px solid var(--line-strong);
+}
+.matchup-preview-hero > .matchup-preview-kickoff {
+  grid-column:1 / -1;
+  grid-row:1;
+  align-self:center;
+  justify-self:center;
+  width:auto;
+  min-height:0;
+  height:auto;
+  margin:0;
+  padding:1px 6px;
+  background:transparent;
+  color:var(--header-muted);
+  font-family:var(--font-display);
+  font-size:10px;
+  font-weight:800;
+  line-height:1.15;
+}
+.matchup-preview-hero > .matchup-preview-team:first-of-type {grid-column:1;grid-row:2;}
+.matchup-preview-hero > .matchup-preview-team:nth-of-type(2) {grid-column:3;grid-row:2;}
+.matchup-preview-team {
+  display:grid;
+  justify-items:center;
+  align-content:center;
+  gap:5px;
+  min-width:0;
+  text-align:center;
+}
+.matchup-preview-team > img,
+.matchup-preview-team > .matchup-logo-fallback {
+  width:54px;
+  height:54px;
+  object-fit:contain;
+}
+.matchup-preview-team > strong {
+  font-size:clamp(12px,3.65vw,15px);
+  line-height:1.15;
+  font-weight:850;
+  min-height:0;
+  max-height:35px;
+  -webkit-line-clamp:2;
+}
+.matchup-preview-team > span {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  font-family:var(--font-display);
+  font-size:13px;
+  font-weight:900;
+  line-height:1.15;
+  font-variant-numeric:tabular-nums;
+}
+.matchup-preview-team > span .matchup-record-value {font-size:13px;font-weight:900;}
+.matchup-preview-team > span b {
+  font-size:13px;
+  font-weight:900;
+  padding-left:7px;
+  border-left:1px solid var(--line-strong);
+}
+.matchup-center-at {
+  grid-column:2;
+  grid-row:2;
+  display:block;
+  width:auto;
+  height:auto;
+  min-width:0;
+  padding:0;
+  align-self:center;
+  justify-self:center;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--muted);
+  font-family:var(--font-display);
+  font-size:11px;
+  font-weight:850;
+  line-height:1.2;
+}
+.matchup-preview-at {display:none;}
+
+/* Form: one complete chronological game result per line, ATS attached to that game. */
+.matchup-split-lists {gap:10px;}
+.matchup-form-team {background:var(--panel);}
+.matchup-form-heading {
+  min-height:58px;
+  padding:8px 13px;
+  gap:11px;
+  align-items:center;
+}
+.matchup-form-heading > img,
+.matchup-form-heading > .matchup-logo-fallback {
+  display:block;
+  width:42px;
+  height:42px;
+  flex:0 0 42px;
+  object-fit:contain;
+}
+.matchup-form-heading h3 {
+  font-size:15px;
+  line-height:1.2;
+  font-weight:850;
+}
+.matchup-form-stats {min-height:68px;gap:5px;padding:9px 8px;}
+.matchup-form-stats small {
+  font-size:8px;
+  letter-spacing:0;
+  line-height:1.2;
+}
+.matchup-form-stats strong {font-size:14px;line-height:1.15;}
+.matchup-form-team h4 {min-height:32px;padding:6px 12px;font-size:10px;}
+.matchup-result-row.matchup-form-combined-row {
+  display:grid;
+  grid-template-columns:26px minmax(0,1fr) auto;
+  min-height:62px;
+  align-items:center;
+  gap:10px;
+  padding:9px 12px;
+  border-bottom:1px solid var(--line);
+  background:var(--panel);
+}
+.matchup-form-combined-row > span {
+  display:grid;
+  box-sizing:border-box;
+  width:26px;
+  height:26px;
+  place-items:center;
+  border:1px solid currentColor;
+  border-radius:5px;
+  font-size:10px;
+  font-weight:900;
+}
+.matchup-form-combined-row > .matchup-result-opponent {
+  min-width:0;
+  max-width:none;
+  display:grid;
+  align-content:center;
+  gap:5px;
+}
+.matchup-form-combined-row .matchup-result-opponent > strong {
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  color:var(--ink);
+  font-family:var(--font-display);
+  font-size:12px;
+  font-weight:850;
+  line-height:1.15;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.matchup-form-combined-row .matchup-result-opponent > small {
+  display:block;
+  margin:0;
+  color:var(--muted);
+  font-family:var(--font-display);
+  font-size:10px;
+  font-weight:700;
+  line-height:1.2;
+  white-space:nowrap;
+}
+.matchup-result-text-dot {display:inline-block;margin-inline:5px;vertical-align:middle;color:var(--muted);}
+.matchup-form-combined-row > .matchup-result-outcome {
+  display:grid;
+  flex:0 0 auto;
+  max-width:none;
+  min-width:58px;
+  align-content:center;
+  justify-items:end;
+  gap:4px;
+  text-align:right;
+}
+.matchup-form-combined-row .matchup-result-outcome > strong {
+  display:block;
+  color:var(--ink);
+  font-family:var(--font-display);
+  font-size:14px;
+  font-weight:900;
+  line-height:1.1;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.matchup-form-combined-row .matchup-result-outcome > small {
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:5px;
+  margin:0;
+  font-family:var(--font-display);
+  font-size:9px;
+  font-weight:800;
+  line-height:1.2;
+  white-space:nowrap;
+}
+.matchup-cover-win {color:var(--green);}
+.matchup-cover-loss {color:var(--red);}
+.matchup-cover-push {color:var(--muted);}
+
+/* History: team name, prominent win count below, separate period indicator,
+   then clean season/venue and balanced team score rows. */
+.matchup-history-body .matchup-section-heading {min-height:36px;}
+.matchup-history-body .matchup-series-summary {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr);
+  min-height:112px;
+  align-items:center;
+  gap:4px;
+  margin:10px 10px 0;
+  padding:13px 10px;
+  border:1px solid var(--line-strong);
+  border-radius:8px;
+  background:var(--panel);
+  text-align:center;
+}
+.matchup-history-body .matchup-series-side,
+.matchup-history-body .matchup-series-side:last-child {
+  display:grid;
+  min-width:0;
+  align-content:center;
+  justify-items:center;
+  gap:4px;
+  flex-direction:initial;
+  text-align:center;
+}
+.matchup-history-body .matchup-series-side > img,
+.matchup-history-body .matchup-series-side > .matchup-logo-fallback {
+  display:block;
+  width:37px;
+  height:37px;
+  margin:0;
+  object-fit:contain;
+}
+.matchup-history-body .matchup-series-side > strong {
+  display:block;
+  max-width:100%;
+  min-width:0;
+  overflow:hidden;
+  color:var(--ink);
+  font-family:var(--font-display);
+  font-size:11px;
+  font-weight:850;
+  line-height:1.2;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+.matchup-history-body .matchup-series-wins {
+  display:block;
+  color:var(--muted);
+  font-family:var(--font-display);
+  font-size:10px;
+  font-weight:750;
+  line-height:1.1;
+  white-space:nowrap;
+}
+.matchup-history-body .matchup-series-wins b {
+  color:var(--ink);
+  font-size:16px;
+  font-weight:900;
+  font-variant-numeric:tabular-nums;
+}
+.matchup-history-body .matchup-series-center {
+  display:grid;
+  align-content:center;
+  justify-items:center;
+  gap:2px;
+  min-width:0;
+  color:var(--muted);
+}
+.matchup-history-body .matchup-series-center > small {
+  display:block;
+  font-family:var(--font-display);
+  font-size:9px;
+  line-height:1.1;
+  font-weight:850;
+  letter-spacing:.025em;
+}
+.matchup-history-body .matchup-series-center > strong {
+  display:block;
+  font-family:var(--font-display);
+  font-size:24px;
+  line-height:1;
+  font-weight:900;
+  color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.matchup-history-list {margin:10px 10px 14px;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;}
+.matchup-history-game {
+  min-width:0;
+  padding:11px 12px;
+  border-bottom:1px solid var(--line);
+  background:var(--panel);
+}
+.matchup-history-game:last-child {border-bottom:0;}
+.matchup-history-game-meta {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:8px;
+  color:var(--muted);
+  font-family:var(--font-display);
+  line-height:1.2;
+}
+.matchup-history-game-meta > time {
+  flex:0 0 auto;
+  font-size:11px;
+  font-weight:900;
+  color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.matchup-history-game-meta > span {
+  min-width:0;
+  overflow:hidden;
+  font-size:9.5px;
+  font-weight:650;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  text-align:right;
+}
+.matchup-history-matchup {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 13px minmax(0,1fr);
+  align-items:center;
+  gap:7px;
+}
+.matchup-history-matchup > div {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-width:0;
+  gap:7px;
+  color:var(--muted);
+}
+.matchup-history-matchup > div > span {
+  min-width:0;
+  overflow:hidden;
+  font-family:var(--font-display);
+  font-size:10.5px;
+  font-weight:700;
+  line-height:1.2;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.matchup-history-matchup > div > strong {
+  flex:0 0 auto;
+  font-family:var(--font-display);
+  font-size:16px;
+  font-weight:850;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+  color:var(--ink);
+}
+.matchup-history-matchup > div.winner > span,
+.matchup-history-matchup > div.winner > strong {color:var(--green);font-weight:900;}
+.matchup-history-vs {color:var(--muted);font-size:13px;line-height:1;text-align:center;}
+@media(max-width:380px) {
+  .matchup-preview-header {padding-inline:48px;}
+  .matchup-detail-title > strong {font-size:12.5px;}
+  .matchup-preview-hero {padding-inline:7px;grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);}
+  .matchup-preview-team > img,.matchup-preview-team > .matchup-logo-fallback {width:50px;height:50px;}
+  .matchup-preview-team > span,.matchup-preview-team > span b {font-size:12px;}
+  .matchup-form-combined-row {gap:6px;padding-inline:9px;}
+  .matchup-history-matchup {gap:4px;}
+  .matchup-history-matchup > div > span {font-size:9.5px;}
+}
+@media(max-height:680px) {
+  .matchup-preview-header {min-height:60px;flex-basis:60px;}
+  .matchup-preview-hero {height:136px;min-height:136px;flex-basis:136px;}
+}
