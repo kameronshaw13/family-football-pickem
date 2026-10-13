@@ -227,7 +227,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
         {!completed && <TimeoutDots remaining={timeouts} />}
       </div>
     </div>
-    <span className="game-tracker-score-team-name" title={fullName}>{team ? trackerTeamLabel(team) : fallbackName}</span>
+    <span className="game-tracker-score-team-name" title={fullName}>{fullName}</span>
   </div>;
 }
 
@@ -383,9 +383,6 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
       return <Fragment key={play.id}>
         {showQuarter && <ScoringQuarterHeader payload={payload} label={quarter} />}
         <div className="game-tracker-score-play">
-          <span className="game-tracker-scoring-team-logo">
-            {play.teamSide && <TeamLogo src={payload.teams[play.teamSide].logo} name={payload.teams[play.teamSide].name} size={28} />}
-          </span>
           <div className="game-tracker-scoring-copy">
             <div className="game-tracker-scoring-meta">
               <strong>{play.type || "Score"}</strong>
@@ -563,7 +560,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
   const scrollArea = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
-  useGameSheetDismiss(sheet, mounted, onClose);
+  const closeWithMotion = useGameSheetDismiss(sheet, mounted, onClose);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -667,14 +664,14 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
   ];
   const matchupHeader = `${awayName} at ${homeName}`;
 
-  return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+  return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) closeWithMotion(); }}>
     <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="false" aria-label={`${awayName} at ${homeName} GameTracker`}>
       <header className="game-tracker-header">
         <div className="game-detail-title">
           
           <strong>{matchupHeader}</strong>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close GameTracker"><X size={18} /></button>
+        <button type="button" onClick={closeWithMotion} aria-label="Close GameTracker"><X size={18} /></button>
       </header>
 
       <div className="game-tracker-scoreboard">
