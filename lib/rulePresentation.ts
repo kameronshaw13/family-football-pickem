@@ -19,7 +19,7 @@ export type GroupRules = {
   underdog?: { enabled?: boolean; minimumSpread?: number; tiers?: Array<{ min?: number; max?: number | null; bonusWins?: number }> };
   weeklyBank?: Record<string, number | string | boolean | null | undefined>;
   seasonPrizes?: Record<string, number | string | boolean | null | undefined>;
-  sideBets?: { enabled?: boolean; maxAmount?: number | null; maxPerWeek?: number | null; amountEntry?: string; fixedAmounts?: number[] };
+  sideBets?: { enabled?: boolean; maxAmount?: number | null; maxPerWeek?: number | null; amountEntry?: string; fixedAmounts?: number[]; blockedUserIds?: string[] };
 };
 
 function numberValue(value: unknown, fallback: number) {
