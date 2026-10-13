@@ -3,7 +3,7 @@
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
 import NextImage from "next/image";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Settings as SettingsIcon, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, SideBetMarketQuote, SideBetOfferPhase, SideBetTotalSide, Standing, WeekRule } from "@/lib/types";
 import { MAX_CUSTOM_SIDE_BET_AMOUNT, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
@@ -2526,8 +2526,13 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
     <div className="bank-balance-player-history">
       {!playerWeeks.length && <p className="muted bank-history-empty">No bank history yet.</p>}
       {playerWeeks.map((week) => {
-        const weekTotal = Number(week.openingBalance || 0) + Number(week.weeklyAmount || 0) + Number(week.payoutAmount || 0) + week.games.reduce((sum, game) => sum + game.playerAmount, 0);
-        return <details className="bank-history-week" key={week.week}>
+        const weekTotal = Number(week.openingBalance || 0) + Number(week.weeklyAmount || 0) + week.games.reduce((sum, game) => sum + game.playerAmount, 0);
+        return <Fragment key={week.week}>
+        {week.payoutAmount != null && <div className="bank-history-line bank-history-payout-line">
+          <span>Payout</span>
+          <strong className={week.payoutAmount > 0 ? "money-pos" : week.payoutAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.payoutAmount)} /></strong>
+        </div>}
+        <details className="bank-history-week">
         <summary>
           <strong className="bank-history-week-label">{`Week ${week.week}`}</strong>
           <span className={weekTotal > 0 ? "money-pos" : weekTotal < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(weekTotal)} /></span>
@@ -2575,12 +2580,9 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
               <strong className={game.playerAmount > 0 ? "money-pos" : game.playerAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(game.playerAmount)} /></strong>
             </div>;
           })}
-          {week.payoutAmount != null && <div className="bank-history-line">
-            <span>Payout</span>
-            <strong className={week.payoutAmount > 0 ? "money-pos" : week.payoutAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.payoutAmount)} /></strong>
-          </div>}
         </div>
-      </details>;
+      </details>
+      </Fragment>;
       })}
     </div>
   </details>;
