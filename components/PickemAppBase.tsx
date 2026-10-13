@@ -2540,9 +2540,12 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
       {playerWeeks.map((week) => {
         const weekTotal = Number(week.openingBalance || 0) + Number(week.weeklyAmount || 0) + week.games.reduce((sum, game) => sum + game.playerAmount, 0);
         return <Fragment key={week.week}>
-        {week.payoutAmount != null && <div className="bank-history-line bank-history-payout-line">
-          <span>Payout</span>
-          <strong className={week.payoutAmount > 0 ? "money-pos" : week.payoutAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.payoutAmount)} /></strong>
+        {week.payoutAmount != null && <div className="bank-history-week bank-history-payout">
+          <div className="bank-history-payout-row">
+            <strong className="bank-history-week-label">Weeks 1-7 Payout</strong>
+            <span className={week.payoutAmount > 0 ? "money-pos" : week.payoutAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.payoutAmount)} /></span>
+            <span aria-hidden="true" className="bank-history-payout-spacer" />
+          </div>
         </div>}
         <details className="bank-history-week">
         <summary>
