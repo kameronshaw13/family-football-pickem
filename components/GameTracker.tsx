@@ -671,7 +671,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
     <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="false" aria-label={`${awayName} at ${homeName} GameTracker`}>
       <header className="game-tracker-header">
         <div className="game-detail-title">
-          <small><span className={`game-detail-live-indicator ${completed ? "final" : ""}`} aria-hidden="true" />{completed ? "Final" : "GameTracker"} <span className="game-detail-title-separator" aria-hidden="true">·</span> {game.league}</small>
+          
           <strong>{matchupHeader}</strong>
         </div>
         <button type="button" onClick={onClose} aria-label="Close GameTracker"><X size={18} /></button>
