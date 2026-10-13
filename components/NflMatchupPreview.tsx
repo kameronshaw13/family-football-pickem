@@ -257,7 +257,13 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
 
   return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="true" aria-label={`${away} at ${home} NFL matchup preview`}>
-      <header className="matchup-preview-header"><span>{away} at {home}</span><button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={18} /></button></header>
+      <header className="matchup-preview-header">
+        <div className="matchup-preview-heading">
+          <small>PRE-GAME <span aria-hidden="true">·</span> NFL</small>
+          <strong>{away} at {home}</strong>
+        </div>
+        <button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={18} /></button>
+      </header>
       <div className="matchup-preview-kickoff">{formatOrdinalDate(matchupDateFormatter, new Date(game.commence_time))} CT</div>
       <div className="matchup-preview-hero">
         {(["away", "home"] as const).map((side, index) => <div className="matchup-preview-team" key={side}>
