@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       supabase.from("side_bets").select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("created_at", { ascending: false }).range(0, 999),
       supabase.from("group_season_money").select("winner_take_all_amount,updated_by,updated_at,submitted_at").eq("group_id", context.group.id).eq("season_year", context.seasonYear).maybeSingle(),
       supabase.from("side_bet_dismissals").select("side_bet_id").eq("group_id", context.group.id).eq("user_id", auth.profile.id),
-      supabase.from("bank_resets").select("user_id,week,opening_balance,note").eq("group_id", context.group.id).eq("season_year", context.seasonYear)
+      supabase.from("bank_resets").select("user_id,week,opening_balance,note,settlement_week,settlement_amount").eq("group_id", context.group.id).eq("season_year", context.seasonYear)
     ]);
     for (const result of [gamesResult, lockedResult, bankResult, sideBetResult, seasonMoneyResult, sideBetDismissalResult, bankResetResult]) if (result.error) throw new Error(result.error.message);
 
