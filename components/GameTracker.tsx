@@ -219,10 +219,11 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   return <div className={`game-tracker-score-team ${side}`} aria-label={`${fullName} ${score ?? "score unavailable"}`}>
     <div className="game-tracker-score-team-main">
       <TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={50} />
-      <div className="game-tracker-score-stack">
-        <b className={scoreTone}>{score ?? "—"}</b>
-        {!completed && <TimeoutDots remaining={timeouts} />}
-      </div>
+      <span className="game-tracker-score-team-name" title={fullName}>{team ? trackerTeamLabel(team) : fallbackName}</span>
+    </div>
+    <div className="game-tracker-score-stack">
+      <b className={scoreTone}>{score ?? "—"}</b>
+      {!completed && <TimeoutDots remaining={timeouts} />}
     </div>
   </div>;
 }
@@ -660,8 +661,11 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
   return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="true" aria-label={`${awayName} at ${homeName} GameTracker`}>
       <header className="game-tracker-header">
-        <span>{matchupHeader}</span>
-        <button type="button" onClick={onClose} aria-label="Close GameTracker"><X size={20} /></button>
+        <div className="game-tracker-heading">
+          <small><span className={`game-tracker-heading-dot ${completed ? "final" : "live"}`} aria-hidden="true" />{completed ? "FINAL" : "GAME CENTER"} <span aria-hidden="true">·</span> {game.league}</small>
+          <strong>{matchupHeader}</strong>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close GameTracker"><X size={18} /></button>
       </header>
 
       <div className="game-tracker-scoreboard">
