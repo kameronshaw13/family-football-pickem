@@ -15,6 +15,8 @@ import "./presentation-fixes.css";
 import "./matchup-preview.css";
 import "./game-tracker.css";
 import "./theme-settings.css";
+import "./full-design-geometry.css";
+import "./full-command-app.css";
 import type { Metadata, Viewport } from "next";
 import { Roboto_Slab } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
@@ -75,11 +77,11 @@ const THEME_INIT_SCRIPT = `
     const profile = JSON.parse(window.localStorage.getItem("pickem_profile") || "null");
     const personal = profile?.id ? window.localStorage.getItem("pickem_theme:" + profile.id) : null;
     const stored = personal || window.localStorage.getItem("pickem_theme");
-    const theme = stored === "dark" ? "dark" : "light";
+    const theme = stored === "light" ? "light" : "dark";
     document.documentElement.dataset.theme = theme;
     document.documentElement.style.colorScheme = theme;
   } catch {
-    document.documentElement.dataset.theme = "light";
+    document.documentElement.dataset.theme = "dark";
   }
 })();`;
 
