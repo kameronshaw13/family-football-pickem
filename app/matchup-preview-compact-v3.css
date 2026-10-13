@@ -60,8 +60,8 @@
   font-weight:800;
   line-height:1.15;
 }
-.matchup-preview-hero > .matchup-preview-team:first-of-type {grid-column:1;grid-row:2;}
-.matchup-preview-hero > .matchup-preview-team:nth-of-type(2) {grid-column:3;grid-row:2;}
+.matchup-preview-hero > .matchup-preview-team:nth-child(2) {grid-column:1;grid-row:2;}
+.matchup-preview-hero > .matchup-preview-team:nth-child(3) {grid-column:3;grid-row:2;}
 .matchup-preview-team {
   display:grid;
   justify-items:center;
