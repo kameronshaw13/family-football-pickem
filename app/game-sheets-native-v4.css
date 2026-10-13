@@ -14,8 +14,6 @@
   right: 0;
   bottom: calc(env(safe-area-inset-bottom) + var(--nav-height));
   left: 0;
-  inset: auto 0 calc(env(safe-area-inset-bottom) + var(--nav-height));
-  inset-block-start: calc(env(safe-area-inset-top) + var(--header-height));
   display: flex;
   box-sizing: border-box;
   width: 100%;
