@@ -123,3 +123,18 @@ test("keeps different markets and odds as separate bank-history rows", () => {
   assert.deepEqual(week.games.map(row => row.selections.kam.marketType).sort(), ["moneyline", "moneyline", "spread"]);
   assert.deepEqual(week.games.map(row => row.selections.kam.odds).sort((a, b) => a - b), [-110, 120, 130]);
 });
+
+
+test("preserves prior week results while showing a new week opening balance", () => {
+  const entries: BankEntry[] = [{ id: "week7", week: 7, user_id: "caleb", amount: 40, note: "Weekly Pick'em" }];
+  const resets = [
+    { week: 8, user_id: "caleb", opening_balance: 107.81 },
+    { week: 8, user_id: "kameron", opening_balance: 0 }
+  ];
+  const history = buildBankHistory(entries, [], resets);
+  assert.deepEqual(history.map((week) => week.week), [8, 7]);
+  assert.equal(history[0].openingBalances.caleb, 107.81);
+  assert.equal(history[0].openingBalances.kameron, 0);
+  assert.equal(history[0].totals.caleb, undefined);
+  assert.equal(history[1].totals.caleb, 40);
+});
