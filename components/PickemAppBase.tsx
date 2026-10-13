@@ -2296,7 +2296,15 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     </nav>
 
     <main className="container">
-      <aside className="design-edition-ribbon" aria-label="Experimental design preview"><span>FULL APP DESIGN STUDY</span><strong>B — Night Game</strong></aside>
+      <aside className="design-edition-ribbon" aria-label="Experimental design preview"><span>DESIGN B · NIGHT GAME</span><strong>Preview only · Changes disabled</strong></aside>
+      <section className="design-command-masthead" aria-label="Current screen">
+        <div className="design-command-masthead-main">
+          <span className="design-command-kicker">{data.activeGroup?.name || "PICK’EM LEAGUE"} <span aria-hidden="true">/</span> WEEK {data.week}</span>
+          <strong>{tab === "picks" ? (picksView === "board" ? "Pick Board" : "Side Bets") : tab === "card" ? (cardView === "group" ? "League Card" : "My Card") : tab === "standings" ? (standingsView === "bank" ? "Bank & Ledger" : "Standings") : "League Settings"}</strong>
+          <small>{tab === "picks" ? (picksView === "board" ? "The week's matchups and selections" : "Offers, markets, and your betting ledger") : tab === "card" ? "Your picks, progress, and league cards" : tab === "standings" ? "Season performance and weekly results" : "Manage your profile and preferences"}</small>
+        </div>
+        <div className="design-command-masthead-symbol" aria-hidden="true">{tab === "picks" ? <Zap size={22} /> : tab === "card" ? <SquareCheck size={22} /> : tab === "standings" ? <Trophy size={22} /> : <SettingsIcon size={22} />}</div>
+      </section>
       {message && <div className="error-card"><NumericText text={message} /></div>}
       {previewActive && <div className="test-mode-banner"><span><FlaskConical size={16} /><span><strong>Board state preview</strong><small>No real picks or bank balances are changed</small></span></span><button type="button" onClick={() => { setTestWeekActive(false); setStatusFilter(defaultBoardStatus(data.games, clock, !data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock)); setStatusFilterTouched(false); }}><X size={16} /> Exit</button></div>}
 
