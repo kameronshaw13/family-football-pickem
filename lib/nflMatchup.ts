@@ -413,6 +413,10 @@ async function buildHistory(game: NflMatchupGame) {
       date,
       teamPoints: awayIsTarget ? awayScore : homeScore,
       opponentPoints: awayIsTarget ? homeScore : awayScore,
+      // History is normalized to the selected matchup's away team.
+      // Preserve which side hosted so the UI can show the home team,
+      // rather than an ambiguous stadium name.
+      home: !awayIsTarget,
       venue: competition?.venue?.fullName || null,
       neutralSite: Boolean(competition?.neutralSite)
     }];
