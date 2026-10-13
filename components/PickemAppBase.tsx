@@ -11,6 +11,7 @@ import { americanOddsText, fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFro
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import type { BankHistoryWeek } from "@/lib/bankHistory";
+import { isSideBetRestricted } from "@/lib/sideBetAccess";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
 import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, POWER_CONFERENCES } from "@/lib/cfbConferences";
 import MenuSelect from "@/components/MenuSelect";
@@ -2004,6 +2005,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   if (!data) return <div className="app-shell"><main className="container"><div className="error-card">{message || "Could not load app."}</div></main></div>;
 
   const { currentUser, games, picks, profiles, standings, availableWeeks, bankEntries } = data;
+  const sideBetAccessDenied = isSideBetRestricted(data.groupRules, currentUser.id);
   const pointsMode = data.groupRules?.scoring?.mode === "confidence";
   const leagueCardProfiles = [
     profiles.find((profile) => profile.id === currentUser.id) || currentUser,
@@ -2294,7 +2296,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
       {tab === "picks" && <section className="panel picks-panel">
         {!previewActive && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens on <NumericText text={openText(data.weekOpenTime)} />.</div>}
-        <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: "Side Bets", badge: picksNotificationCount }]} value={picksView} onChange={(value) => setPicksView(value as PicksView)} />
+        <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: "Side Bets", badge: picksNotificationCount }]} value={picksView} onChange={(value) => {
+          if (value === "sideBets" && sideBetAccessDenied) {
+            notify("No access to Side Bets.", "error");
+            return;
+          }
+          setPicksView(value as PicksView);
+        }} />
         {picksView === "board" && <>
           <div className="view-select-row board-filter-row">
             <MenuSelect ariaLabel="Choose game status" className="compact-select status-select" value={statusFilter} sections={[{ options: (["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => { setStatusFilter(value as GameStatusFilter); setStatusFilterTouched(true); }} />
@@ -2310,12 +2318,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             </div>)}
           </div>
         </>}
-        {picksView === "sideBets" && <SideBetCenter
+        {picksView === "sideBets" && sideBetAccessDenied && <div className="notice-card" role="alert">No access to Side Bets.</div>}
+        {picksView === "sideBets" && !sideBetAccessDenied && <SideBetCenter
           appSlug={appSlug}
           view={betView}
           setView={setBetView}
           currentUser={currentUser}
-          profiles={profiles}
+          profiles={profiles.filter((profile) => !isSideBetRestricted(data.groupRules, profile.id))}
           sideBets={sideBets}
           slotCounts={data.sideBetSlotCounts || {}}
           maxPerWeek={data.sideBetSettings?.maxPerWeek ?? null}
