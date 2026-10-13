@@ -187,7 +187,7 @@ function History({ history, away, home, awayLogo, homeLogo }: { history: Matchup
           return <article className="matchup-history-game" key={row.id}>
             <div className="matchup-history-game-meta">
               <time dateTime={row.date}>{new Date(row.date).getUTCFullYear()}</time>
-              <span>{row.neutralSite ? "Neutral site" : `Home: ${hostName}`}</span>
+              <span>{row.neutralSite ? "Neutral site" : "Final"}</span>
             </div>
             <div className="matchup-history-scoreboard">
               <div className={visitorScore > hostScore ? "matchup-history-score-team winner" : "matchup-history-score-team"}>
