@@ -1,5 +1,8 @@
 "use client";
 
+import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
+
+
 import { Fragment, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
@@ -560,6 +563,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
   const scrollArea = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
+  useGameSheetDismiss(sheet, mounted, onClose);
 
   useEffect(() => { setMounted(true); }, []);
 
