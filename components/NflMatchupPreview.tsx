@@ -1,5 +1,8 @@
 "use client";
 
+import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
+
+
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
@@ -149,7 +152,7 @@ function FormTeam({ team, logo }: { team: NflMatchupTeam; logo?: string | null }
   return <section className="matchup-form-team">
     <div className="matchup-form-heading"><Logo src={logo} size={30} /><h3>{team.name}</h3></div>
     <div className="matchup-form-stats">
-      <div><small>RECORD</small><strong>{team.resultsAvailable ? `${team.record.wins}–${team.record.losses}` : "—"}</strong></div>
+      <div><small>RECORD</small><strong>{team.resultsAvailable ? `${team.record.wins}-${team.record.losses}` : "—"}</strong></div>
       <div><small>AVG. MARGIN</small><strong>{team.scoring.margin == null ? "—" : signed(team.scoring.margin, 1)}</strong></div>
       <div><small>ATS</small><strong>{count ? `${team.ats.wins}–${team.ats.losses}–${team.ats.pushes}` : "—"}</strong></div>
       <div><small>AVG. COVER</small><strong>{team.ats.avgCoverMargin == null ? "—" : signed(team.ats.avgCoverMargin, 1)}</strong></div>
@@ -196,6 +199,7 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
   const sheet = useRef<HTMLElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
+  useGameSheetDismiss(sheet, mounted, onClose);
   const away = teamDisplayName("NFL", game.away_team);
   const home = teamDisplayName("NFL", game.home_team);
 
@@ -270,7 +274,7 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
         {(["away", "home"] as const).map(side => <div className="matchup-preview-team" key={side}>
           <Logo src={side === "away" ? game.away_logo_url : game.home_logo_url} size={46} />
           <strong>{side === "away" ? away : home}</strong>
-          <span>{payload?.teams[side].resultsAvailable ? `${payload.teams[side].record.wins}–${payload.teams[side].record.losses}` : "—"}<b>{spreadText(normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread))}</b></span>
+          <span>{payload?.teams[side].resultsAvailable ? `${payload.teams[side].record.wins}-${payload.teams[side].record.losses}` : "—"}<b>{spreadText(normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread))}</b></span>
           
         </div>)}
         <span className="matchup-center-at" aria-hidden="true">AT</span>

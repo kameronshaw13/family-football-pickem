@@ -1,5 +1,8 @@
 "use client";
 
+import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
+
+
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
@@ -45,10 +48,7 @@ function RecordValue({ wins, losses, pushes = null }: { wins: number; losses: nu
   const aria = pushes == null
     ? `${wins} wins, ${losses} losses`
     : `${wins} wins, ${losses} losses, ${pushes} pushes`;
-  return <span className="matchup-record-value" aria-label={aria}>
-    <span>{wins}</span><i className="matchup-record-separator" aria-hidden="true" /><span>{losses}</span>
-    {pushes != null && <><i className="matchup-record-separator" aria-hidden="true" /><span>{pushes}</span></>}
-  </span>;
+  return <span className="matchup-record-value" aria-label={aria}>{wins}-{losses}{pushes != null ? `-${pushes}` : ""}</span>;
 }
 
 function InlineDot() {
@@ -186,6 +186,7 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
   const sheet = useRef<HTMLElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
+  useGameSheetDismiss(sheet, mounted, onClose);
   const away = teamDisplayName("CFB", game.away_team);
   const home = teamDisplayName("CFB", game.home_team);
 

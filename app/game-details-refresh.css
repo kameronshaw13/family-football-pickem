@@ -550,3 +550,274 @@
     to { opacity: 1; transform: translateY(0); }
   }
 }
+
+
+/* 2026-10-13 SHEET / NAV / TYPOGRAPHY CORRECTIONS
+ * Scoped to GameTracker and CFB/NFL previews. Do not restyle the app itself.
+ */
+
+/* A true, opaque bottom bar in both themes; no content ghosting through it. */
+html:not([data-theme="dark"]) .primary-nav {
+  background:#20282d !important;
+  opacity:1;
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+}
+html[data-theme="dark"] .primary-nav {
+  background:#171d22 !important;
+  opacity:1;
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+}
+
+/* Both details are now nearly full-height pull-down sheets, below the iPhone notch
+ * and above the permanent bottom nav. Never cover or move the nav. */
+.game-tracker-backdrop,
+.matchup-preview-backdrop {
+  top:env(safe-area-inset-top);
+  bottom:calc(var(--nav-height) + env(safe-area-inset-bottom));
+  left:0;
+  right:0;
+  height:auto;
+  padding:0;
+  align-items:flex-end;
+  justify-content:center;
+  background:rgba(16,30,40,.28);
+  overscroll-behavior:contain;
+}
+.game-tracker-sheet,
+.matchup-preview-sheet {
+  position:relative;
+  display:flex;
+  width:min(720px,100%);
+  height:min(94%,860px);
+  max-height:100%;
+  flex:0 1 auto;
+  flex-direction:column;
+  overflow:hidden;
+  border:1px solid var(--line-strong);
+  border-bottom:0;
+  border-radius:15px 15px 0 0;
+  background:var(--canvas);
+  box-shadow:0 -13px 33px rgba(16,31,40,.2);
+  touch-action:pan-y;
+  will-change:transform;
+  animation:none;
+}
+
+/* The handle is subtle but wide enough to clearly advertise drag-to-dismiss. */
+.game-tracker-header,
+.matchup-preview-header {
+  position:relative;
+  display:flex;
+  box-sizing:border-box;
+  min-height:79px;
+  height:auto;
+  flex:0 0 79px;
+  align-items:center;
+  justify-content:center;
+  padding:18px 54px 9px;
+  border:0;
+  border-bottom:2px solid var(--blue);
+  border-radius:14px 14px 0 0;
+  color:#fff;
+  background:var(--graphite);
+  touch-action:pan-y;
+}
+.game-tracker-header::before,
+.matchup-preview-header::before {
+  position:absolute;
+  top:7px;
+  left:50%;
+  display:block;
+  width:38px;
+  height:4px;
+  transform:translateX(-50%);
+  border-radius:999px;
+  background:rgba(240,246,250,.49);
+  content:"";
+  pointer-events:none;
+}
+.game-detail-title,
+.matchup-detail-title {
+  display:grid;
+  width:100%;
+  min-width:0;
+  align-content:center;
+  justify-items:center;
+  gap:5px;
+  text-align:center;
+}
+.game-detail-title > small,
+.matchup-detail-title > small {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:6px;
+  color:#bed7e3;
+  font-family:var(--font-display);
+  font-size:10px;
+  font-weight:850;
+  line-height:1.15;
+  letter-spacing:.015em;
+  text-transform:uppercase;
+}
+.game-detail-title > strong,
+.matchup-detail-title > strong {
+  display:-webkit-box;
+  width:100%;
+  max-width:100%;
+  max-height:42px;
+  min-width:0;
+  overflow:hidden;
+  color:#fff;
+  font-family:var(--font-display);
+  font-size:clamp(13px,3.75vw,17px);
+  font-weight:900;
+  letter-spacing:-.005em;
+  line-height:1.23;
+  text-align:center;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+}
+.game-tracker-header button,
+.matchup-preview-close {
+  position:absolute;
+  inset:22px 11px auto auto;
+  display:grid;
+  box-sizing:border-box;
+  width:35px;
+  height:35px;
+  min-height:35px;
+  min-width:35px;
+  place-items:center;
+  padding:0;
+  border:1px solid #d6aaa6;
+  border-radius:5px;
+  color:var(--red);
+  background:var(--red-soft);
+  line-height:0;
+  text-align:center;
+  transform:none;
+}
+.game-tracker-header button svg,
+.matchup-preview-close svg {
+  display:block;
+  width:18px;
+  height:18px;
+  margin:0;
+  transform:none;
+}
+
+/* Keep the top match information readable and proportional to the sheet. */
+.game-tracker-scoreboard-grid {
+  min-height:120px;
+  padding:10px 12px;
+}
+.game-tracker-score-team-name {
+  font-family:var(--font-display);
+  font-size:11px;
+  font-weight:800;
+  line-height:1.2;
+}
+.game-tracker-score-stack > b {
+  font-family:var(--font-display);
+  font-size:clamp(25px,7.3vw,33px);
+  font-weight:900;
+}
+.game-tracker-center-period {
+  font-family:var(--font-display);
+  font-size:11px;
+  font-weight:850;
+}
+.game-tracker-center-clock {
+  font-family:var(--font-display);
+  font-size:18px;
+  font-weight:900;
+}
+.game-tracker-score-center > small {
+  font-family:var(--font-display);
+  font-size:10px;
+  line-height:1.2;
+}
+.matchup-preview-kickoff {
+  display:flex;
+  min-height:30px;
+  align-items:center;
+  justify-content:center;
+  padding:5px 11px 3px;
+  color:var(--header-muted);
+  font-family:var(--font-display);
+  font-size:10.5px;
+  font-weight:800;
+  line-height:1.25;
+}
+.matchup-preview-hero {
+  min-height:132px;
+  flex:0 0 132px;
+  padding:7px 11px 11px;
+}
+.matchup-preview-team { gap:6px; }
+.matchup-preview-team > img,
+.matchup-preview-team > .matchup-logo-fallback {width:45px;height:45px;}
+.matchup-preview-team > strong {
+  font-family:var(--font-display);
+  font-size:clamp(12px,3.6vw,15px);
+  font-weight:850;
+  line-height:1.2;
+}
+.matchup-preview-team > span {
+  font-family:var(--font-display);
+  font-size:11px;
+  font-weight:750;
+  line-height:1.25;
+}
+.matchup-preview-team b {
+  font-family:var(--font-display);
+  font-size:11px;
+  font-weight:850;
+}
+/* Records are text, not a pair of numbers linked by a hand-drawn line. */
+.matchup-record-value {
+  display:inline;
+  width:auto;
+  height:auto;
+  color:inherit;
+  font-family:var(--font-display);
+  font-size:inherit;
+  font-weight:inherit;
+  line-height:inherit;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.matchup-record-separator {display:none;}
+.matchup-form-stats strong,
+.matchup-history strong {font-family:var(--font-display);}
+
+/* Feedback from the pull gesture uses transform on the sheet itself.
+ * Preserve vertical scrolling; a scroll from the top may convert to dismissal. */
+.game-tracker-scroll,
+.matchup-preview-scroll {
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+}
+@media(max-width:380px) {
+  .game-tracker-header,
+  .matchup-preview-header {padding-inline:46px;min-height:79px;flex-basis:79px;}
+  .game-detail-title > strong,
+  .matchup-detail-title > strong {font-size:clamp(12px,3.9vw,15px);}
+  .game-tracker-header button,
+  .matchup-preview-close {right:9px;}
+  .game-tracker-scoreboard-grid {min-height:110px;padding-inline:6px;}
+  .matchup-preview-hero {min-height:123px;flex-basis:123px;padding-inline:6px;}
+}
+@media(max-height:680px) {
+  .game-tracker-sheet,.matchup-preview-sheet {height:98%;}
+  .game-tracker-header,.matchup-preview-header {min-height:72px;flex-basis:72px;padding-top:17px;}
+  .game-tracker-header button,.matchup-preview-close {top:19px;}
+  .game-tracker-scoreboard-grid {min-height:103px;}
+  .matchup-preview-hero {min-height:116px;flex-basis:116px;}
+}
