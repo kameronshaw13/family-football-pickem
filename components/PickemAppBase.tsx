@@ -2296,6 +2296,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     </nav>
 
     <main className="container">
+      <aside className="design-edition-ribbon" aria-label="Experimental design preview"><span>FULL APP DESIGN STUDY</span><strong>A — Modern Editorial</strong></aside>
       {message && <div className="error-card"><NumericText text={message} /></div>}
       {previewActive && <div className="test-mode-banner"><span><FlaskConical size={16} /><span><strong>Board state preview</strong><small>No real picks or bank balances are changed</small></span></span><button type="button" onClick={() => { setTestWeekActive(false); setStatusFilter(defaultBoardStatus(data.games, clock, !data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock)); setStatusFilterTouched(false); }}><X size={16} /> Exit</button></div>}
 
