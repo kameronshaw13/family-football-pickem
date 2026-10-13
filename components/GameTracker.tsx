@@ -224,6 +224,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
         {!completed && <TimeoutDots remaining={timeouts} />}
       </div>
     </div>
+    <span className="game-tracker-score-team-name" title={fullName}>{team ? trackerTeamLabel(team) : fallbackName}</span>
   </div>;
 }
 
@@ -567,10 +568,15 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
     const priorOverflow = document.body.style.overflow;
     const priorFocus = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
-    const backdrop = sheet.current?.parentElement;
-    const siblings = Array.from(document.body.children).filter((node): node is HTMLElement => node instanceof HTMLElement && node !== backdrop);
-    const inertStates = siblings.map((node) => node.inert);
-    siblings.forEach((node) => { node.inert = true; });
+    // Keep the fixed main navigation usable underneath the detail view.
+    let switchedDestination = false;
+    const onMainNavigation = (event: MouseEvent) => {
+      if (event.target instanceof Element && event.target.closest(".primary-nav button")) {
+        switchedDestination = true;
+        close.current();
+      }
+    };
+    document.addEventListener("click", onMainNavigation);
     sheet.current?.querySelector<HTMLButtonElement>("button")?.focus();
     const keydown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -582,8 +588,8 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
     return () => {
       document.removeEventListener("keydown", keydown);
       document.body.style.overflow = priorOverflow;
-      siblings.forEach((node, index) => { node.inert = inertStates[index]; });
-      priorFocus?.focus();
+      document.removeEventListener("click", onMainNavigation);
+      if (!switchedDestination) priorFocus?.focus();
     };
   }, [mounted]);
 
@@ -658,10 +664,13 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
   const matchupHeader = `${awayName} at ${homeName}`;
 
   return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="true" aria-label={`${awayName} at ${homeName} GameTracker`}>
+    <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="false" aria-label={`${awayName} at ${homeName} GameTracker`}>
       <header className="game-tracker-header">
-        <span>{matchupHeader}</span>
-        <button type="button" onClick={onClose} aria-label="Close GameTracker"><X size={20} /></button>
+        <div className="game-detail-title">
+          <small><span className={`game-detail-live-indicator ${completed ? "final" : ""}`} aria-hidden="true" />{completed ? "Final" : "GameTracker"} <span className="game-detail-title-separator" aria-hidden="true">·</span> {game.league}</small>
+          <strong>{matchupHeader}</strong>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close GameTracker"><X size={18} /></button>
       </header>
 
       <div className="game-tracker-scoreboard">

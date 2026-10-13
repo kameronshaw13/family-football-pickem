@@ -195,25 +195,26 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
     const priorFocus = document.activeElement as HTMLElement | null;
     const priorOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const backdrop = sheet.current?.parentElement;
-    const siblings = Array.from(document.body.children).filter((node): node is HTMLElement => node instanceof HTMLElement && node !== backdrop);
-    const inertStates = siblings.map(node => node.inert);
-    siblings.forEach(node => { node.inert = true; });
+    // The global bottom navigation remains available while viewing matchups.
+    let switchedDestination = false;
+    const onMainNavigation = (event: MouseEvent) => {
+      if (event.target instanceof Element && event.target.closest(".primary-nav button")) {
+        switchedDestination = true;
+        close.current();
+      }
+    };
+    document.addEventListener("click", onMainNavigation);
     sheet.current?.querySelector<HTMLButtonElement>("button")?.focus();
     const keydown = (event: KeyboardEvent) => {
       if (event.key === "Escape") { event.preventDefault(); close.current(); }
-      if (event.key !== "Tab") return;
-      const elements = Array.from(sheet.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], summary, [tabindex="0"]') || []).filter(node => node.getClientRects().length > 0);
-      const first = elements[0], last = elements.at(-1);
-      if (event.shiftKey && (document.activeElement === first || !sheet.current?.contains(document.activeElement))) { event.preventDefault(); last?.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+
     };
     document.addEventListener("keydown", keydown);
     return () => {
       document.removeEventListener("keydown", keydown);
       document.body.style.overflow = priorOverflow;
-      siblings.forEach((node, index) => { node.inert = inertStates[index]; });
-      priorFocus?.focus();
+      document.removeEventListener("click", onMainNavigation);
+      if (!switchedDestination) priorFocus?.focus();
     };
   }, [mounted]);
 
@@ -241,11 +242,18 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
   if (!mounted) return null;
   const tabs: Array<[Tab, string]> = [["matchup", "Analytics"], ["form", "Form"], ["history", "History"]];
   return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-    <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="true" aria-label={`${away} at ${home} matchup preview`}>
-      <header className="matchup-preview-header"><span>{away} at {home}</span><button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={18} /></button></header>
+    <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="false" aria-label={`${away} at ${home} matchup preview`}>
+      <header className="matchup-preview-header">
+        <div className="matchup-detail-title">
+          <small>MATCHUP PREVIEW <span aria-hidden="true">·</span> CFB</small>
+          <strong>{away} at {home}</strong>
+        </div>
+        <button className="matchup-preview-close" type="button" onClick={onClose} aria-label="Close matchup preview"><X size={18} /></button>
+      </header>
       <div className="matchup-preview-kickoff">{formatOrdinalDate(matchupDateFormatter, new Date(game.commence_time))} CT</div>
       <div className="matchup-preview-hero">
-        {(["away", "home"] as const).map((side, index) => <div className="matchup-preview-team" key={side}><Logo src={side === "away" ? game.away_logo_url : game.home_logo_url} size={46} /><strong>{side === "away" ? away : home}</strong><span>{payload?.teams[side].resultsAvailable ? <RecordValue wins={payload.teams[side].record.wins} losses={payload.teams[side].record.losses} /> : "—"}{normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread) != null && <b>{spreadText(normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread))}</b>}</span>{index === 0 && <small className="matchup-preview-at">AT</small>}</div>)}
+        {(["away", "home"] as const).map(side => <div className="matchup-preview-team" key={side}><Logo src={side === "away" ? game.away_logo_url : game.home_logo_url} size={46} /><strong>{side === "away" ? away : home}</strong><span>{payload?.teams[side].resultsAvailable ? <RecordValue wins={payload.teams[side].record.wins} losses={payload.teams[side].record.losses} /> : "—"}{normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread) != null && <b>{spreadText(normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread))}</b>}</span></div>)}
+        <span className="matchup-center-at" aria-hidden="true">AT</span>
       </div>
       <nav className="matchup-preview-tabs" aria-label="Matchup sections">{tabs.map(([id, label]) => <button type="button" key={id} aria-current={tab === id ? "page" : undefined} className={tab === id ? "active" : ""} onClick={() => { setTab(id); sheet.current?.querySelector(".matchup-preview-scroll")?.scrollTo(0, 0); }}>{label}</button>)}</nav>
       <div className="matchup-preview-scroll">
