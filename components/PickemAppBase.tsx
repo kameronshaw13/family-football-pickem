@@ -2523,7 +2523,7 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
         </summary>
         <div className="bank-history-week-body">
           {week.openingBalance != null && <div className="bank-history-line">
-            <span>Opening Balance</span>
+            <span>Deposit</span>
             <strong className={week.openingBalance > 0 ? "money-pos" : week.openingBalance < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.openingBalance)} /></strong>
           </div>}
           {week.weeklyAmount != null && <div className="bank-history-line">
