@@ -250,7 +250,7 @@ html[data-theme="dark"] {
   --red-soft: #3a2626;
   --push-soft: #3c3522;
   --shadow: 0 8px 24px rgba(0, 0, 0, .22);
-  --nav-surface: rgba(23, 29, 34, .99);
+  --nav-surface: #171d22;
   --surface-soft: #20272c;
   --surface-muted: #293137;
   --canvas-muted: #171d22;
