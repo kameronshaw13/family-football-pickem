@@ -110,6 +110,7 @@ type AppData = {
   bankSettings: BankSettings;
   bankEntries: BankEntry[];
   bankHistory: BankHistoryWeek[];
+  bankBalances?: Record<string, number>;
   sideBets: SideBet[];
   sideBetLedger: SideBet[];
   sideBetSlotCounts: Record<string, number>;
@@ -2080,7 +2081,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const bankTotals = bankActive ? profiles.map((profile) => ({
     id: profile.id,
     display_name: profile.display_name,
-    total: viewedBankEntries.filter((entry) => entry.user_id === profile.id).reduce((sum, entry) => sum + Number(entry.amount || 0), 0) + Number(viewedSideBetBankTotals?.[profile.id] || 0)
+    total: !previewActive && data.bankBalances && Object.prototype.hasOwnProperty.call(data.bankBalances, profile.id)
+      ? Number(data.bankBalances[profile.id] || 0)
+      : viewedBankEntries.filter((entry) => entry.user_id === profile.id).reduce((sum, entry) => sum + Number(entry.amount || 0), 0) + Number(viewedSideBetBankTotals?.[profile.id] || 0)
   })).sort((a, b) => b.total - a.total) : [];
   const mySideBetWeekTotal = previewActive
     ? Number(testWeek!.sideBetBankTotals?.[currentUser.id] || 0)
@@ -2496,8 +2499,11 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
         playerAmount: Number(game.amounts[player.id] || 0),
         playerBetCount: Number(game.betCounts?.[player.id] || 0)
       }));
-    return { week: week.week, weeklyAmount, games };
-  }).filter((week) => week.weeklyAmount != null || week.games.length > 0);
+    const openingBalance = Object.prototype.hasOwnProperty.call(week.openingBalances || {}, player.id)
+      ? Number(week.openingBalances[player.id] || 0)
+      : null;
+    return { week: week.week, weeklyAmount, openingBalance, games };
+  }).filter((week) => week.openingBalance != null || week.weeklyAmount != null || week.games.length > 0);
 
   return <details className="bank-balance-player">
     <summary>
@@ -2508,7 +2514,7 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
     <div className="bank-balance-player-history">
       {!playerWeeks.length && <p className="muted bank-history-empty">No bank history yet.</p>}
       {playerWeeks.map((week) => {
-        const weekTotal = Number(week.weeklyAmount || 0) + week.games.reduce((sum, game) => sum + game.playerAmount, 0);
+        const weekTotal = Number(week.openingBalance || 0) + Number(week.weeklyAmount || 0) + week.games.reduce((sum, game) => sum + game.playerAmount, 0);
         return <details className="bank-history-week" key={week.week}>
         <summary>
           <strong className="bank-history-week-label">{`Week ${week.week}`}</strong>
@@ -2516,6 +2522,10 @@ function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; displa
           <ChevronDown size={16} />
         </summary>
         <div className="bank-history-week-body">
+          {week.openingBalance != null && <div className="bank-history-line">
+            <span>Opening Balance</span>
+            <strong className={week.openingBalance > 0 ? "money-pos" : week.openingBalance < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.openingBalance)} /></strong>
+          </div>}
           {week.weeklyAmount != null && <div className="bank-history-line">
             <span>Weekly Pick’em</span>
             <strong className={week.weeklyAmount > 0 ? "money-pos" : week.weeklyAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.weeklyAmount)} /></strong>
