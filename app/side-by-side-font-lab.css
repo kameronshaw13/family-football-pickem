@@ -1,0 +1,260 @@
+/*
+ * LIVE-BASE DESIGN EXPERIMENT — only two changes:
+ * 1) Matchup choices appear side by side instead of stacked.
+ * 2) Pick the global font from a preview-only compact selector.
+ *
+ * Intentionally keep the current colors, flat game-list boundaries,
+ * fixed header / bottom nav, badges, and every other view unchanged.
+ */
+:root {
+  --font-display: var(--font-barlow), Arial, sans-serif;
+}
+html[data-preview-font="barlow"] { --font-display: var(--font-barlow), Arial, sans-serif; }
+html[data-preview-font="manrope"] { --font-display: var(--font-manrope), Arial, sans-serif; }
+html[data-preview-font="outfit"] { --font-display: var(--font-outfit), Arial, sans-serif; }
+html[data-preview-font="dm-sans"] { --font-display: var(--font-dm-sans), Arial, sans-serif; }
+html[data-preview-font="jakarta"] { --font-display: var(--font-jakarta), Arial, sans-serif; }
+html[data-preview-font="archivo"] { --font-display: var(--font-archivo), Arial, sans-serif; }
+html[data-preview-font="rubik"] { --font-display: var(--font-rubik), Arial, sans-serif; }
+html[data-preview-font="space-grotesk"] { --font-display: var(--font-space-grotesk), Arial, sans-serif; }
+html[data-preview-font="original"] { --font-display: var(--font-roboto-slab), Georgia, serif; }
+body, button, input, select, textarea { font-family: var(--font-display); }
+.game-tracker-sheet, .matchup-preview-sheet { --detail-body: var(--font-display); }
+.team-spread, .team-board-market, .team-result-score,
+.ledger-row, .leaderboard, .bank-summary-grid, .bank-week-results {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Existing game group and header geometry stays identical.
+   Only the content formerly called 'stacked-matchup' changes columns. */
+.game-card .stacked-matchup {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto;
+  gap: 0;
+  width: 100%;
+  align-items: stretch;
+  background: var(--panel);
+}
+.picks-panel .stacked-matchup {
+  row-gap: 0;  /* undo the old one-pixel gap between stacked rows */
+}
+/* The central rule is the only new divider; no new pills, cards, or borders. */
+.game-card .stacked-matchup .team-row,
+.game-card.filter-dogs .stacked-matchup .team-row,
+.game-card.dog-view .stacked-matchup .team-row,
+.game-card.score-values .stacked-matchup .team-row,
+.game-card.score-values.filter-dogs .stacked-matchup .team-row,
+.game-card.score-values.dog-view .stacked-matchup .team-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  height: auto;
+  min-height: 133px;
+  padding: 12px 7px 11px;
+  border: 0;
+  border-radius: 0;
+  background-color: var(--panel);
+  text-align: center;
+  box-shadow: none;
+}
+.picks-panel .stacked-matchup .team-row {
+  height: auto;
+  min-height: 133px;
+  border-bottom: 0;
+}
+.game-card .stacked-matchup .team-row:first-child {
+  position: relative;
+  border-right: 1px solid var(--line);
+}
+.game-card .stacked-matchup .team-row:first-child::before,
+.game-card .stacked-matchup .team-row:first-child::after {
+  display: none;
+  content: none;
+}
+.game-card .stacked-matchup .team-row > .team-logo {
+  order: 0;
+  width: 39px;
+  height: 39px;
+  min-width: 39px;
+  flex: 0 0 39px;
+  object-fit: contain;
+}
+.game-card .stacked-matchup .team-row > .board-ranked-team-name,
+.game-card .stacked-matchup .team-row > .team-name-line {
+  order: 1;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  text-align: center;
+  line-height: 1.2;
+}
+.game-card .stacked-matchup .board-ranked-team-name {
+  max-width: 100%;
+}
+/* Let complete team names use two lines when needed. */
+.game-card .stacked-matchup .team-name,
+.game-card .stacked-matchup .team-name-line .team-name {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.22;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.game-card .stacked-matchup .team-name .responsive-text-value,
+.game-card .stacked-matchup .team-name-line .responsive-text-value {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.game-card .stacked-matchup .board-team-rank {
+  flex: 0 0 auto;
+  font-size: 10px;
+}
+.game-card .stacked-matchup .team-name-line {
+  flex-direction: column;
+  gap: 3px;
+}
+.game-card .stacked-matchup .team-name-line .team-board-market {
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--muted);
+}
+.game-card .stacked-matchup .team-row > .team-spread,
+.game-card .stacked-matchup .team-row > .team-result-line {
+  order: 2;
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  min-height: 20px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+.game-card .stacked-matchup .team-row > .team-spread {
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1.12;
+}
+.game-card .stacked-matchup .team-row > .team-result-line .team-result-score {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.12;
+  text-align: center;
+}
+.game-card .stacked-matchup .team-spread.unavailable {
+  font-size: 9.5px;
+  white-space: normal;
+  line-height: 1.2;
+}
+.game-card .stacked-matchup .team-row.picked-side {
+  background: var(--blue-soft);
+  box-shadow: inset 0 -3px 0 var(--blue);
+}
+.picks-panel .stacked-matchup .team-row.picked-side {
+  background: var(--blue-soft);
+  box-shadow: inset 0 -3px 0 var(--blue);
+}
+.picks-panel .stacked-matchup .team-row.picked-win {
+  background: var(--win-soft);
+  box-shadow: inset 0 -3px 0 var(--green);
+}
+.picks-panel .stacked-matchup .team-row.picked-loss {
+  background: var(--red-soft);
+  box-shadow: inset 0 -3px 0 var(--red);
+}
+.picks-panel .stacked-matchup .team-row.picked-push {
+  background: var(--surface-muted);
+  box-shadow: inset 0 -3px 0 var(--line-strong);
+}
+.game-card .stacked-matchup .team-row.selectable:not(.picked-side):active {
+  background: var(--hover);
+}
+.game-card .stacked-matchup .team-row.opponent-only,
+.game-card .stacked-matchup .team-row.blocked-side,
+.game-card.locked-out .stacked-matchup .team-row,
+.side-bet-game-card.closed .stacked-matchup .team-row {
+  background: var(--canvas-muted);
+  box-shadow: none;
+}
+/* The original layout's left-edge pick bar is inappropriate for a half-width
+   column; bottom-edge emphasis keeps team columns vertically symmetrical. */
+.side-bet-game-card .stacked-matchup .team-row.picked-side {
+  background: var(--blue-soft);
+  box-shadow: inset 0 -3px 0 var(--blue);
+}
+
+/* Preview-only font control, separate from every actual app action.
+   Compact enough to avoid altering existing page flow or navigation. */
+.preview-font-picker {
+  position: fixed;
+  z-index: 36;
+  right: 12px;
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 12px);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: calc(100vw - 24px);
+  min-height: 36px;
+  padding: 5px 9px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: 0 3px 10px rgba(20,33,43,.1);
+}
+.preview-font-picker > span {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: .05em;
+}
+.preview-font-picker select {
+  display: block;
+  width: 140px;
+  max-width: 45vw;
+  min-height: 26px;
+  padding: 2px 4px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+}
+html[data-theme="dark"] .preview-font-picker,
+html[data-theme="dark"] .preview-font-picker select {
+  color: var(--ink);
+  background: var(--panel);
+}
+@media(max-width:365px) {
+  .game-card .stacked-matchup .team-row,
+  .picks-panel .stacked-matchup .team-row {min-height: 127px; padding: 9px 5px;}
+  .game-card .stacked-matchup .team-name,
+  .game-card .stacked-matchup .team-name-line .team-name {font-size: 12px;}
+  .game-card .stacked-matchup .team-row > .team-logo {width: 35px;height: 35px;min-width:35px;flex-basis:35px;}
+  .preview-font-picker {right: 8px;}
+}
