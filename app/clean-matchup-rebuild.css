@@ -1,0 +1,577 @@
+/*
+  CLEAN MATCHUP / OCTOBER DESIGN EXPERIMENT
+  This is not the existing UI with radius overrides: primary matchup
+  controls become two-column selectable tiles, with cards organized
+  around a clear visual grid. Original game/pick/bet logic is untouched.
+*/
+:root {
+  --font-display: var(--font-jakarta), -apple-system, BlinkMacSystemFont, sans-serif;
+  --sports-number: var(--font-barlow), "Arial Narrow", sans-serif;
+  --canvas: #eff3f5;
+  --panel: #ffffff;
+  --surface-soft: #f5f8fa;
+  --surface-muted: #e8eef1;
+  --line: #dce4e9;
+  --line-strong: #c7d1d8;
+  --graphite: #202d35;
+  --blue: #4f91b6;
+  --blue-dark: #286e99;
+  --blue-soft: #e2f1fa;
+  --page-gutter: 13px;
+  --space-4: 16px;
+}
+body,button,input,select,textarea {
+  font-family:var(--font-display);
+  -webkit-font-smoothing:antialiased;
+}
+body {font-size:14px;line-height:1.4;}
+.numeric-token,.team-spread,.team-result-score,.score-bug-score,.leaderboard-stat,.leaderboard-pct,.ledger-row,.money-card,
+.bank-summary-grid,.matchup-rank-value,.matchup-form-stats,.game-tracker-scoreboard {
+  font-variant-numeric:tabular-nums lining-nums;
+}
+.section-title {margin:7px 0 13px;}
+.section-title h2 {font-size:21px;font-weight:760;letter-spacing:-.035em;line-height:1.15;}
+.section-title p {font-size:12px;line-height:1.4;}
+
+/* Navigation: one fixed floating dark dock, same viewport footprint as live. */
+.primary-nav {
+  position:fixed !important;
+  bottom:0 !important;
+  height:calc(var(--nav-height) + env(safe-area-inset-bottom));
+  min-height:calc(var(--nav-height) + env(safe-area-inset-bottom));
+  padding:6px 11px calc(10px + env(safe-area-inset-bottom)) !important;
+  background:var(--canvas);
+  box-shadow:none;
+  transform:none !important;
+  translate:none !important;
+}
+.primary-nav-inner {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  width:min(720px,100%);
+  height:64px;
+  overflow:hidden;
+  border-radius:19px;
+  background:var(--graphite);
+  box-shadow:0 5px 15px rgba(18,36,47,.16);
+}
+.primary-nav button {
+  display:flex;
+  height:64px;
+  min-width:0;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  padding:6px 3px 5px;
+  font-size:11px;
+  font-weight:650;
+  color:#aebdc6;
+  background:transparent;
+  text-align:center;
+}
+.primary-nav button.active {
+  color:#ffffff;
+  background:rgba(126,185,217,.16);
+  font-weight:780;
+}
+.primary-nav button svg {width:20px;height:20px;}
+
+/* Header remains fixed but visually lighter: one brand bar, no extra UI. */
+.scoreboard-header {background:var(--graphite);box-shadow:inset 0 -2px 0 var(--blue);}
+.scoreboard-header::before {background:var(--graphite);}
+.test-week-chip {border:1px solid rgba(215,233,243,.32);border-radius:9px;}
+.week-select-wrap {border-bottom-color:rgba(215,233,243,.32);}
+.game-day-marker {margin:0 2px 9px;gap:9px;}
+.game-day-marker > b {
+  border-radius:8px;
+  min-height:27px;
+  padding-inline:9px;
+  box-shadow:none;
+  font-size:10px;
+  font-weight:800;
+}
+.game-day-marker strong {font-size:12px;font-weight:680;}
+
+/* Filters and sections: one softly surfaced segmented component. */
+.picks-panel > .section-tabs,
+.card-panel > .section-tabs,
+.standings-panel > .section-tabs {
+  box-sizing:border-box;
+  height:50px;
+  min-height:50px;
+  margin:0 0 15px;
+  padding:4px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--surface-muted);
+  gap:4px;
+}
+.picks-panel > .section-tabs button,
+.card-panel > .section-tabs button,
+.standings-panel > .section-tabs button {
+  min-width:0;
+  height:40px;
+  padding:6px 3px;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  color:var(--header-muted);
+  font-size:12px;
+  font-weight:690;
+}
+.picks-panel > .section-tabs button.active,
+.card-panel > .section-tabs button.active,
+.standings-panel > .section-tabs button.active {
+  border:0;
+  background:var(--panel);
+  color:var(--ink);
+  box-shadow:0 1px 4px rgba(28,48,61,.1);
+  font-weight:780;
+}
+.view-select-row {gap:8px;margin-bottom:14px;}
+.view-select-row .compact-select,
+.custom-select-trigger,
+.ledger-week-select {
+  min-height:37px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:var(--panel);
+}
+.custom-select-menu {border-radius:14px;overflow:hidden;}
+.badge,.status-mark {padding:3px 6px;border-radius:6px;font-size:10px;font-weight:750;}
+
+/* Main redesign: two opposing tappable TEAM PANELS per game.
+   No old horizontal list dividers or arbitrary nested bubbles. */
+.game-days {gap:18px;}
+.game-list {
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  margin-inline:0;
+  gap:12px;
+  overflow:visible;
+  border:0;
+  background:transparent;
+}
+.game-card,
+.game-list .game-card:last-child {
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:var(--panel);
+  box-shadow:0 2px 9px rgba(26,45,58,.045);
+}
+.game-card .game-head,
+.game-head.compact-game-head {
+  box-sizing:border-box;
+  min-height:43px;
+  height:auto;
+  padding:8px 12px;
+  border:0;
+  border-bottom:1px solid var(--line);
+  background:var(--panel);
+  gap:8px;
+}
+.game-card .game-head .game-time,
+.game-card .game-head .game-live-status,
+.game-card .game-head .game-final-status {
+  font-size:11px;
+  font-weight:750;
+}
+.game-card .matchup-preview-trigger,
+.game-card .game-tracker-trigger {
+  min-height:30px;
+  padding:5px 10px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:var(--surface-soft);
+  color:var(--blue-dark);
+  font-size:10.5px;
+  font-weight:750;
+}
+.game-card .matchup-preview-actions {gap:6px;}
+
+/* Vertical alignment of two choices is intentional: role/logo/team/line. */
+.game-card .stacked-matchup {
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  align-items:stretch;
+  gap:10px;
+  padding:11px;
+  background:var(--panel);
+}
+.game-card .stacked-matchup .team-row {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  gap:7px;
+  width:100%;
+  height:auto;
+  min-height:150px;
+  padding:11px 7px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:var(--surface-soft);
+  color:var(--ink);
+  text-align:center;
+  cursor:pointer;
+  box-shadow:none;
+}
+.game-card .stacked-matchup .team-row:first-child::before,
+.game-card .stacked-matchup .team-row:first-child::after {display:none !important;content:none !important;}
+.game-card .team-row > .matchup-side-id {
+  order:0;
+  flex:0 0 auto;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+.game-card .stacked-matchup .team-row > .team-logo {
+  order:1;
+  display:block;
+  width:43px;
+  height:43px;
+  min-width:43px;
+  flex:0 0 43px;
+  object-fit:contain;
+}
+.game-card .stacked-matchup .team-row > .team-name,
+.game-card .stacked-matchup .team-row > .team-name-line {
+  order:2;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-width:0;
+  min-height:32px;
+  margin:0;
+  padding:0;
+  overflow:visible;
+  text-align:center;
+}
+.game-card .stacked-matchup .team-name {
+  display:block;
+  width:100%;
+  min-width:0;
+  overflow:visible;
+  color:var(--ink);
+  font-size:12px;
+  font-weight:730;
+  line-height:1.22;
+  text-align:center;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.game-card .stacked-matchup .team-name-line .team-board-market {
+  margin-top:3px;
+  font-size:11px;
+  color:var(--muted);
+  justify-content:center;
+}
+.game-card .stacked-matchup .team-row > .team-spread,
+.game-card .stacked-matchup .team-row > .team-result-line {
+  order:3;
+  display:flex;
+  width:100%;
+  min-width:0;
+  min-height:24px;
+  align-items:center;
+  justify-content:center;
+  margin:0;
+  padding:0;
+  gap:4px;
+  text-align:center;
+}
+.game-card .stacked-matchup .team-spread,
+.game-card .stacked-matchup .team-result-score {
+  color:var(--ink);
+  font-family:var(--sports-number);
+  font-size:23px;
+  font-weight:700;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.005em;
+}
+.game-card .stacked-matchup .team-row.picked-side,
+.game-card .stacked-matchup .team-row.picked-win {
+  background:var(--blue-soft);
+  border-color:var(--blue);
+  box-shadow:inset 0 0 0 1px var(--blue);
+}
+.game-card .stacked-matchup .team-row.picked-win {border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green);}
+.game-card .stacked-matchup .team-row.picked-loss {background:var(--red-soft);border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red);}
+.game-card .stacked-matchup .team-row.picked-push {background:var(--push-soft);border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold);}
+.game-card .stacked-matchup .team-row.selectable:active {transform:scale(.985);}
+.game-card .stacked-matchup .team-row:disabled {cursor:default;opacity:1;}
+.game-card .stacked-matchup .team-row.opponent-only,
+.game-card .stacked-matchup .team-row.blocked-side,
+.game-card.locked-out .stacked-matchup .team-row,
+.side-bet-game-card.closed .stacked-matchup .team-row {
+  background:var(--surface-muted);
+  border-color:var(--line);
+}
+.game-card .stacked-matchup .team-row.picked-side .team-name {color:var(--ink);}
+
+/* My Card: modular pick rows; no nested dividers or oversized labels. */
+.card-progress {
+  margin-inline:0;
+  padding:13px 14px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--panel);
+  box-shadow:0 2px 9px rgba(26,45,58,.04);
+}
+.progress-track {height:6px;border-radius:10px;overflow:hidden;}
+.progress-track span {border-radius:10px;}
+.card-panel .pick-section {margin-top:18px;}
+.card-panel .pick-section > h3,
+.card-panel .group-card > h3 {
+  margin:0 0 9px;
+  padding:0 4px;
+  height:auto;
+  min-height:22px;
+  border:0;
+  background:transparent;
+  color:var(--header-muted);
+  font-size:11px;
+  font-weight:780;
+}
+.card-panel .group-list {margin-inline:0;gap:15px;}
+.card-panel .group-card {margin:0;padding:0;background:transparent;}
+.card-panel .group-card + .group-card {margin-top:0;}
+.card-panel .pick-card,
+.card-panel .visible-pick {
+  box-sizing:border-box;
+  width:100%;
+  min-height:71px;
+  height:auto;
+  margin:0 0 8px;
+  padding:11px 12px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:var(--panel);
+  box-shadow:0 1px 5px rgba(26,45,58,.035);
+}
+.card-panel .pick-card:first-of-type::before,
+.card-panel .group-card .visible-pick:first-of-type::before {display:none;}
+.card-panel .pick-card:last-child,
+.card-panel .visible-pick:last-child {border:1px solid var(--line);}
+.pick-title,.visible-pick-copy strong {font-size:13px;font-weight:740;}
+.pick-meta,.visible-pick p {font-size:10.5px;line-height:1.35;}
+.pick-top,.visible-pick {column-gap:9px;}
+.pick-title-market {font-weight:780;}
+.card-panel .card-empty-picks,.card-panel .group-empty-picks {
+  margin:0;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:var(--panel);
+}
+
+/* Side bets: same matchup tile language; offer list is clean rows. */
+.side-bet-list {margin-inline:0;gap:10px;}
+.side-bet-list.grouped {gap:18px;}
+.side-bet-list-section {display:grid;gap:0;}
+.side-bet-list-section > h3 {
+  margin:0 0 9px;
+  padding:0 3px;
+  height:auto;
+  min-height:23px;
+  border:0;
+  background:transparent;
+  color:var(--header-muted);
+  font-size:11px;
+}
+.side-bet-list-section-body {display:grid;gap:8px;background:transparent;}
+.side-bet-list-section-body .side-bet-card,
+.side-bet-list > .side-bet-card,
+.side-bet-list > .side-bet-card:first-child {
+  box-sizing:border-box;
+  height:auto;
+  min-height:70px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:var(--panel);
+  padding:10px 12px;
+  box-shadow:0 1px 5px rgba(26,45,58,.035);
+}
+.side-bet-list-section-body .side-bet-card:first-child {border-top:1px solid var(--line);}
+.side-bet-offer-copy > strong {font-size:13px;font-weight:740;}
+.side-bet-offer-amount {font-weight:800;}
+.side-bet-bank-available {border-radius:16px;}
+.side-bet-slip-bar {border-radius:14px 14px 0 0;}
+
+/* Stats/standings are ONE table instead of one bubble per statistic. */
+.leaderboard,.bank-summary-grid,.bank-week-results,.ledger-list,.rules-list {
+  margin-inline:0;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--panel);
+  box-shadow:0 2px 8px rgba(26,45,58,.035);
+}
+.leaderboard-labels,.bank-summary-head,.bank-results-labels {background:var(--surface-soft);}
+.leaderboard-row:last-child,.ledger-row:last-child,.bank-history-week:last-child:not([open]) > summary {border-bottom:0;}
+.leaderboard-player strong {font-weight:720;}
+.bank-balance-player-name {font-weight:720;}
+.leaderboard-stat,.leaderboard-pct,.bank-balance-player > summary > strong {
+  font-family:var(--sports-number);
+  font-size:18px;
+  font-weight:700;
+}
+
+/* Detail sheets are a new light surface with built-in segmented nav. */
+.game-tracker-sheet,.matchup-preview-sheet {
+  --detail-body:var(--font-display);
+  border-radius:18px 18px 0 0;
+  background:var(--canvas);
+}
+.game-tracker-header,.matchup-preview-header {
+  height:54px;
+  min-height:54px;
+  flex-basis:54px;
+  padding:10px 51px 5px;
+  border:0;
+  border-bottom:1px solid var(--line);
+  border-radius:18px 18px 0 0;
+  background:var(--panel);
+  color:var(--ink);
+}
+.game-tracker-header::before,.matchup-preview-header::before {background:var(--blue);top:5px;border-radius:8px;}
+.game-detail-title > strong,.matchup-detail-title > strong {
+  color:var(--ink);
+  font-size:13px;
+  font-weight:770;
+  line-height:1.22;
+  letter-spacing:-.022em;
+}
+.game-tracker-header button::before,.matchup-preview-close::before {
+  border:0;
+  border-radius:9px;
+  background:var(--red-soft);
+}
+.game-tracker-tabs,.game-tracker-tabs.completed,
+.matchup-preview-tabs,.matchup-preview-tabs.has-model-tab {
+  display:grid;
+  height:54px;
+  min-height:54px;
+  flex-basis:54px;
+  gap:4px;
+  padding:6px 10px;
+  border-bottom:1px solid var(--line);
+  background:var(--panel);
+}
+.game-tracker-tabs button,.matchup-preview-tabs button {
+  height:41px;
+  min-height:41px;
+  padding:5px 2px;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  font-size:11px;
+  font-weight:710;
+}
+.game-tracker-tabs button.active,.matchup-preview-tabs button.active {
+  border:0;
+  background:var(--blue-soft);
+  color:var(--blue-dark);
+  font-weight:800;
+}
+.game-tracker-scoreboard,.matchup-preview-hero {background:var(--panel);}
+.game-tracker-scoreboard-grid {min-height:143px;padding:12px 12px;}
+.game-tracker-score-stack > b {
+  font-family:var(--sports-number);
+  font-size:38px;
+  font-weight:700;
+  letter-spacing:.008em;
+}
+.game-tracker-score-team-name {font-size:11px;line-height:1.3;font-weight:740;}
+.game-tracker-center-clock {font-family:var(--sports-number);font-size:23px;font-weight:700;}
+.game-tracker-center-period {font-size:10px;font-weight:800;}
+.matchup-preview-hero {height:150px;min-height:150px;flex-basis:150px;}
+.matchup-preview-team > strong {font-size:13px;font-weight:760;line-height:1.23;}
+.matchup-preview-team > span,.matchup-preview-team > span b {font-size:12px;font-weight:750;}
+.matchup-strength,.matchup-comparison-block,.matchup-form-team,
+.matchup-history-list,.matchup-history-body .matchup-series-summary,
+.game-tracker-live-drive,.game-tracker-team-stats,.game-tracker-team-box {
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:var(--panel);
+  box-shadow:0 1px 5px rgba(26,45,58,.035);
+}
+.matchup-section-heading,.matchup-form-team h4 {background:var(--surface-soft);}
+.matchup-metric-row {min-height:58px;}
+.matchup-rank-value strong {font-family:var(--sports-number);font-size:20px;font-weight:700;}
+.matchup-rank-value small {font-size:10px;font-weight:660;}
+.matchup-metric-label strong {font-size:11px;font-weight:670;}
+.matchup-form-stats strong {font-family:var(--sports-number);font-size:20px;font-weight:700;}
+.matchup-form-stats small {font-size:9px;font-weight:750;}
+.matchup-form-heading h3 {font-size:14px;font-weight:760;}
+.matchup-form-combined-row .matchup-result-outcome > strong {font-family:var(--sports-number);font-size:20px;font-weight:700;}
+.matchup-history-score-team > strong {font-family:var(--sports-number);font-size:21px;font-weight:700;}
+.matchup-history-body .matchup-series-wins b {font-family:var(--sports-number);font-size:15px;}
+.game-tracker-scoring-list,.game-tracker-drives {
+  display:grid;
+  gap:11px;
+  padding:12px 11px 16px;
+  margin:0;
+  align-content:start;
+}
+.game-tracker-period-card {
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:var(--panel);
+}
+.game-tracker-period-card > .game-tracker-quarter-header {
+  border-top:0;
+  border-bottom:1px solid var(--line);
+  background:var(--surface-soft);
+}
+.game-tracker-period-card > .game-tracker-score-play:last-child,
+.game-tracker-period-card > .game-tracker-drive:last-child {border-bottom:0;}
+.game-tracker-period-card .game-tracker-drive {border-inline:0;border-radius:0;}
+.game-tracker-score-values b {font-family:var(--sports-number);font-size:20px;font-weight:700;}
+.game-tracker-scoring-copy > p {font-size:12px;line-height:1.4;font-weight:580;}
+.game-tracker-live {padding-inline:11px;}
+.game-tracker-field {border-radius:12px;}
+.game-tracker-box-selector {border-radius:12px;}
+.game-tracker-box-selector button {border-radius:9px;}
+/* Selection and numeric columns do not shift in dark mode. */
+html[data-theme="dark"] .primary-nav {background:var(--canvas);}
+html[data-theme="dark"] .primary-nav-inner {background:var(--graphite);}
+html[data-theme="dark"] .game-list .game-card,
+html[data-theme="dark"] .game-list .game-card:last-child {background:var(--panel);}
+html[data-theme="dark"] .game-card .stacked-matchup {background:var(--panel);}
+html[data-theme="dark"] .game-card .stacked-matchup .team-row:not(.picked-side) {background:var(--surface-soft);}
+html[data-theme="dark"] .game-tracker-header,html[data-theme="dark"] .matchup-preview-header {background:var(--panel);border-color:var(--line);}
+html[data-theme="dark"] .game-detail-title > strong,html[data-theme="dark"] .matchup-detail-title > strong {color:var(--ink);}
+html[data-theme="dark"] .game-tracker-scoreboard,
+html[data-theme="dark"] .matchup-preview-hero {background:var(--panel);}
+html[data-theme="dark"] .game-tracker-tabs,
+html[data-theme="dark"] .matchup-preview-tabs {background:var(--panel);}
+html[data-theme="dark"] .game-tracker-period-card {background:var(--panel);}
+/* Mobile defaults: compact, centered, readable even on narrow screens. */
+@media(max-width:375px) {
+  :root {--page-gutter:10px;}
+  .game-card .stacked-matchup {gap:7px;padding:8px;}
+  .game-card .stacked-matchup .team-row {min-height:143px;padding-inline:5px;}
+  .game-card .stacked-matchup .team-name {font-size:11px;}
+  .game-card .stacked-matchup .team-row > .team-logo {width:39px;height:39px;min-width:39px;flex-basis:39px;}
+  .game-tracker-score-stack > b {font-size:32px;}
+  .matchup-form-stats strong {font-size:17px;}
+}
+@media(max-height:630px) {
+ .matchup-preview-hero {height:136px;min-height:136px;flex-basis:136px;}
+ .game-tracker-scoreboard-grid {min-height:112px;padding-block:9px;}
+ .game-tracker-tabs,.matchup-preview-tabs {height:49px;min-height:49px;flex-basis:49px;padding-block:4px;}
+ .game-tracker-tabs button,.matchup-preview-tabs button {min-height:41px;height:41px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .game-card .stacked-matchup .team-row.selectable:active {transform:none;}
+}

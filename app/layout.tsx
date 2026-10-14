@@ -17,8 +17,9 @@ import "./game-tracker.css";
 import "./theme-settings.css";
 import "./game-details-refresh.css";
 import "./game-details-system.css";
+import "./clean-matchup-rebuild.css";
 import type { Metadata, Viewport } from "next";
-import { Roboto_Slab } from "next/font/google";
+import { Plus_Jakarta_Sans, Barlow_Condensed } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
 import DogPickAdjustmentAlerts from "@/components/DogPickAdjustmentAlerts";
@@ -27,12 +28,8 @@ import PlayerProfiles from "@/components/PlayerProfiles";
 import SideBetBatchEnhancements from "@/components/SideBetBatchEnhancements";
 import SideBetBatchPresentationEnhancement from "@/components/SideBetBatchPresentationEnhancement";
 
-const robotoSlab = Roboto_Slab({
-  subsets: ["latin"],
-  variable: "--font-roboto-slab",
-  display: "swap",
-  preload: true
-});
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta", display: "swap" });
+const barlow = Barlow_Condensed({ subsets: ["latin"], weight: ["500", "600", "700", "800"], variable: "--font-barlow", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Family Football Pick'em",
@@ -182,7 +179,7 @@ declare global {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" className={robotoSlab.variable} suppressHydrationWarning>
+    <html lang="en" data-theme="light" className={`${jakarta.variable} ${barlow.variable}`} suppressHydrationWarning>
       <head>
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_HEADER_CSS }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
