@@ -374,31 +374,39 @@ function ScoringScore({
 function Scoring({ payload }: { payload: TrackerPayload }) {
   if (!payload.scoringPlays.length) return <p className="game-tracker-empty">No scoring plays yet.</p>;
 
-  return <div className="game-tracker-scoring-list">
-    {payload.scoringPlays.map((play, index) => {
-      const previous = payload.scoringPlays[index - 1];
-      const quarter = periodLabel(play.period);
-      const showQuarter = !previous || periodLabel(previous.period) !== quarter;
+  // A quarter is one visual group; scores remain on the exact same two-column grid.
+  const groups: Array<{
+    period: string;
+    plays: Array<{
+      play: TrackerPayload["scoringPlays"][number];
+      previous?: TrackerPayload["scoringPlays"][number];
+    }>;
+  }> = [];
+  payload.scoringPlays.forEach((play, index) => {
+    const period = periodLabel(play.period);
+    if (groups[groups.length - 1]?.period !== period) groups.push({ period, plays: [] });
+    groups[groups.length - 1].plays.push({ play, previous: payload.scoringPlays[index - 1] });
+  });
 
-      return <Fragment key={play.id}>
-        {showQuarter && <ScoringQuarterHeader payload={payload} label={quarter} />}
-        <div className="game-tracker-score-play">
-          <div className="game-tracker-scoring-copy">
-            <div className="game-tracker-scoring-meta">
-              <strong>{play.type || "Score"}</strong>
-              {play.clock && <time>{play.clock}</time>}
-            </div>
-            <p>{play.text}</p>
-            {play.drive && <small><MetaDots items={[
-              play.drive.playsCount ? `${play.drive.playsCount} plays` : "",
-              play.drive.yards != null ? `${play.drive.yards} yds` : "",
-              play.drive.timeElapsed ? `${play.drive.timeElapsed} possession` : ""
-            ].filter(Boolean)} /></small>}
+  return <div className="game-tracker-scoring-list">
+    {groups.map((group, index) => <section className="game-tracker-period-card" key={`${group.period}-${index}`}>
+      <ScoringQuarterHeader payload={payload} label={group.period} />
+      {group.plays.map(({ play, previous }) => <div className="game-tracker-score-play" key={play.id}>
+        <div className="game-tracker-scoring-copy">
+          <div className="game-tracker-scoring-meta">
+            <strong>{play.type || "Score"}</strong>
+            {play.clock && <time>{play.clock}</time>}
           </div>
-          <ScoringScore play={play} previous={previous} />
+          <p>{play.text}</p>
+          {play.drive && <small><MetaDots items={[
+            play.drive.playsCount ? `${play.drive.playsCount} plays` : "",
+            play.drive.yards != null ? `${play.drive.yards} yds` : "",
+            play.drive.timeElapsed ? `${play.drive.timeElapsed} possession` : ""
+          ].filter(Boolean)} /></small>}
         </div>
-      </Fragment>;
-    })}
+        <ScoringScore play={play} previous={previous} />
+      </div>)}
+    </section>)}
   </div>;
 }
 
@@ -446,18 +454,23 @@ function DriveDetails({ drive, payload, initiallyOpen }: { drive: TrackerDrive; 
 function Plays({ payload }: { payload: TrackerPayload }) {
   if (!payload.drives.length) return <p className="game-tracker-empty">Drive data is not available yet.</p>;
 
+  // Group drives under their quarter as a single surface, not one bubble per play.
+  const groups: Array<{ period: string; drives: Array<{ drive: TrackerDrive; index: number }> }> = [];
+  payload.drives.forEach((drive, index) => {
+    const period = periodLabel(drivePeriod(drive));
+    if (groups[groups.length - 1]?.period !== period) groups.push({ period, drives: [] });
+    groups[groups.length - 1].drives.push({ drive, index });
+  });
   return <div className="game-tracker-drives">
-    {payload.drives.map((drive, index) => {
-      const previous = payload.drives[index - 1];
-      const period = periodLabel(drivePeriod(drive));
-      const previousPeriod = previous ? periodLabel(drivePeriod(previous)) : "";
-      const showQuarter = !previous || period !== previousPeriod;
-
-      return <Fragment key={drive.id}>
-        {showQuarter && <div className="game-tracker-quarter-header">{period} Quarter</div>}
-        <DriveDetails drive={drive} payload={payload} initiallyOpen={drive.current || index === 0} />
-      </Fragment>;
-    })}
+    {groups.map((group, index) => <section className="game-tracker-period-card" key={`${group.period}-${index}`}>
+      <div className="game-tracker-quarter-header">{group.period} Quarter</div>
+      {group.drives.map(({ drive, index: driveIndex }) => <DriveDetails
+        key={drive.id}
+        drive={drive}
+        payload={payload}
+        initiallyOpen={drive.current || driveIndex === 0}
+      />)}
+    </section>)}
   </div>;
 }
 
