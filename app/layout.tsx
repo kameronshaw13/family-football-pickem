@@ -19,7 +19,7 @@ import "./game-details-refresh.css";
 import "./game-details-system.css";
 import "./side-by-side-font-lab.css";
 import type { Metadata, Viewport } from "next";
-import { Roboto_Slab, Barlow, Manrope, Outfit, DM_Sans } from "next/font/google";
+import { Roboto_Slab, Barlow, Manrope, Outfit, DM_Sans, Plus_Jakarta_Sans, Archivo, Rubik, Space_Grotesk } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
 import DogPickAdjustmentAlerts from "@/components/DogPickAdjustmentAlerts";
@@ -39,6 +39,11 @@ const barlow = Barlow({ subsets: ["latin"], weight: ["400", "500", "600", "700",
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap", preload: false });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit", display: "swap", preload: false });
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap", preload: false });
+
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta", display: "swap", preload: false });
+const archivo = Archivo({ subsets: ["latin"], variable: "--font-archivo", display: "swap", preload: false });
+const rubik = Rubik({ subsets: ["latin"], variable: "--font-rubik", display: "swap", preload: false });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", display: "swap", preload: false });
 
 export const metadata: Metadata = {
   title: "Family Football Pick'em",
@@ -188,7 +193,7 @@ declare global {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" className={`${robotoSlab.variable} ${barlow.variable} ${manrope.variable} ${outfit.variable} ${dmSans.variable}`} suppressHydrationWarning>
+    <html lang="en" data-theme="light" className={`${robotoSlab.variable} ${barlow.variable} ${manrope.variable} ${outfit.variable} ${dmSans.variable} ${jakarta.variable} ${archivo.variable} ${rubik.variable} ${spaceGrotesk.variable}`} suppressHydrationWarning>
       <head>
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_HEADER_CSS }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
