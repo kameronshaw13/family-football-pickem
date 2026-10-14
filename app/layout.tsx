@@ -17,8 +17,9 @@ import "./game-tracker.css";
 import "./theme-settings.css";
 import "./game-details-refresh.css";
 import "./game-details-system.css";
+import "./inter-soft-ui-preview.css";
 import type { Metadata, Viewport } from "next";
-import { Roboto_Slab } from "next/font/google";
+import { Inter, Roboto_Slab } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
 import DogPickAdjustmentAlerts from "@/components/DogPickAdjustmentAlerts";
@@ -26,6 +27,13 @@ import LedgerScopeMenuEnhancement from "@/components/LedgerScopeMenuEnhancement"
 import PlayerProfiles from "@/components/PlayerProfiles";
 import SideBetBatchEnhancements from "@/components/SideBetBatchEnhancements";
 import SideBetBatchPresentationEnhancement from "@/components/SideBetBatchPresentationEnhancement";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+  preload: true
+});
 
 const robotoSlab = Roboto_Slab({
   subsets: ["latin"],
@@ -182,7 +190,7 @@ declare global {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" className={robotoSlab.variable} suppressHydrationWarning>
+    <html lang="en" data-theme="light" className={`${inter.variable} ${robotoSlab.variable}`} suppressHydrationWarning>
       <head>
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_HEADER_CSS }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
