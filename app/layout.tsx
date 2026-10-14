@@ -21,6 +21,7 @@ import "./side-by-side-font-lab.css";
 import type { Metadata, Viewport } from "next";
 import { Roboto_Slab, Barlow, Manrope, Outfit, DM_Sans, Plus_Jakarta_Sans, Archivo, Rubik, Space_Grotesk } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
+import PreviewFontSwitcher from "@/components/PreviewFontSwitcher";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
 import DogPickAdjustmentAlerts from "@/components/DogPickAdjustmentAlerts";
 import LedgerScopeMenuEnhancement from "@/components/LedgerScopeMenuEnhancement";
@@ -202,7 +203,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/header-wordmark.png" as="image" type="image/png" />
         <link rel="preload" href="/football-pickem-wordmark.png" as="image" type="image/png" />
       </head>
-      <body>{children}<AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /><SideBetBatchEnhancements /><SideBetBatchPresentationEnhancement /><LedgerScopeMenuEnhancement /></body>
+      <body>{children}<PreviewFontSwitcher /><AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /><SideBetBatchEnhancements /><SideBetBatchPresentationEnhancement /><LedgerScopeMenuEnhancement /></body>
     </html>
   );
 }
