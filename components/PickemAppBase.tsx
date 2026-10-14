@@ -3242,6 +3242,7 @@ function SideBetGameCard({ game, market, boardMarket, selectedTeam, disabled, mo
         aria-pressed={selectedTeam === team}
         onClick={() => onSelect(game, team)}
       >
+        <span className="matchup-side-id">{team === game.away_team ? "Away" : "Home"}</span>
         <TeamLogo url={logoForTeam(game, team)} name={team} />
         <BoardTeamName game={game} team={team} />
         <span className={`team-spread ${boardMarket === "total" ? "side-bet-total-market" : ""}`.trim()}>{boardMarket === "total" && market?.total
@@ -3578,6 +3579,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
         disabled={!awaySelectable}
         onClick={() => choose(game.away_team)}
       >
+        <span className="matchup-side-id">Away</span>
         <TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} />
         {showScoreValues ? <span className="team-name-line"><BoardTeamName game={game} team={game.away_team} />{awayResultLine && <span className="team-board-market"><NumericText text={awayResultLine} /></span>}</span> : <BoardTeamName game={game} team={game.away_team} />}
         {showScoreValues ? <span className="team-result-line"><PossessionIcon game={game} team={game.away_team} /><span className="team-result-score"><NumericText text={awayScore ?? "—"} /></span></span> : hasSpread && !awayOpponentOnly && <span className={`team-spread ${awayBlocked ? "unavailable" : ""}`}><span>{awayBlocked ? "Not eligible" : <NumericText text={sideLine(game.away_team)} />}</span></span>}
@@ -3589,6 +3591,7 @@ function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, now, po
         disabled={!homeSelectable}
         onClick={() => choose(game.home_team)}
       >
+        <span className="matchup-side-id">Home</span>
         <TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} />
         {showScoreValues ? <span className="team-name-line"><BoardTeamName game={game} team={game.home_team} />{homeResultLine && <span className="team-board-market"><NumericText text={homeResultLine} /></span>}</span> : <BoardTeamName game={game} team={game.home_team} />}
         {showScoreValues ? <span className="team-result-line"><PossessionIcon game={game} team={game.home_team} /><span className="team-result-score"><NumericText text={homeScore ?? "—"} /></span></span> : hasSpread && !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
