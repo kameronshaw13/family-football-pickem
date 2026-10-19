@@ -231,3 +231,209 @@ select:focus-visible,
     box-shadow: var(--shadow);
   }
 }
+
+
+/* Inter spacing normalization — phone-first, preserves existing layout structure. */
+:root {
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 24px;
+}
+
+/* Inter is slightly wider/cleaner than the previous display face, so keep line boxes intentional. */
+body, button, input, select, textarea {
+  line-height: 1.25;
+}
+button, input, select, textarea {
+  font-family: var(--font-display);
+}
+.section-title h2,
+.team-name,
+.team-spread,
+.team-board-market,
+.team-result-score,
+.leaderboard-player strong,
+.bank-balance-player-name,
+.bank-result-player,
+.ledger-row strong {
+  line-height: 1.2;
+}
+
+/* One horizontal rhythm across phone surfaces. */
+.container {
+  padding-left: var(--ui-space-3);
+  padding-right: var(--ui-space-3);
+}
+.picks-panel > .section-tabs,
+.card-panel > .section-tabs,
+.standings-panel > .section-tabs,
+.test-mode-banner,
+.notification-settings {
+  margin-left: calc(var(--ui-space-3) * -1);
+  margin-right: calc(var(--ui-space-3) * -1);
+  padding-left: var(--ui-space-3);
+  padding-right: var(--ui-space-3);
+}
+.section-title {
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-1);
+  margin-bottom: var(--ui-space-3);
+}
+.view-select-row,
+.side-bet-offer-mode-row {
+  gap: var(--ui-space-2);
+  margin-bottom: var(--ui-space-3);
+}
+
+/* Repeated vertical groups should read as one consistent stack. */
+.game-days,
+.pick-sections,
+.card-sections,
+.standings-sections,
+.side-bet-sections {
+  gap: var(--ui-space-4);
+}
+.game-day-marker {
+  gap: var(--ui-space-2);
+  margin-bottom: var(--ui-space-2);
+}
+.game-list,
+.group-list,
+.side-bet-list,
+.ledger-list,
+.leaderboard {
+  margin-top: 0;
+  margin-bottom: var(--ui-space-4);
+}
+
+/* Keep row content centered with matching left/right insets. */
+.team-row,
+.pick-card,
+.side-bet-card,
+.ledger-row,
+.bank-game-result,
+.bank-player-result > summary {
+  align-items: center;
+}
+.pick-card,
+.side-bet-card,
+.ledger-row.side-bet-ledger-row,
+.bank-game-result {
+  padding-left: var(--ui-space-3);
+  padding-right: var(--ui-space-3);
+}
+.team-row {
+  padding-left: var(--ui-space-3);
+  padding-right: var(--ui-space-3);
+}
+.game-head,
+.kameron-model-strip,
+.confirmation-market-line {
+  padding-left: var(--ui-space-3);
+  padding-right: var(--ui-space-3);
+}
+
+/* Controls: same height family and balanced internal whitespace. */
+.compact-select,
+.compact-select .custom-select-trigger,
+.compact-select select {
+  min-height: 40px;
+}
+.compact-select .custom-select-trigger,
+.compact-select select,
+.custom-select-option {
+  padding-top: var(--ui-space-2);
+  padding-bottom: var(--ui-space-2);
+}
+.btn {
+  min-height: 44px;
+  padding: 10px var(--ui-space-3);
+}
+.input {
+  min-height: 46px;
+  padding-left: var(--ui-space-3);
+  padding-right: var(--ui-space-3);
+}
+
+/* Bottom nav icon/text spacing stays optically centered with Inter. */
+.primary-nav button {
+  gap: 5px;
+  padding-top: 10px;
+  padding-bottom: 7px;
+  line-height: 1.1;
+}
+
+/* Side-bet forms use the same horizontal inset as the rest of the app. */
+.side-bet-market-fields label,
+.side-bet-risk-field,
+.side-bet-payout-preview > span,
+.side-bet-field-error {
+  padding-left: var(--ui-space-3);
+  padding-right: var(--ui-space-3);
+}
+.side-bet-market-fields label,
+.side-bet-risk-field {
+  row-gap: var(--ui-space-1);
+}
+.side-bet-risk-field > div {
+  gap: var(--ui-space-2);
+}
+
+/* Detail sheets: consistent edge inset without changing their structure. */
+.matchup-strength,
+.matchup-comparison-block,
+.matchup-split-lists,
+.matchup-history-body .matchup-series-summary,
+.matchup-history-list,
+.game-tracker-live {
+  margin-left: var(--ui-space-3);
+  margin-right: var(--ui-space-3);
+}
+.matchup-column-heads,
+.matchup-metric-row,
+.matchup-result-row.matchup-form-combined-row,
+.matchup-history-game,
+.game-tracker-score-play,
+.game-tracker-drive > summary {
+  padding-left: var(--ui-space-3);
+  padding-right: var(--ui-space-3);
+}
+
+/* Narrow phones keep the same rhythm instead of switching to one-off values. */
+@media (max-width: 520px) {
+  :root {
+    --page-gutter: 12px;
+    --pick-content-inset: 12px;
+    --bank-content-inset: 12px;
+  }
+  .scoreboard-header {
+    padding-left: var(--ui-space-3);
+    padding-right: var(--ui-space-3);
+  }
+  .container {
+    padding-left: var(--ui-space-3);
+    padding-right: var(--ui-space-3);
+  }
+  .side-bet-slip-bar,
+  .side-bet-slip-sheet,
+  .autosave-toast,
+  .toast {
+    right: var(--ui-space-3);
+    left: var(--ui-space-3);
+  }
+}
+
+@media (max-width: 360px) {
+  .container,
+  .scoreboard-header,
+  .pick-card,
+  .side-bet-card,
+  .ledger-row.side-bet-ledger-row,
+  .bank-game-result,
+  .team-row {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
