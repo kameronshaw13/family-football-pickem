@@ -53,12 +53,13 @@ select:focus-visible,
 .leaderboard-labels { font-size: 11px; letter-spacing: .025em; }
 .leaderboard-row { min-height: 60px; }
 .leaderboard-labels, .leaderboard-row {
-  grid-template-columns: 34px minmax(0, 1fr) repeat(3, minmax(30px, 36px)) minmax(52px, 64px);
-  column-gap: 2px;
+  grid-template-columns: 48px minmax(0, 1fr) repeat(3, 34px) 58px;
+  column-gap: 3px;
 }
 .leaderboard-labels > span, .leaderboard-row > span, .leaderboard-row > strong,
 .leaderboard-player { min-width: 0; align-self: stretch; align-items: center; }
 .leaderboard-labels > span:not(:nth-child(2)) { justify-content: center; text-align: center; }
+.leaderboard-labels > span:first-child { padding-left: 0; }
 .leaderboard-player strong { max-width: 100%; }
 .bank-results-labels > span:nth-child(2), .bank-results-labels > span:nth-child(3),
 .bank-result-record, .bank-result-amount { justify-content: center; text-align: center; }
@@ -67,6 +68,23 @@ select:focus-visible,
 .section-tabs button { display: flex; align-items: center; justify-content: center; min-width: 0; line-height: 1.2; }
 .section-tab-label { min-width: 0; }
 .badge, .status-mark { display: inline-flex; align-items: center; justify-content: center; line-height: 1.15; text-align: center; }
+@media (max-width: 360px) {
+  .leaderboard-labels, .leaderboard-row {
+    grid-template-columns: 44px minmax(0, 1fr) repeat(3, 30px) 54px;
+    column-gap: 2px;
+  }
+  .pick-card, .side-bet-card { height: auto; min-height: var(--pick-card-row-height); }
+  .pick-meta:has(.responsive-text-wrap-small),
+  .pick-meta .responsive-text-wrap-small,
+  .pick-meta .responsive-text-wrap-small .responsive-text-value,
+  .side-bet-response-line,
+  .side-bet-response-value {
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+  }
+  .side-bet-response-value { flex-wrap: wrap; row-gap: 1px; }
+}
 .pick-meta, .visible-pick p { font-size: 12px; }
 .btn { min-height: 44px; border-radius: 7px; font-size: 13px; }
 .input { min-height: 46px; border-radius: 7px; }
