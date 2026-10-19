@@ -114,6 +114,8 @@ select:focus-visible,
 .game-tracker-score-play:has(+ .game-tracker-quarter-header),
 .game-tracker-drive:has(+ .game-tracker-quarter-header) { border-bottom-color: var(--line); }
 .game-tracker-drive-quarter-header { min-height: 34px; padding: 8px 12px; }
+.game-tracker-drive[open] + .game-tracker-collapsed-quarter-headers { display: none; }
+.game-tracker-collapsed-quarter-headers .game-tracker-quarter-header { border-top: 2px solid var(--line-strong); }
 
 .game-tracker-box-selector { grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr); }
 .game-tracker-box-selector button {

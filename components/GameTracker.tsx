@@ -119,6 +119,15 @@ function driveEndPeriod(drive: TrackerDrive) {
   return [...drive.plays].reverse().find((play) => play.period)?.period || drivePeriod(drive);
 }
 
+function driveQuarterTransitions(drive: TrackerDrive) {
+  return drive.plays.flatMap((play, index) => {
+    const previous = drive.plays[index - 1];
+    return previous?.period && play.period && periodLabel(previous.period) !== periodLabel(play.period)
+      ? [periodLabel(play.period)]
+      : [];
+  });
+}
+
 async function loadTracker(gameId: string) {
   const token = window.localStorage.getItem("pickem_session_token") || "";
   const response = await fetch(`/api/game-tracker?gameId=${encodeURIComponent(gameId)}`, {
@@ -443,7 +452,7 @@ function DriveDetails({ drive, payload, initiallyOpen }: { drive: TrackerDrive; 
     <div className="game-tracker-drive-plays">
       {drive.plays.length ? drive.plays.map((play, index) => {
         const previous = drive.plays[index - 1];
-        const newQuarter = previous && periodLabel(previous.period) !== periodLabel(play.period);
+        const newQuarter = previous?.period && play.period && periodLabel(previous.period) !== periodLabel(play.period);
         return <Fragment key={play.id}>
           {newQuarter && <div className="game-tracker-quarter-header game-tracker-drive-quarter-header">{periodLabel(play.period)} Quarter</div>}
           <PlayRow play={play} />
@@ -462,10 +471,14 @@ function Plays({ payload }: { payload: TrackerPayload }) {
       const period = periodLabel(drivePeriod(drive));
       const previousPeriod = previous ? periodLabel(driveEndPeriod(previous)) : "";
       const showQuarter = !previous || period !== previousPeriod;
+      const crossedQuarters = driveQuarterTransitions(drive);
 
       return <Fragment key={drive.id}>
         {showQuarter && <div className="game-tracker-quarter-header">{period} Quarter</div>}
         <DriveDetails drive={drive} payload={payload} initiallyOpen={drive.current || index === 0} />
+        {crossedQuarters.length > 0 && <div className="game-tracker-collapsed-quarter-headers">
+          {crossedQuarters.map((quarter, transitionIndex) => <div className="game-tracker-quarter-header" key={`${quarter}-${transitionIndex}`}>{quarter} Quarter</div>)}
+        </div>}
       </Fragment>;
     })}
   </div>;
