@@ -23,7 +23,7 @@ export async function settleSeasonIfReady(supabase: SupabaseClient, currentTime 
     if (currentTime < seasonEnd) { lastReason = "The season is not complete."; continue; }
     const [{ data: memberships, error: memberError }, { data: picks, error: pickError }] = await Promise.all([
       supabase.from("group_members").select("profile:profiles(id,display_name)").eq("group_id", season.group_id).eq("status", "active"),
-      supabase.from("picks").select("*, game:games(commence_time)").eq("group_id", season.group_id).eq("season_year", seasonYear)
+      supabase.from("picks").select("*, game:games(commence_time)").eq("group_id", season.group_id).eq("season_year", seasonYear).order("id").range(0, 999)
     ]);
     if (memberError) throw new Error(memberError.message);
     if (pickError) throw new Error(pickError.message);
@@ -32,7 +32,15 @@ export async function settleSeasonIfReady(supabase: SupabaseClient, currentTime 
       return profile ? [profile] : [];
     });
     if (profiles.length < 2) { lastReason = "A group needs at least two active players."; continue; }
-    const seasonPicks = (picks || []).filter((pick: any) => pick.game?.commence_time && footballSeasonYearAt(new Date(pick.game.commence_time)) === seasonYear);
+    const allPicks = [...(picks || [])];
+    if (basketball) {
+      for (let offset = 1000; allPicks.length === offset; offset += 1000) {
+        const page = await supabase.from("picks").select("*, game:games(commence_time)").eq("group_id", season.group_id).eq("season_year", seasonYear).order("id").range(offset, offset + 999);
+        if (page.error) throw new Error(page.error.message);
+        allPicks.push(...(page.data || []));
+      }
+    }
+    const seasonPicks = allPicks.filter((pick: any) => pick.game?.commence_time && footballSeasonYearAt(new Date(pick.game.commence_time)) === seasonYear);
     const finalWeek = basketball ? basketballFinalWeek(season.rules) : finalPickemWeek(seasonYear);
     if (seasonPicks.some((pick: any) => (basketball || Number(pick.week) === finalWeek) && (pick.status !== "locked" || pick.result === "pending"))) {
       lastReason = "At least one final-week pick is unfinished.";

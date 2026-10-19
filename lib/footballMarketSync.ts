@@ -324,7 +324,7 @@ async function reconcileDraftDogs(
         dedupeKey: `dog-adjust:${pick.id}:${changedAt.getTime()}:${oldValue}:0`,
         title: "Dog pick removed",
         body: `${selectedTeam} was removed as your dog: ${spreadText(oldSpread)} → ${spreadText(newSpread)}. Dogs must be +7 or higher.`,
-        url: `/?group=${encodeURIComponent(pick.group_id)}&notification=my_card`,
+        url: isBasketballLeague(game.league) ? "/friends-basketball?notification=my_card" : `/?group=${encodeURIComponent(pick.group_id)}&notification=my_card`,
         actionRequired: true
       }));
       continue;
@@ -351,7 +351,7 @@ async function reconcileDraftDogs(
       dedupeKey: `dog-adjust:${pick.id}:${changedAt.getTime()}:${oldValue}:${newValue}`,
       title: "Dog value changed",
       body: `${selectedTeam} changed from +${winWord(oldValue)} to +${winWord(newValue)}: ${spreadText(oldSpread)} → ${spreadText(newSpread)}.`,
-      url: `/?group=${encodeURIComponent(pick.group_id)}&notification=my_card`,
+      url: isBasketballLeague(game.league) ? "/friends-basketball?notification=my_card" : `/?group=${encodeURIComponent(pick.group_id)}&notification=my_card`,
       actionRequired: true
     }));
   }
