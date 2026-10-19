@@ -1,0 +1,324 @@
+/*
+ * Geometry system for both full-app design studies.
+ * Avoid translations or magic numbers on individual close icons. Center the
+ * SVG inside a real 36px square and ensure controls share the same baselines.
+ */
+:root {
+  --design-action-size: 38px;
+  --design-inline-gap: 8px;
+  --design-row-inset: 14px;
+}
+.app-shell button,
+.game-tracker-sheet button,
+.matchup-preview-sheet button,
+.player-profile-sheet button,
+.confirmation-sheet button {
+  font-variant-numeric: tabular-nums;
+}
+.app-shell :is(.section-tab-label,.heading-with-badge,.ui-separator-dot,.side-bet-market-inline),
+.game-tracker-sheet :is(.game-tracker-scoring-meta,.game-tracker-drive-meta,.game-tracker-play-context),
+.matchup-preview-sheet :is(.matchup-rank-value,.matchup-preview-team > span) {
+  vertical-align: middle;
+}
+.ui-separator-dot,
+.game-tracker-meta-dot {
+  display: inline-grid;
+  place-items: center;
+  align-self: center;
+  line-height: 1;
+  transform: none;
+}
+.app-shell :is(.primary-nav button,.section-tabs button,.custom-select-trigger,.custom-select-label,.compact-select,.view-select-row button),
+.game-tracker-tabs button,
+.matchup-preview-tabs button,
+.settings-panel button {
+  box-sizing: border-box;
+  min-width: 0;
+  align-items: center;
+}
+.app-shell .primary-nav button {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  padding-block: 6px;
+  line-height: 1.1;
+  transform: none !important;
+}
+.app-shell .primary-nav .nav-icon { display:grid; place-items:center; width:26px; height:26px; line-height:0; }
+.app-shell .primary-nav .nav-icon svg { display:block; flex:0 0 auto; margin:0; transform:none; }
+.app-shell .primary-nav button > span:last-child { display:block; text-align:center; line-height:1.12; }
+.app-shell .primary-nav button:active { opacity: .8; }
+.app-shell .scoreboard-main { display:flex; align-items:center; }
+.app-shell .header-actions { display:flex; align-items:center; }
+.app-shell .header-slate { display:flex; align-items:center; }
+.app-shell .header-menu-select .custom-select-trigger { display:flex; align-items:center; }
+.app-shell .header-menu-select .custom-select-label { display:flex; align-items:center; }
+.app-shell .view-select-row .custom-select-trigger { display:flex; align-items:center; }
+.app-shell .game-head { align-items: center; }
+.app-shell .team-row,
+.app-shell .pick-card,
+.app-shell .visible-pick,
+.app-shell .bank-summary-head,
+.app-shell .leaderboard-labels,
+.app-shell .leaderboard-row,
+.app-shell .bank-player-result > summary,
+.app-shell .bank-game-result { align-items:center; }
+.app-shell .team-row .team-logo,
+.app-shell .visible-pick > .team-logo,
+.app-shell .pick-card .team-logo {
+  align-self:center;
+  justify-self:center;
+  object-fit:contain;
+}
+.app-shell .team-name,
+.app-shell .team-spread,
+.app-shell .team-board-market { line-height:1.24; }
+.app-shell .pick-title,
+.app-shell .visible-pick-copy strong { align-items:center; }
+.app-shell .game-head > *,
+.app-shell .team-row > *,
+.app-shell .pick-card > *,
+.app-shell .visible-pick > * { min-width:0; }
+.app-shell :is(.game-head,.team-row,.pick-card,.visible-pick,.side-bet-card,.side-bet-ledger-row,.bank-history-week) {
+  box-sizing:border-box;
+}
+.app-shell :is(.pick-row-actions,.visible-pick-actions,.game-head-actions,.side-bet-offer-actions,.side-bet-ledger-amount) {
+  align-items:center;
+}
+.app-shell :is(.icon-btn,.confidence-move button,.side-bet-batch-remove,.side-bet-selection-clear,.side-bet-slip-open),
+.game-tracker-header button,
+.matchup-preview-close,
+.player-profile-head button,
+.player-profile-close-wrap button {
+  display:grid;
+  place-items:center;
+  padding:0;
+  line-height:0;
+  text-align:center;
+}
+.app-shell :is(.icon-btn,.confidence-move button,.side-bet-batch-remove,.side-bet-selection-clear,.side-bet-slip-open) svg,
+.game-tracker-header button svg,
+.matchup-preview-close svg,
+.player-profile-head button svg,
+.player-profile-close-wrap button svg {
+  display:block;
+  flex:0 0 auto;
+  position:static;
+  margin:0;
+  transform:none;
+  vertical-align:middle;
+}
+.game-tracker-header button,
+.matchup-preview-close {
+  top:calc(env(safe-area-inset-top) + 9px);
+  right:11px;
+  bottom:auto;
+  inset-inline-start:auto;
+  width:36px;
+  height:36px;
+  min-width:36px;
+  min-height:36px;
+  border:1px solid color-mix(in srgb, var(--red) 52%, var(--line-strong));
+  border-radius:8px;
+  color:var(--red);
+  background:var(--red-soft);
+}
+.game-tracker-header button svg,
+.matchup-preview-close svg { width:18px; height:18px; }
+.game-tracker-header,
+.matchup-preview-header { box-sizing:border-box; align-items:center; justify-content:center; }
+.game-tracker-header > span,
+.matchup-preview-header > span {
+  align-self:center;
+  justify-self:center;
+  text-align:center;
+  line-height:1.22;
+}
+.game-tracker-scoreboard-grid { align-items:center; }
+.game-tracker-score-team,
+.game-tracker-score-team-main,
+.game-tracker-score-stack,
+.game-tracker-score-center { align-content:center; align-items:center; }
+.game-tracker-score-stack { justify-items:center; }
+.game-tracker-score-values { align-items:center; justify-items:center; }
+.game-tracker-scoring-copy,
+.game-tracker-drive > summary > div { min-width:0; align-content:center; }
+.game-tracker-scoring-meta { display:flex; align-items:center; flex-wrap:wrap; line-height:1.2; }
+.game-tracker-score-play { align-items:center; }
+.game-tracker-drive > summary { align-items:center; }
+.game-tracker-quarter-header,
+.game-tracker-stat-table-head,
+.game-tracker-stat-row { align-items:center; }
+.game-tracker-quarter-team-logos { align-items:center; justify-items:center; }
+.game-tracker-tabs,
+.matchup-preview-tabs { align-items:stretch; }
+.game-tracker-tabs button,
+.matchup-preview-tabs button {
+  display:grid;
+  place-items:center;
+  text-align:center;
+  padding:4px 5px;
+  line-height:1.22;
+}
+.matchup-preview-hero { align-items:center; }
+.matchup-preview-team { justify-content:center; align-content:center; }
+.matchup-preview-team > strong { text-align:center; line-height:1.23; }
+.matchup-column-heads,
+.matchup-metric-row { align-items:center; }
+.matchup-rank-value { display:inline-flex; align-items:center; justify-content:center; }
+.matchup-form-stats > div { align-items:center; justify-items:center; }
+.settings-leading-icon { display:grid; place-items:center; line-height:0; }
+.settings-leading-icon svg { display:block; margin:0; transform:none; }
+.settings-row-action,
+.settings-detail > summary,
+.settings-row-heading { align-items:center; }
+.settings-row-action svg { display:block; margin:0; }
+.side-bet-recipient-grid label { align-items:center; }
+.side-bet-recipient-grid label > span { line-height:1.2; }
+.side-bet-recipient-grid input { align-self:center; }
+.side-bet-ledger-summary,
+.side-bet-ledger-meta { align-items:center; }
+.side-bet-ledger-summary > *,
+.side-bet-ledger-meta > * { align-self:center; line-height:1.2; }
+.side-bet-market-inline { display:inline-flex; align-items:center; flex-wrap:nowrap; }
+.side-bet-market-leg { align-self:center; }
+.side-bet-slip-summary > div,
+.side-bet-slip-section-head,
+.side-bet-batch-head { align-items:center; }
+.confirmation-heading,
+.confirmation-amount-row,
+.confirmation-matchup { align-items:center; }
+:where(.app-shell,.game-tracker-sheet,.matchup-preview-sheet) button:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+:where(.app-shell,.game-tracker-sheet,.matchup-preview-sheet) button:disabled { cursor:not-allowed; }
+@media (max-width:360px) {
+  :root { --design-row-inset:10px; }
+  .game-tracker-header button,.matchup-preview-close { right:7px; }
+}
+
+/* Last-mile close-button geometry: red destructive affordances, true SVG centering. */
+.app-shell .toast-close,
+.app-shell .pick-row-actions .icon-btn,
+.app-shell .player-profile-close-wrap .icon-btn,
+.app-shell .side-bet-selection-clear,
+.app-shell .side-bet-batch-remove,
+.game-tracker-header button,
+.matchup-preview-close {
+ display:grid;
+ place-items:center;
+ align-content:center;
+ justify-items:center;
+ line-height:0;
+ padding:0;
+ text-align:center;
+}
+.app-shell .toast-close svg,
+.app-shell .pick-row-actions .icon-btn svg,
+.app-shell .player-profile-close-wrap .icon-btn svg,
+.app-shell .side-bet-selection-clear svg,
+.app-shell .side-bet-batch-remove svg,
+.game-tracker-header button svg,
+.matchup-preview-close svg {
+ display:block;
+ position:static;
+ inset:auto;
+ flex:none;
+ margin:0;
+ transform:none;
+ vertical-align:middle;
+}
+.app-shell .player-profile-close-wrap .icon-btn,
+.app-shell .pick-row-actions .icon-btn,
+.app-shell .side-bet-selection-clear {
+ width:33px;height:33px;
+ min-width:33px;min-height:33px;
+ color:var(--red);
+ border:1px solid color-mix(in srgb,var(--red) 47%,var(--line-strong));
+ border-radius:7px;
+ background:var(--red-soft);
+}
+
+/* Final pixel-grid audit: every square action owns a centered icon, no inherited baseline. */
+.app-shell .slip-icon-btn,
+.app-shell .toast-close,
+.app-shell .pick-row-actions .icon-btn,
+.app-shell .visible-pick-actions .icon-btn,
+.app-shell .player-profile-close-wrap button,
+.app-shell .player-profile-head button {
+  display:grid;
+  place-items:center;
+  padding:0;
+  text-align:center;
+  line-height:0;
+}
+.app-shell .slip-icon-btn svg,
+.app-shell .toast-close svg,
+.app-shell .pick-row-actions .icon-btn svg,
+.app-shell .visible-pick-actions .icon-btn svg,
+.app-shell .player-profile-close-wrap button svg,
+.app-shell .player-profile-head button svg {
+  position:static;
+  display:block;
+  margin:0;
+  vertical-align:middle;
+  transform:none;
+  flex:0 0 auto;
+}
+.app-shell .side-bet-slip-sheet-head .side-bet-header-collapse {
+  width:34px;
+  height:34px;
+  min-height:34px;
+  flex:0 0 34px;
+  align-self:center;
+}
+.app-shell .side-bet-slip-selection > .side-bet-selection-clear {
+  width:34px;
+  height:34px;
+  min-height:34px;
+  align-self:center;
+  justify-self:end;
+}
+.app-shell .side-bet-market-toggle button,
+.app-shell .side-bet-amount-grid button,
+.app-shell .side-bet-two-option-toggle button,
+.app-shell .side-bet-game-filter-toggle button {
+  min-width:0;
+  text-align:center;
+  align-items:center;
+  justify-content:center;
+}
+.app-shell .side-bet-recipient-grid label {
+  display:grid;
+  grid-template-columns:16px minmax(0,1fr);
+  align-items:center;
+}
+.app-shell .side-bet-recipient-grid label > span {
+  align-self:center;
+  min-width:0;
+}
+.app-shell .side-bet-amount-grid button {
+  display:grid;
+  place-items:center;
+  padding:5px;
+}
+.app-shell .side-bet-market-reference {
+  align-items:center;
+}
+.app-shell .side-bet-market-reference .side-bet-market-inline {
+  justify-content:center;
+}
+
+/* Friends 4 × 2 grid: the restored "All" tile gets identical geometry and borders. */
+.route-app.group-friends .side-bet-recipient-grid:not(.seven-recipients) > label:nth-child(3n) {
+  border-right:1px solid var(--line);
+}
+.route-app.group-friends .side-bet-recipient-grid:not(.seven-recipients) > label:nth-child(n+4) {
+  border-top:0;
+}
+.route-app.group-friends .side-bet-recipient-grid > label:nth-child(4n) {
+  border-right:0;
+}
+.route-app.group-friends .side-bet-recipient-grid > label:nth-child(n+5) {
+  border-top:1px solid var(--line);
+}
