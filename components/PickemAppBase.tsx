@@ -236,7 +236,7 @@ function matchupTextVariants(game: Game, options: { spreadTeam?: string; spread?
   };
 }
 
-function ResponsiveText({ full, intermediate, compact, className = "" }: { full: string; intermediate?: string; compact: string; className?: string }) {
+function ResponsiveText({ full, intermediate, compact, className = "", wrapOnSmall = false }: { full: string; intermediate?: string; compact: string; className?: string; wrapOnSmall?: boolean }) {
   const hostRef = useRef<HTMLSpanElement>(null);
   const fullMeasureRef = useRef<HTMLSpanElement>(null);
   const intermediateMeasureRef = useRef<HTMLSpanElement>(null);
@@ -254,6 +254,10 @@ function ResponsiveText({ full, intermediate, compact, className = "" }: { full:
     let active = true;
     const update = () => {
       if (!active) return;
+      if (wrapOnSmall && window.innerWidth <= 360) {
+        setVariant("full");
+        return;
+      }
       const availableWidth = host.clientWidth + 0.5;
       if (fullMeasure.getBoundingClientRect().width <= availableWidth) {
         setVariant("full");
@@ -273,11 +277,11 @@ function ResponsiveText({ full, intermediate, compact, className = "" }: { full:
       observer?.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, [compact, full, intermediate]);
+  }, [compact, full, intermediate, wrapOnSmall]);
 
   const value = variant === "full" ? full : variant === "intermediate" && intermediate ? intermediate : compact;
 
-  return <span ref={hostRef} className={`responsive-text ${className}`.trim()} aria-label={full} title={variant === "full" ? undefined : full}>
+  return <span ref={hostRef} className={`responsive-text ${className} ${wrapOnSmall ? "responsive-text-wrap-small" : ""}`.trim()} aria-label={full} title={variant === "full" ? undefined : full}>
     <span ref={fullMeasureRef} className="responsive-text-measure" aria-hidden="true">{full}</span>
     {intermediate && <span ref={intermediateMeasureRef} className="responsive-text-measure" aria-hidden="true">{intermediate}</span>}
     <span className="responsive-text-value"><NumericText text={value} /></span>
@@ -306,6 +310,10 @@ function SideBetResponseLine({ summary, teamFull, teamCompact, spread, date }: {
     let active = true;
     const update = () => {
       if (!active) return;
+      if (window.innerWidth <= 360) {
+        setVariant("full");
+        return;
+      }
       const availableWidth = host.clientWidth + 0.5;
       const fittingVariant = SIDE_BET_RESPONSE_VARIANTS.find((value) => {
         const measure = measureRefs.current[value];
@@ -3713,7 +3721,7 @@ function PickList({ picks, games, title, pointsMode, universalLockReached, remov
     const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
     return <div className="pick-card" data-game-id={pick.game_id} key={pick.id}>
-      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip"><span className="ui-separator-dot" aria-hidden="true">·</span><NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator ui-separator-dot" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <button type="button" className="pick-score-bug-button" aria-label={`Open GameTracker for ${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`} onClick={() => openPreview(game)}><PickScoreBug game={game} pick={pick} spread={displayedSpread} /></button> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <LockedPickIndicator hidden={universalLockReached} /> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
+      <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip"><span className="ui-separator-dot" aria-hidden="true">·</span><NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator ui-separator-dot" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} wrapOnSmall /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <button type="button" className="pick-score-bug-button" aria-label={`Open GameTracker for ${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`} onClick={() => openPreview(game)}><PickScoreBug game={game} pick={pick} spread={displayedSpread} /></button> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <LockedPickIndicator hidden={universalLockReached} /> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;
 }
