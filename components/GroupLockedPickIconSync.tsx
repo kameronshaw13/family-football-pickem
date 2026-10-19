@@ -100,6 +100,7 @@ function lockIconMarkup() {
 
 export default function GroupLockedPickIconSync({ appSlug }: { appSlug: AppSlug }) {
   useEffect(() => {
+    if (appSlug === "friends-basketball") return;
     let frame = 0;
     let applying = false;
 

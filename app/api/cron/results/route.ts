@@ -1,3 +1,4 @@
+import { finalizeIncompleteCardsAfterWeekendLock } from "@/lib/finalizeIncompleteCards";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { settleWeekIfReady } from "@/lib/autoSettlement";
@@ -35,6 +36,7 @@ export async function GET(req: NextRequest) {
     const isVercelScheduledRun = Boolean(req.headers.get("x-vercel-cron-schedule"));
     const supabase = getSupabaseAdmin();
     const lockResult = await lockDuePicks(supabase);
+    await finalizeIncompleteCardsAfterWeekendLock(supabase);
     let pushRetry = { attempted: 0, sent: 0, failed: 0 };
     try {
       // The immediate send already retries once. This second pass catches transient
@@ -72,7 +74,7 @@ export async function GET(req: NextRequest) {
     const weeksFinalized = new Set<number>();
     const weeksSettled = new Set<number>();
 
-    for (const league of ["CFB", "NFL"] as League[]) {
+    for (const league of ["CFB", "NFL", "CBB", "NBA"] as League[]) {
       const leagueGames = games.filter((game) => game.league === league);
       if (!leagueGames.length) continue;
       const schedule = await fetchEspnSchedule(league, leagueGames.map((game) => game.commence_time), true);

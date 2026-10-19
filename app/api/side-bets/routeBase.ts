@@ -83,7 +83,7 @@ function notificationMarketText(
 }
 
 function groupNotificationUrl(slug: string, destination: string) {
-  const base = slug === "friends" ? "/friends" : slug === "other-family" ? "/caleb-family" : "/";
+  const base = slug === "friends-basketball" ? "/friends-basketball" : slug === "friends" ? "/friends" : slug === "other-family" ? "/caleb-family" : "/";
   return `${base}?notification=${encodeURIComponent(destination)}`;
 }
 

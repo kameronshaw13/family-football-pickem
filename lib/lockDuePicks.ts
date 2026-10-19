@@ -1,3 +1,4 @@
+import { gamePickLockTime } from "./sportPaths";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getUnderdogBonusForRules, isGameAllowedByRules } from "@/lib/groupContext";
 import { getGameLockTime } from "@/lib/lockRules";
@@ -52,7 +53,7 @@ export async function lockDuePicks(
   const games = Array.from(gamesById.values());
 
   const results = await Promise.all(games.map(async (game) => {
-    const effectiveLockTime = getGameLockTime(game.commence_time);
+    const effectiveLockTime = gamePickLockTime(game, getGameLockTime);
     const effectiveLockTimeIso = effectiveLockTime.toISOString();
 
     if (effectiveLockTime > currentTime) {

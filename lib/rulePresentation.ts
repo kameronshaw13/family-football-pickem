@@ -1,6 +1,6 @@
 import { MAX_CUSTOM_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
 
-export type AppSlug = "shaw-family" | "other-family" | "friends";
+export type AppSlug = "shaw-family" | "other-family" | "friends" | "friends-basketball";
 export type RuleSection = { title: string; items: string[] };
 
 type PickRule = {
@@ -12,6 +12,8 @@ type PickRule = {
 };
 
 export type GroupRules = {
+  sport?: string;
+  calendar?: { startDate?: string; endDateExclusive?: string; tournamentStartDate?: string; tournamentEndDateExclusive?: string };
   eligibleLeagues?: string[];
   excludedTeams?: string[];
   pickRules?: { default?: PickRule; weekOverrides?: Record<string, PickRule> };
@@ -98,6 +100,18 @@ const pickLocks = [
 ];
 
 export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSection[] {
+  if (appSlug === "friends-basketball") {
+    const sections = ruleSections("friends", rules);
+    return sections.map((section) => {
+      if (section.title === "Season Schedule") return { ...section, items: ["The season runs October 19, 2026 through Sunday, April 11, 2027, including the NCAA championship game.", "Each week runs Monday at 12:00 AM through Sunday at 11:59 PM Central Time."] };
+      if (section.title === "Weekly Card") return { ...section, items: section.items.map((item) => item.replace("Weeks 3–20", "Weeks 3–25").replaceAll("CFB/NFL", "CBB/NBA").replaceAll("CFB", "CBB").replaceAll("NFL", "NBA")) };
+      if (section.title === "Eligible Games") return { ...section, items: ["NBA regular-season games and Division I men's college basketball games are eligible.", "Conference tournaments and NCAA March Madness games are included."] };
+      if (section.title === "Pick Locks") return { ...section, items: [...pickLocks.slice(0, 2), "Each game's picks and spread lock 1 hour before tipoff, every day of the week."] };
+      if (section.title === "Weekly Bank") return { ...section, items: [...section.items, "March Madness weeks have 2× weekly payouts for every position, including losses. This applies March 15–April 11, including the championship week.", "The 2× multiplier applies after perfect-week adjustments and tie splits; scoring and season prizes stay the same."] };
+      if (section.title === "Side Bets") return { ...section, items: ["Spread, moneyline, and over/under side bets are available.", "Offers open with the Monday–Sunday week. Pregame offers expire at tipoff.", "Live offers expire when the score changes or the game ends.", "Bank limits and settlement follow the same Friends rules."] };
+      return section;
+    });
+  }
   const week1 = pickRule(rules, 1, { regularTotal: 3, cfbMinimum: 3, nflMinimum: 0, underdogTotal: 1, perfectBonus: false });
   const week2 = pickRule(rules, 2, { regularTotal: 5, cfbMinimum: 5, nflMinimum: 0, underdogTotal: 1, perfectBonus: true });
   const mixed = pickRule(rules, 3, { regularTotal: 5, cfbMinimum: appSlug === "friends" ? 0 : 1, nflMinimum: appSlug === "friends" ? 0 : 1, underdogTotal: 1, perfectBonus: true });

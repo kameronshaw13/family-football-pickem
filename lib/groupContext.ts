@@ -1,3 +1,4 @@
+import { basketballGameInSeason, basketballLockTime, basketballWeekBounds, isBasketballRules } from "./basketballRules";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game, WeekRule } from "@/lib/types";
 import { getGameLockTime, getPickWeekOpenTime, getSpreadFreezeTime } from "@/lib/lockRules";
@@ -123,6 +124,7 @@ export function isGameAllowedForGroup(context: GroupContext, game: Pick<Game, "l
 }
 
 export function isGameAllowedByRules(rules: Record<string, any> | null | undefined, game: Pick<Game, "league" | "home_team" | "away_team">) {
+  if (isBasketballRules(rules) && "commence_time" in game && !basketballGameInSeason(String(game.commence_time), rules)) return false;
   const leagues = Array.isArray(rules?.eligibleLeagues) ? rules.eligibleLeagues.map(String) : ["CFB", "NFL"];
   if (!leagues.includes(game.league)) return false;
   const excluded = new Set((Array.isArray(rules?.excludedTeams) ? rules.excludedTeams : []).map(normalizeTeam));
@@ -163,6 +165,7 @@ export function getGroupSideBetSettings(context: GroupContext) {
 }
 
 export function getGroupPickWeekOpenTime(context: GroupContext, week: number, commenceTimes: string[]) {
+  if (isBasketballRules(context.rules)) return basketballWeekBounds(week, context.rules, context.group.timezone).start;
   const override = context.rules?.weekOpenOverrides?.[String(week)];
   if (override === "open") return null;
   if (typeof override === "string") {
@@ -173,9 +176,9 @@ export function getGroupPickWeekOpenTime(context: GroupContext, week: number, co
 }
 
 export function getGroupGameLockTime(context: GroupContext, commenceTimeIso: string) {
-  return getGameLockTime(commenceTimeIso, context.group.timezone);
+  return isBasketballRules(context.rules) ? basketballLockTime(commenceTimeIso) : getGameLockTime(commenceTimeIso, context.group.timezone);
 }
 
 export function getGroupSpreadFreezeTime(context: GroupContext, commenceTimeIso: string) {
-  return getSpreadFreezeTime(commenceTimeIso, context.group.timezone);
+  return isBasketballRules(context.rules) ? basketballLockTime(commenceTimeIso) : getSpreadFreezeTime(commenceTimeIso, context.group.timezone);
 }

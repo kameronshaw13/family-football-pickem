@@ -1,3 +1,4 @@
+import { basketballPayoutMultiplier, basketballWeekBounds, isBasketballRules } from "./basketballRules";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeGroupStandings, rankedPayoutSettlement, winnerTakeAllSettlement } from "@/lib/groupScoring";
 import { computeWeeklySettlement } from "@/lib/weeklyBank";
@@ -24,7 +25,7 @@ function configuredWeekRule(rules: any, week: number) {
   };
 }
 
-export async function settleWeekIfReady(supabase: SupabaseClient, week: number, groupId?: string): Promise<AutoSettlementResult> {
+export async function settleWeekIfReady(supabase: SupabaseClient, week: number, groupId?: string, currentTime = new Date()): Promise<AutoSettlementResult> {
   let seasonQuery = supabase.from("group_seasons").select("group_id,season_year,status,rules").eq("status", "active");
   if (groupId) seasonQuery = seasonQuery.eq("group_id", groupId);
   const { data: seasons, error: seasonError } = await seasonQuery;
@@ -37,6 +38,10 @@ export async function settleWeekIfReady(supabase: SupabaseClient, week: number, 
   let anyPerfect = false;
 
   for (const season of seasons) {
+    if (isBasketballRules(season.rules) && currentTime < basketballWeekBounds(week, season.rules).end) {
+      lastReason = "The Monday–Sunday basketball week is still open.";
+      continue;
+    }
     const [{ data: memberships, error: memberError }, { data: picks, error: picksError }] = await Promise.all([
       supabase.from("group_members").select("profile:profiles(id,display_name)").eq("group_id", season.group_id).eq("status", "active"),
       supabase.from("picks").select("*").eq("group_id", season.group_id).eq("season_year", season.season_year).eq("week", week)
@@ -87,8 +92,9 @@ export async function settleWeekIfReady(supabase: SupabaseClient, week: number, 
       settlement = winnerTakeAllSettlement(standings, Number(moneyRow?.winner_take_all_amount || 0));
     } else if (bankRules.mode === "friends_weekly") {
       const perfect = rule.perfectBonus && standings[0]?.losses === 0 && standings[0]?.wins >= 5;
-      const payouts = friendsWeeklyPositionPayouts(bankRules, perfect);
-      settlement = { ...rankedPayoutSettlement(standings, payouts, `Week ${week} payout${perfect ? " · perfect week" : ""}`), perfect };
+      const multiplier = isBasketballRules(season.rules) ? basketballPayoutMultiplier(week, season.rules) : 1;
+      const payouts = friendsWeeklyPositionPayouts(bankRules, perfect).map((amount) => amount * multiplier);
+      settlement = { ...rankedPayoutSettlement(standings, payouts, `Week ${week} payout${multiplier === 2 ? " · March Madness 2×" : ""}${perfect ? " · perfect week" : ""}`), perfect };
       anyPerfect ||= perfect;
     } else {
       const shaw = computeWeeklySettlement(standings, rule.perfectBonus);

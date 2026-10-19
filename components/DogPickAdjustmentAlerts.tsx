@@ -1,5 +1,7 @@
 "use client";
 
+import { appSlugForPath } from "@/lib/appIdentity";
+
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
@@ -64,7 +66,7 @@ export default function DogPickAdjustmentAlerts() {
       try {
         await fetch("/api/notifications", {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlugForPath(window.location.pathname) || "shaw-family" },
           body: JSON.stringify({ action: "resolveDogAdjustments", ids: adjustments.map((item) => item.id) })
         });
       } catch {
@@ -100,7 +102,7 @@ export default function DogPickAdjustmentAlerts() {
       if (!token) return;
       try {
         const response = await fetch("/api/notifications", {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlugForPath(window.location.pathname) || "shaw-family" },
           cache: "no-store"
         });
         if (!response.ok) return;

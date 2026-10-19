@@ -12,6 +12,7 @@ const pushStateCache = new Map<AppSlug, Exclude<PushState, "checking">>();
 function activeAppSlug(explicit?: AppSlug): AppSlug {
   if (explicit) return explicit;
   if (typeof window === "undefined") return "shaw-family";
+  if (window.location.pathname === "/friends-basketball" || window.location.pathname.startsWith("/friends-basketball/")) return "friends-basketball";
   if (window.location.pathname === "/friends" || window.location.pathname.startsWith("/friends/")) return "friends";
   if (window.location.pathname === "/caleb-family" || window.location.pathname.startsWith("/caleb-family/")) return "other-family";
   return "shaw-family";

@@ -140,12 +140,19 @@ export function fairAltSpreadOdds(
   options: {
     teamMoneylineOdds?: number | null;
     opponentMoneylineOdds?: number | null;
-    league?: FootballLeague;
+    league?: FootballLeague | "CBB" | "NBA";
   } = {}
 ) {
   const market = Number(marketSpread);
   const offered = Number(offeredSpread);
   const league = options.league === "NFL" ? "NFL" : "CFB";
+  if (options.league === "CBB" || options.league === "NBA") {
+    const move = Number(offeredSpread) - Number(marketSpread);
+    if (!Number.isFinite(move) || Math.abs(move) < 0.25) return 100;
+    const steps = Math.round(Math.abs(move) * 2);
+    const magnitude = FRIENDLY_ALT_ODDS[Math.min(steps, FRIENDLY_ALT_ODDS.length - 1)];
+    return move > 0 ? -magnitude : magnitude;
+  }
   if (!Number.isFinite(market) || !Number.isFinite(offered)) return 100;
 
   const move = offered - market;
@@ -248,14 +255,14 @@ function closestFriendlyMoneyline(value: number) {
   );
 }
 
-export function fairMoneylineFromSpread(value: number | null | undefined, league: FootballLeague = "CFB") {
+export function fairMoneylineFromSpread(value: number | null | undefined, league: FootballLeague | "CBB" | "NBA" = "CFB") {
   const spread = Number(value);
   if (!Number.isFinite(spread)) return 100;
 
   const points = Math.abs(spread);
   if (points < 0.25) return 100;
 
-  const magnitude = closestFriendlyMoneyline(historicalMoneylineMagnitude(points, league));
+  const magnitude = closestFriendlyMoneyline(league === "CBB" || league === "NBA" ? 100 * Math.exp(points * 0.14) : historicalMoneylineMagnitude(points, league));
   if (magnitude === 100) return 100;
   return spread < 0 ? -magnitude : magnitude;
 }

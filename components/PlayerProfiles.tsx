@@ -1,5 +1,7 @@
 "use client";
 
+import { appSlugForPath } from "@/lib/appIdentity";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import MenuSelect from "@/components/MenuSelect";
@@ -61,7 +63,7 @@ export default function PlayerProfiles() {
     setError("");
     try {
       const response = await fetch(`/api/player-profile?name=${encodeURIComponent(name)}&year=${encodeURIComponent(nextPeriod)}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlugForPath(window.location.pathname) || "shaw-family" },
         cache: "no-store"
       });
       const payload = await response.json();

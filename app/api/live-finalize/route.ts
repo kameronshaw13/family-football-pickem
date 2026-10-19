@@ -1,3 +1,5 @@
+import { isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+import { LEAGUES } from "@/lib/sportPaths";
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
@@ -29,6 +31,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const supabase = getSupabaseAdmin();
+    const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
     const now = Date.now();
     const { data, error } = await supabase
       .from("games")
@@ -42,7 +45,7 @@ export async function POST(req: NextRequest) {
       const start = new Date(game.commence_time).getTime();
       return start <= now &&
         start >= now - 24 * 60 * 60 * 1000 &&
-        (game.league === "CFB" || game.league === "NFL");
+        isGameAllowedForGroup(context, game);
     });
 
     if (!candidates.length) {
@@ -53,7 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     const schedules = new Map<string, Awaited<ReturnType<typeof fetchEspnSchedule>>>();
-    await Promise.all((["CFB", "NFL"] as const).map(async (league) => {
+    await Promise.all((LEAGUES).map(async (league) => {
       const leagueGames = candidates.filter((game) => game.league === league);
       if (!leagueGames.length) return;
       try {
@@ -72,7 +75,7 @@ export async function POST(req: NextRequest) {
     }));
 
     let gamesFinalized = 0;
-    for (const league of ["CFB", "NFL"] as League[]) {
+    for (const league of LEAGUES as League[]) {
       const leagueGames = candidates.filter((game) => game.league === league);
       const schedule = schedules.get(league) || [];
       for (const game of leagueGames) {

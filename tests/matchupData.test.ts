@@ -11,7 +11,7 @@ test("CSV preserves quoted commas, escaped quotes, multiline cells and zero valu
   assert.deepEqual(parseCsv("a,b\n1,2", header => header === "b"), [{ b: "2" }]);
 });
 test("advanced data never uses a future week and still returns an early sample", () => {
-  const rows = [
+  const rows: Record<string, string>[] = [
     { team_id: "333.0", team: "Alabama", through_week: "4", valid_games: "4", net_adj_epa: ".2", net_adj_epa_rank: "2" },
     { team_id: "333.0", team: "Alabama", through_week: "3", valid_games: "2", net_adj_epa: ".1", net_adj_epa_rank: "5", EPAdrive_off: "1.42", EPAdrive_off_rank: "8", available_yards_pct_off: ".61", available_yards_pct_off_rank: "6", late_down_success_off: ".47", late_down_success_off_rank: "21" }
   ];

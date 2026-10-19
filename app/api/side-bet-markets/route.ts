@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       .from("games")
       .select("*")
       .eq("week", week)
-      .in("league", ["CFB", "NFL"])
+      .in("league", context.rules.eligibleLeagues || ["CFB", "NFL"])
       .order("commence_time", { ascending: true });
     if (error) throw new Error(error.message);
 

@@ -1,3 +1,4 @@
+import { fetchEspnBasketballMarkets } from "./espnBasketballMarkets";
 import { officialNflWeek } from "@/lib/cfbMatchupData";
 import type { Game, SideBetMarketQuote, SideBetOfferPhase } from "@/lib/types";
 
@@ -214,7 +215,7 @@ async function fetchActionLeagueQuery(
   if (cached && cached.expiresAt > now) return cached.promise;
 
   const request = (async () => {
-    const path = league === "NFL" ? "nfl" : "ncaaf";
+    const path = ({ NFL: "nfl", CFB: "ncaaf", CBB: "ncaab", NBA: "nba" })[league];
     const params = new URLSearchParams({
       bookIds: ACTION_BOOK_IDS.join(","),
       [selectorKey]: selectorValue
@@ -370,10 +371,14 @@ export async function fetchActionNetworkMarkets(games: Game[]) {
     }
   }));
 
-  return games.flatMap((game) => {
+  const quotes = games.flatMap((game) => {
     const quote = quoteForGame(game, leaguePayloads.get(game.league) || []);
     return quote ? [quote] : [];
   });
+  const quotedIds = new Set(quotes.map((quote) => quote.gameId));
+  const missingBasketball = games.filter((game) => (game.league === "CBB" || game.league === "NBA") && !quotedIds.has(game.id));
+  const fallback = missingBasketball.length ? await fetchEspnBasketballMarkets(missingBasketball) : [];
+  return [...quotes, ...fallback];
 }
 
 export async function fetchActionNetworkMarketForGame(game: Game, phase: SideBetOfferPhase) {

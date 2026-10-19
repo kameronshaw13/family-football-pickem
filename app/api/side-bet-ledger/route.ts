@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
-import { requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
-import { getPickWeekOpenTime } from "@/lib/lockRules";
+import { getGroupPickWeekOpenTime, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
@@ -22,12 +21,12 @@ export async function GET(req: NextRequest) {
     if (week == null) {
       const { data: games, error: gamesError } = await supabase.from("games").select("week,commence_time,league,home_team,away_team,current_spread_team,current_spread");
       if (gamesError) throw new Error(gamesError.message);
-      const eligible = (games || []).filter((game: any) => isEligibleSeasonGame(game) && game.current_spread_team != null && game.current_spread != null);
+      const eligible = (games || []).filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game) && game.current_spread_team != null && game.current_spread != null);
       const weeks = Array.from(new Set(eligible.map((game: any) => Number(game.week)))).sort((a, b) => a - b);
       const now = new Date();
       const opened = weeks.filter((candidateWeek) => {
         const commenceTimes = eligible.filter((game: any) => Number(game.week) === candidateWeek).map((game: any) => game.commence_time);
-        const openTime = getPickWeekOpenTime(candidateWeek, commenceTimes, context.group.timezone);
+        const openTime = getGroupPickWeekOpenTime(context, candidateWeek, commenceTimes);
         return !openTime || openTime <= now;
       });
       week = opened[opened.length - 1] ?? weeks[0] ?? 0;

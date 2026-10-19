@@ -12,6 +12,12 @@ export const APP_IDENTITY_CONFIG: Record<PickemAppSlug, {
     loginPath: "/login",
     workerScope: "/"
   },
+  "friends-basketball": {
+    name: "Friends Basketball Pick'em",
+    homePath: "/friends-basketball",
+    loginPath: "/friends-basketball/login",
+    workerScope: "/friends-basketball"
+  },
   friends: {
     name: "Friends Pick'em",
     homePath: "/friends",
@@ -27,11 +33,12 @@ export const APP_IDENTITY_CONFIG: Record<PickemAppSlug, {
 };
 
 export function isPickemAppSlug(value: string | null | undefined): value is PickemAppSlug {
-  return value === "shaw-family" || value === "friends" || value === "other-family";
+  return value === "shaw-family" || value === "friends" || value === "friends-basketball" || value === "other-family";
 }
 
 export function appSlugForPath(pathname: string): PickemAppSlug | null {
   const clean = pathname !== "/" ? pathname.replace(/\/+$/, "") : pathname;
+  if (clean === "/friends-basketball" || clean.startsWith("/friends-basketball/")) return "friends-basketball";
   if (clean === "/friends" || clean.startsWith("/friends/")) return "friends";
   if (clean === "/caleb-family" || clean.startsWith("/caleb-family/") || clean === "/other-family" || clean.startsWith("/other-family/")) return "other-family";
   if (clean === "/" || clean === "/login") return "shaw-family";

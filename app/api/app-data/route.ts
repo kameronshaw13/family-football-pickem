@@ -1,3 +1,4 @@
+import { basketballWeekBounds, isBasketballRules } from "@/lib/basketballRules";
 import { NextRequest, NextResponse } from "next/server";
 import { GET as getAppDataV2 } from "@/app/api/app-data-v2/route";
 import { finalizeIncompleteCardsAfterWeekendLock } from "@/lib/finalizeIncompleteCards";
@@ -27,6 +28,7 @@ function hasIncompleteCards(payload: any) {
 }
 
 function weekendLockReached(payload: any) {
+  if (isBasketballRules(payload.groupRules)) return Date.now() >= basketballWeekBounds(payload.week, payload.groupRules).end.getTime();
   if (!Array.isArray(payload?.games) || !payload.games.length) return false;
   const timezone = payload.activeGroup?.timezone || "America/Chicago";
   const weekdayFormatter = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: timezone });

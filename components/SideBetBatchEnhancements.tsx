@@ -5,7 +5,7 @@ import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { americanOddsText, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { teamDisplayName } from "@/lib/teamNames";
 
-type AppSlug = "shaw-family" | "other-family" | "friends";
+type AppSlug = "shaw-family" | "other-family" | "friends" | "friends-basketball";
 type BatchMarketType = "spread" | "moneyline";
 type BatchSelection = {
   gameId: string;
@@ -41,6 +41,7 @@ const APP_DATA_CACHE_PREFIX = "pickem_app_data_v2";
 const MAX_BATCH_SELECTIONS = 8;
 
 function appSlugFromPath(): AppSlug {
+  if (window.location.pathname.startsWith("/friends-basketball")) return "friends-basketball";
   if (window.location.pathname.startsWith("/friends")) return "friends";
   if (window.location.pathname.startsWith("/caleb-family")) return "other-family";
   return "shaw-family";
