@@ -8,6 +8,7 @@ import { notificationTeamName } from "@/lib/notificationTeamName";
 import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { normalizeTeamNameKey, teamDisplayName } from "@/lib/teamNames";
+import { isVerifiedTbdKickoff } from "@/lib/scheduleTime";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import type { Game, League, SideBetMarketQuote } from "@/lib/types";
 
@@ -152,11 +153,8 @@ export async function syncUpcomingFootballSchedule(
       );
       if (actionMatch) matchedActionIds.add(actionMatch.actionId);
 
-      const existingTime = existing?.commence_time ? new Date(existing.commence_time).getTime() : NaN;
-      const espnTime = new Date(event.commenceTime).getTime();
-      const providerTime = actionMatch?.commenceTime ? new Date(actionMatch.commenceTime).getTime() : NaN;
-      const existingHasNonPlaceholderTime = Number.isFinite(existingTime) && Math.abs(existingTime - espnTime) > 60 * 1000;
-      const providerHasNonPlaceholderTime = Number.isFinite(providerTime) && Math.abs(providerTime - espnTime) > 60 * 1000;
+      const existingHasNonPlaceholderTime = isVerifiedTbdKickoff(existing?.commence_time, event.commenceTime);
+      const providerHasNonPlaceholderTime = isVerifiedTbdKickoff(actionMatch?.commenceTime, event.commenceTime);
       // An invalid ESPN start (usually Sat 04:00 UTC / Fri 11 PM CT) is TBD.
       // An identical provider placeholder isn't verification. Keep a previously
       // confirmed kickoff when the provider reports the placeholder, too.
