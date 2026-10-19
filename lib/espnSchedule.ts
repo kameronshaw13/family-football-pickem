@@ -1,3 +1,5 @@
+import { espnSportPath } from "./sportPaths.ts";
+import type { League } from "./types";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { normalizeEspnLogoUrl } from "@/lib/espnLogos";
 import { createAsyncCache } from "@/lib/asyncCache";
@@ -8,12 +10,14 @@ type EspnTeam = {
   nickname: string;
   abbreviation: string;
   logoUrl: string | null;
+  rank?: number | null;
 };
 
 export type EspnScheduleGame = {
   id: string;
   commenceTime: string;
   timeValid: boolean;
+  seasonType?: number;
   completed: boolean;
   homeScore: number | null;
   awayScore: number | null;
@@ -114,7 +118,7 @@ function identityScore(sourceName: string, team: EspnTeam) {
 
 function teamIdFromLogoUrl(url: string | null | undefined) {
   const normalized = normalizeEspnLogoUrl(url);
-  return normalized?.match(/\/teamlogos\/(?:ncaa|nfl)\/\d+\/(\d+)\.[a-z0-9]+(?:\?.*)?$/i)?.[1] || null;
+  return normalized?.match(/\/teamlogos\/(?:ncaa|nfl|nba)\/\d+\/(\d+)\.[a-z0-9]+(?:\?.*)?$/i)?.[1] || null;
 }
 
 function matchupIdentityScore(sourceName: string, sourceLogoUrl: string | null | undefined, team: EspnTeam) {
@@ -124,7 +128,7 @@ function matchupIdentityScore(sourceName: string, sourceLogoUrl: string | null |
   return identityScore(sourceName, team);
 }
 
-function matchupCacheKey(league: "NFL" | "CFB", matchup: Matchup) {
+function matchupCacheKey(league: League, matchup: Matchup) {
   return [
     league,
     matchup.commence_time,
@@ -163,6 +167,7 @@ function teamFromCompetitor(competitor: any): EspnTeam {
     location: team.location || team.shortDisplayName || "",
     nickname: team.name || "",
     abbreviation: team.abbreviation || "",
+    rank: Number(competitor?.curatedRank?.current) >= 1 && Number(competitor?.curatedRank?.current) <= 25 ? Number(competitor.curatedRank.current) : null,
     logoUrl: normalizeEspnLogoUrl(team.logo || team.logos?.[0]?.href)
   };
 }
@@ -216,9 +221,9 @@ function compactDate(date: Date) {
   return `${year}${month}${day}`;
 }
 
-export async function fetchEspnWinProbability(league: "NFL" | "CFB", eventId: string, freshness: boolean | number = 10): Promise<EspnWinProbability | null> {
-  const sportPath = league === "NFL" ? "nfl" : "college-football";
-  const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/summary`);
+export async function fetchEspnWinProbability(league: League, eventId: string, freshness: boolean | number = 10): Promise<EspnWinProbability | null> {
+  const sportPath = espnSportPath(league);
+  const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/${sportPath}/summary`);
   url.searchParams.set("event", eventId);
   const response = await fetch(url.toString(), freshness === true
     ? { cache: "no-store" }
@@ -242,12 +247,12 @@ export async function fetchEspnWinProbability(league: "NFL" | "CFB", eventId: st
 }
 
 async function fetchEspnEventUncached(
-  league: "NFL" | "CFB",
+  league: League,
   eventId: string,
   freshness: boolean | number = true
 ): Promise<EspnScheduleGame | null> {
-  const sportPath = league === "NFL" ? "nfl" : "college-football";
-  const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/summary`);
+  const sportPath = espnSportPath(league);
+  const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/${sportPath}/summary`);
   url.searchParams.set("event", eventId);
   const response = await fetch(url.toString(), freshness === true
     ? { cache: "no-store" }
@@ -298,7 +303,7 @@ async function fetchEspnEventUncached(
 }
 
 export async function fetchEspnEvent(
-  league: "NFL" | "CFB",
+  league: League,
   eventId: string,
   freshness: boolean | number = true
 ): Promise<EspnScheduleGame | null> {
@@ -307,13 +312,13 @@ export async function fetchEspnEvent(
 }
 
 async function fetchEspnTeamSchedule(
-  league: "NFL" | "CFB",
+  league: League,
   teamId: string,
   season: number,
   freshness: boolean | number = true
 ) {
-  const sportPath = league === "NFL" ? "nfl" : "college-football";
-  const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/teams/${encodeURIComponent(teamId)}/schedule`);
+  const sportPath = espnSportPath(league);
+  const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/${sportPath}/teams/${encodeURIComponent(teamId)}/schedule`);
   url.searchParams.set("season", String(season));
   if (league === "CFB") url.searchParams.set("seasontype", "2");
 
@@ -349,6 +354,7 @@ async function fetchEspnTeamSchedule(
       id: String(event.id),
       commenceTime,
       timeValid: competition?.timeValid !== false,
+      seasonType: Number(event?.season?.type || 2),
       completed: Boolean(competition?.status?.type?.completed),
       homeScore: scoreFromCompetitor(home),
       awayScore: scoreFromCompetitor(away),
@@ -368,15 +374,16 @@ async function fetchEspnTeamSchedule(
   });
 }
 
-async function fetchEspnScheduleUncached(league: "NFL" | "CFB", dateHints: string[], freshness: boolean | number = false, paddingDays = 3) {
+async function fetchEspnScheduleUncached(league: League, dateHints: string[], freshness: boolean | number = false, paddingDays = 3) {
   const parsedDates = dateHints.map((date) => new Date(date)).filter((date) => !Number.isNaN(date.getTime()));
   if (!parsedDates.length) return [];
 
-  const sportPath = league === "NFL" ? "nfl" : "college-football";
+  const sportPath = espnSportPath(league);
   const fetchScoreboardEvents = async (datesParam: string) => {
-    const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/football/${sportPath}/scoreboard`);
+    const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/${sportPath}/scoreboard`);
     url.searchParams.set("limit", "1000");
     if (league === "CFB") url.searchParams.set("groups", "80");
+    if (league === "CBB") url.searchParams.set("groups", "50");
     url.searchParams.set("dates", datesParam);
 
     let lastError: Error | null = null;
@@ -455,6 +462,7 @@ async function fetchEspnScheduleUncached(league: "NFL" | "CFB", dateHints: strin
       id: String(event.id),
       commenceTime,
       timeValid: competition?.timeValid !== false,
+      seasonType: Number(event?.season?.type || 2),
       completed: Boolean(competition?.status?.type?.completed),
       homeScore: scoreFromCompetitor(home),
       awayScore: scoreFromCompetitor(away),
@@ -474,7 +482,7 @@ async function fetchEspnScheduleUncached(league: "NFL" | "CFB", dateHints: strin
   });
 }
 
-export async function fetchEspnSchedule(league: "NFL" | "CFB", dateHints: string[], freshness: boolean | number = false, paddingDays = 3) {
+export async function fetchEspnSchedule(league: League, dateHints: string[], freshness: boolean | number = false, paddingDays = 3) {
   if (freshness === true) return fetchEspnScheduleUncached(league, dateHints, freshness, paddingDays);
   const key = [league, String(freshness), String(paddingDays), ...dateHints].join("|");
   return parsedScheduleCache(key, () => fetchEspnScheduleUncached(league, dateHints, freshness, paddingDays));
@@ -555,7 +563,7 @@ export function findEspnScheduleMatch(matchup: Matchup, schedule: EspnScheduleGa
 export async function resolveEspnScheduleMatch(
   matchup: Matchup,
   schedule: EspnScheduleGame[],
-  league: "NFL" | "CFB",
+  league: League,
   options: { allowOneSided?: boolean; freshness?: boolean | number } = {}
 ): Promise<EspnScheduleMatch | null> {
   const match = findEspnScheduleMatch(matchup, schedule, options);
@@ -592,7 +600,8 @@ export async function resolveEspnScheduleMatch(
 
   if (!teamIds.length) return null;
 
-  const season = footballSeasonYear(matchup.commence_time);
+  const date = new Date(matchup.commence_time);
+  const season = league === "NBA" || league === "CBB" ? (date.getUTCMonth() >= 6 ? date.getUTCFullYear() + 1 : date.getUTCFullYear()) : footballSeasonYear(matchup.commence_time);
   for (const teamId of teamIds) {
     try {
       const teamSchedule = await fetchEspnTeamSchedule(league, teamId, season, options.freshness ?? true);

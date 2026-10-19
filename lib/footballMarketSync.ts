@@ -1,3 +1,4 @@
+import { basketballLockTime, isBasketballLeague } from "./basketballRules";
 import { fetchActionNetworkMarkets, fetchActionNetworkScheduledGames, type ActionNetworkScheduledGame } from "@/lib/actionNetworkMarkets";
 import { fetchEspnSchedule } from "@/lib/espnSchedule";
 import { espnRankForLogo, fetchEspnCfbRankMap } from "@/lib/espnRankings";
@@ -373,7 +374,7 @@ export async function persistActionNetworkSpreads(
   for (const game of games) {
     const quote = quotesById.get(game.id);
     const spread = quote?.phase === "pregame" && quote.spread && !quote.spread.suspended ? quote.spread : null;
-    if (!spread || !canRefreshSpread(game.commence_time, now)) continue;
+    if (!spread || !(isBasketballLeague(game.league) ? now < basketballLockTime(game.commence_time) : canRefreshSpread(game.commence_time, now))) continue;
 
     const nextAwaySpread = Number(spread.awayPoint);
     if (!Number.isFinite(nextAwaySpread)) continue;
@@ -398,7 +399,7 @@ export async function persistActionNetworkSpreads(
         provider: "Action Network",
         phase: quote?.phase,
         spread,
-        spread_freeze_time: getSpreadFreezeTime(game.commence_time).toISOString()
+        spread_freeze_time: (isBasketballLeague(game.league) ? basketballLockTime(game.commence_time) : getSpreadFreezeTime(game.commence_time)).toISOString()
       }
     });
   }

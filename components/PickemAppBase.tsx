@@ -1,5 +1,7 @@
 "use client";
 
+import { basketballLockTime, basketballWeek, basketballWeekBounds, basketballSeasonEnd, isBasketballLeague } from "@/lib/basketballRules";
+import BasketballGameDetails from "@/components/BasketballGameDetails";
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
 import NextImage from "next/image";
 
@@ -35,7 +37,7 @@ type PicksView = "board" | "sideBets";
 type CardView = "mine" | "group";
 type StandingsView = "standings" | "bank";
 type BetView = "offers" | "new";
-type SideBetLeagueFilter = "CFB" | "NFL";
+type SideBetLeagueFilter = "CFB" | "NFL" | "CBB" | "NBA";
 type SideBetBoardMarket = "spreads" | "total";
 
 function defaultFootballLeague(): SideBetLeagueFilter {
@@ -48,7 +50,7 @@ function defaultFootballLeague(): SideBetLeagueFilter {
 type SideBetLedgerScope = "all" | "mine";
 type SideBetGameFilter = "all" | "upcoming" | "completed";
 type GameStatusFilter = "OPEN" | "LOCKED" | "FINAL";
-type LeagueFilter = "CFB" | "NFL" | "DOGS";
+type LeagueFilter = SideBetLeagueFilter | "DOGS";
 type DogValueFilter = "ALL" | "1" | "2" | "3";
 type GameOutcome = "win" | "loss" | "push";
 type Toast = { message: string; tone: "success" | "error" | "info" } | null;
@@ -347,7 +349,7 @@ function ResponsiveTeamName({ game, team, className = "" }: { game: Game; team: 
 }
 
 function teamRank(game: Game, team: string) {
-  if (game.league !== "CFB") return null;
+  if (game.league !== "CFB" && game.league !== "CBB") return null;
   const rank = Number(team === game.home_team ? game.home_rank : game.away_rank);
   return Number.isInteger(rank) && rank >= 1 && rank <= 25 ? rank : null;
 }
@@ -458,9 +460,9 @@ function livePeriodStatus(game: Game) {
   } else if (/\bOT\b/i.test(detail)) {
     status = clock ? `OT · ${clock}` : "OT";
   } else if (quarter && clock) {
-    status = `${quarter} Qtr · ${clock}`;
+    status = `${quarter} ${game.league === "CBB" ? "Half" : "Qtr"} · ${clock}`;
   } else if (quarter) {
-    status = `${quarter} Qtr`;
+    status = `${quarter} ${game.league === "CBB" ? "Half" : "Qtr"}`;
   } else if (clock) {
     status = clock;
   }
@@ -608,6 +610,7 @@ function liveProbabilityVolatility(game: Game, remaining: number) {
 }
 
 function estimatedCoverChance(game: Game, team: string, spread: number | null) {
+  if (isBasketballLeague(game.league)) return null;
   if (spread == null || game.live_away_score == null || game.live_home_score == null || game.live_state !== "in") return null;
   const teamScore = team === game.home_team ? game.live_home_score : game.live_away_score;
   const opponentScore = team === game.home_team ? game.live_away_score : game.live_home_score;
@@ -626,6 +629,7 @@ function espnWinChance(game: Game, team: string) {
 }
 
 function estimatedWinChance(game: Game, team: string) {
+  if (isBasketballLeague(game.league)) return null;
   if (game.live_away_score == null || game.live_home_score == null || game.live_state !== "in") return null;
   const spread = normalizeSpreadForSelectedTeam(team, game.current_spread_team, game.current_spread);
   if (spread == null) return null;
@@ -1210,7 +1214,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [sideBetLedgerScope, setSideBetLedgerScope] = useState<SideBetLedgerScope>("all");
   const [sideBetLedgerGameFilter, setSideBetLedgerGameFilter] = useState<SideBetGameFilter>("all");
   const [statusFilter, setStatusFilter] = useState<GameStatusFilter>("OPEN");
-  const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>(() => defaultFootballLeague());
+  const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>(() => appSlug === "friends-basketball" ? "NBA" : defaultFootballLeague());
   const [conferenceFilter, setConferenceFilter] = useState("ALL");
   const [dogValueFilter, setDogValueFilter] = useState<DogValueFilter>("ALL");
   const [statusFilterTouched, setStatusFilterTouched] = useState(false);
@@ -1236,7 +1240,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [betCreatorTeam, setBetCreatorTeam] = useState("");
   const [betAmount, setBetAmount] = useState("20");
   const [betRecipients, setBetRecipients] = useState<string[]>([]);
-  const [betLeagueFilter, setBetLeagueFilter] = useState<SideBetLeagueFilter>(() => defaultFootballLeague());
+  const [betLeagueFilter, setBetLeagueFilter] = useState<SideBetLeagueFilter>(() => appSlug === "friends-basketball" ? "NBA" : defaultFootballLeague());
   const [betConferenceFilter, setBetConferenceFilter] = useState("ALL");
   const [toast, setToast] = useState<Toast>(null);
   const [testWeekActive, setTestWeekActive] = useState(false);
@@ -1294,7 +1298,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         const nextPicks = current.picks.map((pick) => {
           if (pick.user_id !== current.currentUser.id ||
               Number(pick.week) !== Number(current.week) ||
-              pick.selected_team !== detail.pick?.selected_team) return pick;
+              pick.selected_team !== detail.pick?.selected_team || (detail.pick.game_id && pick.game_id !== detail.pick.game_id)) return pick;
           changed = true;
           return {
             ...pick,
@@ -1311,7 +1315,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       });
 
       setStagedPicks((current) => current?.map((pick) =>
-        pick.selected_team === detail.pick?.selected_team
+        pick.selected_team === detail.pick?.selected_team && (!detail.pick.game_id || pick.game_id === detail.pick.game_id)
           ? { ...pick, status: "locked" as const, locked_spread: detail.pick?.locked_spread ?? pick.locked_spread, locked_at: detail.pick?.locked_at ?? pick.locked_at }
           : pick
       ) ?? current);
@@ -1691,7 +1695,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
             const quote = quotesById.get(game.id);
             const spread = quote?.phase === "pregame" && quote.spread && !quote.spread.suspended ? quote.spread : null;
-            if (!spread || !canRefreshSpread(nextGame.commence_time, now)) return nextGame;
+            if (!spread || !(isBasketballLeague(nextGame.league) ? now < basketballLockTime(nextGame.commence_time) : canRefreshSpread(nextGame.commence_time, now))) return nextGame;
             const nextAwaySpread = Number(spread.awayPoint);
             const currentAwaySpread = normalizeSpreadForSelectedTeam(nextGame.away_team, nextGame.current_spread_team, nextGame.current_spread);
             if (!Number.isFinite(nextAwaySpread)) return nextGame;
@@ -1961,7 +1965,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       } else {
         await load(week);
       }
-      if (appSlug === "friends" && ["create", "accept", "cancel", "decline"].includes(body.action)) {
+      if (["friends", "friends-basketball"].includes(appSlug) && ["create", "accept", "cancel", "decline"].includes(body.action)) {
         void load(current?.week ?? data?.week ?? week);
       }
       if (body.action === "accept") void refreshSideBetLedger();
@@ -1979,7 +1983,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }
 
   if (loading) {
-    const startupWeek = getCurrentPickWeek(new Date(clock));
+    const startupWeek = appSlug === "friends-basketball" ? basketballWeek(new Date(clock)) : getCurrentPickWeek(new Date(clock));
     const loadingNav = [
       { label: "Picks", icon: Zap },
       { label: "My Card", icon: SquareCheck },
@@ -1990,7 +1994,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return <div className="app-shell loading-shell">
       <header className="scoreboard-header">
         <div className="scoreboard-main">
-          <div className="brand-lockup"><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>
+          <div className="brand-lockup">{appSlug === "friends-basketball" ? <span className="basketball-wordmark">Basketball Pick’em</span> : <NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} />}</div>
           <div className="header-actions" aria-hidden="true">
             <span className="header-refresh-indicator" />
             <div className="header-slate">
@@ -2031,7 +2035,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const viewedPicks = previewActive ? testWeek!.picks : picks;
   const viewedWeek = previewActive ? 3 : data.week;
   const currentWeek = Number(data.currentWeek ?? data.week);
-  const weekConcluded = !previewActive && Number(data.week) < currentWeek;
+  const weekConcluded = !previewActive && (Number(data.week) < currentWeek || (appSlug === "friends-basketball" && clock >= basketballSeasonEnd(data.groupRules).getTime()));
   const weekNotOpenYet = !previewActive && Number(data.week) > currentWeek;
   const viewedBankEntries = previewActive ? testWeek!.bankEntries : bankEntries;
   const viewedBankHistory = previewActive ? [] : data.bankHistory || [];
@@ -2042,7 +2046,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const bankActive = tab === "standings" && standingsView === "bank";
   const myPicks = viewedPicks.filter((p) => p.user_id === currentUser.id && p.week === viewedWeek);
   const cardPicks = previewActive ? myPicks : stagedPicks ?? myPicks;
-  const universalLockAt = universalWeekendLockTime(viewedGames);
+  const universalLockAt = appSlug === "friends-basketball" ? basketballWeekBounds(viewedWeek, data.groupRules).end.getTime() : universalWeekendLockTime(viewedGames);
   const universalLockReached = universalLockAt != null && universalLockAt <= clock;
   const requiredCardPicks = rule.regularTotal + rule.underdogTotal;
   const allSubmittedPicksLocked = cardPicks.length > 0 && cardPicks.every((pick) => {
@@ -2122,7 +2126,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     if (leagueFilter === "CFB") {
       return g.league === "CFB" && (conferenceFilter === "ALL" || gameConferences(g).includes(conferenceFilter));
     }
-    if (leagueFilter === "NFL") return g.league === "NFL";
+    if (leagueFilter === "NFL" || leagueFilter === "CBB" || leagueFilter === "NBA") return g.league === leagueFilter;
     const dogValue = Math.max(...[g.away_team, g.home_team].map((team) => teamDogValue(g, team)));
     return dogValue > 0 && (dogValueFilter === "ALL" || dogValue === Number(dogValueFilter));
   }).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime()) : [];
@@ -2206,7 +2210,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
   async function createSideBet(options: { marketType: SideBetMarketType; offerPhase: SideBetOfferPhase; creatorSpread: number; totalPoints?: number | null; creatorOdds: number; amount: number }): Promise<boolean> {
     if (!weekIsOpen) {
-      notify("Side bet offers open Tuesday at 9:00 AM.", "error");
+      notify("Side bet offers are not open for this week yet.", "error");
       return false;
     }
     if (!selectedBetGame || !selectedCreatorTeam || !betRecipients.length) return false;
@@ -2272,7 +2276,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} />
+          {appSlug === "friends-basketball" ? <span className="basketball-wordmark">Basketball Pick’em</span> : <NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} />}
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
@@ -2311,7 +2315,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         {picksView === "board" && <>
           <div className="view-select-row board-filter-row">
             <MenuSelect ariaLabel="Choose game status" className="compact-select status-select" value={statusFilter} sections={[{ options: (["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => { setStatusFilter(value as GameStatusFilter); setStatusFilterTouched(true); }} />
-            <MenuSelect ariaLabel="Choose league" className="compact-select league-select" value={leagueFilter} sections={[{ options: (["CFB", "NFL", "DOGS"] as LeagueFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => setLeagueFilter(value as LeagueFilter)} />
+            <MenuSelect ariaLabel="Choose league" className="compact-select league-select" value={leagueFilter} sections={[{ options: ((appSlug === "friends-basketball" ? ["CBB", "NBA", "DOGS"] : ["CFB", "NFL", "DOGS"]) as LeagueFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => setLeagueFilter(value as LeagueFilter)} />
             {leagueFilter === "CFB" && <ConferenceFilter value={conferenceFilter} onChange={setConferenceFilter} />}
             {leagueFilter === "DOGS" && <MenuSelect ariaLabel="Filter dogs by win value" className="compact-select context-select" value={dogValueFilter} sections={[{ options: [{ value: "ALL", label: "ALL DOGS" }, ...(["1", "2", "3"] as const).map((value) => ({ value, label: dogBonusText(value, pointsMode) }))] }]} onChange={(value) => setDogValueFilter(value as DogValueFilter)} />}
           </div>
@@ -2465,11 +2469,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         onCountsChanged={updateNotificationCounts}
       />}
     </main>
-    {matchupPreviewGame && (isFinalGame(matchupPreviewGame) || new Date(matchupPreviewGame.commence_time).getTime() <= clock
+    {matchupPreviewGame && (isBasketballLeague(matchupPreviewGame.league)
+      ? <BasketballGameDetails game={matchupPreviewGame} onClose={closeMatchupPreview} />
+      : isFinalGame(matchupPreviewGame) || new Date(matchupPreviewGame.commence_time).getTime() <= clock
       ? <GameTracker game={matchupPreviewGame} onClose={closeMatchupPreview} />
       : matchupPreviewGame.league === "NFL"
         ? <NflMatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} />
-        : <MatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} showModel={(appSlug === "shaw-family" || appSlug === "friends") && String(currentUser.username || "").trim().toLowerCase() === "kameron"} modelGroup={appSlug} />)}
+        : <MatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} showModel={(appSlug === "shaw-family" || ["friends", "friends-basketball"].includes(appSlug)) && String(currentUser.username || "").trim().toLowerCase() === "kameron"} modelGroup={appSlug} />)}
     {!previewActive && stagedPicks !== null && autosaveBlockedSignatureRef.current !== pickCardSignature(stagedPicks) && !toast && <div className="autosave-toast" role="status" aria-live="polite"><LoaderCircle size={18} /><span>Saving…</span></div>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span><NumericText text={toast.message} /></span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
   </div>;
@@ -2816,7 +2822,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
     .filter((profile) => !Number.isFinite(weeklyLimit) || (slotCounts[profile.id] || 0) < weeklyLimit)
     .map((profile) => profile.id);
   const allRecipientsSelected = availableRecipientIds.length > 0 && availableRecipientIds.every((id) => recipients.includes(id));
-  const recipientGridColumns = appSlug === "friends" ? 4 : appSlug === "shaw-family" ? 3 : 2;
+  const recipientGridColumns = ["friends", "friends-basketball"].includes(appSlug) ? 4 : appSlug === "shaw-family" ? 3 : 2;
   const limitReached = Number.isFinite(weeklyLimit) && slotCount >= weeklyLimit;
   const filteredOpenGames = openGames
     .filter((game) => {
@@ -3057,7 +3063,7 @@ function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets
         ariaLabel="Filter side bet games by league"
         className="compact-select"
         value={gameLeague}
-        sections={[{ options: [{ value: "CFB", label: "CFB" }, { value: "NFL", label: "NFL" }] }]}
+        sections={[{ options: (appSlug === "friends-basketball" ? ["CBB", "NBA"] : ["CFB", "NFL"]).map((league) => ({ value: league, label: league })) }]}
         onChange={(value) => { setSlipExpanded(false); setGameLeague(value as SideBetLeagueFilter); }}
       />}
       {view === "new" && weekIsOpen && !weekConcluded && gameLeague === "CFB" && <MenuSelect
@@ -3605,6 +3611,7 @@ function TeamLogo({ url, name, className = "" }: { url?: string | null; name: st
 
 function PossessionIcon({ game, team }: { game: Game; team: string }) {
   if (game.live_state !== "in" || game.live_possession_team !== team) return null;
+  if (isBasketballLeague(game.league)) return <span className="possession-icon" role="img" aria-label="Possession">🏀</span>;
   return <span className="possession-icon" role="img" aria-label="Possession" title="Possession">
     <svg viewBox="0 0 24 14" aria-hidden="true" shapeRendering="geometricPrecision">
       <path d="M1.5 7C4.1 3 7.6 1.4 12 1.4S19.9 3 22.5 7c-2.6 4-6.1 5.6-10.5 5.6S4.1 11 1.5 7Z" fill="currentColor" stroke="#62371f" strokeWidth="1.05" />
@@ -3613,11 +3620,13 @@ function PossessionIcon({ game, team }: { game: Game; team: string }) {
   </span>;
 }
 
-function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number }; hasDog: boolean; dirty: boolean }) {
+function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; counts: { total: number; cfb: number; nfl: number; cbb?: number; nba?: number }; hasDog: boolean; dirty: boolean }) {
   const ok = counts.total === rule.regularTotal && counts.cfb >= rule.cfbMinimum && counts.nfl >= rule.nflMinimum && hasDog;
   const completeSlots = Math.min(counts.total + Number(hasDog), rule.regularTotal + 1);
   const progress = completeSlots / (rule.regularTotal + 1) * 100;
-  const countText = rule.phase === "opening" || rule.phase === "college"
+  const countText = counts.cbb != null
+    ? `${counts.total}/${rule.regularTotal} spreads · ${counts.cbb} CBB · ${counts.nba} NBA · dog ${hasDog ? "set" : "open"}`
+    : rule.phase === "opening" || rule.phase === "college"
     ? `${counts.cfb}/${rule.regularTotal} CFB spreads · dog ${hasDog ? "set" : "open"}`
     : `${counts.total}/${rule.regularTotal} spreads · ${counts.cfb} CFB · ${counts.nfl} NFL · dog ${hasDog ? "set" : "open"}`;
   return <div className={`card-progress ${ok ? "complete" : ""} ${dirty ? "dirty" : ""}`}>
@@ -3683,7 +3692,7 @@ function PickList({ picks, games, title, pointsMode, universalLockReached, remov
     const metaText = [matchupText, metaState].filter(Boolean).join(" · ");
     const compactMetaText = [compactMatchupText, metaState].filter(Boolean).join(" · ");
     const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : "P";
-    return <div className="pick-card" key={pick.id}>
+    return <div className="pick-card" data-game-id={pick.game_id} key={pick.id}>
       <div className="pick-top"><TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} /><div className="pick-copy"><p className="pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "regular" && Number(pick.confidence_points || 0) > 0 && <span className="confidence-card-chip"><span className="ui-separator-dot" aria-hidden="true">·</span><NumericText text={confidencePointText(Number(pick.confidence_points))} /></span>}{pick.pick_type === "underdog" && <><span className="dog-separator ui-separator-dot" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></p>{metaText && <p className="pick-meta"><ResponsiveText full={metaText} compact={compactMetaText} /></p>}</div><div className="pick-row-actions">{game && hasPickScoreBug(game) ? <button type="button" className="pick-score-bug-button" aria-label={`Open GameTracker for ${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`} onClick={() => openPreview(game)}><PickScoreBug game={game} pick={pick} spread={displayedSpread} /></button> : graded ? <span className={`badge pick-result-${pick.result}`}>{resultLabel}</span> : locked ? <LockedPickIndicator hidden={universalLockReached} /> : null}{!locked && <button className="icon-btn" aria-label={`Remove ${pick.selected_team}`} onClick={() => removePick(pick)}><X size={16} /></button>}</div></div>
     </div>;
   })}</div>;

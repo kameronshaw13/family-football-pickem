@@ -1,3 +1,4 @@
+import { basketballFinalWeek, basketballSeasonEnd, isBasketballRules } from "./basketballRules";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeGroupStandings, rankedPayoutSettlement, winnerTakeAllSettlement } from "@/lib/groupScoring";
 import { finalPickemWeek, footballSeasonYearAt, nflRegularSeasonEnd } from "@/lib/seasonRules";
@@ -7,7 +8,6 @@ export type SeasonSettlementResult = { settled: boolean; reason?: string; season
 
 export async function settleSeasonIfReady(supabase: SupabaseClient, currentTime = new Date()): Promise<SeasonSettlementResult> {
   const seasonYear = footballSeasonYearAt(currentTime);
-  if (currentTime < nflRegularSeasonEnd(seasonYear)) return { settled: false, reason: "NFL Week 18 is not complete.", seasonYear };
 
   const { data: seasons, error: seasonError } = await supabase.from("group_seasons").select("group_id,season_year,rules").eq("season_year", seasonYear).eq("status", "active");
   if (seasonError) throw new Error(seasonError.message);
@@ -18,6 +18,9 @@ export async function settleSeasonIfReady(supabase: SupabaseClient, currentTime 
   let lastReason = "No group is ready for season settlement.";
 
   for (const season of seasons) {
+    const basketball = isBasketballRules(season.rules);
+    const seasonEnd = basketball ? basketballSeasonEnd(season.rules) : nflRegularSeasonEnd(seasonYear);
+    if (currentTime < seasonEnd) { lastReason = "The season is not complete."; continue; }
     const [{ data: memberships, error: memberError }, { data: picks, error: pickError }] = await Promise.all([
       supabase.from("group_members").select("profile:profiles(id,display_name)").eq("group_id", season.group_id).eq("status", "active"),
       supabase.from("picks").select("*, game:games(commence_time)").eq("group_id", season.group_id).eq("season_year", seasonYear)
@@ -30,8 +33,8 @@ export async function settleSeasonIfReady(supabase: SupabaseClient, currentTime 
     });
     if (profiles.length < 2) { lastReason = "A group needs at least two active players."; continue; }
     const seasonPicks = (picks || []).filter((pick: any) => pick.game?.commence_time && footballSeasonYearAt(new Date(pick.game.commence_time)) === seasonYear);
-    const finalWeek = finalPickemWeek(seasonYear);
-    if (seasonPicks.some((pick: any) => Number(pick.week) === finalWeek && (pick.status !== "locked" || pick.result === "pending"))) {
+    const finalWeek = basketball ? basketballFinalWeek(season.rules) : finalPickemWeek(seasonYear);
+    if (seasonPicks.some((pick: any) => (basketball || Number(pick.week) === finalWeek) && (pick.status !== "locked" || pick.result === "pending"))) {
       lastReason = "At least one final-week pick is unfinished.";
       continue;
     }

@@ -1,3 +1,5 @@
+import { basketballCalendar, basketballFinalWeek, basketballPayoutMultiplier, basketballWeek, isBasketballRules } from "@/lib/basketballRules";
+import { fromZonedTime } from "date-fns-tz";
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { normalizeEspnLogoUrl } from "@/lib/espnLogos";
@@ -24,9 +26,19 @@ export async function GET(req: NextRequest) {
     const nowIso = now.toISOString();
     const requestedWeek = req.nextUrl.searchParams.get("week");
 
+    const basketball = isBasketballRules(context.rules);
+    const calendar = basketballCalendar(context.rules);
+    const basketballDefaultWeek = Math.min(basketballWeek(now, context.rules), basketballFinalWeek(context.rules));
+    const basketballSelectedWeek = requestedWeek != null ? Number(requestedWeek) : basketballDefaultWeek;
+    if (basketball && (!Number.isInteger(basketballSelectedWeek) || basketballSelectedWeek < 1 || basketballSelectedWeek > basketballFinalWeek(context.rules))) return NextResponse.json({ ok: false, error: "Choose a valid basketball week." }, { status: 400 });
+    const gamesQuery = supabase.from("games").select("*").in("league", context.rules.eligibleLeagues || ["CFB", "NFL"]).order("commence_time", { ascending: true }).order("id");
+    if (basketball) {
+      gamesQuery.eq("week", basketballSelectedWeek).gte("commence_time", fromZonedTime(`${calendar.startDate}T00:00:00`, context.group.timezone).toISOString())
+        .lt("commence_time", fromZonedTime(`${calendar.endDateExclusive}T00:00:00`, context.group.timezone).toISOString());
+    }
     const [gamesResult, lockedResult, bankResult, sideBetResult, seasonMoneyResult, sideBetDismissalResult, bankResetResult] = await Promise.all([
-      supabase.from("games").select("*").order("commence_time", { ascending: true }),
-      supabase.from("picks").select("user_id,week,pick_type,status,result,underdog_win_value,confidence_points").eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("status", "locked"),
+      gamesQuery.range(0, 999),
+      supabase.from("picks").select("id,user_id,week,pick_type,status,result,underdog_win_value,confidence_points").eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("status", "locked").order("id").range(0, 999),
       supabase.from("bank_entries").select("*, profile:profiles(display_name)").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("week", { ascending: false }).order("created_at", { ascending: false }),
       supabase.from("side_bets").select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("created_at", { ascending: false }).range(0, 999),
       supabase.from("group_season_money").select("winner_take_all_amount,updated_by,updated_at,submitted_at").eq("group_id", context.group.id).eq("season_year", context.seasonYear).maybeSingle(),
@@ -50,7 +62,27 @@ export async function GET(req: NextRequest) {
       if ((page || []).length < 1000) break;
     }
 
-    const normalizedGames = (gamesResult.data || [])
+    const allGameRows = [...(gamesResult.data || [])];
+    if (basketball) {
+      for (let offset = 1000; allGameRows.length === offset; offset += 1000) {
+        const page = await supabase.from("games").select("*").in("league", ["CBB", "NBA"]).eq("week", basketballSelectedWeek)
+          .gte("commence_time", fromZonedTime(`${calendar.startDate}T00:00:00`, context.group.timezone).toISOString())
+          .lt("commence_time", fromZonedTime(`${calendar.endDateExclusive}T00:00:00`, context.group.timezone).toISOString())
+          .order("commence_time", { ascending: true }).order("id").range(offset, offset + 999);
+        if (page.error) throw new Error(page.error.message);
+        allGameRows.push(...(page.data || []));
+      }
+    }
+    const lockedRows = [...(lockedResult.data || [])];
+    if (basketball) {
+      for (let offset = 1000; lockedRows.length === offset; offset += 1000) {
+        const page = await supabase.from("picks").select("id,user_id,week,pick_type,status,result,underdog_win_value,confidence_points")
+          .eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("status", "locked").order("id").range(offset, offset + 999);
+        if (page.error) throw new Error(page.error.message);
+        lockedRows.push(...(page.data || []));
+      }
+    }
+    const normalizedGames = allGameRows
       .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game))
       .map((game: any) => {
         const lockTime = getGroupGameLockTime(context, game.commence_time).toISOString();
@@ -64,7 +96,7 @@ export async function GET(req: NextRequest) {
       });
     const unique = new Map<string, any>();
     for (const game of normalizedGames) {
-      const key = [game.league, game.week, game.away_team, game.home_team]
+      const key = [game.league, basketball ? game.commence_time : game.week, game.away_team, game.home_team]
         .map((value) => String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, " "))
         .join(":");
       const prior = unique.get(key);
@@ -118,13 +150,15 @@ export async function GET(req: NextRequest) {
       });
     }
     const allGames = Array.from(unique.values()).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
-    const standingsWeeks = Array.from(new Set(allGames.map((game) => Number(game.week)))).sort((a, b) => a - b);
+    const standingsWeeks = basketball
+      ? Array.from({ length: basketballFinalWeek(context.rules) }, (_, index) => index + 1)
+      : Array.from(new Set(allGames.map((game) => Number(game.week)))).sort((a, b) => a - b);
     const openedWeeks = standingsWeeks.filter((candidateWeek) => {
       const candidateGames = allGames.filter((game) => Number(game.week) === candidateWeek);
       const openTime = getGroupPickWeekOpenTime(context, candidateWeek, candidateGames.map((game) => game.commence_time));
       return !openTime || openTime <= now;
     });
-    const defaultWeek = openedWeeks[openedWeeks.length - 1] ?? standingsWeeks[0] ?? 0;
+    const defaultWeek = basketball ? Math.min(basketballWeek(now, context.rules), basketballFinalWeek(context.rules)) : openedWeeks[openedWeeks.length - 1] ?? standingsWeeks[0] ?? 0;
     const week = requestedWeek != null ? Number(requestedWeek) : defaultWeek;
     const games = allGames.filter((game) => Number(game.week) === week);
     const gameById = new Map(allGames.map((game) => [game.id, game]));
@@ -160,7 +194,7 @@ export async function GET(req: NextRequest) {
 
     const profiles = context.members;
     const lockedByWeek = new Map<number, any[]>();
-    for (const pick of lockedResult.data || []) {
+    for (const pick of lockedRows) {
       const pickWeek = Number(pick.week);
       const rows = lockedByWeek.get(pickWeek);
       if (rows) rows.push(pick);
@@ -169,7 +203,7 @@ export async function GET(req: NextRequest) {
     const weeklyStandingsByWeek = Object.fromEntries(
       standingsWeeks.map((standingWeek) => [String(standingWeek), computeGroupStandings(profiles, lockedByWeek.get(standingWeek) || [], context.rules)])
     );
-    const standings = computeGroupStandings(profiles, (lockedResult.data || []) as any, context.rules);
+    const standings = computeGroupStandings(profiles, lockedRows as any, context.rules);
     const visiblePicks = (picksResult.data || []).map((pick: any) => ({ ...pick, game: gameById.get(pick.game_id) || pick.game }));
     const dismissedSideBetIds = new Set((sideBetDismissalResult.data || []).map((row: any) => row.side_bet_id));
     const sideBets = allSideBets.filter((bet: any) =>
@@ -197,7 +231,7 @@ export async function GET(req: NextRequest) {
         sideBetWeekTotals[loserId] = Number(sideBetWeekTotals[loserId] || 0) - transfer;
       }
     }
-    const bankResets = context.group.slug === 'friends' ? (bankResetResult.data || []) : [];
+    const bankResets = ["friends", "friends-basketball"].includes(context.group.slug) ? (bankResetResult.data || []) : [];
     const bankHistory = buildBankHistory(bankResult.data || [], allSideBets, bankResets);
     const bankBalances = Object.fromEntries(profiles.map((profile) => {
       const latestReset = bankResets
@@ -209,7 +243,7 @@ export async function GET(req: NextRequest) {
       const balance = Number(latestReset?.opening_balance || 0) + earnedSinceReset;
       return [profile.id, Math.round(balance * 100) / 100];
     }));
-    const bankReserved = context.group.slug === "friends" ? sideBetReservedFunds(allSideBets) : {};
+    const bankReserved = ["friends", "friends-basketball"].includes(context.group.slug) ? sideBetReservedFunds(allSideBets) : {};
     const bankAvailable = Object.fromEntries(profiles.map((profile) => [
       profile.id,
       availableSideBetFunds(Number(bankBalances[profile.id] || 0), Number(bankReserved[profile.id] || 0))
@@ -262,6 +296,7 @@ export async function GET(req: NextRequest) {
       sideBetWeekTotals,
       week,
       currentWeek: defaultWeek,
+      weeklyPayoutMultiplier: basketball ? basketballPayoutMultiplier(week, context.rules) : 1,
       weekRule: getGroupWeekRule(context, week),
       weekOpenTime: weekOpen ? weekOpen.toISOString() : null,
       availableWeeks: standingsWeeks

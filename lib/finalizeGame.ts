@@ -1,3 +1,4 @@
+import { gamePickLockTime } from "./sportPaths";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game } from "@/lib/types";
 import { settleWeekIfReady } from "@/lib/autoSettlement";
@@ -8,6 +9,11 @@ import { notificationMoney } from "@/lib/notificationMoney";
 import { getGameLockTime } from "@/lib/lockRules";
 import { getUnderdogBonusForRules, isGameAllowedByRules } from "@/lib/groupContext";
 import { sideBetCreatorProfit } from "@/lib/sideBetMarkets";
+
+function groupUrl(slug: string, destination: string) {
+  const path = slug === "friends-basketball" ? "/friends-basketball" : slug === "friends" ? "/friends" : slug === "other-family" ? "/caleb-family" : "/";
+  return `${path}?notification=${destination}`;
+}
 
 async function groupInfo(supabase: SupabaseClient, groupId: string, cache: Map<string, { slug: string; members: Array<{ id: string; display_name: string }> }>) {
   const cached = cache.get(groupId);
@@ -42,7 +48,7 @@ async function lockDraftPicksForGame(supabase: SupabaseClient, game: Game, updat
     : { data: [], error: null };
   if (seasonError) throw new Error(seasonError.message);
   const rulesBySeason = new Map((seasons || []).map((season: any) => [`${season.group_id}:${season.season_year}`, season.rules || {}]));
-  const lockedAt = getGameLockTime(game.commence_time).toISOString();
+  const lockedAt = gamePickLockTime(game, getGameLockTime).toISOString();
 
   for (const pick of drafts) {
     const rules = rulesBySeason.get(`${pick.group_id}:${pick.season_year}`) || {};
@@ -95,11 +101,11 @@ export async function finalizeGame(supabase: SupabaseClient, game: Game, homeSco
     const group = await groupInfo(supabase, pick.group_id, groupCache);
     const resultLabel = result === "win" ? "Won" : result === "loss" ? "Lost" : "Pushed";
     const selectedTeam = notificationTeamName(pick.selected_team, game.league);
-    notificationTasks.push(createNotificationSafely(supabase, { groupId: pick.group_id, userId: pick.user_id, type: "pick_final", destination: "my_card", entityId: pick.id, dedupeKey: `pick-final:${pick.id}`, title: `Your ${selectedTeam} pick is final`, body: `${resultLabel} · ${score}`, url: `/?group=${group.slug}&notification=my_card` }));
+    notificationTasks.push(createNotificationSafely(supabase, { groupId: pick.group_id, userId: pick.user_id, type: "pick_final", destination: "my_card", entityId: pick.id, dedupeKey: `pick-final:${pick.id}`, title: `Your ${selectedTeam} pick is final`, body: `${resultLabel} · ${score}`, url: groupUrl(group.slug, "my_card") }));
     const owner = Array.isArray(pick.profile) ? pick.profile[0] : pick.profile;
     for (const recipient of group.members) {
       if (recipient.id === pick.user_id) continue;
-      notificationTasks.push(createNotificationSafely(supabase, { groupId: pick.group_id, userId: recipient.id, type: "league_pick_final", destination: "league_cards", entityId: pick.id, dedupeKey: `league-pick-final:${pick.id}`, title: `${owner?.display_name || "A player"}'s pick is final`, body: `${selectedTeam} · ${resultLabel} · ${score}`, url: `/?group=${group.slug}&notification=league_cards` }));
+      notificationTasks.push(createNotificationSafely(supabase, { groupId: pick.group_id, userId: recipient.id, type: "league_pick_final", destination: "league_cards", entityId: pick.id, dedupeKey: `league-pick-final:${pick.id}`, title: `${owner?.display_name || "A player"}'s pick is final`, body: `${selectedTeam} · ${resultLabel} · ${score}`, url: groupUrl(group.slug, "league_cards") }));
     }
   }
 
@@ -130,8 +136,8 @@ export async function finalizeGame(supabase: SupabaseClient, game: Game, homeSco
     const creatorProfit = sideBetCreatorProfit(sideBet);
     const creatorAmount = result === "win" ? creatorProfit : result === "loss" ? Number(sideBet.amount) : 0;
     const acceptorAmount = result === "loss" ? Number(sideBet.amount) : result === "win" ? creatorProfit : 0;
-    notificationTasks.push(createNotificationSafely(supabase, { groupId: sideBet.group_id, userId: sideBet.creator_id, type: "side_bet_final", destination: "side_bet_ledger", entityId: sideBet.id, dedupeKey: `side-bet-final:${sideBet.id}`, title: "Your side bet is final", body: `${creatorResult} ${notificationMoney(creatorAmount)} · ${score}`, url: `/?group=${group.slug}&notification=side_bet_ledger` }));
-    notificationTasks.push(createNotificationSafely(supabase, { groupId: sideBet.group_id, userId: sideBet.accepted_by, type: "side_bet_final", destination: "side_bet_ledger", entityId: sideBet.id, dedupeKey: `side-bet-final:${sideBet.id}`, title: "Your side bet is final", body: `${acceptorResult} ${notificationMoney(acceptorAmount)} · ${score}`, url: `/?group=${group.slug}&notification=side_bet_ledger` }));
+    notificationTasks.push(createNotificationSafely(supabase, { groupId: sideBet.group_id, userId: sideBet.creator_id, type: "side_bet_final", destination: "side_bet_ledger", entityId: sideBet.id, dedupeKey: `side-bet-final:${sideBet.id}`, title: "Your side bet is final", body: `${creatorResult} ${notificationMoney(creatorAmount)} · ${score}`, url: groupUrl(group.slug, "side_bet_ledger") }));
+    notificationTasks.push(createNotificationSafely(supabase, { groupId: sideBet.group_id, userId: sideBet.accepted_by, type: "side_bet_final", destination: "side_bet_ledger", entityId: sideBet.id, dedupeKey: `side-bet-final:${sideBet.id}`, title: "Your side bet is final", body: `${acceptorResult} ${notificationMoney(acceptorAmount)} · ${score}`, url: groupUrl(group.slug, "side_bet_ledger") }));
   }
 
   await Promise.all(notificationTasks);

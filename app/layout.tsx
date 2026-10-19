@@ -17,6 +17,7 @@ import "./game-tracker.css";
 import "./theme-settings.css";
 import "./game-details-refresh.css";
 import "./game-details-system.css";
+import "./basketball.css";
 import type { Metadata, Viewport } from "next";
 import { Roboto_Slab } from "next/font/google";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";

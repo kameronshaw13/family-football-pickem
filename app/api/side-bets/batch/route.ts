@@ -35,7 +35,7 @@ function notificationSpread(value: number) {
 }
 
 function groupNotificationUrl(slug: string, destination: string) {
-  const base = slug === "friends" ? "/friends" : slug === "other-family" ? "/caleb-family" : "/";
+  const base = slug === "friends-basketball" ? "/friends-basketball" : slug === "friends" ? "/friends" : slug === "other-family" ? "/caleb-family" : "/";
   return `${base}?notification=${encodeURIComponent(destination)}`;
 }
 
@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (context.group.slug === "friends") {
+    if (["friends", "friends-basketball"].includes(context.group.slug)) {
       const funds = await getFriendsSideBetFunds(supabase, context.group.id, context.seasonYear);
       const available = funds.available[auth.profile.id] || 0;
       const totalRisk = prepared.reduce((sum, item) => sum + Math.round(item.amount * 100), 0) / 100;

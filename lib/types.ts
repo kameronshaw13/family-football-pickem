@@ -1,4 +1,4 @@
-export type League = "NFL" | "CFB";
+export type League = "NFL" | "CFB" | "CBB" | "NBA";
 export type PickStatus = "draft" | "locked";
 export type PickResult = "win" | "loss" | "push" | "pending";
 export type PickType = "regular" | "underdog";

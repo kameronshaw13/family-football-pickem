@@ -1,3 +1,4 @@
+import { refreshBasketballSlate } from "@/lib/basketballSync";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { refreshActionNetworkSpreads, syncUpcomingFootballSchedule } from "@/lib/footballMarketSync";
@@ -77,10 +78,17 @@ export async function GET(req: NextRequest) {
   const now = new Date();
   const { hour, weekday } = chicagoParts(now);
   const refreshWindow = scheduledMarketRefreshWindow(now);
+  let basketball: { gamesDiscovered?: number; gamesUpdated?: number; error?: string } | null = null;
+  const { minute } = chicagoParts(now);
+  if (force || !scheduled || (minute === 50 && hour >= 7 && hour <= 23)) {
+    try { basketball = await refreshBasketballSlate(supabase, now); }
+    catch (error) { basketball = { error: error instanceof Error ? error.message : String(error) }; }
+  }
   if (scheduled && !force && !refreshWindow.shouldRefresh) {
     return NextResponse.json({
       ok: true,
-      skipped: true,
+      skipped: !basketball,
+      basketball,
       provider: "DraftKings",
       refreshSchedule: "Tue 7:50 AM pre-open; Tue-Fri hourly 8:50 AM-8:50 PM CT; Sat 8:50 PM and 9:50 PM CT",
       reason: "Outside the scheduled market refresh window.",
@@ -133,6 +141,7 @@ export async function GET(req: NextRequest) {
       provider: "DraftKings",
       scheduleSource: "ESPN (provider-verified fallback for TBD kickoff times)",
       marketFeed: "Action Network",
+      basketball,
       gamesChecked: games.length,
       nearGamesChecked: nearGames.length,
       futureGamesChecked: refreshFuture ? futureGames.length : 0,

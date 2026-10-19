@@ -7,7 +7,8 @@ import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 const bodySchema = z.object({
   week: z.number().int().nonnegative(),
-  selectedTeam: z.string().min(1)
+  selectedTeam: z.string().min(1),
+  gameId: z.string().min(1).optional()
 });
 
 export async function POST(req: NextRequest) {
@@ -31,7 +32,9 @@ export async function POST(req: NextRequest) {
       .eq("status", "draft");
     if (error) throw new Error(error.message);
 
-    const pick = (candidates || [])[0];
+    const matching = body.gameId ? (candidates || []).filter((pick: any) => pick.game_id === body.gameId) : candidates || [];
+    if (matching.length > 1) return NextResponse.json({ ok: false, error: "Choose the specific game to lock." }, { status: 409 });
+    const pick = matching[0];
     if (!pick?.game) return NextResponse.json({ ok: false, error: "Wait for this pick to finish saving, then lock it." }, { status: 409 });
 
     const weekOpen = getGroupPickWeekOpenTime(context, body.week, [pick.game.commence_time]);
@@ -57,7 +60,7 @@ export async function POST(req: NextRequest) {
       .eq("id", pick.id)
       .eq("group_id", context.group.id)
       .eq("status", "draft")
-      .select("id,selected_team,pick_type,locked_spread,locked_at,status")
+      .select("id,game_id,selected_team,pick_type,locked_spread,locked_at,status")
       .maybeSingle();
     if (lockError) throw new Error(lockError.message);
     if (!locked) return NextResponse.json({ ok: false, error: "This pick was already locked or changed." }, { status: 409 });

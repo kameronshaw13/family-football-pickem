@@ -17,6 +17,7 @@ const FULL_GAME_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
 });
 
 type CachedGame = {
+  id?: string;
   commence_time?: string | null;
   away_team?: string | null;
   home_team?: string | null;
@@ -97,10 +98,10 @@ function readCachedPayload(appSlug: AppSlug, week: number | null) {
   return null;
 }
 
-function gameForSelectedTeam(appSlug: AppSlug, selectedTeam: string) {
+function gameForSelectedTeam(appSlug: AppSlug, selectedTeam: string, gameId?: string) {
   const week = selectedWeekFromHeader();
   const payload = readCachedPayload(appSlug, week);
-  return payload?.games?.find((game) => game.away_team === selectedTeam || game.home_team === selectedTeam) || null;
+  return payload?.games?.find((game) => gameId ? game.id === gameId : game.away_team === selectedTeam || game.home_team === selectedTeam) || null;
 }
 
 function buildReviewLogo(card: HTMLElement, selectedTeam: string) {
@@ -212,7 +213,7 @@ function openReview(appSlug: AppSlug, card: HTMLElement, selectedTeam: string, s
 
   const meta = document.createElement("p");
   meta.className = "confirmation-kickoff manual-lock-meta";
-  const game = gameForSelectedTeam(appSlug, selectedTeam);
+  const game = gameForSelectedTeam(appSlug, selectedTeam, card.dataset.gameId);
   meta.textContent = [reviewMatchup(card), game?.commence_time ? fullGameDate(game.commence_time) : ""].filter(Boolean).join(" · ");
 
   const note = document.createElement("p");
@@ -270,7 +271,7 @@ export default function WeekScopeAndManualLockEnhancements({ appSlug }: { appSlu
           const selectedTeam = remove.getAttribute("aria-label")?.replace(/^Remove\s+/, "").trim() || "";
           if (!selectedTeam) return;
 
-          if (manuallyLocked.has(selectedTeam)) {
+          if (manuallyLocked.has(card.dataset.gameId || selectedTeam)) {
             remove.style.display = "none";
             actions.querySelector(".manual-lock-confirmed")?.remove();
             actions.querySelector(".manual-pick-lock")?.remove();
@@ -301,11 +302,11 @@ export default function WeekScopeAndManualLockEnhancements({ appSlug }: { appSlu
                 const response = await fetch("/api/picks/lock", {
                   method: "POST",
                   headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
-                  body: JSON.stringify({ week, selectedTeam })
+                  body: JSON.stringify({ week, selectedTeam, gameId: card.dataset.gameId })
                 });
                 const payload = await response.json();
                 if (!response.ok) throw new Error(payload.error || "Pick could not be locked.");
-                manuallyLocked.add(selectedTeam);
+                manuallyLocked.add(card.dataset.gameId || selectedTeam);
                 window.dispatchEvent(new CustomEvent("pickem:pick-locked", {
                   detail: { appSlug, week, pick: payload.pick || null }
                 }));

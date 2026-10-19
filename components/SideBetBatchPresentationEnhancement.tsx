@@ -5,7 +5,7 @@ import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { americanOddsText, oppositeAmericanOdds } from "@/lib/sideBetMarkets";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 
-type AppSlug = "shaw-family" | "other-family" | "friends";
+type AppSlug = "shaw-family" | "other-family" | "friends" | "friends-basketball";
 type CachedGame = {
   id: string;
   league: string;
@@ -43,6 +43,7 @@ const CENTRAL_TIME = new Intl.DateTimeFormat("en-US", {
 });
 
 function appSlugFromPath(): AppSlug {
+  if (window.location.pathname.startsWith("/friends-basketball")) return "friends-basketball";
   if (window.location.pathname.startsWith("/friends")) return "friends";
   if (window.location.pathname.startsWith("/caleb-family")) return "other-family";
   return "shaw-family";

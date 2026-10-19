@@ -1,3 +1,4 @@
+import { basketballFinalWeek, basketballWeek, basketballWeekBounds, isBasketballRules } from "./basketballRules";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { toZonedTime } from "date-fns-tz";
 import { isGameAllowedByRules } from "@/lib/groupContext";
@@ -58,16 +59,18 @@ async function finalizeGroupWeek(
   if (gameError) throw new Error(gameError.message);
   if (pickError) throw new Error(pickError.message);
 
+  const basketball = isBasketballRules(season.rules);
+  if (basketball && (week < 1 || week > basketballFinalWeek(season.rules))) return { cardsFinalized: 0, regularAutoLosses: 0, missingDogs: 0 };
   const pickableWeekendGames = (games || []).filter((game: any) =>
     game.current_spread_team != null &&
     game.current_spread != null &&
-    isWeekendGame(game.commence_time, timezone) &&
+    (basketball || isWeekendGame(game.commence_time, timezone)) &&
     isEligibleSeasonGame(game) &&
     isGameAllowedByRules(season.rules || {}, game)
   );
-  if (!pickableWeekendGames.length) return { cardsFinalized: 0, regularAutoLosses: 0, missingDogs: 0 };
+  if (!basketball && !pickableWeekendGames.length) return { cardsFinalized: 0, regularAutoLosses: 0, missingDogs: 0 };
 
-  const weekendLock = pickableWeekendGames
+  const weekendLock = basketball ? basketballWeekBounds(week, season.rules, timezone).end : pickableWeekendGames
     .map((game: any) => getGameLockTime(game.commence_time, timezone))
     .sort((a: Date, b: Date) => a.getTime() - b.getTime())[0];
   if (!weekendLock || currentTime < weekendLock) return { cardsFinalized: 0, regularAutoLosses: 0, missingDogs: 0 };
@@ -101,8 +104,8 @@ async function finalizeGroupWeek(
     adminGames.push({
       id: `${idBase}-missing-regular-${slot}`,
       week,
-      league: "CFB",
-      commence_time: weekendLock.toISOString(),
+      league: basketball ? "CBB" : "CFB",
+      commence_time: (basketball ? new Date(weekendLock.getTime() - 1) : weekendLock).toISOString(),
       home_team: "Automatic Loss",
       away_team: "No Pick Submitted",
       home_logo_url: ADMIN_NO_SUBMISSION_MARKER,
@@ -121,8 +124,8 @@ async function finalizeGroupWeek(
     adminGames.push({
       id: `${idBase}-missing-dog-${slot}`,
       week,
-      league: "CFB",
-      commence_time: weekendLock.toISOString(),
+      league: basketball ? "CBB" : "CFB",
+      commence_time: (basketball ? new Date(weekendLock.getTime() - 1) : weekendLock).toISOString(),
       home_team: "No Bonus",
       away_team: "No Dog Submitted",
       home_logo_url: ADMIN_NO_SUBMISSION_MARKER,
@@ -210,12 +213,16 @@ export async function finalizeIncompleteCardsAfterWeekendLock(
   for (const season of seasons || []) {
     const group = Array.isArray((season as any).group) ? (season as any).group[0] : (season as any).group;
     const timezone = group?.timezone || "America/Chicago";
-    const week = options.week ?? getFootballWeek(currentTime.toISOString(), timezone);
-    const result = await finalizeGroupWeek(supabase, season, timezone, week, currentTime);
-    total.groupsChecked += 1;
-    total.cardsFinalized += result.cardsFinalized;
-    total.regularAutoLosses += result.regularAutoLosses;
-    total.missingDogs += result.missingDogs;
+    const basketball = isBasketballRules(season.rules);
+    const currentWeek = basketball ? Math.min(basketballWeek(currentTime, season.rules, timezone), basketballFinalWeek(season.rules) + 1) : getFootballWeek(currentTime.toISOString(), timezone);
+    const weeks = options.week != null ? [options.week] : basketball ? [currentWeek - 1, currentWeek] : [currentWeek];
+    for (const week of weeks) {
+      const result = await finalizeGroupWeek(supabase, season, timezone, week, currentTime);
+      total.groupsChecked += 1;
+      total.cardsFinalized += result.cardsFinalized;
+      total.regularAutoLosses += result.regularAutoLosses;
+      total.missingDogs += result.missingDogs;
+    }
   }
   return total;
 }

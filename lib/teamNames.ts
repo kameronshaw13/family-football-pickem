@@ -80,6 +80,7 @@ function restoreStateDisplay(team: string, displayName: string) {
 }
 
 export function teamDisplayName(league: string | null | undefined, team: string) {
+  if (league === "CBB" || league === "NBA") return team;
   if (league !== "NFL") {
     const override = DISPLAY_OVERRIDES[normalizeTeamNameKey(team)];
     if (override) return override;
@@ -89,6 +90,7 @@ export function teamDisplayName(league: string | null | undefined, team: string)
 }
 
 export function teamAbbreviatedName(league: string | null | undefined, team: string) {
+  if (league === "CBB" || league === "NBA") return team;
   if (league !== "NFL") {
     const rawKey = normalizeTeamNameKey(team);
     const displayKey = normalizeTeamNameKey(teamDisplayName(league, team));

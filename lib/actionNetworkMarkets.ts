@@ -214,7 +214,7 @@ async function fetchActionLeagueQuery(
   if (cached && cached.expiresAt > now) return cached.promise;
 
   const request = (async () => {
-    const path = league === "NFL" ? "nfl" : "ncaaf";
+    const path = ({ NFL: "nfl", CFB: "ncaaf", CBB: "ncaab", NBA: "nba" })[league];
     const params = new URLSearchParams({
       bookIds: ACTION_BOOK_IDS.join(","),
       [selectorKey]: selectorValue

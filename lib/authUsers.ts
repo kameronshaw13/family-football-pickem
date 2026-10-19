@@ -1,4 +1,4 @@
-export const APP_USERS = {
+const FOOTBALL_APP_USERS = {
   "shaw-family": [
     { username: "kameron", displayName: "Kameron", isAdmin: true },
     { username: "mike", displayName: "Mike", isAdmin: false },
@@ -22,6 +22,8 @@ export const APP_USERS = {
   ]
 } as const;
 
+export const APP_USERS = { ...FOOTBALL_APP_USERS, "friends-basketball": FOOTBALL_APP_USERS.friends } as const;
+
 export type PickemAppSlug = keyof typeof APP_USERS;
 
 export const FAMILY_USERS = Array.from(
@@ -29,7 +31,7 @@ export const FAMILY_USERS = Array.from(
 );
 
 export function normalizeAppSlug(value: string | null | undefined): PickemAppSlug {
-  return value === "other-family" || value === "friends" ? value : "shaw-family";
+  return value === "other-family" || value === "friends" || value === "friends-basketball" ? value : "shaw-family";
 }
 
 export function usersForApp(groupSlug: string | null | undefined) {

@@ -1,3 +1,5 @@
+import { isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+import { LEAGUES } from "@/lib/sportPaths";
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { fetchEspnEvent, fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
@@ -27,6 +29,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const supabase = getSupabaseAdmin();
+    const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
     const now = Date.now();
     const nowIso = new Date(now).toISOString();
     const lookbackIso = new Date(now - 18 * 60 * 60 * 1000).toISOString();
@@ -41,7 +44,7 @@ export async function GET(req: NextRequest) {
       .is("final_away_score", null)
       .lte("commence_time", nowIso)
       .gte("commence_time", lookbackIso)
-      .in("league", ["CFB", "NFL"]);
+      .in("league", context.rules.eligibleLeagues || ["CFB", "NFL"]);
 
     if (error) throw error;
 
@@ -53,7 +56,7 @@ export async function GET(req: NextRequest) {
     }
 
     const schedules = new Map<string, Awaited<ReturnType<typeof fetchEspnSchedule>>>();
-    await Promise.all((["CFB", "NFL"] as const).map(async (league) => {
+    await Promise.all((LEAGUES).map(async (league) => {
       const leagueGames = (candidates || []).filter((game) => game.league === league);
       if (!leagueGames.length) return;
       try {
@@ -74,8 +77,8 @@ export async function GET(req: NextRequest) {
     const games = [];
     let needsFinalization = false;
 
-    for (const game of candidates || []) {
-      const league = game.league as "CFB" | "NFL";
+    for (const game of (candidates || []).filter((game) => isGameAllowedForGroup(context, game))) {
+      const league = game.league as import("@/lib/types").League;
       let match = await resolveEspnScheduleMatch(game, schedules.get(game.league) || [], league, { freshness: 4 });
 
       // ESPN's date scoreboard occasionally returns the event shell before it
