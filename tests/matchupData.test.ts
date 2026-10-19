@@ -76,8 +76,8 @@ test("cache coalesces concurrent calls, retries failures, and evicts old keys", 
   assert.equal(await cache("a", load), 4);
 });
 test("ordinal dates handle teens and the Central Time day boundary", () => {
-  assert.deepEqual([1, 2, 3, 11, 12, 13, 21, 22, 23, 25, 31].map(ordinalDay), ["1st", "2nd", "3rd", "11th", "12th", "13th", "21st", "22nd", "23rd", "25th", "31st"]);
+  assert.deepEqual([1, 2, 3, 11, 12, 13, 21, 22, 23, 25, 31].map(ordinalDay), ["1", "2", "3", "11", "12", "13", "21", "22", "23", "25", "31"]);
   const formatter = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "America/Chicago" });
-  assert.equal(formatOrdinalDate(formatter, new Date("2026-09-26T02:00:00Z")), "September 25th");
-  assert.equal(formatUppercaseOrdinalDate(formatter, new Date("2026-09-24T18:00:00Z")), "SEPTEMBER 24th");
+  assert.equal(formatOrdinalDate(formatter, new Date("2026-09-26T02:00:00Z")), "September 25");
+  assert.equal(formatUppercaseOrdinalDate(formatter, new Date("2026-09-24T18:00:00Z")), "SEPTEMBER 24");
 });

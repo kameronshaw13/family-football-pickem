@@ -1,8 +1,8 @@
 import { espnSportPath } from "./sportPaths.ts";
 import type { League } from "./types";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
-import { normalizeEspnLogoUrl } from "@/lib/espnLogos";
-import { createAsyncCache } from "@/lib/asyncCache";
+import { normalizeEspnLogoUrl } from "./espnLogos.ts";
+import { createAsyncCache } from "./asyncCache.ts";
 
 type EspnTeam = {
   displayName: string;
@@ -173,10 +173,11 @@ function teamFromCompetitor(competitor: any): EspnTeam {
   };
 }
 
-function scoreFromCompetitor(competitor: any) {
-  const rawScore = competitor?.score?.value ?? competitor?.score;
+export function scoreFromCompetitor(competitor: any): number | null {
+  const rawScore = competitor?.score?.value ?? competitor?.score?.displayValue ?? competitor?.score;
+  if (rawScore == null || rawScore === "") return null;
   const score = Number(rawScore);
-  return Number.isFinite(score) ? score : null;
+  return Number.isInteger(score) && score >= 0 ? score : null;
 }
 
 function finiteSituationNumber(value: unknown) {
@@ -569,7 +570,10 @@ export async function resolveEspnScheduleMatch(
   league: League,
   options: { allowOneSided?: boolean; freshness?: boolean | number } = {}
 ): Promise<EspnScheduleMatch | null> {
-  const match = findEspnScheduleMatch(matchup, schedule, options);
+  // College schedules often share a kickoff time and one common school name.
+  // Require both teams for college scores and grading to avoid cross-matches.
+  const matchOptions = { ...options, allowOneSided: options.allowOneSided ?? league === "NFL" };
+  const match = findEspnScheduleMatch(matchup, schedule, matchOptions);
   if (match) return match;
 
   // The date scoreboard occasionally omits individual games. When we already
@@ -577,7 +581,7 @@ export async function resolveEspnScheduleMatch(
   // different matchup or leaving a valid game stuck on "Score updating."
   if (matchup.espn_event_id) {
     const exact = await fetchEspnEvent(league, matchup.espn_event_id, options.freshness ?? true);
-    return exact ? findEspnScheduleMatch(matchup, [exact], options) : null;
+    return exact ? findEspnScheduleMatch(matchup, [exact], matchOptions) : null;
   }
 
   // Some ESPN date scoreboards can omit an otherwise valid game. The games
@@ -590,7 +594,7 @@ export async function resolveEspnScheduleMatch(
   if (cachedEventId) {
     const cachedEvent = await fetchEspnEvent(league, cachedEventId, options.freshness ?? true);
     if (cachedEvent) {
-      const cachedMatch = findEspnScheduleMatch(matchup, [cachedEvent], options);
+      const cachedMatch = findEspnScheduleMatch(matchup, [cachedEvent], matchOptions);
       if (cachedMatch) return cachedMatch;
     }
     discoveredEventIdCache.delete(cacheKey);
@@ -608,7 +612,7 @@ export async function resolveEspnScheduleMatch(
   for (const teamId of teamIds) {
     try {
       const teamSchedule = await fetchEspnTeamSchedule(league, teamId, season, options.freshness ?? true);
-      const teamMatch = findEspnScheduleMatch(matchup, teamSchedule, options);
+      const teamMatch = findEspnScheduleMatch(matchup, teamSchedule, matchOptions);
       if (!teamMatch) continue;
       discoveredEventIdCache.set(cacheKey, teamMatch.game.id);
       return teamMatch;

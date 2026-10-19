@@ -5,12 +5,14 @@ All three apps consume the same games and odds pipeline. Group rules are applied
 
 ## Current schedule
 
-The active Supabase job is `refresh-pickem-odds-hourly`, scheduled at `50 * * * *` (UTC).
+The audited production job is `refresh-pickem-markets-5m`, but its actual schedule is `50 * * * *` (UTC): once per hour. The name does not reflect its cadence. After the scheduler SQL in this branch is applied, the job will be `refresh-pickem-markets-30m` at `20,50 * * * *` (UTC).
 It calls `/api/cron/odds` with `x-odds-cron-token` loaded from the Vault secret `odds_cron_token`.
 The endpoint enforces America/Chicago time, including daylight saving:
 
-- Tuesday–Friday: hourly, 8:50 AM–8:50 PM CT.
-- Saturday: 8:50 AM and 9:50 AM CT.
+- Tuesday: 7:50 AM CT before week open.
+- Tuesday–Friday: every 30 minutes, 8:20 AM–8:50 PM CT.
+- Sunday–Monday: 8:50 AM CT schedule and future-line refresh.
+- Saturday: 8:50 PM and 9:50 PM CT.
 - Outside these windows: HTTP 200 with `skipped: true`, without spending Odds API credits.
 
 Vercel still runs the results fallback daily (`30 6 * * *` UTC) and the Saturday locking fallback (`5 17 * * 6` UTC), as recorded in `vercel.json`. Do not add a second odds scheduler or schedule the legacy `/api/cron/tick` endpoint.
@@ -20,7 +22,7 @@ Vercel still runs the results fallback daily (`30 6 * * *` UTC) and the Saturday
 1. Enable the Cron (`pg_cron`) and `pg_net` integrations in Supabase.
 2. Create a strong random token in Supabase Vault named `odds_cron_token`. Do not put its value in source control, URLs, logs, or this document.
 3. Configure the token's SHA-256 hex digest as the Vercel server variable `ODDS_CRON_TOKEN_SHA256`, then redeploy. The existing production digest remains the fallback until this variable is configured.
-4. Run `supabase/odds-cron.sql` after reviewing its deployment URL. Scheduling by the existing name updates the job instead of creating a duplicate.
+4. Deploy the matching app code first, then run `supabase/odds-cron.sql` after reviewing its deployment URL. The script removes the old hourly job and creates the new 30-minute job.
 5. Verify a scheduled run and its actual HTTP response. A successful pg_cron run only means the asynchronous request was queued.
 
 Do not manually invoke the odds endpoint for testing unless an extra paid odds refresh is intended.
@@ -31,11 +33,11 @@ Run in the Supabase SQL editor:
 
 ```sql
 select jobid, jobname, schedule, active
-from cron.job where jobname = 'refresh-pickem-odds-hourly';
+from cron.job where jobname like 'refresh-pickem-%';
 
 select start_time, end_time, status, return_message
 from cron.job_run_details
-where jobid = (select jobid from cron.job where jobname = 'refresh-pickem-odds-hourly')
+where jobid = (select jobid from cron.job where jobname = 'refresh-pickem-markets-30m')
 order by start_time desc limit 24;
 
 select id, created, status_code, timed_out, error_msg, left(content, 800) as response

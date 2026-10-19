@@ -42,8 +42,8 @@ test("consensus combines rating models and direct FEI/Massey projections", () =>
   ], "2026-09-29T00:00:00Z");
   assert.equal(projection.models.length, 4);
   assert.equal(projection.consensus?.team, "Georgia");
-  assert.equal(projection.consensus?.spread, -8.3);
-  assert.equal(projection.edgePoints, 1.8);
+  assert.equal(projection.consensus?.spread, -8.5);
+  assert.equal(projection.edgePoints, 2);
   assert.equal(projection.stars, 0);
 });
 

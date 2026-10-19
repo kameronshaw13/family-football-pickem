@@ -141,7 +141,7 @@ type SideBetSnapshot = {
 };
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v2";
-const APP_DATA_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
+const APP_DATA_CACHE_MAX_AGE = 15 * 60 * 1000;
 const EMPTY_NOTIFICATION_COUNTS: NotificationCounts = { side_bets_received: 0, side_bets_sent: 0, my_card: 0, league_cards: 0, side_bet_ledger: 0, total: 0 };
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
@@ -1229,6 +1229,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [refreshing, setRefreshing] = useState(false);
   const [sessionValidated, setSessionValidated] = useState(false);
   const [message, setMessage] = useState("");
+  const [showSavedDataNotice, setShowSavedDataNotice] = useState(false);
+  const [marketUpdatesUnavailable, setMarketUpdatesUnavailable] = useState(false);
+  const [scoreUpdatesUnavailable, setScoreUpdatesUnavailable] = useState(false);
   const [savingPicks, setSavingPicks] = useState(false);
   const [savingBet, setSavingBet] = useState(false);
   const [savingBetId, setSavingBetId] = useState<string | null>(null);
@@ -1485,6 +1488,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       setStatusFilterTouched(false);
       setLoading(false);
       setRefreshing(true);
+      setShowSavedDataNotice(true);
     } else if (isInitialLoad) {
       setLoading(true);
     } else {
@@ -1521,6 +1525,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         return;
       }
       setSessionValidated(true);
+      const usingSavedResponse = response.headers.get("x-pickem-startup-cache") === "1";
+      setShowSavedDataNotice(usingSavedResponse);
       const loadedAt = Date.now();
       const loadedWeekIsOpen = !payload.weekOpenTime || new Date(payload.weekOpenTime).getTime() <= loadedAt;
       if (!cachedPayload) await preloadInitialBoardLogos(payload);
@@ -1532,7 +1538,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         setStatusFilter(defaultBoardStatus(payload.games || [], loadedAt, loadedWeekIsOpen));
         setStatusFilterTouched(false);
       }
-      writeCachedAppData(appSlug, nextWeek, payload);
+      if (!usingSavedResponse) writeCachedAppData(appSlug, nextWeek, payload);
     } catch {
       if (sequence === loadSequence.current && !cachedPayload) setMessage("Could not load app data.");
     } finally {
@@ -1545,16 +1551,18 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
   useEffect(() => { void load(null); return () => { loadSequence.current += 1; }; }, [load]);
   useEffect(() => { dataRef.current = data; }, [data]);
+  const modelUsername = data?.currentUser?.username;
+  const modelWeek = data?.week;
   useEffect(() => {
-    const username = String(data?.currentUser?.username || "").trim().toLowerCase();
-    const enabled = (appSlug === "shaw-family" || appSlug === "friends") && username === "kameron" && data?.week != null;
+    const username = String(modelUsername || "").trim().toLowerCase();
+    const enabled = (appSlug === "shaw-family" || appSlug === "friends") && username === "kameron" && modelWeek != null;
     if (!enabled) {
       setCfbModelEdges({});
       return;
     }
     let active = true;
     const token = window.localStorage.getItem("pickem_session_token") || "";
-    fetch(`/api/cfb-model?week=${encodeURIComponent(String(data!.week))}`, {
+    fetch(`/api/cfb-model?week=${encodeURIComponent(String(modelWeek))}`, {
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-pickem-group": appSlug },
       cache: "no-store"
     })
@@ -1574,7 +1582,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       })
       .catch(() => { if (active) setCfbModelEdges({}); });
     return () => { active = false; };
-  }, [appSlug, data?.currentUser?.username, data?.week]);
+  }, [appSlug, modelUsername, modelWeek]);
   useEffect(() => {
     if (!data?.currentUser.id) return;
     const nextLedger = Array.isArray(data.sideBetLedger) ? data.sideBetLedger : [];
@@ -1657,6 +1665,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     if (!dataRef.current || week == null || testWeekActive || tab !== "picks" || picksView !== "board") return;
     let cancelled = false;
     let refreshInFlight = false;
+    let failedChecks = 0;
 
     async function refreshPickBoardMarkets() {
       if (document.visibilityState === "hidden" || refreshInFlight) return;
@@ -1668,12 +1677,15 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
           cache: "no-store"
         });
-        if (!response.ok) return;
+        if (!response.ok) throw new Error("Market updates unavailable");
         const payload = await response.json() as {
           markets?: SideBetMarketQuote[];
           schedule?: Array<{ id: string; commence_time: string; lock_time: string; is_locked: boolean }>;
         };
-        if (cancelled || !Array.isArray(payload.markets)) return;
+        if (cancelled) return;
+        if (!Array.isArray(payload.markets)) throw new Error("Invalid market response");
+        failedChecks = 0;
+        setMarketUpdatesUnavailable(false);
 
         const quotesById = new Map(payload.markets.map((quote) => [quote.gameId, quote]));
         const scheduleById = new Map((payload.schedule || []).map((game) => [game.id, game]));
@@ -1717,7 +1729,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           return nextData;
         });
       } catch {
-        // Preserve the last known lines through a brief market-feed interruption.
+        if (!cancelled && ++failedChecks >= 3) setMarketUpdatesUnavailable(true);
       } finally {
         refreshInFlight = false;
       }
@@ -1742,6 +1754,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     let cancelled = false;
     let scoreRefreshInFlight = false;
     let finalizationInFlight = false;
+    let failedScoreChecks = 0;
 
     async function finalizeCompletedGames() {
       if (finalizationInFlight) return;
@@ -1774,8 +1787,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           headers: { Authorization: "Bearer " + token, "x-pickem-group": appSlug },
           cache: "no-store"
         });
-        if (!response.ok) return;
+        if (!response.ok) throw new Error("Score updates unavailable");
         const payload = await response.json() as { games?: LiveScoreUpdate[]; needsFinalization?: boolean };
+        if (!cancelled) {
+          failedScoreChecks = 0;
+          setScoreUpdatesUnavailable(false);
+        }
         if (cancelled || !payload.games?.length) return;
         const scoresById = new Map(payload.games.map((game) => [game.id, game]));
         const current = dataRef.current;
@@ -1829,7 +1846,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         if (alert) setToast(alert);
         if (payload.needsFinalization) void finalizeCompletedGames();
       } catch {
-        // Keep the last known score visible through brief network interruptions.
+        if (!cancelled && ++failedScoreChecks >= 3) setScoreUpdatesUnavailable(true);
       } finally {
         scoreRefreshInFlight = false;
       }
@@ -1848,7 +1865,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       window.removeEventListener("online", refreshOnResume);
       document.removeEventListener("visibilitychange", refreshOnResume);
     };
-  }, [appSlug, hasActiveGames, load, week]);
+  }, [appSlug, applySideBetSnapshot, hasActiveGames, load, refreshNotificationCounts, week]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 3200);
@@ -2301,6 +2318,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
     <main className="container">
       {message && <div className="error-card"><NumericText text={message} /></div>}
+      {showSavedDataNotice && <div className="saved-data-notice" role="status"><span>Showing saved data. Live updates are unavailable.</span><button type="button" onClick={() => void load(data.week)}>Retry</button></div>}
+      {tab === "picks" && picksView === "board" && marketUpdatesUnavailable && <div className="feed-notice" role="status">Odds updates are delayed. Showing the last available lines.</div>}
+      {hasActiveGames && scoreUpdatesUnavailable && <div className="feed-notice" role="status">Score updates are delayed. Showing the last available scores.</div>}
       {previewActive && <div className="test-mode-banner"><span><FlaskConical size={16} /><span><strong>Board state preview</strong><small>No real picks or bank balances are changed</small></span></span><button type="button" onClick={() => { setTestWeekActive(false); setStatusFilter(defaultBoardStatus(data.games, clock, !data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock)); setStatusFilterTouched(false); }}><X size={16} /> Exit</button></div>}
 
       {tab === "picks" && <section className="panel picks-panel">

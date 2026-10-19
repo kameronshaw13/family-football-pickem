@@ -13,7 +13,7 @@ const users = [
 ];
 
 export default function CalebFamilyLoginPage() {
-  const [mode, setMode] = useState<"create" | "signin">("create");
+  const [mode, setMode] = useState<"create" | "signin">("signin");
   const [username, setUsername] = useState(users[0].username);
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -61,14 +61,14 @@ export default function CalebFamilyLoginPage() {
       <h1>{mode === "create" ? "Create your account" : "Sign in"}</h1>
       <p>{mode === "create" ? "Choose your name and create a private password. After this, use that password to get back in." : "Use your name and the password you created."}</p>
       <div className="mode-toggle">
-        <button type="button" className={mode === "create" ? "active" : ""} onClick={() => { setMode("create"); setMessage(""); }}>Create account</button>
         <button type="button" className={mode === "signin" ? "active" : ""} onClick={() => { setMode("signin"); setMessage(""); }}>Sign in</button>
+        <button type="button" className={mode === "create" ? "active" : ""} onClick={() => { setMode("create"); setMessage(""); }}>Create account</button>
       </div>
       <form onSubmit={submit}>
         <label>Name</label>
         <MenuSelect ariaLabel="Name" className="input field-menu-select login-name-select" value={username} sections={[{ options: users.map((user) => ({ value: user.username, label: user.label })) }]} onChange={setUsername} />
-        <label>Password</label>
-        <input className="input" type="password" placeholder={mode === "create" ? "Create password" : "Password"} value={password} onChange={(event) => setPassword(event.target.value)} />
+        <label htmlFor="login-password">Password</label>
+        <input id="login-password" className="input" type="password" autoComplete={mode === "create" ? "new-password" : "current-password"} placeholder={mode === "create" ? "Create password" : "Password"} value={password} onChange={(event) => setPassword(event.target.value)} />
         <button className="btn gold full" disabled={loading || password.length < 6}>{loading ? "Working…" : mode === "create" ? "Create account" : "Sign in"}</button>
       </form>
       {message && <p className="login-message"><NumericText text={message} /></p>}

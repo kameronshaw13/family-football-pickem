@@ -1,4 +1,4 @@
-import { normalizeTeamNameKey, teamDisplayName } from "./teamNames";
+import { normalizeTeamNameKey, teamDisplayName } from "./teamNames.ts";
 
 export const CFB_MODEL_HOME_FIELD_POINTS = 2.5;
 const ELO_POINTS_PER_SPREAD_POINT = 25;
@@ -97,7 +97,7 @@ export function pointRatingFromElo(elo: number) {
 }
 
 export function pointRatingFromCore(overall: number) {
-  return overall * (CORE_PLAYS_PER_TEAM / 100);
+  return Math.round(overall * CORE_PLAYS_PER_TEAM) / 100;
 }
 
 export function pointRatingFromAdjustedEpa(netAdjustedEpa: number) {
@@ -159,7 +159,9 @@ export function buildResultsSrsRatings(games: CfbCompletedGame[], cutoffIso: str
       next.set(team, performances.length ? performances.reduce((sum, value) => sum + value, 0) / performances.length : 0);
     }
     const mean = next.size ? Array.from(next.values()).reduce((sum, value) => sum + value, 0) / next.size : 0;
-    ratings = new Map(Array.from(next, ([team, value]) => [team, value - mean]));
+    // Damping prevents a two-team schedule from oscillating forever between
+    // equally strong positive and negative ratings.
+    ratings = new Map(Array.from(next, ([team, value]) => [team, ((ratings.get(team) || 0) + value - mean) / 2]));
   }
   return ratings;
 }
