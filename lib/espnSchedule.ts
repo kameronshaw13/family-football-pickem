@@ -18,6 +18,7 @@ export type EspnScheduleGame = {
   commenceTime: string;
   timeValid: boolean;
   seasonType?: number;
+  draftKingsOdds?: unknown;
   completed: boolean;
   homeScore: number | null;
   awayScore: number | null;
@@ -355,6 +356,7 @@ async function fetchEspnTeamSchedule(
       commenceTime,
       timeValid: competition?.timeValid !== false,
       seasonType: Number(event?.season?.type || 2),
+      draftKingsOdds: competition?.odds?.find((row: any) => /^draftkings$/i.test(row?.provider?.name || "")) || null,
       completed: Boolean(competition?.status?.type?.completed),
       homeScore: scoreFromCompetitor(home),
       awayScore: scoreFromCompetitor(away),
@@ -463,6 +465,7 @@ async function fetchEspnScheduleUncached(league: League, dateHints: string[], fr
       commenceTime,
       timeValid: competition?.timeValid !== false,
       seasonType: Number(event?.season?.type || 2),
+      draftKingsOdds: competition?.odds?.find((row: any) => /^draftkings$/i.test(row?.provider?.name || "")) || null,
       completed: Boolean(competition?.status?.type?.completed),
       homeScore: scoreFromCompetitor(home),
       awayScore: scoreFromCompetitor(away),

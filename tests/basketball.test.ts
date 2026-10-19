@@ -13,6 +13,7 @@ registerHooks({ resolve(specifier, context, nextResolve) {
   if (url && !existsSync(fileURLToPath(url)) && existsSync(`${fileURLToPath(url)}.ts`)) return nextResolve(pathToFileURL(`${fileURLToPath(url)}.ts`).href, context);
   return nextResolve(specifier, context);
 } });
+const { espnDraftKingsBasketballQuote } = await import("../lib/espnBasketballMarkets.ts");
 const { settleWeekIfReady } = await import("../lib/autoSettlement.ts");
 const { computeWeeklyStandings } = await import("../lib/weeklyBank.ts");
 const { isGameAllowedByRules, getUnderdogBonusForRules } = await import("../lib/groupContext.ts");
@@ -91,4 +92,21 @@ test("football payouts never receive the basketball tournament multiplier", asyn
   assert.equal((await settleWeekIfReady(db, 22, undefined, new Date("2027-03-20T19:00:00Z"))).settled, true);
   assert.equal(writes[0].amount, 40);
   assert.ok(writes.every((entry) => !entry.note.includes("March Madness")));
+});
+
+const marketGame = { id: "nba", espn_event_id: "123", league: "NBA", commence_time: "2026-10-20T19:00:00Z" } as any;
+const marketNow = new Date("2026-10-19T12:00:00Z");
+const dkRow = { provider: { name: "DraftKings" }, pointSpread: { away: { close: { line: "-1.5", odds: "-102" } }, home: { close: { line: "+1.5", odds: "-118" } } }, moneyline: { away: { close: { odds: "-112" } }, home: { close: { odds: "-108" } } }, overUnder: 222.5 };
+test("basketball fallback preserves the explicitly identified DraftKings spread and market odds", () => {
+  const quote = espnDraftKingsBasketballQuote(marketGame, dkRow, "pre", marketNow);
+  assert.deepEqual(quote?.spread, { awayPoint: -1.5, homePoint: 1.5, awayOdds: -102, homeOdds: -118, suspended: false });
+  assert.equal(quote?.total?.points, 222.5);
+  assert.equal(quote?.moneyline?.awayOdds, -112);
+});
+test("basketball pregame fallback never substitutes a different bookmaker or a live game's closing line", () => {
+  assert.equal(espnDraftKingsBasketballQuote(marketGame, { ...dkRow, provider: { name: "Other" } }, "pre", marketNow), null);
+  assert.equal(espnDraftKingsBasketballQuote(marketGame, dkRow, "in", marketNow), null);
+  assert.equal(espnDraftKingsBasketballQuote(marketGame, dkRow, "pre", new Date("2026-10-20T19:00:00Z")), null);
+  const badSpread = { ...dkRow, pointSpread: { away: { close: { line: "-1.5" } }, home: { close: { line: "-1.5" } } } };
+  assert.equal(espnDraftKingsBasketballQuote(marketGame, badSpread, "pre", marketNow)?.spread, null);
 });
