@@ -2146,6 +2146,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     setStagedPicks(matchesSaved ? null : normalizedCard);
   }
 
+  const displayedFinalMatchups = new Set<string>();
   const filteredGames = boardActive ? viewedGames.filter((g) => {
     if (boardStatusForGame(g, clock, weekIsOpen) !== statusFilter) return false;
     if (leagueFilter === "CFB") {
@@ -2154,7 +2155,16 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     if (leagueFilter === "NFL" || leagueFilter === "CBB" || leagueFilter === "NBA") return g.league === leagueFilter;
     const dogValue = Math.max(...[g.away_team, g.home_team].map((team) => teamDogValue(g, team)));
     return dogValue > 0 && (dogValueFilter === "ALL" || dogValue === Number(dogValueFilter));
-  }).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime()) : [];
+  }).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime()).filter((game) => {
+    // Historical imports can retain more than one row for the same matchup,
+    // each with picks or side bets attached. Keep those records for grading,
+    // but show the final score just once on the board.
+    if (statusFilter !== "FINAL") return true;
+    const key = [game.league, game.week, game.commence_time, game.away_team, game.home_team].join("|");
+    if (displayedFinalMatchups.has(key)) return false;
+    displayedFinalMatchups.add(key);
+    return true;
+  }) : [];
   const gameGroups = filteredGames.reduce<Array<{ key: string; label: string; shortDay: string; games: Game[] }>>((groups, game) => {
     const key = gameDayKey(game.commence_time);
     const existingGroup = groups[groups.length - 1];
