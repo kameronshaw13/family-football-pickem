@@ -19,7 +19,7 @@ import "./game-details-refresh.css";
 import "./game-details-system.css";
 import "./basketball.css";
 import "./audit-polish.css";
-import { Inter } from "next/font/google";
+import { Barlow } from "next/font/google";
 import type { Metadata, Viewport } from "next";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
@@ -29,7 +29,7 @@ import PlayerProfiles from "@/components/PlayerProfiles";
 import SideBetBatchEnhancements from "@/components/SideBetBatchEnhancements";
 import SideBetBatchPresentationEnhancement from "@/components/SideBetBatchPresentationEnhancement";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const barlow = Barlow({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800", "900"], variable: "--font-barlow", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Family Football Pick'em",
@@ -179,7 +179,7 @@ declare global {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" className={inter.variable} suppressHydrationWarning>
+    <html lang="en" data-theme="light" className={barlow.variable} suppressHydrationWarning>
       <head>
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_HEADER_CSS }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
