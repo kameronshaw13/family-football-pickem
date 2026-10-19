@@ -1,3 +1,510 @@
+/* Unified legacy component styles; original cascade ordering retained. */
+
+/* ==== friends-eight-player.css ==== */
+/* Friends recipient picker: three evenly spaced people per row when
+   the restricted player is excluded. If seven players are eligible again,
+   use four cells on top and three full-width equal cells below. */
+.route-app.group-friends .side-bet-recipient-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.route-app.group-friends .side-bet-recipient-grid > label { grid-column: auto; }
+.route-app.group-friends .side-bet-recipient-grid:not(.seven-recipients) > label:nth-child(3n) { border-right: 0; }
+.route-app.group-friends .side-bet-recipient-grid:not(.seven-recipients) > label:nth-child(n + 4) { border-top: 1px solid var(--line); }
+
+.route-app.group-friends .side-bet-recipient-grid.seven-recipients > label:nth-child(-n + 4) { grid-column: span 3; }
+.route-app.group-friends .side-bet-recipient-grid.seven-recipients > label:nth-child(n + 5) { grid-column: span 4; border-top: 1px solid var(--line); }
+.route-app.group-friends .side-bet-recipient-grid.seven-recipients > label:nth-child(4),
+.route-app.group-friends .side-bet-recipient-grid.seven-recipients > label:nth-child(7) { border-right: 0; }
+
+
+/* ==== universal-card-dividers.css ==== */
+/* Use the stronger section separator consistently across every Pick'em app.
+   The header owns the separator, so it remains visible even when a card has no picks. */
+.card-panel .pick-section > h3,
+.card-panel .group-card > h3 {
+  border-top-color: var(--line-strong);
+}
+
+
+/* ==== final-polish.css ==== */
+/* Final shared polish pass: visual-only corrections without changing card geometry. */
+
+/* Pending Offers / Offer History use a strong outer frame, while the internal
+   divider between the heading and its first row stays at the normal line tone. */
+.side-bet-list-section > h3 {
+  border-top-color: var(--line-strong);
+  border-bottom-color: var(--line);
+}
+.side-bet-list-section-body > :last-child {
+  border-bottom-color: var(--line-strong);
+}
+
+.card-progress {
+  border-block-color: var(--line-strong);
+}
+
+
+/* Empty Picks sections should end with the same strong boundary as populated cards. */
+.card-panel .card-empty-picks,
+.card-panel .group-empty-picks {
+  border-bottom-color: var(--line-strong);
+}
+
+/* The Weekly Results container already owns the strong closing boundary.
+   Do not add another line to the final player row. */
+.bank-player-result:last-child {
+  border-bottom: 0;
+}
+
+/* Dropdown options use clean, divider-free 38px cells everywhere. Removing the
+   option border does not change row height, so every selectable cell keeps the
+   same visual space and selected blue backgrounds fill the entire cell. */
+.custom-select-menu {
+  row-gap: 0;
+  background: var(--panel);
+}
+.custom-select-option {
+  border-top: 0;
+}
+
+/* Conference options, including ALL CONF., are explicitly fixed to the same
+   38px selectable cell height. */
+.context-select .custom-select-option {
+  height: 38px;
+  min-height: 38px;
+}
+
+/* Conference section labels remain distinct without changing any row height.
+   The divider above Power 4 / Group of 6 is painted by the final option in the
+   preceding section, so selected ALL CONF. and SEC backgrounds run completely
+   flush into that divider. The header itself owns only its bottom divider. */
+.context-select .custom-select-section:not(:last-child) > .custom-select-option:last-child {
+  position: relative;
+}
+.context-select .custom-select-section:not(:last-child) > .custom-select-option:last-child::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  z-index: 1;
+  height: 1px;
+  background: var(--line);
+  content: "";
+  pointer-events: none;
+}
+.context-select .custom-select-group-label {
+  position: relative;
+  border-top: 0;
+}
+.context-select .custom-select-group-label::before {
+  display: none;
+}
+.context-select .custom-select-group-label::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: var(--line);
+  content: "";
+  pointer-events: none;
+}
+
+/* Keep the app from rubber-banding downward when the user reaches the top of
+   Pick Board / Side Bets on browsers that support overscroll-behavior. */
+html,
+body,
+.app-shell {
+  overscroll-behavior-y: none;
+}
+
+/* Preserve right-side market wrapping without overriding the shared responsive
+   sizing: team names and markets are 16px by default and 15px on mobile. */
+.team-spread,
+.team-board-market {
+  white-space: nowrap;
+}
+
+/* Side-bet money sits on the exact vertical centerline used by the centered
+   team logo in Pending Offers, Offer History, and the Side Bet Ledger. */
+.side-bet-offer-amount,
+.side-bet-ledger-amount {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  align-self: stretch;
+}
+
+/* Risk must sit above Win in open side-bet cards. This intentionally
+   overrides the generic centered amount flex rule above. */
+.side-bet-offer-amount.side-bet-offer-payout,
+.side-bet-ledger-amount.side-bet-offer-payout {
+  display: grid;
+  height: auto;
+  grid-template-columns: 1fr;
+  align-self: center;
+  justify-items: end;
+}
+
+/* Real and preview Pick Board use the same score-based selected-side treatment. */
+.picks-panel .stacked-matchup .team-row.picked-win {
+  background: linear-gradient(var(--green), var(--green)) left top / 4px 100% no-repeat, var(--win-soft);
+}
+.picks-panel .stacked-matchup .team-row.picked-loss {
+  background: linear-gradient(var(--red), var(--red)) left top / 4px 100% no-repeat, var(--red-soft);
+}
+.picks-panel .stacked-matchup .team-row.picked-push {
+  background: linear-gradient(var(--line-strong), var(--line-strong)) left top / 4px 100% no-repeat, var(--surface-muted);
+}
+
+/* My Card and League Cards share the same first-row origin and row measurements. */
+.card-panel > .pick-section { margin-top: 0; }
+.pick-top, .visible-pick {
+  grid-template-columns: var(--card-logo-column) minmax(0, 1fr) max-content;
+  column-gap: var(--card-logo-gap);
+}
+.pick-row-actions, .visible-pick-actions { align-self: center; }
+
+/* Keep compact icon buttons visually unchanged while giving fingers a roughly
+   44px touch target on phones/tablets. */
+@media (pointer: coarse) {
+  .icon-btn,
+  .slip-icon-btn {
+    position: relative;
+  }
+
+  .icon-btn::after,
+  .slip-icon-btn::after {
+    position: absolute;
+    content: "";
+  }
+
+  .icon-btn::after {
+    inset: -7px;
+  }
+
+  .slip-icon-btn::after {
+    inset: -6px;
+  }
+}
+
+
+/* ==== admin-no-submission.css ==== */
+/* Administrative missed-pick rows are stored as synthetic games so scoring and settlement stay consistent.
+   Keep their normal pick-row geometry, but render them as a single clean label plus the standard soft loss badge. */
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]),
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]),
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) {
+  height: var(--pick-card-row-height);
+  min-height: var(--pick-card-row-height);
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-top {
+  grid-template-columns: var(--card-logo-column) minmax(0, 1fr) max-content;
+  gap: var(--card-logo-gap);
+}
+
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]),
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) {
+  grid-template-columns: 38px minmax(0, 1fr) max-content;
+  gap: 10px;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-top > .team-logo,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) > .team-logo,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > .team-logo {
+  visibility: hidden;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-title-market,
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-meta,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-market,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .visible-pick-copy p,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-market,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) p {
+  display: none;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-copy,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .visible-pick-copy,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > div {
+  align-self: stretch;
+  align-content: center;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-title,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .visible-pick-copy > strong,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) .bank-game-pick-title {
+  margin: 0;
+  overflow: visible;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+/* The normal CFB team-name formatter strips the final word from these synthetic labels.
+   Hide that formatted value and render the administrative label explicitly instead. */
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-title-team .responsive-text-value,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-team .responsive-text-value,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-team .responsive-text-value {
+  display: none;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-title-team::after,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-team::after,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-title-team::after {
+  content: "No Pick Submitted";
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]):has(.dog-tag) .pick-title-team::after,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]):has(.dog-tag) .pick-title-team::after,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]):has(.dog-tag) .pick-title-team::after {
+  content: "No Dog Submitted";
+}
+
+/* Mirror the real final-game result grid exactly: 27 / 27 / 48 with 5px gaps.
+   The W/L/P badge lives centered in the third 48px column. */
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > .pick-score-bug {
+  display: grid;
+  width: 112px;
+  min-width: 112px;
+  height: 44px;
+  grid-template-columns: 27px 27px 48px;
+  grid-template-rows: 44px;
+  align-self: center;
+  align-content: center;
+  justify-content: end;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 0;
+  line-height: 1;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug > *,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug > *,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > .pick-score-bug > * {
+  display: none;
+}
+
+.pick-card:has(.pick-top > .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug::after,
+.visible-pick:has(> .team-logo[src$="admin-no-submission.svg"]) .pick-score-bug::after,
+.bank-game-result:has(> .team-logo[src$="admin-no-submission.svg"]) > .pick-score-bug::after {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  grid-column: 3;
+  grid-row: 1;
+  place-items: center;
+  place-self: center;
+  border: 1px solid #ddb1ad;
+  border-radius: 2px;
+  color: var(--red);
+  background: var(--red-soft);
+  content: "L";
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* Keep the existing League Cards empty-row treatment, but make the message explicit. */
+.group-empty-picks {
+  font-size: 0;
+}
+.group-empty-picks::after {
+  content: "No picks submitted.";
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+/* ==== component-styles.css ==== */
+/* Component-owned styles live in the static CSS pipeline so server and client
+   render identical markup during hydration. */
+.rule-item summary { min-height: 50px; padding-top: var(--ui-space-1); padding-bottom: var(--ui-space-1); }
+.rule-item[open] .rule-copy { padding-top: 5px; }
+.game-final-status { text-transform: none; }
+.game-card.final-outcome .team-row.outcome-loss .team-name,
+.game-card.final-outcome .team-row.outcome-loss .team-board-market,
+.game-card.final-outcome .team-row.outcome-loss .team-result-score { color: var(--header-muted); -webkit-text-fill-color: var(--header-muted); }
+.game-card.final-outcome .team-row.outcome-loss .team-logo,
+.score-bug-team.outcome-loss .team-logo { opacity: 1; filter: none; }
+.score-bug-team.outcome-loss .score-bug-score { color: var(--header-muted); }
+
+.manual-pick-lock { display: inline-flex; min-width: 62px; height: 30px; min-height: 30px; align-items: center; justify-content: center; gap: 5px; padding: 0 var(--ui-space-2); border: 1px solid #b88912; border-radius: 4px; color: var(--ink); background: var(--gold); font-family: var(--font-display); font-size: 11px; font-weight: 800; line-height: 1.2; cursor: pointer; }
+.manual-pick-lock svg { width: 13px; height: 13px; stroke-width: 2.2; color: var(--ink); }
+.manual-pick-lock:disabled { cursor: default; opacity: .55; }
+.manual-lock-confirmed { display: inline-flex; min-width: 42px; height: 28px; align-items: center; justify-content: center; color: var(--muted); font-size: 9px; font-weight: 800; }
+.manual-lock-toast { position: fixed; right: 12px; bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 12px); left: 12px; z-index: 65; display: flex; min-height: 44px; align-items: center; justify-content: center; padding: 9px var(--ui-space-3); border: 1px solid var(--line-strong); border-radius: 5px; color: var(--ink); background: var(--panel); box-shadow: var(--shadow); font-size: 12px; font-weight: 800; text-align: center; }
+.manual-lock-toast.error { color: var(--red); }
+.manual-lock-review .confirmation-heading { margin-top: 0; margin-bottom: 0; }
+.manual-lock-review .confirmation-heading h2 { margin: 0; }
+.manual-lock-review .confirmation-matchup { grid-template-columns: 1fr; margin-top: 0; border-top: 0; border-bottom: 1px solid var(--line-strong); }
+.manual-lock-review .confirmation-matchup > div.manual-lock-pick-cell { display: grid; width: 100%; height: var(--data-row-height); min-height: var(--data-row-height); grid-template-columns: 38px minmax(0, 1fr) 68px; align-items: center; gap: var(--space-3); padding: 10px var(--pick-content-inset); border: 0; color: var(--ink); background: var(--panel); box-shadow: none; text-align: left; cursor: default; transition: none; }
+.manual-lock-review .manual-lock-pick-cell > .team-logo { width: 34px; height: 34px; }
+.manual-lock-review .manual-lock-pick-cell > .team-name,
+.manual-lock-review .manual-lock-pick-cell > .team-spread { min-width: 0; color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 700; line-height: 1.3; text-transform: none; white-space: nowrap; -webkit-text-fill-color: var(--ink); }
+.manual-lock-review .manual-lock-pick-cell > .team-name { overflow: hidden; text-overflow: ellipsis; }
+.manual-lock-review .manual-lock-pick-cell > .team-spread { display: inline-flex; width: 100%; align-items: center; justify-content: flex-end; font-variant-numeric: tabular-nums; text-align: right; }
+.manual-lock-review .confirmation-kickoff.manual-lock-meta { display: flex; min-height: 32px; align-items: center; justify-content: center; margin: 0; padding: 5px 10px; border-top: 0; border-bottom: 1px solid var(--line-strong); color: var(--muted); background: var(--surface-muted); font-family: var(--font-display); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; text-align: center; }
+.manual-lock-review .manual-lock-note { margin: var(--ui-space-2) 2px var(--ui-space-3); color: var(--ink); font-size: 11px; font-weight: 600; line-height: 1.4; text-align: center; }
+.manual-lock-review .confirmation-actions { grid-template-columns: 1fr 1fr; }
+.manual-lock-review .manual-lock-confirm-btn { display: flex; align-items: center; justify-content: center; border-color: #b88912; color: var(--ink); background: var(--gold); }
+
+.game-time,
+.game-final-status,
+.game-live-status,
+.game-live-situation { display: inline-flex; align-items: center; overflow: visible; line-height: 1.3; }
+
+
+/* Native pending-lock state shared by My Card, League Cards, and Weekly Results. */
+.pick-lock-indicator { display: grid; width: 30px; min-width: 30px; height: 30px; min-height: 30px; place-items: center; padding: 0; border: 0; border-radius: 0; color: var(--muted); background: transparent; box-shadow: none; line-height: 1; }
+.pick-lock-indicator svg { display: block; width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+.confirmation-sheet:not(.manual-lock-review) .confirmation-kickoff { font-size: 11px; }
+
+/* One-off manual Washington live-TD prop: preserve real team logos while showing prop wording. */
+.side-bet-card:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-offer-copy > strong > .responsive-text { display: none; }
+.side-bet-card.mode-sent:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-offer-copy > strong::after { content: "Washington Touchdown"; }
+.side-bet-card.mode-received:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-offer-copy > strong::after { content: "No Washington Touchdown"; }
+.side-bet-ledger-row:has(.team-logo[src*="manual=washington-live-td"]) .side-bet-ledger-title > .responsive-text { display: none; }
+.side-bet-ledger-row:has(.team-logo[src*="/264.png?manual=washington-live-td"]) .side-bet-ledger-title::after { content: "Washington Touchdown"; }
+.side-bet-ledger-row:has(.team-logo[src*="/265.png?manual=washington-live-td"]) .side-bet-ledger-title::after { content: "No Washington Touchdown"; }
+
+
+/* ==== side-bet-batch.css ==== */
+/* Restored multi-selection side bet batch UI. */
+
+/* Every selected side in a batch keeps the normal picked-side treatment. */
+body.side-bet-batch-active .side-bet-game-card .team-row.batch-picked-side {
+  background:
+    linear-gradient(var(--blue), var(--blue)) left top / 4px 100% no-repeat,
+    var(--blue-soft);
+  box-shadow: none;
+}
+body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-picked-side) {
+  background: var(--panel);
+  box-shadow: none;
+}
+.side-bet-slip-bar[data-batch-count] .side-bet-slip-copy::after {
+  flex: 0 0 auto;
+  color: var(--blue-dark);
+  content: "· " attr(data-batch-count) " BETS";
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.side-bet-slip-sheet.batch-mode > .side-bet-slip-selection,
+.side-bet-slip-sheet.batch-mode > .side-bet-slip-summary {
+  display: none;
+}
+.side-bet-batch-list {
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--panel);
+}
+.side-bet-batch-head strong {
+  margin-left: auto;
+  color: var(--blue-dark);
+  font-size: 10px;
+  font-weight: 800;
+}
+.side-bet-batch-row {
+  display: grid;
+  min-height: 54px;
+  grid-template-columns: 38px minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px var(--pick-content-inset);
+  border-bottom: 1px solid var(--line);
+}
+.side-bet-batch-row:last-child { border-bottom: 0; }
+.side-bet-batch-row > .team-logo {
+  width: 34px;
+  height: 34px;
+}
+.side-bet-batch-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.side-bet-batch-copy strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-bet-batch-copy span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-bet-batch-remove {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0 0 2px;
+  border: 1px solid #d6aaa6;
+  border-radius: 4px;
+  color: var(--red);
+  background: var(--red-soft);
+  font-family: Arial, sans-serif;
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 1;
+}
+.batch-side-bet-toast {
+  position: fixed;
+  right: max(12px, calc((100vw - 736px) / 2));
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 10px);
+  left: max(12px, calc((100vw - 736px) / 2));
+  z-index: 80;
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 14px;
+  border-radius: 7px;
+  color: #fff;
+  background: var(--green);
+  box-shadow: 0 12px 30px rgba(20, 33, 43, .25);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+.batch-side-bet-toast.error { background: #9f403c; }
+
+@media (max-width: 520px) {
+  .side-bet-ledger-scope {
+    grid-template-columns: repeat(2, 66px);
+  }
+  .side-bet-ledger-scope-button {
+    width: 66px;
+  }
+  .batch-side-bet-toast { right: 9px; left: 9px; }
+}
+
+
+/* ==== presentation-fixes.css ==== */
 /* Final presentation fixes that intentionally sit after the batch dropdown styles. */
 
 /* Multi-side-bet selections should look exactly like the normal selected-team
@@ -280,7 +787,7 @@
   height: 100%;
   align-items: center;
   justify-content: center;
-  padding: 0 8px;
+  padding: 0 var(--ui-space-2);
   border: 0;
   border-radius: 999px;
   color: var(--graphite);
@@ -448,7 +955,7 @@
   height: 30px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
-  margin: 0 0 8px;
+  margin: 0 0 var(--ui-space-2);
   padding: 1px;
   overflow: hidden;
   border: 1px solid var(--graphite);
@@ -481,7 +988,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
 }
-.side-bet-offers-game-filter { margin: 8px var(--page-gutter) 10px; }
+.side-bet-offers-game-filter { margin: var(--ui-space-2) var(--page-gutter) 10px; }
 .side-bet-ledger-heading-row + .side-bet-game-filter-toggle { margin-top: 2px; }
 
 
@@ -491,7 +998,7 @@
   width: 100%;
   align-items: center;
   gap: 7px;
-  margin: 2px 0 8px;
+  margin: 2px 0 var(--ui-space-2);
 }
 .side-bet-ledger-filter-row .side-bet-ledger-scope-toggle {
   width: 122px;
@@ -548,7 +1055,7 @@
   display: inline-flex;
   min-width: 0;
   align-items: baseline;
-  gap: 4px;
+  gap: var(--ui-space-1);
   color: var(--muted);
   font-family: var(--font-display);
   font-size: 9px;
@@ -566,7 +1073,7 @@
   min-width: 0;
   align-items: center;
   justify-content: flex-start;
-  gap: 4px;
+  gap: var(--ui-space-1);
   overflow: hidden;
   white-space: nowrap;
 }
@@ -581,7 +1088,6 @@
 }
 
 @media (max-width: 390px) {
-  .side-bet-ledger-heading { gap: 4px; }
   .side-bet-ledger-summary { gap: 3px; font-size: 8.5px; }
 }
 
@@ -653,16 +1159,8 @@
 .side-bet-ledger-summary {
   font-size: 10px;
 }
-.side-bet-ledger-meta {
-  font-size: 11.5px !important;
-}
-.ledger-row.side-bet-ledger-row .side-bet-ledger-title,
-.ledger-row.side-bet-ledger-row .side-bet-ledger-amount {
-  font-size: 14.5px;
-}
 @media (max-width: 390px) {
   .side-bet-ledger-summary { font-size: 9.5px; }
-  .side-bet-ledger-meta { font-size: 11px !important; }
 }
 
 
@@ -688,14 +1186,6 @@
 .side-bet-batch-header-line {
   gap: 6px;
 }
-.side-bet-batch-header-matchup,
-.side-bet-batch-header-separator,
-.side-bet-batch-header-datetime {
-  color: #dce5e9;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.15;
-}
 .side-bet-batch-header-separator {
   padding-inline: 1px;
 }
@@ -709,7 +1199,7 @@
 
 /* Slightly larger ledger copy and more separation from the section title. */
 .side-bet-ledger-summary {
-  margin-left: 8px;
+  margin-left: var(--ui-space-2);
   font-size: 10.75px;
   gap: 5px;
 }
@@ -736,7 +1226,7 @@
   gap: 5px;
 }
 .side-bet-batch-header-matchup + .side-bet-batch-header-date {
-  margin-left: 8px;
+  margin-left: var(--ui-space-2);
 }
 
 /* When Spread + American Odds are both present, they always stay as two
@@ -761,7 +1251,7 @@
 .side-bet-ledger-summary {
   align-self: center;
   align-items: center;
-  margin-left: 8px;
+  margin-left: var(--ui-space-2);
   font-size: 10px;
   line-height: 1;
 }
@@ -789,7 +1279,7 @@
 .side-bet-batch-header-line {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--ui-space-1);
 }
 .side-bet-batch-header-matchup,
 .side-bet-batch-header-separator,
@@ -830,7 +1320,7 @@
   min-height: 35px;
   align-items: center !important;
   margin-bottom: 2px;
-  padding: 1px 2px 4px;
+  padding: 1px 2px var(--ui-space-1);
 }
 .side-bet-ledger-heading {
   display: flex !important;
@@ -849,8 +1339,8 @@
   display: inline-flex;
   align-self: center;
   align-items: center !important;
-  margin-left: 4px;
-  gap: 4px;
+  margin-left: var(--ui-space-1);
+  gap: var(--ui-space-1);
   font-size: 10px;
   line-height: 1.2;
 }
@@ -867,17 +1357,9 @@
 }
 .side-bet-ledger-filter-row {
   margin-top: 0;
-  margin-bottom: 8px;
+  margin-bottom: var(--ui-space-2);
 }
 @media (max-width: 390px) {
-  .side-bet-ledger-heading {
-    gap: 4px;
-  }
-  .side-bet-ledger-summary {
-    margin-left: 3px;
-    gap: 3px;
-    font-size: 9.5px;
-  }
 }
 
 
@@ -889,7 +1371,7 @@
   min-height: 42px;
   align-items: center !important;
   margin-bottom: 0;
-  padding: 2px 2px 8px;
+  padding: 2px 2px var(--ui-space-2);
 }
 .side-bet-ledger-heading {
   min-height: 0;
@@ -904,14 +1386,14 @@
 .side-bet-ledger-summary {
   align-self: baseline;
   align-items: baseline !important;
-  margin-left: 4px;
-  gap: 4px;
+  margin-left: var(--ui-space-1);
+  gap: var(--ui-space-1);
   font-size: 10px;
   line-height: 1;
 }
 .side-bet-ledger-filter-row {
   margin-top: -1px;
-  margin-bottom: 8px;
+  margin-bottom: var(--ui-space-2);
 }
 
 /* Keep the labels readable, but make the actual ledger dollar figures just
@@ -926,7 +1408,7 @@
 
 @media (max-width: 390px) {
   .side-bet-ledger-heading {
-    gap: 4px;
+    gap: var(--ui-space-1);
   }
   .side-bet-ledger-summary {
     margin-left: 3px;
@@ -1013,7 +1495,7 @@
    restore its original 4px token gap, then add only enough circle margin
    to make the visible space around each separator equal about 0.5em. */
 .side-bet-ledger-meta {
-  --ledger-separator-gap: 4px;
+  --ledger-separator-gap: var(--ui-space-1);
   align-items: center !important;
   gap: var(--ledger-separator-gap) !important;
 }
@@ -1026,7 +1508,7 @@
    normal words, money values, and the slash return to their original gap.
    Wider spacing remains only immediately around the separator circles. */
 .side-bet-ledger-summary {
-  --ledger-summary-gap: 4px;
+  --ledger-summary-gap: var(--ui-space-1);
   align-items: center !important;
   gap: var(--ledger-summary-gap) !important;
 }

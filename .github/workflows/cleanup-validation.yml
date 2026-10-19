@@ -1,0 +1,32 @@
+name: Cleanup validation
+on:
+  push:
+    branches: [maintenance/full-codebase-cleanup-oct19]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: CSS integrity and duplicate audit
+        run: npm run audit:css
+      - name: Import graph and orphaned module inventory
+        run: npm run audit:modules
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Rules and presentation regression tests
+        run: npm run test
+      - name: Production compile
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'

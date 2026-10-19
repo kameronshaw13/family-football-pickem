@@ -1,0 +1,53 @@
+/**
+ * Read-only CSS audit for the Pick'em app.
+ * npm run audit:css
+ * Reports repeated selectors, identical declarations and import problems.
+ * No CSS or application data is modified.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import postcss from "postcss";
+
+const root = process.cwd();
+const layout = fs.readFileSync(path.join(root, "app/layout.tsx"), "utf8");
+const cssImports = [...layout.matchAll(/import\s+["']\.\/([^"']+\.css)["']/g)].map(m => m[1]);
+const expected = ["ui-foundations.css", "ui-components.css", "ui-details.css"];
+const problems = [];
+if (JSON.stringify(cssImports) !== JSON.stringify(expected)) {
+  problems.push(`Unexpected app CSS entry points: ${cssImports.join(", ")}`);
+}
+for (const item of cssImports) {
+  if (!fs.existsSync(path.join(root, "app", item))) problems.push(`Missing CSS: ${item}`);
+}
+const report = [];
+for (const name of cssImports) {
+  const file = path.join(root, "app", name);
+  if (!fs.existsSync(file)) continue;
+  const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
+  const occurrences = new Map();
+  const duplicates = [];
+  let rules = 0, declarations = 0;
+  css.walkRules(rule => {
+    rules++;
+    const context = [];
+    for (let node = rule.parent; node && node.type !== "root"; node = node.parent) {
+      if (node.type === "atrule") context.unshift(`@${node.name} ${node.params}`);
+    }
+    const key = JSON.stringify([context, rule.selector]);
+    const declarationsHere = [];
+    rule.walkDecls(d => {
+      declarations++;
+      declarationsHere.push(`${d.prop}:${d.value}${d.important ? "!important" : ""}`);
+    });
+    const fingerprint = declarationsHere.join(";");
+    const prior = occurrences.get(key) || [];
+    if (prior.length) {
+      duplicates.push({ selector: rule.selector, line: rule.source.start.line, priorLines: prior.map(x=>x.line), identicalBlock: prior.some(x=>x.fingerprint === fingerprint) });
+    }
+    prior.push({line:rule.source.start.line, fingerprint});
+    occurrences.set(key, prior);
+  });
+  report.push({file:name, rules, declarations, repeatedSelectorOccurrences:duplicates.length, identicalRepeatedRuleBlocks:duplicates.filter(x=>x.identicalBlock).length, samples:duplicates.slice(0,8)});
+}
+console.log(JSON.stringify({cssImports, report, problems}, null, 2));
+if (problems.length) process.exitCode = 1;
