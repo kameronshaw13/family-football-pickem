@@ -1,0 +1,128 @@
+/* Shared readability pass for every league. Keep theme colors in the existing tokens. */
+:root {
+  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+html:not([data-theme="dark"]) {
+  --canvas: #f3f5f4;
+  --panel: #fff;
+  --surface-soft: #f6f8f7;
+  --surface-muted: #eaf0ee;
+  --line: #dbe3df;
+  --line-strong: #b9c7c1;
+  --muted: #52636b;
+  --header-muted: #52636b;
+  --shadow: 0 7px 24px rgba(18, 37, 44, .075);
+}
+
+body {
+  font-family: var(--font-display);
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select { touch-action: manipulation; }
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+.custom-select-trigger:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.scoreboard-header { box-shadow: inset 0 -3px 0 var(--blue), 0 2px 12px rgba(10, 24, 30, .13); }
+.primary-nav { border-top: 1px solid rgba(255, 255, 255, .14); }
+.primary-nav button { color: #bdc9ce; font-size: 12px; font-weight: 650; }
+.primary-nav button.active { font-weight: 750; }
+.section-tabs button { font-size: 14px; font-weight: 750; }
+.picks-panel > .section-tabs,
+.card-panel > .section-tabs,
+.standings-panel > .section-tabs { height: 48px; }
+.compact-select { min-height: 40px; border-bottom-color: var(--line-strong); }
+.compact-select .custom-select-trigger,
+.compact-select select { min-height: 40px; font-size: 12px; font-weight: 750; }
+.game-day-marker { gap: 9px; }
+.game-day-marker > b { min-height: 30px; border-radius: 4px; font-size: 11px; }
+.game-day-marker strong { font-size: 12px; font-weight: 700; }
+.game-head { min-height: 37px; height: 37px; }
+.badge, .status-mark { border-radius: 4px; font-size: 10px; letter-spacing: .025em; }
+.game-time, .game-final-status, .game-live-status, .game-live-situation { font-size: 12px; }
+.team-name { font-weight: 700; }
+.team-spread, .team-board-market, .team-result-score,
+.leaderboard-stat, .leaderboard-pct, .pick-title-market { font-variant-numeric: tabular-nums; }
+.leaderboard-labels { font-size: 11px; letter-spacing: .025em; }
+.leaderboard-row { min-height: 60px; }
+.pick-meta, .visible-pick p { font-size: 12px; }
+.btn { min-height: 44px; border-radius: 7px; font-size: 13px; }
+.input { min-height: 46px; border-radius: 7px; }
+.empty-state, .loading-card, .error-card, .notice-card { border-radius: 0 7px 7px 0; line-height: 1.5; }
+
+.saved-data-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--line-strong);
+  border-left: 4px solid var(--gold);
+  border-radius: 7px;
+  color: var(--ink);
+  background: var(--panel);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.saved-data-notice button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--surface-soft);
+  font-size: 13px;
+  font-weight: 750;
+}
+.feed-notice {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--blue);
+  border-radius: 0 6px 6px 0;
+  color: var(--ink);
+  background: var(--panel);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.login-screen {
+  place-items: center;
+  padding: max(24px, env(safe-area-inset-top)) 18px max(24px, env(safe-area-inset-bottom));
+  background: radial-gradient(circle at 50% 0, #354d59 0, var(--graphite) 54%);
+}
+.login-card {
+  width: min(440px, 100%);
+  margin: 0;
+  padding: clamp(24px, 5vw, 34px);
+  border-top-width: 5px;
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(4, 14, 29, .28);
+}
+.login-app-name { margin-bottom: 22px; padding-bottom: 18px; font-size: 15px; letter-spacing: .01em; }
+.login-card h1 { margin: 0 0 8px; font-size: clamp(27px, 6vw, 33px); line-height: 1.15; letter-spacing: -.035em; }
+.login-card > p { margin-bottom: 22px; font-size: 14px; font-weight: 500; line-height: 1.5; }
+.mode-toggle { margin-bottom: 20px; }
+.mode-toggle button { min-height: 44px; font-size: 13px; font-weight: 750; }
+.login-card label { margin: 16px 0 7px; color: var(--header-muted); font-size: 12px; letter-spacing: .045em; }
+.login-card .input,
+.login-card .field-menu-select .custom-select-trigger { min-height: 48px; font-size: 16px; }
+.login-card .btn.full { min-height: 48px; margin-top: 23px; font-size: 15px; }
+.login-message { font-size: 13px !important; line-height: 1.45; }
+
+@media (min-width: 760px) {
+  .game-list, .leaderboard, .group-list, .side-bet-list, .ledger-list {
+    border: 1px solid var(--line-strong);
+    border-radius: 9px;
+    box-shadow: var(--shadow);
+  }
+}

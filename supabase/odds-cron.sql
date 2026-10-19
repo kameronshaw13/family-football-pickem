@@ -15,9 +15,12 @@ where exists (select 1 from cron.job where jobname = 'refresh-pickem-odds-hourly
 select cron.unschedule('refresh-pickem-markets-5m')
 where exists (select 1 from cron.job where jobname = 'refresh-pickem-markets-5m');
 
+select cron.unschedule('refresh-pickem-markets-30m')
+where exists (select 1 from cron.job where jobname = 'refresh-pickem-markets-30m');
+
 select cron.schedule(
-  'refresh-pickem-markets-5m',
-  '*/5 * * * *',
+  'refresh-pickem-markets-30m',
+  '20,50 * * * *',
   $job$
     select net.http_get(
       url := 'https://family-football-pickem.vercel.app/api/cron/odds',

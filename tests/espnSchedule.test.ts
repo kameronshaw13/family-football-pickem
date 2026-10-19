@@ -1,6 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findEspnScheduleMatch, type EspnScheduleGame } from "../lib/espnSchedule.ts";
+import { findEspnScheduleMatch, scoreFromCompetitor, type EspnScheduleGame } from "../lib/espnSchedule.ts";
+
+test("missing ESPN scores stay unknown while numeric and display scores parse", () => {
+  assert.equal(scoreFromCompetitor({ score: null }), null);
+  assert.equal(scoreFromCompetitor({ score: "" }), null);
+  assert.equal(scoreFromCompetitor({ score: { displayValue: "21" } }), 21);
+  assert.equal(scoreFromCompetitor({ score: { value: 0 } }), 0);
+  assert.equal(scoreFromCompetitor({ score: "-1" }), null);
+});
 
 function game(overrides: Partial<EspnScheduleGame> = {}): EspnScheduleGame {
   return {

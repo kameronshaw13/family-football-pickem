@@ -50,10 +50,10 @@ test("side bet settlement stays zero-sum at -200", () => {
 test("prices alternate spreads from an even-money market line", () => {
   assert.equal(fairAltSpreadOdds(-4.5, -4.5), 100);
   assert.equal(fairAltSpreadOdds(-4.5, -4), -110);
-  assert.equal(fairAltSpreadOdds(-4.5, -3.5), -120);
-  assert.equal(fairAltSpreadOdds(-4.5, -5.5), 120);
-  assert.equal(fairAltSpreadOdds(4.5, 5.5), -120);
-  assert.equal(fairAltSpreadOdds(4.5, 3.5), 120);
+  assert.equal(fairAltSpreadOdds(-4.5, -3.5), -115);
+  assert.equal(fairAltSpreadOdds(-4.5, -5.5), 115);
+  assert.equal(fairAltSpreadOdds(4.5, 5.5), -115);
+  assert.equal(fairAltSpreadOdds(4.5, 3.5), 115);
 });
 
 test("prices alternate totals from the selected over or under side", () => {

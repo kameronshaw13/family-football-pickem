@@ -31,16 +31,22 @@ export async function GET(req: NextRequest) {
     const basketballDefaultWeek = Math.min(basketballWeek(now, context.rules), basketballFinalWeek(context.rules));
     const basketballSelectedWeek = requestedWeek != null ? Number(requestedWeek) : basketballDefaultWeek;
     if (basketball && (!Number.isInteger(basketballSelectedWeek) || basketballSelectedWeek < 1 || basketballSelectedWeek > basketballFinalWeek(context.rules))) return NextResponse.json({ ok: false, error: "Choose a valid basketball week." }, { status: 400 });
-    const gamesQuery = supabase.from("games").select("*").in("league", context.rules.eligibleLeagues || ["CFB", "NFL"]).order("commence_time", { ascending: true }).order("id");
-    if (basketball) {
-      gamesQuery.eq("week", basketballSelectedWeek).gte("commence_time", fromZonedTime(`${calendar.startDate}T00:00:00`, context.group.timezone).toISOString())
-        .lt("commence_time", fromZonedTime(`${calendar.endDateExclusive}T00:00:00`, context.group.timezone).toISOString());
-    }
+    const gamesQuery = () => {
+      const query = supabase.from("games").select("*").in("league", context.rules.eligibleLeagues || ["CFB", "NFL"])
+        .order("commence_time", { ascending: true }).order("id");
+      if (basketball) {
+        return query.eq("week", basketballSelectedWeek)
+          .gte("commence_time", fromZonedTime(`${calendar.startDate}T00:00:00`, context.group.timezone).toISOString())
+          .lt("commence_time", fromZonedTime(`${calendar.endDateExclusive}T00:00:00`, context.group.timezone).toISOString());
+      }
+      return query.gte("commence_time", new Date(Date.UTC(context.seasonYear, 7, 1)).toISOString())
+        .lt("commence_time", new Date(Date.UTC(context.seasonYear + 1, 2, 1)).toISOString());
+    };
     const [gamesResult, lockedResult, bankResult, sideBetResult, seasonMoneyResult, sideBetDismissalResult, bankResetResult] = await Promise.all([
-      gamesQuery.range(0, 999),
+      gamesQuery().range(0, 999),
       supabase.from("picks").select("id,user_id,week,pick_type,status,result,underdog_win_value,confidence_points").eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("status", "locked").order("id").range(0, 999),
       supabase.from("bank_entries").select("*, profile:profiles(display_name)").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("week", { ascending: false }).order("created_at", { ascending: false }),
-      supabase.from("side_bets").select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("created_at", { ascending: false }).range(0, 999),
+      supabase.from("side_bets").select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("created_at", { ascending: false }).order("id").range(0, 999),
       supabase.from("group_season_money").select("winner_take_all_amount,updated_by,updated_at,submitted_at").eq("group_id", context.group.id).eq("season_year", context.seasonYear).maybeSingle(),
       supabase.from("side_bet_dismissals").select("side_bet_id").eq("group_id", context.group.id).eq("user_id", auth.profile.id),
       supabase.from("bank_resets").select("user_id,week,opening_balance,note,settlement_week,settlement_amount").eq("group_id", context.group.id).eq("season_year", context.seasonYear)
@@ -56,6 +62,7 @@ export async function GET(req: NextRequest) {
         .eq("group_id", context.group.id)
         .eq("season_year", context.seasonYear)
         .order("created_at", { ascending: false })
+        .order("id")
         .range(offset, offset + 999);
       if (pageError) throw new Error(pageError.message);
       allSideBets.push(...(page || []));
@@ -63,24 +70,17 @@ export async function GET(req: NextRequest) {
     }
 
     const allGameRows = [...(gamesResult.data || [])];
-    if (basketball) {
-      for (let offset = 1000; allGameRows.length === offset; offset += 1000) {
-        const page = await supabase.from("games").select("*").in("league", ["CBB", "NBA"]).eq("week", basketballSelectedWeek)
-          .gte("commence_time", fromZonedTime(`${calendar.startDate}T00:00:00`, context.group.timezone).toISOString())
-          .lt("commence_time", fromZonedTime(`${calendar.endDateExclusive}T00:00:00`, context.group.timezone).toISOString())
-          .order("commence_time", { ascending: true }).order("id").range(offset, offset + 999);
-        if (page.error) throw new Error(page.error.message);
-        allGameRows.push(...(page.data || []));
-      }
+    for (let offset = 1000; allGameRows.length === offset; offset += 1000) {
+      const page = await gamesQuery().range(offset, offset + 999);
+      if (page.error) throw new Error(page.error.message);
+      allGameRows.push(...(page.data || []));
     }
     const lockedRows = [...(lockedResult.data || [])];
-    if (basketball) {
-      for (let offset = 1000; lockedRows.length === offset; offset += 1000) {
-        const page = await supabase.from("picks").select("id,user_id,week,pick_type,status,result,underdog_win_value,confidence_points")
-          .eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("status", "locked").order("id").range(offset, offset + 999);
-        if (page.error) throw new Error(page.error.message);
-        lockedRows.push(...(page.data || []));
-      }
+    for (let offset = 1000; lockedRows.length === offset; offset += 1000) {
+      const page = await supabase.from("picks").select("id,user_id,week,pick_type,status,result,underdog_win_value,confidence_points")
+        .eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("status", "locked").order("id").range(offset, offset + 999);
+      if (page.error) throw new Error(page.error.message);
+      lockedRows.push(...(page.data || []));
     }
     const normalizedGames = allGameRows
       .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game))

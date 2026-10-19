@@ -2,6 +2,7 @@ import { refreshBasketballSlate } from "@/lib/basketballSync";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { refreshActionNetworkSpreads, syncUpcomingFootballSchedule } from "@/lib/footballMarketSync";
+import { MARKET_REFRESH_SCHEDULE, scheduledMarketRefreshWindow } from "@/lib/marketSchedule";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { retryPendingPushNotifications } from "@/lib/notifications";
 import type { Game } from "@/lib/types";
@@ -38,27 +39,6 @@ function chicagoParts(date = new Date()) {
   };
 }
 
-function scheduledMarketRefreshWindow(date = new Date()) {
-  const { weekday, hour, minute } = chicagoParts(date);
-  if (minute !== 50) return { shouldRefresh: false, refreshFuture: false };
-
-  // Refresh once before the Tuesday 8:00 AM CT week-open so a newly opened
-  // slate never depends on the later 8:50 run for kickoff times or lines.
-  if (weekday === "Tue" && hour === 7) {
-    return { shouldRefresh: true, refreshFuture: true };
-  }
-
-  // Normal market refresh cadence in America/Chicago:
-  // Tue-Fri hourly from 8:50 AM through 8:50 PM, plus Sat 8:50 PM and 9:50 PM.
-  if (["Tue", "Wed", "Thu", "Fri"].includes(weekday) && hour >= 8 && hour <= 20) {
-    return { shouldRefresh: true, refreshFuture: hour === 8 };
-  }
-  if (weekday === "Sat" && (hour === 20 || hour === 21)) {
-    return { shouldRefresh: true, refreshFuture: hour === 20 };
-  }
-  return { shouldRefresh: false, refreshFuture: false };
-}
-
 export async function GET(req: NextRequest) {
   const secret = req.headers.get("authorization")?.replace("Bearer ", "") || req.nextUrl.searchParams.get("secret");
   const hasValidVercelSecret = Boolean(process.env.CRON_SECRET && secret === process.env.CRON_SECRET);
@@ -76,7 +56,7 @@ export async function GET(req: NextRequest) {
   const scheduled = Boolean(req.headers.get("x-vercel-cron-schedule")) || hasValidSupabaseSecret;
   const force = req.nextUrl.searchParams.get("force") === "1";
   const now = new Date();
-  const { hour, weekday } = chicagoParts(now);
+  const { hour } = chicagoParts(now);
   const refreshWindow = scheduledMarketRefreshWindow(now);
   let basketball: { gamesDiscovered?: number; gamesUpdated?: number; error?: string } | null = null;
   const { minute } = chicagoParts(now);
@@ -90,7 +70,7 @@ export async function GET(req: NextRequest) {
       skipped: !basketball,
       basketball,
       provider: "DraftKings",
-      refreshSchedule: "Tue 7:50 AM pre-open; Tue-Fri hourly 8:50 AM-8:50 PM CT; Sat 8:50 PM and 9:50 PM CT",
+      refreshSchedule: MARKET_REFRESH_SCHEDULE,
       reason: "Outside the scheduled market refresh window.",
       pushRetries
     });
@@ -145,7 +125,7 @@ export async function GET(req: NextRequest) {
       gamesChecked: games.length,
       nearGamesChecked: nearGames.length,
       futureGamesChecked: refreshFuture ? futureGames.length : 0,
-      refreshSchedule: "Tue 7:50 AM pre-open; Tue-Fri hourly 8:50 AM-8:50 PM CT; Sat 8:50 PM and 9:50 PM CT",
+      refreshSchedule: MARKET_REFRESH_SCHEDULE,
       futureRefreshCadence: refreshFuture ? "refreshed this run" : "first scheduled refresh of the active day",
       gamesUpdated: nearResult.gamesUpdated + futureResult.gamesUpdated,
       dogAdjustments: {
