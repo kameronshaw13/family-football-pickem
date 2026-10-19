@@ -115,6 +115,10 @@ function drivePeriod(drive: TrackerDrive) {
   return drive.plays.find((play) => play.period)?.period || "";
 }
 
+function driveEndPeriod(drive: TrackerDrive) {
+  return [...drive.plays].reverse().find((play) => play.period)?.period || drivePeriod(drive);
+}
+
 async function loadTracker(gameId: string) {
   const token = window.localStorage.getItem("pickem_session_token") || "";
   const response = await fetch(`/api/game-tracker?gameId=${encodeURIComponent(gameId)}`, {
@@ -227,7 +231,6 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
         {!completed && <TimeoutDots remaining={timeouts} />}
       </div>
     </div>
-    <span className="game-tracker-score-team-name" title={fullName}>{fullName}</span>
   </div>;
 }
 
@@ -438,7 +441,14 @@ function DriveDetails({ drive, payload, initiallyOpen }: { drive: TrackerDrive; 
   >
     <DriveSummary drive={drive} payload={payload} />
     <div className="game-tracker-drive-plays">
-      {drive.plays.length ? drive.plays.map((play) => <PlayRow key={play.id} play={play} />) : <p className="game-tracker-drive-empty">No plays listed for this drive.</p>}
+      {drive.plays.length ? drive.plays.map((play, index) => {
+        const previous = drive.plays[index - 1];
+        const newQuarter = previous && periodLabel(previous.period) !== periodLabel(play.period);
+        return <Fragment key={play.id}>
+          {newQuarter && <div className="game-tracker-quarter-header game-tracker-drive-quarter-header">{periodLabel(play.period)} Quarter</div>}
+          <PlayRow play={play} />
+        </Fragment>;
+      }) : <p className="game-tracker-drive-empty">No plays listed for this drive.</p>}
     </div>
   </details>;
 }
@@ -450,7 +460,7 @@ function Plays({ payload }: { payload: TrackerPayload }) {
     {payload.drives.map((drive, index) => {
       const previous = payload.drives[index - 1];
       const period = periodLabel(drivePeriod(drive));
-      const previousPeriod = previous ? periodLabel(drivePeriod(previous)) : "";
+      const previousPeriod = previous ? periodLabel(driveEndPeriod(previous)) : "";
       const showQuarter = !previous || period !== previousPeriod;
 
       return <Fragment key={drive.id}>
@@ -464,9 +474,9 @@ function Plays({ payload }: { payload: TrackerPayload }) {
 function TeamStats({ payload }: { payload: TrackerPayload }) {
   return <section className="game-tracker-team-stats">
     <div className="game-tracker-stat-table-head">
-      <span className="game-tracker-stat-team"><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><b>{trackerTeamLabel(payload.teams.away) || "Away"}</b></span>
+      <span aria-hidden="true" />
       <strong>TEAM STATS</strong>
-      <span className="game-tracker-stat-team home"><b>{trackerTeamLabel(payload.teams.home) || "Home"}</b><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /></span>
+      <span aria-hidden="true" />
     </div>
     {payload.teamStats.map((stat) => <div className="game-tracker-stat-row" key={stat.label}>
       <strong>{stat.away}</strong>
@@ -511,7 +521,8 @@ function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
   }, []);
 
   return <div ref={scroller} className="game-tracker-player-table-scroll">
-    <table className="game-tracker-player-table">
+    <table className="game-tracker-player-table" style={{ width: 152 + visibleLabels.length * 58 }}>
+      <colgroup><col style={{ width: 152 }} />{visibleLabels.map((label, index) => <col key={`${label}-${index}`} style={{ width: 58 }} />)}</colgroup>
       <thead><tr><th>Player</th>{visibleLabels.map((label) => <th key={label}>{label}</th>)}</tr></thead>
       <tbody>{row.athletes.map((athlete) => <tr key={athlete.name}>
         <td>{athlete.name}</td>
@@ -522,14 +533,9 @@ function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
 }
 
 function TeamBox({ payload, side }: { payload: TrackerPayload; side: Side }) {
-  const team = payload.teams[side];
   const rows = payload.playerStats.filter((item) => item.side === side);
 
   return <div className="game-tracker-team-box">
-    <div className="game-tracker-team-box-heading">
-      <TeamLogo src={team.logo} name={team.name} size={30} />
-      <strong>{trackerTeamLabel(team)}</strong>
-    </div>
     {rows.length ? rows.map((row) => <section className="game-tracker-box-section" key={row.category}>
       <h3>{row.title}</h3>
       <PlayerTable row={row} />
@@ -542,9 +548,9 @@ function BoxScore({ payload }: { payload: TrackerPayload }) {
 
   return <div className="game-tracker-box">
     <div className="game-tracker-box-selector" role="group" aria-label="Choose box score team">
-      <button type="button" className={view === "away" ? "active" : ""} onClick={() => setView("away")}>{trackerTeamLabel(payload.teams.away) || "Away"}</button>
+      <button type="button" className={view === "away" ? "active" : ""} onClick={() => setView("away")}><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><span>{trackerTeamLabel(payload.teams.away) || "Away"}</span></button>
       <button type="button" className={view === "all" ? "active" : ""} onClick={() => setView("all")}>All</button>
-      <button type="button" className={view === "home" ? "active" : ""} onClick={() => setView("home")}>{trackerTeamLabel(payload.teams.home) || "Home"}</button>
+      <button type="button" className={view === "home" ? "active" : ""} onClick={() => setView("home")}><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /><span>{trackerTeamLabel(payload.teams.home) || "Home"}</span></button>
     </div>
     {view === "all" ? <TeamStats payload={payload} /> : <TeamBox payload={payload} side={view} />}
   </div>;
