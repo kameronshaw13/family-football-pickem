@@ -1,8 +1,8 @@
 /* Shared readability pass for every league. Keep theme colors in the existing tokens. */
 :root {
-  --font-display: var(--font-inter), Arial, sans-serif;
+  --font-display: var(--font-barlow), "Avenir Next", "Arial Narrow", sans-serif;
 }
-.game-tracker-sheet, .matchup-preview-sheet { --detail-body: var(--font-inter), Arial, sans-serif; }
+.game-tracker-sheet, .matchup-preview-sheet { --detail-body: var(--font-barlow), "Avenir Next", "Arial Narrow", sans-serif; }
 
 html:not([data-theme="dark"]) {
   --canvas: #f3f5f4;
