@@ -109,7 +109,7 @@ export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSect
       if (section.title === "Eligible Games") return { ...section, items: ["NBA regular-season games and Division I men's college basketball games are eligible.", "Conference tournaments and NCAA March Madness games are included."] };
       if (section.title === "Pick Locks") return { ...section, items: [...pickLocks.slice(0, 2), "Each game's picks and spread lock 1 hour before tipoff, every day of the week."] };
       if (section.title === "Weekly Bank") return { ...section, items: [...section.items, "March Madness weeks have 2× weekly payouts for every position, including losses. This applies March 15–April 11, including the championship week.", "The 2× multiplier applies after perfect-week adjustments and tie splits; scoring and season prizes stay the same."] };
-      if (section.title === "Side Bets") return { ...section, items: ["Spread, moneyline, and over/under side bets are available.", "Offers open with the Monday–Sunday week. Pregame offers expire at tipoff.", "Live offers expire when the score changes or the game ends.", "Bank limits and settlement follow the same Friends rules."] };
+      if (section.title === "Side Bets") return { ...section, items: ["Spread, moneyline, and over/under side bets are available.", "Offers open with the Monday–Sunday week. Pregame offers expire at tipoff.", "Live offers expire when the score changes or the game ends.", "Credit-based Side Bets require no deposit or positive balance. Players settle their net winnings and losses later."] };
       return section;
     });
   }
@@ -179,7 +179,7 @@ export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSect
         "The 1.5× perfect-week bonus applies to first place only; second place remains +$20."
       ] },
       { title: "Pick Locks", items: pickLocks },
-      { title: "Side Bets", items: sideBetItems(rules, true) }
+      { title: "Side Bets", items: [...sideBetItems(rules, true), "Side Bets are credit-based: no deposit or positive balance required. Players settle up later."] }
     ];
   }
 

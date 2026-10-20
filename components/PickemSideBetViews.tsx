@@ -18,7 +18,7 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, ty
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Settings as SettingsIcon, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, SideBetMarketQuote, SideBetOfferPhase, SideBetTotalSide, Standing, WeekRule } from "@/lib/types";
 import { MAX_CUSTOM_SIDE_BET_AMOUNT, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
-import { americanOddsText, fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, fairSymmetricMoneyline, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, sideBetCreatorProfit, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
+import { americanOddsText, fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, fairSymmetricMoneyline, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import type { BankHistoryWeek } from "@/lib/bankHistory";
@@ -74,15 +74,13 @@ import {
   conferenceFilterSections,
 } from "@/components/PickemStandingsViews";
 
-export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, availableFunds, reservedFunds, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
+export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
   appSlug: AppSlug;
   view: BetView;
   setView: (value: BetView) => void;
   currentUser: Profile;
   profiles: Profile[];
   sideBets: SideBet[];
-  availableFunds: number | null;
-  reservedFunds: number;
   slotCounts: Record<string, number>;
   maxPerWeek: number | null;
   maxAmount: number;
@@ -164,7 +162,7 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
   const offeredOdds = oppositeAmericanOdds(creatorOdds);
   const parsedRisk = Number(amount);
   const wagerMax = manualAmount ? MAX_CUSTOM_SIDE_BET_AMOUNT : maxAmount;
-  const riskIsValid = Number.isFinite(parsedRisk) && parsedRisk > 0 && parsedRisk <= wagerMax && (availableFunds == null || Math.round(parsedRisk * 100) <= Math.round(availableFunds * 100));
+  const riskIsValid = Number.isFinite(parsedRisk) && parsedRisk > 0 && parsedRisk <= wagerMax;
   const creatorRisk = riskIsValid ? Math.round(parsedRisk * 100) / 100 : 0;
   const creatorWin = validAmericanOdds(creatorOdds) ? profitForRisk(creatorRisk, creatorOdds) : 0;
   const offeredRisk = creatorWin;
@@ -424,11 +422,6 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
   }
 
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
-    {availableFunds != null && <div className="side-bet-bank-available" aria-label="Bank funds available for side bets">
-      <span className="side-bet-bank-amount"><span>Available</span><strong><NumericText text={stakeMoney(availableFunds)} /></strong></span>
-      <span className="side-bet-bank-separator" aria-hidden="true">·</span>
-      <span className="side-bet-bank-amount"><span>Pending</span><strong><NumericText text={stakeMoney(reservedFunds)} /></strong></span>
-    </div>}
     <div className={`view-select-row side-bet-filter-row ${view === "new" && weekIsOpen && !weekConcluded ? "make-offer" : ""}`.trim()}>
       <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "offers", label: "Offers", badge: offerNotificationCount }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => {
         setSlipExpanded(false);
@@ -563,7 +556,7 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
             const value = Number(amount);
             if (Number.isFinite(value) && value > 0) setAmount(String(Math.min(wagerMax, Math.round(value * 100) / 100)));
           }} /></div></label>}
-          {manualAmount && amount !== "" && !riskIsValid && <p className="side-bet-field-error">{availableFunds != null && Number(amount) > availableFunds ? `Only $${availableFunds.toFixed(2)} is available after outstanding bets.` : "Enter a valid risk amount."}</p>}
+          {manualAmount && amount !== "" && !riskIsValid && <p className="side-bet-field-error">{"Enter a valid risk amount."}</p>}
           {!evenPayout && <div className="side-bet-payout-preview">
             <span>You risk <strong><NumericText text={stakeMoney(creatorRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorWin)} /></strong></span>
             <span>They risk <strong><NumericText text={stakeMoney(offeredRisk)} /></strong> to win <strong><NumericText text={stakeMoney(creatorRisk)} /></strong></span>
@@ -589,7 +582,7 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
         </div>
       </section>}
 
-    {view === "offers" && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter))} currentUser={currentUser} marketQuotes={marketQuotes} empty={weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id) && (availableFunds == null || Math.round(sideBetCreatorProfit(bet) * 100) <= Math.round(availableFunds * 100))} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : availableFunds != null ? "Insufficient funds" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
+    {view === "offers" && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter))} currentUser={currentUser} marketQuotes={marketQuotes} empty={weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>

@@ -8,8 +8,6 @@ import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { americanOddsText, oppositeAmericanOdds, profitForRisk, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { isSideBetRestricted } from "@/lib/sideBetAccess";
-import { canCoverSideBetRisk } from "@/lib/sideBetBank";
-import { getFriendsSideBetFunds } from "@/lib/sideBetBankServer";
 import { notificationTeamName } from "@/lib/notificationTeamName";
 import { notificationStakeText } from "@/lib/notificationMoney";
 
@@ -159,17 +157,6 @@ export async function POST(req: NextRequest) {
         const member = context.members.find((candidate) => candidate.id === fullRecipientId);
         const remaining = Math.max(0, settings.maxPerWeek - (counts[fullRecipientId] || 0));
         return NextResponse.json({ ok: false, error: `${member?.display_name || "That player"} only has ${remaining} side bet slot${remaining === 1 ? "" : "s"} left this week.` }, { status: 409 });
-      }
-    }
-
-    if (["friends", "friends-basketball"].includes(context.group.slug)) {
-      const funds = await getFriendsSideBetFunds(supabase, context.group.id, context.seasonYear);
-      const available = funds.available[auth.profile.id] || 0;
-      const totalRisk = prepared.reduce((sum, item) => sum + Math.round(item.amount * 100), 0) / 100;
-      if (!canCoverSideBetRisk(available, totalRisk)) {
-        return NextResponse.json({ ok: false, error: available <= 0
-          ? "No available bank funds. Deposit money before making Side Bets."
-          : `Only $${available.toFixed(2)} is available after outstanding bets.` }, { status: 409 });
       }
     }
 
