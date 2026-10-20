@@ -1515,7 +1515,7 @@ body:has(.confirmation-backdrop) {
 
 .profile-year-select {
   position: absolute;
-  top: calc(50% + env(safe-area-inset-top) / 2);
+  top: calc(env(safe-area-inset-top) + 28px);
   right: 58px;
   z-index: 8;
   transform: translateY(-50%);
@@ -1527,7 +1527,7 @@ body:has(.confirmation-backdrop) {
 
 .player-profile-close-wrap {
   position: absolute;
-  top: calc(50% + env(safe-area-inset-top) / 2);
+  top: calc(env(safe-area-inset-top) + 28px);
   right: 10px;
   min-width: 30px;
   transform: translateY(-50%);
