@@ -1468,13 +1468,13 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
    global separator color, with a touch more breathing room. */
 .pick-title-market .dog-separator.ui-separator-dot {
   box-sizing: border-box;
-  width: 3px;
-  min-width: 3px;
-  max-width: 3px;
-  height: 3px;
-  min-height: 3px;
-  max-height: 3px;
-  flex: 0 0 3px;
+  width: 4px;
+  min-width: 4px;
+  max-width: 4px;
+  height: 4px;
+  min-height: 4px;
+  max-height: 4px;
+  flex: 0 0 4px;
   margin-inline: 0.36em;
   border: 0;
   border-radius: var(--ui-radius-circle);

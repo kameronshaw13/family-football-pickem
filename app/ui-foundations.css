@@ -28,7 +28,7 @@
   /* Shapes follow purpose: flat board edges, boxed labels, cards, and rounded actions. */
   --ui-radius-flat: 0;
   --ui-radius-label: 2px;
-  --ui-radius-action: 999px;
+  --ui-radius-action: 4px;
   --ui-radius-box: 6px;
   --ui-radius-sm: var(--ui-radius-box);
   --ui-radius-md: var(--ui-radius-box);
