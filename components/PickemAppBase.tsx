@@ -1446,7 +1446,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     {currentPreviewGame && (isBasketballLeague(currentPreviewGame.league)
       ? <BasketballGameDetails game={currentPreviewGame} onClose={closeMatchupPreview} />
       : isFinalGame(currentPreviewGame) || new Date(currentPreviewGame.commence_time).getTime() <= clock
-      ? <GameTracker game={currentPreviewGame} onClose={closeMatchupPreview} />
+      ? <GameTracker game={currentPreviewGame} appSlug={appSlug} onClose={closeMatchupPreview} />
       : currentPreviewGame.league === "NFL"
         ? <NflMatchupPreview game={currentPreviewGame} onClose={closeMatchupPreview} />
         : <MatchupPreview game={currentPreviewGame} onClose={closeMatchupPreview} showModel={(appSlug === "shaw-family" || ["friends", "friends-basketball"].includes(appSlug)) && String(currentUser.username || "").trim().toLowerCase() === "kameron"} modelGroup={appSlug} />)}

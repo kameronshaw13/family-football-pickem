@@ -8,6 +8,7 @@ import Image from "next/image";
 import { createPortal } from "react-dom";
 import { ChevronDown, LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
+import type { AppSlug } from "@/lib/rulePresentation";
 import { teamDisplayName } from "@/lib/teamNames";
 import { trackerDisplayScore } from "@/lib/trackerDisplayScore";
 
@@ -129,10 +130,10 @@ function driveQuarterTransitions(drive: TrackerDrive) {
   });
 }
 
-async function loadTracker(gameId: string) {
+async function loadTracker(gameId: string, appSlug: AppSlug) {
   const token = window.localStorage.getItem("pickem_session_token") || "";
   const response = await fetch(`/api/game-tracker?gameId=${encodeURIComponent(gameId)}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-pickem-group": appSlug },
     cache: "no-store"
   });
   const payload = await response.json();
@@ -584,7 +585,7 @@ function BoxScore({ payload }: { payload: TrackerPayload }) {
   </div>;
 }
 
-export default function GameTracker({ game, onClose }: { game: Game; onClose: () => void }) {
+export default function GameTracker({ game, onClose, appSlug }: { game: Game; onClose: () => void; appSlug: AppSlug }) {
   const finalAtOpen = Boolean(game.live_completed || (game.final_home_score != null && game.final_away_score != null));
   const [tab, setTab] = useState<TrackerTab>(finalAtOpen ? "scoring" : "live");
   const [payload, setPayload] = useState<TrackerPayload | null>(null);
@@ -663,7 +664,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
     let timer = 0;
     const refresh = async () => {
       try {
-        const next = await loadTracker(game.id);
+        const next = await loadTracker(game.id, appSlug);
         if (!active) return;
         setPayload(next);
         setError("");
@@ -679,7 +680,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
       active = false;
       window.clearTimeout(timer);
     };
-  }, [game.id]);
+  }, [game.id, appSlug]);
 
   useEffect(() => {
     if (payload?.status.completed && tab === "live") setTab("scoring");
