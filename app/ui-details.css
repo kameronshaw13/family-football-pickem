@@ -4952,16 +4952,8 @@ select:focus-visible,
 }
 
 
-/* Inter spacing normalization — phone-first, preserves existing layout structure. */
-:root {
-  --ui-space-1: 4px;
-  --ui-space-2: 8px;
-  --ui-space-3: 12px;
-  --ui-space-4: 16px;
-  --ui-space-5: 24px;
-}
-
-/* Inter is slightly wider/cleaner than the previous display face, so keep line boxes intentional. */
+/* Shared spacing is defined once in ui-foundations.css. */
+/* Keep line boxes consistent with Roboto Slab on compact screens. */
 body, button, input, select, textarea {
   line-height: 1.25;
 }

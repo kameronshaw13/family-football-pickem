@@ -49,5 +49,32 @@ for (const name of cssImports) {
   });
   report.push({file:name, rules, declarations, repeatedSelectorOccurrences:duplicates.length, identicalRepeatedRuleBlocks:duplicates.filter(x=>x.identicalBlock).length, samples:duplicates.slice(0,8)});
 }
+// Enforce a single authoritative design-token definition across every CSS entry point.
+const canonicalTokens = {
+  "--ui-space-1": "4px", "--ui-space-2": "8px", "--ui-space-3": "12px",
+  "--ui-space-4": "16px", "--ui-space-5": "24px",
+  "--ui-radius-sm": "0px", "--ui-radius-md": "0px", "--ui-radius-lg": "0px",
+  "--ui-radius-control": "2px", "--ui-radius-circle": "50%"
+};
+const tokenDefinitions = new Map(Object.keys(canonicalTokens).map(key => [key, []]));
+for (const name of cssImports) {
+  const file = path.join(root, "app", name);
+  if (!fs.existsSync(file)) continue;
+  const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
+  css.walkDecls(decl => {
+    if (tokenDefinitions.has(decl.prop)) tokenDefinitions.get(decl.prop).push({
+      source: name, line: decl.source.start.line, value: decl.value
+    });
+  });
+}
+for (const [token, expectedValue] of Object.entries(canonicalTokens)) {
+  const definitions = tokenDefinitions.get(token);
+  if (definitions.length !== 1 ||
+      definitions[0]?.source !== "ui-foundations.css" ||
+      definitions[0]?.value !== expectedValue) {
+    problems.push(`Canonical token ${token} must be defined exactly once in ui-foundations.css as ${expectedValue}: ${JSON.stringify(definitions)}`);
+  }
+}
+
 console.log(JSON.stringify({cssImports, report, problems}, null, 2));
 if (problems.length) process.exitCode = 1;
