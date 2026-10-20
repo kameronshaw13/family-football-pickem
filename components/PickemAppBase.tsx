@@ -1310,7 +1310,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           profiles={profiles.filter((profile) => !isSideBetRestricted(data.groupRules, profile.id))}
           sideBets={sideBets}
           availableFunds={!previewActive && ["friends", "friends-basketball"].includes(appSlug)
-            ? Number(data.bankAvailable?.[currentUser.id] ?? 0)
+            && data.bankAvailable?.[currentUser.id] != null
+            ? Number(data.bankAvailable[currentUser.id])
             : null}
           reservedFunds={!previewActive && ["friends", "friends-basketball"].includes(appSlug)
             ? Number(data.bankReserved?.[currentUser.id] ?? 0)
