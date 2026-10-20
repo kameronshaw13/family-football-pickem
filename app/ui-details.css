@@ -2043,7 +2043,7 @@
 
 .settings-panel { padding-bottom: var(--space-3); }
 .settings-page-title { margin-bottom: var(--space-4); }
-.settings-section { margin-top: var(--space-4); }
+.settings-section { margin-top: var(--ui-space-4); }
 .settings-section:first-of-type { margin-top: 0; }
 .settings-section > h3 {
   margin: 0 0 7px 2px;
@@ -2053,9 +2053,10 @@
   letter-spacing: .015em;
   text-transform: uppercase;
 }
-.settings-card {
+ .settings-card {
   width: 100%;
-  border: 1px solid var(--line-strong);
+  border: 0;
+  border-bottom: 1px solid var(--line);
   border-radius: var(--ui-radius-md);
   color: var(--ink);
   background: var(--panel);
@@ -2201,12 +2202,15 @@
 .settings-rules-list { padding: var(--ui-space-2); }
 .settings-rule-item {
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 0;
+  border-bottom: 1px solid var(--line);
   border-radius: var(--ui-radius-sm);
   background: var(--panel);
 }
-.settings-rule-item + .settings-rule-item { margin-top: 6px; }
+.settings-rule-item + .settings-rule-item { margin-top: 0; }
 .settings-rule-item > summary {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
   display: flex;
   min-height: 39px;
   align-items: center;

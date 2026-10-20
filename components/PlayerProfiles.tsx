@@ -4,6 +4,7 @@ import { appSlugForPath } from "@/lib/appIdentity";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { createPortal } from "react-dom";
 import MenuSelect from "@/components/MenuSelect";
 
 type ProfilePayload = {
@@ -36,6 +37,8 @@ function currentPickemSeason() {
 
 export default function PlayerProfiles() {
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [activeName, setActiveName] = useState("");
   const [period, setPeriod] = useState(currentPickemSeason);
   const [loading, setLoading] = useState(false);
@@ -119,6 +122,13 @@ export default function PlayerProfiles() {
 
   useEffect(() => {
     if (!profile) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [profile]);
+
+  useEffect(() => {
+    if (!profile) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         requestSequence.current += 1;
@@ -156,7 +166,7 @@ export default function PlayerProfiles() {
 
   return <>
     {error && <div className="profile-loading-toast profile-error-toast" role="alert">{error}</div>}
-    {profile && activeName && <div className="player-profile-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) closeProfile(); }}>
+    {mounted && profile && activeName && createPortal(<div className="player-profile-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) closeProfile(); }}>
       <section className="player-profile-sheet" role="dialog" aria-modal="true" aria-labelledby="player-profile-title">
         <header className="player-profile-head">
           <div className="player-profile-head-copy"><span>Player Profile</span><h2 id="player-profile-title">{profile.player.displayName}</h2></div>
@@ -208,6 +218,6 @@ export default function PlayerProfiles() {
           </section>
         </div>
       </section>
-    </div>}
+    </div>, document.body)}
   </>;
 }
