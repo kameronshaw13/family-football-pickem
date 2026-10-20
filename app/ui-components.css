@@ -1448,7 +1448,8 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   flex: 0 0 auto;
   margin-inline: 0.25em;
   overflow: visible;
-  border-radius: 999px;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
   color: transparent !important;
   background: var(--muted);
   font-size: inherit;
@@ -1682,8 +1683,8 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
 /* 2026-10-03: keep the My Card / League Card live tracker quarter and clock compact.
    NumericText already supplies a normal text space on both sides of the dot. */
 .pick-score-bug.live .score-bug-meta > span:first-child .ui-separator-dot {
-  width: 2.75px;
-  height: 2.75px;
+  width: 3px;
+  height: 3px;
   margin-inline: 0 !important;
   transform: translateY(-0.035em);
 }

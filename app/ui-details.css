@@ -2056,7 +2056,7 @@
 .settings-card {
   width: 100%;
   border: 1px solid var(--line-strong);
-  border-radius: 7px;
+  border-radius: var(--ui-radius-md);
   color: var(--ink);
   background: var(--panel);
   box-shadow: none;
@@ -2077,7 +2077,7 @@
   width: 30px;
   height: 30px;
   place-items: center;
-  border-radius: 50%;
+  border-radius: var(--ui-radius-sm);
   color: var(--blue-dark);
   background: var(--blue-soft);
 }
@@ -2137,7 +2137,7 @@
   justify-content: center;
   gap: 5px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--ui-radius-control);
   color: var(--muted);
   background: var(--surface-soft);
   font-size: 11px;
@@ -2179,7 +2179,7 @@
   height: 32px;
   padding: 5px var(--ui-space-2);
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
+  border-radius: var(--ui-radius-control);
   color: var(--ink);
   background: var(--surface-soft);
   font-size: 10px;
@@ -2202,7 +2202,7 @@
 .settings-rule-item {
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 5px;
+  border-radius: var(--ui-radius-sm);
   background: var(--panel);
 }
 .settings-rule-item + .settings-rule-item { margin-top: 6px; }

@@ -53,6 +53,7 @@ import {
   SideBetResponseLine,
   ResponsiveTeamName,
   BoardTeamName,
+  LiveSituationText,
   dt,
   fullDateText,
   openText,
@@ -615,6 +616,7 @@ export function SideBetGameCard({ game, market, boardMarket, selectedTeam, disab
   return <article className={`game-card matchup-card side-bet-game-card ${disabled ? "closed" : ""} ${selectedTeam ? "selected" : ""}`.trim()}>
     <div className="game-head compact-game-head">
       <div className="game-time-group"><span className={live ? "game-live-status" : "game-time"}><NumericText text={live ? game.live_status || "Live" : timeText(game.commence_time)} /></span></div>
+      {live && <div className="side-bet-live-actions">{game.live_situation && <span className="side-bet-live-situation"><LiveSituationText game={game} /></span>}<button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>GameTracker</button></div>}
       {!live && <div className="matchup-preview-actions">{modelStars > 0 && game.league === "CFB" && <span className="board-model-stars" aria-label={`${modelStars} model edge star${modelStars === 1 ? "" : "s"}`}>{"★".repeat(modelStars)}</span>}<button type="button" className="matchup-preview-trigger side-bet-matchup-preview-trigger" onClick={() => openPreview(game)}>Matchup Preview</button></div>}
     </div>
     <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
@@ -627,7 +629,7 @@ export function SideBetGameCard({ game, market, boardMarket, selectedTeam, disab
         onClick={() => onSelect(game, team)}
       >
         <TeamLogo url={logoForTeam(game, team)} name={team} />
-        <BoardTeamName game={game} team={team} />
+        <span className="side-bet-live-team-name"><BoardTeamName game={game} team={team} />{live && <strong className="side-bet-live-score"><NumericText text={team === game.away_team ? game.live_away_score ?? "—" : game.live_home_score ?? "—"} /></strong>}</span>
         <span className={`team-spread ${boardMarket === "total" ? "side-bet-total-market" : ""}`.trim()}>{boardMarket === "total" && market?.total
           ? <><span className="side-bet-total-side">{team === game.away_team ? "O" : "U"}</span><NumericText text={market.total.points} /></>
           : boardMarket === "spreads" && market?.spread ? <NumericText text={lineFor(team)} /> : null}</span>

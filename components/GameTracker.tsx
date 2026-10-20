@@ -140,6 +140,9 @@ async function loadTracker(gameId: string) {
 }
 
 function statusText(payload: TrackerPayload | null, game: Game) {
+  // Use the Pick Board's actively refreshed game clock before the slower
+  // detail/summary feed when the two sources disagree.
+  if (game.live_state === "in" && game.live_status) return game.live_status;
   if (payload?.status.detail) return payload.status.detail;
   if (game.live_status) return game.live_status;
   return game.live_completed || game.final_home_score != null ? "Final" : "Live";
@@ -182,7 +185,7 @@ function gameCenterSituation(payload: TrackerPayload | null) {
 
 function ScoreboardCenter({ payload, game, completed }: { payload: TrackerPayload | null; game: Game; completed: boolean }) {
   const state = gameCenterState(payload, game);
-  const situation = completed ? "" : gameCenterSituation(payload);
+  const situation = completed ? "" : (game.live_situation?.trim() || gameCenterSituation(payload));
 
   if (completed) return <div className="game-tracker-score-center final"><strong>FINAL</strong></div>;
 
@@ -223,8 +226,16 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   const team = payload?.teams[side];
   const opponent = payload?.teams[side === "away" ? "home" : "away"];
   const fullName = team?.name || fallbackName;
-  const score = team?.score ?? ownFallbackScore;
-  const opponentScore = opponent?.score ?? opponentFallbackScore;
+  // Live game props are refreshed by the Pick Board every five seconds.
+  // ESPN's detail summary sometimes lags its scoreboard event feed.
+  const liveBoardScore = game.live_state === "in"
+    ? side === "away" ? game.live_away_score : game.live_home_score
+    : null;
+  const liveOpponentScore = game.live_state === "in"
+    ? side === "away" ? game.live_home_score : game.live_away_score
+    : null;
+  const score = completed ? (ownFallbackScore ?? team?.score) : (liveBoardScore ?? team?.score ?? ownFallbackScore);
+  const opponentScore = completed ? (opponentFallbackScore ?? opponent?.score) : (liveOpponentScore ?? opponent?.score ?? opponentFallbackScore);
   const scoreTone = completed && score != null && opponentScore != null
     ? score > opponentScore ? "winner" : score < opponentScore ? "loser" : ""
     : "";

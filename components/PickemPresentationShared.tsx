@@ -77,7 +77,10 @@ export function stabilizeViewportAfterLayoutChange() {
       // visibly lift the bar while the user scrolls.
       const doc = document.documentElement;
       const maxScroll = Math.max(0, doc.scrollHeight - window.innerHeight);
-      if (window.scrollY > maxScroll) window.scrollTo(0, maxScroll);
+      // Do not force a scroll during async ledger or score changes. In mobile
+      // Safari that can visibly shift position:fixed chrome as the page settles.
+      // Keep normal user scrolling untouched; the nav remains CSS-fixed.
+      void maxScroll;
     });
   });
 }

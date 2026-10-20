@@ -186,6 +186,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [data, setData] = useState<AppData | null>(null);
   const [matchupPreviewGame, setMatchupPreviewGame] = useState<Game | null>(null);
   const closeMatchupPreview = useCallback(() => setMatchupPreviewGame(null), []);
+  // Keep an open tracker synced to the same live game object as the Pick Board.
+  const currentPreviewGame = matchupPreviewGame
+    ? data?.games.find((game) => game.id === matchupPreviewGame.id) || matchupPreviewGame
+    : null;
   const [cfbModelEdges, setCfbModelEdges] = useState<Record<string, { stars: number; edgePoints: number | null; edgeTeam: string | null }>>({});
   const [week, setWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -236,24 +240,15 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }, [appSlug, loading]);
 
   useEffect(() => {
-    const viewport = window.visualViewport;
-    const stabilize = () => stabilizeViewportAfterLayoutChange();
-    window.addEventListener("resize", stabilize);
-    window.addEventListener("orientationchange", stabilize);
-    window.addEventListener("pageshow", stabilize);
-    viewport?.addEventListener("resize", stabilize);
-    stabilize();
-    return () => {
-      window.removeEventListener("resize", stabilize);
-      window.removeEventListener("orientationchange", stabilize);
-      window.removeEventListener("pageshow", stabilize);
-      viewport?.removeEventListener("resize", stabilize);
-    };
+    // iOS visualViewport resize is triggered by the keyboard and dynamic browser
+    // chrome. Do not reposition or scroll the fixed bottom navigation for it.
+    window.addEventListener("pageshow", stabilizeViewportAfterLayoutChange);
+    return () => window.removeEventListener("pageshow", stabilizeViewportAfterLayoutChange);
   }, []);
 
   useEffect(() => {
     stabilizeViewportAfterLayoutChange();
-  }, [tab, picksView, cardView, standingsView, betView, sideBetLedgerScope, sideBetLedgerGameFilter, data?.week, data?.sideBets.length, sideBetLedger.length]);
+  }, [tab, picksView, cardView, standingsView, betView, data?.week]);
 
   useEffect(() => {
     const handlePickLocked = (event: Event) => {
@@ -355,10 +350,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       applySideBetSnapshot({ ...payload, sideBets: payload.sideBets || [] }, requestId);
       if (changed) {
         void refreshNotificationCounts();
-        // Remote offers/cancellations can change the document height while the user is
-        // already scrolled in Side Bets. Re-stabilize after React commits that layout
-        // change so the fixed bottom nav stays attached to the viewport.
-        stabilizeViewportAfterLayoutChange();
+        // Never scroll the document in response to remote Side Bet or ledger updates.
       }
     } catch {
       // Keep the current offers visible and retry on the next foreground refresh.
@@ -1464,13 +1456,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         onCountsChanged={updateNotificationCounts}
       />}
     </main>
-    {matchupPreviewGame && (isBasketballLeague(matchupPreviewGame.league)
-      ? <BasketballGameDetails game={matchupPreviewGame} onClose={closeMatchupPreview} />
-      : isFinalGame(matchupPreviewGame) || new Date(matchupPreviewGame.commence_time).getTime() <= clock
-      ? <GameTracker game={matchupPreviewGame} onClose={closeMatchupPreview} />
-      : matchupPreviewGame.league === "NFL"
-        ? <NflMatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} />
-        : <MatchupPreview game={matchupPreviewGame} onClose={closeMatchupPreview} showModel={(appSlug === "shaw-family" || ["friends", "friends-basketball"].includes(appSlug)) && String(currentUser.username || "").trim().toLowerCase() === "kameron"} modelGroup={appSlug} />)}
+    {currentPreviewGame && (isBasketballLeague(currentPreviewGame.league)
+      ? <BasketballGameDetails game={currentPreviewGame} onClose={closeMatchupPreview} />
+      : isFinalGame(currentPreviewGame) || new Date(currentPreviewGame.commence_time).getTime() <= clock
+      ? <GameTracker game={currentPreviewGame} onClose={closeMatchupPreview} />
+      : currentPreviewGame.league === "NFL"
+        ? <NflMatchupPreview game={currentPreviewGame} onClose={closeMatchupPreview} />
+        : <MatchupPreview game={currentPreviewGame} onClose={closeMatchupPreview} showModel={(appSlug === "shaw-family" || ["friends", "friends-basketball"].includes(appSlug)) && String(currentUser.username || "").trim().toLowerCase() === "kameron"} modelGroup={appSlug} />)}
     {!previewActive && stagedPicks !== null && autosaveBlockedSignatureRef.current !== pickCardSignature(stagedPicks) && !toast && <div className="autosave-toast" role="status" aria-live="polite"><LoaderCircle size={18} /><span>Saving…</span></div>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span><NumericText text={toast.message} /></span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
   </div>;
