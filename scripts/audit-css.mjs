@@ -53,6 +53,7 @@ for (const name of cssImports) {
 const canonicalTokens = {
   "--ui-space-1": "4px", "--ui-space-2": "8px", "--ui-space-3": "12px",
   "--ui-space-4": "16px", "--ui-space-5": "24px",
+  "--ui-radius-flat": "0", "--ui-radius-label": "2px", "--ui-radius-action": "999px",
   "--ui-radius-box": "6px",
   "--ui-radius-sm": "var(--ui-radius-box)", "--ui-radius-md": "var(--ui-radius-box)", "--ui-radius-lg": "var(--ui-radius-box)",
   "--ui-radius-control": "var(--ui-radius-box)", "--ui-radius-circle": "50%"
@@ -64,8 +65,8 @@ for (const name of cssImports) {
   const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
   css.walkDecls(decl => {
     if (decl.prop === "border-radius" &&
-        !/^(?:0|50%|var\(--ui-radius-(?:box|sm|md|lg|control|circle)\))$/.test(decl.value)) {
-      problems.push(`Use the shared box radius, a circle, or a flush edge at ${name}:${decl.source.start.line}: ${decl.value}`);
+        !/^(?:0|50%|var\(--ui-radius-(?:flat|label|action|box|sm|md|lg|control|circle)\))$/.test(decl.value)) {
+      problems.push(`Use a shared shape token, a circle, or a flush edge at ${name}:${decl.source.start.line}: ${decl.value}`);
     }
     if (tokenDefinitions.has(decl.prop)) tokenDefinitions.get(decl.prop).push({
       source: name, line: decl.source.start.line, value: decl.value
