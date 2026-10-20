@@ -5161,11 +5161,6 @@ button, input, select, textarea {
 /* Flat UI standard: no bubble cards or rounded panels.
    Preserve circular status dots, notification badges, progress tracks,
    avatars, and switch controls where shape conveys a function. */
-:root {
-  --ui-radius-sm: 0px;
-  --ui-radius-md: 0px;
-  --ui-radius-lg: 0px;
-}
 :is(
   .game-list, .game-card, .pick-card, .card-progress, .pick-section,
   .side-bet-card, .side-bet-slip-bar, .side-bet-ledger-row, .ledger-row,
@@ -5183,5 +5178,5 @@ button, input, select, textarea {
   .side-bet-slip-open, .side-bet-market-fields input,
   .side-bet-risk-field input, .confirmation-sheet button
 ) {
-  border-radius: 2px !important;
+  border-radius: var(--ui-radius-control) !important;
 }
