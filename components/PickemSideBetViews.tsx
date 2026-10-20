@@ -45,7 +45,6 @@ import {
   type BetView,
   type SideBetLeagueFilter,
   type SideBetBoardMarket,
-  stabilizeViewportAfterLayoutChange,
   displayTeamName,
   abbreviatedTeamName,
   matchupTextVariants,
@@ -435,7 +434,7 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
           setCreatorTeam("");
         }
         setView(value as BetView);
-        stabilizeViewportAfterLayoutChange();
+        
       }} />
       {view === "offers" && <div className="side-bet-game-filter-toggle side-bet-offers-game-filter" role="group" aria-label="Filter offers by game status"><button type="button" className={offerGameFilter === "all" ? "active" : ""} aria-pressed={offerGameFilter === "all"} onClick={() => setOfferGameFilter("all")}>All</button><button type="button" className={offerGameFilter === "upcoming" ? "active" : ""} aria-pressed={offerGameFilter === "upcoming"} onClick={() => setOfferGameFilter("upcoming")}>Upcoming</button><button type="button" className={offerGameFilter === "completed" ? "active" : ""} aria-pressed={offerGameFilter === "completed"} onClick={() => setOfferGameFilter("completed")}>Completed</button></div>}
       {view === "new" && weekIsOpen && !weekConcluded && <MenuSelect

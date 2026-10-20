@@ -60,7 +60,6 @@ import {
   type NotificationDestination,
   type NotificationCounts,
   type BadgeNavigator,
-  stabilizeViewportAfterLayoutChange,
   type LiveScoreUpdate,
   type AppData,
   type AppDataCacheEntry,
@@ -238,17 +237,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     const image = headerLogoRef.current;
     if (image?.complete && image.naturalWidth > 0) setHeaderLogoReady(true);
   }, [appSlug, loading]);
-
-  useEffect(() => {
-    // iOS visualViewport resize is triggered by the keyboard and dynamic browser
-    // chrome. Do not reposition or scroll the fixed bottom navigation for it.
-    window.addEventListener("pageshow", stabilizeViewportAfterLayoutChange);
-    return () => window.removeEventListener("pageshow", stabilizeViewportAfterLayoutChange);
-  }, []);
-
-  useEffect(() => {
-    stabilizeViewportAfterLayoutChange();
-  }, [tab, picksView, cardView, standingsView, betView, data?.week]);
 
   useEffect(() => {
     const handlePickLocked = (event: Event) => {
@@ -944,7 +932,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       }
       if (body.action === "accept") void refreshSideBetLedger();
       void refreshNotificationCounts();
-      stabilizeViewportAfterLayoutChange();
       return true;
     } catch {
       notify("Side bet action failed.", "error");
@@ -1279,7 +1266,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
     <nav className="primary-nav" aria-label="Main navigation">
       <div className="primary-nav-inner">
-        {primaryNav.map((item) => <button key={item.id} aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "active" : ""} onClick={() => { setTab(item.id); stabilizeViewportAfterLayoutChange(); }}><span className={`nav-icon nav-icon-${item.id}`}><item.icon size={19} /><NotificationBadge count={navNotificationCounts[item.id] || 0} className="nav-notification-badge" /></span><span>{item.label}</span></button>)}
+        {primaryNav.map((item) => <button key={item.id} aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><span className={`nav-icon nav-icon-${item.id}`}><item.icon size={19} /><NotificationBadge count={navNotificationCounts[item.id] || 0} className="nav-notification-badge" /></span><span>{item.label}</span></button>)}
       </div>
     </nav>
 

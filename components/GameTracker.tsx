@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { ChevronDown, LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
 import { teamDisplayName } from "@/lib/teamNames";
+import { trackerDisplayScore } from "@/lib/trackerDisplayScore";
 
 type TrackerTab = "live" | "scoring" | "plays" | "box";
 type Side = "away" | "home";
@@ -234,8 +235,10 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   const liveOpponentScore = game.live_state === "in"
     ? side === "away" ? game.live_home_score : game.live_away_score
     : null;
-  const score = completed ? (ownFallbackScore ?? team?.score) : (liveBoardScore ?? team?.score ?? ownFallbackScore);
-  const opponentScore = completed ? (opponentFallbackScore ?? opponent?.score) : (liveOpponentScore ?? opponent?.score ?? opponentFallbackScore);
+  const score = trackerDisplayScore(completed, game.live_state === "in",
+    side === "away" ? game.final_away_score : game.final_home_score, liveBoardScore, team?.score ?? null, ownFallbackScore);
+  const opponentScore = trackerDisplayScore(completed, game.live_state === "in",
+    side === "away" ? game.final_home_score : game.final_away_score, liveOpponentScore, opponent?.score ?? null, opponentFallbackScore);
   const scoreTone = completed && score != null && opponentScore != null
     ? score > opponentScore ? "winner" : score < opponentScore ? "loser" : ""
     : "";
@@ -251,6 +254,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
         {!completed && <TimeoutDots remaining={timeouts} />}
       </div>
     </div>
+    <span className="game-tracker-score-team-name">{teamDisplayName(game.league, side === "away" ? game.away_team : game.home_team)}</span>
   </div>;
 }
 

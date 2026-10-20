@@ -67,23 +67,6 @@ export type NotificationDestination = "side_bets_received" | "side_bets_sent" | 
 export type NotificationCounts = Record<NotificationDestination, number> & { total: number };
 export type BadgeNavigator = Navigator & { setAppBadge?: (contents?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
 
-export function stabilizeViewportAfterLayoutChange() {
-  if (typeof window === "undefined") return;
-  window.requestAnimationFrame(() => {
-    window.requestAnimationFrame(() => {
-      // Only correct an invalid scroll position after content shrinks.
-      // The primary nav is pure fixed app chrome and must never be mutated
-      // during scroll/visualViewport events; doing so makes iOS Safari/PWA
-      // visibly lift the bar while the user scrolls.
-      const doc = document.documentElement;
-      const maxScroll = Math.max(0, doc.scrollHeight - window.innerHeight);
-      // Do not force a scroll during async ledger or score changes. In mobile
-      // Safari that can visibly shift position:fixed chrome as the page settles.
-      // Keep normal user scrolling untouched; the nav remains CSS-fixed.
-      void maxScroll;
-    });
-  });
-}
 export type LiveScoreUpdate = {
   id: string;
   final_home_score?: number | null;

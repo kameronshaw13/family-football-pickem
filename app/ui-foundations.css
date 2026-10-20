@@ -2363,3 +2363,10 @@ body:has(.confirmation-backdrop) {
   align-items: center;
   justify-content: center;
 }
+
+/* Stable remove control dimensions through touch and focus. */
+.pick-row-actions .icon-btn, .visible-pick-actions .icon-btn {
+  width:30px; min-width:30px; max-width:30px;
+  height:30px; min-height:30px; max-height:30px;
+  flex:0 0 30px; transform:none!important; scale:1!important;
+}

@@ -31,3 +31,9 @@ test("compact labels use familiar abbreviations for long school names", () => {
   assert.equal(teamAbbreviatedName("CFB", "Western Michigan Broncos"), "WMU");
   assert.equal(teamAbbreviatedName("CFB", "Central Michigan Chippewas"), "CMU");
 });
+
+test("college abbreviations use consistent standard names", () => {
+  assert.equal(teamAbbreviatedName("CFB", "New Mexico Lobos"), "UNM");
+  assert.equal(teamAbbreviatedName("CFB", "Northwestern Wildcats"), "NU");
+  assert.equal(teamAbbreviatedName("CFB", "Texas A&M Aggies"), "TAMU");
+});
