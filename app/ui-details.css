@@ -9,7 +9,7 @@
   justify-content: center;
   padding: 0 6px;
   border: 1px solid var(--line-strong);
-  border-radius: 4px;
+  border-radius: var(--ui-radius-md);
   color: var(--graphite);
   background: var(--panel);
   font-family: var(--font-display);
@@ -42,7 +42,7 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--line-strong);
-  border-radius: 2px;
+  border-radius: var(--ui-radius-md);
   color: var(--ink);
   background: var(--canvas);
   box-shadow: 0 8px 22px rgba(20, 33, 43, .14);
@@ -361,7 +361,7 @@
   align-items: center;
   justify-content: center;
   padding: 2px 5px;
-  border-radius: 3px;
+  border-radius: var(--ui-radius-md);
   font-size: 9px;
   font-weight: 850;
   line-height: 1;
@@ -422,7 +422,7 @@
   margin-top: var(--ui-space-2);
   padding: 7px 11px;
   border: 1px solid var(--line-strong);
-  border-radius: 4px;
+  border-radius: var(--ui-radius-md);
   color: var(--ink);
   background: transparent;
   cursor: pointer;
@@ -513,7 +513,7 @@
   width: 24px;
   height: 24px;
   place-items: center;
-  border-radius: 1px;
+  border-radius: var(--ui-radius-md);
   font-size: 10px;
   font-weight: 800;
 }
@@ -614,7 +614,7 @@
   .matchup-preview-sheet {
     width: 100%;
     height: min(68dvh, 720px);
-    border-radius: 2px;
+    border-radius: var(--ui-radius-md);
   }
   .matchup-preview-hero { padding-inline: var(--ui-space-3); }
   .matchup-preview-team > strong { font-size: 17px; }
@@ -771,7 +771,7 @@
   width: 26px;
   height: 26px;
   border: 1px solid currentColor;
-  border-radius: 2px;
+  border-radius: var(--ui-radius-md);
 }
 .matchup-result-row > div {
   min-width: 0;
@@ -905,7 +905,7 @@
   width: 32px;
   height: 32px;
   border: 1px solid #d6aaa6;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-md);
   color: var(--red);
   background: var(--red-soft);
 }
@@ -962,7 +962,7 @@
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--line-strong);
-  border-radius: 2px;
+  border-radius: var(--ui-radius-md);
   color: var(--ink);
   background: var(--canvas);
   box-shadow: 0 8px 22px rgba(20, 33, 43, .14);
@@ -1238,7 +1238,7 @@
   height: 156px;
   overflow: hidden;
   border: 1px solid #d6d7cc;
-  border-radius: 2px;
+  border-radius: var(--ui-radius-md);
   background: repeating-linear-gradient(90deg, #4b8557 0, #4b8557 10%, #447d50 10%, #447d50 20%);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
 }
@@ -1453,14 +1453,14 @@
   margin: 10px var(--pick-content-inset);
   padding: 2px;
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
+  border-radius: var(--ui-radius-md);
   background: var(--surface-muted);
 }
 .game-tracker-box-selector button {
   min-height: 31px;
   padding: 0 10px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--ui-radius-md);
   color: var(--muted);
   background: transparent;
   font-family: var(--font-display);
@@ -1922,7 +1922,7 @@
   width: 32px;
   height: 32px;
   border: 1px solid #d6aaa6;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-md);
   color: var(--red);
   background: var(--red-soft);
 }
@@ -2040,7 +2040,13 @@
 /* Settings + light/dark appearance.
    Light mode intentionally inherits the existing production design unchanged. */
 
-.settings-panel { padding-bottom: var(--space-3); }
+.settings-panel {
+  min-width: 0;
+  margin-inline: calc(var(--page-gutter) * -1);
+  padding-bottom: var(--space-3);
+}
+.settings-panel > .settings-page-title { padding-inline: var(--page-gutter); }
+.settings-section > h3 { padding-inline: var(--page-gutter); }
 .settings-page-title { margin-bottom: var(--space-4); }
 .settings-section { margin-top: var(--ui-space-4); }
 .settings-section:first-of-type { margin-top: 0; }
@@ -2053,6 +2059,8 @@
   text-transform: uppercase;
 }
  .settings-card {
+  box-sizing: border-box;
+  min-width: 0;
   width: 100%;
   border: 0;
   border-bottom: 1px solid var(--line);
@@ -2159,6 +2167,7 @@
   gap: 10px;
   width: 100%;
   margin: 0;
+  margin-inline: 0;
   padding: var(--ui-space-2) 11px;
   border: 0;
   background: transparent;
@@ -2457,7 +2466,7 @@ html[data-theme="dark"] .score-bug-team.outcome-loss .team-logo {
   flex-direction: column;
   border: 1px solid var(--line-strong);
   border-bottom: 0;
-  border-radius: 14px 14px 0 0;
+  border-radius: var(--ui-radius-md);
   box-shadow: 0 -12px 28px rgba(25, 38, 46, .18);
 }
 .game-tracker-header,
@@ -2479,7 +2488,7 @@ html[data-theme="dark"] .score-bug-team.outcome-loss .team-logo {
 .matchup-preview-header {
   min-height: 66px;
   padding: 9px 52px 9px;
-  border-radius: 13px 13px 0 0;
+  border-radius: var(--ui-radius-md);
 }
 .game-detail-title,
 .matchup-detail-title {
@@ -2546,7 +2555,7 @@ html[data-theme="dark"] .score-bug-team.outcome-loss .team-logo {
   place-items: center;
   padding: 0;
   border: 1px solid #d6aaa6;
-  border-radius: 5px;
+  border-radius: var(--ui-radius-md);
   color: var(--red);
   background: var(--red-soft);
   font-size: 0;
@@ -2797,7 +2806,7 @@ html[data-theme="dark"] .score-bug-team.outcome-loss .team-logo {
   left: 50%;
   width: 33px;
   height: 3px;
-  border-radius: 999px;
+  border-radius: var(--ui-radius-md);
   background: rgba(214, 232, 242, .5);
   transform: translateX(-50%);
   content: "";
@@ -2905,7 +2914,7 @@ html[data-theme="dark"] .score-bug-team.outcome-loss .team-logo {
   margin: var(--ui-space-2) 9px 11px;
   overflow: hidden;
   border: 1px solid var(--line-strong);
-  border-radius: 7px;
+  border-radius: var(--ui-radius-md);
   background: var(--panel);
 }
 .matchup-section-heading { min-height: 36px; padding: 7px var(--ui-space-3); border-bottom-color: var(--line); }
@@ -3001,7 +3010,7 @@ html[data-theme="dark"] .primary-nav {
   overflow:hidden;
   border:1px solid var(--line-strong);
   border-bottom:0;
-  border-radius:15px 15px 0 0;
+  border-radius: var(--ui-radius-md);
   background:var(--canvas);
   box-shadow:0 -13px 33px rgba(16,31,40,.2);
   touch-action:pan-y;
@@ -3023,7 +3032,7 @@ html[data-theme="dark"] .primary-nav {
   padding:18px 54px 9px;
   border:0;
   border-bottom:2px solid var(--blue);
-  border-radius:14px 14px 0 0;
+  border-radius: var(--ui-radius-md);
   color:#fff;
   background:var(--graphite);
   touch-action:pan-y;
@@ -3037,7 +3046,7 @@ html[data-theme="dark"] .primary-nav {
   width:38px;
   height:4px;
   transform:translateX(-50%);
-  border-radius:999px;
+  border-radius: var(--ui-radius-md);
   background:rgba(240,246,250,.49);
   content:"";
   pointer-events:none;
@@ -3100,7 +3109,7 @@ html[data-theme="dark"] .primary-nav {
   place-items:center;
   padding:0;
   border:1px solid #d6aaa6;
-  border-radius:5px;
+  border-radius: var(--ui-radius-md);
   color:var(--red);
   background:var(--red-soft);
   line-height:0;
@@ -3313,7 +3322,7 @@ html[data-theme="dark"] .primary-nav {
   width: 34px;
   height: 3px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--ui-radius-md);
   background: rgba(255,255,255,.58);
   transform: translateX(-50%);
   content: "";
@@ -3368,7 +3377,7 @@ html[data-theme="dark"] .primary-nav {
   place-items: center;
   padding: 0;
   border: 1px solid #d6aaa6;
-  border-radius: 5px;
+  border-radius: var(--ui-radius-md);
   background: var(--red-soft);
   color: var(--red);
   font-size: 0;
@@ -3509,7 +3518,7 @@ html[data-theme="dark"] .primary-nav {
 }
 .game-tracker-score-center.final > strong {
   border: 1px solid var(--line-strong);
-  border-radius: 3px;
+  border-radius: var(--ui-radius-md);
   padding: 6px var(--ui-space-2);
   color: var(--header-muted);
   font-family: var(--font-display);
@@ -3712,7 +3721,7 @@ html[data-theme="dark"] .primary-nav {
   margin: 9px 10px var(--ui-space-3);
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--ui-radius-md);
   background: var(--panel);
   box-shadow: none;
 }
@@ -3766,7 +3775,7 @@ html[data-theme="dark"] .primary-nav {
 }
 .matchup-rank-value {display:flex;min-width:0;align-items:center;justify-content:center;flex-wrap:wrap;gap:var(--ui-space-1);min-height:30px;}
 .matchup-rank-value strong {font-family:var(--font-display);font-size:14px;font-weight:850;line-height:1.12;font-variant-numeric:tabular-nums;}
-.matchup-rank-value small {min-height:18px;padding:3px var(--ui-space-1);border-radius:3px;font-family:var(--font-display);font-size:8.5px;font-weight:800;}
+.matchup-rank-value small {min-height:18px;padding:3px var(--ui-space-1);border-radius: var(--ui-radius-md);font-family:var(--font-display);font-size:8.5px;font-weight:800;}
 .matchup-role-heads {min-height:52px;}
 .matchup-role-side {min-width:0;gap:6px;}
 .matchup-role-side img,.matchup-role-side .matchup-logo-fallback {width:23px;height:23px;flex:0 0 23px;object-fit:contain;}
@@ -3780,7 +3789,7 @@ html[data-theme="dark"] .primary-nav {
   margin: 10px 10px 2px;
   padding: 0;
 }
-.matchup-form-team {min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:4px;background:var(--panel);}
+.matchup-form-team {min-width:0;overflow:hidden;border:1px solid var(--line);border-radius: var(--ui-radius-md);background:var(--panel);}
 .matchup-form-heading {
   display: flex;
   min-height: 60px;
@@ -3824,7 +3833,7 @@ html[data-theme="dark"] .primary-nav {
   padding: 10px var(--ui-space-3);
   border-bottom: 1px solid var(--line);
 }
-.matchup-form-combined-row > span {display:grid;width:27px;height:27px;box-sizing:border-box;place-items:center;border:1px solid currentColor;border-radius:4px;font-size:10px;font-weight:900;}
+.matchup-form-combined-row > span {display:grid;width:27px;height:27px;box-sizing:border-box;place-items:center;border:1px solid currentColor;border-radius: var(--ui-radius-md);font-size:10px;font-weight:900;}
 .matchup-form-combined-row > .matchup-result-opponent {display:grid;min-width:0;max-width:none;align-content:center;gap:5px;}
 .matchup-form-combined-row .matchup-result-opponent > strong {display:block;min-width:0;overflow:hidden;color:var(--ink);font-family:var(--font-display);font-size:12px;font-weight:850;line-height:1.2;text-overflow:ellipsis;white-space:nowrap;}
 .matchup-form-combined-row .matchup-result-opponent > small {display:block;margin:0;color:var(--muted);font-family:var(--font-display);font-size:9.5px;font-weight:700;line-height:1.2;}
@@ -3843,7 +3852,7 @@ html[data-theme="dark"] .primary-nav {
   margin: 10px 10px 0;
   padding: 10px;
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--ui-radius-md);
   background: var(--panel);
 }
 .matchup-history-body .matchup-series-side,
@@ -3855,7 +3864,7 @@ html[data-theme="dark"] .primary-nav {
 .matchup-history-body .matchup-series-center {display:grid;align-content:center;justify-items:center;gap:var(--ui-space-1);min-width:0;}
 .matchup-history-body .matchup-series-center small {font-family:var(--font-display);font-size:8px;font-weight:800;line-height:1.1;}
 .matchup-history-body .matchup-series-center strong {color:var(--ink);font-family:var(--font-display);font-size:21px;font-weight:900;line-height:1;}
-.matchup-history-list {margin:10px 10px 13px;overflow:hidden;border:1px solid var(--line);border-radius:4px;}
+.matchup-history-list {margin:10px 10px 13px;overflow:hidden;border:1px solid var(--line);border-radius: var(--ui-radius-md);}
 .matchup-history-game {min-width:0;padding:11px var(--ui-space-3);border-bottom:1px solid var(--line);background:var(--panel);}
 .matchup-history-game:last-child {border-bottom:0;}
 .matchup-history-game-meta {display:flex;align-items:center;justify-content:space-between;gap:var(--ui-space-2);margin-bottom:9px;}
@@ -3871,8 +3880,8 @@ html[data-theme="dark"] .primary-nav {
 .game-tracker-live {padding:11px 11px 17px;}
 .game-tracker-live-meta {min-height:28px;margin-bottom:7px;}
 .game-tracker-possession-label strong {font-family:var(--font-display);font-size:11px;font-weight:800;}
-.game-tracker-field {height:clamp(134px,21dvh,182px);border:1px solid var(--line-strong);border-radius:4px;overflow:hidden;}
-.game-tracker-live-drive {margin-top:11px;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--panel);}
+.game-tracker-field {height:clamp(134px,21dvh,182px);border:1px solid var(--line-strong);border-radius: var(--ui-radius-md);overflow:hidden;}
+.game-tracker-live-drive {margin-top:11px;border:1px solid var(--line);border-radius: var(--ui-radius-md);overflow:hidden;background:var(--panel);}
 .game-tracker-live-drive > header {min-height:55px;align-items:center;padding:9px 11px;}
 .game-tracker-live-drive > header small {font-family:var(--font-display);font-size:9.5px;line-height:1.22;}
 .game-tracker-quarter-header {min-height:36px;border-top:0;border-bottom:1px solid var(--line);font-family:var(--font-display);font-size:10px;font-weight:850;line-height:1.2;}
@@ -3911,9 +3920,9 @@ html[data-theme="dark"] .primary-nav {
 .game-tracker-stat-team b {font-family:var(--font-display);font-size:10px;font-weight:800;}
 .game-tracker-stat-row strong {font-family:var(--font-display);font-size:12px;font-weight:850;}
 .game-tracker-stat-row span {font-family:var(--font-display);font-size:9px;font-weight:750;}
-.game-tracker-box-selector {margin:10px 11px;border-radius:5px;}
-.game-tracker-box-selector button {font-family:var(--font-display);border-radius:4px;min-height:34px;font-weight:800;}
-.game-tracker-box-selector button.active {border-radius:4px;}
+.game-tracker-box-selector {margin:10px 11px;border-radius: var(--ui-radius-md);}
+.game-tracker-box-selector button {font-family:var(--font-display);border-radius: var(--ui-radius-md);min-height:34px;font-weight:800;}
+.game-tracker-box-selector button.active {border-radius: var(--ui-radius-md);}
 
 /* 320–380px iPhone widths: keep all three score columns legible. */
 @media(max-width:380px) {
@@ -3945,11 +3954,11 @@ html[data-theme="dark"] .primary-nav {
 
 /* Restore the gentle capped sheet and the lighter blue rule from the earlier UI. */
 .matchup-preview-sheet {
-  border-radius: 9px 9px 0 0;
+  border-radius: var(--ui-radius-md);
   overflow: hidden;
 }
 .matchup-preview-header {
-  border-radius: 9px 9px 0 0;
+  border-radius: var(--ui-radius-md);
   border-bottom: 2px solid #7fb2d1;
   background: var(--graphite);
 }
@@ -4146,14 +4155,14 @@ html[data-theme="dark"] .primary-nav {
   --detail-subtle:var(--line);
   --detail-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
   border-top:1px solid var(--line);
-  border-radius:10px 10px 0 0;
+  border-radius: var(--ui-radius-md);
   isolation:isolate;
 }
 .game-tracker-header,.matchup-preview-header {
   height:56px;
   min-height:56px;
   flex-basis:56px;
-  border-radius:10px 10px 0 0;
+  border-radius: var(--ui-radius-md);
   border-bottom:2px solid #8bbbd6;
   padding:var(--ui-space-3) 54px 7px;
   box-shadow:none;
@@ -4185,7 +4194,7 @@ html[data-theme="dark"] .primary-nav {
   min-height:44px;
   padding:0;
   border:0;
-  border-radius:7px;
+  border-radius: var(--ui-radius-md);
   background:transparent;
   color:var(--red);
   place-items:center;
@@ -4196,7 +4205,7 @@ html[data-theme="dark"] .primary-nav {
   inset:5px;
   z-index:0;
   border:1px solid #d6aaa6;
-  border-radius:5px;
+  border-radius: var(--ui-radius-md);
   background:var(--red-soft);
   content:"";
 }
@@ -4358,7 +4367,7 @@ html[data-theme="dark"] .primary-nav {
 .matchup-strength,.matchup-comparison-block {
   margin:var(--ui-space-3) var(--ui-space-3) 14px;
   border:1px solid var(--line);
-  border-radius:6px;
+  border-radius: var(--ui-radius-md);
   background:var(--panel);
 }
 .matchup-section-heading {min-height:37px;padding:9px var(--ui-space-3);background:var(--surface-soft);}
@@ -4450,7 +4459,7 @@ html[data-theme="dark"] .primary-nav {
   margin:10px var(--ui-space-3) 13px;
   padding:9px 11px;
   border-left:2px solid var(--blue);
-  border-radius:3px;
+  border-radius: var(--ui-radius-md);
   background:var(--surface-soft);
   font-family:var(--detail-body);
   font-size:11px;
@@ -4460,7 +4469,7 @@ html[data-theme="dark"] .primary-nav {
 
 /* Form: stats read as a single compact strip, not four empty cards. */
 .matchup-split-lists {gap:var(--ui-space-4);margin:var(--ui-space-3) var(--ui-space-3) 0;}
-.matchup-form-team {border-radius:6px;border:1px solid var(--line);}
+.matchup-form-team {border-radius: var(--ui-radius-md);border:1px solid var(--line);}
 .matchup-form-heading {min-height:62px;padding:10px var(--ui-space-3);gap:10px;}
 .matchup-form-heading h3 {font-size:14px;line-height:1.24;font-weight:850;overflow-wrap:anywhere;}
 .matchup-form-stats {min-height:62px;}
@@ -4481,7 +4490,7 @@ html[data-theme="dark"] .primary-nav {
   min-height:66px;
   padding:10px var(--ui-space-3);
 }
-.matchup-form-combined-row > span {width:26px;height:26px;border-radius:5px;font-size:10px;}
+.matchup-form-combined-row > span {width:26px;height:26px;border-radius: var(--ui-radius-md);font-size:10px;}
 .matchup-form-combined-row .matchup-result-opponent > strong {
   font-family:var(--font-display);
   font-size:12.5px;
@@ -4510,7 +4519,7 @@ html[data-theme="dark"] .primary-nav {
   min-height:118px;
   grid-template-columns:minmax(0,1fr) 65px minmax(0,1fr);
   padding:13px 10px;
-  border-radius:6px;
+  border-radius: var(--ui-radius-md);
   border-color:var(--line);
 }
 .matchup-history-body .matchup-series-side,.matchup-history-body .matchup-series-side:last-child {gap:5px;}
@@ -4535,7 +4544,7 @@ html[data-theme="dark"] .primary-nav {
 .matchup-history-body .matchup-series-center {gap:3px;}
 .matchup-history-body .matchup-series-center > strong {font-family:var(--font-display);font-size:15px;}
 .matchup-history-body .matchup-series-center > small {font-family:var(--detail-body);font-size:9px;}
-.matchup-history-list {margin:var(--ui-space-3) var(--ui-space-3) 18px;border-radius:6px;}
+.matchup-history-list {margin:var(--ui-space-3) var(--ui-space-3) 18px;border-radius: var(--ui-radius-md);}
 .matchup-history-game {padding:10px var(--ui-space-3) var(--ui-space-3);border-color:var(--line);}
 .matchup-history-game-meta {min-height:18px;margin-bottom:var(--ui-space-2);align-items:center;}
 .matchup-history-game-meta time {font-family:var(--font-display);font-size:11px;font-weight:850;}
@@ -4646,8 +4655,8 @@ html[data-theme="dark"] .primary-nav {
 .game-tracker-score-values b.changed {color:var(--ink);font-weight:900;}
 .game-tracker-live {padding:var(--ui-space-3) var(--ui-space-3) 20px;}
 .game-tracker-live-meta {min-height:31px;margin-bottom:var(--ui-space-2);}
-.game-tracker-field {height:clamp(142px,21dvh,184px);border-radius:6px;}
-.game-tracker-live-drive {margin-top:var(--ui-space-3);border-radius:6px;}
+.game-tracker-field {height:clamp(142px,21dvh,184px);border-radius: var(--ui-radius-md);}
+.game-tracker-live-drive {margin-top:var(--ui-space-3);border-radius: var(--ui-radius-md);}
 .game-tracker-live-drive > header {min-height:57px;padding:10px var(--ui-space-3);}
 .game-tracker-live-drive > header strong {font-family:var(--font-display);font-size:12px;font-weight:850;}
 .game-tracker-live-drive > header small {font-family:var(--detail-body);font-size:10px;line-height:1.25;}
@@ -4657,8 +4666,8 @@ html[data-theme="dark"] .primary-nav {
 .game-tracker-drive-play {padding:10px var(--ui-space-3);min-height:60px;}
 .game-tracker-drive-play strong {font-family:var(--detail-body);font-size:12px;font-weight:650;line-height:1.35;}
 .game-tracker-play-context {font-family:var(--detail-body);font-size:11px;font-weight:800;}
-.game-tracker-box-selector {margin:var(--ui-space-3);border-radius:6px;}
-.game-tracker-box-selector button {min-height:36px;border-radius:4px;}
+.game-tracker-box-selector {margin:var(--ui-space-3);border-radius: var(--ui-radius-md);}
+.game-tracker-box-selector button {min-height:36px;border-radius: var(--ui-radius-md);}
 .game-tracker-team-stats .game-tracker-stat-row {min-height:40px;}
 .game-tracker-team-box-heading {padding:9px var(--ui-space-3);min-height:52px;}
 .game-tracker-box-section > h3 {min-height:34px;padding-inline:var(--ui-space-3);font-family:var(--font-display);font-size:10.5px;}
@@ -4775,10 +4784,10 @@ select:focus-visible,
 .compact-select .custom-select-trigger,
 .compact-select select { min-height: 40px; font-size: 12px; font-weight: 750; }
 .game-day-marker { gap: 9px; }
-.game-day-marker > b { min-height: 30px; border-radius: 4px; font-size: 11px; }
+.game-day-marker > b { min-height: 30px; border-radius: var(--ui-radius-md); font-size: 11px; }
 .game-day-marker strong { font-size: 12px; font-weight: 700; }
 .game-head { min-height: 37px; height: 37px; }
-.badge, .status-mark { border-radius: 4px; font-size: 10px; letter-spacing: .025em; }
+.badge, .status-mark { border-radius: var(--ui-radius-md); font-size: 10px; letter-spacing: .025em; }
 .game-time, .game-final-status, .game-live-status, .game-live-situation { font-size: 12px; }
 .team-name { font-weight: 700; }
 .team-spread, .team-board-market, .team-result-score,
@@ -4819,9 +4828,9 @@ select:focus-visible,
   .side-bet-response-value { flex-wrap: wrap; row-gap: 1px; }
 }
 .pick-meta, .visible-pick p { font-size: 12px; }
-.btn { min-height: 44px; border-radius: 7px; font-size: 13px; }
-.input { min-height: 46px; border-radius: 7px; }
-.empty-state, .loading-card, .error-card, .notice-card { border-radius: 0 7px 7px 0; line-height: 1.5; }
+.btn { min-height: 44px; border-radius: var(--ui-radius-md); font-size: 13px; }
+.input { min-height: 46px; border-radius: var(--ui-radius-md); }
+.empty-state, .loading-card, .error-card, .notice-card { border-radius: var(--ui-radius-md); line-height: 1.5; }
 
 /* GameTracker keeps the matchup in its title and gives the score strip one clear job. */
 .game-tracker-scoreboard-grid { min-height: 104px; padding-block: 10px; }
@@ -4891,7 +4900,7 @@ select:focus-visible,
   padding: 11px 13px;
   border: 1px solid var(--line-strong);
   border-left: 4px solid var(--gold);
-  border-radius: 7px;
+  border-radius: var(--ui-radius-md);
   color: var(--ink);
   background: var(--panel);
   font-size: 13px;
@@ -4903,7 +4912,7 @@ select:focus-visible,
   min-height: 36px;
   padding: 6px var(--ui-space-3);
   border: 1px solid var(--line-strong);
-  border-radius: 6px;
+  border-radius: var(--ui-radius-md);
   color: var(--ink);
   background: var(--surface-soft);
   font-size: 13px;
@@ -4913,7 +4922,7 @@ select:focus-visible,
   margin-bottom: 10px;
   padding: 10px var(--ui-space-3);
   border-left: 4px solid var(--blue);
-  border-radius: 0 6px 6px 0;
+  border-radius: var(--ui-radius-md);
   color: var(--ink);
   background: var(--panel);
   font-size: 13px;
@@ -4930,7 +4939,7 @@ select:focus-visible,
   margin: 0;
   padding: clamp(var(--ui-space-5), 5vw, 34px);
   border-top-width: 5px;
-  border-radius: 12px;
+  border-radius: var(--ui-radius-md);
   box-shadow: 0 24px 64px rgba(4, 14, 29, .28);
 }
 .login-app-name { margin-bottom: 22px; padding-bottom: 18px; font-size: 15px; letter-spacing: .01em; }
@@ -4947,7 +4956,7 @@ select:focus-visible,
 @media (min-width: 760px) {
   .game-list, .leaderboard, .group-list, .side-bet-list, .ledger-list {
     border: 1px solid var(--line-strong);
-    border-radius: 9px;
+    border-radius: var(--ui-radius-md);
     box-shadow: var(--shadow);
   }
 }
@@ -5151,22 +5160,20 @@ button, input, select, textarea {
 }
 
 
-/* Flat UI standard: no bubble cards or rounded panels.
-   Preserve circular status dots, notification badges, progress tracks,
-   avatars, and switch controls where shape conveys a function. */
-/* One quiet, universal radius: a subtle 2px edge rather than mixed
-   square, pill, and bubble cards. Full-viewport sheets stay flush. */
+/* One box radius across cards, fields and controls.
+   Joined table/list rows and full-viewport sheets stay flush; dots stay circular. */
 :is(
-  .game-list, .game-card, .pick-card, .card-progress, .pick-section,
-  .side-bet-card, .side-bet-slip-bar, .side-bet-ledger-row, .ledger-row,
-  .leaderboard, .leaderboard-row, .bank-player-result, .bank-week-results,
-  .login-card, .rule-item, .settings-panel,
-  .game-tracker-scoreboard, .matchup-preview-card, .confirmation-sheet
+  .game-list, .card-progress, .side-bet-slip-bar, .leaderboard,
+  .bank-week-results, .login-card, .confirmation-sheet,
+  .group-list, .side-bet-list, .ledger-list, .settings-card
 ) {
-  border-radius: var(--ui-radius-md) !important;
+  border-radius: var(--ui-radius-md);
 }
-:is(.game-tracker-sheet, .matchup-preview-sheet, .player-profile-sheet) {
-  border-radius: 0 !important;
+:is(.game-tracker-sheet, .matchup-preview-sheet, .player-profile-sheet,
+    .game-tracker-header, .matchup-preview-header, .game-tracker-scoreboard,
+    .game-card, .pick-card, .side-bet-card, .side-bet-ledger-row, .ledger-row,
+    .leaderboard-row, .bank-player-result, .rule-item, .settings-panel) {
+  border-radius: 0;
 }
 :is(
   .btn, .input, .compact-select, .custom-select-trigger,
@@ -5174,7 +5181,7 @@ button, input, select, textarea {
   .side-bet-slip-open, .side-bet-market-fields input,
   .side-bet-risk-field input, .confirmation-sheet button
 ) {
-  border-radius: var(--ui-radius-control) !important;
+  border-radius: var(--ui-radius-control);
 }
 
 /* Live Side Bets: scoreboard and status without changing team/market grid geometry. */
@@ -5240,15 +5247,20 @@ button, input, select, textarea {
 /* Scoring: a section draws the *single* line between quarters.
    Each header draws its bottom line; rows draw all internal lines
    except the final row. No parent/child borders overlap. */
-.game-tracker-scoring-list { background: var(--tracker-row-fill); }
+.game-tracker-scoring-list {
+  display: grid;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3);
+  background: var(--canvas);
+}
 .game-tracker-scoring-quarter {
   min-width: 0;
-  border: 0;
+  overflow: hidden;
+  border: 1px solid var(--tracker-divider);
+  border-radius: var(--ui-radius-md);
   background: var(--tracker-row-fill);
 }
-.game-tracker-scoring-quarter + .game-tracker-scoring-quarter {
-  border-top: 1px solid var(--tracker-section-divider);
-}
+
 .game-tracker-scoring-quarter > .game-tracker-scoring-quarter-header {
   box-sizing: border-box;
   display: grid;
@@ -5307,7 +5319,12 @@ button, input, select, textarea {
 
 /* Plays: drive summaries own the separator between ordinary drives.
    A new quarter owns the stronger transition instead, never both. */
-.game-tracker-drives { background: var(--tracker-row-fill); }
+.game-tracker-drives {
+  display: grid;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3);
+  background: var(--canvas);
+}
 .game-tracker-drives > .game-tracker-plays-quarter-header {
   box-sizing: border-box;
   min-height: 39px;
@@ -5324,15 +5341,12 @@ button, input, select, textarea {
 }
 .game-tracker-drives > .game-tracker-drive {
   margin: 0;
-  border: 0;
-  border-bottom: 1px solid var(--tracker-divider);
-  border-radius: 0;
+  overflow: hidden;
+  border: 1px solid var(--tracker-divider);
+  border-radius: var(--ui-radius-md);
   background: var(--tracker-row-fill);
 }
-.game-tracker-drives > .game-tracker-drive.before-quarter,
-.game-tracker-drives > .game-tracker-drive.crosses-quarter:not([open]) {
-  border-bottom: 0;
-}
+
 .game-tracker-drive > summary {
   min-height: 62px;
   padding: 10px var(--tracker-inset);
@@ -5376,15 +5390,15 @@ button, input, select, textarea {
 .game-tracker-collapsed-quarter-headers > .game-tracker-plays-quarter-header:not(:first-child) {
   border-top: 1px solid var(--tracker-section-divider);
 }
-.game-tracker-drive:last-child { border-bottom: 0; }
+
 
 /* Live drive, field, and scoring notes follow the same flat geometry. */
 .game-tracker-live { padding: var(--ui-space-3) var(--tracker-inset) var(--ui-space-5); }
-.game-tracker-field { border-radius: 0; }
+.game-tracker-field { border-radius: var(--ui-radius-md); }
 .game-tracker-live-drive {
   margin-top: var(--ui-space-4);
   border: 1px solid var(--tracker-divider);
-  border-radius: 0;
+  border-radius: var(--ui-radius-md);
   background: var(--panel);
 }
 .game-tracker-live-drive > header {
@@ -5401,7 +5415,10 @@ button, input, select, textarea {
 
 /* Box Score: filter strip, stats header, and table cells share one
    divider rhythm; no pill outline and no doubled table-end border. */
-.game-tracker-box { padding-bottom: var(--ui-space-4); }
+.game-tracker-box {
+  padding: var(--ui-space-3) var(--ui-space-3) var(--ui-space-4);
+  background: var(--canvas);
+}
 .game-tracker-box-selector {
   box-sizing: border-box;
   min-height: 53px;
@@ -5409,9 +5426,8 @@ button, input, select, textarea {
   gap: 0;
   margin: 0;
   padding: var(--ui-space-2) var(--tracker-inset);
-  border: 0;
-  border-bottom: 1px solid var(--tracker-divider);
-  border-radius: 0;
+  border: 1px solid var(--tracker-divider);
+  border-radius: var(--ui-radius-control);
   background: var(--panel);
 }
 .game-tracker-box-selector button {
@@ -5419,7 +5435,7 @@ button, input, select, textarea {
   padding: 0 var(--ui-space-1);
   border: 0;
   border-bottom: 2px solid transparent;
-  border-radius: 0;
+  border-radius: var(--ui-radius-control);
   color: var(--muted);
   background: transparent;
   font-size: 11px;
@@ -5431,7 +5447,9 @@ button, input, select, textarea {
   background: var(--surface-soft);
 }
 .game-tracker-team-stats {
-  border: 0;
+  overflow: hidden;
+  border: 1px solid var(--tracker-divider);
+  border-radius: var(--ui-radius-md);
   background: var(--panel);
 }
 .game-tracker-stat-table-head {
@@ -5449,7 +5467,13 @@ button, input, select, textarea {
 .game-tracker-team-stats > .game-tracker-stat-row:not(:last-child) {
   border-bottom: 1px solid var(--tracker-divider);
 }
-.game-tracker-box-section { margin: 0; }
+.game-tracker-box-section {
+  margin: var(--ui-space-3) 0 0;
+  overflow: hidden;
+  border: 1px solid var(--tracker-divider);
+  border-radius: var(--ui-radius-md);
+  background: var(--panel);
+}
 .game-tracker-box-section > h3 {
   min-height: 38px;
   margin: 0;
@@ -5459,9 +5483,7 @@ button, input, select, textarea {
   color: var(--header-muted);
   background: var(--tracker-header-fill);
 }
-.game-tracker-box-section + .game-tracker-box-section > h3 {
-  border-top: 1px solid var(--tracker-section-divider);
-}
+
 .game-tracker-player-table {
   border: 0;
   border-collapse: separate;
