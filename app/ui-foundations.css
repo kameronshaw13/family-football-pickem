@@ -370,29 +370,7 @@ fieldset .field-label { padding: 0; }
 .side-bet-amount-grid button { min-height: 43px; padding: 6px; border: 0; border-right: 1px solid var(--line); color: var(--ink); background: var(--panel); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .side-bet-amount-grid button:last-child { border-right: 0; }
 .side-bet-amount-grid button.active { color: var(--blue-dark); background: var(--blue-soft); box-shadow: inset 0 -3px 0 var(--blue); }
-.side-bet-bank-available {
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
-  gap: 6px;
-  min-height: 31px;
-  padding: 7px var(--pick-content-inset) 5px;
-  border-bottom: 1px solid var(--line);
-  background: var(--panel);
-  font-family: var(--font-display);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-.side-bet-bank-amount { display: inline-flex; align-items: baseline; gap: var(--ui-space-1); min-width: 0; }
-.side-bet-bank-amount > span { color: var(--muted); font-size: 11px; font-weight: 700; }
-.side-bet-bank-amount > strong { color: var(--ink); font-size: 12px; font-weight: 800; }
-.side-bet-bank-separator { color: var(--muted); font-size: 11px; font-weight: 700; margin: 0 1px; }
 @media (max-width: 380px) {
-  .side-bet-bank-available { gap: var(--ui-space-1); padding-inline: 10px; }
-  .side-bet-bank-amount { gap: 3px; }
-  .side-bet-bank-amount > span { font-size: 10px; }
-  .side-bet-bank-amount > strong { font-size: 11px; }
 }
 
 .side-bet-recipient-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 47px; }

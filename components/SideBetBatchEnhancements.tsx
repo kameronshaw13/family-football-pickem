@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { batchSideBetTotalRisk, batchSideBetRiskCovered } from "@/lib/sideBetBatchRisk";
+import { batchSideBetTotalRisk } from "@/lib/sideBetBatchRisk";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { americanOddsText, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { teamDisplayName } from "@/lib/teamNames";
@@ -36,7 +36,6 @@ type CachedPayload = {
   currentUser?: CachedProfile | null;
   profiles?: CachedProfile[];
   games?: CachedGame[];
-  bankAvailable?: Record<string, number>;
 };
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v2";
@@ -416,7 +415,7 @@ export default function SideBetBatchEnhancements() {
         selection.recipientAll ? "all" : "some",
         selection.configured ? "ready" : "open",
         sameSelection(active, selection) ? "active" : ""
-      ].join("::")).join("|") + "::" + String(payload?.bankAvailable?.[payload.currentUser?.id || ""] ?? "unknown");
+      ].join("::")).join("|");
       if (list.dataset.signature === signature) return;
       list.dataset.signature = signature;
       list.replaceChildren();
@@ -508,24 +507,7 @@ export default function SideBetBatchEnhancements() {
         fitRecipientSummary(meta, amountText, selection, payload);
       });
 
-      const risk = batchSideBetTotalRisk(selections.map((selection) => Number(selection.amount)));
-      const available = payload?.bankAvailable?.[payload.currentUser?.id || ""];
-      const summary = document.createElement("div");
-      summary.className = "side-bet-batch-exposure";
-      summary.setAttribute("aria-label", "Combined side bet exposure");
-      if (risk != null) {
-        const exceeds = available != null && !batchSideBetRiskCovered(available, selections.map((selection) => Number(selection.amount)));
-        summary.textContent = available == null
-          ? `Total risk ${risk.toFixed(2)}`
-          : `Total risk ${risk.toFixed(2)} · Available ${Number(available).toFixed(2)}`;
-        if (exceeds) {
-          summary.classList.add("over-bank");
-          summary.setAttribute("role", "status");
-        }
-      } else {
-        summary.textContent = "Complete each bet to calculate total risk";
-      }
-      list.appendChild(summary);
+
     }
 
     function applyBatchUi(payload: CachedPayload | null) {
@@ -585,18 +567,13 @@ export default function SideBetBatchEnhancements() {
         return;
       }
 
-      // Validate *combined* exposure, not only the active slip's risk.
-      // The batch endpoint performs the same check against fresh server data.
-      const available = payload.bankAvailable?.[payload.currentUser?.id || ""];
+      // Credit-based league: verify each ticket stake without a deposit prerequisite.
       const totalRisk = batchSideBetTotalRisk(selections.map((selection) => Number(selection.amount)));
       if (totalRisk == null) {
         showBatchMessage("Enter a valid amount for every selected bet.", "error");
         return;
       }
-      if (available != null && !batchSideBetRiskCovered(available, selections.map((selection) => Number(selection.amount)))) {
-        showBatchMessage(`These bets risk ${totalRisk.toFixed(2)} total; only ${Number(available).toFixed(2)} is available after outstanding bets. Lower the amounts or remove a game.`, "error");
-        return;
-      }
+
 
       const submit = document.querySelector<HTMLButtonElement>(".side-bet-slip-submit");
       sending = true;
