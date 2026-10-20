@@ -1556,7 +1556,6 @@
 .game-tracker-player-table th:first-child { z-index: 3; }
 .game-tracker-player-table th:not(:first-child),
 .game-tracker-player-table td:not(:first-child) { min-width: 40px; }
-.game-tracker-player-table tbody tr:last-child td { border-bottom: 0; }
 
 @media (max-width: 520px) {
   .game-tracker-backdrop { padding: var(--ui-space-3); }
