@@ -309,7 +309,7 @@ body,
   place-items: center;
   place-self: center;
   border: 1px solid #ddb1ad;
-  border-radius: 2px;
+  border-radius: var(--ui-radius-md);
   color: var(--red);
   background: var(--red-soft);
   content: "L";
@@ -341,11 +341,11 @@ body,
 .score-bug-team.outcome-loss .team-logo { opacity: 1; filter: none; }
 .score-bug-team.outcome-loss .score-bug-score { color: var(--header-muted); }
 
-.manual-pick-lock { display: inline-flex; min-width: 62px; height: 30px; min-height: 30px; align-items: center; justify-content: center; gap: 5px; padding: 0 var(--ui-space-2); border: 1px solid #b88912; border-radius: 4px; color: var(--ink); background: var(--gold); font-family: var(--font-display); font-size: 11px; font-weight: 800; line-height: 1.2; cursor: pointer; }
+.manual-pick-lock { display: inline-flex; min-width: 62px; height: 30px; min-height: 30px; align-items: center; justify-content: center; gap: 5px; padding: 0 var(--ui-space-2); border: 1px solid #b88912; border-radius: var(--ui-radius-md); color: var(--ink); background: var(--gold); font-family: var(--font-display); font-size: 11px; font-weight: 800; line-height: 1.2; cursor: pointer; }
 .manual-pick-lock svg { width: 13px; height: 13px; stroke-width: 2.2; color: var(--ink); }
 .manual-pick-lock:disabled { cursor: default; opacity: .55; }
 .manual-lock-confirmed { display: inline-flex; min-width: 42px; height: 28px; align-items: center; justify-content: center; color: var(--muted); font-size: 9px; font-weight: 800; }
-.manual-lock-toast { position: fixed; right: 12px; bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 12px); left: 12px; z-index: 65; display: flex; min-height: 44px; align-items: center; justify-content: center; padding: 9px var(--ui-space-3); border: 1px solid var(--line-strong); border-radius: 5px; color: var(--ink); background: var(--panel); box-shadow: var(--shadow); font-size: 12px; font-weight: 800; text-align: center; }
+.manual-lock-toast { position: fixed; right: 12px; bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 12px); left: 12px; z-index: 65; display: flex; min-height: 44px; align-items: center; justify-content: center; padding: 9px var(--ui-space-3); border: 1px solid var(--line-strong); border-radius: var(--ui-radius-md); color: var(--ink); background: var(--panel); box-shadow: var(--shadow); font-size: 12px; font-weight: 800; text-align: center; }
 .manual-lock-toast.error { color: var(--red); }
 .manual-lock-review .confirmation-heading { margin-top: 0; margin-bottom: 0; }
 .manual-lock-review .confirmation-heading h2 { margin: 0; }
@@ -464,7 +464,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   place-items: center;
   padding: 0 0 2px;
   border: 1px solid #d6aaa6;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-md);
   color: var(--red);
   background: var(--red-soft);
   font-family: Arial, sans-serif;
@@ -483,7 +483,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   align-items: center;
   justify-content: center;
   padding: 9px 14px;
-  border-radius: 7px;
+  border-radius: var(--ui-radius-md);
   color: #fff;
   background: var(--green);
   box-shadow: 0 12px 30px rgba(20, 33, 43, .25);
@@ -671,7 +671,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   justify-self: end;
   padding: 0;
   border: 1px solid #d6aaa6;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-md);
   color: var(--red);
   background: var(--red-soft);
   font-family: inherit;
@@ -778,7 +778,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   padding: 1px;
   overflow: hidden;
   border: 1px solid var(--graphite);
-  border-radius: 999px;
+  border-radius: var(--ui-radius-md);
   background: #e4e7e6;
 }
 .side-bet-ledger-scope-toggle button {
@@ -789,7 +789,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   justify-content: center;
   padding: 0 var(--ui-space-2);
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--ui-radius-md);
   color: var(--graphite);
   background: transparent;
   font-family: var(--font-display);
@@ -959,7 +959,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   padding: 1px;
   overflow: hidden;
   border: 1px solid var(--graphite);
-  border-radius: 999px;
+  border-radius: var(--ui-radius-md);
   background: #e4e7e6;
 }
 .side-bet-game-filter-toggle button {
@@ -970,7 +970,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   justify-content: center;
   padding: 0 7px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--ui-radius-md);
   color: var(--graphite);
   background: transparent;
   font-family: var(--font-display);
@@ -1443,19 +1443,19 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
    only to the separator circle itself. */
 .ui-separator-dot {
   display: inline-block;
-  width: clamp(3px, 0.28em, 4px);
-  height: clamp(3px, 0.28em, 4px);
+  width: var(--separator-size, clamp(2px, .25em, 4px));
+  height: var(--separator-size, clamp(2px, .25em, 4px));
   flex: 0 0 auto;
   margin-inline: 0.25em;
-  overflow: visible;
+  overflow: hidden;
   border-radius: 50%;
   aspect-ratio: 1 / 1;
-  color: transparent !important;
-  background: var(--muted);
+  color: inherit;
+  background: currentColor;
   font-size: inherit;
   line-height: 0;
   vertical-align: middle;
-  text-indent: 0;
+  text-indent: -9999px;
   transform: translateY(0.025em);
 }
 
@@ -1468,7 +1468,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
    global separator color, with a touch more breathing room. */
 .pick-title-market .dog-separator.ui-separator-dot {
   margin-inline: 0.36em;
-  background: var(--ink);
+  background: currentColor;
   transform: translateY(0.04em);
 }
 
@@ -1514,6 +1514,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   gap: var(--ledger-summary-gap) !important;
 }
 .side-bet-ledger-summary .ui-separator-dot {
+  color: var(--muted);
   margin-inline: max(0px, calc(0.5em - var(--ledger-summary-gap)));
   align-self: center;
 }
@@ -1583,13 +1584,13 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
 .pick-meta .ui-separator-dot,
 .visible-pick-copy p .ui-separator-dot {
   box-sizing: border-box;
-  width: 4px;
-  height: 4px;
-  min-width: 4px;
-  flex: 0 0 4px;
+  width: var(--separator-size, clamp(2px, .25em, 4px));
+  height: var(--separator-size, clamp(2px, .25em, 4px));
+  min-width: var(--separator-size, clamp(2px, .25em, 4px));
+  flex: 0 0 var(--separator-size, clamp(2px, .25em, 4px));
   border-radius: 50%;
-  background-color: var(--ink);
-  font-size: 0;
+  background: currentColor;
+  font-size: inherit;
   line-height: 0;
   transform: translateY(-0.015em);
 }
@@ -1692,21 +1693,22 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
 /* 2026-10-03: keep the My Card / League Card live tracker quarter and clock compact.
    NumericText already supplies a normal text space on both sides of the dot. */
 .pick-score-bug.live .score-bug-meta > span:first-child .ui-separator-dot {
+  --separator-size: 2px;
   box-sizing: border-box;
   display: inline-block;
-  width: 3px;
-  min-width: 3px;
-  max-width: 3px;
-  height: 3px;
-  min-height: 3px;
-  max-height: 3px;
-  flex: 0 0 3px;
+  width: var(--separator-size, clamp(2px, .25em, 4px));
+  min-width: var(--separator-size, clamp(2px, .25em, 4px));
+  max-width: var(--separator-size, clamp(2px, .25em, 4px));
+  height: var(--separator-size, clamp(2px, .25em, 4px));
+  min-height: var(--separator-size, clamp(2px, .25em, 4px));
+  max-height: var(--separator-size, clamp(2px, .25em, 4px));
+  flex: 0 0 var(--separator-size, clamp(2px, .25em, 4px));
   margin-inline: 0 !important;
-  overflow: visible;
+  overflow: hidden;
   border: 0;
   border-radius: 50%;
-  background: var(--ink);
-  font-size: 0;
+  background: currentColor;
+  font-size: inherit;
   line-height: 0;
   transform: translateY(-0.035em);
 }
@@ -1715,7 +1717,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
    Both left and right now render the same separator markup and share this exact styling. */
 .matchup-card:not(.side-bet-game-card) .compact-game-head .live-header-dot {
   margin-inline: 0.42em;
-  background: var(--ink);
+  background: currentColor;
   transform: translateY(0);
 }
 
@@ -1738,7 +1740,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   display: grid;
   padding: 0;
   border: 0;
-  border-radius: 3px;
+  border-radius: var(--ui-radius-md);
   background: transparent;
   cursor: pointer;
 }
