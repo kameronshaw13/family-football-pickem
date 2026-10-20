@@ -9,7 +9,7 @@
   justify-content: center;
   padding: 0 6px;
   border: 1px solid var(--line-strong);
-  border-radius: var(--ui-radius-md);
+  border-radius: var(--ui-radius-action);
   color: var(--graphite);
   background: var(--panel);
   font-family: var(--font-display);
@@ -4784,7 +4784,7 @@ select:focus-visible,
 .compact-select .custom-select-trigger,
 .compact-select select { min-height: 40px; font-size: 12px; font-weight: 750; }
 .game-day-marker { gap: 9px; }
-.game-day-marker > b { min-height: 30px; border-radius: var(--ui-radius-md); font-size: 11px; }
+.game-day-marker > b { min-height: 30px; border-radius: var(--ui-radius-label); font-size: 11px; }
 .game-day-marker strong { font-size: 12px; font-weight: 700; }
 .game-head { min-height: 37px; height: 37px; }
 .badge, .status-mark { border-radius: var(--ui-radius-md); font-size: 10px; letter-spacing: .025em; }
@@ -4954,7 +4954,7 @@ select:focus-visible,
 .login-message { font-size: 13px !important; line-height: 1.45; }
 
 @media (min-width: 760px) {
-  .game-list, .leaderboard, .group-list, .side-bet-list, .ledger-list {
+  .leaderboard, .group-list, .side-bet-list, .ledger-list {
     border: 1px solid var(--line-strong);
     border-radius: var(--ui-radius-md);
     box-shadow: var(--shadow);
@@ -5160,10 +5160,10 @@ button, input, select, textarea {
 }
 
 
-/* One box radius across cards, fields and controls.
-   Joined table/list rows and full-viewport sheets stay flush; dots stay circular. */
+/* Shared shapes by purpose: boxed day labels, flat board edges,
+   softly rounded cards and pill-shaped detail actions. */
 :is(
-  .game-list, .card-progress, .side-bet-slip-bar, .leaderboard,
+  .card-progress, .side-bet-slip-bar, .leaderboard,
   .bank-week-results, .login-card, .confirmation-sheet,
   .group-list, .side-bet-list, .ledger-list, .settings-card
 ) {
@@ -5171,13 +5171,13 @@ button, input, select, textarea {
 }
 :is(.game-tracker-sheet, .matchup-preview-sheet, .player-profile-sheet,
     .game-tracker-header, .matchup-preview-header, .game-tracker-scoreboard,
-    .game-card, .pick-card, .side-bet-card, .side-bet-ledger-row, .ledger-row,
+    .game-list, .game-card, .pick-card, .side-bet-card, .side-bet-ledger-row, .ledger-row,
     .leaderboard-row, .bank-player-result, .rule-item, .settings-panel) {
   border-radius: 0;
 }
 :is(
   .btn, .input, .compact-select, .custom-select-trigger,
-  .game-day-marker > b, .status-mark, .badge,
+  .status-mark, .badge,
   .side-bet-slip-open, .side-bet-market-fields input,
   .side-bet-risk-field input, .confirmation-sheet button
 ) {

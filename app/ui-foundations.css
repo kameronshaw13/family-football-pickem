@@ -25,6 +25,10 @@
   --space-3: var(--ui-space-3);
   --space-4: var(--ui-space-4);
   --space-5: var(--ui-space-5);
+  /* Shapes follow purpose: flat board edges, boxed labels, cards, and rounded actions. */
+  --ui-radius-flat: 0;
+  --ui-radius-label: 2px;
+  --ui-radius-action: 999px;
   --ui-radius-box: 6px;
   --ui-radius-sm: var(--ui-radius-box);
   --ui-radius-md: var(--ui-radius-box);
