@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { bodySchema } from "@/lib/sideBetRequestSchema";
 import { getProfileFromRequest } from "@/lib/authServer";
-import { fetchEspnEvent, fetchEspnSchedule } from "@/lib/espnSchedule";
+import { scoreNumber, type LiveScoreSnapshot, currentLiveScore, scoreboardLiveScore, liveScoreSnapshotStable, liveScoreDiffersFromOffer, liveScoreMatches, liveScoreConfirmedByEither, liveScoreConsensus } from "@/lib/sideBetLiveScore";
 import { actionMarketAvailable, fetchActionNetworkMarketForGame } from "@/lib/actionNetworkMarkets";
 import { getGroupSideBetSettings, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { createNotificationInBackground, resolveSideBetOfferNotifications } from "@/lib/notifications";
@@ -12,44 +13,6 @@ import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { isSideBetRestricted } from "@/lib/sideBetAccess";
 import { notificationTeamName } from "@/lib/notificationTeamName";
 import { notificationStakeText } from "@/lib/notificationMoney";
-
-const viewWeek = z.number().int().nonnegative().optional();
-const bodySchema = z.discriminatedUnion("action", [
-  z.object({
-    action: z.literal("create"),
-    gameId: z.string().min(1),
-    creatorTeam: z.string().min(1),
-    amount: z.number().positive(),
-    recipientIds: z.array(z.string().uuid()).min(1).max(10),
-    marketType: z.enum(["spread", "moneyline", "total"]).optional(),
-    offerPhase: z.enum(["pregame", "live"]).optional(),
-    creatorSpread: z.number().finite().min(-100).max(100).optional(),
-    totalPoints: z.number().finite().min(0).max(200).optional(),
-    creatorOdds: z.number().int().optional(),
-    visibleLiveHomeScore: z.number().int().nonnegative().optional(),
-    visibleLiveAwayScore: z.number().int().nonnegative().optional(),
-    viewWeek
-  }),
-  z.object({
-    action: z.literal("accept"),
-    sideBetId: z.string().uuid(),
-    visibleLiveHomeScore: z.number().int().nonnegative().optional(),
-    visibleLiveAwayScore: z.number().int().nonnegative().optional(),
-    viewWeek
-  }),
-  z.object({ action: z.literal("decline"), sideBetId: z.string().uuid(), viewWeek }),
-  z.object({ action: z.literal("cancel"), sideBetId: z.string().uuid(), viewWeek }),
-  z.object({ action: z.literal("clear"), sideBetId: z.string().uuid(), viewWeek }),
-  z.object({
-    action: z.literal("expireLiveScores"),
-    offers: z.array(z.object({
-      sideBetId: z.string().uuid(),
-      visibleLiveHomeScore: z.number().int().nonnegative(),
-      visibleLiveAwayScore: z.number().int().nonnegative()
-    })).min(1).max(20),
-    viewWeek
-  })
-]);
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -85,95 +48,6 @@ function notificationMarketText(
 function groupNotificationUrl(slug: string, destination: string) {
   const base = slug === "friends-basketball" ? "/friends-basketball" : slug === "friends" ? "/friends" : slug === "other-family" ? "/caleb-family" : "/";
   return `${base}?notification=${encodeURIComponent(destination)}`;
-}
-
-type LiveScoreSnapshot = { home: number; away: number; completed: boolean };
-
-function scoreNumber(value: unknown): number | null {
-  if (value == null || value === "") return null;
-  const score = Number(value);
-  return Number.isFinite(score) ? score : null;
-}
-
-function storedLiveScore(game: any): LiveScoreSnapshot | null {
-  const home = scoreNumber(game?.live_home_score);
-  const away = scoreNumber(game?.live_away_score);
-  if (home == null || away == null) return null;
-  return {
-    home,
-    away,
-    completed: Boolean(game?.live_completed || (game?.final_home_score != null && game?.final_away_score != null))
-  };
-}
-
-async function currentLiveScore(game: any, freshness: boolean | number = true): Promise<LiveScoreSnapshot | null> {
-  if (game?.espn_event_id && (game?.league === "CFB" || game?.league === "NFL")) {
-    try {
-      const event = await fetchEspnEvent(game.league, game.espn_event_id, freshness);
-      if (event?.homeScore != null && event?.awayScore != null) {
-        return { home: Number(event.homeScore), away: Number(event.awayScore), completed: Boolean(event.completed) };
-      }
-    } catch {
-      // Keep the offer alive when the live-score provider has a brief interruption.
-    }
-  }
-  return storedLiveScore(game);
-}
-
-async function scoreboardLiveScore(game: any, freshness: boolean | number = true): Promise<LiveScoreSnapshot | null> {
-  if (!game?.espn_event_id || (game?.league !== "CFB" && game?.league !== "NFL")) return null;
-  try {
-    const schedule = await fetchEspnSchedule(game.league, [game.commence_time], freshness, 0);
-    const event = schedule.find((candidate) => String(candidate.id) === String(game.espn_event_id));
-    if (event?.homeScore == null || event?.awayScore == null) return null;
-    return {
-      home: Number(event.homeScore),
-      away: Number(event.awayScore),
-      completed: Boolean(event.completed)
-    };
-  } catch {
-    return null;
-  }
-}
-
-function liveScoreSnapshotStable(summaryScore: LiveScoreSnapshot | null, scoreboardScore: LiveScoreSnapshot | null) {
-  return Boolean(
-    summaryScore &&
-    scoreboardScore &&
-    summaryScore.home === scoreboardScore.home &&
-    summaryScore.away === scoreboardScore.away
-  );
-}
-
-function liveScoreDiffersFromOffer(bet: any, score: LiveScoreSnapshot | null) {
-  if (!score) return false;
-  const sentHome = scoreNumber(bet?.live_offer_home_score);
-  const sentAway = scoreNumber(bet?.live_offer_away_score);
-  if (sentHome == null || sentAway == null) return false;
-  return score.home !== sentHome || score.away !== sentAway;
-}
-
-function liveScoreMatches(score: LiveScoreSnapshot | null, home: number, away: number) {
-  return Boolean(score && score.home === home && score.away === away);
-}
-
-function liveScoreConfirmedByEither(
-  summaryScore: LiveScoreSnapshot | null,
-  scoreboardScore: LiveScoreSnapshot | null,
-  home: number,
-  away: number
-) {
-  return liveScoreMatches(summaryScore, home, away) || liveScoreMatches(scoreboardScore, home, away);
-}
-
-function liveScoreConsensus(
-  summaryScore: LiveScoreSnapshot | null,
-  scoreboardScore: LiveScoreSnapshot | null
-): LiveScoreSnapshot | null {
-  if (!summaryScore || !scoreboardScore) return null;
-  return summaryScore.home === scoreboardScore.home && summaryScore.away === scoreboardScore.away
-    ? summaryScore
-    : null;
 }
 
 async function allGroupBets(supabase: any, groupId: string, seasonYear: number, week?: number) {
