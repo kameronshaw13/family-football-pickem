@@ -690,7 +690,7 @@ export default function GameTracker({ game, onClose, appSlug }: { game: Game; on
 
   const awayName = teamDisplayName(game.league, game.away_team);
   const homeName = teamDisplayName(game.league, game.home_team);
-  const completed = Boolean(payload?.status.completed ?? game.live_completed ?? (game.final_home_score != null && game.final_away_score != null));
+  const completed = Boolean(game.live_completed || (game.final_home_score != null && game.final_away_score != null) || payload?.status.completed);
   const tabs: Array<[TrackerTab, string]> = [
     ...(completed ? [] : [["live", "Live"] as [TrackerTab, string]]),
     ["scoring", "Scoring"],
