@@ -1309,8 +1309,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           currentUser={currentUser}
           profiles={profiles.filter((profile) => !isSideBetRestricted(data.groupRules, profile.id))}
           sideBets={sideBets}
-          availableFunds={null}
-          reservedFunds={0}
+          availableFunds={!previewActive && ["friends", "friends-basketball"].includes(appSlug)
+            && data.bankAvailable?.[currentUser.id] != null
+            ? Number(data.bankAvailable[currentUser.id])
+            : null}
+          reservedFunds={!previewActive && ["friends", "friends-basketball"].includes(appSlug)
+            ? Number(data.bankReserved?.[currentUser.id] ?? 0)
+            : 0}
           slotCounts={data.sideBetSlotCounts || {}}
           maxPerWeek={data.sideBetSettings?.maxPerWeek ?? null}
           maxAmount={data.sideBetSettings?.maxAmount ?? MAX_SIDE_BET_AMOUNT}
