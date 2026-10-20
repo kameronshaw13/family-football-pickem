@@ -25,9 +25,9 @@
   --space-3: var(--ui-space-3);
   --space-4: var(--ui-space-4);
   --space-5: var(--ui-space-5);
-  --ui-radius-sm: 0px;
-  --ui-radius-md: 0px;
-  --ui-radius-lg: 0px;
+  --ui-radius-sm: 2px;
+  --ui-radius-md: 2px;
+  --ui-radius-lg: 2px;
   --ui-radius-control: 2px;
   --ui-radius-circle: 50%;
   --canvas: #eef0ed;

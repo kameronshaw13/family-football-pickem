@@ -5145,15 +5145,18 @@ button, input, select, textarea {
 /* Flat UI standard: no bubble cards or rounded panels.
    Preserve circular status dots, notification badges, progress tracks,
    avatars, and switch controls where shape conveys a function. */
+/* One quiet, universal radius: a subtle 2px edge rather than mixed
+   square, pill, and bubble cards. Full-viewport sheets stay flush. */
 :is(
   .game-list, .game-card, .pick-card, .card-progress, .pick-section,
   .side-bet-card, .side-bet-slip-bar, .side-bet-ledger-row, .ledger-row,
   .leaderboard, .leaderboard-row, .bank-player-result, .bank-week-results,
   .login-card, .rule-item, .settings-panel,
-  .game-tracker-sheet, .matchup-preview-sheet,
-  .game-tracker-scoreboard, .matchup-preview-card,
-  .player-profile-sheet, .confirmation-sheet
+  .game-tracker-scoreboard, .matchup-preview-card, .confirmation-sheet
 ) {
+  border-radius: var(--ui-radius-md) !important;
+}
+:is(.game-tracker-sheet, .matchup-preview-sheet, .player-profile-sheet) {
   border-radius: 0 !important;
 }
 :is(

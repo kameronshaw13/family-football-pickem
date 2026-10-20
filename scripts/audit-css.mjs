@@ -53,7 +53,7 @@ for (const name of cssImports) {
 const canonicalTokens = {
   "--ui-space-1": "4px", "--ui-space-2": "8px", "--ui-space-3": "12px",
   "--ui-space-4": "16px", "--ui-space-5": "24px",
-  "--ui-radius-sm": "0px", "--ui-radius-md": "0px", "--ui-radius-lg": "0px",
+  "--ui-radius-sm": "2px", "--ui-radius-md": "2px", "--ui-radius-lg": "2px",
   "--ui-radius-control": "2px", "--ui-radius-circle": "50%"
 };
 const tokenDefinitions = new Map(Object.keys(canonicalTokens).map(key => [key, []]));
