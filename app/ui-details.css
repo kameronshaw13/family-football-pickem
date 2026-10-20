@@ -2210,6 +2210,7 @@
 .settings-rule-item + .settings-rule-item { margin-top: 0; }
 .settings-rule-item > summary {
   -webkit-tap-highlight-color: transparent;
+  transition: background-color 130ms ease;
   user-select: none;
   display: flex;
   min-height: 39px;
@@ -2224,6 +2225,15 @@
   cursor: pointer;
 }
 .settings-rule-item > summary::-webkit-details-marker { display: none; }
+.settings-rule-item > summary:active,
+.settings-detail > summary:active {
+  background: var(--blue-soft);
+}
+.settings-rule-item > summary:focus-visible,
+.settings-detail > summary:focus-visible {
+  outline: 2px solid var(--blue-dark);
+  outline-offset: -2px;
+}
 .settings-rule-item[open] > summary { border-bottom: 1px solid var(--line); }
 .settings-rule-item[open] > summary svg { transform: rotate(180deg); }
 .settings-rule-item ul {

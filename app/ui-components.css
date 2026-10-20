@@ -414,6 +414,23 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   border-bottom: 1px solid var(--line-strong);
   background: var(--panel);
 }
+.side-bet-batch-exposure {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: var(--ui-space-2) var(--pick-content-inset);
+  border-top: 1px solid var(--line);
+  color: var(--header-muted);
+  background: var(--surface-soft);
+  font-size: 10px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+.side-bet-batch-exposure.over-bank {
+  color: var(--red);
+  background: var(--red-soft);
+}
 .side-bet-batch-head strong {
   margin-left: auto;
   color: var(--blue-dark);

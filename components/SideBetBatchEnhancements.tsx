@@ -416,7 +416,7 @@ export default function SideBetBatchEnhancements() {
         selection.recipientAll ? "all" : "some",
         selection.configured ? "ready" : "open",
         sameSelection(active, selection) ? "active" : ""
-      ].join("::")).join("|");
+      ].join("::")).join("|") + "::" + String(payload?.bankAvailable?.[payload.currentUser?.id || ""] ?? "unknown");
       if (list.dataset.signature === signature) return;
       list.dataset.signature = signature;
       list.replaceChildren();
@@ -507,9 +507,37 @@ export default function SideBetBatchEnhancements() {
         list!.appendChild(row);
         fitRecipientSummary(meta, amountText, selection, payload);
       });
+
+      const risk = batchSideBetTotalRisk(selections.map((selection) => Number(selection.amount)));
+      const available = payload?.bankAvailable?.[payload.currentUser?.id || ""];
+      const summary = document.createElement("div");
+      summary.className = "side-bet-batch-exposure";
+      summary.setAttribute("aria-label", "Combined side bet exposure");
+      if (risk != null) {
+        const exceeds = available != null && !batchSideBetRiskCovered(available, selections.map((selection) => Number(selection.amount)));
+        summary.textContent = available == null
+          ? `Total risk ${risk.toFixed(2)}`
+          : `Total risk ${risk.toFixed(2)} · Available ${Number(available).toFixed(2)}`;
+        if (exceeds) {
+          summary.classList.add("over-bank");
+          summary.setAttribute("role", "status");
+        }
+      } else {
+        summary.textContent = "Complete each bet to calculate total risk";
+      }
+      list.appendChild(summary);
     }
 
     function applyBatchUi(payload: CachedPayload | null) {
+      // When the user leaves the New Offer board (including after a
+      // successful single-send), release the batch state. Otherwise a
+      // previous highlighted selection resurfaces when returning.
+      if (!document.querySelector(".side-bet-sportsbook-board")) {
+        selections = [];
+        pendingNativeSync = false;
+        document.body.classList.remove("side-bet-batch-active");
+        return;
+      }
       annotateSideBetBoard(payload);
       annotateRecipients(payload);
 
