@@ -400,8 +400,14 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
       amount: creatorRisk
     });
     if (sentOffer) {
+      // Clear all editor-local fields as well as the controller selection.
+      // Otherwise returning from Offers can resurrect a previous ticket.
       setCustomRiskMode(false);
       setSlipExpanded(false);
+      setCustomSpread("");
+      setOddsInput("100");
+      setMarketType(boardMarket === "total" ? "total" : "spread");
+      setOfferPhase("pregame");
     }
   }
 
@@ -427,6 +433,11 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
       <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "offers", label: "Offers", badge: offerNotificationCount }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => {
         setSlipExpanded(false);
         if (value === "new") {
+          setCustomSpread("");
+          setOddsInput("100");
+          setCustomRiskMode(false);
+          setRecipients([]);
+          setAmount("20");
           setOfferPhase("pregame");
           setBoardMarket("spreads");
           setMarketType("spread");

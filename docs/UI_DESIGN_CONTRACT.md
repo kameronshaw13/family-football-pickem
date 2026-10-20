@@ -21,7 +21,7 @@ Do not create another `*-polish.css` or `*-fixes.css` file for cosmetic changes.
 Legacy `--space-1..5` are compatibility aliases, not a competing scale. Page, bank and pick insets use `--ui-space-3` unless a component-specific density requirement is documented. Avoid mixing named tokens and arbitrary 11/14/15px paddings within the same row family.
 
 ## Shape
-- Flat rows, cards, sheets and sections: `--ui-radius-sm/md/lg: 0px`
+- Cards, rows and controls share subtle 2px rounding: `--ui-radius-sm/md/lg: 2px`; full-screen GameTracker, Matchup Preview and Profile sheets remain edge-to-edge (0px).
 - Inputs and buttons: `--ui-radius-control: 2px`
 - Circular status indicators (e.g. score dots, avatars): `--ui-radius-circle: 50%`, only where meaning requires round shape
 - Dividers, rather than individually outlined pill cards, separate rows

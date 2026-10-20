@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { batchSideBetTotalRisk, batchSideBetRiskCovered } from "@/lib/sideBetBatchRisk";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { americanOddsText, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { teamDisplayName } from "@/lib/teamNames";
@@ -35,6 +36,7 @@ type CachedPayload = {
   currentUser?: CachedProfile | null;
   profiles?: CachedProfile[];
   games?: CachedGame[];
+  bankAvailable?: Record<string, number>;
 };
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v2";
@@ -414,7 +416,7 @@ export default function SideBetBatchEnhancements() {
         selection.recipientAll ? "all" : "some",
         selection.configured ? "ready" : "open",
         sameSelection(active, selection) ? "active" : ""
-      ].join("::")).join("|");
+      ].join("::")).join("|") + "::" + String(payload?.bankAvailable?.[payload.currentUser?.id || ""] ?? "unknown");
       if (list.dataset.signature === signature) return;
       list.dataset.signature = signature;
       list.replaceChildren();
@@ -505,9 +507,37 @@ export default function SideBetBatchEnhancements() {
         list!.appendChild(row);
         fitRecipientSummary(meta, amountText, selection, payload);
       });
+
+      const risk = batchSideBetTotalRisk(selections.map((selection) => Number(selection.amount)));
+      const available = payload?.bankAvailable?.[payload.currentUser?.id || ""];
+      const summary = document.createElement("div");
+      summary.className = "side-bet-batch-exposure";
+      summary.setAttribute("aria-label", "Combined side bet exposure");
+      if (risk != null) {
+        const exceeds = available != null && !batchSideBetRiskCovered(available, selections.map((selection) => Number(selection.amount)));
+        summary.textContent = available == null
+          ? `Total risk ${risk.toFixed(2)}`
+          : `Total risk ${risk.toFixed(2)} · Available ${Number(available).toFixed(2)}`;
+        if (exceeds) {
+          summary.classList.add("over-bank");
+          summary.setAttribute("role", "status");
+        }
+      } else {
+        summary.textContent = "Complete each bet to calculate total risk";
+      }
+      list.appendChild(summary);
     }
 
     function applyBatchUi(payload: CachedPayload | null) {
+      // When the user leaves the New Offer board (including after a
+      // successful single-send), release the batch state. Otherwise a
+      // previous highlighted selection resurfaces when returning.
+      if (!document.querySelector(".side-bet-sportsbook-board")) {
+        selections = [];
+        pendingNativeSync = false;
+        document.body.classList.remove("side-bet-batch-active");
+        return;
+      }
       annotateSideBetBoard(payload);
       annotateRecipients(payload);
 
@@ -555,6 +585,19 @@ export default function SideBetBatchEnhancements() {
         return;
       }
 
+      // Validate *combined* exposure, not only the active slip's risk.
+      // The batch endpoint performs the same check against fresh server data.
+      const available = payload.bankAvailable?.[payload.currentUser?.id || ""];
+      const totalRisk = batchSideBetTotalRisk(selections.map((selection) => Number(selection.amount)));
+      if (totalRisk == null) {
+        showBatchMessage("Enter a valid amount for every selected bet.", "error");
+        return;
+      }
+      if (available != null && !batchSideBetRiskCovered(available, selections.map((selection) => Number(selection.amount)))) {
+        showBatchMessage(`These bets risk ${totalRisk.toFixed(2)} total; only ${Number(available).toFixed(2)} is available after outstanding bets. Lower the amounts or remove a game.`, "error");
+        return;
+      }
+
       const submit = document.querySelector<HTMLButtonElement>(".side-bet-slip-submit");
       sending = true;
       if (submit) submit.disabled = true;
@@ -585,6 +628,8 @@ export default function SideBetBatchEnhancements() {
         const sentCount = Number(result.createdCount || selections.length);
         selections = [];
         pendingNativeSync = false;
+        // Clear any native selection before returning to Offers; the visual
+        // batch markers alone are not the source of truth.
         syncNativeSelection();
         schedule();
         showBatchMessage(`${sentCount} side bet offer${sentCount === 1 ? "" : "s"} sent.`, "success");

@@ -79,7 +79,8 @@ function sideBetItems(rules: GroupRules, companion: boolean) {
     "Offers open Tuesday at 8:00 AM CT with the new week.",
     "Tuesday–Friday lines freeze 1 hour before kickoff.",
     "Saturday–Monday lines freeze Saturday at 10:00 AM CT.",
-    "Offers may be sent or accepted until kickoff.",
+    "Pregame offers may be sent or accepted until kickoff.",
+    "Live offers may be made after kickoff when a live market is available. They expire on a confirmed score change or when the game ends, not when odds move.",
     "Settled bets post directly to the bank."
   ];
 }
