@@ -1,4 +1,5 @@
 import { fetchEspnBasketballMarkets } from "./espnBasketballMarkets";
+import { isFreshMarketTimestamp } from "./marketFreshness.ts";
 import { officialNflWeek } from "@/lib/cfbMatchupData";
 import type { Game, SideBetMarketQuote, SideBetOfferPhase } from "@/lib/types";
 
@@ -153,12 +154,6 @@ function suspended(row: ActionOddsRow, ...fields: string[]) {
   return fields.some((field) => Number(status[field]) === 2);
 }
 
-function rowAgeSeconds(row: ActionOddsRow, now = Date.now()) {
-  if (!row.inserted) return null;
-  const inserted = new Date(row.inserted).getTime();
-  return Number.isFinite(inserted) ? (now - inserted) / 1000 : null;
-}
-
 function sortPreferredMarketRows(rows: ActionOddsRow[]) {
   return [...rows].sort((a, b) =>
     new Date(b.inserted || 0).getTime() - new Date(a.inserted || 0).getTime()
@@ -171,10 +166,7 @@ function marketRowsForPhase(game: ActionGame, phase: SideBetOfferPhase) {
     // usable row instead of silently substituting a different sportsbook.
     .filter((row) => Number(row.book_id) === DRAFTKINGS_BOOK_ID)
     .filter((row) => phase === "live" ? row.type === "live" : row.type === "game")
-    .filter((row) => phase !== "live" || (() => {
-      const age = rowAgeSeconds(row);
-      return age != null && age <= LIVE_MAX_AGE_SECONDS;
-    })());
+    .filter((row) => phase !== "live" || isFreshMarketTimestamp(row.inserted, LIVE_MAX_AGE_SECONDS));
 
   return sortPreferredMarketRows(rows);
 }

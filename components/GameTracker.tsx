@@ -8,7 +8,9 @@ import Image from "next/image";
 import { createPortal } from "react-dom";
 import { ChevronDown, LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
+import type { AppSlug } from "@/lib/rulePresentation";
 import { teamDisplayName } from "@/lib/teamNames";
+import { trackerDisplayScore } from "@/lib/trackerDisplayScore";
 
 type TrackerTab = "live" | "scoring" | "plays" | "box";
 type Side = "away" | "home";
@@ -128,10 +130,10 @@ function driveQuarterTransitions(drive: TrackerDrive) {
   });
 }
 
-async function loadTracker(gameId: string) {
+async function loadTracker(gameId: string, appSlug: AppSlug) {
   const token = window.localStorage.getItem("pickem_session_token") || "";
   const response = await fetch(`/api/game-tracker?gameId=${encodeURIComponent(gameId)}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-pickem-group": appSlug },
     cache: "no-store"
   });
   const payload = await response.json();
@@ -140,6 +142,9 @@ async function loadTracker(gameId: string) {
 }
 
 function statusText(payload: TrackerPayload | null, game: Game) {
+  // Use the Pick Board's actively refreshed game clock before the slower
+  // detail/summary feed when the two sources disagree.
+  if (game.live_state === "in" && game.live_status) return game.live_status;
   if (payload?.status.detail) return payload.status.detail;
   if (game.live_status) return game.live_status;
   return game.live_completed || game.final_home_score != null ? "Final" : "Live";
@@ -182,7 +187,7 @@ function gameCenterSituation(payload: TrackerPayload | null) {
 
 function ScoreboardCenter({ payload, game, completed }: { payload: TrackerPayload | null; game: Game; completed: boolean }) {
   const state = gameCenterState(payload, game);
-  const situation = completed ? "" : gameCenterSituation(payload);
+  const situation = completed ? "" : (game.live_situation?.trim() || gameCenterSituation(payload));
 
   if (completed) return <div className="game-tracker-score-center final"><strong>FINAL</strong></div>;
 
@@ -223,8 +228,18 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   const team = payload?.teams[side];
   const opponent = payload?.teams[side === "away" ? "home" : "away"];
   const fullName = team?.name || fallbackName;
-  const score = team?.score ?? ownFallbackScore;
-  const opponentScore = opponent?.score ?? opponentFallbackScore;
+  // Live game props are refreshed by the Pick Board every five seconds.
+  // ESPN's detail summary sometimes lags its scoreboard event feed.
+  const liveBoardScore = game.live_state === "in"
+    ? side === "away" ? game.live_away_score : game.live_home_score
+    : null;
+  const liveOpponentScore = game.live_state === "in"
+    ? side === "away" ? game.live_home_score : game.live_away_score
+    : null;
+  const score = trackerDisplayScore(completed, game.live_state === "in",
+    side === "away" ? game.final_away_score : game.final_home_score, liveBoardScore, team?.score ?? null, ownFallbackScore);
+  const opponentScore = trackerDisplayScore(completed, game.live_state === "in",
+    side === "away" ? game.final_home_score : game.final_away_score, liveOpponentScore, opponent?.score ?? null, opponentFallbackScore);
   const scoreTone = completed && score != null && opponentScore != null
     ? score > opponentScore ? "winner" : score < opponentScore ? "loser" : ""
     : "";
@@ -240,6 +255,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
         {!completed && <TimeoutDots remaining={timeouts} />}
       </div>
     </div>
+    <span className="game-tracker-score-team-name">{teamDisplayName(game.league, side === "away" ? game.away_team : game.home_team)}</span>
   </div>;
 }
 
@@ -569,7 +585,7 @@ function BoxScore({ payload }: { payload: TrackerPayload }) {
   </div>;
 }
 
-export default function GameTracker({ game, onClose }: { game: Game; onClose: () => void }) {
+export default function GameTracker({ game, onClose, appSlug }: { game: Game; onClose: () => void; appSlug: AppSlug }) {
   const finalAtOpen = Boolean(game.live_completed || (game.final_home_score != null && game.final_away_score != null));
   const [tab, setTab] = useState<TrackerTab>(finalAtOpen ? "scoring" : "live");
   const [payload, setPayload] = useState<TrackerPayload | null>(null);
@@ -648,7 +664,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
     let timer = 0;
     const refresh = async () => {
       try {
-        const next = await loadTracker(game.id);
+        const next = await loadTracker(game.id, appSlug);
         if (!active) return;
         setPayload(next);
         setError("");
@@ -664,7 +680,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
       active = false;
       window.clearTimeout(timer);
     };
-  }, [game.id]);
+  }, [game.id, appSlug]);
 
   useEffect(() => {
     if (payload?.status.completed && tab === "live") setTab("scoring");
@@ -674,7 +690,7 @@ export default function GameTracker({ game, onClose }: { game: Game; onClose: ()
 
   const awayName = teamDisplayName(game.league, game.away_team);
   const homeName = teamDisplayName(game.league, game.home_team);
-  const completed = Boolean(payload?.status.completed ?? game.live_completed ?? (game.final_home_score != null && game.final_away_score != null));
+  const completed = Boolean(game.live_completed || (game.final_home_score != null && game.final_away_score != null) || payload?.status.completed);
   const tabs: Array<[TrackerTab, string]> = [
     ...(completed ? [] : [["live", "Live"] as [TrackerTab, string]]),
     ["scoring", "Scoring"],
