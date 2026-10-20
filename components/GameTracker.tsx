@@ -11,6 +11,7 @@ import type { Game } from "@/lib/types";
 import type { AppSlug } from "@/lib/rulePresentation";
 import { teamDisplayName } from "@/lib/teamNames";
 import { trackerDisplayScore } from "@/lib/trackerDisplayScore";
+import { groupTrackerScoringPlays } from "@/lib/trackerScoringGroups";
 
 type TrackerTab = "live" | "scoring" | "plays" | "box";
 type Side = "away" | "home";
@@ -402,31 +403,32 @@ function ScoringScore({
 function Scoring({ payload }: { payload: TrackerPayload }) {
   if (!payload.scoringPlays.length) return <p className="game-tracker-empty">No scoring plays yet.</p>;
 
+  // A quarter owns its header and rows. This makes the dividers deterministic:
+  // header-to-first-row, row-to-row, and quarter-to-quarter each draw once.
+  const quarters = groupTrackerScoringPlays(payload.scoringPlays, periodLabel);
   return <div className="game-tracker-scoring-list">
-    {payload.scoringPlays.map((play, index) => {
-      const previous = payload.scoringPlays[index - 1];
-      const quarter = periodLabel(play.period);
-      const showQuarter = !previous || periodLabel(previous.period) !== quarter;
-
-      return <Fragment key={play.id}>
-        {showQuarter && <ScoringQuarterHeader payload={payload} label={quarter} />}
-        <div className="game-tracker-score-play">
-          <div className="game-tracker-scoring-copy">
-            <div className="game-tracker-scoring-meta">
-              <strong>{play.type || "Score"}</strong>
-              {play.clock && <time>{play.clock}</time>}
-            </div>
-            <p>{play.text}</p>
-            {play.drive && <small><MetaDots items={[
-              play.drive.playsCount ? `${play.drive.playsCount} plays` : "",
-              play.drive.yards != null ? `${play.drive.yards} yds` : "",
-              play.drive.timeElapsed ? `${play.drive.timeElapsed} possession` : ""
-            ].filter(Boolean)} /></small>}
+    {quarters.map((quarter, quarterIndex) => <section
+      className="game-tracker-scoring-quarter"
+      aria-label={`${quarter.label} quarter scoring`}
+      key={`${quarter.label}-${quarterIndex}`}
+    >
+      <ScoringQuarterHeader payload={payload} label={quarter.label} />
+      {quarter.rows.map(({ play, previous }) => <div className="game-tracker-score-play" key={play.id}>
+        <div className="game-tracker-scoring-copy">
+          <div className="game-tracker-scoring-meta">
+            <strong>{play.type || "Score"}</strong>
+            {play.clock && <time>{play.clock}</time>}
           </div>
-          <ScoringScore play={play} previous={previous} />
+          <p>{play.text}</p>
+          {play.drive && <small><MetaDots items={[
+            play.drive.playsCount ? `${play.drive.playsCount} plays` : "",
+            play.drive.yards != null ? `${play.drive.yards} yds` : "",
+            play.drive.timeElapsed ? `${play.drive.timeElapsed} possession` : ""
+          ].filter(Boolean)} /></small>}
         </div>
-      </Fragment>;
-    })}
+        <ScoringScore play={play} previous={previous} />
+      </div>)}
+    </section>)}
   </div>;
 }
 
@@ -456,11 +458,11 @@ function DriveSummary({ drive, payload }: { drive: TrackerDrive; payload: Tracke
   </summary>;
 }
 
-function DriveDetails({ drive, payload, initiallyOpen }: { drive: TrackerDrive; payload: TrackerPayload; initiallyOpen: boolean }) {
+function DriveDetails({ drive, payload, initiallyOpen, beforeQuarter, crossesQuarter }: { drive: TrackerDrive; payload: TrackerPayload; initiallyOpen: boolean; beforeQuarter: boolean; crossesQuarter: boolean }) {
   const [open, setOpen] = useState(initiallyOpen);
 
   return <details
-    className="game-tracker-drive"
+    className={`game-tracker-drive ${beforeQuarter ? "before-quarter" : ""} ${crossesQuarter ? "crosses-quarter" : ""}`.trim()}
     open={open}
     onToggle={(event) => setOpen(event.currentTarget.open)}
   >
@@ -488,12 +490,14 @@ function Plays({ payload }: { payload: TrackerPayload }) {
       const previousPeriod = previous ? periodLabel(driveEndPeriod(previous)) : "";
       const showQuarter = !previous || period !== previousPeriod;
       const crossedQuarters = driveQuarterTransitions(drive);
+      const nextDrive = payload.drives[index + 1];
+      const beforeQuarter = Boolean(nextDrive && periodLabel(drivePeriod(nextDrive)) !== periodLabel(driveEndPeriod(drive)));
 
       return <Fragment key={drive.id}>
-        {showQuarter && <div className="game-tracker-quarter-header">{period} Quarter</div>}
-        <DriveDetails drive={drive} payload={payload} initiallyOpen={drive.current || index === 0} />
+        {showQuarter && <div className="game-tracker-quarter-header game-tracker-plays-quarter-header">{period} Quarter</div>}
+        <DriveDetails drive={drive} payload={payload} initiallyOpen={drive.current || index === 0} beforeQuarter={beforeQuarter} crossesQuarter={crossedQuarters.length > 0} />
         {crossedQuarters.length > 0 && <div className="game-tracker-collapsed-quarter-headers">
-          {crossedQuarters.map((quarter, transitionIndex) => <div className="game-tracker-quarter-header" key={`${quarter}-${transitionIndex}`}>{quarter} Quarter</div>)}
+          {crossedQuarters.map((quarter, transitionIndex) => <div className="game-tracker-quarter-header game-tracker-plays-quarter-header" key={`${quarter}-${transitionIndex}`}>{quarter} Quarter</div>)}
         </div>}
       </Fragment>;
     })}

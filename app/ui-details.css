@@ -4822,20 +4822,8 @@ select:focus-visible,
 .game-tracker-header button svg { transform: none; scale: 1; }
 .game-tracker-header button:focus-visible { outline: 2px solid var(--blue); outline-offset: -3px; }
 
-.game-tracker-quarter-header,
-.game-tracker-drive-quarter-header {
-  border-top: 2px solid var(--line-strong);
-  border-bottom: 1px solid var(--line-strong);
-  color: var(--header-muted);
-  background: var(--surface-muted);
-}
-.game-tracker-scoring-list > .game-tracker-quarter-header:first-child,
-.game-tracker-drives > .game-tracker-quarter-header:first-child { border-top: 1px solid var(--line-strong); }
-.game-tracker-score-play:has(+ .game-tracker-quarter-header),
-.game-tracker-drive:has(+ .game-tracker-quarter-header) { border-bottom-color: var(--line); }
-.game-tracker-drive-quarter-header { min-height: 34px; padding: var(--ui-space-2) var(--ui-space-3); }
-.game-tracker-drive[open] + .game-tracker-collapsed-quarter-headers { display: none; }
-.game-tracker-collapsed-quarter-headers .game-tracker-quarter-header { border-top: 2px solid var(--line-strong); }
+/* Superseded: GameTracker's quarter/row/table boundaries are owned by the
+   single component-scoped divider system at the bottom of this stylesheet. */
 
 .game-tracker-box-selector { grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr); }
 .game-tracker-box-selector button {
@@ -5187,3 +5175,296 @@ button, input, select, textarea {
 .game-tracker-score-team-name { display:block; min-width:0; max-width:100%; min-height:13px; padding:0 var(--ui-space-1); color:var(--header-muted); font-size:10px; font-weight:700; text-align:center; text-overflow:ellipsis; white-space:nowrap; }
 .game-tracker-header button, .matchup-preview-close { width:35px; min-width:35px; max-width:35px; height:35px; min-height:35px; max-height:35px; flex:0 0 35px; transform:none!important; scale:1!important; }
 .game-tracker-header button svg, .matchup-preview-close svg { width:18px; height:18px; transform:none!important; scale:1!important; }
+
+/* ================================================================
+   GAMETRACKER • COMPONENT DESIGN CONTRACT
+   Uses the same flat spacing, typography and line palette as Matchup
+   Preview. Every shared edge has ONE divider owner. Do not add another
+   quarter/row border patch elsewhere.
+   ================================================================ */
+.game-tracker-sheet {
+  --tracker-divider: var(--line);
+  --tracker-section-divider: var(--line-strong);
+  --tracker-inset: var(--ui-space-3);
+  --tracker-header-fill: var(--surface-muted);
+  --tracker-row-fill: var(--panel);
+  --tracker-score-columns: 62px;
+  font-family: var(--font-display);
+}
+.game-tracker-scoreboard { border-bottom: 0; }
+.game-tracker-scoreboard-grid {
+  min-height: 106px;
+  padding: var(--ui-space-3) var(--tracker-inset);
+  align-items: center;
+}
+.game-tracker-score-team-main { gap: var(--ui-space-2); }
+.game-tracker-score-team-name {
+  display: block;
+  min-height: 0;
+  max-width: 100%;
+  margin-top: var(--ui-space-1);
+  padding: 0;
+  color: var(--header-muted);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+.game-tracker-score-stack > b {
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.game-tracker-tabs {
+  border-top: 1px solid var(--tracker-divider);
+  border-bottom: 1px solid var(--tracker-section-divider);
+  background: var(--panel);
+}
+.game-tracker-tabs button { border-radius: 0; }
+.game-tracker-tabs button.active { background: var(--panel); }
+
+/* Scoring: a section draws the *single* line between quarters.
+   Each header draws its bottom line; rows draw all internal lines
+   except the final row. No parent/child borders overlap. */
+.game-tracker-scoring-list { background: var(--tracker-row-fill); }
+.game-tracker-scoring-quarter {
+  min-width: 0;
+  border: 0;
+  background: var(--tracker-row-fill);
+}
+.game-tracker-scoring-quarter + .game-tracker-scoring-quarter {
+  border-top: 1px solid var(--tracker-section-divider);
+}
+.game-tracker-scoring-quarter > .game-tracker-scoring-quarter-header {
+  box-sizing: border-box;
+  display: grid;
+  min-height: 40px;
+  grid-template-columns: minmax(0,1fr) var(--tracker-score-columns);
+  gap: var(--ui-space-2);
+  align-items: center;
+  margin: 0;
+  padding: var(--ui-space-2) var(--tracker-inset);
+  border: 0;
+  border-bottom: 1px solid var(--tracker-divider);
+  color: var(--header-muted);
+  background: var(--tracker-header-fill);
+  font-size: 10.5px;
+  font-weight: 850;
+}
+.game-tracker-scoring-quarter > .game-tracker-score-play {
+  box-sizing: border-box;
+  display: grid;
+  min-height: 76px;
+  grid-template-columns: minmax(0,1fr) var(--tracker-score-columns);
+  align-items: center;
+  gap: var(--ui-space-2);
+  padding: 11px var(--tracker-inset);
+  border: 0;
+  background: var(--tracker-row-fill);
+}
+.game-tracker-scoring-quarter > .game-tracker-score-play:not(:last-child) {
+  border-bottom: 1px solid var(--tracker-divider);
+}
+.game-tracker-scoring-quarter .game-tracker-scoring-copy { gap: 5px; }
+.game-tracker-scoring-quarter .game-tracker-scoring-meta {
+  align-items: center;
+  margin: 0;
+  gap: var(--ui-space-2);
+}
+.game-tracker-scoring-quarter .game-tracker-scoring-copy > p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.38;
+}
+.game-tracker-scoring-quarter .game-tracker-scoring-copy > small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.25;
+}
+.game-tracker-scoring-quarter .game-tracker-score-values,
+.game-tracker-scoring-quarter .game-tracker-quarter-team-logos {
+  display: grid;
+  grid-template-columns: repeat(2, 28px);
+  justify-content: end;
+  justify-items: center;
+  gap: 6px;
+}
+
+/* Plays: drive summaries own the separator between ordinary drives.
+   A new quarter owns the stronger transition instead, never both. */
+.game-tracker-drives { background: var(--tracker-row-fill); }
+.game-tracker-drives > .game-tracker-plays-quarter-header {
+  box-sizing: border-box;
+  min-height: 39px;
+  margin: 0;
+  padding: 9px var(--tracker-inset);
+  border: 0;
+  border-bottom: 1px solid var(--tracker-divider);
+  color: var(--header-muted);
+  background: var(--tracker-header-fill);
+  font-size: 10.5px;
+}
+.game-tracker-drives > .game-tracker-plays-quarter-header:not(:first-child) {
+  border-top: 1px solid var(--tracker-section-divider);
+}
+.game-tracker-drives > .game-tracker-drive {
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--tracker-divider);
+  border-radius: 0;
+  background: var(--tracker-row-fill);
+}
+.game-tracker-drives > .game-tracker-drive.before-quarter,
+.game-tracker-drives > .game-tracker-drive.crosses-quarter:not([open]) {
+  border-bottom: 0;
+}
+.game-tracker-drive > summary {
+  min-height: 62px;
+  padding: 10px var(--tracker-inset);
+  border: 0;
+  border-radius: 0;
+  background: var(--tracker-row-fill);
+}
+.game-tracker-drive[open] > summary {
+  border-bottom: 1px solid var(--tracker-divider);
+}
+.game-tracker-drive-plays > .game-tracker-drive-quarter-header {
+  min-height: 34px;
+  margin: 0;
+  padding: var(--ui-space-2) var(--tracker-inset);
+  border: 0;
+  border-bottom: 1px solid var(--tracker-divider);
+  background: var(--tracker-header-fill);
+}
+.game-tracker-drive-plays > .game-tracker-drive-play {
+  min-height: 58px;
+  padding: 10px var(--tracker-inset);
+  border: 0;
+  background: var(--tracker-row-fill);
+}
+.game-tracker-drive-plays > .game-tracker-drive-play:not(:last-child) {
+  border-bottom: 1px solid var(--tracker-divider);
+}
+.game-tracker-drive[open] + .game-tracker-collapsed-quarter-headers { display: none; }
+.game-tracker-drives > .game-tracker-collapsed-quarter-headers {
+  border-top: 1px solid var(--tracker-section-divider);
+}
+.game-tracker-collapsed-quarter-headers > .game-tracker-plays-quarter-header {
+  min-height: 36px;
+  margin: 0;
+  padding: var(--ui-space-2) var(--tracker-inset);
+  border: 0;
+  border-bottom: 1px solid var(--tracker-divider);
+  color: var(--header-muted);
+  background: var(--tracker-header-fill);
+}
+.game-tracker-collapsed-quarter-headers > .game-tracker-plays-quarter-header:not(:first-child) {
+  border-top: 1px solid var(--tracker-section-divider);
+}
+.game-tracker-drive:last-child { border-bottom: 0; }
+
+/* Live drive, field, and scoring notes follow the same flat geometry. */
+.game-tracker-live { padding: var(--ui-space-3) var(--tracker-inset) var(--ui-space-5); }
+.game-tracker-field { border-radius: 0; }
+.game-tracker-live-drive {
+  margin-top: var(--ui-space-4);
+  border: 1px solid var(--tracker-divider);
+  border-radius: 0;
+  background: var(--panel);
+}
+.game-tracker-live-drive > header {
+  min-height: 54px;
+  padding: var(--ui-space-2) var(--tracker-inset);
+  border: 0;
+  border-bottom: 1px solid var(--tracker-divider);
+  background: var(--tracker-header-fill);
+}
+.game-tracker-live-drive-plays > .game-tracker-drive-play { border: 0; }
+.game-tracker-live-drive-plays > .game-tracker-drive-play:not(:last-child) {
+  border-bottom: 1px solid var(--tracker-divider);
+}
+
+/* Box Score: filter strip, stats header, and table cells share one
+   divider rhythm; no pill outline and no doubled table-end border. */
+.game-tracker-box { padding-bottom: var(--ui-space-4); }
+.game-tracker-box-selector {
+  box-sizing: border-box;
+  min-height: 53px;
+  grid-template-columns: minmax(0,1fr) 60px minmax(0,1fr);
+  gap: 0;
+  margin: 0;
+  padding: var(--ui-space-2) var(--tracker-inset);
+  border: 0;
+  border-bottom: 1px solid var(--tracker-divider);
+  border-radius: 0;
+  background: var(--panel);
+}
+.game-tracker-box-selector button {
+  min-height: 36px;
+  padding: 0 var(--ui-space-1);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--muted);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 750;
+}
+.game-tracker-box-selector button.active {
+  border-bottom-color: var(--blue);
+  color: var(--ink);
+  background: var(--surface-soft);
+}
+.game-tracker-team-stats {
+  border: 0;
+  background: var(--panel);
+}
+.game-tracker-stat-table-head {
+  min-height: 40px;
+  padding-inline: var(--tracker-inset);
+  border: 0;
+  border-bottom: 1px solid var(--tracker-divider);
+  background: var(--tracker-header-fill);
+}
+.game-tracker-team-stats > .game-tracker-stat-row {
+  min-height: 42px;
+  padding-inline: var(--tracker-inset);
+  border: 0;
+}
+.game-tracker-team-stats > .game-tracker-stat-row:not(:last-child) {
+  border-bottom: 1px solid var(--tracker-divider);
+}
+.game-tracker-box-section { margin: 0; }
+.game-tracker-box-section > h3 {
+  min-height: 38px;
+  margin: 0;
+  padding: var(--ui-space-2) var(--tracker-inset);
+  border: 0;
+  border-bottom: 1px solid var(--tracker-divider);
+  color: var(--header-muted);
+  background: var(--tracker-header-fill);
+}
+.game-tracker-box-section + .game-tracker-box-section > h3 {
+  border-top: 1px solid var(--tracker-section-divider);
+}
+.game-tracker-player-table {
+  border: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.game-tracker-player-table th,
+.game-tracker-player-table td { border-bottom: 1px solid var(--tracker-divider); }
+.game-tracker-player-table tbody tr:last-child td { border-bottom: 0; }
+.game-tracker-player-table th:first-child,
+.game-tracker-player-table td:first-child { border-right: 1px solid var(--tracker-divider); }
+.game-tracker-player-table th { background: var(--tracker-header-fill); }
+.game-tracker-box-section .game-tracker-player-table-scroll {
+  border: 0;
+  background: var(--panel);
+}
+@media (max-width: 380px) {
+  .game-tracker-sheet { --tracker-inset: var(--ui-space-2); --tracker-score-columns: 60px; }
+  .game-tracker-scoreboard-grid { min-height: 98px; padding-inline: var(--tracker-inset); }
+  .game-tracker-scoring-quarter > .game-tracker-score-play { gap: 6px; }
+  .game-tracker-box-selector { padding-inline: var(--tracker-inset); }
+}
+
