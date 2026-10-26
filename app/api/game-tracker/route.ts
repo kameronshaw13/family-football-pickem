@@ -4,17 +4,13 @@ import { isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext }
 import { fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { createAsyncCache } from "@/lib/asyncCache";
+import { trackerNumber as finite, trackerPlaySituation } from "@/lib/trackerPlaySituation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const NO_STORE = { "Cache-Control": "no-store, max-age=0" };
 const espnSummaryCache = createAsyncCache<any>(2_000, 64);
-
-function finite(value: unknown) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
 
 function remainingTimeouts(situationValue: unknown, competitor: any) {
   const direct = finite(situationValue);
@@ -85,19 +81,7 @@ function playFieldPosition(play: any) {
   return detail.match(/\bat\s+(.+)$/i)?.[1]?.trim() || "";
 }
 
-function playSituationText(play: any) {
-  const descriptor = playDescriptor(play);
-  if (/kickoff/.test(descriptor)) return playFieldPosition(play);
-  return String(
-    play?.start?.downDistanceText ||
-    play?.start?.shortDownDistanceText ||
-    play?.end?.downDistanceText ||
-    play?.end?.shortDownDistanceText ||
-    ""
-  );
-}
-
-function normalizePlay(play: any, homeId: string, awayId: string, drive: any, index: number) {
+function normalizePlay(play: any, homeId: string, awayId: string, drive: any, index: number, abbreviations: Record<string, string>) {
   const teamId = teamIdFromPlay(play) || String(drive?.team?.id || "");
   const sequence = finite(play?.sequenceNumber ?? play?.id);
   return {
@@ -106,7 +90,7 @@ function normalizePlay(play: any, homeId: string, awayId: string, drive: any, in
     text: String(play?.text || play?.shortText || play?.type?.text || "Play"),
     period: String(play?.period?.displayValue || play?.period?.number || ""),
     clock: String(play?.clock?.displayValue || ""),
-    situation: playSituationText(play),
+    situation: trackerPlaySituation(play, abbreviations),
     outcome: playOutcome(play),
     teamSide: teamId === homeId ? "home" : teamId === awayId ? "away" : null,
     scoringPlay: Boolean(play?.scoringPlay),
@@ -115,11 +99,11 @@ function normalizePlay(play: any, homeId: string, awayId: string, drive: any, in
   };
 }
 
-function normalizeDrive(drive: any, homeId: string, awayId: string, current: boolean, index: number, newestFirst: boolean) {
+function normalizeDrive(drive: any, homeId: string, awayId: string, current: boolean, index: number, newestFirst: boolean, abbreviations: Record<string, string>) {
   const teamId = String(drive?.team?.id || "");
   const side = teamId === homeId ? "home" : teamId === awayId ? "away" : null;
   const rawPlays = (Array.isArray(drive?.plays) ? drive.plays : []).map((play: any, playIndex: number) =>
-    normalizePlay(play, homeId, awayId, drive, playIndex)
+    normalizePlay(play, homeId, awayId, drive, playIndex, abbreviations)
   );
   const chronologicalPlays = rawPlays.slice().sort((a: any, b: any) => {
     if (a.sequence != null && b.sequence != null) return a.sequence - b.sequence;
@@ -302,6 +286,7 @@ export async function GET(req: NextRequest) {
     const homeId = String(home?.team?.id || "");
     const awayId = String(away?.team?.id || "");
     const status = competition?.status?.type || {};
+    const abbreviations = { [homeId]: String(home?.team?.abbreviation || ""), [awayId]: String(away?.team?.abbreviation || "") };
 
     const completed = Boolean(status?.completed);
     const priorDrives = Array.isArray(payload?.drives?.previous) ? payload.drives.previous : [];
@@ -316,10 +301,10 @@ export async function GET(req: NextRequest) {
     });
 
     let drives = completed
-      ? uniquePreviousDrives.map((drive: any, index: number) => normalizeDrive(drive, homeId, awayId, false, index, false)).sort(chronologicalDriveSort)
+      ? uniquePreviousDrives.map((drive: any, index: number) => normalizeDrive(drive, homeId, awayId, false, index, false, abbreviations)).sort(chronologicalDriveSort)
       : [
-          ...(currentDrive ? [normalizeDrive(currentDrive, homeId, awayId, true, 0, true)] : []),
-          ...uniquePreviousDrives.slice().reverse().map((drive: any, index: number) => normalizeDrive(drive, homeId, awayId, false, index + 1, true))
+          ...(currentDrive ? [normalizeDrive(currentDrive, homeId, awayId, true, 0, true, abbreviations)] : []),
+          ...uniquePreviousDrives.slice().reverse().map((drive: any, index: number) => normalizeDrive(drive, homeId, awayId, false, index + 1, true, abbreviations))
         ];
 
     const scoringDriveByPlay = new Map<string, { playsCount: number; yards: number | null; timeElapsed: string }>();

@@ -10,6 +10,7 @@ import { sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { buildBankHistory } from "@/lib/bankHistory";
 import { sideBetCreatorProfit } from "@/lib/sideBetMarkets";
 import { sideBetReservedFunds, availableSideBetFunds } from "@/lib/sideBetBank";
+import { footballTeamIdentity, hasValidGameLine, selectGameLine, selectGameFinal } from "@/lib/gameDataIntegrity";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
@@ -96,7 +97,7 @@ export async function GET(req: NextRequest) {
       });
     const unique = new Map<string, any>();
     for (const game of normalizedGames) {
-      const key = [game.league, basketball ? game.commence_time : game.week, game.away_team, game.home_team]
+      const key = [game.league, basketball ? game.commence_time : game.week, (basketball ? game.away_team : footballTeamIdentity(game.away_team)), (basketball ? game.home_team : footballTeamIdentity(game.home_team))]
         .map((value) => String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, " "))
         .join(":");
       const prior = unique.get(key);
@@ -105,8 +106,8 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      const gameHasSpread = game.current_spread_team != null && game.current_spread != null;
-      const priorHasSpread = prior.current_spread_team != null && prior.current_spread != null;
+      const gameHasSpread = hasValidGameLine(game);
+      const priorHasSpread = hasValidGameLine(prior);
       const gameIsFinal = game.final_away_score != null && game.final_home_score != null;
       const priorIsFinal = prior.final_away_score != null && prior.final_home_score != null;
       const gameUpdatedAt = new Date(game.updated_at || 0).getTime();
@@ -116,11 +117,13 @@ export async function GET(req: NextRequest) {
       // side bets and odds snapshots are attached to that row. ESPN schedule
       // refreshes historically created a second event-id row with scores but no
       // spread; preferring the newer final row made completed games lose their line.
-      const preferred = gameHasSpread !== priorHasSpread
+      const line = selectGameLine(prior, game);
+      const scores = selectGameFinal(prior, game);
+      const preferred = line || (gameHasSpread !== priorHasSpread
         ? (gameHasSpread ? game : prior)
         : gameIsFinal !== priorIsFinal
           ? (gameIsFinal ? game : prior)
-          : gameUpdatedAt >= priorUpdatedAt ? game : prior;
+          : gameUpdatedAt >= priorUpdatedAt ? game : prior);
       const other = preferred === game ? prior : game;
       const newest = gameUpdatedAt >= priorUpdatedAt ? game : prior;
 
@@ -132,8 +135,13 @@ export async function GET(req: NextRequest) {
         away_logo_url: preferred.away_logo_url || other.away_logo_url || null,
         home_rank: preferred.home_rank ?? other.home_rank ?? null,
         away_rank: preferred.away_rank ?? other.away_rank ?? null,
-        final_home_score: preferred.final_home_score ?? other.final_home_score ?? null,
-        final_away_score: preferred.final_away_score ?? other.final_away_score ?? null,
+        final_home_score: scores?.final_home_score ?? null,
+        final_away_score: scores?.final_away_score ?? null,
+        score_source_updated_at: scores?.score_source_updated_at || scores?.updated_at || null,
+        current_spread_team: line?.current_spread_team ?? null,
+        current_spread: line?.current_spread ?? null,
+        current_bookmaker: line?.current_bookmaker ?? null,
+        spread_source_updated_at: line?.spread_source_updated_at || line?.updated_at || null,
         live_home_score: newest.live_home_score ?? preferred.live_home_score ?? other.live_home_score ?? null,
         live_away_score: newest.live_away_score ?? preferred.live_away_score ?? other.live_away_score ?? null,
         live_status: newest.live_status ?? preferred.live_status ?? other.live_status ?? null,

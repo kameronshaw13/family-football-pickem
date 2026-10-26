@@ -1,9 +1,9 @@
-import { normalizeTeamNameKey } from "./teamNames.ts";
+import { footballTeamIdentity } from "./gameDataIntegrity.ts";
 
 export function normalizeSpreadForSelectedTeam(selectedTeam: string, spreadTeam: string | null | undefined, spread: number | null | undefined) {
   if (spread == null || !spreadTeam || !Number.isFinite(Number(spread))) return null;
-  const selectedKey = normalizeTeamNameKey(selectedTeam);
-  const sameTeam = selectedTeam === spreadTeam || (selectedKey && selectedKey === normalizeTeamNameKey(spreadTeam));
+  const selectedKey = footballTeamIdentity(selectedTeam);
+  const sameTeam = selectedTeam === spreadTeam || (selectedKey && selectedKey === footballTeamIdentity(spreadTeam));
   return sameTeam ? Number(spread) : Number(-spread);
 }
 

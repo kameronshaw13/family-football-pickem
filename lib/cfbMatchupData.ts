@@ -1,3 +1,4 @@
+import { footballTeamIdentity, selectGameLine, selectGameFinal } from "./gameDataIntegrity.ts";
 import { toZonedTime } from "date-fns-tz";
 import { normalizeTeamNameKey, teamDisplayName } from "./teamNames.ts";
 
@@ -11,6 +12,9 @@ export type LocalGame = {
   away_logo_url?: string | null;
   espn_event_id?: string | null;
   updated_at?: string | null;
+  current_bookmaker?: string | null;
+  spread_source_updated_at?: string | null;
+  score_source_updated_at?: string | null;
   current_spread_team: string | null;
   current_spread: number | null;
   final_home_score: number | null;
@@ -21,7 +25,7 @@ export function sameTeam(a: string | null | undefined, b: string | null | undefi
   if (!a || !b) return false;
   const aSchool = teamDisplayName("CFB", a);
   const bSchool = teamDisplayName("CFB", b);
-  return normalizeTeamNameKey(aSchool) === normalizeTeamNameKey(bSchool);
+  return footballTeamIdentity(aSchool) === footballTeamIdentity(bSchool);
 }
 
 export function finiteNumber(value: unknown) {
@@ -239,17 +243,18 @@ export function normalizePower(summaryRow: SportsDataRow | null, fpiRow: SportsD
 export function mergeLocalGameRows(existing: LocalGame, candidate: LocalGame): LocalGame {
   const newer = Date.parse(candidate.updated_at || "") > Date.parse(existing.updated_at || "") ? candidate : existing;
   const older = newer === existing ? candidate : existing;
-  const hasFinal = (game: LocalGame) => game.final_home_score != null && game.final_away_score != null;
-  const hasLine = (game: LocalGame) => game.current_spread != null && Number.isFinite(Number(game.current_spread)) && (sameTeam(game.current_spread_team, game.home_team) || sameTeam(game.current_spread_team, game.away_team));
-  const scores = hasFinal(newer) ? newer : hasFinal(older) ? older : newer;
-  const line = hasLine(newer) ? newer : older;
+  const scores = selectGameFinal(existing, candidate);
+  const line = selectGameLine(existing, candidate);
   return {
     ...newer,
     espn_event_id: newer.espn_event_id || older.espn_event_id || null,
-    final_home_score: scores.final_home_score,
-    final_away_score: scores.final_away_score,
-    current_spread_team: hasLine(line) ? line.current_spread_team : null,
-    current_spread: hasLine(line) ? line.current_spread : null
+    final_home_score: scores?.final_home_score ?? null,
+    final_away_score: scores?.final_away_score ?? null,
+    current_spread_team: line?.current_spread_team ?? null,
+    current_spread: line?.current_spread ?? null,
+    current_bookmaker: line?.current_bookmaker ?? null,
+    spread_source_updated_at: line?.spread_source_updated_at || line?.updated_at || null,
+    score_source_updated_at: scores?.score_source_updated_at || scores?.updated_at || null
   };
 }
 
@@ -258,8 +263,8 @@ export function dedupeLocalGames(games: LocalGame[]) {
   for (const game of games) {
     const key = [
       game.commence_time,
-      normalizeTeamNameKey(teamDisplayName("CFB", game.away_team)),
-      normalizeTeamNameKey(teamDisplayName("CFB", game.home_team))
+      footballTeamIdentity(game.away_team),
+      footballTeamIdentity(game.home_team)
     ].join(":");
     const existing = unique.get(key);
     if (!existing) {

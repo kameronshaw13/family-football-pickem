@@ -39,6 +39,14 @@ Legacy `--space-1..5` are compatibility aliases, not a competing scale. Page, ba
 ## History data
 - NFL and CFB matchup previews share a fourth Line Movement tab. Show recorded spread changes with Central-time timestamps; never invent historical change times from the current line.
 - Merge duplicate imported game scores and spreads independently. Read every history page before merging so later weeks cannot disappear behind a row cap.
+- For duplicate display rows, preserve explicit overrides, then prefer DraftKings over generic market lines. Keep score and line source timestamps separate; a final-score refresh is not a line update. Keep saved pick and bet terms intact.
+
+## GameTracker
+- NFL and CFB share one component and style rules. The header contains logos and scores, with the home logo to the right of its score. Faint team colors fade inward to the themed panel; score weight is 700.
+- Final is plain themed text. Box-score selectors use a full outline and subtle selected fill.
+- Player tables have one category/stat header row, a 152px name column and centered 44px stat columns. Extra columns scroll within the table.
+- A quarter header connects directly to its first drive. Metadata dots align to the text center. Play clocks match description size while keeping muted color.
+- Kickoff positions name the kicking yard line, using explicit play text before structured field position. Missing numeric data stays unavailable rather than becoming zero.
 
 ## Safeguards
 - No changes to betting, scoring, side-bet expiry or banking calculations in a styling pass

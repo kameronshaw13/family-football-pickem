@@ -3,7 +3,7 @@
 import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
 
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
 import { ChevronDown, LoaderCircle, X } from "lucide-react";
@@ -256,7 +256,6 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
         {!completed && <TimeoutDots remaining={timeouts} />}
       </div>
     </div>
-    <span className="game-tracker-score-team-name">{teamDisplayName(game.league, side === "away" ? game.away_team : game.home_team)}</span>
   </div>;
 }
 
@@ -554,9 +553,9 @@ function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
   }, []);
 
   return <div ref={scroller} className="game-tracker-player-table-scroll">
-    <table className="game-tracker-player-table" style={{ width: 152 + visibleLabels.length * 58 }}>
-      <colgroup><col style={{ width: 152 }} />{visibleLabels.map((label, index) => <col key={`${label}-${index}`} style={{ width: 58 }} />)}</colgroup>
-      <thead><tr><th>Player</th>{visibleLabels.map((label) => <th key={label}>{label}</th>)}</tr></thead>
+    <table className="game-tracker-player-table" aria-label={row.title} style={{ width: `max(100%, ${152 + visibleLabels.length * 44}px)` }}>
+      <colgroup><col style={{ width: 152 }} />{visibleLabels.map((label, index) => <col key={`${label}-${index}`} style={{ width: 44 }} />)}</colgroup>
+      <thead><tr><th scope="col">{row.title}</th>{visibleLabels.map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead>
       <tbody>{row.athletes.map((athlete) => <tr key={athlete.name}>
         <td>{athlete.name}</td>
         {visibleLabels.map((_, index) => <td key={index}>{athlete.values[index] ?? "—"}</td>)}
@@ -570,7 +569,6 @@ function TeamBox({ payload, side }: { payload: TrackerPayload; side: Side }) {
 
   return <div className="game-tracker-team-box">
     {rows.length ? rows.map((row) => <section className="game-tracker-box-section" key={row.category}>
-      <h3>{row.title}</h3>
       <PlayerTable row={row} />
     </section>) : <p className="game-tracker-empty">Player box score is not available yet.</p>}
   </div>;
@@ -581,9 +579,9 @@ function BoxScore({ payload }: { payload: TrackerPayload }) {
 
   return <div className="game-tracker-box">
     <div className="game-tracker-box-selector" role="group" aria-label="Choose box score team">
-      <button type="button" className={view === "away" ? "active" : ""} onClick={() => setView("away")}><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><span>{trackerTeamLabel(payload.teams.away) || "Away"}</span></button>
-      <button type="button" className={view === "all" ? "active" : ""} onClick={() => setView("all")}>All</button>
-      <button type="button" className={view === "home" ? "active" : ""} onClick={() => setView("home")}><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /><span>{trackerTeamLabel(payload.teams.home) || "Home"}</span></button>
+      <button type="button" className={view === "away" ? "active" : ""} aria-pressed={view === "away"} onClick={() => setView("away")}><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><span>{trackerTeamLabel(payload.teams.away) || "Away"}</span></button>
+      <button type="button" className={view === "all" ? "active" : ""} aria-pressed={view === "all"} onClick={() => setView("all")}>All</button>
+      <button type="button" className={view === "home" ? "active" : ""} aria-pressed={view === "home"} onClick={() => setView("home")}><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /><span>{trackerTeamLabel(payload.teams.home) || "Home"}</span></button>
     </div>
     {view === "all" ? <TeamStats payload={payload} /> : <TeamBox payload={payload} side={view} />}
   </div>;
@@ -714,7 +712,10 @@ export default function GameTracker({ game, onClose, appSlug }: { game: Game; on
       </header>
 
       <div className="game-tracker-scoreboard">
-        <div className="game-tracker-scoreboard-grid">
+        <div className="game-tracker-scoreboard-grid" style={{
+          "--tracker-away-color": /^([0-9a-f]{6}|[0-9a-f]{3})$/i.test(payload?.teams.away.color || "") ? `#${payload!.teams.away.color}` : "transparent",
+          "--tracker-home-color": /^([0-9a-f]{6}|[0-9a-f]{3})$/i.test(payload?.teams.home.color || "") ? `#${payload!.teams.home.color}` : "transparent"
+        } as CSSProperties}>
           <TeamScore side="away" payload={payload} game={game} completed={completed} />
           <ScoreboardCenter payload={payload} game={game} completed={completed} />
           <TeamScore side="home" payload={payload} game={game} completed={completed} />

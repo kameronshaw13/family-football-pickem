@@ -5240,8 +5240,11 @@ button, input, select, textarea {
   min-height: 106px;
   padding: var(--ui-space-3) var(--tracker-inset);
   align-items: center;
+  background: linear-gradient(to right, color-mix(in srgb, var(--tracker-away-color, transparent) 24%, var(--panel)) 0%, var(--panel) 43%, var(--panel) 57%, color-mix(in srgb, var(--tracker-home-color, transparent) 24%, var(--panel)) 100%);
 }
 .game-tracker-score-team-main { gap: var(--ui-space-2); }
+.game-tracker-score-team.home .game-tracker-score-team-main { flex-direction: row-reverse; }
+.game-tracker-score-center.final > strong { padding: 0; border: 0; border-radius: 0; color: var(--ink); background: transparent; box-shadow: none; }
 .game-tracker-score-team-name {
   display: block;
   min-height: 0;
@@ -5255,6 +5258,7 @@ button, input, select, textarea {
 }
 .game-tracker-score-stack > b {
   font-variant-numeric: tabular-nums;
+  font-weight: 700;
   line-height: 1;
 }
 .game-tracker-tabs {
@@ -5342,7 +5346,7 @@ button, input, select, textarea {
    A new quarter owns the stronger transition instead, never both. */
 .game-tracker-drives {
   display: grid;
-  gap: var(--ui-space-2);
+  gap: 0;
   padding: var(--ui-space-3);
   background: var(--canvas);
 }
@@ -5351,15 +5355,19 @@ button, input, select, textarea {
   min-height: 39px;
   margin: 0;
   padding: 9px var(--tracker-inset);
-  border: 0;
+  border: 1px solid var(--tracker-divider);
   border-bottom: 1px solid var(--tracker-divider);
+  border-radius: var(--ui-radius-md);
   color: var(--header-muted);
   background: var(--tracker-header-fill);
   font-size: 10.5px;
 }
 .game-tracker-drives > .game-tracker-plays-quarter-header:not(:first-child) {
-  border-top: 1px solid var(--tracker-section-divider);
+  margin-top: var(--ui-space-3);
 }
+.game-tracker-drives > .game-tracker-plays-quarter-header:has(+ .game-tracker-drive) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.game-tracker-drives > .game-tracker-plays-quarter-header + .game-tracker-drive { border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+.game-tracker-drives > .game-tracker-drive + .game-tracker-drive { margin-top: var(--ui-space-2); }
 .game-tracker-drives > .game-tracker-drive {
   margin: 0;
   overflow: hidden;
@@ -5444,7 +5452,7 @@ button, input, select, textarea {
   box-sizing: border-box;
   min-height: 53px;
   grid-template-columns: minmax(0,1fr) 60px minmax(0,1fr);
-  gap: 0;
+  gap: var(--ui-space-1);
   margin: 0;
   padding: var(--ui-space-2) var(--tracker-inset);
   border: 1px solid var(--tracker-divider);
@@ -5454,8 +5462,7 @@ button, input, select, textarea {
 .game-tracker-box-selector button {
   min-height: 36px;
   padding: 0 var(--ui-space-1);
-  border: 0;
-  border-bottom: 2px solid transparent;
+  border: 1px solid transparent;
   border-radius: var(--ui-radius-control);
   color: var(--muted);
   background: transparent;
@@ -5463,9 +5470,9 @@ button, input, select, textarea {
   font-weight: 750;
 }
 .game-tracker-box-selector button.active {
-  border-bottom-color: var(--blue);
+  border-color: var(--line-strong);
   color: var(--ink);
-  background: var(--surface-soft);
+  background: var(--surface-muted);
 }
 .game-tracker-team-stats {
   overflow: hidden;
@@ -5512,6 +5519,12 @@ button, input, select, textarea {
 }
 .game-tracker-player-table th,
 .game-tracker-player-table td { border-bottom: 1px solid var(--tracker-divider); }
+.game-tracker-player-table th:not(:first-child),
+.game-tracker-player-table td:not(:first-child) { width: 44px; min-width: 44px; max-width: 44px; padding-inline: 3px; text-align: center; }
+.game-tracker-player-table thead th:first-child { font-family: var(--font-display); color: var(--header-muted); text-transform: uppercase; }
+.game-tracker-drive-play > div > strong time { font-size: inherit; font-weight: inherit; }
+.game-tracker-play-context .game-tracker-play-outcome { margin-left: auto; font-size: 12px; }
+.game-tracker-meta-dot { align-self: center; transform: translateY(.07em); }
 .game-tracker-player-table tbody tr:last-child td { border-bottom: 0; }
 .game-tracker-player-table th:first-child,
 .game-tracker-player-table td:first-child { border-right: 1px solid var(--tracker-divider); }

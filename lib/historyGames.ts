@@ -7,7 +7,7 @@ export async function loadHistoryGames(league: "NFL" | "CFB", season: number, be
   const data: LocalGame[] = [];
   for (let offset = 0; ; offset += 1000) {
     let query = supabase.from("games")
-      .select("id,week,commence_time,home_team,away_team,current_spread_team,current_spread,final_home_score,final_away_score,espn_event_id,updated_at")
+      .select("id,week,commence_time,home_team,away_team,current_spread_team,current_spread,final_home_score,final_away_score,espn_event_id,updated_at,current_bookmaker")
       .eq("league", league).gte("commence_time", `${season}-08-01T00:00:00Z`).lt("commence_time", before)
       .order("commence_time").order("id").range(offset, offset + 999);
     if (teams?.length) {
