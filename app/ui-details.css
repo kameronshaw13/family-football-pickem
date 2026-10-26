@@ -10,7 +10,7 @@
   padding: 0 6px;
   border: 1px solid var(--line-strong);
   border-radius: var(--ui-radius-action);
-  color: var(--graphite);
+  color: var(--ink);
   background: var(--panel);
   font-family: var(--font-display);
   font-size: 9px;
@@ -20,7 +20,7 @@
   cursor: pointer;
 }
 .matchup-preview-trigger::after { position: absolute; inset: -5px 0; content: ""; }
-.matchup-preview-trigger:hover { border-color: var(--blue-dark); color: var(--blue-dark); }
+.matchup-preview-trigger:hover { border-color: var(--blue); color: var(--ink); }
 
 .matchup-preview-backdrop {
   position: fixed;
@@ -2155,9 +2155,14 @@
   font-weight: 800;
 }
 .theme-toggle button.active {
-  border-color: var(--graphite);
+  border-color: var(--blue);
   color: #fff;
-  background: var(--graphite);
+  background: var(--blue);
+}
+html[data-theme="dark"] .theme-toggle button.active {
+  border-color: #fff;
+  color: var(--graphite);
+  background: #fff;
 }
 .settings-notification-card { overflow: hidden; }
 .settings-notification-heading { border-bottom: 1px solid var(--line); }
@@ -2221,7 +2226,7 @@
 .settings-rule-item + .settings-rule-item { margin-top: 0; }
 .settings-rule-item > summary {
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 130ms ease;
+  transition: none;
   user-select: none;
   display: flex;
   min-height: 39px;
@@ -2238,8 +2243,9 @@
 .settings-rule-item > summary::-webkit-details-marker { display: none; }
 .settings-rule-item > summary:active,
 .settings-detail > summary:active {
-  background: var(--surface-muted);
+  background: var(--panel);
 }
+.settings-detail > summary { -webkit-tap-highlight-color: transparent; }
 .settings-rule-item > summary:focus-visible,
 .settings-detail > summary:focus-visible {
   outline: 2px solid var(--ink);
@@ -2250,7 +2256,7 @@
 .settings-rule-item ul {
   margin: 0;
   padding: var(--ui-space-2) 10px 9px 28px;
-  color: var(--muted);
+  color: var(--ink);
   font-size: 10.5px;
   font-weight: 600;
   line-height: 1.45;
@@ -4185,7 +4191,7 @@ html[data-theme="dark"] .primary-nav {
   overflow-wrap:break-word;
   -webkit-line-clamp:2;
 }
-/* 44x44 touch target surrounding the original familiar 34px red X. */
+/* 44px touch target with a centered 40px red close surface. */
 .game-tracker-header button,.matchup-preview-close {
   position:absolute;
   top:5px;
@@ -4205,7 +4211,7 @@ html[data-theme="dark"] .primary-nav {
 }
 .game-tracker-header button::before,.matchup-preview-close::before {
   position:absolute;
-  inset:5px;
+  inset:2px;
   z-index:0;
   border:1px solid #d6aaa6;
   border-radius: var(--ui-radius-md);
@@ -5181,7 +5187,8 @@ button, input, select, textarea {
 :is(.game-tracker-sheet, .matchup-preview-sheet, .player-profile-sheet,
     .game-tracker-header, .matchup-preview-header, .game-tracker-scoreboard,
     .game-list, .game-card, .pick-card, .side-bet-card, .side-bet-ledger-row, .ledger-row,
-    .leaderboard-row, .bank-player-result, .rule-item, .settings-panel) {
+    .leaderboard-row, .bank-player-result, .rule-item, .settings-panel,
+    .settings-signout, .board-empty-state, .side-bet-empty-state) {
   border-radius: 0;
 }
 :is(
@@ -5209,8 +5216,11 @@ button, input, select, textarea {
 .game-tracker-scoreboard-grid { min-height:98px; padding:var(--ui-space-2) var(--ui-space-3); }
 .game-tracker-score-team { align-content:center; gap:var(--ui-space-1); }
 .game-tracker-score-team-name { display:block; min-width:0; max-width:100%; min-height:13px; padding:0 var(--ui-space-1); color:var(--header-muted); font-size:10px; font-weight:700; text-align:center; text-overflow:ellipsis; white-space:nowrap; }
-.game-tracker-header button, .matchup-preview-close { width:35px; min-width:35px; max-width:35px; height:35px; min-height:35px; max-height:35px; flex:0 0 35px; transform:none!important; scale:1!important; }
-.game-tracker-header button svg, .matchup-preview-close svg { width:18px; height:18px; transform:none!important; scale:1!important; }
+.game-tracker-header button, .matchup-preview-close { top:50%; right:6px; width:44px; min-width:44px; max-width:44px; height:44px; min-height:44px; max-height:44px; flex:0 0 44px; display:grid; place-items:center; padding:0; transform:translateY(-50%)!important; scale:1!important; }
+.game-tracker-header button svg, .matchup-preview-close svg { width:22px; height:22px; flex:0 0 22px; margin:0; transform:none!important; scale:1!important; }
+.profile-year-select.compact-select,
+.profile-year-select.compact-select .custom-select-trigger { height:32px; min-height:32px; padding-block:0; }
+.profile-year-select.compact-select::after { bottom:0; }
 
 /* ================================================================
    GAMETRACKER • COMPONENT DESIGN CONTRACT

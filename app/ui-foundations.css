@@ -1439,6 +1439,7 @@ body:has(.confirmation-backdrop) {
   place-items: end center;
   overflow: hidden;
   padding: 0;
+  overscroll-behavior: none;
   background: rgba(23, 38, 48, .28);
 }
 
@@ -1523,8 +1524,9 @@ body:has(.confirmation-backdrop) {
   flex: 1 1 auto;
   overflow-x: hidden;
   overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-bottom: calc(env(safe-area-inset-bottom) + var(--ui-space-4));
+  overscroll-behavior: none;
+  touch-action: pan-y;
+  padding-bottom: var(--ui-space-4);
   border-radius: 0;
   background: var(--panel);
 }
@@ -1702,6 +1704,7 @@ body:has(.confirmation-backdrop) {
   font-variant-numeric: tabular-nums;
 }
 .player-profile-detail-grid + .player-profile-detail-grid { margin-top: var(--ui-space-3); }
+.player-profile-side-bet-metrics + .player-profile-detail-grid { border-top: 0; }
 
 .player-profile-side-bets {
   background: var(--surface-soft);

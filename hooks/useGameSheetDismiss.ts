@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { RefObject } from "react";
 
+export function sheetScrollBeyondBoundary(scrollTop: number, height: number, scrollHeight: number, deltaY: number) {
+  return (scrollTop <= 1 && deltaY > 0) || (scrollTop + height >= scrollHeight - 1 && deltaY < 0);
+}
+
 /**
- * A natural, iOS-style downward-dismiss gesture for the two game detail sheets.
+ * A natural, iOS-style downward-dismiss gesture for the game detail and player profile sheets.
  * Drag the header/handle, or pull down on the main content when it is at the top.
  * Normal scrolling, horizontal box-score scrolling, taps, and the X still work.
  */
@@ -32,11 +36,12 @@ export default function useGameSheetDismiss(
     let dismissTimer = 0;
     let snapTimer = 0;
     let isClosing = false;
+    let activeScroller: HTMLElement | null = null;
     const originalTransform = sheet.style.transform;
     const originalTransition = sheet.style.transition;
 
-    const scrollerSelector = ".game-tracker-scroll, .matchup-preview-scroll";
-    const headerSelector = ".game-tracker-header, .matchup-preview-header, .matchup-preview-hero, .game-tracker-scoreboard";
+    const scrollerSelector = ".game-tracker-scroll, .matchup-preview-scroll, .player-profile-content";
+    const headerSelector = ".game-tracker-header, .matchup-preview-header, .matchup-preview-hero, .game-tracker-scoreboard, .player-profile-head";
     const dismissTime = 275;
     const settleTime = 240;
 
@@ -55,14 +60,14 @@ export default function useGameSheetDismiss(
       if (event.touches.length !== 1 || isClosing) return;
       const target = event.target;
       if (!(target instanceof Element)) return;
-      const isHeader = target.closest(headerSelector) !== null && target.closest("button") === null;
+      const isHeader = target.closest(headerSelector) !== null && target.closest("button, input, select, textarea, .custom-select") === null;
       const scrollElement = target.closest<HTMLElement>(scrollerSelector);
+      activeScroller = scrollElement;
       // Do not steal touches from nested horizontally scrollable box-score tables.
       const isNestedScroller = target.closest(".game-tracker-player-table-scroll") != null;
       candidate = isHeader || Boolean(scrollElement && scrollElement.scrollTop <= 1 && !isNestedScroller);
       dragging = false;
       dragDistance = 0;
-      if (!candidate) return;
       originX = event.touches[0].clientX;
       originY = event.touches[0].clientY;
       startedAt = performance.now();
@@ -70,9 +75,17 @@ export default function useGameSheetDismiss(
     }
 
     function move(event: TouchEvent) {
-      if (!candidate || event.touches.length !== 1) return;
-      const dx = event.touches[0].clientX - originX;
+      if (event.touches.length !== 1) return;
       const dy = event.touches[0].clientY - originY;
+      // The top-edge downward gesture belongs to dismissal; other profile
+      // boundary gestures stay contained instead of revealing elastic space.
+      if (activeScroller?.matches(".player-profile-content") && (!candidate || dy < 0) &&
+          sheetScrollBeyondBoundary(activeScroller.scrollTop, activeScroller.clientHeight, activeScroller.scrollHeight, dy)) {
+        if (event.cancelable) event.preventDefault();
+        return;
+      }
+      if (!candidate) return;
+      const dx = event.touches[0].clientX - originX;
       if (!dragging) {
         if (dy < 10 || dy < Math.abs(dx) * 1.35) return;
         dragging = true;
@@ -84,6 +97,7 @@ export default function useGameSheetDismiss(
     }
 
     function finish() {
+      activeScroller = null;
       if (!candidate) return;
       candidate = false;
       if (!dragging) return;
@@ -118,5 +132,5 @@ export default function useGameSheetDismiss(
       sheet.style.transition = originalTransition;
     };
   }, [sheetRef, mounted]);
-  return () => animatedCloseRef.current();
+  return useCallback(() => animatedCloseRef.current(), []);
 }

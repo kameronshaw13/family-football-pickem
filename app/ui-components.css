@@ -1479,7 +1479,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   border: 0;
   border-radius: var(--ui-radius-circle);
   background: currentColor;
-  transform: none;
+  transform: translateY(0.04em);
 }
 
 /* Pending Offers + Offer History:
@@ -1602,7 +1602,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   background: currentColor;
   font-size: inherit;
   line-height: 0;
-  transform: translateY(-0.015em);
+  transform: translateY(-0.055em);
 }
 
 /* Undo the earlier title-market optical override; it was the wrong target. */

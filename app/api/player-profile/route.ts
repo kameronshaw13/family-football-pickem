@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
 
     const [picksResult, sideBetsResult, historyResult] = await Promise.all([
       supabase.from("picks").select("*, game:games(id,commence_time,league,away_team,home_team)").eq("group_id", context.group.id).order("created_at", { ascending: true }).order("id").range(0, 999),
-      supabase.from("side_bets").select("id,group_id,season_year,creator_id,accepted_by,amount,creator_odds,status,result,winner_id,week,created_at").eq("group_id", context.group.id).order("id").range(0, 999),
+      supabase.from("side_bets").select("id,group_id,season_year,creator_id,accepted_by,amount,creator_odds,status,result,winner_id,week,created_at,game_id,game:games(espn_event_id,league,commence_time,home_team,away_team)").eq("group_id", context.group.id).order("id").range(0, 999),
       supabase.from("group_season_results").select("season_year,is_champion").eq("group_id", context.group.id).eq("profile_id", player.id)
     ]);
     if (picksResult.error) throw new Error(picksResult.error.message);
@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
     const allSideBets = [...(sideBetsResult.data || [])];
     for (let offset = 1000; allSideBets.length === offset; offset += 1000) {
       const page = await supabase.from("side_bets")
-        .select("id,group_id,season_year,creator_id,accepted_by,amount,creator_odds,status,result,winner_id,week,created_at")
+        .select("id,group_id,season_year,creator_id,accepted_by,amount,creator_odds,status,result,winner_id,week,created_at,game_id,game:games(espn_event_id,league,commence_time,home_team,away_team)")
         .eq("group_id", context.group.id).order("id").range(offset, offset + 999);
       if (page.error) throw new Error(page.error.message);
       allSideBets.push(...(page.data || []));
@@ -125,7 +125,8 @@ export async function GET(req: NextRequest) {
       ? teamDisplayName(longestDog.game.league, longestDogOpponentRaw)
       : null;
 
-    const settledSideBets = allSideBets.filter((bet: any) => bet.status === "settled" && (bet.creator_id === player.id || bet.accepted_by === player.id) && (selectedYear == null || Number(bet.season_year) === selectedYear));
+    const settledSideBets = allSideBets.filter((bet: any) => bet.status === "settled" && (bet.creator_id === player.id || bet.accepted_by === player.id) && (selectedYear == null || Number(bet.season_year) === selectedYear))
+      .map(bet => ({ ...bet, game: Array.isArray(bet.game) ? bet.game[0] ?? null : bet.game }));
     let sideBetWins = 0, sideBetLosses = 0, sideBetPushes = 0, sideBetNet = 0;
     for (const bet of settledSideBets) {
       if (bet.result === "push") { sideBetPushes += 1; continue; }

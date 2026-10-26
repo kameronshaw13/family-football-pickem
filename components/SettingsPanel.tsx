@@ -42,7 +42,6 @@ export default function SettingsPanel({
   onCountsChanged: (counts: Record<string, number>) => void;
 }) {
   const [theme, setTheme] = useState<Theme>("light");
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMessage, setPasswordMessage] = useState("");
@@ -89,7 +88,7 @@ export default function SettingsPanel({
           Authorization: `Bearer ${token}`,
           "x-pickem-group": appSlug
         },
-        body: JSON.stringify({ currentPassword, newPassword })
+        body: JSON.stringify({ newPassword })
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -98,7 +97,6 @@ export default function SettingsPanel({
         return;
       }
 
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       setPasswordTone("success");
@@ -186,14 +184,12 @@ export default function SettingsPanel({
           <ChevronDown className="settings-detail-chevron" size={17} />
         </summary>
         <form className="settings-detail-body settings-password-form" onSubmit={changePassword}>
-          <label htmlFor="settings-current-password">Current Password</label>
-          <input id="settings-current-password" className="input" type="password" autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} />
           <label htmlFor="settings-new-password">New Password</label>
-          <input id="settings-new-password" className="input" type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
+          <input id="settings-new-password" className="input" type="password" autoComplete="new-password" maxLength={128} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
           <label htmlFor="settings-confirm-password">Confirm New Password</label>
-          <input id="settings-confirm-password" className="input" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+          <input id="settings-confirm-password" className="input" type="password" autoComplete="new-password" maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
           {passwordMessage && <p className={passwordTone === "error" ? "settings-password-message error" : "settings-password-message success"} role="status">{passwordMessage}</p>}
-          <button type="submit" className="btn full settings-password-submit" disabled={passwordBusy || currentPassword.length < 6 || newPassword.length < 6 || confirmPassword.length < 6}>{passwordBusy ? "Updating…" : "Update Password"}</button>
+          <button type="submit" className="btn full settings-password-submit" disabled={passwordBusy || newPassword.length < 6 || confirmPassword.length < 6}>{passwordBusy ? "Updating…" : "Update Password"}</button>
         </form>
       </details>
 

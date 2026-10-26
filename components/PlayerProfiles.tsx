@@ -6,6 +6,7 @@ import { appSlugForPath } from "@/lib/appIdentity";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { createPortal } from "react-dom";
+import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
 import MenuSelect from "@/components/MenuSelect";
 
 type ProfilePayload = {
@@ -55,6 +56,16 @@ export default function PlayerProfiles() {
   const [error, setError] = useState("");
   const profileCache = useRef(new Map<string, ProfilePayload>());
   const requestSequence = useRef(0);
+  const sheetRef = useRef<HTMLElement>(null);
+  const profileOpen = mounted && Boolean(profile && activeName);
+  const closeProfile = useCallback(() => {
+    requestSequence.current += 1;
+    setProfile(null);
+    setActiveName("");
+    setError("");
+    setLoading(false);
+  }, []);
+  const dismissProfile = useGameSheetDismiss(sheetRef, profileOpen, closeProfile);
 
   const profileRef = useRef(profile);
   profileRef.current = profile;
@@ -131,24 +142,27 @@ export default function PlayerProfiles() {
   }, [loadProfile]);
 
   useEffect(() => {
-    if (!profile) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = previousOverflow; };
-  }, [profile]);
+    if (!profileOpen) return;
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previous = { overflow: body.style.overflow, position: body.style.position, top: body.style.top, width: body.style.width };
+    Object.assign(body.style, { overflow: "hidden", position: "fixed", top: `-${scrollY}px`, width: "100%" });
+    return () => {
+      Object.assign(body.style, previous);
+      window.scrollTo(0, scrollY);
+    };
+  }, [profileOpen]);
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profileOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        requestSequence.current += 1;
-        setProfile(null);
-        setActiveName("");
+        dismissProfile();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [profile]);
+  }, [profileOpen, dismissProfile]);
 
   const periodOptions = profile
     ? [{ value: "all", label: "All Time" }, ...profile.period.availableYears.map((year) => ({ value: String(year), label: String(year) }))]
@@ -166,18 +180,10 @@ export default function PlayerProfiles() {
     ? `${biggestDog.team} ${spread(biggestDog.spread)}${biggestDog.opponent ? ` vs ${biggestDog.opponent}` : ""} · +${biggestDog.bonusWins}${profile?.group.slug === "other-family" ? ` ${biggestDog.bonusWins === 1 ? "Pt" : "Pts"}` : "W"}`
     : "—";
 
-  function closeProfile() {
-    requestSequence.current += 1;
-    setProfile(null);
-    setActiveName("");
-    setError("");
-    setLoading(false);
-  }
-
   return <>
     {error && <div className="profile-loading-toast profile-error-toast" role="alert">{error}</div>}
-    {mounted && profile && activeName && createPortal(<div className="player-profile-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) closeProfile(); }}>
-      <section className="player-profile-sheet" role="dialog" aria-modal="true" aria-labelledby="player-profile-title">
+    {mounted && profile && activeName && createPortal(<div className="player-profile-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) dismissProfile(); }}>
+      <section ref={sheetRef} className="player-profile-sheet" role="dialog" aria-modal="true" aria-labelledby="player-profile-title">
         <header className="player-profile-head">
           <div className="player-profile-head-copy"><span>Player Profile</span><h2 id="player-profile-title">{profile.player.displayName}</h2></div>
           <MenuSelect
@@ -191,7 +197,7 @@ export default function PlayerProfiles() {
               void loadProfile(activeName, value);
             }}
           />
-          <div className="pick-row-actions player-profile-close-wrap"><button type="button" className="icon-btn" aria-label="Close profile" onClick={closeProfile}><X size={16} /></button></div>
+          <div className="pick-row-actions player-profile-close-wrap"><button type="button" className="icon-btn" aria-label="Close profile" onClick={dismissProfile}><X size={16} /></button></div>
         </header>
 
         <div className="player-profile-content">
@@ -243,8 +249,8 @@ export default function PlayerProfiles() {
             {profile.details && <div className="player-profile-detail-grid">
               <div><span>Side Bet Win Rate</span><strong>{percentage(profile.details.sideBets.winPct)}</strong><small>Excludes pushes</small></div>
               <div><span>Settled Bets</span><strong>{profile.details.sideBets.settled}</strong><small>Includes pushes</small></div>
-              <div><span>Biggest Win</span><strong className={profile.details.sideBets.biggestWin > 0 ? "money-pos" : ""}>{profileMoney(profile.details.sideBets.biggestWin)}</strong><small>Net profit on one bet</small></div>
-              <div><span>Biggest Loss</span><strong className={profile.details.sideBets.biggestLoss < 0 ? "money-neg" : ""}>{profileMoney(profile.details.sideBets.biggestLoss)}</strong><small>Net loss on one bet</small></div>
+              <div><span>Biggest Win</span><strong className={profile.details.sideBets.biggestWin > 0 ? "money-pos" : ""}>{profileMoney(profile.details.sideBets.biggestWin)}</strong><small>Net profit across one game</small></div>
+              <div><span>Biggest Loss</span><strong className={profile.details.sideBets.biggestLoss < 0 ? "money-neg" : ""}>{profileMoney(profile.details.sideBets.biggestLoss)}</strong><small>Net loss across one game</small></div>
             </div>}
           </section>
         </div>
