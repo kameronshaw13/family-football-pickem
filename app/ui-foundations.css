@@ -25,15 +25,15 @@
   --space-3: var(--ui-space-3);
   --space-4: var(--ui-space-4);
   --space-5: var(--ui-space-5);
-  /* Shapes follow purpose: flat board edges, boxed labels, cards, and rounded actions. */
+  /* Crisp rows and labels; subtly softened cards and controls. */
   --ui-radius-flat: 0;
-  --ui-radius-label: 0;
-  --ui-radius-action: 0;
-  --ui-radius-box: 0;
-  --ui-radius-sm: var(--ui-radius-box);
+  --ui-radius-label: 2px;
+  --ui-radius-action: 4px;
+  --ui-radius-box: 4px;
+  --ui-radius-sm: var(--ui-radius-label);
   --ui-radius-md: var(--ui-radius-box);
   --ui-radius-lg: var(--ui-radius-box);
-  --ui-radius-control: var(--ui-radius-box);
+  --ui-radius-control: var(--ui-radius-action);
   --ui-radius-circle: 50%;
   --canvas: #eef0ed;
   --canvas-deep: #e3e6e3;
@@ -178,7 +178,7 @@ p { margin: 0; }
 .game-card:last-child { border-bottom: 0; }
 .game-head { display: flex; height: var(--data-header-height); min-height: var(--data-header-height); align-items: center; justify-content: space-between; gap: 10px; padding: 0 var(--pick-content-inset); border-bottom: 1px solid var(--line); background: var(--surface-soft); }
 .badges, .game-time-group { display: flex; align-items: center; gap: 6px; }
-.badge, .status-mark { display: inline-flex; align-items: center; justify-content: center; padding: 3px 5px; border-radius: var(--ui-radius-md); color: var(--muted); background: var(--surface-muted); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
+.badge, .status-mark { display: inline-flex; align-items: center; justify-content: center; padding: 3px 5px; border-radius: var(--ui-radius-label); color: var(--muted); background: var(--surface-muted); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0; }
 .badge.open { color: var(--green); background: var(--green-soft); }
 .badge.locked { color: var(--red); background: var(--red-soft); }
 .badge.final { color: #fff; background: var(--graphite-light); }
@@ -293,7 +293,7 @@ p { margin: 0; }
 .score-bug-meta { display: grid; width: 48px; height: 44px; grid-template-rows: repeat(3, minmax(0, 1fr)); align-items: center; overflow: hidden; font-size: 10px; font-weight: 800; line-height: 1; text-align: center; }
 .score-bug-meta > span { display: flex; min-width: 0; align-items: center; justify-content: center; overflow: hidden; text-overflow: ellipsis; }
 .pick-score-bug.final .score-bug-meta { grid-template-rows: 1fr; }
-.score-bug-meta > .score-bug-result { display: grid; width: 26px; height: 26px; place-items: center; justify-self: center; padding: 0; border: 1px solid var(--line-strong); border-radius: var(--ui-radius-md); color: var(--muted); background: var(--surface-muted); font-size: 13px; font-weight: 800; line-height: 1; text-align: center; }
+.score-bug-meta > .score-bug-result { display: grid; width: 26px; height: 26px; place-items: center; justify-self: center; padding: 0; border: 1px solid var(--line-strong); border-radius: var(--ui-radius-label); color: var(--muted); background: var(--surface-muted); font-size: 13px; font-weight: 800; line-height: 1; text-align: center; }
 .score-bug-meta > .score-bug-result-win { border-color: #a6cdb9; color: var(--green); background: var(--green-soft); }
 .score-bug-meta > .score-bug-result-loss { border-color: #ddb1ad; color: var(--red); background: var(--red-soft); }
 .score-bug-meta > .score-bug-result-push, .score-bug-meta > .score-bug-result-pending { border-color: var(--line-strong); color: var(--muted); background: var(--surface-muted); }

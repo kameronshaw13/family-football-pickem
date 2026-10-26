@@ -4787,7 +4787,7 @@ select:focus-visible,
 .game-day-marker > b { min-height: 30px; border-radius: var(--ui-radius-label); font-size: 11px; }
 .game-day-marker strong { font-size: 12px; font-weight: 700; }
 .game-head { min-height: 37px; height: 37px; }
-.badge, .status-mark { border-radius: var(--ui-radius-md); font-size: 10px; letter-spacing: .025em; }
+.badge, .status-mark { border-radius: var(--ui-radius-label); font-size: 10px; letter-spacing: .025em; }
 .game-time, .game-final-status, .game-live-status, .game-live-situation { font-size: 12px; }
 .team-name { font-weight: 700; }
 .team-spread, .team-board-market, .team-result-score,
@@ -5159,8 +5159,10 @@ button, input, select, textarea {
 }
 
 
-/* Main app stays flat. Rounded cards are scoped to the game detail surfaces. */
+/* Shape hierarchy: soft 4px surfaces, crisp 2px labels, flat connected rows.
+   Game details retain their more rounded internal treatment. */
 .game-tracker-sheet, .matchup-preview-sheet {
+  --ui-radius-label: 6px;
   --ui-radius-sm: 6px;
   --ui-radius-md: 6px;
   --ui-radius-lg: 6px;
@@ -5181,11 +5183,15 @@ button, input, select, textarea {
 }
 :is(
   .btn, .input, .compact-select, .custom-select-trigger,
-  .status-mark, .badge,
   .side-bet-slip-open, .side-bet-market-fields input,
   .side-bet-risk-field input, .confirmation-sheet button
 ) {
   border-radius: var(--ui-radius-control);
+}
+
+/* Compact result/status labels remain boxed rather than pill-shaped. */
+.badge, .status-mark {
+  border-radius: var(--ui-radius-label);
 }
 
 /* Live Side Bets: scoreboard and status without changing team/market grid geometry. */

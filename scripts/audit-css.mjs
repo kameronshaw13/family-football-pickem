@@ -53,10 +53,10 @@ for (const name of cssImports) {
 const canonicalTokens = {
   "--ui-space-1": "4px", "--ui-space-2": "8px", "--ui-space-3": "12px",
   "--ui-space-4": "16px", "--ui-space-5": "24px",
-  "--ui-radius-flat": "0", "--ui-radius-label": "0", "--ui-radius-action": "0",
-  "--ui-radius-box": "0",
-  "--ui-radius-sm": "var(--ui-radius-box)", "--ui-radius-md": "var(--ui-radius-box)", "--ui-radius-lg": "var(--ui-radius-box)",
-  "--ui-radius-control": "var(--ui-radius-box)", "--ui-radius-circle": "50%"
+  "--ui-radius-flat": "0", "--ui-radius-label": "2px", "--ui-radius-action": "4px",
+  "--ui-radius-box": "4px",
+  "--ui-radius-sm": "var(--ui-radius-label)", "--ui-radius-md": "var(--ui-radius-box)", "--ui-radius-lg": "var(--ui-radius-box)",
+  "--ui-radius-control": "var(--ui-radius-action)", "--ui-radius-circle": "50%"
 };
 const tokenDefinitions = new Map(Object.keys(canonicalTokens).map(key => [key, []]));
 for (const name of cssImports) {
