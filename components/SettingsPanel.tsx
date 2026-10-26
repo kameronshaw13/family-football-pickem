@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, ChevronDown, ChevronRight, KeyRound, LogOut, Moon, ScrollText, Sun, UserRound } from "lucide-react";
+import { ChevronDown, ChevronRight, KeyRound, LogOut, Moon, ScrollText, Sun, UserRound } from "lucide-react";
 import type { Profile } from "@/lib/types";
 import type { AppSlug } from "@/lib/rulePresentation";
 import NumericText from "@/components/NumericText";
@@ -122,7 +122,7 @@ export default function SettingsPanel({
       <h3>Profile</h3>
       <div className="settings-card settings-profile-card">
         <div className="settings-leading-icon"><UserRound size={17} /></div>
-        <div className="settings-row-copy"><strong>{currentUser.display_name}</strong><span>@{currentUser.username}</span></div>
+        <div className="settings-row-copy"><strong>{currentUser.display_name}</strong></div>
         <button
           type="button"
           className="settings-row-action player-profile-link"
@@ -150,11 +150,7 @@ export default function SettingsPanel({
     <div className="settings-section">
       <h3>Notifications</h3>
       <div className="settings-card settings-notification-card">
-        <div className="settings-row-heading settings-notification-heading">
-          <div className="settings-leading-icon"><Bell size={17} /></div>
-          <div className="settings-row-copy"><strong>Push Notifications</strong><span>Offers, results, picks and league activity.</span></div>
-        </div>
-        <PushNotificationControls appSlug={appSlug} onCountsChanged={onCountsChanged} />
+        <PushNotificationControls compactRow appSlug={appSlug} onCountsChanged={onCountsChanged} />
       </div>
     </div>
 

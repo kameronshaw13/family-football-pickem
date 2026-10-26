@@ -2155,9 +2155,9 @@
   font-weight: 800;
 }
 .theme-toggle button.active {
-  border-color: var(--blue);
+  border-color: var(--graphite-light);
   color: #fff;
-  background: var(--blue);
+  background: var(--graphite-light);
 }
 html[data-theme="dark"] .theme-toggle button.active {
   border-color: #fff;
@@ -2165,14 +2165,13 @@ html[data-theme="dark"] .theme-toggle button.active {
   background: #fff;
 }
 .settings-notification-card { overflow: hidden; }
-.settings-notification-heading { border-bottom: 1px solid var(--line); }
 .settings-panel .notification-settings {
   position: static;
-  display: flex;
-  min-height: 50px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  min-height: 58px;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 9px;
   width: 100%;
   margin: 0;
   margin-inline: 0;
@@ -2181,7 +2180,7 @@ html[data-theme="dark"] .theme-toggle button.active {
   background: transparent;
 }
 .settings-panel .notification-settings-copy { display: block; min-width: 0; flex: 1 1 auto; }
-.settings-panel .notification-settings-heading { display: none; }
+.settings-panel .notification-settings-heading { display: flex; font-size: 13px; }
 .settings-panel .notification-settings-copy p,
 .settings-panel .notification-settings-copy small {
   display: block;
@@ -2192,6 +2191,7 @@ html[data-theme="dark"] .theme-toggle button.active {
 }
 .settings-panel .notification-settings-actions { display: flex; flex: 0 0 auto; }
 .settings-panel .notification-settings .btn {
+  min-width: 54px;
   min-height: 32px;
   height: 32px;
   padding: 5px var(--ui-space-2);
@@ -4191,42 +4191,6 @@ html[data-theme="dark"] .primary-nav {
   overflow-wrap:break-word;
   -webkit-line-clamp:2;
 }
-/* 44px touch target with a centered 40px red close surface. */
-.game-tracker-header button,.matchup-preview-close {
-  position:absolute;
-  top:5px;
-  right:4px;
-  display:grid;
-  width:44px;
-  height:44px;
-  min-width:44px;
-  min-height:44px;
-  padding:0;
-  border:0;
-  border-radius: var(--ui-radius-md);
-  background:transparent;
-  color:var(--red);
-  place-items:center;
-  cursor:pointer;
-}
-.game-tracker-header button::before,.matchup-preview-close::before {
-  position:absolute;
-  inset:2px;
-  z-index:0;
-  border:1px solid #d6aaa6;
-  border-radius: var(--ui-radius-md);
-  background:var(--red-soft);
-  content:"";
-}
-.game-tracker-header button svg,.matchup-preview-close svg {
-  position:relative;
-  z-index:1;
-  width:18px;
-  height:18px;
-  flex:0 0 18px;
-}
-.game-tracker-header button:active::before,.matchup-preview-close:active::before {filter:brightness(.96);}
-
 /* Shared controls: a 48px tap target, one row, never a shifting pill. */
 .game-tracker-tabs,.matchup-preview-tabs,.matchup-preview-tabs.has-model-tab {
   height:49px;
@@ -5216,8 +5180,41 @@ button, input, select, textarea {
 .game-tracker-scoreboard-grid { min-height:98px; padding:var(--ui-space-2) var(--ui-space-3); }
 .game-tracker-score-team { align-content:center; gap:var(--ui-space-1); }
 .game-tracker-score-team-name { display:block; min-width:0; max-width:100%; min-height:13px; padding:0 var(--ui-space-1); color:var(--header-muted); font-size:10px; font-weight:700; text-align:center; text-overflow:ellipsis; white-space:nowrap; }
-.game-tracker-header button, .matchup-preview-close { top:50%; right:6px; width:44px; min-width:44px; max-width:44px; height:44px; min-height:44px; max-height:44px; flex:0 0 44px; display:grid; place-items:center; padding:0; transform:translateY(-50%)!important; scale:1!important; }
-.game-tracker-header button svg, .matchup-preview-close svg { width:22px; height:22px; flex:0 0 22px; margin:0; transform:none!important; scale:1!important; }
+.game-tracker-header button, .matchup-preview-close {
+  top: 50%;
+  right: 10px;
+  width: 30px;
+  min-width: 30px;
+  max-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  max-height: 30px;
+  flex: 0 0 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #d6aaa6;
+  border-radius: var(--ui-radius-control);
+  background: var(--red-soft);
+  color: var(--red);
+  transform: translateY(-50%) !important;
+  scale: 1 !important;
+  transition: none;
+}
+.game-tracker-header button:hover, .game-tracker-header button:active,
+.matchup-preview-close:hover, .matchup-preview-close:active {
+  background: var(--red-soft);
+  transform: translateY(-50%) !important;
+  scale: 1 !important;
+}
+.game-tracker-header button svg, .matchup-preview-close svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+  transform: none !important;
+  scale: 1 !important;
+}
 .profile-year-select.compact-select,
 .profile-year-select.compact-select .custom-select-trigger { height:32px; min-height:32px; padding-block:0; }
 .profile-year-select.compact-select::after { bottom:0; }

@@ -34,7 +34,7 @@
   --ui-radius-md: var(--ui-radius-box);
   --ui-radius-lg: var(--ui-radius-box);
   --ui-radius-control: var(--ui-radius-action);
-  --ui-radius-filter: 6px;
+  --ui-radius-filter: 999px;
   --ui-radius-circle: 50%;
   --canvas: #eef0ed;
   --canvas-deep: #e3e6e3;
@@ -109,6 +109,7 @@ p { margin: 0; }
 .primary-nav button.active { color: #fff; background: transparent; font-weight: 700; }
 .primary-nav button.active .nav-icon { color: #fff; filter: none; transform: none; }
 .primary-nav button.active svg { fill: #fff; stroke: #fff; stroke-width: 2; }
+.primary-nav button.active .nav-icon-settings svg circle { fill: var(--nav-surface); stroke: var(--nav-surface); stroke-width: 1; }
 .primary-nav button.active .nav-icon-card svg rect { fill: #fff; stroke: #fff; }
 .primary-nav button.active .nav-icon-card svg path { fill: none; stroke: #45545b; }
 .primary-nav button.active .nav-icon-standings svg path { fill: none; stroke: #fff; }
@@ -143,10 +144,10 @@ p { margin: 0; }
 .side-bet-filter-row.make-offer { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .side-bet-filter-row .compact-select { width: 100%; min-width: 0; }
 .side-bet-offer-mode-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); margin: -2px 0 var(--space-3); }
-.side-bet-offer-mode-toggle { display: grid; overflow: hidden; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line-strong); border-radius: var(--ui-radius-md); background: var(--surface-soft); }
-.side-bet-offer-mode-toggle button { min-width: 0; min-height: 32px; padding: 5px var(--ui-space-2); border: 0; border-right: 1px solid var(--line); color: var(--muted); background: transparent; font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.side-bet-offer-mode-toggle { display: grid; overflow: hidden; padding: 2px; gap: 2px; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line-strong); border-radius: var(--ui-radius-filter); background: var(--surface-soft); }
+.side-bet-offer-mode-toggle button { border-radius: var(--ui-radius-filter); min-width: 0; min-height: 32px; padding: 5px var(--ui-space-2); border: 0; color: var(--muted); background: transparent; font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; }
 .side-bet-offer-mode-toggle button:last-child { border-right: 0; }
-.side-bet-offer-mode-toggle button.active { color: var(--blue-dark); background: var(--blue-soft); box-shadow: inset 0 -2px 0 var(--blue); }
+.side-bet-offer-mode-toggle button.active { color: var(--blue-dark); background: var(--blue-soft); box-shadow: none; }
 .side-bet-live-offer-label { color: var(--header-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
 .compact-select { position: relative; display: inline-flex; min-width: 120px; min-height: var(--data-header-height); align-items: center; border: 0; border-bottom: 2px solid var(--line-strong); background: transparent; }
 .compact-select.open { border-bottom-color: var(--blue); }
@@ -1472,6 +1473,20 @@ body:has(.confirmation-backdrop) {
   background: var(--graphite);
 }
 
+/* Visible affordance for the profile's existing pull-down gesture. */
+.player-profile-head::before {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 34px;
+  height: 3px;
+  border-radius: var(--ui-radius-label);
+  background: rgba(255, 255, 255, .6);
+  transform: translateX(-50%);
+  content: "";
+  pointer-events: none;
+}
+
 .player-profile-head-copy {
   min-width: 0;
 }
@@ -1680,16 +1695,17 @@ body:has(.confirmation-backdrop) {
 .player-profile-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
+  border: 1px solid var(--line);
   background: var(--panel);
 }
 .player-profile-detail-grid > div {
   min-width: 0;
   padding: var(--ui-space-3);
-  border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
+.player-profile-detail-grid > div:nth-child(even) { border-left: 1px solid var(--line); }
+.player-profile-detail-grid > div:nth-last-child(-n+2) { border-bottom: 0; }
+.player-profile-detail-grid > div:only-child { grid-column: 1 / -1; }
 .player-profile-detail-grid span, .player-profile-detail-grid small {
   display: block;
   color: var(--muted);
@@ -1712,7 +1728,7 @@ body:has(.confirmation-backdrop) {
 
 .player-profile-side-bet-metrics {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   border: 1px solid var(--line);
   background: var(--panel);
 }
