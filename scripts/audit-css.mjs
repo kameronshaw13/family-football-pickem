@@ -56,7 +56,7 @@ const canonicalTokens = {
   "--ui-radius-flat": "0", "--ui-radius-label": "2px", "--ui-radius-action": "4px",
   "--ui-radius-box": "4px",
   "--ui-radius-sm": "var(--ui-radius-label)", "--ui-radius-md": "var(--ui-radius-box)", "--ui-radius-lg": "var(--ui-radius-box)",
-  "--ui-radius-control": "var(--ui-radius-action)", "--ui-radius-circle": "50%"
+  "--ui-radius-control": "var(--ui-radius-action)", "--ui-radius-filter": "6px", "--ui-radius-circle": "50%"
 };
 const tokenDefinitions = new Map(Object.keys(canonicalTokens).map(key => [key, []]));
 for (const name of cssImports) {
@@ -65,7 +65,7 @@ for (const name of cssImports) {
   const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
   css.walkDecls(decl => {
     if (decl.prop === "border-radius" &&
-        !/^(?:0|50%|var\(--ui-radius-(?:flat|label|action|box|sm|md|lg|control|circle)\))$/.test(decl.value)) {
+        !/^(?:0|50%|var\(--ui-radius-(?:flat|label|action|box|sm|md|lg|control|filter|circle)\))$/.test(decl.value)) {
       problems.push(`Use a shared shape token, a circle, or a flush edge at ${name}:${decl.source.start.line}: ${decl.value}`);
     }
     if (tokenDefinitions.has(decl.prop) && decl.parent.selector !== ".game-tracker-sheet, .matchup-preview-sheet") tokenDefinitions.get(decl.prop).push({

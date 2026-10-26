@@ -22,10 +22,11 @@ Legacy `--space-1..5` are compatibility aliases, not a competing scale. Page, ba
 
 ## Shape
 - Main app cards, inputs and buttons have subtle 4px corners, not pill silhouettes. Use `--ui-radius-box` for surfaces and `--ui-radius-control` / `--ui-radius-action` for controls.
+- Bet scope and status filter buttons use the slightly softer `--ui-radius-filter: 6px`.
 - Compact badges (including W/L/P) and weekday labels use crisp 2px corners (`--ui-radius-label`).
 - Connected pick rows, board edges, table rows and dividers remain flat so the app reads as one organized layout.
 - GameTracker and Matchup Preview retain their 6px internal corner treatment. Circular shapes remain reserved for actual dots and avatars.
-- Player profiles and the side bet sender use the full app width with a capped, internally scrolling height above bottom navigation.
+- Player profiles and the side bet sender fill the app content area from the fixed header to the fixed bottom navigation, with internal scrolling.
 - Circular status indicators (e.g. score dots, avatars): `--ui-radius-circle: 50%`, only where meaning requires round shape
 - Dividers, rather than individually outlined pill cards, separate rows
 - Preserve controlled component interaction and safe-area padding; no sticky-nav movement

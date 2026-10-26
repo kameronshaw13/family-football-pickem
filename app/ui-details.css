@@ -2051,9 +2051,12 @@
 .settings-section { margin-top: var(--ui-space-4); }
 .settings-section:first-of-type { margin-top: 0; }
 .settings-section > h3 {
-  margin: 0 0 7px 2px;
+  margin: 0;
+  padding-block: var(--ui-space-2);
+  border-block: 1px solid var(--line-strong);
+  background: var(--surface-muted);
   color: var(--header-muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: .015em;
   text-transform: uppercase;
@@ -2086,8 +2089,8 @@
   height: 30px;
   place-items: center;
   border-radius: var(--ui-radius-sm);
-  color: var(--blue-dark);
-  background: var(--blue-soft);
+  color: var(--ink);
+  background: var(--surface-muted);
 }
 .settings-row-copy {
   display: grid;
@@ -2121,7 +2124,7 @@
   gap: 2px;
   padding: var(--ui-space-1) 1px var(--ui-space-1) 7px;
   border: 0;
-  color: var(--blue-dark);
+  color: var(--ink);
   background: transparent;
   font-size: 10px;
   font-weight: 800;
@@ -2152,9 +2155,9 @@
   font-weight: 800;
 }
 .theme-toggle button.active {
-  border-color: #8dbbd4;
-  color: var(--blue-dark);
-  background: var(--blue-soft);
+  border-color: var(--graphite);
+  color: #fff;
+  background: var(--graphite);
 }
 .settings-notification-card { overflow: hidden; }
 .settings-notification-heading { border-bottom: 1px solid var(--line); }
@@ -2235,11 +2238,11 @@
 .settings-rule-item > summary::-webkit-details-marker { display: none; }
 .settings-rule-item > summary:active,
 .settings-detail > summary:active {
-  background: var(--blue-soft);
+  background: var(--surface-muted);
 }
 .settings-rule-item > summary:focus-visible,
 .settings-detail > summary:focus-visible {
-  outline: 2px solid var(--blue-dark);
+  outline: 2px solid var(--ink);
   outline-offset: -2px;
 }
 .settings-rule-item[open] > summary { border-bottom: 1px solid var(--line); }

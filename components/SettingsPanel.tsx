@@ -193,7 +193,7 @@ export default function SettingsPanel({
           <label htmlFor="settings-confirm-password">Confirm New Password</label>
           <input id="settings-confirm-password" className="input" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
           {passwordMessage && <p className={passwordTone === "error" ? "settings-password-message error" : "settings-password-message success"} role="status">{passwordMessage}</p>}
-          <button type="submit" className="btn accent full settings-password-submit" disabled={passwordBusy || currentPassword.length < 6 || newPassword.length < 6 || confirmPassword.length < 6}>{passwordBusy ? "Updating…" : "Update Password"}</button>
+          <button type="submit" className="btn full settings-password-submit" disabled={passwordBusy || currentPassword.length < 6 || newPassword.length < 6 || confirmPassword.length < 6}>{passwordBusy ? "Updating…" : "Update Password"}</button>
         </form>
       </details>
 

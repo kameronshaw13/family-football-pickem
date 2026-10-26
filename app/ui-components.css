@@ -778,7 +778,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   padding: 1px;
   overflow: hidden;
   border: 1px solid var(--graphite);
-  border-radius: var(--ui-radius-md);
+  border-radius: var(--ui-radius-filter);
   background: #e4e7e6;
 }
 .side-bet-ledger-scope-toggle button {
@@ -789,7 +789,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   justify-content: center;
   padding: 0 var(--ui-space-2);
   border: 0;
-  border-radius: var(--ui-radius-md);
+  border-radius: var(--ui-radius-filter);
   color: var(--graphite);
   background: transparent;
   font-family: var(--font-display);
@@ -959,7 +959,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   padding: 1px;
   overflow: hidden;
   border: 1px solid var(--graphite);
-  border-radius: var(--ui-radius-md);
+  border-radius: var(--ui-radius-filter);
   background: #e4e7e6;
 }
 .side-bet-game-filter-toggle button {
@@ -970,7 +970,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   justify-content: center;
   padding: 0 7px;
   border: 0;
-  border-radius: var(--ui-radius-md);
+  border-radius: var(--ui-radius-filter);
   color: var(--graphite);
   background: transparent;
   font-family: var(--font-display);

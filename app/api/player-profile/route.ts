@@ -3,6 +3,7 @@ import { getProfileFromRequest } from "@/lib/authServer";
 import { requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { normalizeTeamNameKey, teamDisplayName } from "@/lib/teamNames";
+import { playerProfileStats } from "@/lib/playerProfileStats";
 import { sideBetNetForUser } from "@/lib/sideBetMarkets";
 import { computeWeeklyStandings } from "@/lib/weeklyBank";
 
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
     if (!player) return NextResponse.json({ ok: false, error: "Player not found in this Pick'em group." }, { status: 404 });
 
     const [picksResult, sideBetsResult, historyResult] = await Promise.all([
-      supabase.from("picks").select("*, game:games(id,commence_time,league,away_team,home_team)").eq("group_id", context.group.id).order("created_at", { ascending: true }),
+      supabase.from("picks").select("*, game:games(id,commence_time,league,away_team,home_team)").eq("group_id", context.group.id).order("created_at", { ascending: true }).order("id").range(0, 999),
       supabase.from("side_bets").select("id,group_id,season_year,creator_id,accepted_by,amount,creator_odds,status,result,winner_id,week,created_at").eq("group_id", context.group.id).order("id").range(0, 999),
       supabase.from("group_season_results").select("season_year,is_champion").eq("group_id", context.group.id).eq("profile_id", player.id)
     ]);
@@ -73,7 +74,14 @@ export async function GET(req: NextRequest) {
     if (sideBetsResult.error) throw new Error(sideBetsResult.error.message);
     if (historyResult.error) throw new Error(historyResult.error.message);
 
-    const allPicks = picksResult.data || [];
+    const allPicks = [...(picksResult.data || [])];
+    for (let offset = 1000; allPicks.length === offset; offset += 1000) {
+      const page = await supabase.from("picks")
+        .select("*, game:games(id,commence_time,league,away_team,home_team)")
+        .eq("group_id", context.group.id).order("created_at", { ascending: true }).order("id").range(offset, offset + 999);
+      if (page.error) throw new Error(page.error.message);
+      allPicks.push(...(page.data || []));
+    }
     const allSideBets = [...(sideBetsResult.data || [])];
     for (let offset = 1000; allSideBets.length === offset; offset += 1000) {
       const page = await supabase.from("side_bets")
@@ -150,7 +158,8 @@ export async function GET(req: NextRequest) {
         mostPickedTeam,
         mostPickedTeamRecord
       },
-      sideBets: { wins: sideBetWins, losses: sideBetLosses, pushes: sideBetPushes, net: sideBetNet, netText: money(sideBetNet) }
+      sideBets: { wins: sideBetWins, losses: sideBetLosses, pushes: sideBetPushes, net: sideBetNet, netText: money(sideBetNet) },
+      details: playerProfileStats(playerPicks, settledSideBets, player.id)
     });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });

@@ -1,5 +1,6 @@
 "use client";
 
+import type { PlayerProfileStats } from "@/lib/playerProfileStats";
 import { appSlugForPath } from "@/lib/appIdentity";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -8,6 +9,7 @@ import { createPortal } from "react-dom";
 import MenuSelect from "@/components/MenuSelect";
 
 type ProfilePayload = {
+  details?: PlayerProfileStats;
   group: { slug: string; titleLabel: string };
   player: { id: string; displayName: string };
   period: { selected: string; label: string; availableYears: number[] };
@@ -23,6 +25,14 @@ type ProfilePayload = {
 
 function record(wins: number, losses: number, pushes: number) {
   return `${wins}-${losses}-${pushes}`;
+}
+
+function profileMoney(value: number) {
+  return `${value < 0 ? "−" : value > 0 ? "+" : ""}$${Math.abs(value).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+}
+
+function percentage(value: number | null) {
+  return value == null ? "—" : `${(value * 100).toFixed(1)}%`;
 }
 
 function spread(value: number) {
@@ -193,6 +203,21 @@ export default function PlayerProfiles() {
             </div>
           </section>
 
+          {profile.details && <section className="player-profile-block">
+            <div className="player-profile-section-heading"><h3>Pick Breakdown</h3></div>
+            {profile.details.leagues.length > 0 && <div className="player-profile-detail-grid">
+              {profile.details.leagues.map(league => <div key={league.league}>
+                <span>{league.league} Spread Picks</span>
+                <strong>{record(league.wins, league.losses, league.pushes)}</strong>
+                <small>{percentage(league.winPct)} win rate</small>
+              </div>)}
+            </div>}
+            <div className="player-profile-detail-grid">
+              <div><span>Dog Picks Won</span><strong>{profile.details.dogs.wins} / {profile.details.dogs.attempts}</strong><small>Completed dog picks</small></div>
+              <div><span>Dog Bonus {profile.group.slug === "other-family" ? "Points" : "Wins"}</span><strong>+{profile.details.dogs.bonusWins}</strong><small>Earned from outright wins</small></div>
+            </div>
+          </section>}
+
           <section className="player-profile-block player-profile-highlights">
             <div className="player-profile-section-heading"><h3>Pick&apos;em Highlights</h3></div>
             <div className="player-profile-legacy-row">
@@ -215,6 +240,12 @@ export default function PlayerProfiles() {
               <div><span>Record</span><strong>{sideBetRecord}</strong></div>
               <div><span>Net $</span><strong className={profile.sideBets.net > 0 ? "money-pos" : profile.sideBets.net < 0 ? "money-neg" : ""}>{profile.sideBets.netText}</strong></div>
             </div>
+            {profile.details && <div className="player-profile-detail-grid">
+              <div><span>Side Bet Win Rate</span><strong>{percentage(profile.details.sideBets.winPct)}</strong><small>Excludes pushes</small></div>
+              <div><span>Settled Bets</span><strong>{profile.details.sideBets.settled}</strong><small>Includes pushes</small></div>
+              <div><span>Biggest Win</span><strong className={profile.details.sideBets.biggestWin > 0 ? "money-pos" : ""}>{profileMoney(profile.details.sideBets.biggestWin)}</strong><small>Net profit on one bet</small></div>
+              <div><span>Biggest Loss</span><strong className={profile.details.sideBets.biggestLoss < 0 ? "money-neg" : ""}>{profileMoney(profile.details.sideBets.biggestLoss)}</strong><small>Net loss on one bet</small></div>
+            </div>}
           </section>
         </div>
       </section>

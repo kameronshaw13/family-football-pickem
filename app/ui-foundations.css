@@ -34,6 +34,7 @@
   --ui-radius-md: var(--ui-radius-box);
   --ui-radius-lg: var(--ui-radius-box);
   --ui-radius-control: var(--ui-radius-action);
+  --ui-radius-filter: 6px;
   --ui-radius-circle: 50%;
   --canvas: #eef0ed;
   --canvas-deep: #e3e6e3;
@@ -350,11 +351,11 @@ fieldset .field-label { padding: 0; }
 .side-bet-slip-copy > .responsive-text { flex: 1 1 auto; }
 .side-bet-slip-open { display: grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; border: 1px solid var(--line-strong); border-radius: var(--ui-radius-md); color: var(--blue-dark); background: rgba(255, 255, 255, .34); }
 .side-bet-slip-open svg { display: block; width: 18px; height: 18px; margin: 0; }
-.side-bet-slip-sheet { position: fixed; right: max(0px, calc((100vw - 760px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom)); left: max(0px, calc((100vw - 760px) / 2)); z-index: 34; display: flex; max-height: min(80dvh, calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom) - 12px)); flex-direction: column; overflow: hidden; overscroll-behavior: none; border: 1px solid #4c5a61; border-radius: var(--ui-radius-md); background: var(--panel); box-shadow: 0 22px 52px rgba(20, 33, 43, .32); animation: side-bet-sheet-up .18s ease-out; will-change: transform, opacity; }
+.side-bet-slip-sheet { position: fixed; right: max(0px, calc((100vw - 760px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom)); left: max(0px, calc((100vw - 760px) / 2)); z-index: 34; display: flex; height: calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom)); max-height: calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom)); box-sizing: border-box; flex-direction: column; overflow: hidden; overscroll-behavior: none; border: 1px solid #4c5a61; border-radius: var(--ui-radius-md); background: var(--panel); box-shadow: 0 22px 52px rgba(20, 33, 43, .32); animation: side-bet-sheet-up .18s ease-out; will-change: transform, opacity; }
 .side-bet-slip-sheet.closing { pointer-events: none; animation: side-bet-sheet-down .18s ease-in forwards; }
 .side-bet-slip-sheet::-webkit-scrollbar { display: none; width: 0; }
 .side-bet-slip-sheet-head { position: relative; z-index: 2; display: flex; min-height: 61px; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 10px; padding: 9px var(--pick-content-inset) 9px 13px; border-bottom: 1px solid #59676e; color: #fff; background: var(--graphite); cursor: grab; touch-action: none; user-select: none; }
-.side-bet-slip-scroll { min-height: 0; overflow-y: auto; overscroll-behavior-x: none; overscroll-behavior-y: none; scrollbar-width: none; touch-action: pan-y; -webkit-overflow-scrolling: auto; }
+.side-bet-slip-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior-x: none; overscroll-behavior-y: none; scrollbar-width: none; touch-action: pan-y; -webkit-overflow-scrolling: auto; }
 .side-bet-slip-scroll::-webkit-scrollbar { display: none; width: 0; }
 .side-bet-slip-sheet-head:active { cursor: grabbing; }
 .side-bet-slip-title { min-width: 0; flex: 1 1 auto; }
@@ -1432,7 +1433,7 @@ body:has(.confirmation-backdrop) {
 
 .player-profile-backdrop {
   position: fixed;
-  inset: calc(env(safe-area-inset-top) + var(--header-height) + 12px) 0 calc(var(--nav-height) + env(safe-area-inset-bottom));
+  inset: calc(env(safe-area-inset-top) + var(--header-height)) 0 calc(var(--nav-height) + env(safe-area-inset-bottom));
   z-index: 140;
   display: grid;
   place-items: end center;
@@ -1448,7 +1449,7 @@ body:has(.confirmation-backdrop) {
   width: 100%;
   max-width: 760px;
   max-height: 100%;
-  height: auto;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
   border: 0;
@@ -1672,6 +1673,35 @@ body:has(.confirmation-backdrop) {
   font-weight: 700;
   line-height: 1.1;
 }
+
+/* Profile details share the existing two-column metric layout. */
+.player-profile-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+}
+.player-profile-detail-grid > div {
+  min-width: 0;
+  padding: var(--ui-space-3);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.player-profile-detail-grid span, .player-profile-detail-grid small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+.player-profile-detail-grid strong {
+  display: block;
+  margin: var(--ui-space-1) 0;
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.player-profile-detail-grid + .player-profile-detail-grid { margin-top: var(--ui-space-3); }
 
 .player-profile-side-bets {
   background: var(--surface-soft);
