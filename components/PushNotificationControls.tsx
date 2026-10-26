@@ -202,10 +202,10 @@ export default function PushNotificationControls({ appSlug: explicitAppSlug, onC
     </div>
     <div className="notification-settings-actions">
       {state === "checking"
-        ? <button type="button" className="btn secondary notification-compact-toggle notification-status-check" disabled aria-label="Checking notification status"><span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={12} /></span><span>{compactRow ? "Checking" : "Notifications"}</span></button>
+        ? <button type="button" className="btn secondary notification-compact-toggle notification-status-check" disabled aria-label="Checking notification status"><span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={12} /></span><span>Notifications</span></button>
         : state === "enabled"
-        ? <button type="button" className="btn secondary notification-compact-toggle enabled" disabled={busy} aria-label="Turn off push notifications" onClick={() => void disable()}>{busy ? <span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={12} /></span> : !compactRow && <Bell size={13} />}{!compactRow && <span>Notifications</span>}<span className="notification-compact-state">On</span></button>
-        : <button type="button" className="btn secondary notification-compact-toggle disabled" disabled={busy || unavailable} aria-label={helper || "Turn on push notifications"} title={helper || message || undefined} onClick={() => void enable()}>{busy ? <span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={12} /></span> : !compactRow && <BellOff size={13} />}{!compactRow && <span>Notifications</span>}<span className="notification-compact-state">Off</span></button>}
+        ? <button type="button" className="btn secondary notification-compact-toggle enabled" disabled={busy} aria-label="Turn off push notifications" onClick={() => void disable()}>{busy ? <span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={12} /></span> : <Bell size={13} />}<span>Notifications</span><span className="notification-compact-state">On</span></button>
+        : <button type="button" className="btn secondary notification-compact-toggle disabled" disabled={busy || unavailable} aria-label={helper || "Turn on push notifications"} title={helper || message || undefined} onClick={() => void enable()}>{busy ? <span className="notification-status-spinner" aria-hidden="true"><LoaderCircle size={12} /></span> : <BellOff size={13} />}<span>Notifications</span><span className="notification-compact-state">Off</span></button>}
     </div>
   </section>;
 }

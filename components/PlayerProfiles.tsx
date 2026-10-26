@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { createPortal } from "react-dom";
 import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
+import NumericText from "@/components/NumericText";
 import MenuSelect from "@/components/MenuSelect";
 
 type ProfilePayload = {
@@ -165,12 +166,11 @@ export default function PlayerProfiles() {
   }, [profileOpen, dismissProfile]);
 
   const periodOptions = profile
-    ? [{ value: "all", label: "All Time" }, ...profile.period.availableYears.map((year) => ({ value: String(year), label: String(year) }))]
+    ? [{ value: "all", label: "All Time" }, ...profile.period.availableYears.map((year) => ({ value: String(year), label: `${year} Season` }))]
     : [{ value: "all", label: "All Time" }];
   const seasonRecord = profile ? record(profile.season.wins, profile.season.losses, profile.season.pushes) : "";
   const sideBetRecord = profile ? record(profile.sideBets.wins, profile.sideBets.losses, profile.sideBets.pushes) : "";
   const titleCount = profile?.legacy.titlesTracked ? profile.legacy.titles ?? 0 : "—";
-  const periodHeading = period === "all" ? "All-Time Pick'em" : `${period} Season`;
   const sideBetHeading = period === "all" ? "All-Time Side Bets" : `${period} Side Bets`;
   const favoriteRecord = profile?.signature.mostPickedTeamRecord
     ? record(profile.signature.mostPickedTeamRecord.wins, profile.signature.mostPickedTeamRecord.losses, profile.signature.mostPickedTeamRecord.pushes)
@@ -186,23 +186,24 @@ export default function PlayerProfiles() {
       <section ref={sheetRef} className="player-profile-sheet" role="dialog" aria-modal="true" aria-labelledby="player-profile-title">
         <header className="player-profile-head">
           <div className="player-profile-head-copy"><span>Player Profile</span><h2 id="player-profile-title">{profile.player.displayName}</h2></div>
-          <MenuSelect
-            ariaLabel="Select profile year"
-            className="compact-select profile-year-select"
-            value={period}
-            loading={loading}
-            sections={[{ options: periodOptions }]}
-            onChange={(value) => {
-              setPeriod(value);
-              void loadProfile(activeName, value);
-            }}
-          />
           <div className="pick-row-actions player-profile-close-wrap"><button type="button" className="icon-btn" aria-label="Close profile" onClick={dismissProfile}><X size={16} /></button></div>
         </header>
 
         <div className="player-profile-content">
           <section className="player-profile-block player-profile-performance">
-            <div className="player-profile-section-heading"><h3>{periodHeading}</h3></div>
+            <div className="player-profile-section-heading profile-period-heading">
+              <MenuSelect
+                ariaLabel="Select profile year"
+                className="compact-select profile-period-select"
+                value={period}
+                loading={loading}
+                sections={[{ options: periodOptions }]}
+                onChange={(value) => {
+                  setPeriod(value);
+                  void loadProfile(activeName, value);
+                }}
+              />
+            </div>
             <div className="player-profile-performance-row">
               <div className="player-profile-record-mark"><span>Record</span><strong>{seasonRecord}</strong></div>
               <div className="player-profile-win-mark"><span>Win Rate</span><strong>{(profile.season.winPct * 100).toFixed(1)}%</strong></div>
@@ -236,7 +237,7 @@ export default function PlayerProfiles() {
                 <strong>{profile.signature.mostPickedTeam || "—"}</strong>
                 {profile.signature.mostPickedTeam && favoriteRecord && <small>{favoriteRecord} spread record</small>}
               </div>
-              <div><span>Biggest Dog Won</span><strong>{biggestDogText}</strong></div>
+              <div><span>Biggest Dog Won</span><strong className="profile-dog-highlight"><NumericText text={biggestDogText} /></strong></div>
             </div>
           </section>
 

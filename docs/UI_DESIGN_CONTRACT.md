@@ -26,7 +26,7 @@ Legacy `--space-1..5` are compatibility aliases, not a competing scale. Page, ba
 - Compact badges (including W/L/P) and weekday labels use crisp 2px corners (`--ui-radius-label`).
 - Connected pick rows, board edges, table rows and dividers remain flat so the app reads as one organized layout.
 - GameTracker and Matchup Preview retain their 6px internal corner treatment. Circular shapes remain reserved for actual dots and avatars.
-- Player profiles and the side bet sender fill the app content area from the fixed header to the fixed bottom navigation, with internal scrolling.
+- Player profiles use a 4px gap below the fixed header and scroll internally above bottom navigation. The period selector belongs above the record, not in the panel header. The side bet sender fills the content area.
 - Circular status indicators (e.g. score dots, avatars): `--ui-radius-circle: 50%`, only where meaning requires round shape
 - Dividers, rather than individually outlined pill cards, separate rows
 - Preserve controlled component interaction and safe-area padding; no sticky-nav movement
@@ -35,6 +35,10 @@ Legacy `--space-1..5` are compatibility aliases, not a competing scale. Page, ba
 - `--font-display` references Roboto Slab, loaded once in `app/layout.tsx`
 - Maintain tabular numerals and alignment for scores, spreads and money amounts
 - No ad-hoc per-screen font family substitutions without an explicit reason
+
+## History data
+- NFL and CFB matchup previews share a fourth Line Movement tab. Show recorded spread changes with Central-time timestamps; never invent historical change times from the current line.
+- Merge duplicate imported game scores and spreads independently. Read every history page before merging so later weeks cannot disappear behind a row cap.
 
 ## Safeguards
 - No changes to betting, scoring, side-bet expiry or banking calculations in a styling pass

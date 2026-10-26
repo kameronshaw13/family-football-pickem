@@ -42,15 +42,15 @@ export default function useGameSheetDismiss(
 
     const scrollerSelector = ".game-tracker-scroll, .matchup-preview-scroll, .player-profile-content";
     const headerSelector = ".game-tracker-header, .matchup-preview-header, .matchup-preview-hero, .game-tracker-scoreboard, .player-profile-head";
-    const dismissTime = 275;
-    const settleTime = 240;
+    const dismissTime = 300;
+    const settleTime = 280;
 
     // Matching the X and swipe-down exits avoids sudden unmounts or jumps.
     const animateClose = () => {
       if (isClosing) return;
       isClosing = true;
       window.clearTimeout(snapTimer);
-      sheet.style.transition = `transform ${dismissTime}ms cubic-bezier(.32, 0, .75, 1)`;
+      sheet.style.transition = `transform ${dismissTime}ms cubic-bezier(.22, .61, .36, 1)`;
       sheet.style.transform = "translate3d(0, calc(100% + 4px), 0)";
       dismissTimer = window.setTimeout(() => closeRef.current(), dismissTime);
     };

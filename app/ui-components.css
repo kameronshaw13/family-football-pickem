@@ -773,9 +773,9 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   width: 132px;
   height: 30px;
   flex: 0 0 132px;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  padding: 1px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  padding: 2px;
   overflow: hidden;
   border: 1px solid var(--graphite);
   border-radius: var(--ui-radius-filter);
@@ -954,9 +954,9 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   width: min(276px, 100%);
   height: 30px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
+  gap: 2px;
   margin: 0 0 var(--ui-space-2);
-  padding: 1px;
+  padding: 2px;
   overflow: hidden;
   border: 1px solid var(--graphite);
   border-radius: var(--ui-radius-filter);
@@ -1479,6 +1479,9 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   border: 0;
   border-radius: var(--ui-radius-circle);
   background: currentColor;
+  overflow: visible;
+  padding: 0;
+  align-self: center;
   transform: translateY(0.04em);
 }
 

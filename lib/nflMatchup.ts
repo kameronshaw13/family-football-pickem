@@ -1,6 +1,6 @@
 import { createAsyncCache } from "./asyncCache";
-import { finiteNumber, officialNflWeek, parseCsv, type LocalGame, type SportsDataRow } from "./cfbMatchupData";
-import { getSupabaseAdmin } from "./supabaseServer";
+import { finiteNumber, mergeLocalGameRows, officialNflWeek, parseCsv, type LocalGame, type SportsDataRow } from "./cfbMatchupData";
+import { loadHistoryGames } from "./historyGames";
 import { normalizeTeamNameKey, teamDisplayName } from "./teamNames";
 import { loadStoredNflSnapshot } from "./matchupStatSnapshots";
 
@@ -215,7 +215,7 @@ function dedupeLocalGames(games: LocalGame[]) {
       nflAbbr(game.home_team) || normalizeTeamNameKey(game.home_team)
     ].join(":");
     const existing = unique.get(key);
-    if (!existing || (existing.final_home_score == null && game.final_home_score != null)) unique.set(key, game);
+    unique.set(key, existing ? mergeLocalGameRows(existing, game) : game);
   }
   return Array.from(unique.values()).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
 }
@@ -307,14 +307,8 @@ async function buildMatchup(game: NflMatchupGame) {
   const homeAbbr = nflAbbr(game.home_team);
   const [storedSnapshot, local] = await Promise.all([
     loadStoredNflSnapshot(season, throughWeek).catch(() => null),
-    getSupabaseAdmin().from("games")
-      .select("id,week,commence_time,home_team,away_team,current_spread_team,current_spread,final_home_score,final_away_score")
-      .eq("league", "NFL")
-      .gte("commence_time", `${season}-08-01T00:00:00Z`)
-      .lt("commence_time", game.commence_time)
-      .order("commence_time", { ascending: true })
-      .limit(200)
-      .abortSignal(AbortSignal.timeout(8_000))
+    loadHistoryGames("NFL", season, game.commence_time)
+      .catch(error => ({ data: [] as LocalGame[], error }))
   ]);
   const stats = storedSnapshot?.rows || await fetchTeamStats(season).catch(() => [] as SportsDataRow[]);
   const localGames = dedupeLocalGames((local.data || []) as LocalGame[]);

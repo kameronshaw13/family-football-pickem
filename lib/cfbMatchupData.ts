@@ -10,6 +10,7 @@ export type LocalGame = {
   home_logo_url?: string | null;
   away_logo_url?: string | null;
   espn_event_id?: string | null;
+  updated_at?: string | null;
   current_spread_team: string | null;
   current_spread: number | null;
   final_home_score: number | null;
@@ -234,6 +235,24 @@ export function normalizePower(summaryRow: SportsDataRow | null, fpiRow: SportsD
   };
 }
 
+/** Preserve scores and lines independently when providers created duplicate rows. */
+export function mergeLocalGameRows(existing: LocalGame, candidate: LocalGame): LocalGame {
+  const newer = Date.parse(candidate.updated_at || "") > Date.parse(existing.updated_at || "") ? candidate : existing;
+  const older = newer === existing ? candidate : existing;
+  const hasFinal = (game: LocalGame) => game.final_home_score != null && game.final_away_score != null;
+  const hasLine = (game: LocalGame) => game.current_spread != null && Number.isFinite(Number(game.current_spread)) && (sameTeam(game.current_spread_team, game.home_team) || sameTeam(game.current_spread_team, game.away_team));
+  const scores = hasFinal(newer) ? newer : hasFinal(older) ? older : newer;
+  const line = hasLine(newer) ? newer : older;
+  return {
+    ...newer,
+    espn_event_id: newer.espn_event_id || older.espn_event_id || null,
+    final_home_score: scores.final_home_score,
+    final_away_score: scores.final_away_score,
+    current_spread_team: hasLine(line) ? line.current_spread_team : null,
+    current_spread: hasLine(line) ? line.current_spread : null
+  };
+}
+
 export function dedupeLocalGames(games: LocalGame[]) {
   const unique = new Map<string, LocalGame>();
   for (const game of games) {
@@ -248,13 +267,7 @@ export function dedupeLocalGames(games: LocalGame[]) {
       continue;
     }
 
-    const existingHasEspnId = Boolean(existing.espn_event_id);
-    const candidateHasEspnId = Boolean(game.espn_event_id);
-    const existingFinal = existing.final_home_score != null && existing.final_away_score != null;
-    const candidateFinal = game.final_home_score != null && game.final_away_score != null;
-    if ((!existingHasEspnId && candidateHasEspnId) || (!existingFinal && candidateFinal)) {
-      unique.set(key, game);
-    }
+    unique.set(key, mergeLocalGameRows(existing, game));
   }
   return Array.from(unique.values()).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
 }

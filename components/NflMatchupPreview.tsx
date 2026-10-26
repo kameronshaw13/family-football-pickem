@@ -1,5 +1,6 @@
 "use client";
 
+import LineMovement from "@/components/LineMovement";
 import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
 
 
@@ -14,7 +15,7 @@ import { formatOrdinalDate, matchupDateFormatter } from "@/lib/displayDates";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { teamDisplayName } from "@/lib/teamNames";
 
-type Tab = "matchup" | "form" | "history";
+type Tab = "matchup" | "form" | "history" | "movement";
 type Snapshot = NonNullable<NflMatchupTeam["offense"]>;
 const getPreview = createAsyncCache<NflMatchupPayload>(5 * 60_000, 24);
 const getHistory = createAsyncCache<NflMatchupHistory>(15 * 60_000, 24);
@@ -113,7 +114,6 @@ function Comparison({
 
 function Analytics({ payload, awayLogo, homeLogo }: { payload: NflMatchupPayload; awayLogo?: string | null; homeLogo?: string | null }) {
   const { away, home } = payload.teams;
-  const incomplete = !away.advancedAvailable || !home.advancedAvailable;
   return <div className="matchup-tab-body">
     <section className="matchup-strength">
       <div className="matchup-section-heading"><h3>Overall Strength</h3></div>
@@ -138,10 +138,6 @@ function Analytics({ payload, awayLogo, homeLogo }: { payload: NflMatchupPayload
         <RankValue value={home.defense?.epaPerPlay} rank={home.defense?.epaPerPlayRank} format={value => signed(value)} />
       </div>
     </section>
-    <p className="matchup-data-note">
-      <strong>NFL advanced data:</strong> nflverse/nflfastR through Week {payload.throughWeek}. Ranks compare all available NFL teams.
-      {incomplete ? " The current weekly release is still catching up for one or both teams." : ""}
-    </p>
     <Comparison away={away} home={home} awayLogo={awayLogo} homeLogo={homeLogo} possession="away" />
     <Comparison away={away} home={home} awayLogo={awayLogo} homeLogo={homeLogo} possession="home" />
   </div>;
@@ -165,11 +161,11 @@ function FormTeam({ team, logo }: { team: NflMatchupTeam; logo?: string | null }
         <span className={row.result === "W" ? "matchup-result-win" : row.result === "L" ? "matchup-result-loss" : "matchup-result-push"}>{row.result}</span>
         <div className="matchup-result-opponent">
           <strong>{row.home ? "vs" : "at"} {teamDisplayName("NFL", row.opponent)}</strong>
-          <small>Week {row.week}{cover ? <> <span className="matchup-inline-dot matchup-form-week-dot" aria-hidden="true" /> Spread {spreadText(cover.spread)}</> : null}</small>
+          <small><span>Week {row.week}</span><span className="matchup-form-spread"><span className="ui-separator-dot matchup-form-week-dot" aria-hidden="true">·</span>Spread {cover ? spreadText(cover.spread) : "—"}</span></small>
         </div>
         <div className="matchup-result-outcome">
           <strong>{row.teamPoints}-{row.opponentPoints}</strong>
-          {cover && <small>ATS <b className={cover.result === "W" ? "matchup-cover-win" : cover.result === "L" ? "matchup-cover-loss" : "matchup-cover-push"}>{cover.result}</b></small>}
+          {cover && <small>ATS <b className={`matchup-ats-badge ${cover.result === "W" ? "matchup-cover-win" : cover.result === "L" ? "matchup-cover-loss" : "matchup-cover-push"}`}>{cover.result}</b></small>}
         </div>
       </div>;
     }) : <p className="matchup-empty-copy">No completed games available.</p>}
@@ -304,7 +300,7 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
   }, [tab, game.id, history, retry]);
 
   if (!mounted) return null;
-  const tabs: Array<[Tab, string]> = [["matchup", "Analytics"], ["form", "Form"], ["history", "History"]];
+  const tabs: Array<[Tab, string]> = [["matchup", "Analytics"], ["form", "Form"], ["history", "History"], ["movement", "Line Movement"]];
 
   return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) closeWithMotion(); }}>
     <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="false" aria-label={`${away} at ${home} NFL matchup preview`}>
@@ -325,10 +321,11 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
         </div>)}
         <span className="matchup-center-at" aria-hidden="true">AT</span>
       </div>
-      <nav className="matchup-preview-tabs" aria-label="NFL matchup sections">{tabs.map(([id, label]) => <button type="button" key={id} aria-current={tab === id ? "page" : undefined} className={tab === id ? "active" : ""} onClick={() => { setTab(id); sheet.current?.querySelector(".matchup-preview-scroll")?.scrollTo(0, 0); }}>{label}</button>)}</nav>
+      <nav className="matchup-preview-tabs has-line-movement" aria-label="NFL matchup sections">{tabs.map(([id, label]) => <button type="button" key={id} aria-current={tab === id ? "page" : undefined} className={tab === id ? "active" : ""} onClick={() => { setTab(id); sheet.current?.querySelector(".matchup-preview-scroll")?.scrollTo(0, 0); }}>{label}</button>)}</nav>
       <div className="matchup-preview-scroll">
-        {error && <div className="matchup-empty-copy" role="alert"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
-        {!payload && !error && <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading NFL matchup…</span></div>}
+        {tab === "movement" && <LineMovement game={game} />}
+        {tab !== "movement" && error && <div className="matchup-empty-copy" role="alert"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
+        {tab !== "movement" && !payload && !error && <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading NFL matchup…</span></div>}
         {payload && tab === "matchup" && <Analytics payload={payload} awayLogo={game.away_logo_url} homeLogo={game.home_logo_url} />}
         {payload && tab === "form" && <div className="matchup-tab-body"><div className="matchup-split-lists"><FormTeam team={payload.teams.away} logo={game.away_logo_url} /><FormTeam team={payload.teams.home} logo={game.home_logo_url} /></div></div>}
         {payload && tab === "history" && (history ? <History history={history} away={away} home={home} awayLogo={game.away_logo_url} homeLogo={game.home_logo_url} /> : historyError ? <div className="matchup-empty-copy" role="alert"><p>{historyError}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div> : <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading history…</span></div>)}

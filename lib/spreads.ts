@@ -1,6 +1,10 @@
+import { normalizeTeamNameKey } from "./teamNames.ts";
+
 export function normalizeSpreadForSelectedTeam(selectedTeam: string, spreadTeam: string | null | undefined, spread: number | null | undefined) {
-  if (spread == null || !spreadTeam) return null;
-  return selectedTeam === spreadTeam ? Number(spread) : Number(-spread);
+  if (spread == null || !spreadTeam || !Number.isFinite(Number(spread))) return null;
+  const selectedKey = normalizeTeamNameKey(selectedTeam);
+  const sameTeam = selectedTeam === spreadTeam || (selectedKey && selectedKey === normalizeTeamNameKey(spreadTeam));
+  return sameTeam ? Number(spread) : Number(-spread);
 }
 
 export function formatSpread(team: string | null, spread: number | null) {

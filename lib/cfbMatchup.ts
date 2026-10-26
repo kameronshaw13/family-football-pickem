@@ -1,4 +1,4 @@
-import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { loadHistoryGames } from "./historyGames";
 import { teamDisplayName } from "@/lib/teamNames";
 import { createAsyncCache } from "./asyncCache";
 import { loadStoredCfbSnapshot } from "./matchupStatSnapshots";
@@ -58,16 +58,8 @@ async function buildMatchup(game: MatchupGame) {
   const home = teamDisplayName("CFB", game.home_team);
   const awayId = logoTeamId(game.away_logo_url);
   const homeId = logoTeamId(game.home_logo_url);
-  const supabase = getSupabaseAdmin();
-  const localRequest = supabase.from("games")
-    .select("id,week,commence_time,home_team,away_team,current_spread_team,current_spread,final_home_score,final_away_score,espn_event_id")
-    .eq("league", "CFB")
-    .gte("commence_time", `${season}-08-01T00:00:00Z`)
-    .lt("commence_time", game.commence_time)
-    .or(`home_team.in.(${JSON.stringify(game.away_team)},${JSON.stringify(game.home_team)}),away_team.in.(${JSON.stringify(game.away_team)},${JSON.stringify(game.home_team)})`)
-    .order("commence_time", { ascending: true })
-    .limit(100)
-    .abortSignal(AbortSignal.timeout(8_000));
+  const localRequest = loadHistoryGames("CFB", season, game.commence_time, [game.away_team, game.home_team])
+    .catch(error => ({ data: [] as LocalGame[], error }));
   const [local, awaySchedule, homeSchedule, storedSnapshot] = await Promise.all([
     localRequest,
     schedule(awayId, season).catch(() => [] as Schedule),

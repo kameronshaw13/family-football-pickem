@@ -4803,7 +4803,7 @@ select:focus-visible,
 .pick-meta, .visible-pick p { font-size: 12px; }
 .btn { min-height: 44px; border-radius: var(--ui-radius-md); font-size: 13px; }
 .input { min-height: 46px; border-radius: var(--ui-radius-md); }
-.empty-state, .loading-card, .error-card, .notice-card { border-radius: var(--ui-radius-md); line-height: 1.5; }
+.empty-state, .loading-card, .error-card, .notice-card { border-radius: 0; line-height: 1.5; }
 
 /* GameTracker keeps the matchup in its title and gives the score strip one clear job. */
 .game-tracker-scoreboard-grid { min-height: 104px; padding-block: 10px; }
@@ -5142,7 +5142,7 @@ button, input, select, textarea {
   --ui-radius-control: 6px;
 }
 :is(
-  .card-progress, .side-bet-slip-bar, .leaderboard,
+  .side-bet-slip-bar, .leaderboard,
   .bank-week-results, .login-card, .confirmation-sheet,
   .group-list, .side-bet-list, .ledger-list, .settings-card
 ) {
@@ -5152,7 +5152,8 @@ button, input, select, textarea {
     .game-tracker-header, .matchup-preview-header, .game-tracker-scoreboard,
     .game-list, .game-card, .pick-card, .side-bet-card, .side-bet-ledger-row, .ledger-row,
     .leaderboard-row, .bank-player-result, .rule-item, .settings-panel,
-    .settings-signout, .board-empty-state, .side-bet-empty-state) {
+    .settings-signout, .board-empty-state, .side-bet-empty-state,
+    .card-progress, .notice-card, .progress-track, .side-bet-list > .empty-state) {
   border-radius: 0;
 }
 :is(
@@ -5526,3 +5527,44 @@ button, input, select, textarea {
   .game-tracker-box-selector { padding-inline: var(--tracker-inset); }
 }
 
+
+/* Preview history and profile controls share the existing section rhythm. */
+.matchup-preview-tabs.has-line-movement { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.matchup-preview-tabs.has-line-movement button { min-width: 0; padding-inline: 4px; white-space: normal; line-height: 1.15; }
+.line-movement-note { display: flex; align-items: center; flex-wrap: wrap; padding: var(--ui-space-3); color: var(--muted); font-size: 11px; }
+.line-movement-columns, .line-movement-row {
+  display: grid;
+  grid-template-columns: minmax(125px, 1.6fr) repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3);
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.line-movement-columns { background: var(--surface-muted); color: var(--muted); font-size: 10px; }
+.line-movement-columns > strong, .line-movement-row > strong { text-align: center; }
+.line-movement-row time { display: block; font-size: 11px; }
+.line-movement-row small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+.profile-period-select.compact-select { height: 32px; min-height: 32px; min-width: 140px; }
+.profile-period-select.compact-select .custom-select-trigger { height: 32px; min-height: 32px; padding-block: 0; font-size: 12px; text-transform: none; }
+.profile-period-select.compact-select::after { bottom: 0; height: 1px; }
+.profile-period-heading { margin-bottom: var(--ui-space-3); }
+.profile-dog-highlight .ui-separator-dot { vertical-align: middle; transform: translateY(-.02em); }
+.card-progress-count .ui-separator-dot { transform: translateY(-.06em); }
+.pick-title-market { min-height: 1.25em; overflow: visible; }
+.matchup-form-spread { display: inline-flex; align-items: center; white-space: nowrap; }
+.matchup-form-combined-row .matchup-form-week-dot {
+  width: 3px; min-width: 3px; max-width: 3px;
+  height: 3px; min-height: 3px; max-height: 3px;
+  flex: 0 0 3px; margin: 0 .4em; align-self: center; transform: none;
+}
+.matchup-form-combined-row > span { display: grid; place-items: center; padding: 1px 0 0; line-height: 1; text-align: center; }
+.matchup-result-outcome .matchup-ats-badge {
+  display: inline-grid; place-items: center; width: 19px; height: 19px;
+  padding: 1px 0 0; border: 1px solid currentColor; border-radius: var(--ui-radius-label);
+  font-family: var(--font-display); font-size: 10px; line-height: 1; text-align: center;
+}
+.matchup-ats-badge.matchup-cover-win { color: var(--green); background: var(--green-soft); }
+.matchup-ats-badge.matchup-cover-loss { color: var(--red); background: var(--red-soft); }
+.matchup-ats-badge.matchup-cover-push { color: var(--muted); background: var(--surface-muted); }
