@@ -53,8 +53,8 @@ for (const name of cssImports) {
 const canonicalTokens = {
   "--ui-space-1": "4px", "--ui-space-2": "8px", "--ui-space-3": "12px",
   "--ui-space-4": "16px", "--ui-space-5": "24px",
-  "--ui-radius-flat": "0", "--ui-radius-label": "2px", "--ui-radius-action": "4px",
-  "--ui-radius-box": "6px",
+  "--ui-radius-flat": "0", "--ui-radius-label": "0", "--ui-radius-action": "0",
+  "--ui-radius-box": "0",
   "--ui-radius-sm": "var(--ui-radius-box)", "--ui-radius-md": "var(--ui-radius-box)", "--ui-radius-lg": "var(--ui-radius-box)",
   "--ui-radius-control": "var(--ui-radius-box)", "--ui-radius-circle": "50%"
 };
@@ -68,7 +68,7 @@ for (const name of cssImports) {
         !/^(?:0|50%|var\(--ui-radius-(?:flat|label|action|box|sm|md|lg|control|circle)\))$/.test(decl.value)) {
       problems.push(`Use a shared shape token, a circle, or a flush edge at ${name}:${decl.source.start.line}: ${decl.value}`);
     }
-    if (tokenDefinitions.has(decl.prop)) tokenDefinitions.get(decl.prop).push({
+    if (tokenDefinitions.has(decl.prop) && decl.parent.selector !== ".game-tracker-sheet, .matchup-preview-sheet") tokenDefinitions.get(decl.prop).push({
       source: name, line: decl.source.start.line, value: decl.value
     });
   });

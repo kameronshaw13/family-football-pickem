@@ -5,6 +5,7 @@ import { pickCardSignature, completeSeasonStandings } from "@/lib/standingsDispl
 import RuleItem from "@/components/RuleItem";
 import Leaderboard from "@/components/Leaderboard";
 import SectionTabs from "@/components/SectionTabs";
+import { expandGameAliases, mergeLiveScores } from "@/lib/liveScoreMerge";
 import { sideBetMatchesGameFilter, sortSideBetsByGameStatus, sortSideBetsGroupedByGame, type SideBetGameFilter } from "@/lib/sideBetSorting";
 import { sideBetMarketText, sideBetOddsForTeam, sideBetOddsSuffix, sideBetTotalSideForTeam, sideBetLineText } from "@/lib/sideBetDisplay";
 import { money, roundedMoney, stakeMoney, normalizeRiskInput } from "@/lib/moneyDisplay";
@@ -729,23 +730,20 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       scoreRefreshInFlight = true;
       try {
         const response = await fetch("/api/live-scores?week=" + week, {
+          signal: AbortSignal.timeout(15000),
           headers: { Authorization: "Bearer " + token, "x-pickem-group": appSlug },
           cache: "no-store"
         });
         if (!response.ok) throw new Error("Score updates unavailable");
-        const payload = await response.json() as { games?: LiveScoreUpdate[]; needsFinalization?: boolean };
+        const payload = await response.json() as { games?: LiveScoreUpdate[]; needsFinalization?: boolean; unavailableGameIds?: string[] };
         if (!cancelled) {
           failedScoreChecks = 0;
-          setScoreUpdatesUnavailable(false);
+          setScoreUpdatesUnavailable(Boolean(payload.unavailableGameIds?.length));
         }
         if (cancelled || !payload.games?.length) return;
-        const scoresById = new Map(payload.games.map((game) => [game.id, game]));
         const current = dataRef.current;
         if (!current) return;
-        const nextGames = current.games.map((game) => {
-          const score = scoresById.get(game.id);
-          return score ? { ...game, ...score } : game;
-        });
+        const nextGames = mergeLiveScores(current.games, payload.games);
         const alert = buildLiveAlert(current, nextGames);
         const nextData = { ...current, games: nextGames };
         dataRef.current = nextData;
@@ -993,6 +991,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   );
   const viewedSideBetBankTotals = previewActive ? testWeek!.sideBetBankTotals : data.sideBetBankTotals;
   const viewedGames = previewActive ? testWeek!.games : games;
+  const cardGames = expandGameAliases(viewedGames);
   const viewedPicks = previewActive ? testWeek!.picks : picks;
   const viewedWeek = previewActive ? 3 : data.week;
   const currentWeek = Number(data.currentWeek ?? data.week);
@@ -1347,7 +1346,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           {!hideCardProgress && <CardProgress rule={rule} counts={regularCounts} hasDog={Boolean(myUnderdog)} dirty={stagedPicks !== null} />}
           <PickList
             picks={myUnderdog ? [...myRegular, myUnderdog] : myRegular}
-            games={viewedGames}
+            games={cardGames}
             title="Picks"
             pointsMode={pointsMode}
             universalLockReached={universalLockReached}
@@ -1374,7 +1373,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             return <div key={profile.id} className="group-card">
               <h3>{profile.display_name}</h3>
               {playerPicks.length === 0 && <p className="muted group-empty-picks">No visible picks yet.</p>}
-              {playerPicks.map((pick) => <VisiblePick key={pick.id} pick={pick} games={viewedGames} pointsMode={pointsMode} universalLockReached={universalLockReached} openPreview={setMatchupPreviewGame} />)}
+              {playerPicks.map((pick) => <VisiblePick key={pick.id} pick={pick} games={cardGames} pointsMode={pointsMode} universalLockReached={universalLockReached} openPreview={setMatchupPreviewGame} />)}
             </div>;
           })}
         </div>}

@@ -4,6 +4,7 @@ export type PickResult = "win" | "loss" | "push" | "pending";
 export type PickType = "regular" | "underdog";
 
 export type Game = {
+  source_game_ids?: string[];
   id: string;
   espn_event_id?: string | null;
   week: number;

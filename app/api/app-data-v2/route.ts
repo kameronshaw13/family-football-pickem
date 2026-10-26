@@ -126,6 +126,7 @@ export async function GET(req: NextRequest) {
 
       unique.set(key, {
         ...preferred,
+        source_game_ids: Array.from(new Set([...(preferred.source_game_ids || [preferred.id]), ...(other.source_game_ids || [other.id])])),
         espn_event_id: preferred.espn_event_id || other.espn_event_id || null,
         home_logo_url: preferred.home_logo_url || other.home_logo_url || null,
         away_logo_url: preferred.away_logo_url || other.away_logo_url || null,

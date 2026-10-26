@@ -228,8 +228,8 @@ export async function fetchEspnWinProbability(league: League, eventId: string, f
   const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/${sportPath}/summary`);
   url.searchParams.set("event", eventId);
   const response = await fetch(url.toString(), freshness === true
-    ? { cache: "no-store" }
-    : { next: { revalidate: typeof freshness === "number" ? freshness : 10 } });
+    ? { cache: "no-store", signal: AbortSignal.timeout(5000) }
+    : { next: { revalidate: typeof freshness === "number" ? freshness : 10 }, signal: AbortSignal.timeout(5000) });
   if (!response.ok) return null;
   const payload = await response.json();
   const probabilities = Array.isArray(payload?.winprobability) ? payload.winprobability : [];
@@ -257,8 +257,8 @@ async function fetchEspnEventUncached(
   const url = new URL(`https://site.api.espn.com/apis/site/v2/sports/${sportPath}/summary`);
   url.searchParams.set("event", eventId);
   const response = await fetch(url.toString(), freshness === true
-    ? { cache: "no-store" }
-    : { next: { revalidate: typeof freshness === "number" ? freshness : 10 } });
+    ? { cache: "no-store", signal: AbortSignal.timeout(5000) }
+    : { next: { revalidate: typeof freshness === "number" ? freshness : 10 }, signal: AbortSignal.timeout(5000) });
   if (!response.ok) return null;
 
   const payload = await response.json();
@@ -325,8 +325,8 @@ async function fetchEspnTeamSchedule(
   if (league === "CFB") url.searchParams.set("seasontype", "2");
 
   const response = await fetch(url.toString(), freshness === true
-    ? { cache: "no-store" }
-    : { next: { revalidate: typeof freshness === "number" ? freshness : 60 * 60 } });
+    ? { cache: "no-store", signal: AbortSignal.timeout(5000) }
+    : { next: { revalidate: typeof freshness === "number" ? freshness : 60 * 60 }, signal: AbortSignal.timeout(5000) });
   if (!response.ok) return [];
 
   const payload = await response.json();
@@ -390,11 +390,13 @@ async function fetchEspnScheduleUncached(league: League, dateHints: string[], fr
     url.searchParams.set("dates", datesParam);
 
     let lastError: Error | null = null;
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
+    // Live polling retries on the next tick; long retry chains delay every card.
+    const attempts = freshness === true || (typeof freshness === "number" && freshness <= 4) ? 1 : 3;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
       try {
         const response = await fetch(url.toString(), freshness === true
-          ? { cache: "no-store" }
-          : { next: { revalidate: typeof freshness === "number" ? freshness : 60 * 60 } });
+          ? { cache: "no-store", signal: AbortSignal.timeout(5000) }
+          : { next: { revalidate: typeof freshness === "number" ? freshness : 60 * 60 }, signal: AbortSignal.timeout(5000) });
         if (!response.ok) {
           const details = (await response.text().catch(() => "")).slice(0, 240);
           throw new Error(`ESPN schedule failed for ${league} (${response.status}) dates=${datesParam}${details ? `: ${details}` : ""}`);
@@ -403,7 +405,7 @@ async function fetchEspnScheduleUncached(league: League, dateHints: string[], fr
         return Array.isArray(payload?.events) ? payload.events : [];
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 250));
+        if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, attempt * 250));
       }
     }
     throw lastError || new Error(`ESPN schedule failed for ${league} dates=${datesParam}`);

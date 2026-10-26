@@ -3,6 +3,7 @@ import { getProfileFromRequest } from "@/lib/authServer";
 import { requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { normalizeTeamNameKey, teamDisplayName } from "@/lib/teamNames";
+import { sideBetNetForUser } from "@/lib/sideBetMarkets";
 import { computeWeeklyStandings } from "@/lib/weeklyBank";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
 
     const [picksResult, sideBetsResult, historyResult] = await Promise.all([
       supabase.from("picks").select("*, game:games(id,commence_time,league,away_team,home_team)").eq("group_id", context.group.id).order("created_at", { ascending: true }),
-      supabase.from("side_bets").select("id,group_id,season_year,creator_id,accepted_by,amount,status,result,winner_id,week,created_at").eq("group_id", context.group.id),
+      supabase.from("side_bets").select("id,group_id,season_year,creator_id,accepted_by,amount,creator_odds,status,result,winner_id,week,created_at").eq("group_id", context.group.id).order("id").range(0, 999),
       supabase.from("group_season_results").select("season_year,is_champion").eq("group_id", context.group.id).eq("profile_id", player.id)
     ]);
     if (picksResult.error) throw new Error(picksResult.error.message);
@@ -73,7 +74,14 @@ export async function GET(req: NextRequest) {
     if (historyResult.error) throw new Error(historyResult.error.message);
 
     const allPicks = picksResult.data || [];
-    const allSideBets = sideBetsResult.data || [];
+    const allSideBets = [...(sideBetsResult.data || [])];
+    for (let offset = 1000; allSideBets.length === offset; offset += 1000) {
+      const page = await supabase.from("side_bets")
+        .select("id,group_id,season_year,creator_id,accepted_by,amount,creator_odds,status,result,winner_id,week,created_at")
+        .eq("group_id", context.group.id).order("id").range(offset, offset + 999);
+      if (page.error) throw new Error(page.error.message);
+      allSideBets.push(...(page.data || []));
+    }
     const availableYears = Array.from(new Set([
       context.seasonYear,
       ...allPicks.map((pick: any) => Number(pick.season_year)).filter(Number.isFinite),
@@ -115,8 +123,9 @@ export async function GET(req: NextRequest) {
       if (bet.result === "push") { sideBetPushes += 1; continue; }
       const won = bet.winner_id === player.id;
       if (won) sideBetWins += 1; else sideBetLosses += 1;
-      sideBetNet += won ? Number(bet.amount) : -Number(bet.amount);
+      sideBetNet += sideBetNetForUser(bet, player.id);
     }
+    sideBetNet = Math.round(sideBetNet * 100) / 100;
     const historyRows = historyResult.data || [];
     const titlesTracked = historyRows.length > 0;
     const titles = historyRows.filter((row: any) => row.is_champion).length;

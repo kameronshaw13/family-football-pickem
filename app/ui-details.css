@@ -5138,7 +5138,6 @@ button, input, select, textarea {
     padding-right: var(--ui-space-3);
   }
   .side-bet-slip-bar,
-  .side-bet-slip-sheet,
   .autosave-toast,
   .toast {
     right: var(--ui-space-3);
@@ -5160,8 +5159,13 @@ button, input, select, textarea {
 }
 
 
-/* Shared shapes by purpose: boxed day labels, flat board edges,
-   softly rounded cards and pill-shaped detail actions. */
+/* Main app stays flat. Rounded cards are scoped to the game detail surfaces. */
+.game-tracker-sheet, .matchup-preview-sheet {
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 6px;
+  --ui-radius-lg: 6px;
+  --ui-radius-control: 6px;
+}
 :is(
   .card-progress, .side-bet-slip-bar, .leaderboard,
   .bank-week-results, .login-card, .confirmation-sheet,

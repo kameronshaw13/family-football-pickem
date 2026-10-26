@@ -27,9 +27,9 @@
   --space-5: var(--ui-space-5);
   /* Shapes follow purpose: flat board edges, boxed labels, cards, and rounded actions. */
   --ui-radius-flat: 0;
-  --ui-radius-label: 2px;
-  --ui-radius-action: 4px;
-  --ui-radius-box: 6px;
+  --ui-radius-label: 0;
+  --ui-radius-action: 0;
+  --ui-radius-box: 0;
   --ui-radius-sm: var(--ui-radius-box);
   --ui-radius-md: var(--ui-radius-box);
   --ui-radius-lg: var(--ui-radius-box);
@@ -350,7 +350,7 @@ fieldset .field-label { padding: 0; }
 .side-bet-slip-copy > .responsive-text { flex: 1 1 auto; }
 .side-bet-slip-open { display: grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; border: 1px solid var(--line-strong); border-radius: var(--ui-radius-md); color: var(--blue-dark); background: rgba(255, 255, 255, .34); }
 .side-bet-slip-open svg { display: block; width: 18px; height: 18px; margin: 0; }
-.side-bet-slip-sheet { position: fixed; right: max(12px, calc((100vw - 736px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 9px); left: max(12px, calc((100vw - 736px) / 2)); z-index: 34; display: flex; max-height: min(590px, calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom) - 24px)); flex-direction: column; overflow: hidden; overscroll-behavior: none; border: 1px solid #4c5a61; border-radius: var(--ui-radius-md); background: var(--panel); box-shadow: 0 22px 52px rgba(20, 33, 43, .32); animation: side-bet-sheet-up .18s ease-out; will-change: transform, opacity; }
+.side-bet-slip-sheet { position: fixed; right: max(0px, calc((100vw - 760px) / 2)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom)); left: max(0px, calc((100vw - 760px) / 2)); z-index: 34; display: flex; max-height: min(80dvh, calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom) - 12px)); flex-direction: column; overflow: hidden; overscroll-behavior: none; border: 1px solid #4c5a61; border-radius: var(--ui-radius-md); background: var(--panel); box-shadow: 0 22px 52px rgba(20, 33, 43, .32); animation: side-bet-sheet-up .18s ease-out; will-change: transform, opacity; }
 .side-bet-slip-sheet.closing { pointer-events: none; animation: side-bet-sheet-down .18s ease-in forwards; }
 .side-bet-slip-sheet::-webkit-scrollbar { display: none; width: 0; }
 .side-bet-slip-sheet-head { position: relative; z-index: 2; display: flex; min-height: 61px; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 10px; padding: 9px var(--pick-content-inset) 9px 13px; border-bottom: 1px solid #59676e; color: #fff; background: var(--graphite); cursor: grab; touch-action: none; user-select: none; }
@@ -645,8 +645,8 @@ fieldset .field-label { padding: 0; }
   .team-board-market { font-size: 15px; }
   .team-result-score { font-size: 15px; }
   .team-spread { font-size: 15px; }
-  .side-bet-slip-bar, .side-bet-slip-sheet { right: 9px; left: 9px; }
-  .side-bet-slip-sheet { max-height: min(590px, calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom) - 20px)); }
+  .side-bet-slip-bar { right: 9px; left: 9px; }
+
   .card-progress-copy, .bet-line-summary { align-items: flex-start; flex-direction: column; }
   .card-progress-count { max-width: none; text-align: left; }
   .bet-line-summary > span:last-child { text-align: left; }
@@ -1432,13 +1432,13 @@ body:has(.confirmation-backdrop) {
 
 .player-profile-backdrop {
   position: fixed;
-  inset: 0;
+  inset: calc(env(safe-area-inset-top) + var(--header-height) + 12px) 0 calc(var(--nav-height) + env(safe-area-inset-bottom));
   z-index: 140;
   display: grid;
-  place-items: center;
+  place-items: end center;
   overflow: hidden;
   padding: 0;
-  background: var(--canvas);
+  background: rgba(23, 38, 48, .28);
 }
 
 .player-profile-sheet {
@@ -1446,9 +1446,10 @@ body:has(.confirmation-backdrop) {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 100%;
-  height: 100dvh;
-  min-height: 100dvh;
+  max-width: 760px;
+  max-height: 100%;
+  height: auto;
+  min-height: 0;
   overflow: hidden;
   border: 0;
   border-radius: 0;
@@ -1459,10 +1460,10 @@ body:has(.confirmation-backdrop) {
 .player-profile-head {
   position: relative;
   display: flex;
-  min-height: calc(56px + env(safe-area-inset-top));
+  min-height: 56px;
   flex: 0 0 auto;
   align-items: center;
-  padding: calc(9px + env(safe-area-inset-top)) 154px 9px var(--ui-space-3);
+  padding: 9px 154px 9px var(--ui-space-3);
   border-bottom: 1px solid #59676e;
   border-radius: 0;
   color: #fff;
@@ -1498,7 +1499,7 @@ body:has(.confirmation-backdrop) {
 
 .profile-year-select {
   position: absolute;
-  top: calc(env(safe-area-inset-top) + 28px);
+  top: 28px;
   right: 58px;
   z-index: 8;
   transform: translateY(-50%);
@@ -1510,7 +1511,7 @@ body:has(.confirmation-backdrop) {
 
 .player-profile-close-wrap {
   position: absolute;
-  top: calc(env(safe-area-inset-top) + 28px);
+  top: 28px;
   right: 10px;
   min-width: 30px;
   transform: translateY(-50%);
@@ -1763,7 +1764,7 @@ body:has(.confirmation-backdrop) {
 
 @media (max-width: 420px) {
   .player-profile-sheet { width: 100%; }
-  .player-profile-head { min-height: calc(56px + env(safe-area-inset-top)); padding-right: 152px; }
+  .player-profile-head { min-height: 56px; padding-right: 152px; }
   .player-profile-head h2 { font-size: 17px; }
   .profile-year-select { right: 56px; }
   .player-profile-block { padding: 11px var(--ui-space-3) var(--ui-space-3); }
@@ -2304,7 +2305,7 @@ body:has(.confirmation-backdrop) {
 
 /* Player Profile header: 62px visual surface + divider; 60px on compact screens. */
 .player-profile-head {
-  min-height: calc(56px + env(safe-area-inset-top));
+  min-height: 56px;
   border-bottom: 1px solid #59676e;
   box-shadow: none;
 }
@@ -2314,7 +2315,7 @@ body:has(.confirmation-backdrop) {
 
 @media (max-width: 420px) {
   .player-profile-head {
-    min-height: calc(56px + env(safe-area-inset-top));
+    min-height: 56px;
   }
 }
 

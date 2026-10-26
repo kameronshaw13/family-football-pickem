@@ -102,3 +102,17 @@ test("moneyline anchor uses the symmetric midpoint price", () => {
   assert.equal(favorite, -175);
   assert.equal(underdog, 175);
 });
+
+
+test("profile season net uses the same asymmetric payouts as the ledger", () => {
+  const bets = [
+    { creator_id: "a", accepted_by: "b", amount: 20, creator_odds: 150, status: "settled", winner_id: "a", result: "creator_win" },
+    { creator_id: "a", accepted_by: "b", amount: 40, creator_odds: -200, status: "settled", winner_id: "a", result: "creator_win" },
+    { creator_id: "a", accepted_by: "b", amount: 10, creator_odds: 300, status: "settled", winner_id: "b", result: "opponent_win" },
+    { creator_id: "a", accepted_by: "b", amount: 100, creator_odds: 150, status: "settled", winner_id: null, result: "push" }
+  ];
+  const a = bets.reduce((sum, bet) => sum + sideBetNetForUser(bet, "a"), 0);
+  const b = bets.reduce((sum, bet) => sum + sideBetNetForUser(bet, "b"), 0);
+  assert.equal(a, 40);
+  assert.equal(b, -40);
+});

@@ -74,10 +74,9 @@ export async function GET(req: NextRequest) {
       }
     }));
 
-    const games = [];
-    let needsFinalization = false;
-
-    for (const game of (candidates || []).filter((game) => isGameAllowedForGroup(context, game))) {
+    const eligibleGames = (candidates || []).filter((game) => isGameAllowedForGroup(context, game));
+    // One unavailable event must not discard healthy NFL/CFB updates.
+    const results = await Promise.allSettled(eligibleGames.map(async (game) => {
       const league = game.league as import("@/lib/types").League;
       let match = await resolveEspnScheduleMatch(game, schedules.get(game.league) || [], league, { freshness: 4 });
 
@@ -95,7 +94,7 @@ export async function GET(req: NextRequest) {
           }
         }
       }
-      if (!match || match.game.homeScore == null || match.game.awayScore == null) continue;
+      if (!match || match.game.homeScore == null || match.game.awayScore == null) return null;
 
       const homeScore = match.swapped ? match.game.awayScore : match.game.homeScore;
       const awayScore = match.swapped ? match.game.homeScore : match.game.awayScore;
@@ -107,9 +106,7 @@ export async function GET(req: NextRequest) {
       const homeTimeouts = match.swapped ? match.game.awayTimeouts : match.game.homeTimeouts;
       const awayTimeouts = match.swapped ? match.game.homeTimeouts : match.game.awayTimeouts;
 
-      if (match.game.completed) needsFinalization = true;
-
-      games.push({
+      return {
         id: game.id,
         final_home_score: match.game.completed ? homeScore : null,
         final_away_score: match.game.completed ? awayScore : null,
@@ -126,11 +123,17 @@ export async function GET(req: NextRequest) {
         live_yards_to_goal: match.game.yardsToGoal,
         live_home_timeouts: homeTimeouts,
         live_away_timeouts: awayTimeouts
-      });
-    }
+      };
+    }));
+    const games = results.flatMap(result => result.status === "fulfilled" && result.value ? [result.value] : []);
+    const unavailableGameIds = eligibleGames.filter((_, index) => {
+      const result = results[index];
+      return result.status === "rejected" || !result.value;
+    }).map(game => game.id);
+    const needsFinalization = games.some(game => game.live_completed);
 
     return NextResponse.json(
-      { ok: true, games, needsFinalization },
+      { ok: true, games, needsFinalization, unavailableGameIds },
       { headers: NO_STORE_HEADERS }
     );
   } catch (error) {
