@@ -179,7 +179,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [sideBetLedgerScope, setSideBetLedgerScope] = useState<SideBetLedgerScope>("all");
   const [sideBetLedgerGameFilter, setSideBetLedgerGameFilter] = useState<SideBetGameFilter>("all");
   const [statusFilter, setStatusFilter] = useState<GameStatusFilter>("OPEN");
-  const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>(() => appSlug === "friends-basketball" ? "NBA" : defaultFootballLeague());
+  const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>(() => appSlug === "friends-basketball" ? "CBB" : defaultFootballLeague());
   const [conferenceFilter, setConferenceFilter] = useState("ALL");
   const [dogValueFilter, setDogValueFilter] = useState<DogValueFilter>("ALL");
   const [statusFilterTouched, setStatusFilterTouched] = useState(false);
@@ -212,7 +212,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [betCreatorTeam, setBetCreatorTeam] = useState("");
   const [betAmount, setBetAmount] = useState("20");
   const [betRecipients, setBetRecipients] = useState<string[]>([]);
-  const [betLeagueFilter, setBetLeagueFilter] = useState<SideBetLeagueFilter>(() => appSlug === "friends-basketball" ? "NBA" : defaultFootballLeague());
+  const [betLeagueFilter, setBetLeagueFilter] = useState<SideBetLeagueFilter>(() => appSlug === "friends-basketball" ? "CBB" : defaultFootballLeague());
   const [betConferenceFilter, setBetConferenceFilter] = useState("ALL");
   const [toast, setToast] = useState<Toast>(null);
   const [testWeekActive, setTestWeekActive] = useState(false);
@@ -953,7 +953,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return <div className="app-shell loading-shell">
       <header className="scoreboard-header">
         <div className="scoreboard-main">
-          <div className="brand-lockup">{appSlug === "friends-basketball" ? <span className="basketball-wordmark">Basketball Pick’em</span> : <NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} />}</div>
+          <div className="brand-lockup">{appSlug === "friends-basketball" ? <NextImage unoptimized className="basketball-brand-logo" src="/basketball-pickem-logo.png" alt="Basketball Pick’em" width={64} height={64} priority /> : <NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} />}</div>
           <div className="header-actions" aria-hidden="true">
             <span className="header-refresh-indicator" />
             <div className="header-slate">
@@ -1246,7 +1246,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          {appSlug === "friends-basketball" ? <span className="basketball-wordmark">Basketball Pick’em</span> : <NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} />}
+          {appSlug === "friends-basketball" ? <NextImage unoptimized className="basketball-brand-logo" src="/basketball-pickem-logo.png" alt="Basketball Pick’em" width={64} height={64} priority /> : <NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} />}
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>

@@ -104,8 +104,8 @@ export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSect
   if (appSlug === "friends-basketball") {
     const sections = ruleSections("friends", rules);
     return sections.map((section) => {
-      if (section.title === "Season Schedule") return { ...section, items: ["The season runs October 19, 2026 through Sunday, April 11, 2027, including the NCAA championship game.", "Each week runs Monday at 12:00 AM through Sunday at 11:59 PM Central Time."] };
-      if (section.title === "Weekly Card") return { ...section, items: section.items.map((item) => item.replace("Weeks 3–20", "Weeks 3–25").replaceAll("CFB/NFL", "CBB/NBA").replaceAll("CFB", "CBB").replaceAll("NFL", "NBA")) };
+      if (section.title === "Season Schedule") return { ...section, items: ["The season starts Sunday, November 1, 2026 with Villanova–Notre Dame and runs through Sunday, April 11, 2027, including the NCAA championship game.", "Opening week runs November 1–8. Subsequent weeks run Monday at 12:00 AM through Sunday at 11:59 PM Central Time."] };
+      if (section.title === "Weekly Card") return { ...section, items: ["Every week: 5 regular spread picks from CBB/NBA plus 1 underdog. A perfect regular card earns the perfect-week bonus."] };
       if (section.title === "Eligible Games") return { ...section, items: ["NBA regular-season games and Division I men's college basketball games are eligible.", "Conference tournaments and NCAA March Madness games are included."] };
       if (section.title === "Pick Locks") return { ...section, items: [...pickLocks.slice(0, 2), "Each game's picks and spread lock 1 hour before tipoff, every day of the week."] };
       if (section.title === "Weekly Bank") return { ...section, items: [...section.items, "March Madness weeks have 2× weekly payouts for every position, including losses. This applies March 15–April 11, including the championship week.", "The 2× multiplier applies after perfect-week adjustments and tie splits; scoring and season prizes stay the same."] };

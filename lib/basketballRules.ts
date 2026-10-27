@@ -4,7 +4,7 @@ export const BASKETBALL_GROUP = "friends-basketball";
 export const BASKETBALL_TIMEZONE = "America/Chicago";
 export const BASKETBALL_LEAGUES = ["CBB", "NBA"] as const;
 export const BASKETBALL_2026_CALENDAR = {
-  startDate: "2026-10-19",
+  startDate: "2026-11-01",
   endDateExclusive: "2027-04-12",
   tournamentStartDate: "2027-03-15",
   tournamentEndDateExclusive: "2027-04-12"
@@ -30,13 +30,22 @@ function dateNumber(iso: string) {
 function addDays(iso: string, days: number) {
   return new Date(dateNumber(iso) + days * 86400000).toISOString().slice(0, 10);
 }
+function firstWeekEnd(rules?: any) {
+  const start = basketballCalendar(rules).startDate;
+  const weekday = new Date(`${start}T00:00:00Z`).getUTCDay();
+  // Include the Sunday opener with the following Monday–Sunday card.
+  return addDays(start, weekday === 0 ? 8 : 8 - weekday);
+}
 export function basketballWeek(now = new Date(), rules?: any, timezone = BASKETBALL_TIMEZONE) {
-  return Math.max(1, Math.floor((localDate(now, timezone) - dateNumber(basketballCalendar(rules).startDate)) / (7 * 86400000)) + 1);
+  const date = localDate(now, timezone);
+  const end = dateNumber(firstWeekEnd(rules));
+  return date < end ? 1 : Math.floor((date - end) / (7 * 86400000)) + 2;
 }
 export function basketballWeekBounds(week: number, rules?: any, timezone = BASKETBALL_TIMEZONE) {
   const calendar = basketballCalendar(rules);
-  const startDate = addDays(calendar.startDate, (week - 1) * 7);
-  const endDate = addDays(startDate, 7);
+  const openingEnd = firstWeekEnd(rules);
+  const startDate = week <= 1 ? calendar.startDate : addDays(openingEnd, (week - 2) * 7);
+  const endDate = week <= 1 ? openingEnd : addDays(startDate, 7);
   return {
     start: fromZonedTime(`${startDate}T00:00:00`, timezone),
     end: fromZonedTime(`${endDate}T00:00:00`, timezone),
@@ -46,7 +55,7 @@ export function basketballWeekBounds(week: number, rules?: any, timezone = BASKE
 }
 export function basketballFinalWeek(rules?: any) {
   const c = basketballCalendar(rules);
-  return Math.ceil((dateNumber(c.endDateExclusive) - dateNumber(c.startDate)) / (7 * 86400000));
+  return 1 + Math.max(0, Math.ceil((dateNumber(c.endDateExclusive) - dateNumber(firstWeekEnd(rules))) / (7 * 86400000)));
 }
 export function basketballSeasonEnd(rules?: any, timezone = BASKETBALL_TIMEZONE) {
   return fromZonedTime(`${basketballCalendar(rules).endDateExclusive}T00:00:00`, timezone);

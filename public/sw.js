@@ -18,7 +18,7 @@ function registrationApp() {
 
 function notificationIcon() {
   const app = registrationApp();
-  if (app === "/friends-basketball") return "/friends-app-icon-navy.png?v=3";
+  if (app === "/friends-basketball") return "/basketball-pickem-logo.png?v=1";
   if (app === "/friends") return "/friends-app-icon-navy.png?v=3";
   if (app === "/caleb-family") return "/caleb-app-icon-gold.png?v=3";
   return "/apple-icon.png";

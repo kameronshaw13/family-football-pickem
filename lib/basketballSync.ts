@@ -17,7 +17,7 @@ export async function refreshBasketballSlate(supabase: SupabaseClient, now = new
   for (const league of BASKETBALL_LEAGUES) {
     const schedule = await fetchEspnSchedule(league, hints, true, 0);
     for (const event of schedule) {
-      if (!event.timeValid || !basketballGameInSeason(event.commenceTime) || (league === "NBA" && event.seasonType !== 2)) continue;
+      if (!event.timeValid || !basketballGameInSeason(event.commenceTime) || (league === "NBA" && event.seasonType !== 2) || (league === "CBB" && event.seasonType === 1)) continue;
       const id = `espn-${league.toLowerCase()}-${event.id}`;
       const old = prior.get(id);
       const lock = basketballLockTime(event.commenceTime);

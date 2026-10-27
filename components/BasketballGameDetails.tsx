@@ -7,6 +7,7 @@ import { LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
 import { getClientSessionToken } from "@/lib/clientSession";
 import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
+import CollegeBasketballAnalytics from "@/components/CollegeBasketballAnalytics";
 
 type Play = { id: string; text: string; period: number; clock: string; scoring: boolean; awayScore: number | null; homeScore: number | null };
 type Team = { score?: string; records?: { summary: string; type?: string }[]; team?: { displayName?: string; logo?: string } };
@@ -93,6 +94,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
       </div>
       <nav className="game-tracker-tabs" aria-label="Game sections">{tabs.map(([id, label]) => <button type="button" key={id} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined} onClick={() => { setTab(id); scrollArea.current?.scrollTo(0, 0); }}>{label}</button>)}</nav>
       <div ref={scrollArea} className="game-tracker-scroll">
+        {game.league === "CBB" && tab === "preview" && <CollegeBasketballAnalytics gameId={game.id} />}
         {!payload && !error && <div className="game-tracker-loading"><LoaderCircle size={22} /><span>Loading game…</span></div>}
         {error && <p className="game-tracker-empty" role="alert">{error}</p>}
         {payload && tab === "preview" && <>

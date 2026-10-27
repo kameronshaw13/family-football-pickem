@@ -19,26 +19,26 @@ const { computeWeeklyStandings } = await import("../lib/weeklyBank.ts");
 const { isGameAllowedByRules, getUnderdogBonusForRules } = await import("../lib/groupContext.ts");
 
 test("basketball rolls over Monday midnight Central and keeps Sunday evening in the old week", () => {
-  assert.equal(basketballWeek(new Date("2026-10-26T04:59:59Z")), 1);
-  assert.equal(basketballWeek(new Date("2026-10-26T05:00:00Z")), 2);
-  assert.equal(basketballWeek(new Date("2027-01-04T05:59:59Z")), 11);
-  assert.equal(basketballWeek(new Date("2027-01-04T06:00:00Z")), 12);
+  assert.equal(basketballWeek(new Date("2026-11-09T05:59:59Z")), 1);
+  assert.equal(basketballWeek(new Date("2026-11-09T06:00:00Z")), 2);
+  assert.equal(basketballWeek(new Date("2027-01-04T05:59:59Z")), 9);
+  assert.equal(basketballWeek(new Date("2027-01-04T06:00:00Z")), 10);
 });
 test("basketball calendar handles DST and includes the championship Monday in its own week", () => {
   const winter = basketballWeekBounds(2);
-  assert.equal(winter.start.toISOString(), "2026-10-26T05:00:00.000Z");
-  assert.equal(winter.end.toISOString(), "2026-11-02T06:00:00.000Z");
-  assert.equal(basketballFinalWeek(), 25);
-  assert.equal(basketballWeek(new Date("2027-04-05T22:00:00Z")), 25);
+  assert.equal(winter.start.toISOString(), "2026-11-09T06:00:00.000Z");
+  assert.equal(winter.end.toISOString(), "2026-11-16T06:00:00.000Z");
+  assert.equal(basketballFinalWeek(), 23);
+  assert.equal(basketballWeek(new Date("2027-04-05T22:00:00Z")), 23);
   assert.equal(basketballGameInSeason("2027-04-12T04:59:59Z"), true);
   assert.equal(basketballGameInSeason("2027-04-12T05:00:00Z"), false);
   assert.equal(basketballGameInSeason("2026-10-18T20:00:00Z"), false);
 });
 test("only actual March Madness weeks double, including the April championship week", () => {
-  assert.equal(basketballPayoutMultiplier(20), 1); // March 1–7
-  assert.equal(basketballPayoutMultiplier(21), 1); // Conference tournament week
-  for (const week of [22, 23, 24, 25]) assert.equal(basketballPayoutMultiplier(week), 2);
-  assert.equal(basketballPayoutMultiplier(26), 1);
+  assert.equal(basketballPayoutMultiplier(18), 1); // March 1–7
+  assert.equal(basketballPayoutMultiplier(19), 1); // Conference tournament week
+  for (const week of [20, 21, 22, 23]) assert.equal(basketballPayoutMultiplier(week), 2);
+  assert.equal(basketballPayoutMultiplier(24), 1);
 });
 test("basketball locks each game an hour before tipoff, including Saturday and Sunday", () => {
   for (const tipoff of ["2026-11-02T01:00:00Z", "2026-11-07T19:00:00Z"]) assert.equal(Date.parse(tipoff) - basketballLockTime(tipoff).getTime(), 3600000);
@@ -68,14 +68,14 @@ function fixture(perfect = false, seasonRules: any = rules) {
 }
 test("basketball cannot settle early even if every submitted pick is final", async () => {
   const { db, writes } = fixture();
-  assert.equal((await settleWeekIfReady(db, 22, undefined, new Date("2027-03-20T19:00:00Z"))).settled, false);
+  assert.equal((await settleWeekIfReady(db, 20, undefined, new Date("2027-03-20T19:00:00Z"))).settled, false);
   assert.equal(writes.length, 0);
 });
 test("March Madness doubles every normal and perfect payout, splits ties, and stays balanced", async () => {
   for (const perfect of [false, true]) {
     const normal = fixture(perfect), tournament = fixture(perfect);
-    assert.equal((await settleWeekIfReady(normal.db, 21, undefined, new Date("2027-04-12T06:00:00Z"))).settled, true);
-    assert.equal((await settleWeekIfReady(tournament.db, 22, undefined, new Date("2027-04-12T06:00:00Z"))).settled, true);
+    assert.equal((await settleWeekIfReady(normal.db, 19, undefined, new Date("2027-04-12T06:00:00Z"))).settled, true);
+    assert.equal((await settleWeekIfReady(tournament.db, 20, undefined, new Date("2027-04-12T06:00:00Z"))).settled, true);
     for (const entry of tournament.writes) {
       assert.equal(entry.amount, normal.writes.find((row) => row.user_id === entry.user_id).amount * 2);
       assert.match(entry.note, /March Madness 2×/);
@@ -89,7 +89,7 @@ test("March Madness doubles every normal and perfect payout, splits ties, and st
 });
 test("football payouts never receive the basketball tournament multiplier", async () => {
   const { db, writes } = fixture(false, { ...rules, sport: undefined });
-  assert.equal((await settleWeekIfReady(db, 22, undefined, new Date("2027-03-20T19:00:00Z"))).settled, true);
+  assert.equal((await settleWeekIfReady(db, 20, undefined, new Date("2027-03-20T19:00:00Z"))).settled, true);
   assert.equal(writes[0].amount, 40);
   assert.ok(writes.every((entry) => !entry.note.includes("March Madness")));
 });

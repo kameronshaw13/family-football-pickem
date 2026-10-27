@@ -4690,6 +4690,28 @@ html[data-theme="dark"] .primary-nav {
 
 /* ===== Former basketball.css ===== */
 .basketball-wordmark { color: #fff; font-size: clamp(19px, 5vw, 28px); font-weight: 800; white-space: nowrap; }
+.basketball-brand-logo { display: block; width: 64px; height: 64px; object-fit: contain; flex: 0 0 auto; border-radius: var(--ui-radius-box); }
+.basketball-login-logo { display: block; width: 160px; height: 160px; margin: 0 auto var(--ui-space-3); border-radius: var(--ui-radius-box); }
+.cbb-analytics { padding: var(--ui-space-3); color: var(--ink); background: var(--canvas); }
+.cbb-analytics > header { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-2); }
+.cbb-analytics h3 { margin: 0; font-size: 15px; }
+.cbb-analytics > header p { margin: var(--ui-space-1) 0 0; font-size: 11px; color: var(--muted); }
+.cbb-analytics > header a { color: var(--ink); font-size: 11px; text-underline-offset: 3px; }
+.cbb-stats-key { padding: var(--ui-space-2); margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.cbb-stat-section { margin-top: var(--ui-space-2); overflow: hidden; border: 1px solid var(--line); border-radius: var(--ui-radius-box); background: var(--panel); }
+.cbb-stat-section > summary { padding: var(--ui-space-3); color: var(--ink); background: var(--surface-muted); font-size: 12px; font-weight: 750; cursor: pointer; }
+.cbb-stat-section[open] > summary { border-bottom: 1px solid var(--line); }
+.cbb-advanced-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.cbb-advanced-table th, .cbb-advanced-table td { padding: 9px var(--ui-space-1); border-bottom: 1px solid var(--line); text-align: center; font-size: 12px; overflow-wrap: anywhere; }
+.cbb-advanced-table thead th { font-size: 11px; background: var(--surface-soft); }
+.cbb-advanced-table tbody th { color: var(--muted); font-size: 10px; font-weight: 600; }
+.cbb-advanced-table td > span { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: var(--ui-space-1); }
+.cbb-advanced-table small { font-size: 9px; color: var(--muted); }
+.cbb-advanced-table tr:last-child > * { border-bottom: 0; }
+.cbb-player-section h4 { padding: var(--ui-space-3); margin: 0; font-size: 12px; }
+.cbb-player-table { border-collapse: collapse; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cbb-player-table th, .cbb-player-table td { padding: var(--ui-space-2); min-width: 55px; border-bottom: 1px solid var(--line); text-align: center; }
+.cbb-player-table th:first-child { position: sticky; left: 0; min-width: 140px; max-width: 140px; white-space: normal; text-align: left; background: var(--panel); }
 .basketball-scoreboard { position: relative; display: flex; justify-content: space-around; gap: var(--ui-space-4); padding: 14px var(--ui-space-4) 38px; background: var(--panel, #eef0ed); }
 .basketball-score-team { display: grid; grid-template-columns: 58px auto; align-items: center; gap: var(--ui-space-1) var(--ui-space-3); }
 .basketball-score-team strong { font-size: 32px; }

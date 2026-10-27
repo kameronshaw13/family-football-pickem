@@ -11,8 +11,8 @@
   "theme_color": "#20282d",
   "icons": [
     {
-      "src": "/friends-app-icon-navy.png?v=3",
-      "sizes": "512x512",
+      "src": "/basketball-pickem-logo.png?v=1",
+      "sizes": "1254x1254",
       "type": "image/png",
       "purpose": "any"
     }

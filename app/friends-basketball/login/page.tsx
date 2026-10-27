@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import MenuSelect from "@/components/MenuSelect";
 import NumericText from "@/components/NumericText";
@@ -61,7 +62,7 @@ export default function FriendsLoginPage() {
 
   return <main className="app-shell login-screen login-friends">
     <section className="login-card">
-      <div className="login-app-name">Friends Basketball Pick&apos;em</div>
+      <Image unoptimized className="basketball-login-logo" src="/basketball-pickem-logo.png" alt="Basketball Pick’em" width={160} height={160} priority /><div className="login-app-name">Friends Basketball Pick&apos;em</div>
       <h1>{mode === "create" ? "Create your account" : "Sign in"}</h1>
       <p>{mode === "create" ? "Choose your name and create a private password. After this, use that password to get back in." : "Use your name and the password you created."}</p>
       <div className="mode-toggle">
