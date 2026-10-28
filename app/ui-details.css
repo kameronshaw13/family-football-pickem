@@ -5645,7 +5645,7 @@ button, input, select, textarea {
 .league-hub-content { width: min(760px, 100%); margin: 0 auto; }
 .league-hub-topbar { display: flex; height: var(--header-height); align-items: center; justify-content: space-between; gap: 12px; padding: 0 2px; }
 .league-hub-topbar::after { position: absolute; top: calc(env(safe-area-inset-top) + var(--header-height) - 3px); right: 0; left: 0; height: 3px; background: var(--blue); content: ""; pointer-events: none; }
-.league-hub-header-logo { display: block; width: auto; max-width: min(210px, 60%); height: 52px; object-fit: contain; object-position: left center; }
+.league-hub-header-logo { display: block; width: auto; max-width: min(210px, 60%); height: 46px; object-fit: contain; object-position: left center; }
 .league-hub-brand { display: flex; align-items: center; gap: 9px; color: #fff; font-family: var(--font-display); font-size: 24px; font-weight: 900; letter-spacing: -.035em; }
 .league-hub-brand svg { color: #a8d7ef; }
 .league-hub-signout { display: flex; align-items: center; gap: 6px; padding: 9px 10px; border: 1px solid #59666d; border-radius: var(--ui-radius-action); color: #f1f6f8; background: var(--graphite-light); font-family: var(--font-display); font-size: 11px; font-weight: 800; cursor: pointer; }
