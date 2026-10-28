@@ -45,9 +45,9 @@ export default function LeagueHub() {
     <div className="league-hub-content">
       <header className="league-hub-topbar"><div className="league-hub-brand"><Trophy size={25} strokeWidth={2.5} /><span>PICK&apos;EM</span></div><button type="button" onClick={signOut} className="league-hub-signout"><LogOut size={16} /> Sign out</button></header>
       <section className="league-hub-intro">
-        <span className="league-hub-eyebrow">YOUR PICK&apos;EM HOME</span>
+        <span className="league-hub-eyebrow">LEAGUE DASHBOARD</span>
         <h1>{result?.profile?.displayName ? `Hey, ${result.profile.displayName}.` : "Welcome back."}</h1>
-        <p>Choose a league. Your picks, standings, and side bets stay separate in each one.</p>
+        <p>Choose where you want to play. Your picks, standings, and side bets stay in their own league.</p>
       </section>
       {result?.ok && result.profile && <div className="league-hub-profile"><UserRound size={17} /><span>Signed in as <strong>{result.profile.displayName}</strong></span></div>}
       <section className="league-hub-list" aria-label="Your leagues">
@@ -58,7 +58,7 @@ export default function LeagueHub() {
         {result?.leagues?.map((league) => <a className="league-hub-card" href={league.homePath} key={league.slug}>
           <span className={`league-hub-sport ${league.sport.toLowerCase()}`} aria-hidden="true">{league.sport === "Basketball" ? "🏀" : "🏈"}</span>
           <span className="league-hub-card-copy"><strong>{league.name}</strong><span>{league.sport} Pick&apos;em{league.role !== "member" ? " · Commissioner" : ""}</span></span>
-          <ArrowRight size={20} aria-hidden="true" />
+          <span className="league-hub-open"><ArrowRight size={19} aria-hidden="true" /></span>
         </a>)}
       </section>
       <p className="league-hub-footer">One account. All your leagues.</p>
