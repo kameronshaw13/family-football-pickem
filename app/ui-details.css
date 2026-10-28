@@ -5664,7 +5664,7 @@ button, input, select, textarea {
 .league-hub-sport img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .league-hub-sport.basketball img { width: 44px; height: 44px; }
 .basketball-header-brand { position: relative; }
-.basketball-header-brand::after { position: absolute; top: 50%; left: 0; width: 41px; height: 41px; transform: translateY(-50%); background: var(--graphite) url("/league-basketball.png") center / 35px 35px no-repeat; content: ""; pointer-events: none; }
+.basketball-header-brand::after { position: absolute; top: 50%; left: 0; width: min(37px, 16.3%); aspect-ratio: 1; transform: translateY(-50%); background: var(--graphite) url("/league-basketball.png") center / contain no-repeat; content: ""; pointer-events: none; }
 .league-hub-card-copy { display: grid; flex: 1; gap: 4px; min-width: 0; }
 .league-hub-card-copy strong { font-size: 14px; font-weight: 850; line-height: 1.25; overflow-wrap: anywhere; }
 .league-hub-card-copy > span { color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 600; }
