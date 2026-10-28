@@ -5640,3 +5640,54 @@ button, input, select, textarea {
 .matchup-ats-badge.matchup-cover-win { color: var(--green); background: var(--green-soft); }
 .matchup-ats-badge.matchup-cover-loss { color: var(--red); background: var(--red-soft); }
 .matchup-ats-badge.matchup-cover-push { color: var(--muted); background: var(--surface-muted); }
+/* Unified Pick'em home. Existing league routes keep their current presentation. */
+.league-hub-screen { min-height: 100vh; min-height: 100dvh; padding: max(28px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom)); color: #fff; background: radial-gradient(circle at 52% 0%, #28455b, #20282d 48%); }
+.league-hub-content { width: min(520px, 100%); margin: 0 auto; }
+.league-hub-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.league-hub-brand { display: flex; align-items: center; gap: 9px; color: #fff; font-family: var(--font-display); font-size: 25px; font-weight: 900; letter-spacing: -.04em; }
+.league-hub-brand svg { color: #88c9ff; }
+.league-hub-signout { display: flex; align-items: center; gap: 6px; padding: 8px; border: 0; color: #c9d7df; background: transparent; font-family: var(--font-display); font-size: 12px; cursor: pointer; }
+.league-hub-intro { margin-top: 54px; }
+.league-hub-eyebrow { display: block; margin-bottom: 13px; color: #86c5f7; font-family: Arial, sans-serif; font-size: 11px; font-weight: 800; letter-spacing: .15em; }
+.league-hub-intro h1, .league-login-card h1 { margin: 0; color: #fff; font-size: clamp(30px, 7vw, 42px); font-weight: 900; letter-spacing: -.045em; line-height: 1.12; }
+.league-hub-intro p, .league-login-card > p { margin-top: 13px; color: #c2d0d8; font-size: 14px; font-weight: 500; line-height: 1.55; }
+.league-hub-profile { display: flex; align-items: center; gap: 8px; margin-top: 24px; color: #d6e5ed; font-size: 12px; font-weight: 500; }
+.league-hub-profile svg { color: #86c5f7; }
+.league-hub-profile strong { color: #fff; }
+.league-hub-list { margin-top: 30px; }
+.league-hub-list h2 { display: flex; align-items: center; gap: 9px; margin: 0 0 12px; color: #f8fcff; font-size: 17px; font-weight: 850; }
+.league-hub-list h2 small { padding: 3px 8px; border-radius: var(--ui-radius-filter); color: #fff; background: #356482; font-size: 11px; }
+.league-hub-card { display: flex; min-height: 86px; align-items: center; gap: 14px; margin-bottom: 9px; padding: 13px 16px; border: 1px solid #425763; border-radius: var(--ui-radius-box); color: #fff; background: #293640; text-decoration: none; transition: border-color .12s ease, background .12s ease; }
+.league-hub-card:hover, .league-hub-card:focus-visible { border-color: #8bc9f8; background: #304656; }
+.league-hub-card > svg { flex: 0 0 auto; color: #91c8ec; }
+.league-hub-sport { display: grid; width: 46px; height: 46px; flex: 0 0 46px; place-items: center; border-radius: var(--ui-radius-box); background: #345470; font-size: 26px; }
+.league-hub-sport.basketball { background: #1e5caa; }
+.league-hub-card-copy { display: grid; flex: 1; gap: 5px; min-width: 0; }
+.league-hub-card-copy strong { overflow: hidden; font-size: 17px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
+.league-hub-card-copy > span { color: #b9cedb; font-family: Arial, sans-serif; font-size: 11px; font-weight: 600; }
+.league-hub-status { padding: 20px; border: 1px solid #425763; border-radius: var(--ui-radius-box); color: #d3e2ec; font-size: 13px; line-height: 1.5; }
+.league-hub-status.error { border-color: #ce6b6b; color: #ffdada; }
+.league-hub-footer { margin-top: 34px; color: #86a0b0; font-family: Arial, sans-serif; font-size: 11px; text-align: center; }
+.league-login-screen { display: grid; place-items: start center; padding-top: max(54px, env(safe-area-inset-top)); }
+.league-login-card { width: min(420px, 100%); padding: 28px 24px; border-top: 4px solid #70b5e5; border-radius: var(--ui-radius-box); background: #293640; box-shadow: 0 18px 45px rgba(0,0,0,.2); }
+.league-login-card .league-hub-brand { margin-bottom: 34px; }
+.league-login-card .league-hub-eyebrow { margin-bottom: 10px; }
+.league-login-card h1 { font-size: 31px; }
+.league-login-card > p { margin-bottom: 24px; }
+.league-login-card form { display: grid; }
+.league-login-card label { margin: 13px 0 7px; color: #d9e4ec; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.league-login-card .input { min-height: 48px; border: 1px solid #7893a6; color: #20282d; background: #fff; font-size: 16px; }
+.league-login-card .field-menu-select .custom-select-trigger { min-height: 48px; color: #20282d; }
+.league-login-card .btn.full { min-height: 48px; margin-top: 22px; }
+.league-login-card .league-login-error { margin: 13px 0 0; color: #ffbcb7; font-size: 12px; }
+.league-login-card .league-login-note { margin: 24px 0 0; color: #afc4d2; font-size: 12px; }
+.settings-league-switcher .settings-card { overflow: hidden; }
+.settings-league-switcher .settings-row-heading { border-bottom: 1px solid var(--line); }
+.settings-league-link { display: flex; min-height: 49px; align-items: center; gap: 11px; padding: 9px 13px; border-bottom: 1px solid var(--line); color: var(--ink); font-size: 13px; text-decoration: none; }
+.settings-league-link > span { font-size: 19px; }
+.settings-league-link strong { flex: 1; font-weight: 800; }
+.settings-league-link small { color: var(--blue-dark); font-size: 10px; font-weight: 800; }
+.settings-league-link.active { background: var(--blue-soft); }
+.settings-league-link > svg { color: var(--blue-dark); }
+.settings-league-loading { padding: 13px; color: var(--muted); font-size: 12px; }
+.settings-league-hub-link { display: flex; min-height: 44px; align-items: center; justify-content: space-between; padding: 9px 13px; color: var(--blue-dark); font-size: 12px; font-weight: 800; text-decoration: none; }

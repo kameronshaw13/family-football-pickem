@@ -1,4 +1,4 @@
-import type { PickemAppSlug } from "./authUsers";
+import type { PickemAppSlug } from "./authUsers.ts";
 
 export const APP_IDENTITY_CONFIG: Record<PickemAppSlug, {
   name: string;

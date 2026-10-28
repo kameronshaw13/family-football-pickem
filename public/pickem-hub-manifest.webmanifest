@@ -1,0 +1,15 @@
+{
+  "id": "/leagues",
+  "name": "Pick'em",
+  "short_name": "Pick'em",
+  "description": "All your Pick'em leagues in one app.",
+  "start_url": "/leagues",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#20282d",
+  "theme_color": "#20282d",
+  "icons": [
+    { "src": "/unified-pickem-cover.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

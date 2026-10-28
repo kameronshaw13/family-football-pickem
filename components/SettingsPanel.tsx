@@ -7,6 +7,7 @@ import type { AppSlug } from "@/lib/rulePresentation";
 import NumericText from "@/components/NumericText";
 import PushNotificationControls from "@/components/PushNotificationControls";
 import AppOpenActivity from "@/components/AppOpenActivity";
+import LeagueSwitcher from "@/components/LeagueSwitcher";
 import { clearClientSession } from "@/lib/clientSession";
 
 type Theme = "light" | "dark";
@@ -118,6 +119,8 @@ export default function SettingsPanel({
 
   return <section className="panel settings-panel">
     <div className="section-title settings-page-title"><div><h2>Settings</h2><p>{leagueName || "League and account preferences"}</p></div></div>
+
+    <LeagueSwitcher activeSlug={appSlug} />
 
     <div className="settings-section">
       <h3>Profile</h3>
