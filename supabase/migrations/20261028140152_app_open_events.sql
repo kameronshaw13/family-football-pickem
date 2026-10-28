@@ -1,4 +1,4 @@
--- Private record of authenticated Friends Pick'em visits. Only the server writes
+-- Private record of authenticated Shaw/Friends Pick'em visits. Only the server writes
 -- or reads this table; no member-facing API exposes its contents.
 create table if not exists public.app_open_events (
   id uuid primary key default gen_random_uuid(),
