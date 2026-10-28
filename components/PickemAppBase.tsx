@@ -197,6 +197,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const headerLogoRef = useRef<HTMLImageElement>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [sessionValidated, setSessionValidated] = useState(false);
+  const lastAppOpenSentAtRef = useRef(0);
   const [message, setMessage] = useState("");
   const [showSavedDataNotice, setShowSavedDataNotice] = useState(false);
   const [marketUpdatesUnavailable, setMarketUpdatesUnavailable] = useState(false);
@@ -578,6 +579,31 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       navigator.serviceWorker?.removeEventListener("message", receiveClick);
     };
   }, [openNotificationDestination, refreshNotificationCounts, sessionValidated]);
+  useEffect(() => {
+    if (!sessionValidated || !data?.currentUser?.id || (appSlug !== "friends" && appSlug !== "shaw-family")) return;
+    let hiddenSince: number | null = document.visibilityState === "hidden" ? 0 : null;
+
+    const recordOpen = () => {
+      const now = Date.now();
+      if (now - lastAppOpenSentAtRef.current < 2 * 60_000) return;
+      const token = window.localStorage.getItem("pickem_session_token");
+      if (!token) return;
+      lastAppOpenSentAtRef.current = now;
+      void fetch("/api/app-open", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
+        cache: "no-store"
+      }).catch(() => { /* Activity logging must never interfere with the app. */ });
+    };
+
+    if (document.visibilityState === "visible") recordOpen();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") hiddenSince = Date.now();
+      else if (hiddenSince === 0 || (hiddenSince != null && Date.now() - hiddenSince >= 2 * 60_000)) recordOpen();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [appSlug, data?.currentUser?.id, sessionValidated]);
   useEffect(() => {
     const badgeNavigator = navigator as BadgeNavigator;
     if (notificationCounts.total > 0) void badgeNavigator.setAppBadge?.(notificationCounts.total);

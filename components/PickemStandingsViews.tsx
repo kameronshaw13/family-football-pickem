@@ -22,6 +22,7 @@ import { americanOddsText, fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFro
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
 import type { BankHistoryWeek } from "@/lib/bankHistory";
+import { bankPayoutLabels } from "@/lib/bankPayoutLabels";
 import { isSideBetRestricted } from "@/lib/sideBetAccess";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
 import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, POWER_CONFERENCES } from "@/lib/cfbConferences";
@@ -81,6 +82,7 @@ export function ConferenceFilter({ value, onChange }: { value: string; onChange:
 }
 
 export function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; display_name: string; total: number }; weeks: BankHistoryWeek[] }) {
+  const payoutLabels = bankPayoutLabels(weeks);
   const playerWeeks = weeks.map((week) => {
     const weeklyAmount = Object.prototype.hasOwnProperty.call(week.weeklyAmounts || {}, player.id)
       ? Number(week.weeklyAmounts[player.id] || 0)
@@ -114,7 +116,7 @@ export function BankBalanceHistoryRow({ player, weeks }: { player: { id: string;
         return <Fragment key={week.week}>
         {week.payoutAmount != null && <div className="bank-history-week bank-history-payout">
           <div className="bank-history-payout-row">
-            <strong className="bank-history-week-label">Weeks 1-7 Payout</strong>
+            <strong className="bank-history-week-label">{payoutLabels.get(week.week) || `Week ${week.week} Payout`}</strong>
             <span className={week.payoutAmount < 0 ? "money-pos" : week.payoutAmount > 0 ? "money-neg" : "money-neutral"}><NumericText text={`${week.payoutAmount < 0 ? "Received" : week.payoutAmount > 0 ? "Paid" : "Settled"} ${stakeMoney(week.payoutAmount)}`} /></span>
             <span aria-hidden="true" className="bank-history-payout-spacer" />
           </div>

@@ -2165,6 +2165,41 @@ html[data-theme="dark"] .theme-toggle button.active {
   background: #fff;
 }
 .settings-notification-card { overflow: hidden; }
+.app-open-activity { overflow: hidden; }
+.app-open-activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+}
+.app-open-refresh {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--ui-radius-control);
+  color: var(--ink);
+  background: var(--surface-soft);
+}
+.app-open-refresh:disabled { opacity: .45; }
+.app-open-activity .theme-toggle { padding-top: 0; }
+.app-open-activity-list { max-height: 320px; overflow-y: auto; border-top: 1px solid var(--line); }
+.app-open-activity-list > p { margin: 0; padding: 18px 12px; font-size: 12px; }
+.app-open-activity-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.app-open-activity-item:last-child { border-bottom: 0; }
+.app-open-activity-item strong { font-weight: 800; }
+.app-open-activity-item time { color: var(--muted); font-size: 11px; white-space: nowrap; }
 .settings-panel .notification-settings {
   position: static;
   display: grid;

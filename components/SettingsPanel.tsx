@@ -6,6 +6,7 @@ import type { Profile } from "@/lib/types";
 import type { AppSlug } from "@/lib/rulePresentation";
 import NumericText from "@/components/NumericText";
 import PushNotificationControls from "@/components/PushNotificationControls";
+import AppOpenActivity from "@/components/AppOpenActivity";
 import { clearClientSession } from "@/lib/clientSession";
 
 type Theme = "light" | "dark";
@@ -153,6 +154,11 @@ export default function SettingsPanel({
         <PushNotificationControls compactRow appSlug={appSlug} onCountsChanged={onCountsChanged} />
       </div>
     </div>
+
+    {String(currentUser.username).toLowerCase() === "kameron" && (appSlug === "friends" || appSlug === "shaw-family") && <div className="settings-section">
+      <h3>Private Activity</h3>
+      <AppOpenActivity appSlug={appSlug} />
+    </div>}
 
     <div className="settings-section">
       <h3>League</h3>
