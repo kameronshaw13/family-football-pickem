@@ -9,13 +9,13 @@ export type LeagueMembership = {
   role: "owner" | "admin" | "member";
 };
 
-const LEAGUE_ORDER: PickemAppSlug[] = ["shaw-family", "friends", "friends-basketball", "other-family"];
+const LEAGUE_ORDER: PickemAppSlug[] = ["shaw-family", "other-family", "friends", "friends-basketball"];
 
 const LEAGUE_NAMES: Record<PickemAppSlug, string> = {
-  "shaw-family": "Shaw Family",
-  friends: "Friends Football",
-  "friends-basketball": "Friends Basketball",
-  "other-family": "Caleb Family"
+  "shaw-family": "Shaw Family Football",
+  friends: "Just Cover Football",
+  "friends-basketball": "Just Cover Basketball",
+  "other-family": "Caleb’s Family Football"
 };
 
 export function isKnownPickemUser(username: string) {

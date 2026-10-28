@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, LogOut, Trophy } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, LogOut } from "lucide-react";
 import { clearClientSession, getClientSessionToken } from "@/lib/clientSession";
 import type { LeagueMembership } from "@/lib/leagueAccess";
 
@@ -44,18 +45,22 @@ export default function LeagueHub() {
   return <main className="league-hub-screen">
     <div className="league-hub-content">
       <header className="league-hub-topbar">
-        <div className="league-hub-brand league-hub-app-brand"><span className="league-hub-trophy"><Trophy size={29} strokeWidth={2.3} aria-hidden="true" /></span><span className="league-hub-brand-title">Pick&apos;em</span></div>
+        <Image className="league-hub-header-logo" src="/unified-pickem-wordmark.png" alt="Pick'em" width={800} height={225} unoptimized priority />
         <button type="button" onClick={signOut} className="league-hub-signout"><LogOut size={16} /> Sign out</button>
       </header>
+      <section className="league-hub-intro" aria-labelledby="league-hub-title">
+        <span className="league-hub-eyebrow">YOUR PICK&apos;EM HOME</span>
+        <h1 id="league-hub-title">Choose your league</h1>
+        <p>All your leagues in one place. Jump in to check picks, standings, and more.</p>
+      </section>
       <section className="league-hub-list" aria-label="Your leagues">
-        <p className="league-hub-guide">Choose a league to view your picks, standings, and more.</p>
         <h2>My Leagues</h2>
         {!result && <p className="league-hub-status" role="status">Loading your leagues…</p>}
         {result && !result.ok && <p className="league-hub-status error" role="alert">{result.error}</p>}
         {result?.ok && !result.leagues?.length && <p className="league-hub-status">No active leagues are assigned to this account. Ask Kameron to check your membership.</p>}
         {result?.leagues?.map((league) => <a className="league-hub-card" href={league.homePath} key={league.slug}>
-          <span className={`league-hub-sport ${league.sport.toLowerCase()}`} aria-hidden="true">{league.sport === "Basketball" ? "🏀" : "🏈"}</span>
-          <span className="league-hub-card-copy"><strong>{league.name}</strong><span>{league.sport}</span></span>
+          <span className={`league-hub-sport ${league.sport.toLowerCase()}`} aria-hidden="true"><Image src={league.sport === "Basketball" ? "/league-basketball.png" : "/league-football.png"} alt="" width={54} height={54} unoptimized /></span>
+          <span className="league-hub-card-copy"><strong>{league.name}</strong><span>{league.sport === "Basketball" ? "CBB/NBA" : "CFB/NFL"}</span></span>
           <span className="league-hub-open"><ArrowRight size={19} aria-hidden="true" /></span>
         </a>)}
       </section>

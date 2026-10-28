@@ -11,9 +11,17 @@ const allGroups = [
 
 test("one profile sees only its active roster memberships", () => {
   assert.deepEqual(accessibleLeaguesForUser("kameron", allGroups).map((league) => league.slug), ["shaw-family", "friends", "friends-basketball"]);
-  assert.deepEqual(accessibleLeaguesForUser("Caleb", allGroups).map((league) => league.slug), ["friends", "friends-basketball", "other-family"]);
+  assert.deepEqual(accessibleLeaguesForUser("Caleb", allGroups).map((league) => league.slug), ["other-family", "friends", "friends-basketball"]);
   assert.deepEqual(accessibleLeaguesForUser("mike", allGroups).map((league) => league.slug), ["shaw-family"]);
   assert.deepEqual(accessibleLeaguesForUser("monte", allGroups).map((league) => league.slug), ["other-family"]);
+});
+
+test("league selector uses the public display names without changing routes or memberships", () => {
+  assert.deepEqual(accessibleLeaguesForUser("caleb", allGroups).map(({ name, homePath }) => ({ name, homePath })), [
+    { name: "Caleb’s Family Football", homePath: "/caleb-family" },
+    { name: "Just Cover Football", homePath: "/friends" },
+    { name: "Just Cover Basketball", homePath: "/friends-basketball" }
+  ]);
 });
 
 test("a missing or inactive database membership never becomes available from the roster alone", () => {
