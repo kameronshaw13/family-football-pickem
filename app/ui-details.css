@@ -5641,9 +5641,11 @@ button, input, select, textarea {
 .matchup-ats-badge.matchup-cover-loss { color: var(--red); background: var(--red-soft); }
 .matchup-ats-badge.matchup-cover-push { color: var(--muted); background: var(--surface-muted); }
 /* Unified Pick'em home. Existing league routes keep their current presentation. */
-.league-hub-screen { min-height: 100vh; min-height: 100dvh; padding: env(safe-area-inset-top) 16px max(32px, env(safe-area-inset-bottom)); color: var(--ink); background: linear-gradient(to bottom, var(--graphite) 0, var(--graphite) calc(env(safe-area-inset-top) + var(--header-height)), var(--canvas) calc(env(safe-area-inset-top) + var(--header-height))); }
+.league-hub-screen { position: relative; min-height: 100vh; min-height: 100dvh; padding: env(safe-area-inset-top) 16px max(32px, env(safe-area-inset-bottom)); color: var(--ink); background: linear-gradient(to bottom, var(--graphite) 0, var(--graphite) calc(env(safe-area-inset-top) + var(--header-height)), var(--canvas) calc(env(safe-area-inset-top) + var(--header-height))); }
 .league-hub-content { width: min(760px, 100%); margin: 0 auto; }
-.league-hub-topbar { display: flex; height: var(--header-height); align-items: center; justify-content: space-between; gap: 12px; padding: 0 2px; box-shadow: inset 0 -3px 0 var(--blue); }
+.league-hub-topbar { display: flex; height: var(--header-height); align-items: center; justify-content: space-between; gap: 12px; padding: 0 2px; }
+.league-hub-topbar::after { position: absolute; top: calc(env(safe-area-inset-top) + var(--header-height) - 3px); right: 0; left: 0; height: 3px; background: var(--blue); content: ""; pointer-events: none; }
+.league-hub-wordmark { display: block; width: 145px; height: 50px; flex: 0 0 145px; background: url("/football-pickem-wordmark.png") right center / 400px 50px no-repeat; }
 .league-hub-brand { display: flex; align-items: center; gap: 9px; color: #fff; font-family: var(--font-display); font-size: 24px; font-weight: 900; letter-spacing: -.035em; }
 .league-hub-brand svg { color: #a8d7ef; }
 .league-hub-signout { display: flex; align-items: center; gap: 6px; padding: 9px 10px; border: 1px solid #59666d; border-radius: var(--ui-radius-action); color: #f1f6f8; background: var(--graphite-light); font-family: var(--font-display); font-size: 11px; font-weight: 800; cursor: pointer; }
@@ -5654,7 +5656,7 @@ button, input, select, textarea {
 .league-hub-profile { display: flex; align-items: center; gap: 8px; margin-top: 17px; padding: 11px 12px; border: 1px solid var(--line); border-radius: var(--ui-radius-box); color: var(--header-muted); background: var(--surface-soft); font-size: 11px; font-weight: 600; }
 .league-hub-profile svg { color: var(--blue-dark); }
 .league-hub-profile strong { color: var(--ink); }
-.league-hub-list { margin-top: 25px; }
+.league-hub-list { margin-top: 24px; }
 .league-hub-list h2 { display: flex; align-items: center; gap: 9px; margin: 0 0 10px; color: var(--ink); font-size: 17px; font-weight: 850; }
 .league-hub-list h2 small { padding: 3px 8px; border-radius: var(--ui-radius-filter); color: #fff; background: var(--graphite-light); font-size: 10px; }
 .league-hub-card { display: flex; min-height: 79px; align-items: center; gap: 12px; margin-bottom: 8px; padding: 11px 13px; border: 1px solid var(--line-strong); border-left: 4px solid var(--blue); border-radius: var(--ui-radius-box); color: var(--ink); background: var(--panel); text-decoration: none; transition: border-color .12s ease, background .12s ease; }
