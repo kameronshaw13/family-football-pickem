@@ -46,11 +46,7 @@ export default function LeagueHub() {
     <header className="scoreboard-header league-hub-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          <span className="league-hub-wordmark" role="img" aria-label="Football and basketball Pick'em">
-            <span className="league-hub-wordmark-football" />
-            <span className="league-hub-wordmark-basketball" />
-            <span className="league-hub-wordmark-title" />
-          </span>
+          <Image className="league-hub-trophy-wordmark" src="/unified-pickem-wordmark.png" alt="Pick'em" width={800} height={225} unoptimized priority />
         </div>
         <button type="button" onClick={signOut} className="league-hub-signout"><LogOut size={16} /> Sign out</button>
       </div>
