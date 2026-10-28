@@ -8,6 +8,7 @@ import NumericText from "@/components/NumericText";
 import PushNotificationControls from "@/components/PushNotificationControls";
 import AppOpenActivity from "@/components/AppOpenActivity";
 import LeagueSwitcher from "@/components/LeagueSwitcher";
+import type { LeagueMembership } from "@/lib/leagueAccess";
 import { clearClientSession } from "@/lib/clientSession";
 
 type Theme = "light" | "dark";
@@ -34,7 +35,9 @@ export default function SettingsPanel({
   leagueName,
   rules,
   loginPath,
-  onCountsChanged
+  onCountsChanged,
+  selectedLeagueSlug,
+  onLeagueSelect
 }: {
   appSlug: AppSlug;
   currentUser: Profile;
@@ -42,6 +45,8 @@ export default function SettingsPanel({
   rules: RuleSection[];
   loginPath: string;
   onCountsChanged: (counts: Record<string, number>) => void;
+  selectedLeagueSlug: AppSlug;
+  onLeagueSelect: (league: LeagueMembership) => void;
 }) {
   const [theme, setTheme] = useState<Theme>("light");
   const [newPassword, setNewPassword] = useState("");
@@ -120,7 +125,7 @@ export default function SettingsPanel({
   return <section className="panel settings-panel">
     <div className="section-title settings-page-title"><div><h2>Settings</h2><p>{leagueName || "League and account preferences"}</p></div></div>
 
-    <LeagueSwitcher activeSlug={appSlug} />
+    <LeagueSwitcher activeSlug={appSlug} selectedSlug={selectedLeagueSlug} onSelect={onLeagueSelect} />
 
     <div className="settings-section">
       <h3>Profile</h3>

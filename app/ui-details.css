@@ -5662,9 +5662,9 @@ button, input, select, textarea {
 .league-hub-open { display: grid; width: 29px; height: 29px; flex: 0 0 29px; place-items: center; border: 1px solid var(--line); border-radius: var(--ui-radius-action); color: var(--blue-dark); background: var(--surface-soft); }
 .league-hub-sport { display: grid; width: 52px; height: 52px; flex: 0 0 52px; place-items: center; }
 .league-hub-sport img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.flat-football-mark { display: block; width: 100%; height: 100%; background: url("/football-pickem-wordmark.png") left center / 571.5% auto no-repeat; }
+.league-hub-sport.basketball img { width: 44px; height: 44px; }
 .basketball-header-brand { position: relative; }
-.basketball-header-brand::after { position: absolute; top: 50%; left: 0; width: 41px; height: 41px; transform: translateY(-50%); background: var(--graphite) url("/league-basketball.png") center / contain no-repeat; content: ""; pointer-events: none; }
+.basketball-header-brand::after { position: absolute; top: 50%; left: 0; width: 41px; height: 41px; transform: translateY(-50%); background: var(--graphite) url("/league-basketball.png") center / 35px 35px no-repeat; content: ""; pointer-events: none; }
 .league-hub-card-copy { display: grid; flex: 1; gap: 4px; min-width: 0; }
 .league-hub-card-copy strong { font-size: 14px; font-weight: 850; line-height: 1.25; overflow-wrap: anywhere; }
 .league-hub-card-copy > span { color: var(--muted); font-family: var(--font-display); font-size: 11px; font-weight: 600; }
@@ -5686,13 +5686,16 @@ button, input, select, textarea {
 .league-login-card .league-login-note { margin: 24px 0 0; color: var(--muted); font-size: 12px; }
 .settings-league-switcher .settings-card { overflow: hidden; }
 .settings-league-switcher .settings-row-heading { border-bottom: 1px solid var(--line); }
-.settings-league-link { display: flex; min-height: 49px; align-items: center; gap: 11px; padding: 9px 13px; border-bottom: 1px solid var(--line); color: var(--ink); font-size: 13px; text-decoration: none; }
+.settings-league-link { display: flex; width: 100%; min-height: 49px; align-items: center; gap: 11px; padding: 9px 13px; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); background: var(--panel); font-size: 13px; text-align: left; cursor: pointer; transition: background-color 140ms ease; }
 .settings-league-sport-mark { display: block; width: 22px; height: 22px; flex: 0 0 22px; }
 .settings-league-sport-mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.settings-league-sport-mark.basketball img { width: 19px; height: 19px; margin: auto; }
 .settings-league-link > span { font-size: 19px; }
 .settings-league-link strong { flex: 1; font-weight: 800; }
 .settings-league-link small { color: var(--blue-dark); font-size: 10px; font-weight: 800; }
 .settings-league-link.active { background: var(--blue-soft); }
+.settings-league-link:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.settings-league-switch-note { padding: 9px 13px; border-bottom: 1px solid var(--line); color: var(--blue-dark); background: var(--surface-soft); font-size: 11px; font-weight: 700; }
 .settings-league-link > svg { color: var(--blue-dark); }
 .settings-league-loading { padding: 13px; color: var(--muted); font-size: 12px; }
 .settings-league-hub-link { display: flex; min-height: 44px; align-items: center; justify-content: space-between; padding: 9px 13px; color: var(--blue-dark); font-size: 12px; font-weight: 800; text-decoration: none; }

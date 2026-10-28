@@ -14,6 +14,7 @@ import { basketballLockTime, basketballWeek, basketballWeekBounds, basketballSea
 import BasketballGameDetails from "@/components/BasketballGameDetails";
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
 import NextImage from "next/image";
+import { useRouter } from "next/navigation";
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Settings as SettingsIcon, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
@@ -37,6 +38,8 @@ import GroupMoneyControls from "@/components/GroupMoneyControls";
 import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoints";
 import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
 import { appLoginPath } from "@/lib/appIdentity";
+import type { LeagueMembership } from "@/lib/leagueAccess";
+import { leagueTabDestination, leagueTabFromQuery } from "@/lib/leagueNavigation";
 import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetResponseSummary, sideBetsForView } from "@/lib/sideBetPresentation";
 import { orderCardPicks } from "@/lib/cardOrdering";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
@@ -170,8 +173,10 @@ import {
 } from "@/components/PickemSideBetViews";
 
 export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSlug }) {
+  const router = useRouter();
   const loginPath = appLoginPath(appSlug);
   const [tab, setTab] = useState<Tab>("picks");
+  const [selectedLeague, setSelectedLeague] = useState<LeagueMembership | null>(null);
   const [picksView, setPicksView] = useState<PicksView>("board");
   const [cardView, setCardView] = useState<CardView>("mine");
   const [standingsView, setStandingsView] = useState<StandingsView>("standings");
@@ -414,6 +419,25 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     window.history.replaceState({}, "", `${current.pathname}${current.search}${current.hash}`);
   }, []);
 
+  // Preserve the selected destination tab when moving between league routes.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const requestedTab = leagueTabFromQuery(url.searchParams.get("view"));
+    if (!requestedTab) return;
+    setTab(requestedTab);
+    url.searchParams.delete("view");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [appSlug]);
+
+  const chooseNavTab = useCallback((nextTab: Tab) => {
+    const destination = leagueTabDestination(appSlug, selectedLeague, nextTab);
+    if (destination) {
+      router.push(destination);
+      return;
+    }
+    setTab(nextTab);
+  }, [appSlug, router, selectedLeague]);
+
   const loadSequence = useRef(0);
   const load = useCallback(async (nextWeek: number | null = dataRef.current?.week ?? null) => {
     const sequence = ++loadSequence.current;
@@ -425,7 +449,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     }
     const cachedPayload = isInitialLoad ? readCachedAppData(appSlug, nextWeek) : null;
     if (cachedPayload) {
-      await preloadInitialBoardLogos(cachedPayload);
+      void preloadInitialBoardLogos(cachedPayload);
       const cachedAt = Date.now();
       const cachedWeekIsOpen = !cachedPayload.weekOpenTime || new Date(cachedPayload.weekOpenTime).getTime() <= cachedAt;
       dataRef.current = cachedPayload;
@@ -1291,7 +1315,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
     <nav className="primary-nav" aria-label="Main navigation">
       <div className="primary-nav-inner">
-        {primaryNav.map((item) => <button key={item.id} aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}><span className={`nav-icon nav-icon-${item.id}`}><item.icon size={19} /><NotificationBadge count={navNotificationCounts[item.id] || 0} className="nav-notification-badge" /></span><span>{item.label}</span></button>)}
+        {primaryNav.map((item) => <button key={item.id} aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "active" : ""} onClick={() => chooseNavTab(item.id)}><span className={`nav-icon nav-icon-${item.id}`}><item.icon size={19} /><NotificationBadge count={navNotificationCounts[item.id] || 0} className="nav-notification-badge" /></span><span>{item.label}</span></button>)}
       </div>
     </nav>
 
@@ -1460,10 +1484,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       {tab === "settings" && <SettingsPanel
         appSlug={appSlug}
         currentUser={currentUser}
-        leagueName={data.activeGroup?.name}
+        leagueName={selectedLeague?.name || data.activeGroup?.name}
         rules={displayedRules}
         loginPath={loginPath}
         onCountsChanged={updateNotificationCounts}
+        selectedLeagueSlug={selectedLeague?.slug || appSlug}
+        onLeagueSelect={(league) => setSelectedLeague(league.slug === appSlug ? null : league)}
       />}
     </main>
     {currentPreviewGame && (isBasketballLeague(currentPreviewGame.league)
