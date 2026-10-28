@@ -63,7 +63,7 @@ export default function LeagueHub() {
         {result && !result.ok && <p className="league-hub-status error" role="alert">{result.error}</p>}
         {result?.ok && !result.leagues?.length && <p className="league-hub-status">No active leagues are assigned to this account. Ask Kameron to check your membership.</p>}
         {result?.leagues?.map((league) => <a className="league-hub-card" href={league.homePath} key={league.slug}>
-          <span className={`league-hub-sport ${league.sport.toLowerCase()}`} aria-hidden="true"><Image src={league.sport === "Basketball" ? "/league-basketball.png" : "/league-football.png"} alt="" width={54} height={54} unoptimized /></span>
+          <span className={`league-hub-sport ${league.sport.toLowerCase()}`} aria-hidden="true">{league.sport === "Basketball" ? <Image src="/league-basketball.png" alt="" width={54} height={54} unoptimized /> : <span className="flat-football-mark" />}</span>
           <span className="league-hub-card-copy"><strong>{league.name}</strong><span>{league.sport === "Basketball" ? "CBB/NBA" : "CFB/NFL"}</span></span>
           <span className="league-hub-open"><ArrowRight size={19} aria-hidden="true" /></span>
         </a>)}
