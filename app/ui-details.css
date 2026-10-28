@@ -5645,7 +5645,10 @@ button, input, select, textarea {
 .league-hub-content { width: min(760px, 100%); margin: 0 auto; }
 .league-hub-topbar { display: flex; height: var(--header-height); align-items: center; justify-content: space-between; gap: 12px; padding: 0 2px; }
 .league-hub-topbar::after { position: absolute; top: calc(env(safe-area-inset-top) + var(--header-height) - 3px); right: 0; left: 0; height: 3px; background: var(--blue); content: ""; pointer-events: none; }
-.league-hub-wordmark { display: block; width: 145px; height: 50px; flex: 0 0 145px; background: url("/football-pickem-wordmark.png") right center / 400px 50px no-repeat; }
+.league-hub-app-brand { gap: 10px; min-width: 0; }
+.league-hub-trophy { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border: 2px solid #74b7e4; border-radius: var(--ui-radius-circle); color: #fff; background: #163c64; }
+.league-hub-trophy svg { color: #fff; }
+.league-hub-brand-title { color: #fff; font-family: var(--font-display); font-size: 29px; font-weight: 900; letter-spacing: -.055em; line-height: 1; -webkit-text-stroke: .4px #a9d2ee; text-shadow: 1px 2px 0 #27698f; white-space: nowrap; }
 .league-hub-brand { display: flex; align-items: center; gap: 9px; color: #fff; font-family: var(--font-display); font-size: 24px; font-weight: 900; letter-spacing: -.035em; }
 .league-hub-brand svg { color: #a8d7ef; }
 .league-hub-signout { display: flex; align-items: center; gap: 6px; padding: 9px 10px; border: 1px solid #59666d; border-radius: var(--ui-radius-action); color: #f1f6f8; background: var(--graphite-light); font-family: var(--font-display); font-size: 11px; font-weight: 800; cursor: pointer; }
@@ -5657,6 +5660,7 @@ button, input, select, textarea {
 .league-hub-profile svg { color: var(--blue-dark); }
 .league-hub-profile strong { color: var(--ink); }
 .league-hub-list { margin-top: 24px; }
+.league-hub-guide { margin: 0 0 23px; color: var(--header-muted); font-family: var(--font-display); font-size: 12px; font-weight: 600; line-height: 1.5; }
 .league-hub-list h2 { display: flex; align-items: center; gap: 9px; margin: 0 0 10px; color: var(--ink); font-size: 17px; font-weight: 850; }
 .league-hub-list h2 small { padding: 3px 8px; border-radius: var(--ui-radius-filter); color: #fff; background: var(--graphite-light); font-size: 10px; }
 .league-hub-card { display: flex; min-height: 79px; align-items: center; gap: 12px; margin-bottom: 8px; padding: 11px 13px; border: 1px solid var(--line-strong); border-left: 4px solid var(--blue); border-radius: var(--ui-radius-box); color: var(--ink); background: var(--panel); text-decoration: none; transition: border-color .12s ease, background .12s ease; }
