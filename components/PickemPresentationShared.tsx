@@ -109,6 +109,7 @@ export type AppData = {
   currentWeek?: number;
   weekRule: WeekRule;
   weekOpenTime: string | null;
+  sideBetWeekOpenTime?: string | null;
   availableWeeks: number[];
   activeGroup?: { id: string; slug: string; name?: string };
   groupRules?: GroupRules;

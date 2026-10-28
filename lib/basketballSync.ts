@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game } from "./types";
-import { basketballGameInSeason, basketballLockTime, basketballWeek, BASKETBALL_LEAGUES } from "./basketballRules";
+import { basketballGameAvailableForSideBets, basketballGameInSeason, basketballLockTime, basketballWeek, BASKETBALL_LEAGUES } from "./basketballRules";
+import { fetchEspnDivisionOneTeamIds, isDivisionOneMatchup } from "./espnDivisionOne";
 import { fetchEspnSchedule } from "./espnSchedule";
 import { refreshActionNetworkSpreads } from "./footballMarketSync";
 
@@ -14,10 +15,18 @@ export async function refreshBasketballSlate(supabase: SupabaseClient, now = new
   if (error) throw new Error(error.message);
   const prior = new Map((existing || []).map((game: any) => [game.id, game]));
   const rows: Game[] = [];
+  // Don't show a CBB matchup unless both schools are verified Division I.
+  // A directory outage should not stop the NBA schedule from updating.
+  const divisionOneIds = await fetchEspnDivisionOneTeamIds().catch((reason) => {
+    console.warn("[basketballSync] CBB D-I directory unavailable; skipping unverified college games.", reason);
+    return new Set<string>();
+  });
   for (const league of BASKETBALL_LEAGUES) {
     const schedule = await fetchEspnSchedule(league, hints, true, 0);
     for (const event of schedule) {
-      if (!event.timeValid || !basketballGameInSeason(event.commenceTime) || (league === "NBA" && event.seasonType !== 2) || (league === "CBB" && event.seasonType === 1)) continue;
+      if (!event.timeValid ||
+        (league === "NBA" && (!basketballGameAvailableForSideBets(event.commenceTime) || event.seasonType !== 2)) ||
+        (league === "CBB" && (!basketballGameInSeason(event.commenceTime) || event.seasonType === 1 || !isDivisionOneMatchup(event.homeTeam.id, event.awayTeam.id, divisionOneIds)))) continue;
       const id = `espn-${league.toLowerCase()}-${event.id}`;
       const old = prior.get(id);
       const lock = basketballLockTime(event.commenceTime);

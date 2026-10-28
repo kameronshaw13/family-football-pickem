@@ -1,4 +1,4 @@
-import { basketballGameInSeason, isBasketballLeague } from "./basketballRules";
+import { basketballGameAvailableForSideBets, basketballGameInSeason, isBasketballLeague } from "./basketballRules";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import type { Game } from "@/lib/types";
 import { APP_TIMEZONE, getFootballWeek } from "@/lib/lockRules";
@@ -71,4 +71,9 @@ export function isEligibleSeasonGame(game: SeasonGame) {
   return game.league === "CFB"
     ? isCfbPickemSeason(game) && isFbsTeamGame(game)
     : isNflRegularSeason(game.commence_time);
+}
+
+export function isEligibleSideBetSeasonGame(game: SeasonGame) {
+  if (game.league === "NBA") return basketballGameAvailableForSideBets(game.commence_time);
+  return isEligibleSeasonGame(game);
 }

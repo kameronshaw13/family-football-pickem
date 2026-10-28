@@ -9,6 +9,8 @@ export const BASKETBALL_2026_CALENDAR = {
   tournamentStartDate: "2027-03-15",
   tournamentEndDateExclusive: "2027-04-12"
 };
+// The basketball Side Bets board opens ahead of the first weekly pick card.
+export const BASKETBALL_2026_SIDE_BET_OPEN_DATE = "2026-10-28";
 export type BasketballCalendar = typeof BASKETBALL_2026_CALENDAR;
 
 export function isBasketballLeague(league: string) {
@@ -64,6 +66,17 @@ export function basketballGameInSeason(commenceTime: string, rules?: any, timezo
   const c = basketballCalendar(rules);
   const date = localDate(new Date(commenceTime), timezone);
   return date >= dateNumber(c.startDate) && date < dateNumber(c.endDateExclusive);
+}
+export function basketballGameAvailableForSideBets(commenceTime: string, rules?: any, timezone = BASKETBALL_TIMEZONE) {
+  const calendar = basketballCalendar(rules);
+  const date = localDate(new Date(commenceTime), timezone);
+  const openingDate = String(rules?.sideBets?.openingDate || BASKETBALL_2026_SIDE_BET_OPEN_DATE);
+  return date >= dateNumber(openingDate) && date < dateNumber(calendar.endDateExclusive);
+}
+export function basketballSideBetWeekOpenTime(week: number, rules?: any, timezone = BASKETBALL_TIMEZONE) {
+  if (week !== 1) return basketballWeekBounds(week, rules, timezone).start;
+  const openingDate = String(rules?.sideBets?.openingDate || BASKETBALL_2026_SIDE_BET_OPEN_DATE);
+  return fromZonedTime(`${openingDate}T00:00:00`, timezone);
 }
 export function basketballPayoutMultiplier(week: number, rules?: any) {
   const c = basketballCalendar(rules);

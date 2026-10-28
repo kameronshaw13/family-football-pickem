@@ -1,4 +1,4 @@
-import { basketballGameInSeason, basketballLockTime, basketballWeekBounds, isBasketballRules } from "./basketballRules";
+import { basketballGameAvailableForSideBets, basketballGameInSeason, basketballLockTime, basketballWeekBounds, isBasketballRules } from "./basketballRules";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game, WeekRule } from "@/lib/types";
 import { getGameLockTime, getPickWeekOpenTime, getSpreadFreezeTime } from "@/lib/lockRules";
@@ -123,8 +123,16 @@ export function isGameAllowedForGroup(context: GroupContext, game: Pick<Game, "l
   return isGameAllowedByRules(context.rules, game);
 }
 
-export function isGameAllowedByRules(rules: Record<string, any> | null | undefined, game: Pick<Game, "league" | "home_team" | "away_team">) {
-  if (isBasketballRules(rules) && "commence_time" in game && !basketballGameInSeason(String(game.commence_time), rules)) return false;
+export function isGameAllowedForSideBets(context: GroupContext, game: Pick<Game, "league" | "home_team" | "away_team">) {
+  return isGameAllowedByRules(context.rules, game, true);
+}
+
+export function isGameAllowedByRules(rules: Record<string, any> | null | undefined, game: Pick<Game, "league" | "home_team" | "away_team">, forSideBets = false) {
+  if (isBasketballRules(rules) && "commence_time" in game) {
+    const date = String(game.commence_time);
+    const earlyNbaSideBet = forSideBets && game.league === "NBA" && basketballGameAvailableForSideBets(date, rules);
+    if (!earlyNbaSideBet && !basketballGameInSeason(date, rules)) return false;
+  }
   const leagues = Array.isArray(rules?.eligibleLeagues) ? rules.eligibleLeagues.map(String) : ["CFB", "NFL"];
   if (!leagues.includes(game.league)) return false;
   const excluded = new Set((Array.isArray(rules?.excludedTeams) ? rules.excludedTeams : []).map(normalizeTeam));

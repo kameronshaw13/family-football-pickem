@@ -4,7 +4,7 @@ import { bodySchema } from "@/lib/sideBetRequestSchema";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { scoreNumber, type LiveScoreSnapshot, currentLiveScore, scoreboardLiveScore, liveScoreSnapshotStable, liveScoreDiffersFromOffer, liveScoreMatches, liveScoreConfirmedByEither, liveScoreConsensus } from "@/lib/sideBetLiveScore";
 import { actionMarketAvailable, fetchActionNetworkMarketForGame } from "@/lib/actionNetworkMarkets";
-import { getGroupSideBetSettings, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+import { getGroupSideBetSettings, isGameAllowedForSideBets, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { createNotificationInBackground, resolveSideBetOfferNotifications } from "@/lib/notifications";
 import { MAX_CUSTOM_SIDE_BET_AMOUNT, sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
 
       const { data: game, error: gameError } = await supabase.from("games").select("*").eq("id", body.gameId).maybeSingle();
       if (gameError || !game) return NextResponse.json({ ok: false, error: "Game not found." }, { status: 404 });
-      if (!isGameAllowedForGroup(context, game)) return NextResponse.json({ ok: false, error: "That game is not available in this Pick'em group." }, { status: 409 });
+      if (!isGameAllowedForSideBets(context, game)) return NextResponse.json({ ok: false, error: "That game is not available in this Pick'em group." }, { status: 409 });
       if (![game.away_team, game.home_team].includes(body.creatorTeam)) return NextResponse.json({ ok: false, error: "Choose one of the two teams in this game." }, { status: 400 });
 
       const offerPhase = body.offerPhase === "live" ? "live" : "pregame";

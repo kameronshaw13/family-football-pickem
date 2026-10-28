@@ -1,11 +1,11 @@
-import { basketballCalendar, basketballFinalWeek, basketballPayoutMultiplier, basketballWeek, isBasketballRules } from "@/lib/basketballRules";
+import { BASKETBALL_2026_SIDE_BET_OPEN_DATE, basketballCalendar, basketballFinalWeek, basketballPayoutMultiplier, basketballSideBetWeekOpenTime, basketballWeek, isBasketballRules } from "@/lib/basketballRules";
 import { fromZonedTime } from "date-fns-tz";
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { normalizeEspnLogoUrl } from "@/lib/espnLogos";
-import { getGroupGameLockTime, getGroupPickWeekOpenTime, getGroupSideBetSettings, getGroupWeekRule, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+import { getGroupGameLockTime, getGroupPickWeekOpenTime, getGroupSideBetSettings, getGroupWeekRule, isGameAllowedForSideBets, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { computeGroupStandings } from "@/lib/groupScoring";
-import { isEligibleSeasonGame } from "@/lib/seasonRules";
+import { isEligibleSideBetSeasonGame } from "@/lib/seasonRules";
 import { sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { buildBankHistory } from "@/lib/bankHistory";
 import { sideBetCreatorProfit } from "@/lib/sideBetMarkets";
@@ -36,8 +36,9 @@ export async function GET(req: NextRequest) {
       const query = supabase.from("games").select("*").in("league", context.rules.eligibleLeagues || ["CFB", "NFL"])
         .order("commence_time", { ascending: true }).order("id");
       if (basketball) {
+        const firstVisibleDate = context.rules?.sideBets?.openingDate || BASKETBALL_2026_SIDE_BET_OPEN_DATE;
         return query.eq("week", basketballSelectedWeek)
-          .gte("commence_time", fromZonedTime(`${calendar.startDate}T00:00:00`, context.group.timezone).toISOString())
+          .gte("commence_time", fromZonedTime(`${firstVisibleDate}T00:00:00`, context.group.timezone).toISOString())
           .lt("commence_time", fromZonedTime(`${calendar.endDateExclusive}T00:00:00`, context.group.timezone).toISOString());
       }
       return query.gte("commence_time", new Date(Date.UTC(context.seasonYear, 7, 1)).toISOString())
@@ -84,7 +85,7 @@ export async function GET(req: NextRequest) {
       lockedRows.push(...(page.data || []));
     }
     const normalizedGames = allGameRows
-      .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game))
+      .filter((game: any) => isEligibleSideBetSeasonGame(game) && isGameAllowedForSideBets(context, game))
       .map((game: any) => {
         const lockTime = getGroupGameLockTime(context, game.commence_time).toISOString();
         return {
@@ -308,6 +309,7 @@ export async function GET(req: NextRequest) {
       weeklyPayoutMultiplier: basketball ? basketballPayoutMultiplier(week, context.rules) : 1,
       weekRule: getGroupWeekRule(context, week),
       weekOpenTime: weekOpen ? weekOpen.toISOString() : null,
+      sideBetWeekOpenTime: basketball ? basketballSideBetWeekOpenTime(week, context.rules, context.group.timezone).toISOString() : weekOpen?.toISOString() || null,
       availableWeeks: standingsWeeks
     });
   } catch (error) {

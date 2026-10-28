@@ -4,7 +4,7 @@ import nodeModule from "node:module";
 const { registerHooks } = nodeModule as unknown as { registerHooks: (hooks: { resolve: (specifier: string, context: { parentURL?: string }, nextResolve: (specifier: string, context: { parentURL?: string }) => any) => any }) => void };
 import { existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { basketballWeek, basketballWeekBounds, basketballFinalWeek, basketballPayoutMultiplier, basketballGameInSeason, basketballLockTime } from "../lib/basketballRules.ts";
+import { basketballWeek, basketballWeekBounds, basketballFinalWeek, basketballPayoutMultiplier, basketballGameInSeason, basketballGameAvailableForSideBets, basketballSideBetWeekOpenTime, basketballLockTime } from "../lib/basketballRules.ts";
 
 registerHooks({ resolve(specifier, context, nextResolve) {
   let url: URL | undefined;
@@ -17,6 +17,7 @@ const { espnDraftKingsBasketballQuote } = await import("../lib/espnBasketballMar
 const { settleWeekIfReady } = await import("../lib/autoSettlement.ts");
 const { computeWeeklyStandings } = await import("../lib/weeklyBank.ts");
 const { isGameAllowedByRules, getUnderdogBonusForRules } = await import("../lib/groupContext.ts");
+const { isDivisionOneMatchup } = await import("../lib/espnDivisionOne.ts");
 
 test("basketball rolls over Monday midnight Central and keeps Sunday evening in the old week", () => {
   assert.equal(basketballWeek(new Date("2026-11-09T05:59:59Z")), 1);
@@ -43,6 +44,20 @@ test("only actual March Madness weeks double, including the April championship w
 test("basketball locks each game an hour before tipoff, including Saturday and Sunday", () => {
   for (const tipoff of ["2026-11-02T01:00:00Z", "2026-11-07T19:00:00Z"]) assert.equal(Date.parse(tipoff) - basketballLockTime(tipoff).getTime(), 3600000);
 });
+test("NBA side bets start October 28 while basketball picks still wait for November 1", () => {
+  const tonight = "2026-10-29T00:00:00Z";
+  assert.equal(basketballGameInSeason(tonight), false);
+  assert.equal(basketballGameAvailableForSideBets(tonight), true);
+  assert.equal(basketballGameAvailableForSideBets("2026-10-27T22:00:00Z"), false);
+  assert.equal(basketballSideBetWeekOpenTime(1).toISOString(), "2026-10-28T05:00:00.000Z");
+  assert.equal(basketballSideBetWeekOpenTime(2).toISOString(), basketballWeekBounds(2).start.toISOString());
+});
+test("college basketball requires both opponents in ESPN's Division I directory", () => {
+  const divisionOneTeams = new Set(["1", "2", "3"]);
+  assert.equal(isDivisionOneMatchup("1", "2", divisionOneTeams), true);
+  assert.equal(isDivisionOneMatchup("1", "999", divisionOneTeams), false);
+  assert.equal(isDivisionOneMatchup(undefined, "2", divisionOneTeams), false);
+});
 const rules = { sport: "basketball", eligibleLeagues: ["CBB", "NBA"], pickRules: { default: { regularTotal: 5, underdogTotal: 1, perfectBonus: true } }, weeklyBank: { mode: "friends_weekly", first: 40, second: 20, third: 0, fourth: 0, fifth: 0, sixth: -10, seventh: -20, eighth: -30, perfectPayouts: { first: 60, second: 20, third: 0, fourth: 0, fifth: 0, sixth: -15, seventh: -25, eighth: -40 } } };
 
 test("basketball dog tiers and record are unchanged, with no loss for a losing dog", () => {
@@ -52,6 +67,8 @@ test("basketball dog tiers and record are unchanged, with no loss for a losing d
   assert.equal(row.wins, 3);
   assert.equal(isGameAllowedByRules(rules, { league: "NFL", home_team: "A", away_team: "B" }), false);
   assert.equal(isGameAllowedByRules(rules, { league: "CBB", home_team: "A", away_team: "B" }), true);
+  assert.equal(isGameAllowedByRules(rules, { league: "NBA", home_team: "A", away_team: "B", commence_time: "2026-10-29T00:00:00Z" } as any), false);
+  assert.equal(isGameAllowedByRules(rules, { league: "NBA", home_team: "A", away_team: "B", commence_time: "2026-10-29T00:00:00Z" } as any, true), true);
   assert.equal(isGameAllowedByRules({}, { league: "NBA", home_team: "A", away_team: "B" }), false);
 });
 function fixture(perfect = false, seasonRules: any = rules) {

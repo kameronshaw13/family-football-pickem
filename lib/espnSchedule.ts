@@ -5,6 +5,7 @@ import { normalizeEspnLogoUrl } from "./espnLogos.ts";
 import { createAsyncCache } from "./asyncCache.ts";
 
 type EspnTeam = {
+  id?: string;
   displayName: string;
   location: string;
   nickname: string;
@@ -164,6 +165,7 @@ function alignmentScore(firstTeamScore: number, secondTeamScore: number, kickoff
 function teamFromCompetitor(competitor: any): EspnTeam {
   const team = competitor?.team || {};
   return {
+    id: String(team.id || ""),
     displayName: team.displayName || "",
     location: team.location || team.shortDisplayName || "",
     nickname: team.name || "",

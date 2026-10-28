@@ -12,6 +12,7 @@ import { money, roundedMoney, stakeMoney, normalizeRiskInput } from "@/lib/money
 import { dogBonusText, dogLineText, confidencePointText } from "@/lib/pickDisplay";
 import { basketballLockTime, basketballWeek, basketballWeekBounds, basketballSeasonEnd, isBasketballLeague } from "@/lib/basketballRules";
 import BasketballGameDetails from "@/components/BasketballGameDetails";
+import BasketballHeaderWordmark from "@/components/BasketballHeaderWordmark";
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
 import NextImage from "next/image";
 import { useRouter } from "next/navigation";
@@ -1003,7 +1004,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return <div className="app-shell loading-shell">
       <header className="scoreboard-header">
         <div className="scoreboard-main">
-          <div className={`brand-lockup${appSlug === "friends-basketball" && headerLogoReady ? " basketball-header-brand" : ""}`}><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : appSlug === "friends-basketball" ? "/basketball-pickem-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : appSlug === "friends-basketball" ? "Basketball Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>
+          {appSlug === "friends-basketball"
+            ? <BasketballHeaderWordmark imageRef={headerLogoRef} ready={headerLogoReady} onReady={() => setHeaderLogoReady(true)} />
+            : <div className="brand-lockup"><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>}
           <div className="header-actions" aria-hidden="true">
             <span className="header-refresh-indicator" />
             <div className="header-slate">
@@ -1087,6 +1090,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return [profile.id, entries.length ? entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : null];
   })) : {};
   const weekIsOpen = !previewActive && !weekNotOpenYet && (!data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock);
+  const sideBetWeekIsOpen = !previewActive && !weekNotOpenYet && (!data.sideBetWeekOpenTime || new Date(data.sideBetWeekOpenTime).getTime() <= clock);
   const receivedNotificationCount = previewActive ? 1 : notificationCounts.side_bets_received;
   const sentNotificationCount = previewActive ? 1 : notificationCounts.side_bets_sent;
   const myCardNotificationCount = previewActive ? 1 : notificationCounts.my_card;
@@ -1229,7 +1233,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }
 
   async function createSideBet(options: { marketType: SideBetMarketType; offerPhase: SideBetOfferPhase; creatorSpread: number; totalPoints?: number | null; creatorOdds: number; amount: number }): Promise<boolean> {
-    if (!weekIsOpen) {
+    if (!sideBetWeekIsOpen) {
       notify("Side bet offers are not open for this week yet.", "error");
       return false;
     }
@@ -1295,9 +1299,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   return <div className="app-shell">
     <header className="scoreboard-header">
       <div className="scoreboard-main">
-        <div className={`brand-lockup${appSlug === "friends-basketball" && headerLogoReady ? " basketball-header-brand" : ""}`}>
-          <NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : appSlug === "friends-basketball" ? "/basketball-pickem-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : appSlug === "friends-basketball" ? "Basketball Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} />
-        </div>
+        {appSlug === "friends-basketball"
+          ? <BasketballHeaderWordmark imageRef={headerLogoRef} ready={headerLogoReady} onReady={() => setHeaderLogoReady(true)} />
+          : <div className="brand-lockup"><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>}
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
           {previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><MenuSelect
@@ -1362,9 +1366,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           maxPerWeek={data.sideBetSettings?.maxPerWeek ?? null}
           maxAmount={data.sideBetSettings?.maxAmount ?? MAX_SIDE_BET_AMOUNT}
           manualAmount={Boolean(data.sideBetSettings?.manualAmount)}
-          weekIsOpen={weekIsOpen}
+          weekIsOpen={sideBetWeekIsOpen}
           weekConcluded={weekConcluded}
-          weekOpenTime={data.weekOpenTime}
+          weekOpenTime={data.sideBetWeekOpenTime ?? data.weekOpenTime}
           week={viewedWeek}
           openGames={openBetGames}
           gameLeague={betLeagueFilter}

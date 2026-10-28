@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { fetchActionNetworkMarkets } from "@/lib/actionNetworkMarkets";
 import { persistActionNetworkSpreads } from "@/lib/footballMarketSync";
-import { isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+import { isGameAllowedForSideBets, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       .order("commence_time", { ascending: true });
     if (error) throw new Error(error.message);
 
-    const eligible = (games || []).filter((game) => isGameAllowedForGroup(context, game));
+    const eligible = (games || []).filter((game) => isGameAllowedForSideBets(context, game));
     const markets = await fetchActionNetworkMarkets(eligible);
     const persisted = await persistActionNetworkSpreads(supabase, eligible, markets, new Date());
     const schedule = eligible.map((game) => ({
