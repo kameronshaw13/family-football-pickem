@@ -4727,6 +4727,8 @@ html[data-theme="dark"] .primary-nav {
 .basketball-wordmark { color: #fff; font-size: clamp(19px, 5vw, 28px); font-weight: 800; white-space: nowrap; }
 .basketball-brand-logo { display: block; width: 64px; height: 64px; object-fit: contain; flex: 0 0 auto; border-radius: var(--ui-radius-box); }
 .basketball-login-logo { display: block; width: 160px; height: 160px; margin: 0 auto var(--ui-space-3); border-radius: var(--ui-radius-box); }
+.basketball-login-wordmark { width: 100%; justify-content: center; margin: 0 auto var(--ui-space-3); padding: 14px 7px; border-radius: var(--ui-radius-box); background: var(--graphite); }
+.basketball-login-wordmark > span { font-size: clamp(19px, 5.3vw, 25px); }
 .cbb-analytics { padding: var(--ui-space-3); color: var(--ink); background: var(--canvas); }
 .cbb-analytics > header { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-2); }
 .cbb-analytics h3 { margin: 0; font-size: 15px; }

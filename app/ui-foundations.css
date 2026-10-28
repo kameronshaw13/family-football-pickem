@@ -91,6 +91,9 @@ p { margin: 0; }
 .scoreboard-main { display: flex; height: var(--header-height); align-items: center; justify-content: space-between; gap: var(--space-3); }
 .brand-lockup { display: flex; min-width: 0; height: 100%; flex: 1 1 auto; align-items: center; margin-left: 5px; overflow: hidden; }
 .header-wordmark { width: min(236px, 100%); height: auto; max-height: 54px; flex: 0 1 auto; object-fit: contain; object-position: left center; transition: opacity 140ms ease-out; }
+.basketball-header-wordmark { display: flex; width: min(245px, 100%); min-width: 0; align-items: center; gap: 5px; overflow: hidden; white-space: nowrap; }
+.basketball-header-ball { display: block; width: 34px; height: 34px; flex: 0 0 34px; filter: drop-shadow(1px 1px 0 #061320); }
+.basketball-header-wordmark > span { min-width: 0; color: #fff; font-family: var(--font-display); font-size: clamp(17px, 4.8vw, 23px); font-weight: 900; letter-spacing: -.075em; line-height: 1.05; -webkit-text-stroke: .75px #1678d5; text-shadow: 1px 1px 0 #1678d5, 2px 2px 0 #071527; }
 .header-actions { display: flex; height: 100%; align-items: center; gap: var(--space-2); }
 .header-refresh-indicator { display: grid; width: 18px; height: 18px; flex: 0 0 18px; place-items: center; color: #c5dbe7; }
 .header-refresh-indicator svg { animation: spin .8s linear infinite; }

@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: "Private Friends basketball pick'em.",
   applicationName: "Basketball Pick'em",
   appleWebApp: { capable: true, title: "Basketball Pick'em", statusBarStyle: "black-translucent" },
-  icons: { icon: "/basketball-pickem-logo.png?v=1", apple: "/basketball-pickem-logo.png?v=1" },
+  icons: { icon: "/basketball-pickem-cover-v2.png", apple: "/basketball-pickem-cover-v2.png" },
   manifest: "/friends-basketball-manifest.webmanifest"
 };
 

@@ -29,6 +29,7 @@ import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, P
 import MenuSelect from "@/components/MenuSelect";
 import NumericText from "@/components/NumericText";
 import NotificationBadge from "@/components/NotificationBadge";
+import BasketballHeaderWordmark from "@/components/BasketballHeaderWordmark";
 import MatchupPreview from "@/components/MatchupPreview";
 import NflMatchupPreview from "@/components/NflMatchupPreview";
 import GameTracker from "@/components/GameTracker";
@@ -979,7 +980,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return <div className="app-shell loading-shell">
       <header className="scoreboard-header">
         <div className="scoreboard-main">
-          <div className="brand-lockup">{appSlug === "friends-basketball" ? <NextImage unoptimized className="basketball-brand-logo" src="/basketball-pickem-logo.png" alt="Basketball Pick’em" width={64} height={64} priority /> : <NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} />}</div>
+          <div className="brand-lockup">{appSlug === "friends-basketball" ? <BasketballHeaderWordmark /> : <NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} />}</div>
           <div className="header-actions" aria-hidden="true">
             <span className="header-refresh-indicator" />
             <div className="header-slate">
@@ -1272,7 +1273,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     <header className="scoreboard-header">
       <div className="scoreboard-main">
         <div className="brand-lockup">
-          {appSlug === "friends-basketball" ? <NextImage unoptimized className="basketball-brand-logo" src="/basketball-pickem-logo.png" alt="Basketball Pick’em" width={64} height={64} priority /> : <NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} />}
+          {appSlug === "friends-basketball" ? <BasketballHeaderWordmark /> : <NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} />}
         </div>
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
