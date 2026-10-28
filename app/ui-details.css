@@ -5641,15 +5641,17 @@ button, input, select, textarea {
 .matchup-ats-badge.matchup-cover-loss { color: var(--red); background: var(--red-soft); }
 .matchup-ats-badge.matchup-cover-push { color: var(--muted); background: var(--surface-muted); }
 /* Unified Pick'em home. Existing league routes keep their current presentation. */
-.league-hub-screen { position: relative; min-height: 100vh; min-height: 100dvh; padding: env(safe-area-inset-top) 16px max(32px, env(safe-area-inset-bottom)); color: var(--ink); background: linear-gradient(to bottom, var(--graphite) 0, var(--graphite) calc(env(safe-area-inset-top) + var(--header-height)), var(--canvas) calc(env(safe-area-inset-top) + var(--header-height))); }
-.league-hub-content { width: min(760px, 100%); margin: 0 auto; }
-.league-hub-topbar { display: flex; height: var(--header-height); align-items: center; justify-content: space-between; gap: 12px; padding: 0 2px; }
-.league-hub-topbar::after { position: absolute; top: calc(env(safe-area-inset-top) + var(--header-height) - 3px); right: 0; left: 0; height: 3px; background: var(--blue); content: ""; pointer-events: none; }
-.league-hub-header-logo { display: block; width: auto; max-width: min(210px, 60%); height: 46px; object-fit: contain; object-position: left center; }
+.league-hub-screen { position: relative; min-height: 100vh; min-height: 100dvh; padding: 0 16px max(32px, env(safe-area-inset-bottom)); color: var(--ink); background: var(--canvas); }
+.league-hub-content { width: min(760px, 100%); margin: 0 auto; padding-top: calc(env(safe-area-inset-top) + var(--header-height) + var(--ui-space-3)); }
+.league-hub-wordmark { display: flex; width: 164px; height: 54px; align-items: center; flex: 0 0 auto; }
+.league-hub-wordmark > span { display: block; height: 34px; flex: 0 0 auto; background-repeat: no-repeat; background-size: 236px auto; }
+.league-hub-wordmark-football { width: 42px; background-image: url("/football-pickem-wordmark.png"); background-position: left center; }
+.league-hub-wordmark-basketball { width: 42px; background-image: url("/basketball-pickem-wordmark.png"); background-position: left center; }
+.league-hub-wordmark-title { width: 80px; background-image: url("/football-pickem-wordmark.png"); background-position: right center; }
 .league-hub-brand { display: flex; align-items: center; gap: 9px; color: #fff; font-family: var(--font-display); font-size: 24px; font-weight: 900; letter-spacing: -.035em; }
 .league-hub-brand svg { color: #a8d7ef; }
 .league-hub-signout { display: flex; align-items: center; gap: 6px; padding: 9px 10px; border: 1px solid #59666d; border-radius: var(--ui-radius-action); color: #f1f6f8; background: var(--graphite-light); font-family: var(--font-display); font-size: 11px; font-weight: 800; cursor: pointer; }
-.league-hub-intro { margin-top: 25px; padding-bottom: 21px; border-bottom: 1px solid var(--line); }
+.league-hub-intro { margin-top: 12px; padding-bottom: 21px; border-bottom: 1px solid var(--line); }
 .league-hub-eyebrow { display: block; margin-bottom: 8px; color: var(--blue-dark); font-family: var(--font-display); font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
 .league-hub-intro h1, .league-login-card h1 { margin: 0; color: var(--ink); font-family: var(--font-display); font-size: clamp(25px, 6vw, 32px); font-weight: 900; letter-spacing: -.035em; line-height: 1.2; }
 .league-hub-intro p, .league-login-card > p { margin-top: 8px; color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.55; }
@@ -5662,8 +5664,7 @@ button, input, select, textarea {
 .league-hub-card { display: flex; min-height: 79px; align-items: center; gap: 12px; margin-bottom: 8px; padding: 11px 13px; border: 1px solid var(--line-strong); border-left: 4px solid var(--blue); border-radius: var(--ui-radius-box); color: var(--ink); background: var(--panel); text-decoration: none; transition: border-color .12s ease, background .12s ease; }
 .league-hub-card:hover, .league-hub-card:focus-visible { border-color: var(--blue); background: var(--hover); }
 .league-hub-open { display: grid; width: 29px; height: 29px; flex: 0 0 29px; place-items: center; border: 1px solid var(--line); border-radius: var(--ui-radius-action); color: var(--blue-dark); background: var(--surface-soft); }
-.league-hub-sport { display: grid; width: 52px; height: 52px; flex: 0 0 52px; place-items: center; padding: 3px; border-radius: var(--ui-radius-box); background: var(--blue-soft); }
-.league-hub-sport.basketball { background: #e4ecfa; }
+.league-hub-sport { display: grid; width: 52px; height: 52px; flex: 0 0 52px; place-items: center; }
 .league-hub-sport img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .league-hub-card-copy { display: grid; flex: 1; gap: 4px; min-width: 0; }
 .league-hub-card-copy strong { font-size: 14px; font-weight: 850; line-height: 1.25; overflow-wrap: anywhere; }
