@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: "One Pick'em home for all your leagues.",
   applicationName: "Pick'em",
   appleWebApp: { capable: true, title: "Pick'em", statusBarStyle: "black-translucent" },
-  icons: { icon: "/unified-pickem-cover.png", apple: "/unified-pickem-cover.png" },
+  icons: { icon: "/leagues/icon", apple: "/leagues/apple-icon" },
   manifest: "/pickem-hub-manifest.webmanifest"
 };
 

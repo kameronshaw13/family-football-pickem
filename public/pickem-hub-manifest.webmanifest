@@ -10,6 +10,6 @@
   "background_color": "#20282d",
   "theme_color": "#20282d",
   "icons": [
-    { "src": "/unified-pickem-cover.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    { "src": "/leagues/icon", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }

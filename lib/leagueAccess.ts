@@ -18,6 +18,10 @@ const LEAGUE_NAMES: Record<PickemAppSlug, string> = {
   "other-family": "Caleb’s Family Football"
 };
 
+export function leagueNameForSlug(slug: PickemAppSlug): string {
+  return LEAGUE_NAMES[slug];
+}
+
 export function isKnownPickemUser(username: string) {
   const normalized = username.trim().toLowerCase();
   return Object.values(APP_USERS).some((roster) => roster.some((user) => user.username === normalized));

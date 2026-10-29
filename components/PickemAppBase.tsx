@@ -39,7 +39,7 @@ import GroupMoneyControls from "@/components/GroupMoneyControls";
 import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoints";
 import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
 import { appLoginPath } from "@/lib/appIdentity";
-import type { LeagueMembership } from "@/lib/leagueAccess";
+import { leagueNameForSlug, type LeagueMembership } from "@/lib/leagueAccess";
 import { leagueTabDestination, leagueTabFromQuery } from "@/lib/leagueNavigation";
 import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetResponseSummary, sideBetsForView } from "@/lib/sideBetPresentation";
 import { orderCardPicks } from "@/lib/cardOrdering";
@@ -1296,15 +1296,18 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     { id: "settings", label: "Settings", icon: SettingsIcon }
   ];
 
+  // Show the chosen league wordmark in Settings before navigating to its data.
+  const displayedHeaderSlug = tab === "settings" ? selectedLeague?.slug ?? appSlug : appSlug;
+
   return <div className="app-shell">
     <header className="scoreboard-header">
       <div className="scoreboard-main">
-        {appSlug === "friends-basketball"
+        {displayedHeaderSlug === "friends-basketball"
           ? <BasketballHeaderWordmark imageRef={headerLogoRef} ready={headerLogoReady} onReady={() => setHeaderLogoReady(true)} />
-          : <div className="brand-lockup"><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>}
+          : <div className="brand-lockup"><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={displayedHeaderSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={displayedHeaderSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={displayedHeaderSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>}
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
-          {previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><MenuSelect
+          {displayedHeaderSlug !== appSlug ? null : previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><MenuSelect
             ariaLabel="Select week"
             className="week-select-wrap header-menu-select"
             plainText
@@ -1488,7 +1491,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       {tab === "settings" && <SettingsPanel
         appSlug={appSlug}
         currentUser={currentUser}
-        leagueName={selectedLeague?.name || data.activeGroup?.name}
+        leagueName={selectedLeague?.name || leagueNameForSlug(appSlug)}
         rules={displayedRules}
         loginPath={loginPath}
         onCountsChanged={updateNotificationCounts}
