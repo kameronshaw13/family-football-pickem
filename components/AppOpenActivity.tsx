@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import type { AppSlug } from "@/lib/rulePresentation";
 
@@ -10,8 +10,11 @@ const visitDate = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Chicago",
   month: "short",
   day: "numeric",
-  hour: "numeric",
-  minute: "2-digit"
+  year: "numeric"
+});
+
+const visitDayKey = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit"
 });
 
 export default function AppOpenActivity({ appSlug }: { appSlug: AppSlug }) {
@@ -22,6 +25,16 @@ export default function AppOpenActivity({ appSlug }: { appSlug: AppSlug }) {
   const [refreshCount, setRefreshCount] = useState(0);
 
   const refresh = useCallback(() => setRefreshCount((count) => count + 1), []);
+  // One entry per person per Central Time calendar day.
+  const dailyVisits = useMemo(() => {
+    const seen = new Set<string>();
+    return visits.filter((visit) => {
+      const key = `${visit.name.trim().toLowerCase()}|${visitDayKey.format(new Date(visit.openedAt))}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [visits]);
   useEffect(() => {
     const controller = new AbortController();
     const token = window.localStorage.getItem("pickem_session_token");
@@ -56,7 +69,7 @@ export default function AppOpenActivity({ appSlug }: { appSlug: AppSlug }) {
     <div className="app-open-activity-header">
       <div className="settings-row-copy">
         <strong>Who Opened the App</strong>
-        <span>Private to Kameron · Latest 100 opens · Central Time</span>
+        <span>Private to Kameron · One entry per person each day</span>
       </div>
       <button type="button" className="app-open-refresh" aria-label="Refresh app activity" title="Refresh" disabled={busy} onClick={refresh}><RefreshCw size={16} /></button>
     </div>
@@ -68,7 +81,7 @@ export default function AppOpenActivity({ appSlug }: { appSlug: AppSlug }) {
       {busy ? <p className="muted">Loading activity…</p>
         : error ? <p className="muted" role="alert">{error}</p>
         : visits.length === 0 ? <p className="muted">No app opens recorded yet.</p>
-        : visits.map((visit) => <div className="app-open-activity-item" key={visit.id}>
+        : dailyVisits.map((visit) => <div className="app-open-activity-item" key={visit.id}>
           <strong>{visit.name || "Player"}</strong>
           <time dateTime={visit.openedAt}>{visitDate.format(new Date(visit.openedAt))}</time>
         </div>)}
