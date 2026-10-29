@@ -5699,3 +5699,53 @@ button, input, select, textarea {
 .settings-league-link > svg { color: var(--blue-dark); }
 .settings-league-loading { padding: 13px; color: var(--muted); font-size: 12px; }
 .settings-league-hub-link { display: flex; min-height: 44px; align-items: center; justify-content: space-between; padding: 9px 13px; color: var(--blue-dark); font-size: 12px; font-weight: 800; text-decoration: none; }
+
+
+/* Batch 1: make the unified header share the app's wordmark / control geometry. */
+.league-hub-header .league-hub-trophy-wordmark {
+  display: block;
+  width: min(236px, 100%);
+  height: auto;
+  max-height: 50px;
+  object-fit: contain;
+  object-position: left center;
+}
+.league-hub-header .league-hub-signout {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 5px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, .36);
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+}
+.league-hub-header .league-hub-signout:focus-visible { outline: 2px solid #c5dbe7; outline-offset: -2px; }
+@media (max-width: 520px) {
+  .league-hub-header .league-hub-trophy-wordmark { width: min(222px, 100%); max-height: 50px; }
+}
+
+/* Batch 1: use clean single separators rather than bubble cards in Settings. */
+.settings-panel .settings-section > h3 {
+  border-top: 0;
+  border-bottom: 1px solid var(--line-strong);
+}
+.settings-panel .settings-card {
+  border-radius: 0;
+  border-bottom: 1px solid var(--line);
+}
+.settings-panel .settings-detail,
+.settings-panel .settings-rule-item {
+  border-radius: 0;
+}
+.settings-panel .settings-rule-item:last-child { border-bottom: 0; }
+.settings-panel .settings-detail > summary,
+.settings-panel .settings-row-heading,
+.settings-panel .settings-league-link {
+  border-radius: 0;
+}
