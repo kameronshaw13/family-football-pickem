@@ -66,7 +66,7 @@ export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect }: {
     <div className="settings-card">
       <div className="settings-row-heading"><div className="settings-leading-icon"><Layers3 size={17} /></div><div className="settings-row-copy"><strong>Switch League</strong><span>Choose a league, then open a tab below.</span></div></div>
       {leagues?.map((league) => <button key={league.slug} type="button" onClick={() => selectLeague(league)} aria-pressed={league.slug === selectedSlug} className={`settings-league-link ${league.slug === selectedSlug ? "active" : ""}`}>
-        <span className={`settings-league-sport-mark ${league.sport.toLowerCase()}`} aria-hidden="true"><Image src={league.sport === "Basketball" ? "/league-basketball.png" : "/league-football.png"} alt="" width={22} height={22} unoptimized /></span><strong>{league.name}</strong>{league.slug === selectedSlug ? <><small>{league.slug === activeSlug ? "Current" : "Selected"}</small><Check size={16} /></> : <ChevronRight size={17} />}
+        <span className={`settings-league-sport-mark ${league.sport.toLowerCase()}`} aria-hidden="true"><Image src={league.sport === "Basketball" ? "/league-basketball-orange.png" : "/league-football-brown.png"} alt="" width={22} height={22} unoptimized /></span><strong>{league.name}</strong>{league.slug === selectedSlug ? <><small>{league.slug === activeSlug ? "Current" : "Selected"}</small><Check size={16} /></> : <ChevronRight size={17} />}
       </button>)}
       {!leagues && <div className="settings-league-loading">Loading leagues…</div>}
       {selectedSlug !== activeSlug && <p className="settings-league-switch-note">Ready to switch — tap Picks, My Card, or Standings below.</p>}
