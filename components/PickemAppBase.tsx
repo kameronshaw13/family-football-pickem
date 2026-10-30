@@ -956,12 +956,15 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }
 
   async function postSideBet(body: any) {
+    // Prevent overlapping create, accept, decline, cancel and clear requests.
+    if (sideBetMutationInFlightRef.current) return false;
+    sideBetMutationInFlightRef.current = true;
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) {
+      sideBetMutationInFlightRef.current = false;
       window.location.href = loginPath;
       return false;
     }
-    sideBetMutationInFlightRef.current = true;
     const requestId = ++sideBetRequestSequenceRef.current;
     setSavingBet(true);
     setSavingBetId(body.sideBetId || null);
