@@ -1,6 +1,7 @@
 "use client";
 
 import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
+import { trackerPeriodLabel, trackerPeriodHeading } from "@/lib/trackerPeriods";
 
 
 import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
@@ -101,17 +102,7 @@ function TeamLogo({ src, name, size = 40 }: { src?: string | null; name: string;
 }
 
 function periodLabel(period: string) {
-  const raw = String(period || "").trim();
-  const number = Number(raw.match(/\d+/)?.[0]);
-  if (Number.isFinite(number)) {
-    if (number === 1) return "1st";
-    if (number === 2) return "2nd";
-    if (number === 3) return "3rd";
-    if (number === 4) return "4th";
-    if (number > 4) return `${number - 4}OT`;
-  }
-  if (/ot/i.test(raw)) return raw.toUpperCase();
-  return raw || "Game";
+  return trackerPeriodLabel(period);
 }
 
 function drivePeriod(drive: TrackerDrive) {
@@ -372,7 +363,7 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
 
 function ScoringQuarterHeader({ payload, label }: { payload: TrackerPayload; label: string }) {
   return <div className="game-tracker-quarter-header game-tracker-scoring-quarter-header">
-    <span>{label} Quarter</span>
+    <span>{trackerPeriodHeading(label)}</span>
     <div className="game-tracker-quarter-team-logos" aria-hidden="true">
       <TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} />
       <TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} />
@@ -471,7 +462,7 @@ function DriveDetails({ drive, payload, initiallyOpen, beforeQuarter, crossesQua
         const previous = drive.plays[index - 1];
         const newQuarter = previous?.period && play.period && periodLabel(previous.period) !== periodLabel(play.period);
         return <Fragment key={play.id}>
-          {newQuarter && <div className="game-tracker-quarter-header game-tracker-drive-quarter-header">{periodLabel(play.period)} Quarter</div>}
+          {newQuarter && <div className="game-tracker-quarter-header game-tracker-drive-quarter-header">{trackerPeriodHeading(periodLabel(play.period))}</div>}
           <PlayRow play={play} />
         </Fragment>;
       }) : <p className="game-tracker-drive-empty">No plays listed for this drive.</p>}
@@ -493,10 +484,10 @@ function Plays({ payload }: { payload: TrackerPayload }) {
       const beforeQuarter = Boolean(nextDrive && periodLabel(drivePeriod(nextDrive)) !== periodLabel(driveEndPeriod(drive)));
 
       return <Fragment key={drive.id}>
-        {showQuarter && <div className="game-tracker-quarter-header game-tracker-plays-quarter-header">{period} Quarter</div>}
+        {showQuarter && <div className="game-tracker-quarter-header game-tracker-plays-quarter-header">{trackerPeriodHeading(period)}</div>}
         <DriveDetails drive={drive} payload={payload} initiallyOpen={drive.current || index === 0} beforeQuarter={beforeQuarter} crossesQuarter={crossedQuarters.length > 0} />
         {crossedQuarters.length > 0 && <div className="game-tracker-collapsed-quarter-headers">
-          {crossedQuarters.map((quarter, transitionIndex) => <div className="game-tracker-quarter-header game-tracker-plays-quarter-header" key={`${quarter}-${transitionIndex}`}>{quarter} Quarter</div>)}
+          {crossedQuarters.map((quarter, transitionIndex) => <div className="game-tracker-quarter-header game-tracker-plays-quarter-header" key={`${quarter}-${transitionIndex}`}>{trackerPeriodHeading(quarter)}</div>)}
         </div>}
       </Fragment>;
     })}
@@ -552,12 +543,12 @@ function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
     };
   }, []);
 
-  return <div ref={scroller} className="game-tracker-player-table-scroll">
+  return <div ref={scroller} className="game-tracker-player-table-scroll" tabIndex={0} role="region" aria-label={`${row.title} player statistics, scroll horizontally for more columns`}>
     <table className="game-tracker-player-table" aria-label={row.title} style={{ width: `max(100%, ${152 + visibleLabels.length * 44}px)` }}>
       <colgroup><col style={{ width: 152 }} />{visibleLabels.map((label, index) => <col key={`${label}-${index}`} style={{ width: 44 }} />)}</colgroup>
       <thead><tr><th scope="col">{row.title}</th>{visibleLabels.map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead>
       <tbody>{row.athletes.map((athlete) => <tr key={athlete.name}>
-        <td>{athlete.name}</td>
+        <th scope="row">{athlete.name}</th>
         {visibleLabels.map((_, index) => <td key={index}>{athlete.values[index] ?? "—"}</td>)}
       </tr>)}</tbody>
     </table>

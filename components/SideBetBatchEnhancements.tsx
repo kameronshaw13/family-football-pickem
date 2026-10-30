@@ -134,6 +134,7 @@ export default function SideBetBatchEnhancements() {
     let applying = false;
     let frame = 0;
     let sending = false;
+    let activeWeek = selectedWeekFromHeader();
     let suppressSelectionCapture = false;
     let pendingNativeSync = false;
     let suppressFormCapture = false;
@@ -511,6 +512,14 @@ export default function SideBetBatchEnhancements() {
     }
 
     function applyBatchUi(payload: CachedPayload | null) {
+      const displayedWeek = selectedWeekFromHeader();
+      // A ticket belongs to its original week; never carry selections into a
+      // different slate after using the header week selector.
+      if (displayedWeek != null && activeWeek != null && displayedWeek !== activeWeek) {
+        selections = [];
+        pendingNativeSync = false;
+      }
+      if (displayedWeek != null) activeWeek = displayedWeek;
       // When the user leaves the New Offer board (including after a
       // successful single-send), release the batch state. Otherwise a
       // previous highlighted selection resurfaces when returning.
@@ -610,6 +619,7 @@ export default function SideBetBatchEnhancements() {
         syncNativeSelection();
         schedule();
         showBatchMessage(`${sentCount} side bet offer${sentCount === 1 ? "" : "s"} sent.`, "success");
+        window.dispatchEvent(new CustomEvent("pickem:side-bets-updated"));
         window.setTimeout(openOffersView, 120);
       } catch (error) {
         showBatchMessage(error instanceof Error ? error.message : "The side bet batch could not be sent.", "error");

@@ -354,6 +354,17 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     }
   }, [appSlug, applySideBetSnapshot, refreshNotificationCounts]);
 
+  // Batch sends use the same authoritative offer refresh as normal actions.
+  // Do not wait for the regular 5-second polling cycle to show new offers.
+  useEffect(() => {
+    const onBatchUpdated = () => {
+      void refreshSideBets();
+      void refreshNotificationCounts();
+    };
+    window.addEventListener("pickem:side-bets-updated", onBatchUpdated);
+    return () => window.removeEventListener("pickem:side-bets-updated", onBatchUpdated);
+  }, [refreshSideBets, refreshNotificationCounts]);
+
   const refreshSideBetLedger = useCallback(async () => {
     if (sideBetLedgerRefreshInFlightRef.current || document.visibilityState === "hidden") return;
     const token = window.localStorage.getItem("pickem_session_token");
