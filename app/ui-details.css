@@ -4314,10 +4314,10 @@ html[data-theme="dark"] .primary-nav {
 /* Preview matchup hero: clean vertical stack with one obvious score/spread row. */
 .matchup-preview-hero {
   min-height:152px;
-  height:152px;
-  flex-basis:152px;
+  height:auto;
+  flex-basis:auto;
   grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);
-  grid-template-rows:22px minmax(0,1fr);
+  grid-template-rows:22px auto;
   gap:0 var(--ui-space-2);
   padding:var(--ui-space-1) 13px 10px;
   background:var(--panel);
@@ -4339,14 +4339,16 @@ html[data-theme="dark"] .primary-nav {
   object-fit:contain;
 }
 .matchup-preview-team > strong {
+  display:block;
   min-height:0;
-  max-height:38px;
+  max-height:none;
+  overflow:visible;
   font-family:var(--font-display);
   font-size:clamp(12px,3.6vw,15px);
   font-weight:850;
   line-height:1.18;
-  -webkit-line-clamp:2;
-  overflow-wrap:anywhere;
+  -webkit-line-clamp:unset;
+  overflow-wrap:break-word;
 }
 .matchup-preview-team > span {
   min-height:19px;
@@ -5584,10 +5586,23 @@ button, input, select, textarea {
 .game-tracker-drive-play > div > strong time { font-size: inherit; font-weight: inherit; }
 .game-tracker-play-context .game-tracker-play-outcome { margin-left: auto; font-size: 12px; }
 .game-tracker-meta-dot { align-self: center; transform: translateY(.07em); }
-.game-tracker-player-table tbody tr:last-child td { border-bottom: 0; }
+.game-tracker-player-table tbody tr:last-child > * { border-bottom: 0; }
 .game-tracker-player-table th:first-child,
 .game-tracker-player-table td:first-child { border-right: 1px solid var(--tracker-divider); }
-.game-tracker-player-table th { background: var(--tracker-header-fill); }
+.game-tracker-player-table thead th { background: var(--tracker-header-fill); }
+.game-tracker-player-table tbody th[scope="row"] {
+  position: sticky;
+  top: auto;
+  left: 0;
+  z-index: 2;
+  color: var(--ink);
+  background: var(--panel);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.25;
+  text-align: left;
+  text-transform: none;
+}
 .game-tracker-box-section .game-tracker-player-table-scroll {
   border: 0;
   background: var(--panel);
@@ -5632,14 +5647,6 @@ button, input, select, textarea {
   flex: 0 0 3px; margin: 0 .4em; align-self: center; transform: none;
 }
 .matchup-form-combined-row > span { display: grid; place-items: center; padding: 1px 0 0; line-height: 1; text-align: center; }
-.matchup-result-outcome .matchup-ats-badge {
-  display: inline-grid; place-items: center; width: 19px; height: 19px;
-  padding: 1px 0 0; border: 1px solid currentColor; border-radius: var(--ui-radius-label);
-  font-family: var(--font-display); font-size: 10px; line-height: 1; text-align: center;
-}
-.matchup-ats-badge.matchup-cover-win { color: var(--green); background: var(--green-soft); }
-.matchup-ats-badge.matchup-cover-loss { color: var(--red); background: var(--red-soft); }
-.matchup-ats-badge.matchup-cover-push { color: var(--muted); background: var(--surface-muted); }
 /* Unified Pick'em home. Existing league routes keep their current presentation. */
 .league-hub-screen { position: relative; min-height: 100vh; min-height: 100dvh; padding: 0 16px max(32px, env(safe-area-inset-bottom)); color: var(--ink); background: var(--canvas); }
 .league-hub-content { width: min(760px, 100%); margin: 0 auto; padding-top: calc(env(safe-area-inset-top) + var(--header-height) + var(--ui-space-3)); }
