@@ -1272,7 +1272,15 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       notify(`You already have ${maxPerWeek} accepted or pending side bets this week.`, "error");
       return false;
     }
-    const fullRecipient = maxPerWeek == null ? undefined : profiles.find((profile) => betRecipients.includes(profile.id) && (data?.sideBetSlotCounts?.[profile.id] || 0) >= maxPerWeek);
+    // Snapshot the selection so a multi-recipient offer is submitted atomically
+    // with the recipients the user actually selected.
+    const recipientIds = [...new Set(betRecipients)];
+    const validRecipientIds = new Set(profiles.filter((profile) => profile.id !== currentUser.id).map((profile) => profile.id));
+    if (recipientIds.some((id) => !validRecipientIds.has(id))) {
+      notify("The selected recipients have changed. Please select them again.", "error");
+      return false;
+    }
+    const fullRecipient = maxPerWeek == null ? undefined : profiles.find((profile) => recipientIds.includes(profile.id) && (data?.sideBetSlotCounts?.[profile.id] || 0) >= maxPerWeek);
     if (fullRecipient) {
       notify(`${fullRecipient.display_name} has reached the weekly side bet limit.`, "error");
       return false;
@@ -1282,7 +1290,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       gameId: selectedBetGame.id,
       creatorTeam: selectedCreatorTeam,
       amount: submittedAmount,
-      recipientIds: betRecipients,
+      recipientIds,
       marketType: options.marketType,
       offerPhase: options.offerPhase,
       creatorSpread: options.marketType === "spread" ? options.creatorSpread : 0,
