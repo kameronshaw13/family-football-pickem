@@ -487,7 +487,7 @@ function Plays({ payload }: { payload: TrackerPayload }) {
       const previous = payload.drives[index - 1];
       const period = periodLabel(drivePeriod(drive));
       const previousPeriod = previous ? periodLabel(driveEndPeriod(previous)) : "";
-      const showQuarter = !previous || period !== previousPeriod;
+      const showQuarter = !previous || (period !== previousPeriod && !driveQuarterTransitions(previous).includes(period));
       const crossedQuarters = driveQuarterTransitions(drive);
       const nextDrive = payload.drives[index + 1];
       const beforeQuarter = Boolean(nextDrive && periodLabel(drivePeriod(nextDrive)) !== periodLabel(driveEndPeriod(drive)));
