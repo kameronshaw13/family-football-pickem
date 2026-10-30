@@ -339,6 +339,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       });
       if (!response.ok) return;
       const payload = await response.json() as SideBetSnapshot;
+      // An earlier week request must never overwrite offers for a newly selected week.
+      if (dataRef.current?.week !== current.week) return;
       const changed = sideBetSyncSignature(current.sideBets) !== sideBetSyncSignature(payload.sideBets || []);
       applySideBetSnapshot({ ...payload, sideBets: payload.sideBets || [] }, requestId);
       if (changed) {
@@ -366,6 +368,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       });
       if (!response.ok) return;
       const payload = await response.json() as { sideBetLedger?: SideBet[] };
+      if (dataRef.current?.week !== current.week) return;
       const nextLedger = payload.sideBetLedger || [];
       setSideBetLedger((current) => sideBetLedgerSignature(current) === sideBetLedgerSignature(nextLedger) ? current : nextLedger);
       setSideBetLedgerReady(true);
@@ -831,7 +834,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           }];
         });
 
-        if (changedLiveOffers.length && !liveOfferExpiryInFlightRef.current) {
+        if (changedLiveOffers.length && !liveOfferExpiryInFlightRef.current && !sideBetMutationInFlightRef.current) {
           const token = window.localStorage.getItem("pickem_session_token");
           if (token) {
             const requestId = ++sideBetRequestSequenceRef.current;
