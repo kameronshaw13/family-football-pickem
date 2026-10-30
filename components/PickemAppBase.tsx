@@ -422,7 +422,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }, []);
 
   // Preserve the selected destination tab when moving between league routes.
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     const url = new URL(window.location.href);
     const requestedTab = leagueTabFromQuery(url.searchParams.get("view"));
     if (!requestedTab) return;
@@ -450,7 +450,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       window.location.href = loginPath;
       return;
     }
-    const cachedPayload = isInitialLoad ? readCachedAppData(appSlug, nextWeek) : null;
+    // A warmed league is cached by its default-week key. If navigation passed
+    // that same week explicitly, still reuse the warmed payload before paint.
+    const exactCache = isInitialLoad ? readCachedAppData(appSlug, nextWeek) : null;
+    const defaultCache = isInitialLoad && nextWeek != null && !exactCache ? readCachedAppData(appSlug, null) : null;
+    const cachedPayload = exactCache || (defaultCache?.week === nextWeek ? defaultCache : null);
     if (cachedPayload) {
       void preloadInitialBoardLogos(cachedPayload);
       const cachedAt = Date.now();
@@ -523,7 +527,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     }
   }, [appSlug, loginPath]);
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     const url = new URL(window.location.href);
     const weekValue = url.searchParams.get("week");
     const requestedWeek = weekValue == null ? null : Number(weekValue);

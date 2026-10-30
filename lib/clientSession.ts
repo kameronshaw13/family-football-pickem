@@ -65,5 +65,6 @@ export function clearClientSession() {
   }
   if (typeof document !== "undefined") {
     document.cookie = `${SESSION_COOKIE}=; Max-Age=0; Path=/; SameSite=Lax`;
+    document.cookie = "pickem_default_league=; Max-Age=0; Path=/; SameSite=Lax";
   }
 }
