@@ -268,6 +268,15 @@ function FieldFootballIcon() {
   </span>;
 }
 
+function playTextWithoutDuplicateClock(text: string, clock: string): string {
+  if (!clock) return text;
+  const normalizedClock = clock.trim().replace(/^0(?=\d:)/, "");
+  const prefix = text.match(/^\s*\(?\s*(\d{1,2}:\d{2})\s*\)?\s*[-–—:]?\s*/);
+  if (!prefix) return text;
+  const embeddedClock = prefix[1].replace(/^0(?=\d:)/, "");
+  return embeddedClock === normalizedClock ? text.slice(prefix[0].length).trimStart() : text;
+}
+
 function PlayRow({ play, compact = false }: { play: TrackerPlay; compact?: boolean }) {
   return <div className={`game-tracker-drive-play ${compact ? "compact" : ""}`.trim()}>
     <div>
@@ -275,7 +284,7 @@ function PlayRow({ play, compact = false }: { play: TrackerPlay; compact?: boole
         {play.situation && <span>{play.situation}</span>}
         {play.outcome && <b className="game-tracker-play-outcome">{play.outcome}</b>}
       </div>
-      <strong>{play.clock && <time>{play.clock}</time>}{play.text}</strong>
+      <strong>{play.clock && <time>{play.clock}</time>}{playTextWithoutDuplicateClock(play.text, play.clock)}</strong>
     </div>
   </div>;
 }
