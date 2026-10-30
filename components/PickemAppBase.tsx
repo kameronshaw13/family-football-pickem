@@ -1531,7 +1531,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       /></div>
     </main>
     {currentPreviewGame && (isBasketballLeague(currentPreviewGame.league)
-      ? <BasketballGameDetails game={currentPreviewGame} onClose={closeMatchupPreview} />
+      ? <BasketballGameDetails key={`${currentPreviewGame.id}-${isFinalGame(currentPreviewGame) || new Date(currentPreviewGame.commence_time).getTime() <= clock ? "tracker" : "preview"}`} game={currentPreviewGame} mode={isFinalGame(currentPreviewGame) || new Date(currentPreviewGame.commence_time).getTime() <= clock ? "tracker" : "preview"} onClose={closeMatchupPreview} />
       : isFinalGame(currentPreviewGame) || new Date(currentPreviewGame.commence_time).getTime() <= clock
       ? <GameTracker game={currentPreviewGame} appSlug={appSlug} onClose={closeMatchupPreview} />
       : currentPreviewGame.league === "NFL"

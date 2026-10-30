@@ -5830,3 +5830,56 @@ button, input, select, textarea {
 /* Exactly one bottom divider for the league section in Settings. */
 .settings-panel .settings-league-switcher .settings-card { border-bottom: 0; }
 .settings-panel .settings-league-switcher .settings-league-link:last-child { border-bottom: 0; }
+
+/* Basketball game details use the same compact scoreboard and single-owner row
+   dividers as football, but preview and in-game tracker are separate views. */
+.basketball-details .basketball-scoreboard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-3);
+  min-height: 144px;
+  padding: var(--ui-space-3) var(--tracker-inset) 39px;
+  border-bottom: 1px solid var(--tracker-section-divider);
+}
+.basketball-details .basketball-score-team {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-rows: auto 52px auto;
+  align-items: center;
+  justify-content: center;
+  column-gap: var(--ui-space-2);
+  row-gap: var(--ui-space-1);
+}
+.basketball-details .basketball-score-team-name {
+  grid-column: 1 / -1;
+  display: block;
+  min-width: 0;
+  color: var(--header-muted);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.basketball-details .basketball-score-team img { grid-column: 1; grid-row: 2; width: 44px; height: 44px; object-fit: contain; }
+.basketball-details .basketball-score-team > strong { grid-column: 2; grid-row: 2; font-variant-numeric: tabular-nums; font-size: 28px; text-align: left; }
+.basketball-details .basketball-score-team > small { grid-column: 1 / -1; grid-row: 3; min-height: 1em; font-size: 10px; color: var(--muted); }
+.basketball-details .basketball-game-status { bottom: var(--ui-space-2); color: var(--header-muted); font-family: var(--font-display); font-size: 11px; font-weight: 750; }
+.basketball-details .basketball-play-list { display: grid; gap: var(--ui-space-3); padding: var(--ui-space-3); background: var(--canvas); }
+.basketball-details .basketball-play-period { overflow: hidden; border: 1px solid var(--tracker-divider); border-radius: var(--ui-radius-md); background: var(--tracker-row-fill); }
+.basketball-details .basketball-play-period > .game-tracker-quarter-header { min-height: 40px; margin: 0; padding: var(--ui-space-2) var(--tracker-inset); border: 0; border-bottom: 1px solid var(--tracker-divider); color: var(--header-muted); background: var(--tracker-header-fill); font-size: 11px; font-weight: 850; }
+.basketball-details .basketball-play-period > .basketball-play { min-height: 58px; padding: 10px var(--tracker-inset); border: 0; }
+.basketball-details .basketball-play-period > .basketball-play:not(:last-child) { border-bottom: 1px solid var(--tracker-divider); }
+.basketball-details .basketball-play-period .basketball-play > small { color: var(--muted); font-variant-numeric: tabular-nums; text-align: center; }
+.basketball-details .basketball-play-period .basketball-play > p { min-width: 0; font-size: 12px; line-height: 1.4; }
+.basketball-details .basketball-play-period .basketball-play > strong { font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
+.basketball-matchup-preview .basketball-matchup-line { color: var(--header-muted); background: var(--tracker-header-fill); font-size: 11px; font-weight: 800; }
+.basketball-details .basketball-stats th, .basketball-details .basketball-stats td { border-bottom-color: var(--tracker-divider); font-variant-numeric: tabular-nums; text-align: center; }
+.basketball-details .basketball-stats thead th { color: var(--header-muted); background: var(--tracker-header-fill); font-size: 11px; font-weight: 800; }
+.basketball-details .basketball-stats tbody tr:last-child > * { border-bottom: 0; }
+@media (max-width: 380px) {
+  .basketball-details .basketball-score-team { grid-template-columns: 36px minmax(0, 1fr); }
+  .basketball-details .basketball-score-team img { width: 36px; height: 36px; }
+  .basketball-details .basketball-play { grid-template-columns: 38px minmax(0, 1fr) auto; gap: var(--ui-space-1); }
+}

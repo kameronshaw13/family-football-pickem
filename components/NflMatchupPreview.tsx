@@ -165,7 +165,7 @@ function FormTeam({ team, logo }: { team: NflMatchupTeam; logo?: string | null }
         </div>
         <div className="matchup-result-outcome">
           <strong>{row.teamPoints}-{row.opponentPoints}</strong>
-          {cover && <small>ATS <b className={`matchup-ats-badge ${cover.result === "W" ? "matchup-cover-win" : cover.result === "L" ? "matchup-cover-loss" : "matchup-cover-push"}`}>{cover.result}</b></small>}
+          {cover && <small>ATS <b className={`${cover.result === "W" ? "matchup-cover-win" : cover.result === "L" ? "matchup-cover-loss" : "matchup-cover-push"}`}>{cover.result}</b></small>}
         </div>
       </div>;
     }) : <p className="matchup-empty-copy">No completed games available.</p>}

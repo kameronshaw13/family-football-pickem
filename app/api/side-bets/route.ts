@@ -16,8 +16,9 @@ async function filterResponseToWeek(response: Response, week: number | null) {
 }
 
 export async function GET(req: NextRequest) {
-  const parsedWeek = Number(req.nextUrl.searchParams.get("week"));
-  return filterResponseToWeek(await baseGET(req), Number.isInteger(parsedWeek) ? parsedWeek : null);
+  const rawWeek = req.nextUrl.searchParams.get("week");
+  const parsedWeek = rawWeek == null || rawWeek === "" ? null : Number(rawWeek);
+  return filterResponseToWeek(await baseGET(req), parsedWeek != null && Number.isInteger(parsedWeek) ? parsedWeek : null);
 }
 
 export async function POST(req: NextRequest) {
