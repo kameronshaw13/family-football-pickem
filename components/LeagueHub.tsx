@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, LogOut } from "lucide-react";
 import { clearClientSession, getClientSessionToken } from "@/lib/clientSession";
 import type { LeagueMembership } from "@/lib/leagueAccess";
+import { lastVisitedLeague } from "@/lib/lastLeague";
 
 type MyLeaguesResponse = {
   ok: boolean;
@@ -15,6 +17,7 @@ type MyLeaguesResponse = {
 };
 
 export default function LeagueHub() {
+  const router = useRouter();
   const [result, setResult] = useState<MyLeaguesResponse | null>(null);
 
   useEffect(() => {
@@ -32,11 +35,22 @@ export default function LeagueHub() {
           return;
         }
         const payload = await response.json() as MyLeaguesResponse;
-        if (!controller.signal.aborted) setResult(response.ok ? payload : { ok: false, error: payload.error || "Could not load your leagues." });
+        if (controller.signal.aborted) return;
+        // Launching the installed app resumes the last authorized league; the
+        // explicit league-home link (?chooser=1) always shows the full picker.
+        if (response.ok && payload.ok && !new URLSearchParams(window.location.search).has("chooser")) {
+          const lastSlug = lastVisitedLeague(payload.profile?.id || "");
+          const lastLeague = payload.leagues?.find((item) => item.slug === lastSlug);
+          if (lastLeague) {
+            router.replace(lastLeague.homePath);
+            return;
+          }
+        }
+        setResult(response.ok ? payload : { ok: false, error: payload.error || "Could not load your leagues." });
       })
       .catch(() => { if (!controller.signal.aborted) setResult({ ok: false, error: "Could not connect. Try again in a moment." }); });
     return () => controller.abort();
-  }, []);
+  }, [router]);
 
   function signOut() {
     clearClientSession();
@@ -49,7 +63,7 @@ export default function LeagueHub() {
         <div className="brand-lockup">
           <Image className="header-wordmark league-hub-trophy-wordmark" src="/unified-pickem-wordmark.png" alt="Pick'em" width={800} height={225} unoptimized priority />
         </div>
-        <div className="header-actions"><div className="header-slate">
+        <div className="header-actions"><span className="header-refresh-indicator" aria-hidden="true" /><div className="header-slate">
           <button type="button" onClick={signOut} className="league-hub-signout"><LogOut size={16} /> Sign out</button>
         </div></div>
       </div>

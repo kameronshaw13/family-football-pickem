@@ -40,6 +40,7 @@ import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoi
 import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
 import { appLoginPath } from "@/lib/appIdentity";
 import { leagueNameForSlug, type LeagueMembership } from "@/lib/leagueAccess";
+import { rememberLastLeague } from "@/lib/lastLeague";
 import { leagueTabDestination, leagueTabFromQuery } from "@/lib/leagueNavigation";
 import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetResponseSummary, sideBetsForView } from "@/lib/sideBetPresentation";
 import { orderCardPicks } from "@/lib/cardOrdering";
@@ -178,6 +179,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const loginPath = appLoginPath(appSlug);
   const [tab, setTab] = useState<Tab>("picks");
   const [selectedLeague, setSelectedLeague] = useState<LeagueMembership | null>(null);
+  const [selectedLeagueWeekPreview, setSelectedLeagueWeekPreview] = useState<{ slug: AppSlug; week: number; weeks: number[] } | null>(null);
+  const [selectedWeekOverride, setSelectedWeekOverride] = useState<number | null>(null);
   const [picksView, setPicksView] = useState<PicksView>("board");
   const [cardView, setCardView] = useState<CardView>("mine");
   const [standingsView, setStandingsView] = useState<StandingsView>("standings");
@@ -433,11 +436,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const chooseNavTab = useCallback((nextTab: Tab) => {
     const destination = leagueTabDestination(appSlug, selectedLeague, nextTab);
     if (destination) {
-      router.push(destination);
+      const weekQuery = selectedWeekOverride == null ? "" : `&week=${selectedWeekOverride}`;
+      router.push(destination + weekQuery);
       return;
     }
     setTab(nextTab);
-  }, [appSlug, router, selectedLeague]);
+  }, [appSlug, router, selectedLeague, selectedWeekOverride]);
 
   const loadSequence = useRef(0);
   const load = useCallback(async (nextWeek: number | null = dataRef.current?.week ?? null) => {
@@ -521,8 +525,21 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     }
   }, [appSlug, loginPath]);
 
-  useEffect(() => { void load(null); return () => { loadSequence.current += 1; }; }, [load]);
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const weekValue = url.searchParams.get("week");
+    const requestedWeek = weekValue == null ? null : Number(weekValue);
+    if (weekValue !== null) {
+      url.searchParams.delete("week");
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+    void load(requestedWeek != null && Number.isInteger(requestedWeek) && requestedWeek >= 0 && requestedWeek <= 100 ? requestedWeek : null);
+    return () => { loadSequence.current += 1; };
+  }, [load]);
   useEffect(() => { dataRef.current = data; }, [data]);
+  useEffect(() => {
+    if (sessionValidated && data?.currentUser?.id) rememberLastLeague(data.currentUser.id, appSlug);
+  }, [appSlug, data?.currentUser?.id, sessionValidated]);
   const modelUsername = data?.currentUser?.username;
   const modelWeek = data?.week;
   useEffect(() => {
@@ -605,12 +622,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     };
   }, [openNotificationDestination, refreshNotificationCounts, sessionValidated]);
   useEffect(() => {
-    if (!sessionValidated || !data?.currentUser?.id || (appSlug !== "friends" && appSlug !== "shaw-family")) return;
+    if (!sessionValidated || !data?.currentUser?.id || (appSlug !== "friends" && appSlug !== "shaw-family" && appSlug !== "friends-basketball")) return;
     let hiddenSince: number | null = document.visibilityState === "hidden" ? 0 : null;
 
     const recordOpen = () => {
       const now = Date.now();
-      if (now - lastAppOpenSentAtRef.current < 2 * 60_000) return;
+      if (now - lastAppOpenSentAtRef.current < 1000) return;
       const token = window.localStorage.getItem("pickem_session_token");
       if (!token) return;
       lastAppOpenSentAtRef.current = now;
@@ -624,7 +641,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     if (document.visibilityState === "visible") recordOpen();
     const onVisibilityChange = () => {
       if (document.visibilityState === "hidden") hiddenSince = Date.now();
-      else if (hiddenSince === 0 || (hiddenSince != null && Date.now() - hiddenSince >= 2 * 60_000)) recordOpen();
+      else if (hiddenSince != null) { recordOpen(); hiddenSince = null; }
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
@@ -1298,6 +1315,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
   // Show the chosen league wordmark in Settings before navigating to its data.
   const displayedHeaderSlug = tab === "settings" ? selectedLeague?.slug ?? appSlug : appSlug;
+  const previewWeeks = selectedLeagueWeekPreview?.slug === displayedHeaderSlug ? selectedLeagueWeekPreview : null;
 
   return <div className="app-shell">
     <header className="scoreboard-header">
@@ -1307,7 +1325,16 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           : <div className="brand-lockup"><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={displayedHeaderSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={displayedHeaderSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={displayedHeaderSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>}
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
-          {displayedHeaderSlug !== appSlug ? null : previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><MenuSelect
+          {displayedHeaderSlug !== appSlug ? <div className="header-slate">
+            {previewWeeks && previewWeeks.weeks.length > 0 ? <MenuSelect
+              ariaLabel="Select week in chosen league"
+              className="week-select-wrap header-menu-select"
+              plainText
+              value={String(selectedWeekOverride ?? previewWeeks.week)}
+              sections={[{ options: previewWeeks.weeks.map((w) => ({ value: String(w), label: w === 0 ? "Week 0" : `Week ${w}` })) }]}
+              onChange={(weekValue) => setSelectedWeekOverride(Number(weekValue))}
+            /> : <div className="week-select-wrap header-menu-select loading-week-select" aria-label="Loading selected league week"><span>Week …</span><ChevronDown size={16} /></div>}
+          </div> : previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><MenuSelect
             ariaLabel="Select week"
             className="week-select-wrap header-menu-select"
             plainText
@@ -1496,7 +1523,19 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         loginPath={loginPath}
         onCountsChanged={updateNotificationCounts}
         selectedLeagueSlug={selectedLeague?.slug || appSlug}
-        onLeagueSelect={(league) => setSelectedLeague(league.slug === appSlug ? null : league)}
+        onLeagueSelect={(league) => {
+          setSelectedLeague(league.slug === appSlug ? null : league);
+          setSelectedWeekOverride(null);
+          setSelectedLeagueWeekPreview(null);
+        }}
+        onLeaguePreview={(slug, payload) => {
+          if (!payload) return;
+          setSelectedLeagueWeekPreview({
+            slug,
+            week: Number(payload.week),
+            weeks: Array.isArray(payload.availableWeeks) ? payload.availableWeeks.map(Number) : []
+          });
+        }}
       />}
     </main>
     {currentPreviewGame && (isBasketballLeague(currentPreviewGame.league)
