@@ -1333,7 +1333,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               value={String(selectedWeekOverride ?? previewWeeks.week)}
               sections={[{ options: previewWeeks.weeks.map((w) => ({ value: String(w), label: w === 0 ? "Week 0" : `Week ${w}` })) }]}
               onChange={(weekValue) => setSelectedWeekOverride(Number(weekValue))}
-            /> : <span className="week-select-pending" aria-hidden="true" />}
+            /> : <div className="week-select-wrap header-menu-select loading-week-select" aria-label="Waiting for selected league week"><span>Week</span></div>}
           </div> : previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><MenuSelect
             ariaLabel="Select week"
             className="week-select-wrap header-menu-select"
