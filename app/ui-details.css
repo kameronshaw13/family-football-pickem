@@ -4482,17 +4482,29 @@ html[data-theme="dark"] .primary-nav {
 .matchup-form-team {border-radius: var(--ui-radius-md);border:1px solid var(--line);}
 .matchup-form-heading {min-height:62px;padding:10px var(--ui-space-3);gap:10px;}
 .matchup-form-heading h3 {font-size:14px;line-height:1.24;font-weight:850;overflow-wrap:anywhere;}
-.matchup-form-stats {min-height:62px;}
-.matchup-form-stats > div {min-height:62px;padding:10px var(--ui-space-1);gap:6px;}
+.matchup-form-stats {min-height:58px;}
+.matchup-form-stats > div {
+  min-height:58px;
+  padding:8px var(--ui-space-1);
+  gap:4px;
+  justify-content:center;
+}
 .matchup-form-stats > div + div {border-left:1px solid var(--line);}
 .matchup-form-stats small {
   font-family:var(--detail-body);
-  font-size:9px;
+  font-size:9.5px;
   font-weight:800;
-  line-height:1.18;
+  line-height:1.2;
   color:var(--header-muted);
+  text-align:center;
 }
-.matchup-form-stats strong {font-family:var(--font-display);font-size:14px;font-weight:900;line-height:1.14;}
+.matchup-form-stats strong {
+  font-family:var(--font-display);
+  font-size:14.5px;
+  font-weight:900;
+  line-height:1.14;
+  text-align:center;
+}
 .matchup-form-team h4 {min-height:35px;padding:var(--ui-space-2) var(--ui-space-3);font-family:var(--font-display);font-size:10px;letter-spacing:.025em;}
 .matchup-result-row.matchup-form-combined-row {
   grid-template-columns:28px minmax(0,1fr) minmax(62px,auto);
@@ -4712,8 +4724,8 @@ html[data-theme="dark"] .primary-nav {
  .matchup-preview-hero {grid-template-columns:minmax(0,1fr) 21px minmax(0,1fr);padding-inline:7px;gap:0 var(--ui-space-1);}
  .matchup-preview-team > img,.matchup-preview-team > .matchup-logo-fallback {width:51px;height:51px;min-height:51px;}
  .matchup-preview-team > span,.matchup-preview-team > span b {font-size:12px;}
- .matchup-form-stats small {font-size:8.5px;}
- .matchup-form-stats strong {font-size:13px;}
+ .matchup-form-stats small {font-size:9px;}
+ .matchup-form-stats strong {font-size:13.5px;}
  .matchup-result-row.matchup-form-combined-row {gap:7px;padding-inline:var(--ui-space-2);}
  .matchup-history-score-team {grid-template-columns:22px minmax(0,1fr) 34px 27px;gap:6px;}
 }
