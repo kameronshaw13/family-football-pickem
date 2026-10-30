@@ -112,6 +112,8 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
   openPreview: (game: Game) => void;
 }) {
   const [confirmingBetId, setConfirmingBetId] = useState<string | null>(null);
+  const sendInFlightRef = useRef(false);
+  const acceptInFlightRef = useRef(false);
   const [slipExpanded, setSlipExpanded] = useState(false);
   const [slipClosing, setSlipClosing] = useState(false);
   const [marketType, setMarketType] = useState<SideBetMarketType>("spread");
@@ -400,17 +402,24 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
   }
 
   async function sendOffer() {
+    if (sendInFlightRef.current || saving) return;
     if (!validAmericanOdds(creatorOdds)) return;
     if (marketType === "spread" && creatorSpread == null) return;
     if (marketType === "total" && creatorTotalPoints == null) return;
-    const sentOffer = await createBet({
+    sendInFlightRef.current = true;
+    let sentOffer = false;
+    try {
+      sentOffer = await createBet({
       marketType,
       offerPhase,
       creatorSpread: marketType === "spread" ? Number(creatorSpread) : 0,
       totalPoints: marketType === "total" ? Number(creatorTotalPoints) : null,
       creatorOdds,
       amount: creatorRisk
-    });
+      });
+    } finally {
+      sendInFlightRef.current = false;
+    }
     if (sentOffer) {
       // Clear all editor-local fields as well as the controller selection.
       // Otherwise returning from Offers can resurrect a previous ticket.
@@ -429,10 +438,21 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
   }
 
   async function acceptConfirmedBet() {
-    if (!confirmingBetId) return;
-    await refreshMarketQuotes();
-    const accepted = await respond("accept", confirmingBetId);
-    if (accepted) setConfirmingBetId(null);
+    if (!confirmingBetId || acceptInFlightRef.current || saving) return;
+    const betId = confirmingBetId;
+    const latestBet = sideBets.find((bet) => bet.id === betId);
+    if (!latestBet || latestBet.status !== "open" || !sideBetOfferIsPending(latestBet, currentUser.id, "received")) {
+      setConfirmingBetId(null);
+      return;
+    }
+    acceptInFlightRef.current = true;
+    try {
+      await refreshMarketQuotes();
+      const accepted = await respond("accept", betId);
+      if (accepted) setConfirmingBetId(null);
+    } finally {
+      acceptInFlightRef.current = false;
+    }
   }
 
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
