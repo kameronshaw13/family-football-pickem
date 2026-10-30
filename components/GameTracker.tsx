@@ -582,6 +582,7 @@ export default function GameTracker({ game, onClose, appSlug }: { game: Game; on
   const finalAtOpen = Boolean(game.live_completed || (game.final_home_score != null && game.final_away_score != null));
   const [tab, setTab] = useState<TrackerTab>(finalAtOpen ? "scoring" : "live");
   const [payload, setPayload] = useState<TrackerPayload | null>(null);
+  const payloadSignature = useRef("");
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
   const sheet = useRef<HTMLElement>(null);
@@ -659,7 +660,11 @@ export default function GameTracker({ game, onClose, appSlug }: { game: Game; on
       try {
         const next = await loadTracker(game.id, appSlug);
         if (!active) return;
-        setPayload(next);
+        const signature = JSON.stringify(next);
+        if (payloadSignature.current !== signature) {
+          payloadSignature.current = signature;
+          setPayload(next);
+        }
         setError("");
         if (!next.status.completed) timer = window.setTimeout(refresh, 3000);
       } catch (cause) {

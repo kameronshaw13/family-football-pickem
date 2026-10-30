@@ -28,6 +28,7 @@ function periodLabel(period: number, college: boolean) {
 
 export default function BasketballGameDetails({ game, onClose, mode }: { game: Game; onClose: () => void; mode: DetailMode }) {
   const [payload, setPayload] = useState<Payload | null>(null);
+  const payloadSignature = useRef("");
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
   const [tab, setTab] = useState<Tab>(mode === "preview" ? "preview" : "live");
@@ -68,7 +69,14 @@ export default function BasketballGameDetails({ game, onClose, mode }: { game: G
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Could not load this game.");
         complete = Boolean(data.status?.completed);
-        if (!cancelled) { setPayload(data); setError(""); }
+        if (!cancelled) {
+          const signature = JSON.stringify(data);
+          if (payloadSignature.current !== signature) {
+            payloadSignature.current = signature;
+            setPayload(data);
+          }
+          setError("");
+        }
       } catch (failure) { if (!cancelled) setError(failure instanceof Error ? failure.message : "Could not load game."); }
       if (!cancelled && !complete) timer = setTimeout(load, 5000);
     }

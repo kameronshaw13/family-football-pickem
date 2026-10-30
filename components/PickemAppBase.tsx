@@ -1555,10 +1555,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     {currentPreviewGame && (isBasketballLeague(currentPreviewGame.league)
       ? <BasketballGameDetails key={`${currentPreviewGame.id}-${isFinalGame(currentPreviewGame) || new Date(currentPreviewGame.commence_time).getTime() <= clock ? "tracker" : "preview"}`} game={currentPreviewGame} mode={isFinalGame(currentPreviewGame) || new Date(currentPreviewGame.commence_time).getTime() <= clock ? "tracker" : "preview"} onClose={closeMatchupPreview} />
       : isFinalGame(currentPreviewGame) || new Date(currentPreviewGame.commence_time).getTime() <= clock
-      ? <GameTracker game={currentPreviewGame} appSlug={appSlug} onClose={closeMatchupPreview} />
+      ? <GameTracker key={currentPreviewGame.id} game={currentPreviewGame} appSlug={appSlug} onClose={closeMatchupPreview} />
       : currentPreviewGame.league === "NFL"
-        ? <NflMatchupPreview game={currentPreviewGame} onClose={closeMatchupPreview} />
-        : <MatchupPreview game={currentPreviewGame} onClose={closeMatchupPreview} showModel={(appSlug === "shaw-family" || ["friends", "friends-basketball"].includes(appSlug)) && String(currentUser.username || "").trim().toLowerCase() === "kameron"} modelGroup={appSlug} />)}
+        ? <NflMatchupPreview key={currentPreviewGame.id} game={currentPreviewGame} onClose={closeMatchupPreview} />
+        : <MatchupPreview key={currentPreviewGame.id} game={currentPreviewGame} onClose={closeMatchupPreview} showModel={(appSlug === "shaw-family" || ["friends", "friends-basketball"].includes(appSlug)) && String(currentUser.username || "").trim().toLowerCase() === "kameron"} modelGroup={appSlug} />)}
     {!previewActive && stagedPicks !== null && autosaveBlockedSignatureRef.current !== pickCardSignature(stagedPicks) && !toast && <div className="autosave-toast" role="status" aria-live="polite"><LoaderCircle size={18} /><span>Saving…</span></div>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"} aria-live="polite">{toast.tone === "success" && <CircleCheckBig className="toast-status-icon" size={18} />}<span><NumericText text={toast.message} /></span><button className="toast-close" type="button" aria-label="Dismiss message" onClick={() => setToast(null)}><X size={16} /></button></div>}
   </div>;
