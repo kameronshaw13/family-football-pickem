@@ -169,6 +169,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: APP_DATA_STARTUP_GUARD_SCRIPT }} />
         <link rel="preload" href="/header-wordmark.png" as="image" type="image/png" />
         <link rel="preload" href="/football-pickem-wordmark.png" as="image" type="image/png" />
+        <link rel="preload" href="/basketball-pickem-header-v2.png" as="image" type="image/png" />
       </head>
       <body>{children}<AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /><SideBetBatchEnhancements /><SideBetBatchPresentationEnhancement /><LedgerScopeMenuEnhancement /></body>
     </html>

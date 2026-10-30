@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Check, ChevronRight, Layers3 } from "lucide-react";
 import { getClientSessionToken } from "@/lib/clientSession";
-import { writeCachedAppData, type AppData } from "@/components/PickemPresentationShared";
+import { warmLeagueData } from "@/lib/leagueWarmup";
 import type { LeagueMembership } from "@/lib/leagueAccess";
 import type { PickemAppSlug } from "@/lib/authUsers";
 
@@ -33,25 +33,6 @@ function saveLeaguesCache(leagues: LeagueMembership[]) {
   try {
     window.sessionStorage.setItem(LEAGUE_CACHE_KEY, JSON.stringify({ profileId: profileId(), at: Date.now(), leagues } satisfies LeagueCache));
   } catch { /* Caching is optional. */ }
-}
-
-async function warmLeagueData(league: LeagueMembership): Promise<AppData | null> {
-  const token = getClientSessionToken();
-  if (!token) return null;
-  try {
-    const response = await fetch("/api/app-data", {
-      headers: { Authorization: `Bearer ${token}`, "x-pickem-group": league.slug },
-      cache: "no-store"
-    });
-    if (response.ok && token === getClientSessionToken()) {
-      const payload = await response.json() as AppData;
-      writeCachedAppData(league.slug, null, payload);
-      return payload;
-    }
-  } catch {
-    // Normal navigation still works if warming this league fails.
-  }
-  return null;
 }
 
 export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect }: {
@@ -94,7 +75,7 @@ export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect }: {
     onSelect(league);
     if (league.slug !== activeSlug) {
       router.prefetch(league.homePath);
-      void warmLeagueData(league);
+      void warmLeagueData(league.slug);
     }
   }
 

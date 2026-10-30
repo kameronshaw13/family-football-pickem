@@ -12,7 +12,8 @@ import { money, roundedMoney, stakeMoney, normalizeRiskInput } from "@/lib/money
 import { dogBonusText, dogLineText, confidencePointText } from "@/lib/pickDisplay";
 import { basketballLockTime, basketballWeek, basketballWeekBounds, basketballSeasonEnd, isBasketballLeague } from "@/lib/basketballRules";
 import BasketballGameDetails from "@/components/BasketballGameDetails";
-import BasketballHeaderWordmark from "@/components/BasketballHeaderWordmark";
+import LeagueHeaderWordmark from "@/components/LeagueHeaderWordmark";
+import { warmLeagueData } from "@/lib/leagueWarmup";
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
 import NextImage from "next/image";
 import { useRouter } from "next/navigation";
@@ -178,6 +179,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const loginPath = appLoginPath(appSlug);
   const [tab, setTab] = useState<Tab>("picks");
   const [selectedLeague, setSelectedLeague] = useState<LeagueMembership | null>(null);
+  const leagueNavigationIntentRef = useRef(0);
   const [selectedWeekOverride, setSelectedWeekOverride] = useState<number | null>(null);
   const [picksView, setPicksView] = useState<PicksView>("board");
   const [cardView, setCardView] = useState<CardView>("mine");
@@ -200,8 +202,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [cfbModelEdges, setCfbModelEdges] = useState<Record<string, { stars: number; edgePoints: number | null; edgeTeam: string | null }>>({});
   const [week, setWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [headerLogoReady, setHeaderLogoReady] = useState(false);
-  const headerLogoRef = useRef<HTMLImageElement>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [sessionValidated, setSessionValidated] = useState(false);
   const lastAppOpenSentAtRef = useRef(0);
@@ -241,11 +241,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       start <= clock &&
       start >= clock - 18 * 60 * 60 * 1000;
   }));
-
-  useEffect(() => {
-    const image = headerLogoRef.current;
-    if (image?.complete && image.naturalWidth > 0) setHeaderLogoReady(true);
-  }, [appSlug, loading]);
 
   useEffect(() => {
     const handlePickLocked = (event: Event) => {
@@ -432,10 +427,15 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }, [appSlug]);
 
   const chooseNavTab = useCallback((nextTab: Tab) => {
+    const intent = ++leagueNavigationIntentRef.current;
     const destination = leagueTabDestination(appSlug, selectedLeague, nextTab);
-    if (destination) {
+    if (destination && selectedLeague) {
       const weekQuery = selectedWeekOverride == null ? "" : `&week=${selectedWeekOverride}`;
-      router.push(destination + weekQuery);
+      // Preserve the selected header until the next league is ready to render.
+      void warmLeagueData(selectedLeague.slug, selectedWeekOverride).then(() => {
+        if (leagueNavigationIntentRef.current !== intent) return;
+        router.push(destination + weekQuery);
+      });
       return;
     }
     setTab(nextTab);
@@ -1020,9 +1020,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return <div className="app-shell loading-shell">
       <header className="scoreboard-header">
         <div className="scoreboard-main">
-          {appSlug === "friends-basketball"
-            ? <BasketballHeaderWordmark imageRef={headerLogoRef} ready={headerLogoReady} onReady={() => setHeaderLogoReady(true)} />
-            : <div className="brand-lockup"><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>}
+          <LeagueHeaderWordmark slug={appSlug} />
           <div className="header-actions" aria-hidden="true">
             <span className="header-refresh-indicator" />
             <div className="header-slate">
@@ -1324,9 +1322,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   return <div className="app-shell">
     <header className="scoreboard-header">
       <div className="scoreboard-main">
-        {displayedHeaderSlug === "friends-basketball"
-          ? <BasketballHeaderWordmark imageRef={headerLogoRef} ready={headerLogoReady} onReady={() => setHeaderLogoReady(true)} />
-          : <div className="brand-lockup"><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" src={displayedHeaderSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={displayedHeaderSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={displayedHeaderSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>}
+        <LeagueHeaderWordmark slug={displayedHeaderSlug} />
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
           {displayedHeaderSlug !== appSlug ? <div className="header-slate">
@@ -1529,6 +1525,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         onCountsChanged={updateNotificationCounts}
         selectedLeagueSlug={selectedLeague?.slug || appSlug}
         onLeagueSelect={(league) => {
+          leagueNavigationIntentRef.current += 1;
           setSelectedLeague(league.slug === appSlug ? null : league);
           setSelectedWeekOverride(null);
         }}
