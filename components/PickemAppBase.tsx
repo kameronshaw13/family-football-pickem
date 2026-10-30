@@ -13,6 +13,7 @@ import { dogBonusText, dogLineText, confidencePointText } from "@/lib/pickDispla
 import { basketballLockTime, basketballWeek, basketballWeekBounds, basketballSeasonEnd, isBasketballLeague } from "@/lib/basketballRules";
 import BasketballGameDetails from "@/components/BasketballGameDetails";
 import LeagueHeaderWordmark from "@/components/LeagueHeaderWordmark";
+import PrimaryBottomNav from "@/components/PrimaryBottomNav";
 import { warmLeagueData } from "@/lib/leagueWarmup";
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
 import NextImage from "next/image";
@@ -1303,13 +1304,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return ok;
   }
 
-  const primaryNav: Array<{ id: Tab; label: string; icon: typeof Trophy }> = [
-    { id: "picks", label: "Picks", icon: Zap },
-    { id: "card", label: "My Card", icon: SquareCheck },
-    { id: "standings", label: "Standings", icon: Trophy },
-    { id: "settings", label: "Settings", icon: SettingsIcon }
-  ];
-
   // Do not flash back to the previous wordmark between Settings and navigation.
   const displayedHeaderSlug = selectedLeague?.slug ?? appSlug;
   const sportCurrentWeek = displayedHeaderSlug === "friends-basketball"
@@ -1347,11 +1341,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       </div>
     </header>
 
-    <nav className="primary-nav" aria-label="Main navigation">
-      <div className="primary-nav-inner">
-        {primaryNav.map((item) => <button key={item.id} aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? "active" : ""} onClick={() => chooseNavTab(item.id)}><span className={`nav-icon nav-icon-${item.id}`}><item.icon size={19} /><NotificationBadge count={navNotificationCounts[item.id] || 0} className="nav-notification-badge" /></span><span>{item.label}</span></button>)}
-      </div>
-    </nav>
+    <PrimaryBottomNav activeTab={tab} counts={navNotificationCounts} onSelect={chooseNavTab} />
 
     <main className="container">
       {message && <div className="error-card"><NumericText text={message} /></div>}
