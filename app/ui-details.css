@@ -5498,7 +5498,7 @@ button, input, select, textarea {
 }
 .game-tracker-drive[open] + .game-tracker-collapsed-quarter-headers { display: none; }
 .game-tracker-drives > .game-tracker-collapsed-quarter-headers {
-  border-top: 1px solid var(--tracker-section-divider);
+  border-top: 0; /* Previous drive owns this boundary. */
 }
 .game-tracker-collapsed-quarter-headers > .game-tracker-plays-quarter-header {
   min-height: 36px;
@@ -5510,7 +5510,12 @@ button, input, select, textarea {
   background: var(--tracker-header-fill);
 }
 .game-tracker-collapsed-quarter-headers > .game-tracker-plays-quarter-header:not(:first-child) {
-  border-top: 1px solid var(--tracker-section-divider);
+  border-top: 0; /* Previous header's bottom border is the single divider. */
+}
+.game-tracker-drives > .game-tracker-collapsed-quarter-headers + .game-tracker-drive {
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 
