@@ -77,7 +77,7 @@ export default function BasketballGameDetails({ game, onClose, mode }: { game: G
   }, [game.id]);
   useEffect(() => {
     setTab(mode === "preview" ? "preview" : game.live_completed ? "scoring" : "live");
-  }, [game.id, mode]);
+  }, [game.id, game.live_completed, mode]);
 
   useEffect(() => {
     if (mode === "tracker" && payload?.status.completed && tab === "live") setTab("scoring");

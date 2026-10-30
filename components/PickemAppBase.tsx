@@ -436,7 +436,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     if (selectedLeague && selectedLeague.slug !== appSlug) {
       router.prefetch(selectedLeague.homePath);
     }
-  }, [appSlug, router, selectedLeague?.slug, selectedLeague?.homePath]);
+  }, [appSlug, router, selectedLeague]);
 
   const chooseNavTab = useCallback((nextTab: Tab) => {
     ++leagueNavigationIntentRef.current;
