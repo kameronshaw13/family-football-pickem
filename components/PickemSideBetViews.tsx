@@ -199,6 +199,15 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
   const availableRecipientIds = otherPlayers
     .filter((profile) => !Number.isFinite(weeklyLimit) || (slotCounts[profile.id] || 0) < weeklyLimit)
     .map((profile) => profile.id);
+  // Keep the editor selection synchronized with weekly slot limits and
+  // membership updates, including while a slip is already open.
+  const availableRecipientKey = availableRecipientIds.join("|");
+  useEffect(() => {
+    const allowed = new Set(availableRecipientKey ? availableRecipientKey.split("|") : []);
+    if (recipients.some((id) => !allowed.has(id))) {
+      setRecipients(recipients.filter((id) => allowed.has(id)));
+    }
+  }, [availableRecipientKey, recipients, setRecipients]);
   const allRecipientsSelected = availableRecipientIds.length > 0 && availableRecipientIds.every((id) => recipients.includes(id));
   const recipientGridColumns = ["friends", "friends-basketball"].includes(appSlug) ? 4 : appSlug === "shaw-family" ? 3 : 2;
   const limitReached = Number.isFinite(weeklyLimit) && slotCount >= weeklyLimit;
@@ -233,8 +242,11 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
       const payload = await response.json();
       if (!response.ok || !Array.isArray(payload.markets)) return marketQuotesRef.current;
       const next = Object.fromEntries((payload.markets as SideBetMarketQuote[]).map((quote) => [quote.gameId, quote]));
-      marketQuotesRef.current = next;
-      setMarketQuotes(next);
+      const previous = marketQuotesRef.current;
+      if (JSON.stringify(previous) !== JSON.stringify(next)) {
+        marketQuotesRef.current = next;
+        setMarketQuotes(next);
+      }
       return next;
     } catch {
       return marketQuotesRef.current;
