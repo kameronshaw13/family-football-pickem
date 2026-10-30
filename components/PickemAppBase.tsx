@@ -428,15 +428,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }, [appSlug]);
 
   const chooseNavTab = useCallback((nextTab: Tab) => {
-    const intent = ++leagueNavigationIntentRef.current;
+    ++leagueNavigationIntentRef.current;
     const destination = leagueTabDestination(appSlug, selectedLeague, nextTab);
     if (destination && selectedLeague) {
       const weekQuery = selectedWeekOverride == null ? "" : `&week=${selectedWeekOverride}`;
-      // Preserve the selected header until the next league is ready to render.
-      void warmLeagueData(selectedLeague.slug, selectedWeekOverride).then(() => {
-        if (leagueNavigationIntentRef.current !== intent) return;
-        router.push(destination + weekQuery);
-      });
+      // Navigate immediately; background data warmup must never block a tap.
+      void warmLeagueData(selectedLeague.slug, selectedWeekOverride).catch(() => undefined);
+      router.push(destination + weekQuery);
       return;
     }
     setTab(nextTab);
