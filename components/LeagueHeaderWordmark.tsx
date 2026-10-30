@@ -10,7 +10,7 @@ function LeagueHeaderWordmark({ slug }: { slug: PickemAppSlug }) {
   const alt = basketball ? "Basketball Pick'em" : shaw ? "Shaw Family Pick'em" : "Football Pick'em";
 
   return <div className="brand-lockup">
-    <Image className={basketball ? "header-wordmark header-wordmark-basketball" : "header-wordmark"} unoptimized src={src} alt={alt} width={800} height={shaw ? 96 : 100} decoding="sync" fetchPriority="high" />
+    <Image className="header-wordmark" unoptimized src={src} alt={alt} width={800} height={shaw ? 96 : 100} decoding="sync" fetchPriority="high" />
   </div>;
 }
 
