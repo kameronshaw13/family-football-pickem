@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { batchSideBetTotalRisk } from "@/lib/sideBetBatchRisk";
+import { batchSideBetTotalRisk, batchSpreadIsConfigured } from "@/lib/sideBetBatchRisk";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { americanOddsText, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { teamDisplayName } from "@/lib/teamNames";
@@ -178,7 +178,7 @@ export default function SideBetBatchEnhancements() {
       const amount = Number(selection.amount);
       const odds = Number(selection.creatorOdds);
       const recipients = selection.recipientIds || [];
-      const spreadOk = selection.marketType === "moneyline" || Number.isFinite(Number(selection.creatorSpread));
+      const spreadOk = batchSpreadIsConfigured(selection.marketType || "spread", selection.creatorSpread);
       return Number.isFinite(amount) && amount > 0 && validAmericanOdds(odds) && recipients.length > 0 && spreadOk;
     }
 
@@ -230,9 +230,10 @@ export default function SideBetBatchEnhancements() {
       const marketButton = Array.from(document.querySelectorAll<HTMLButtonElement>(".side-bet-market-toggle button"))
         .find((button) => button.classList.contains("active"));
       const marketType: BatchMarketType = /moneyline/i.test(marketButton?.textContent || "") ? "moneyline" : "spread";
-      const oddsValue = Number(document.querySelector<HTMLInputElement>(".side-bet-odds-input")?.value || 100);
+      const oddsInput = document.querySelector<HTMLInputElement>(".side-bet-odds-input");
+      const oddsValue = oddsInput == null ? 100 : oddsInput.value.trim() === "" ? NaN : Number(oddsInput.value);
       const spreadInput = document.querySelector<HTMLInputElement>(".side-bet-spread-input");
-      const spreadValue = spreadInput?.value?.trim() === "" ? null : Number(spreadInput?.value);
+      const spreadValue = spreadInput?.value?.trim() ? Number(spreadInput.value) : null;
       const game = payload?.games?.find((candidate) => candidate.id === selection.gameId);
       const fallbackSpread = game
         ? normalizeSpreadForSelectedTeam(selection.creatorTeam, game.current_spread_team, game.current_spread)
@@ -244,7 +245,7 @@ export default function SideBetBatchEnhancements() {
         creatorOdds: Number.isFinite(oddsValue) ? oddsValue : null,
         creatorSpread: marketType === "moneyline"
           ? 0
-          : Number.isFinite(Number(spreadValue)) ? Number(spreadValue) : fallbackSpread,
+          : spreadInput ? (spreadValue != null && Number.isFinite(spreadValue) ? spreadValue : null) : fallbackSpread,
         recipientIds: nativeRecipients(),
         recipientAll: nativeAllRecipientsSelected()
       };
@@ -281,12 +282,12 @@ export default function SideBetBatchEnhancements() {
 
       window.requestAnimationFrame(() => {
         const spreadInput = document.querySelector<HTMLInputElement>(".side-bet-spread-input");
-        if (desiredMarket === "spread" && spreadInput && Number.isFinite(Number(selection.creatorSpread))) {
-          setInputValue(spreadInput, String(selection.creatorSpread));
+        if (desiredMarket === "spread" && spreadInput) {
+          setInputValue(spreadInput, batchSpreadIsConfigured("spread", selection.creatorSpread) ? String(selection.creatorSpread) : "");
         }
         const oddsInput = document.querySelector<HTMLInputElement>(".side-bet-odds-input");
-        if (oddsInput && Number.isFinite(Number(selection.creatorOdds))) {
-          setInputValue(oddsInput, String(selection.creatorOdds));
+        if (oddsInput) {
+          setInputValue(oddsInput, selection.creatorOdds != null && Number.isFinite(selection.creatorOdds) ? String(selection.creatorOdds) : "");
         }
 
         const desiredAmount = Number(selection.amount);
@@ -430,7 +431,7 @@ export default function SideBetBatchEnhancements() {
         row.dataset.batchMatchup = gameLabel(game);
         row.dataset.batchMarketType = selection.marketType || "spread";
         row.dataset.batchCreatorOdds = String(selection.creatorOdds ?? 100);
-        if (Number.isFinite(Number(selection.creatorSpread))) {
+        if (batchSpreadIsConfigured("spread", selection.creatorSpread)) {
           row.dataset.batchSpread = spreadText(Number(selection.creatorSpread));
           row.dataset.batchSpreadValue = String(selection.creatorSpread);
         }
@@ -470,7 +471,7 @@ export default function SideBetBatchEnhancements() {
         const oddsSuffix = ticketOdds === 100 ? "" : ` ${americanOddsText(ticketOdds)}`;
         spread.textContent = (selection.marketType || "spread") === "moneyline"
           ? `ML${oddsSuffix}`
-          : Number.isFinite(Number(selection.creatorSpread))
+          : batchSpreadIsConfigured("spread", selection.creatorSpread)
             ? `${spreadText(Number(selection.creatorSpread))}${oddsSuffix}`
             : "—";
         choice.append(team, spread);
@@ -599,7 +600,7 @@ export default function SideBetBatchEnhancements() {
             selections: selections.map((selection) => ({
               gameId: selection.gameId,
               creatorTeam: selection.creatorTeam,
-              creatorSpread: selection.marketType === "moneyline" ? 0 : Number(selection.creatorSpread),
+              creatorSpread: selection.marketType === "moneyline" ? 0 : selection.creatorSpread,
               amount: Number(selection.amount),
               marketType: selection.marketType || "spread",
               creatorOdds: Number(selection.creatorOdds ?? 100),
