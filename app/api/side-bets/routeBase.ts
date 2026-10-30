@@ -466,9 +466,32 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.action === "decline") {
-      const result = await supabase.from("side_bet_targets").update({ response: "declined", responded_at: nowIso }).eq("side_bet_id", sideBet.id).eq("recipient_id", auth.profile.id).eq("response", "pending");
-      if (result.error) throw new Error(result.error.message);
-      const { count } = await supabase.from("side_bet_targets").select("recipient_id", { count: "exact", head: true }).eq("side_bet_id", sideBet.id).eq("response", "pending");
+      const { data: declinedTarget, error: declineError } = await supabase
+        .from("side_bet_targets")
+        .update({ response: "declined", responded_at: nowIso })
+        .eq("side_bet_id", sideBet.id)
+        .eq("recipient_id", auth.profile.id)
+        .eq("response", "pending")
+        .select("recipient_id")
+        .maybeSingle();
+      if (declineError) throw new Error(declineError.message);
+      if (!declinedTarget) {
+        // A second device may have already handled this offer after our initial
+        // read. Never issue another decline notification for a no-op update.
+        const { data: latestTarget, error: latestTargetError } = await supabase
+          .from("side_bet_targets")
+          .select("response")
+          .eq("side_bet_id", sideBet.id)
+          .eq("recipient_id", auth.profile.id)
+          .maybeSingle();
+        if (latestTargetError) throw new Error(latestTargetError.message);
+        if (latestTarget?.response === "declined") {
+          return NextResponse.json({ ok: true, ...(await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBet.week)) });
+        }
+        return NextResponse.json({ ok: false, error: "This offer is no longer available." }, { status: 409 });
+      }
+      const { count, error: pendingCountError } = await supabase.from("side_bet_targets").select("recipient_id", { count: "exact", head: true }).eq("side_bet_id", sideBet.id).eq("response", "pending");
+      if (pendingCountError) throw new Error(pendingCountError.message);
       if (!count) await supabase.from("side_bets").update({ status: "declined", updated_at: nowIso }).eq("group_id", context.group.id).eq("id", sideBet.id).eq("status", "open");
       await resolveSideBetOfferNotifications(supabase, [sideBet.id], auth.profile.id, context.group.id);
       createNotificationInBackground(supabase, {
