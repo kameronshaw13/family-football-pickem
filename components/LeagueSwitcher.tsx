@@ -6,30 +6,34 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, ChevronRight, Layers3 } from "lucide-react";
 import { getClientSessionToken } from "@/lib/clientSession";
-import { writeCachedAppData, type AppData } from "@/components/PickemPresentationShared";
+import { readCachedAppData, writeCachedAppData, type AppData } from "@/components/PickemPresentationShared";
 import type { LeagueMembership } from "@/lib/leagueAccess";
 import type { PickemAppSlug } from "@/lib/authUsers";
 
-async function warmLeagueData(league: LeagueMembership) {
+async function warmLeagueData(league: LeagueMembership): Promise<AppData | null> {
   const token = getClientSessionToken();
-  if (!token) return;
+  if (!token) return null;
   try {
     const response = await fetch("/api/app-data", {
       headers: { Authorization: `Bearer ${token}`, "x-pickem-group": league.slug },
       cache: "no-store"
     });
     if (response.ok && token === getClientSessionToken()) {
-      writeCachedAppData(league.slug, null, await response.json() as AppData);
+      const payload = await response.json() as AppData;
+      writeCachedAppData(league.slug, null, payload);
+      return payload;
     }
   } catch {
     // Normal navigation still works if warming this league fails.
   }
+  return null;
 }
 
-export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect }: {
+export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect, onPreview }: {
   activeSlug: PickemAppSlug;
   selectedSlug: PickemAppSlug;
   onSelect: (league: LeagueMembership) => void;
+  onPreview: (slug: PickemAppSlug, payload: AppData | null) => void;
 }) {
   const router = useRouter();
   const [leagues, setLeagues] = useState<LeagueMembership[] | null>(null);
@@ -57,7 +61,8 @@ export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect }: {
     onSelect(league);
     if (league.slug !== activeSlug) {
       router.prefetch(league.homePath);
-      void warmLeagueData(league);
+      onPreview(league.slug, readCachedAppData(league.slug, null));
+      void warmLeagueData(league).then((payload) => { if (payload) onPreview(league.slug, payload); });
     }
   }
 
@@ -69,7 +74,7 @@ export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect }: {
         <span className={`settings-league-sport-mark ${league.sport.toLowerCase()}`} aria-hidden="true"><Image src={league.sport === "Basketball" ? "/league-basketball-orange.png" : "/league-football-brown.png"} alt="" width={22} height={22} unoptimized /></span><strong>{league.name}</strong>{league.slug === selectedSlug ? <><small>{league.slug === activeSlug ? "Current" : "Selected"}</small><Check size={16} /></> : <ChevronRight size={17} />}
       </button>)}
       {!leagues && <div className="settings-league-loading">Loading leagues…</div>}
-      <Link className="settings-league-hub-link" href="/leagues">Open my league home <ChevronRight size={16} /></Link>
+      <Link className="settings-league-hub-link" href="/leagues?chooser=1">Open my league home <ChevronRight size={16} /></Link>
     </div>
   </div>;
 }
