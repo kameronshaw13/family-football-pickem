@@ -41,18 +41,28 @@ export default function BasketballGameDetails({ game, onClose, mode }: { game: G
     const priorFocus = document.activeElement as HTMLElement | null;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const keyboard = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-      if (event.key === "Tab") {
-        const controls = sheet.current?.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"]');
-        if (!controls?.length) return;
-        const first = controls[0], last = controls[controls.length - 1];
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    // Keep the permanent bottom navigation available, matching football detail sheets.
+    let switchedDestination = false;
+    const navigate = (event: MouseEvent) => {
+      if (event.target instanceof Element && event.target.closest(".primary-nav button")) {
+        switchedDestination = true;
+        onClose();
       }
     };
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener("click", navigate, true);
     document.addEventListener("keydown", keyboard);
-    return () => { document.body.style.overflow = overflow; document.removeEventListener("keydown", keyboard); priorFocus?.focus(); };
+    return () => {
+      document.body.style.overflow = overflow;
+      document.removeEventListener("click", navigate, true);
+      document.removeEventListener("keydown", keyboard);
+      if (!switchedDestination) priorFocus?.focus();
+    };
   }, [onClose]);
   useEffect(() => { if (mounted) sheet.current?.querySelector<HTMLButtonElement>("button")?.focus(); }, [mounted]);
   useEffect(() => {
@@ -105,7 +115,7 @@ export default function BasketballGameDetails({ game, onClose, mode }: { game: G
   const status = payload?.status.shortDetail || payload?.status.detail || game.live_status || new Date(game.commence_time).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
 
   return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
-    <section ref={sheet} className={`game-tracker-sheet basketball-details ${mode === "preview" ? "basketball-matchup-preview" : "basketball-game-tracker"}`} role="dialog" aria-modal="true" aria-label={`${game.away_team} at ${game.home_team} ${mode === "preview" ? "matchup preview" : "GameTracker"}`}>
+    <section ref={sheet} className={`game-tracker-sheet basketball-details ${mode === "preview" ? "basketball-matchup-preview" : "basketball-game-tracker"}`} role="dialog" aria-modal="false" aria-label={`${game.away_team} at ${game.home_team} ${mode === "preview" ? "matchup preview" : "GameTracker"}`}>
       <header className="game-tracker-header"><div className="game-detail-title"><strong>{game.away_team} at {game.home_team}</strong></div><button type="button" onClick={close} aria-label="Close game details"><X size={18} /></button></header>
       <div className="basketball-scoreboard">
         {(["away", "home"] as const).map((side) => <div className="basketball-score-team" key={side}>
