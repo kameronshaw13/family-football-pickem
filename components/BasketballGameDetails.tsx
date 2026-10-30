@@ -8,6 +8,7 @@ import type { Game } from "@/lib/types";
 import { getClientSessionToken } from "@/lib/clientSession";
 import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
 import CollegeBasketballAnalytics from "@/components/CollegeBasketballAnalytics";
+import { playTextWithoutDuplicateClock } from "@/lib/playText";
 
 type Play = { id: string; text: string; period: number; clock: string; scoring: boolean; awayScore: number | null; homeScore: number | null };
 type Team = { score?: string; records?: { summary: string; type?: string }[]; team?: { displayName?: string; logo?: string } };
@@ -139,7 +140,7 @@ export default function BasketballGameDetails({ game, onClose, mode }: { game: G
         </>}
         {payload && (tab === "plays" || tab === "scoring") && <div className="basketball-play-list">{!periodGroups.length && <p className="game-tracker-empty">{pregame ? "Play-by-play begins at tipoff." : "No plays available yet."}</p>}{periodGroups.map((group, index) => <section className="basketball-play-period" key={`${group.period}-${index}`} aria-label={`${periodLabel(group.period, game.league === "CBB")} plays`}>
           <div className="game-tracker-quarter-header">{periodLabel(group.period, game.league === "CBB")}</div>
-          {group.plays.map((play) => <div className="basketball-play" key={play.id}><small>{play.clock}</small><p>{play.clock && play.text.startsWith(play.clock + " ") ? play.text.slice(play.clock.length + 1) : play.text}</p>{play.scoring && <strong>{play.awayScore ?? "—"}–{play.homeScore ?? "—"}</strong>}</div>)}
+          {group.plays.map((play) => <div className="basketball-play" key={play.id}><small>{play.clock}</small><p>{playTextWithoutDuplicateClock(play.text, play.clock)}</p>{play.scoring && <strong>{play.awayScore ?? "—"}–{play.homeScore ?? "—"}</strong>}</div>)}
         </section>)}</div>}
         {payload && tab === "box" && <>{!payload.players.length && <p className="game-tracker-empty">Box scores appear when available.</p>}{payload.players.map((team) => <section key={team.id} className="basketball-box"><h3>{team.name}</h3>{team.groups.map((group, index) => <div className="basketball-table-scroll" key={index} tabIndex={0} role="region" aria-label={`${team.name} player statistics`}><table><thead><tr><th scope="col">Player</th>{group.labels.map((label, index) => <th scope="col" key={`${label}-${index}`}>{label}</th>)}</tr></thead><tbody>{group.athletes.map((athlete) => <tr key={athlete.id}><th scope="row">{athlete.name}</th>{athlete.stats.map((stat, index) => <td key={index}>{stat}</td>)}</tr>)}</tbody></table></div>)}</section>)}</>}
       </div>

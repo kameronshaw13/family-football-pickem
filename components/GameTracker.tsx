@@ -2,6 +2,7 @@
 
 import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
 import { trackerPeriodLabel, trackerPeriodHeading } from "@/lib/trackerPeriods";
+import { playTextWithoutDuplicateClock } from "@/lib/playText";
 
 
 import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
@@ -266,7 +267,7 @@ function PlayRow({ play, compact = false }: { play: TrackerPlay; compact?: boole
         {play.situation && <span>{play.situation}</span>}
         {play.outcome && <b className="game-tracker-play-outcome">{play.outcome}</b>}
       </div>
-      <strong>{play.clock && <time>{play.clock}</time>}{play.text}</strong>
+      <strong>{play.clock && <time>{play.clock}</time>}{playTextWithoutDuplicateClock(play.text, play.clock)}</strong>
     </div>
   </div>;
 }
@@ -409,7 +410,7 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
             <strong>{play.type || "Score"}</strong>
             {play.clock && <time>{play.clock}</time>}
           </div>
-          <p>{play.text}</p>
+          <p>{playTextWithoutDuplicateClock(play.text, play.clock)}</p>
           {play.drive && <small><MetaDots items={[
             play.drive.playsCount ? `${play.drive.playsCount} plays` : "",
             play.drive.yards != null ? `${play.drive.yards} yds` : "",
