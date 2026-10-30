@@ -272,8 +272,22 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
   }, [slipExpanded]);
 
   useEffect(() => {
-    if (view !== "new" || !selectedGame || !selectedCreatorTeam) setSlipExpanded(false);
-  }, [view, selectedGame, selectedCreatorTeam]);
+    if (view !== "new" || !selectedGame || !selectedCreatorTeam) {
+      // Leaving the editor must discard its visible ticket immediately.
+      // In particular, returning from Offers must not show the last sent bet.
+      if (slipCloseTimer.current != null) window.clearTimeout(slipCloseTimer.current);
+      slipCloseTimer.current = null;
+      slipClosingRef.current = false;
+      setSlipClosing(false);
+      setSlipExpanded(false);
+    }
+    if (view === "new" && !selectedGame && !selectedCreatorTeam) {
+      setCustomSpread("");
+      setOddsInput("100");
+      setCustomRiskMode(false);
+      setMarketType(boardMarket === "total" ? "total" : "spread");
+    }
+  }, [view, selectedGame, selectedCreatorTeam, boardMarket]);
 
   useEffect(() => {
     const game = selectedGameRef.current;
