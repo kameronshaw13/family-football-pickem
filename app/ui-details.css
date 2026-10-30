@@ -4506,6 +4506,10 @@ html[data-theme="dark"] .primary-nav {
   font-size:12.5px;
   font-weight:850;
   line-height:1.2;
+  white-space:normal;
+  overflow:visible;
+  overflow-wrap:break-word;
+  text-overflow:clip;
 }
 .matchup-form-combined-row .matchup-result-opponent > small {
   display:flex;
@@ -4716,7 +4720,7 @@ html[data-theme="dark"] .primary-nav {
 @media(max-height:630px) {
  .game-tracker-header,.matchup-preview-header {height:54px;min-height:54px;flex-basis:54px;}
  .game-tracker-scoreboard-grid {min-height:112px;padding-block:9px;}
- .matchup-preview-hero {height:136px;min-height:136px;flex-basis:136px;}
+ .matchup-preview-hero {height:auto;min-height:136px;flex-basis:auto;}
  .game-tracker-tabs,.matchup-preview-tabs {height:47px;min-height:47px;flex-basis:47px;}
  .game-tracker-tabs button,.matchup-preview-tabs button {min-height:46px;height:46px;}
 }
