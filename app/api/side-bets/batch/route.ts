@@ -4,6 +4,7 @@ import { getProfileFromRequest } from "@/lib/authServer";
 import { getGroupSideBetSettings, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { createNotificationInBackground } from "@/lib/notifications";
 import { MAX_CUSTOM_SIDE_BET_AMOUNT, sideBetSlotCounts } from "@/lib/sideBetLimits";
+import { batchWeekMatchesView } from "@/lib/sideBetBatchRisk";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { americanOddsText, oppositeAmericanOdds, profitForRisk, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
@@ -109,8 +110,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, error: "Every side bet must have valid American odds." }, { status: 400 });
       }
 
-      const recipientIds = Array.from(new Set(selection.recipientIds))
-        .filter((id) => id !== auth.profile.id && memberIds.has(id));
+      // Do not silently drop stale or unauthorized recipients. A sent ticket
+      // should always reach exactly the members the sender selected.
+      if (selection.recipientIds.some((id) => id === auth.profile.id || !memberIds.has(id))) {
+        return NextResponse.json({ ok: false, error: "One or more recipients are not eligible for this group." }, { status: 409 });
+      }
+      const recipientIds = Array.from(new Set(selection.recipientIds));
       if (!recipientIds.length) {
         return NextResponse.json({ ok: false, error: "Every selected side bet needs at least one recipient." }, { status: 400 });
       }
@@ -133,9 +138,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const weeks = new Set(prepared.map((selection) => Number(selection.game.week)));
-    if (weeks.size !== 1) return NextResponse.json({ ok: false, error: "Batch side bets must all come from the same week." }, { status: 409 });
-    const week = Number(prepared[0].game.week);
+    const weeks = prepared.map((selection) => Number(selection.game.week));
+    if (!batchWeekMatchesView(weeks, body.viewWeek)) {
+      return NextResponse.json({ ok: false, error: "All batch offers must belong to the selected week. Refresh the board and try again." }, { status: 409 });
+    }
+    const week = weeks[0];
 
     if (Number.isFinite(settings.maxPerWeek)) {
       const rows = await allGroupBets(supabase, context.group.id, context.seasonYear);

@@ -399,7 +399,7 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
   return <div className="game-tracker-scoring-list">
     {quarters.map((quarter, quarterIndex) => <section
       className="game-tracker-scoring-quarter"
-      aria-label={`${quarter.label} quarter scoring`}
+      aria-label={`${trackerPeriodHeading(quarter.label)} scoring`}
       key={`${quarter.label}-${quarterIndex}`}
     >
       <ScoringQuarterHeader payload={payload} label={quarter.label} />

@@ -64,7 +64,7 @@ export default function useGameSheetDismiss(
       const scrollElement = target.closest<HTMLElement>(scrollerSelector);
       activeScroller = scrollElement;
       // Do not steal touches from nested horizontally scrollable box-score tables.
-      const isNestedScroller = target.closest(".game-tracker-player-table-scroll") != null;
+      const isNestedScroller = target.closest(".game-tracker-player-table-scroll, .basketball-table-scroll, .cbb-player-table-scroll") != null;
       candidate = isHeader || Boolean(scrollElement && scrollElement.scrollTop <= 1 && !isNestedScroller);
       dragging = false;
       dragDistance = 0;

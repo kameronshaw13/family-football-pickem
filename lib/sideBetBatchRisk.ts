@@ -11,3 +11,10 @@ export function batchSideBetTotalRisk(amounts: readonly number[]) {
 export function batchSpreadIsConfigured(marketType: "spread" | "moneyline", spread: number | null | undefined) {
   return marketType === "moneyline" || (spread != null && Number.isFinite(spread));
 }
+
+/** Reject stale slates: every selected game must be in the currently displayed week. */
+export function batchWeekMatchesView(weeks: readonly number[], requestedWeek?: number | null) {
+  if (!weeks.length || !Number.isInteger(weeks[0])) return false;
+  return weeks.every((week) => Number.isInteger(week) && week === weeks[0])
+    && (requestedWeek == null || requestedWeek === weeks[0]);
+}
