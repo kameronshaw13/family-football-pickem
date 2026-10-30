@@ -78,6 +78,8 @@ export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect }: {
           for (const imagePath of ["/header-wordmark.png", "/football-pickem-wordmark.png", "/basketball-pickem-header-v2.png"]) {
             const previewImage = new window.Image();
             previewImage.src = imagePath;
+            // Decode now rather than on the subsequent route's first paint.
+            void previewImage.decode?.().catch(() => undefined);
           }
           for (const league of payload.leagues as LeagueMembership[]) {
             if (league.slug !== activeSlug) router.prefetch(league.homePath);

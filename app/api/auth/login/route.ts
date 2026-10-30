@@ -3,7 +3,8 @@ import { z } from "zod";
 import { createProfileSession, setSessionCookie } from "@/lib/authServer";
 import { findFamilyUser, normalizeAppSlug } from "@/lib/authUsers";
 import { listActiveGroupsForProfile } from "@/lib/groupContext";
-import { accessibleLeaguesForUser, isKnownPickemUser } from "@/lib/leagueAccess";
+import { accessibleLeaguesForUser, defaultLeagueForLaunch, isKnownPickemUser } from "@/lib/leagueAccess";
+import { setDefaultLeagueCookie } from "@/lib/defaultLeagueCookie";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { makeSessionToken, verifyPassword } from "@/lib/passwords";
 
@@ -67,6 +68,9 @@ export async function POST(req: NextRequest) {
 
     const response = NextResponse.json({ ok: true, token, profile: publicProfile(profile), group: unifiedLogin ? null : groupSlug, ...(unifiedLogin ? { leagues: accessibleLeagues } : {}) });
     setSessionCookie(response, token);
+    // Unified sign-in already verified membership: use the first league as
+    // future direct launch destination, and never carry over a previous login.
+    setDefaultLeagueCookie(response, unifiedLogin ? defaultLeagueForLaunch(accessibleLeagues)?.slug || null : null);
     return response;
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
