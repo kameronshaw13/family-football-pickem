@@ -40,7 +40,6 @@ import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoi
 import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
 import { appLoginPath } from "@/lib/appIdentity";
 import { leagueNameForSlug, type LeagueMembership } from "@/lib/leagueAccess";
-import { rememberLastLeague } from "@/lib/lastLeague";
 import { leagueTabDestination, leagueTabFromQuery } from "@/lib/leagueNavigation";
 import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetResponseSummary, sideBetsForView } from "@/lib/sideBetPresentation";
 import { orderCardPicks } from "@/lib/cardOrdering";
@@ -179,7 +178,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const loginPath = appLoginPath(appSlug);
   const [tab, setTab] = useState<Tab>("picks");
   const [selectedLeague, setSelectedLeague] = useState<LeagueMembership | null>(null);
-  const [selectedLeagueWeekPreview, setSelectedLeagueWeekPreview] = useState<{ slug: AppSlug; week: number; weeks: number[] } | null>(null);
   const [selectedWeekOverride, setSelectedWeekOverride] = useState<number | null>(null);
   const [picksView, setPicksView] = useState<PicksView>("board");
   const [cardView, setCardView] = useState<CardView>("mine");
@@ -537,9 +535,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return () => { loadSequence.current += 1; };
   }, [load]);
   useEffect(() => { dataRef.current = data; }, [data]);
-  useEffect(() => {
-    if (sessionValidated && data?.currentUser?.id) rememberLastLeague(data.currentUser.id, appSlug);
-  }, [appSlug, data?.currentUser?.id, sessionValidated]);
   const modelUsername = data?.currentUser?.username;
   const modelWeek = data?.week;
   useEffect(() => {
@@ -1313,9 +1308,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     { id: "settings", label: "Settings", icon: SettingsIcon }
   ];
 
-  // Show the chosen league wordmark in Settings before navigating to its data.
-  const displayedHeaderSlug = tab === "settings" ? selectedLeague?.slug ?? appSlug : appSlug;
-  const previewWeeks = selectedLeagueWeekPreview?.slug === displayedHeaderSlug ? selectedLeagueWeekPreview : null;
+  // Do not flash back to the previous wordmark between Settings and navigation.
+  const displayedHeaderSlug = selectedLeague?.slug ?? appSlug;
+  const sportCurrentWeek = displayedHeaderSlug === "friends-basketball"
+    ? Math.max(1, basketballWeek(new Date(clock)))
+    : Math.max(0, getCurrentPickWeek(new Date(clock)));
+  const selectedSportWeeks = displayedHeaderSlug === "friends-basketball"
+    ? Array.from({ length: sportCurrentWeek }, (_, index) => index + 1)
+    : Array.from({ length: sportCurrentWeek + 1 }, (_, index) => index);
 
   return <div className="app-shell">
     <header className="scoreboard-header">
@@ -1326,14 +1326,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
           {displayedHeaderSlug !== appSlug ? <div className="header-slate">
-            {previewWeeks && previewWeeks.weeks.length > 0 ? <MenuSelect
+            <MenuSelect
               ariaLabel="Select week in chosen league"
               className="week-select-wrap header-menu-select"
               plainText
-              value={String(selectedWeekOverride ?? previewWeeks.week)}
-              sections={[{ options: previewWeeks.weeks.map((w) => ({ value: String(w), label: w === 0 ? "Week 0" : `Week ${w}` })) }]}
+              value={String(selectedWeekOverride ?? sportCurrentWeek)}
+              sections={[{ options: selectedSportWeeks.map((w) => ({ value: String(w), label: w === 0 ? "Week 0" : `Week ${w}` })) }]}
               onChange={(weekValue) => setSelectedWeekOverride(Number(weekValue))}
-            /> : <div className="week-select-wrap header-menu-select loading-week-select" aria-label="Waiting for selected league week"><span>Week</span></div>}
+            />}
           </div> : previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><MenuSelect
             ariaLabel="Select week"
             className="week-select-wrap header-menu-select"
@@ -1515,7 +1515,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         </>}
       </section>}
 
-      {tab === "settings" && <SettingsPanel
+      {/* Keep Settings mounted between tabs; hide it without re-fetching memberships. */}
+      <div style={{ display: tab === "settings" ? "contents" : "none" }}><SettingsPanel
         appSlug={appSlug}
         currentUser={currentUser}
         leagueName={selectedLeague?.name || leagueNameForSlug(appSlug)}
@@ -1526,17 +1527,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         onLeagueSelect={(league) => {
           setSelectedLeague(league.slug === appSlug ? null : league);
           setSelectedWeekOverride(null);
-          setSelectedLeagueWeekPreview(null);
         }}
-        onLeaguePreview={(slug, payload) => {
-          if (!payload) return;
-          setSelectedLeagueWeekPreview({
-            slug,
-            week: Number(payload.week),
-            weeks: Array.isArray(payload.availableWeeks) ? payload.availableWeeks.map(Number) : []
-          });
-        }}
-      />}
+      /></div>
     </main>
     {currentPreviewGame && (isBasketballLeague(currentPreviewGame.league)
       ? <BasketballGameDetails game={currentPreviewGame} onClose={closeMatchupPreview} />

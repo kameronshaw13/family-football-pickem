@@ -5826,3 +5826,7 @@ button, input, select, textarea {
   color: var(--blue-dark);
   animation: spin .8s linear infinite;
 }
+
+/* Exactly one bottom divider for the league section in Settings. */
+.settings-panel .settings-league-switcher .settings-card { border-bottom: 0; }
+.settings-panel .settings-league-switcher .settings-league-link:last-child { border-bottom: 0; }

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Check, ChevronRight, Layers3 } from "lucide-react";
 import { getClientSessionToken } from "@/lib/clientSession";
-import { readCachedAppData, writeCachedAppData, type AppData } from "@/components/PickemPresentationShared";
+import { writeCachedAppData, type AppData } from "@/components/PickemPresentationShared";
 import type { LeagueMembership } from "@/lib/leagueAccess";
 import type { PickemAppSlug } from "@/lib/authUsers";
 
@@ -54,11 +54,10 @@ async function warmLeagueData(league: LeagueMembership): Promise<AppData | null>
   return null;
 }
 
-export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect, onPreview }: {
+export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect }: {
   activeSlug: PickemAppSlug;
   selectedSlug: PickemAppSlug;
   onSelect: (league: LeagueMembership) => void;
-  onPreview: (slug: PickemAppSlug, payload: AppData | null) => void;
 }) {
   const router = useRouter();
   const [leagues, setLeagues] = useState<LeagueMembership[] | null>(() => readLeaguesCache());
@@ -93,8 +92,7 @@ export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect, onP
     onSelect(league);
     if (league.slug !== activeSlug) {
       router.prefetch(league.homePath);
-      onPreview(league.slug, readCachedAppData(league.slug, null));
-      void warmLeagueData(league).then((payload) => { if (payload) onPreview(league.slug, payload); });
+      void warmLeagueData(league);
     }
   }
 

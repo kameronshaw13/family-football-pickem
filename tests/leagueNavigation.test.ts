@@ -20,16 +20,15 @@ test("destination tab is limited to the app's real navigation tabs", () => {
   assert.equal(leagueTabFromQuery(null), null);
 });
 
-import { preferredLeagueForLaunch } from "../lib/leagueAccess.ts";
+import { defaultLeagueForLaunch } from "../lib/leagueAccess.ts";
 import type { LeagueMembership } from "../lib/leagueAccess.ts";
 const assignedLeagues: LeagueMembership[] = [
   { slug: "shaw-family", name: "Shaw Family Football", homePath: "/", sport: "Football", role: "member" },
   { slug: "friends-basketball", name: "Just Cover Basketball", homePath: "/friends-basketball", sport: "Basketball", role: "member" }
 ];
 
-test("launch uses saved league or the first available league", () => {
-  assert.equal(preferredLeagueForLaunch(assignedLeagues, "friends-basketball")?.homePath, "/friends-basketball");
-  assert.equal(preferredLeagueForLaunch(assignedLeagues, "other-family")?.homePath, "/");
-  assert.equal(preferredLeagueForLaunch(assignedLeagues, null)?.homePath, "/");
-  assert.equal(preferredLeagueForLaunch([], null), null);
+test("launch always uses first authorized league", () => {
+  assert.equal(defaultLeagueForLaunch(assignedLeagues)?.homePath, "/");
+  assert.equal(defaultLeagueForLaunch(assignedLeagues.slice(1))?.homePath, "/friends-basketball");
+  assert.equal(defaultLeagueForLaunch([]), null);
 });
