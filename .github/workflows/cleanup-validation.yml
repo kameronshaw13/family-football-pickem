@@ -1,7 +1,7 @@
 name: Cleanup validation
 on:
   push:
-    branches: [maintenance/full-codebase-cleanup-oct19]
+    branches: [main, maintenance/full-codebase-cleanup-oct19]
   pull_request:
     branches: [main]
   workflow_dispatch:

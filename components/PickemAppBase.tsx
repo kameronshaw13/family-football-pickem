@@ -430,6 +430,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
   }, [appSlug]);
 
+  // Prefetch the selected league route while Settings is open, so the next
+  // bottom-nav tap can navigate without waiting for its route bundle.
+  useEffect(() => {
+    if (selectedLeague && selectedLeague.slug !== appSlug) {
+      router.prefetch(selectedLeague.homePath);
+    }
+  }, [appSlug, router, selectedLeague?.slug, selectedLeague?.homePath]);
+
   const chooseNavTab = useCallback((nextTab: Tab) => {
     ++leagueNavigationIntentRef.current;
     const destination = leagueTabDestination(appSlug, selectedLeague, nextTab);
