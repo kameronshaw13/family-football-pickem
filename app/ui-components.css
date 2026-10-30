@@ -956,7 +956,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2px;
   margin: 0 0 var(--ui-space-2);
-  padding: 2px;
+  padding: 1px;
   overflow: hidden;
   border: 1px solid var(--graphite);
   border-radius: var(--ui-radius-filter);
