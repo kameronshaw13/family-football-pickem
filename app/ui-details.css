@@ -5245,13 +5245,13 @@ button, input, select, textarea {
 .game-tracker-header button, .matchup-preview-close {
   top: 50%;
   right: 10px;
-  width: 30px;
-  min-width: 30px;
-  max-width: 30px;
-  height: 30px;
-  min-height: 30px;
-  max-height: 30px;
-  flex: 0 0 30px;
+  width: 36px;
+  min-width: 36px;
+  max-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  flex: 0 0 36px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -5316,6 +5316,10 @@ button, input, select, textarea {
   font-size: 10px;
   font-weight: 750;
   line-height: 1.25;
+  white-space: normal;
+  text-overflow: clip;
+  overflow: visible;
+  overflow-wrap: break-word;
 }
 .game-tracker-score-stack > b {
   font-variant-numeric: tabular-nums;
