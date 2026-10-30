@@ -449,11 +449,11 @@ function DriveSummary({ drive, payload }: { drive: TrackerDrive; payload: Tracke
   </summary>;
 }
 
-function DriveDetails({ drive, payload, initiallyOpen, beforeQuarter, crossesQuarter }: { drive: TrackerDrive; payload: TrackerPayload; initiallyOpen: boolean; beforeQuarter: boolean; crossesQuarter: boolean }) {
+function DriveDetails({ drive, payload, initiallyOpen, beforeQuarter, crossesQuarter, connectedAbove }: { drive: TrackerDrive; payload: TrackerPayload; initiallyOpen: boolean; beforeQuarter: boolean; crossesQuarter: boolean; connectedAbove: boolean }) {
   const [open, setOpen] = useState(initiallyOpen);
 
   return <details
-    className={`game-tracker-drive ${beforeQuarter ? "before-quarter" : ""} ${crossesQuarter ? "crosses-quarter" : ""}`.trim()}
+    className={`game-tracker-drive ${beforeQuarter ? "before-quarter" : ""} ${crossesQuarter ? "crosses-quarter" : ""} ${connectedAbove ? "connected-above" : ""}`.trim()}
     open={open}
     onToggle={(event) => setOpen(event.currentTarget.open)}
   >
@@ -483,10 +483,11 @@ function Plays({ payload }: { payload: TrackerPayload }) {
       const crossedQuarters = driveQuarterTransitions(drive);
       const nextDrive = payload.drives[index + 1];
       const beforeQuarter = Boolean(nextDrive && periodLabel(drivePeriod(nextDrive)) !== periodLabel(driveEndPeriod(drive)));
+      const connectedAbove = Boolean(previous && !showQuarter && !driveQuarterTransitions(previous).length);
 
       return <Fragment key={drive.id}>
         {showQuarter && <div className="game-tracker-quarter-header game-tracker-plays-quarter-header">{trackerPeriodHeading(period)}</div>}
-        <DriveDetails drive={drive} payload={payload} initiallyOpen={drive.current || index === 0} beforeQuarter={beforeQuarter} crossesQuarter={crossedQuarters.length > 0} />
+        <DriveDetails drive={drive} payload={payload} initiallyOpen={drive.current || index === 0} beforeQuarter={beforeQuarter} crossesQuarter={crossedQuarters.length > 0} connectedAbove={connectedAbove} />
         {crossedQuarters.length > 0 && <div className="game-tracker-collapsed-quarter-headers">
           {crossedQuarters.map((quarter, transitionIndex) => <div className="game-tracker-quarter-header game-tracker-plays-quarter-header" key={`${quarter}-${transitionIndex}`}>{trackerPeriodHeading(quarter)}</div>)}
         </div>}

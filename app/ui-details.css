@@ -5437,6 +5437,18 @@ button, input, select, textarea {
 .game-tracker-drives > .game-tracker-plays-quarter-header:has(+ .game-tracker-drive) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .game-tracker-drives > .game-tracker-plays-quarter-header + .game-tracker-drive { border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
 .game-tracker-drives > .game-tracker-drive + .game-tracker-drive { margin-top: var(--ui-space-2); }
+/* Drives in the same quarter form one connected section, just like Scoring.
+   The previous row owns the separator and the next row does not duplicate it. */
+.game-tracker-drives > .game-tracker-drive + .game-tracker-drive.connected-above {
+  margin-top: 0;
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+.game-tracker-drives > .game-tracker-drive:has(+ .game-tracker-drive.connected-above) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
 .game-tracker-drives > .game-tracker-drive {
   margin: 0;
   overflow: hidden;
