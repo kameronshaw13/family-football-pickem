@@ -2,15 +2,32 @@ import Image from "next/image";
 import { memo } from "react";
 import type { PickemAppSlug } from "@/lib/authUsers";
 
-/** All three leagues render their original, unmodified wordmark assets. */
+/**
+ * Keep every wordmark mounted so selecting a different league does not replace
+ * the existing image element or introduce an image decode/paint gap.
+ */
 function LeagueHeaderWordmark({ slug }: { slug: PickemAppSlug }) {
-  const basketball = slug === "friends-basketball";
-  const shaw = slug === "shaw-family";
-  const src = basketball ? "/basketball-pickem-header-v2.png" : shaw ? "/header-wordmark.png" : "/football-pickem-wordmark.png";
-  const alt = basketball ? "Basketball Pick'em" : shaw ? "Shaw Family Pick'em" : "Football Pick'em";
-
   return <div className="brand-lockup">
-    <Image className="header-wordmark" unoptimized src={src} alt={alt} width={800} height={shaw ? 96 : 100} decoding="sync" fetchPriority="high" />
+    {([
+      { slug: "shaw-family", src: "/header-wordmark.png", alt: "Shaw Family Pick'em", height: 96 },
+      { slug: "friends", src: "/football-pickem-wordmark.png", alt: "Football Pick'em", height: 100 },
+      { slug: "friends-basketball", src: "/basketball-pickem-header-v2.png", alt: "Basketball Pick'em", height: 100 }
+    ] as const).map((item) => {
+      const visible = item.slug === (slug === "friends-basketball" ? "friends-basketball" : slug === "shaw-family" ? "shaw-family" : "friends");
+      return <Image
+        key={item.slug}
+        className="header-wordmark"
+        src={item.src}
+        alt={visible ? item.alt : ""}
+        aria-hidden={!visible}
+        width={800}
+        height={item.height}
+        unoptimized
+        decoding="sync"
+        fetchPriority={visible ? "high" : "low"}
+        style={{ display: visible ? "block" : "none" }}
+      />;
+    })}
   </div>;
 }
 
