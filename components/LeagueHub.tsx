@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, LogOut } from "lucide-react";
+import { ArrowRight, LoaderCircle, LogOut } from "lucide-react";
 import { clearClientSession, getClientSessionToken } from "@/lib/clientSession";
 import type { LeagueMembership } from "@/lib/leagueAccess";
 import { lastVisitedLeague } from "@/lib/lastLeague";
@@ -19,6 +19,7 @@ type MyLeaguesResponse = {
 export default function LeagueHub() {
   const router = useRouter();
   const [result, setResult] = useState<MyLeaguesResponse | null>(null);
+  const [showLeagueChooser, setShowLeagueChooser] = useState(false);
 
   useEffect(() => {
     const token = getClientSessionToken();
@@ -47,8 +48,13 @@ export default function LeagueHub() {
           }
         }
         setResult(response.ok ? payload : { ok: false, error: payload.error || "Could not load your leagues." });
+        setShowLeagueChooser(true);
       })
-      .catch(() => { if (!controller.signal.aborted) setResult({ ok: false, error: "Could not connect. Try again in a moment." }); });
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setResult({ ok: false, error: "Could not connect. Try again in a moment." });
+        setShowLeagueChooser(true);
+      });
     return () => controller.abort();
   }, [router]);
 
@@ -56,6 +62,9 @@ export default function LeagueHub() {
     clearClientSession();
     window.location.replace("/leagues/login");
   }
+
+  // Avoid painting the chooser before redirecting an installed-app launch.
+  if (!showLeagueChooser) return <main className="league-hub-screen league-hub-resuming" role="status" aria-label="Opening Pick’em"><LoaderCircle size={22} aria-hidden="true" /></main>;
 
   return <main className="league-hub-screen">
     <header className="scoreboard-header league-hub-header">

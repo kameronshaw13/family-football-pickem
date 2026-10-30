@@ -5751,12 +5751,12 @@ button, input, select, textarea {
 }
 
 
-/* Batch 1 review: same wordmark height, baseline and right-edge alignment across apps. */
+/* Pick'em lettering matches the SHAW header's displayed text height. */
 .league-hub-header .league-hub-trophy-wordmark {
   width: auto;
   max-width: min(236px, 100%);
-  height: 30px;
-  max-height: 30px;
+  height: 25px;
+  max-height: 25px;
   object-fit: contain;
   object-position: left center;
 }
@@ -5765,10 +5765,14 @@ button, input, select, textarea {
   width: var(--week-select-width);
   min-height: 36px;
   justify-content: center;
-  padding: 5px 3px;
+  padding: 5px 4px;
   gap: 4px;
+  border: 1px solid #59666d;
+  border-radius: var(--ui-radius-action);
+  color: #f1f6f8;
+  background: var(--graphite-light);
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 11px;
   line-height: 1;
 }
 .league-hub-header .league-hub-signout svg { width: 14px; height: 14px; flex: 0 0 14px; }
@@ -5776,15 +5780,21 @@ button, input, select, textarea {
   .league-hub-header .league-hub-trophy-wordmark {
     width: auto;
     max-width: min(222px, 100%);
-    height: 30px;
-    max-height: 30px;
+    height: 25px;
+    max-height: 25px;
   }
 }
 
-/* Restore the upper section divider and keep the flat Settings rows. */
+/* Dark outer boundaries, lighter row dividers within each Settings section. */
+.settings-panel .settings-section {
+  border-bottom: 1px solid var(--line-strong);
+}
 .settings-panel .settings-section > h3 {
   border-top: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
+}
+.settings-panel .settings-section > .settings-card:last-child {
+  border-bottom: 0;
 }
 
 /* Three distinct private activity feeds: Shaw, Just Cover Football, Basketball. */
@@ -5794,10 +5804,25 @@ button, input, select, textarea {
 }
 .app-open-activity .app-open-league-toggle button {
   min-width: 0;
-  min-height: 48px;
-  padding: 6px 4px;
+  min-height: 34px;
+  padding: 3px 3px;
   font-size: 10px;
-  line-height: 1.2;
+  line-height: 1.1;
   white-space: normal;
   text-align: center;
+}
+
+/* Keep a right-hand control slot without showing 'Week ...' during warmup. */
+.week-select-pending { display: block; width: var(--week-select-width); height: 36px; }
+
+/* A neutral resume screen prevents the chooser from flashing on app launch. */
+.league-hub-resuming {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  place-items: center;
+}
+.league-hub-resuming svg {
+  color: var(--blue-dark);
+  animation: spin .8s linear infinite;
 }

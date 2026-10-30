@@ -48,6 +48,12 @@ export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect, onP
         const payload = await response.json();
         if (!controller.signal.aborted && Array.isArray(payload.leagues)) {
           setLeagues(payload.leagues);
+          // Warm the existing header images before switching from Settings,
+          // keeping the destination wordmark visible without a fade-in.
+          for (const imagePath of ["/header-wordmark.png", "/football-pickem-wordmark.png", "/basketball-pickem-header-v2.png"]) {
+            const previewImage = new window.Image();
+            previewImage.src = imagePath;
+          }
           for (const league of payload.leagues as LeagueMembership[]) {
             if (league.slug !== activeSlug) router.prefetch(league.homePath);
           }

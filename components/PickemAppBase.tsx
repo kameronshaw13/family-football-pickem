@@ -1023,7 +1023,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         <div className="scoreboard-main">
           {appSlug === "friends-basketball"
             ? <BasketballHeaderWordmark imageRef={headerLogoRef} ready={headerLogoReady} onReady={() => setHeaderLogoReady(true)} />
-            : <div className="brand-lockup"><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>}
+            : <div className="brand-lockup"><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" src={appSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={appSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={appSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>}
           <div className="header-actions" aria-hidden="true">
             <span className="header-refresh-indicator" />
             <div className="header-slate">
@@ -1322,7 +1322,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       <div className="scoreboard-main">
         {displayedHeaderSlug === "friends-basketball"
           ? <BasketballHeaderWordmark imageRef={headerLogoRef} ready={headerLogoReady} onReady={() => setHeaderLogoReady(true)} />
-          : <div className="brand-lockup"><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" style={{ visibility: headerLogoReady ? "visible" : "hidden", opacity: headerLogoReady ? 1 : 0 }} src={displayedHeaderSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={displayedHeaderSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={displayedHeaderSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>}
+          : <div className="brand-lockup"><NextImage unoptimized ref={headerLogoRef} className="header-wordmark" src={displayedHeaderSlug === "shaw-family" ? "/header-wordmark.png" : "/football-pickem-wordmark.png"} alt={displayedHeaderSlug === "shaw-family" ? "Shaw Family Pick'em" : "Football Pick'em"} width={800} height={displayedHeaderSlug === "shaw-family" ? 96 : 100} decoding="sync" fetchPriority="high" onLoad={() => setHeaderLogoReady(true)} /></div>}
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
           {displayedHeaderSlug !== appSlug ? <div className="header-slate">
@@ -1333,7 +1333,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               value={String(selectedWeekOverride ?? previewWeeks.week)}
               sections={[{ options: previewWeeks.weeks.map((w) => ({ value: String(w), label: w === 0 ? "Week 0" : `Week ${w}` })) }]}
               onChange={(weekValue) => setSelectedWeekOverride(Number(weekValue))}
-            /> : <div className="week-select-wrap header-menu-select loading-week-select" aria-label="Loading selected league week"><span>Week …</span><ChevronDown size={16} /></div>}
+            /> : <span className="week-select-pending" aria-hidden="true" />}
           </div> : previewActive ? <div className="test-week-chip">Test Week</div> : availableWeeks.length > 0 && <div className="header-slate"><MenuSelect
             ariaLabel="Select week"
             className="week-select-wrap header-menu-select"
