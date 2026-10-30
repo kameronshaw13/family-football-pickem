@@ -5539,9 +5539,14 @@ button, input, select, textarea {
   font-weight: 750;
 }
 .game-tracker-box-selector button.active {
-  border-color: var(--line-strong);
+  border: 1px solid var(--header-muted);
   color: var(--ink);
   background: var(--surface-muted);
+  font-weight: 850;
+}
+.game-tracker-box-selector button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
 }
 .game-tracker-team-stats {
   overflow: hidden;
@@ -5556,6 +5561,29 @@ button, input, select, textarea {
   border-bottom: 1px solid var(--tracker-divider);
   background: var(--tracker-header-fill);
 }
+.game-tracker-team-stats > .game-tracker-stat-table-head,
+.game-tracker-team-stats > .game-tracker-stat-row {
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 1.1fr) minmax(0, 1fr);
+  column-gap: var(--ui-space-1);
+  text-align: center;
+}
+.game-tracker-stat-table-head > strong,
+.game-tracker-stat-row > strong,
+.game-tracker-stat-row > span {
+  min-width: 0;
+  text-align: center;
+  justify-self: stretch;
+  align-self: center;
+}
+.game-tracker-stat-table-head > strong:first-child,
+.game-tracker-stat-table-head > strong:last-child {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.game-tracker-stat-row > span { overflow-wrap: anywhere; line-height: 1.2; }
+.game-tracker-team-stats > .game-tracker-empty { margin: 0; padding: var(--ui-space-4) var(--tracker-inset); text-align: center; }
 .game-tracker-team-stats > .game-tracker-stat-row {
   min-height: 42px;
   padding-inline: var(--tracker-inset);

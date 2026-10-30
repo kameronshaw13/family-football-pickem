@@ -496,17 +496,20 @@ function Plays({ payload }: { payload: TrackerPayload }) {
 }
 
 function TeamStats({ payload }: { payload: TrackerPayload }) {
-  return <section className="game-tracker-team-stats">
+  const awayLabel = payload.teams.away.abbreviation || trackerTeamLabel(payload.teams.away) || "Away";
+  const homeLabel = payload.teams.home.abbreviation || trackerTeamLabel(payload.teams.home) || "Home";
+
+  return <section className="game-tracker-team-stats" aria-label="Team box score comparison">
     <div className="game-tracker-stat-table-head">
-      <span aria-hidden="true" />
+      <strong title={payload.teams.away.name}>{awayLabel}</strong>
       <strong>TEAM STATS</strong>
-      <span aria-hidden="true" />
+      <strong title={payload.teams.home.name}>{homeLabel}</strong>
     </div>
-    {payload.teamStats.map((stat) => <div className="game-tracker-stat-row" key={stat.label}>
-      <strong>{stat.away}</strong>
+    {payload.teamStats.length ? payload.teamStats.map((stat) => <div className="game-tracker-stat-row" key={stat.label}>
+      <strong aria-label={`${awayLabel} ${stat.label}: ${stat.away}`}>{stat.away}</strong>
       <span>{stat.label}</span>
-      <strong>{stat.home}</strong>
-    </div>)}
+      <strong aria-label={`${homeLabel} ${stat.label}: ${stat.home}`}>{stat.home}</strong>
+    </div>) : <p className="game-tracker-empty">Team statistics will appear when available.</p>}
   </section>;
 }
 
