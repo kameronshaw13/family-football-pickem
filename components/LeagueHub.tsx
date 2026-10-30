@@ -1,99 +1,67 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, LoaderCircle, LogOut } from "lucide-react";
-import { clearClientSession, getClientSessionToken } from "@/lib/clientSession";
-import type { LeagueMembership } from "@/lib/leagueAccess";
+import { getClientSessionToken, clearClientSession } from "@/lib/clientSession";
 import { lastVisitedLeague } from "@/lib/lastLeague";
+import { appHomePath } from "@/lib/appIdentity";
+import { preferredLeagueForLaunch, type LeagueMembership } from "@/lib/leagueAccess";
 
-type MyLeaguesResponse = {
+type LeagueLookup = {
   ok: boolean;
-  error?: string;
-  profile?: { id: string; username: string; displayName: string };
   leagues?: LeagueMembership[];
+  error?: string;
 };
 
+/** Launch resolver only: league selection now lives entirely inside Settings. */
 export default function LeagueHub() {
   const router = useRouter();
-  const [result, setResult] = useState<MyLeaguesResponse | null>(null);
-  const [showLeagueChooser, setShowLeagueChooser] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const token = getClientSessionToken();
     if (!token) {
-      window.location.replace("/leagues/login");
+      router.replace("/leagues/login");
       return;
     }
+
+    // Existing installs may have the last league in localStorage but not yet
+    // in the server redirect cookie. Respect that before doing a fresh lookup.
+    try {
+      const profile = JSON.parse(window.localStorage.getItem("pickem_profile") || "null") as { id?: string } | null;
+      const remembered = profile?.id ? lastVisitedLeague(profile.id) : null;
+      if (remembered) {
+        router.replace(appHomePath(remembered));
+        return;
+      }
+    } catch {
+      // Fall back to current membership order.
+    }
+
     const controller = new AbortController();
-    fetch("/api/my-leagues", { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal, cache: "no-store" })
-      .then(async (response) => {
-        if (response.status === 401) {
-          clearClientSession();
-          window.location.replace("/leagues/login");
-          return;
-        }
-        const payload = await response.json() as MyLeaguesResponse;
-        if (controller.signal.aborted) return;
-        // Launching the installed app resumes the last authorized league; the
-        // explicit league-home link (?chooser=1) always shows the full picker.
-        if (response.ok && payload.ok && !new URLSearchParams(window.location.search).has("chooser")) {
-          const lastSlug = lastVisitedLeague(payload.profile?.id || "");
-          const lastLeague = payload.leagues?.find((item) => item.slug === lastSlug);
-          if (lastLeague) {
-            router.replace(lastLeague.homePath);
-            return;
-          }
-        }
-        setResult(response.ok ? payload : { ok: false, error: payload.error || "Could not load your leagues." });
-        setShowLeagueChooser(true);
-      })
-      .catch(() => {
-        if (controller.signal.aborted) return;
-        setResult({ ok: false, error: "Could not connect. Try again in a moment." });
-        setShowLeagueChooser(true);
-      });
+    void fetch("/api/my-leagues", {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+      signal: controller.signal
+    }).then(async (response) => {
+      if (controller.signal.aborted) return;
+      if (response.status === 401) {
+        clearClientSession();
+        router.replace("/leagues/login");
+        return;
+      }
+      const payload = await response.json() as LeagueLookup;
+      if (!response.ok || !payload.ok) throw new Error(payload.error || "Could not load your leagues.");
+      const destination = preferredLeagueForLaunch(payload.leagues || [], null);
+      if (destination) router.replace(destination.homePath);
+      else setError("No active leagues are assigned to this account.");
+    }).catch((reason: unknown) => {
+      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Could not open your league.");
+    });
     return () => controller.abort();
   }, [router]);
 
-  function signOut() {
-    clearClientSession();
-    window.location.replace("/leagues/login");
-  }
-
-  // Avoid painting the chooser before redirecting an installed-app launch.
-  if (!showLeagueChooser) return <main className="league-hub-screen league-hub-resuming" role="status" aria-label="Opening Pick’em"><LoaderCircle size={22} aria-hidden="true" /></main>;
-
-  return <main className="league-hub-screen">
-    <header className="scoreboard-header league-hub-header">
-      <div className="scoreboard-main">
-        <div className="brand-lockup">
-          <Image className="header-wordmark league-hub-trophy-wordmark" src="/unified-pickem-wordmark.png" alt="Pick'em" width={800} height={225} unoptimized priority />
-        </div>
-        <div className="header-actions"><span className="header-refresh-indicator" aria-hidden="true" /><div className="header-slate">
-          <button type="button" onClick={signOut} className="league-hub-signout"><LogOut size={16} /> Sign out</button>
-        </div></div>
-      </div>
-    </header>
-    <div className="league-hub-content">
-      <section className="league-hub-intro" aria-labelledby="league-hub-title">
-        <span className="league-hub-eyebrow">YOUR PICK&apos;EM HOME</span>
-        <h1 id="league-hub-title">Choose your league</h1>
-        <p>All your leagues in one place. Jump in to check picks, standings, and more.</p>
-      </section>
-      <section className="league-hub-list" aria-label="Your leagues">
-        <h2>My Leagues</h2>
-        {!result && <p className="league-hub-status" role="status">Loading your leagues…</p>}
-        {result && !result.ok && <p className="league-hub-status error" role="alert">{result.error}</p>}
-        {result?.ok && !result.leagues?.length && <p className="league-hub-status">No active leagues are assigned to this account. Ask Kameron to check your membership.</p>}
-        {result?.leagues?.map((league) => <Link className="league-hub-card" href={league.homePath} key={league.slug}>
-          <span className={`league-hub-sport ${league.sport.toLowerCase()}`} aria-hidden="true"><Image src={league.sport === "Basketball" ? "/league-basketball-orange.png" : "/league-football-brown.png"} alt="" width={54} height={54} unoptimized /></span>
-          <span className="league-hub-card-copy"><strong>{league.name}</strong><span>{league.sport === "Basketball" ? "CBB/NBA" : "CFB/NFL"}</span></span>
-          <span className="league-hub-open"><ArrowRight size={19} aria-hidden="true" /></span>
-        </Link>)}
-      </section>
-    </div>
+  return <main className="league-launch" role="status" aria-label="Opening your league">
+    {error && <div className="league-launch-error"><p>{error}</p><a href="/leagues/login">Return to sign in</a></div>}
   </main>;
 }

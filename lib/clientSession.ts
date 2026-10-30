@@ -46,6 +46,9 @@ export function getClientSessionToken() {
 export function storeClientSession(token: string, profile?: unknown) {
   if (typeof window === "undefined") return;
   try {
+    // Never reuse another account's last-league cookie.
+    const previous = window.localStorage.getItem(SESSION_TOKEN_KEY);
+    if (previous !== token) document.cookie = "pickem_last_league=; Max-Age=0; Path=/; SameSite=Lax";
     window.localStorage.setItem(SESSION_TOKEN_KEY, token);
     if (profile !== undefined) window.localStorage.setItem(SESSION_PROFILE_KEY, JSON.stringify(profile));
   } catch {
@@ -65,5 +68,6 @@ export function clearClientSession() {
   }
   if (typeof document !== "undefined") {
     document.cookie = `${SESSION_COOKIE}=; Max-Age=0; Path=/; SameSite=Lax`;
+    document.cookie = "pickem_last_league=; Max-Age=0; Path=/; SameSite=Lax";
   }
 }

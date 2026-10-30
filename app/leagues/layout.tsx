@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Pick'em | My Leagues",
-  description: "One Pick'em home for all your leagues.",
+  title: "Pick'em",
+  description: "Your Pick'em leagues, in one app.",
   applicationName: "Pick'em",
   appleWebApp: { capable: true, title: "Pick'em", statusBarStyle: "black-translucent" },
   icons: { icon: "/leagues/icon", apple: "/leagues/apple-icon" },

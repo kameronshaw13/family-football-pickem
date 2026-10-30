@@ -22,6 +22,11 @@ export function leagueNameForSlug(slug: PickemAppSlug): string {
   return LEAGUE_NAMES[slug];
 }
 
+/** Saved authorized league wins; otherwise start in the first league shown. */
+export function preferredLeagueForLaunch(leagues: LeagueMembership[], saved: PickemAppSlug | null): LeagueMembership | null {
+  return leagues.find((league) => league.slug === saved) || leagues[0] || null;
+}
+
 export function isKnownPickemUser(username: string) {
   const normalized = username.trim().toLowerCase();
   return Object.values(APP_USERS).some((roster) => roster.some((user) => user.username === normalized));
