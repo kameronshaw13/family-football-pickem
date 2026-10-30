@@ -9,6 +9,7 @@ import PushNotificationControls from "@/components/PushNotificationControls";
 import AppOpenActivity from "@/components/AppOpenActivity";
 import LeagueSwitcher from "@/components/LeagueSwitcher";
 import type { LeagueMembership } from "@/lib/leagueAccess";
+import type { AppData } from "@/components/PickemPresentationShared";
 import { clearClientSession } from "@/lib/clientSession";
 
 type Theme = "light" | "dark";
@@ -37,7 +38,8 @@ export default function SettingsPanel({
   loginPath,
   onCountsChanged,
   selectedLeagueSlug,
-  onLeagueSelect
+  onLeagueSelect,
+  onLeaguePreview
 }: {
   appSlug: AppSlug;
   currentUser: Profile;
@@ -47,6 +49,7 @@ export default function SettingsPanel({
   onCountsChanged: (counts: Record<string, number>) => void;
   selectedLeagueSlug: AppSlug;
   onLeagueSelect: (league: LeagueMembership) => void;
+  onLeaguePreview: (slug: AppSlug, payload: AppData | null) => void;
 }) {
   const [theme, setTheme] = useState<Theme>("light");
   const [newPassword, setNewPassword] = useState("");
@@ -125,7 +128,7 @@ export default function SettingsPanel({
   return <section className="panel settings-panel">
     <div className="section-title settings-page-title"><div><h2>Settings</h2><p>{leagueName || "League and account preferences"}</p></div></div>
 
-    <LeagueSwitcher activeSlug={appSlug} selectedSlug={selectedLeagueSlug} onSelect={onLeagueSelect} />
+    <LeagueSwitcher activeSlug={appSlug} selectedSlug={selectedLeagueSlug} onSelect={onLeagueSelect} onPreview={onLeaguePreview} />
 
     <div className="settings-section">
       <h3>Profile</h3>
@@ -163,7 +166,7 @@ export default function SettingsPanel({
       </div>
     </div>
 
-    {String(currentUser.username).toLowerCase() === "kameron" && (appSlug === "friends" || appSlug === "shaw-family") && <div className="settings-section">
+    {String(currentUser.username).toLowerCase() === "kameron" && (appSlug === "friends" || appSlug === "shaw-family" || appSlug === "friends-basketball") && <div className="settings-section">
       <h3>Private Activity</h3>
       <AppOpenActivity appSlug={appSlug} />
     </div>}
