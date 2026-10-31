@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
-import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 
 export const dynamic = "force-dynamic";
 
 const TRACKED_GROUPS = ["shaw-family", "friends", "friends-basketball"] as const;
-const ZONE = "America/Chicago";
 
 export async function GET(req: NextRequest) {
   const auth = await getProfileFromRequest(req);
@@ -27,10 +25,10 @@ export async function GET(req: NextRequest) {
     if (context.group.slug !== league) {
       return NextResponse.json({ error: "Not authorized." }, { status: 403 });
     }
-    const today = formatInTimeZone(new Date(), ZONE, "yyyy-MM-dd");
-    const since = fromZonedTime(`${today}T00:00:00`, ZONE).toISOString();
+    // Use a rolling 24-hour window instead of resetting the list at midnight.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const visits: { id: string; openedAt: string; name: string }[] = [];
-    // Paginate so every recorded opening since midnight is included.
+    // Paginate so every recorded opening in the last 24 hours is included.
     for (let offset = 0; ; offset += 1000) {
       const { data, error } = await supabase.from("app_open_events")
         .select("id,opened_at,profile:profiles(display_name)")
