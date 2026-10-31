@@ -8,6 +8,8 @@ type ActivityLeague = "shaw-family" | "friends" | "friends-basketball";
 type Visit = { id: string; name: string; openedAt: string };
 const visitDate = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Chicago",
+  month: "short",
+  day: "numeric",
   hour: "numeric",
   minute: "2-digit"
 });
@@ -54,7 +56,7 @@ export default function AppOpenActivity({ appSlug }: { appSlug: AppSlug }) {
     <div className="app-open-activity-header">
       <div className="settings-row-copy">
         <strong>Who Opened the App</strong>
-        <span>Private to Kameron · Every recorded opening since midnight CT</span>
+        <span>Private to Kameron · Openings in the last 24 hours</span>
       </div>
       <button type="button" className="app-open-refresh" aria-label="Refresh app activity" title="Refresh" disabled={busy} onClick={refresh}><RefreshCw size={16} /></button>
     </div>
@@ -66,7 +68,7 @@ export default function AppOpenActivity({ appSlug }: { appSlug: AppSlug }) {
     <div className="app-open-activity-list" aria-live="polite">
       {busy ? <p className="muted">Loading activity…</p>
         : error ? <p className="muted" role="alert">{error}</p>
-        : visits.length === 0 ? <p className="muted">No app opens recorded today.</p>
+        : visits.length === 0 ? <p className="muted">No app opens recorded in the last 24 hours.</p>
         : visits.map((visit) => <div className="app-open-activity-item" key={visit.id}>
           <strong>{visit.name || "Player"}</strong>
           <time dateTime={visit.openedAt}>{visitDate.format(new Date(visit.openedAt))}</time>
