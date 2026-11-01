@@ -43,6 +43,8 @@ export async function refreshBasketballSlate(supabase: SupabaseClient, now = new
         current_bookmaker: old?.current_bookmaker ?? null,
         lock_time: lock.toISOString(), is_locked: Boolean(old?.is_locked || now >= lock),
         final_home_score: old?.final_home_score ?? null, final_away_score: old?.final_away_score ?? null,
+        // Mixed existing/new batches otherwise send NULL for the new rows' created_at.
+        created_at: old?.created_at ?? now.toISOString(),
         updated_at: now.toISOString()
       });
     }
