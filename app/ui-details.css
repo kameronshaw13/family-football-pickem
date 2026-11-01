@@ -4313,18 +4313,22 @@ html[data-theme="dark"] .primary-nav {
 
 /* Preview matchup hero: clean vertical stack with one obvious score/spread row. */
 .matchup-preview-hero {
-  min-height:152px;
+  min-height:166px;
   height:auto;
   flex-basis:auto;
   grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);
-  grid-template-rows:22px auto;
+  grid-template-rows:36px auto;
   gap:0 var(--ui-space-2);
   padding:var(--ui-space-1) 13px 10px;
   background:var(--panel);
 }
 .matchup-preview-hero > .matchup-preview-kickoff {
-  min-height:22px;
-  height:22px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:3px;
+  min-height:36px;
+  height:36px;
   color:var(--header-muted);
   font-family:var(--detail-body);
   font-size:10px;
@@ -5955,3 +5959,9 @@ button, input, select, textarea {
   .basketball-details .basketball-score-team img { width: 36px; height: 36px; }
   .basketball-details .basketball-play { grid-template-columns: 38px minmax(0, 1fr) auto; gap: var(--ui-space-1); }
 }
+
+/* Preview identity stays consistent across sports; dates and team ranks are secondary. */
+.basketball-matchup-preview .matchup-preview-hero { flex-shrink: 0; }
+.matchup-team-rank { font-size: .8em; font-weight: 700; }
+.line-movement-columns > strong { display: flex; align-items: center; justify-content: center; gap: 5px; }
+.line-movement-columns > strong img { flex-shrink: 0; object-fit: contain; }

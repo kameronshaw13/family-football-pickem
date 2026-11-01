@@ -1,3 +1,4 @@
+import { BASKETBALL_TEAM_LABELS } from "./basketballTeamNames.ts";
 import {
   normalizeTeamNameKey,
   teamAbbreviatedName as baseTeamAbbreviatedName,
@@ -80,7 +81,7 @@ function restoreStateDisplay(team: string, displayName: string) {
 }
 
 export function teamDisplayName(league: string | null | undefined, team: string) {
-  if (league === "CBB" || league === "NBA") return team;
+  if (league === "CBB" || league === "NBA") return BASKETBALL_TEAM_LABELS[league][normalizeTeamNameKey(team)]?.[0] ?? team;
   if (league !== "NFL") {
     const override = DISPLAY_OVERRIDES[normalizeTeamNameKey(team)];
     if (override) return override;
@@ -90,7 +91,7 @@ export function teamDisplayName(league: string | null | undefined, team: string)
 }
 
 export function teamAbbreviatedName(league: string | null | undefined, team: string) {
-  if (league === "CBB" || league === "NBA") return team;
+  if (league === "CBB" || league === "NBA") return BASKETBALL_TEAM_LABELS[league][normalizeTeamNameKey(team)]?.[1] ?? team;
   if (league !== "NFL") {
     const rawKey = normalizeTeamNameKey(team);
     const displayKey = normalizeTeamNameKey(teamDisplayName(league, team));

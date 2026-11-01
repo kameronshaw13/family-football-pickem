@@ -11,7 +11,7 @@ import { LoaderCircle, X } from "lucide-react";
 import type { Game } from "@/lib/types";
 import type { NflMatchupHistory, NflMatchupPayload, NflMatchupTeam } from "@/lib/nflMatchup";
 import { createAsyncCache } from "@/lib/asyncCache";
-import { formatOrdinalDate, matchupDateFormatter } from "@/lib/displayDates";
+import MatchupTipoff from "@/components/MatchupTipoff";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { teamDisplayName } from "@/lib/teamNames";
 
@@ -312,7 +312,7 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
         <button className="matchup-preview-close" type="button" onClick={closeWithMotion} aria-label="Close matchup preview"><X size={18} /></button>
       </header>
       <div className="matchup-preview-hero">
-        <div className="matchup-preview-kickoff">{formatOrdinalDate(matchupDateFormatter, new Date(game.commence_time))} CT</div>
+        <MatchupTipoff commenceTime={game.commence_time} />
         {(["away", "home"] as const).map(side => <div className="matchup-preview-team" key={side}>
           <Logo src={side === "away" ? game.away_logo_url : game.home_logo_url} size={46} />
           <strong>{side === "away" ? away : home}</strong>

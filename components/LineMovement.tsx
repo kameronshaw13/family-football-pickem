@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import type { Game } from "@/lib/types";
@@ -44,9 +45,8 @@ export default function LineMovement({ game }: { game: Game }) {
   if (!points) return <div className="matchup-preview-loading" role="status"><LoaderCircle size={22} /><span>Loading line movement…</span></div>;
   return <section className="line-movement-panel">
     <div className="matchup-section-heading"><h3>Line Movement</h3></div>
-    <p className="line-movement-note"><span>Recorded spread changes</span><span className="ui-separator-dot" aria-hidden="true">·</span><span>Central time</span></p>
     {points.length ? <>
-      <div className="line-movement-columns"><span>Date / Time</span><strong>{teamDisplayName(game.league, game.away_team)}</strong><strong>{teamDisplayName(game.league, game.home_team)}</strong></div>
+      <div className="line-movement-columns"><span>Date / Time (CT)</span><strong>{game.away_logo_url && <Image unoptimized src={game.away_logo_url} alt="" width={22} height={22} />}{teamDisplayName(game.league, game.away_team)}</strong><strong>{game.home_logo_url && <Image unoptimized src={game.home_logo_url} alt="" width={22} height={22} />}{teamDisplayName(game.league, game.home_team)}</strong></div>
       {[...points].reverse().map((point, index) => <div className="line-movement-row" key={`${point.at}-${index}`}>
         <div><time dateTime={point.at}>{dateFormat.format(new Date(point.at))} CT</time><small>{point.change == null ? "First recorded" : `Moved ${Math.abs(point.change)} ${Math.abs(point.change) === 1 ? "point" : "points"}`}</small></div>
         <strong>{spreadText(point.awaySpread)}</strong><strong>{spreadText(point.homeSpread)}</strong>

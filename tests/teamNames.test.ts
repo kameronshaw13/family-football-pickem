@@ -37,3 +37,15 @@ test("college abbreviations use consistent standard names", () => {
   assert.equal(teamAbbreviatedName("CFB", "Northwestern Wildcats"), "NU");
   assert.equal(teamAbbreviatedName("CFB", "Texas A&M Aggies"), "TAMU");
 });
+
+
+test("basketball uses school names and NBA nicknames without changing unknown identities", () => {
+  assert.equal(teamDisplayName("CBB", "Wichita State Shockers"), "Wichita State");
+  assert.equal(teamDisplayName("CBB", "Miami (OH) RedHawks"), "Miami (OH)");
+  assert.equal(teamDisplayName("CBB", "Saint Mary's Gaels"), "Saint Mary's");
+  assert.equal(teamDisplayName("NBA", "Oklahoma City Thunder"), "Thunder");
+  assert.equal(teamDisplayName("NBA", "Portland Trail Blazers"), "Trail Blazers");
+  assert.equal(teamAbbreviatedName("CBB", "Wichita State Shockers"), "WICH");
+  assert.equal(teamAbbreviatedName("NBA", "Oklahoma City Thunder"), "OKC");
+  assert.equal(teamDisplayName("CBB", "Unknown School"), "Unknown School");
+});
