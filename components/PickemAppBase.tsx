@@ -11,6 +11,7 @@ import { sideBetMarketText, sideBetOddsForTeam, sideBetOddsSuffix, sideBetTotalS
 import { money, roundedMoney, stakeMoney, normalizeRiskInput } from "@/lib/moneyDisplay";
 import { dogBonusText, dogLineText, confidencePointText } from "@/lib/pickDisplay";
 import { basketballLockTime, basketballWeek, basketballWeekBounds, basketballSeasonEnd, isBasketballLeague } from "@/lib/basketballRules";
+import BasketballMatchupPreview from "@/components/BasketballMatchupPreview";
 import BasketballGameDetails from "@/components/BasketballGameDetails";
 import LeagueHeaderWordmark from "@/components/LeagueHeaderWordmark";
 import PrimaryBottomNav from "@/components/PrimaryBottomNav";
@@ -1553,7 +1554,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       /></div>
     </main>
     {currentPreviewGame && (isBasketballLeague(currentPreviewGame.league)
-      ? <BasketballGameDetails key={`${currentPreviewGame.id}-${isFinalGame(currentPreviewGame) || new Date(currentPreviewGame.commence_time).getTime() <= clock ? "tracker" : "preview"}`} game={currentPreviewGame} mode={isFinalGame(currentPreviewGame) || new Date(currentPreviewGame.commence_time).getTime() <= clock ? "tracker" : "preview"} onClose={closeMatchupPreview} />
+      ? isFinalGame(currentPreviewGame) || new Date(currentPreviewGame.commence_time).getTime() <= clock
+        ? <BasketballGameDetails key={currentPreviewGame.id} game={currentPreviewGame} onClose={closeMatchupPreview} />
+        : <BasketballMatchupPreview key={currentPreviewGame.id} game={currentPreviewGame} onClose={closeMatchupPreview} />
       : isFinalGame(currentPreviewGame) || new Date(currentPreviewGame.commence_time).getTime() <= clock
       ? <GameTracker key={currentPreviewGame.id} game={currentPreviewGame} appSlug={appSlug} onClose={closeMatchupPreview} />
       : currentPreviewGame.league === "NFL"

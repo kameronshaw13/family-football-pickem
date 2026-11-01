@@ -7,7 +7,9 @@ import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
-import { LoaderCircle, X } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
+import MatchupResultMark from "@/components/MatchupResultMark";
+import GameDetailClose from "@/components/GameDetailClose";
 import type { Game } from "@/lib/types";
 import type { MatchupPayload, MatchupTeam, MatchupHistory } from "@/lib/cfbMatchup";
 import { createAsyncCache } from "@/lib/asyncCache";
@@ -139,7 +141,7 @@ function FormTeam({ team, logo }: { team: MatchupTeam; logo?: string | null }) {
     {team.recent.length ? team.recent.map(row => {
       const cover = coverByWeek.get(row.week);
       return <div className="matchup-result-row matchup-form-combined-row" key={row.id}>
-        <span className={row.result === "W" ? "matchup-result-win" : row.result === "L" ? "matchup-result-loss" : "matchup-result-push"}>{row.result}</span>
+        <MatchupResultMark result={row.result} />
         <div className="matchup-result-opponent">
           <strong>{row.home ? "vs" : "at"} {teamDisplayName("CFB", row.opponent)}</strong>
           <small><span>Week {row.week}</span><span className="matchup-form-spread"><span className="ui-separator-dot matchup-form-week-dot" aria-hidden="true">·</span>Spread {cover ? spreadText(cover.spread) : "—"}</span></small>
@@ -188,7 +190,7 @@ function History({ history, away, home, awayLogo, homeLogo }: { history: Matchup
           return <article className="matchup-history-game" key={row.id}>
             <div className="matchup-history-game-meta">
               <time dateTime={row.date}>{new Date(row.date).getUTCFullYear()}</time>
-              <span>{row.neutralSite ? "Neutral site" : `Home: ${hostName}`}</span>
+
             </div>
             <div className="matchup-history-scoreboard">
               <div className={visitorScore > hostScore ? "matchup-history-score-team winner" : "matchup-history-score-team"}>
@@ -282,10 +284,10 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
     <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="false" aria-label={`${away} at ${home} matchup preview`}>
       <header className="matchup-preview-header">
         <div className="matchup-detail-title">
-          
+
           <strong>{away} at {home}</strong>
         </div>
-        <button className="matchup-preview-close" type="button" onClick={closeWithMotion} aria-label="Close matchup preview"><X size={18} /></button>
+        <GameDetailClose onClose={closeWithMotion} label="Close matchup preview" />
       </header>
       <div className="matchup-preview-hero">
         <MatchupTipoff commenceTime={game.commence_time} />

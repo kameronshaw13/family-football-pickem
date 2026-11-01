@@ -8,7 +8,8 @@ import { playTextWithoutDuplicateClock } from "@/lib/playText";
 import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
-import { ChevronDown, LoaderCircle, X } from "lucide-react";
+import { ChevronDown, LoaderCircle } from "lucide-react";
+import GameDetailClose from "@/components/GameDetailClose";
 import type { Game } from "@/lib/types";
 import type { AppSlug } from "@/lib/rulePresentation";
 import { teamDisplayName } from "@/lib/teamNames";
@@ -497,8 +498,8 @@ function Plays({ payload }: { payload: TrackerPayload }) {
 }
 
 function TeamStats({ payload }: { payload: TrackerPayload }) {
-  const awayLabel = payload.teams.away.abbreviation || trackerTeamLabel(payload.teams.away) || "Away";
-  const homeLabel = payload.teams.home.abbreviation || trackerTeamLabel(payload.teams.home) || "Home";
+  const awayLabel = payload.teams.away.shortName || payload.teams.away.name || "Away";
+  const homeLabel = payload.teams.home.shortName || payload.teams.home.name || "Home";
 
   return <section className="game-tracker-team-stats" aria-label="Team box score comparison">
     <div className="game-tracker-stat-table-head">
@@ -564,6 +565,7 @@ function TeamBox({ payload, side }: { payload: TrackerPayload; side: Side }) {
   const rows = payload.playerStats.filter((item) => item.side === side);
 
   return <div className="game-tracker-team-box">
+    <h3 className="game-tracker-team-box-title">{payload.teams[side].shortName || payload.teams[side].name}</h3>
     {rows.length ? rows.map((row) => <section className="game-tracker-box-section" key={row.category}>
       <PlayerTable row={row} />
     </section>) : <p className="game-tracker-empty">Player box score is not available yet.</p>}
@@ -575,9 +577,9 @@ function BoxScore({ payload }: { payload: TrackerPayload }) {
 
   return <div className="game-tracker-box">
     <div className="game-tracker-box-selector" role="group" aria-label="Choose box score team">
-      <button type="button" className={view === "away" ? "active" : ""} aria-pressed={view === "away"} onClick={() => setView("away")}><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><span>{trackerTeamLabel(payload.teams.away) || "Away"}</span></button>
+      <button type="button" className={view === "away" ? "active" : ""} aria-pressed={view === "away"} onClick={() => setView("away")}><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><span>{payload.teams.away.abbreviation || trackerTeamLabel(payload.teams.away) || "Away"}</span></button>
       <button type="button" className={view === "all" ? "active" : ""} aria-pressed={view === "all"} onClick={() => setView("all")}>All</button>
-      <button type="button" className={view === "home" ? "active" : ""} aria-pressed={view === "home"} onClick={() => setView("home")}><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /><span>{trackerTeamLabel(payload.teams.home) || "Home"}</span></button>
+      <button type="button" className={view === "home" ? "active" : ""} aria-pressed={view === "home"} onClick={() => setView("home")}><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /><span>{payload.teams.home.abbreviation || trackerTeamLabel(payload.teams.home) || "Home"}</span></button>
     </div>
     {view === "all" ? <TeamStats payload={payload} /> : <TeamBox payload={payload} side={view} />}
   </div>;
@@ -709,7 +711,7 @@ export default function GameTracker({ game, onClose, appSlug }: { game: Game; on
           
           <strong>{matchupHeader}</strong>
         </div>
-        <button type="button" onClick={closeWithMotion} aria-label="Close GameTracker"><X size={18} /></button>
+        <GameDetailClose onClose={closeWithMotion} label="Close GameTracker" />
       </header>
 
       <div className="game-tracker-scoreboard">

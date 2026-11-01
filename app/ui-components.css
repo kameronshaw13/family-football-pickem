@@ -56,15 +56,13 @@
   border-bottom: 0;
 }
 
-/* Dropdown options use clean, divider-free 38px cells everywhere. Removing the
-   option border does not change row height, so every selectable cell keeps the
-   same visual space and selected blue backgrounds fill the entire cell. */
+/* Dropdowns keep light separators between the same 38px option cells. */
 .custom-select-menu {
   row-gap: 0;
   background: var(--panel);
 }
 .custom-select-option {
-  border-top: 0;
+  border-top: 1px solid var(--line);
 }
 
 /* Conference options, including ALL CONF., are explicitly fixed to the same

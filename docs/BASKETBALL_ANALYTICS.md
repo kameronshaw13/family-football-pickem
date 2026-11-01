@@ -44,3 +44,19 @@ activity are present. No real player wager terms are rewritten.
 
 The supplied basketball logo is used unchanged for the header, login, PWA icon,
 favicon/Apple icon and push notifications. It is separate from football branding.
+
+## Matchup Form, History, and live court
+
+The authenticated `/api/basketball-preview` endpoint reads ESPN team schedules
+for current-season Form and the previous eight ending-year seasons for up to ten
+head-to-head meetings. Only completed games before the selected matchup count.
+Unavailable seasons are identified as partial history, not presented as a complete
+series. ATS uses saved app spreads; unrecorded lines are not invented.
+
+BasketballGameDetails is the live tracker. BasketballMatchupPreview is the
+independent pregame view, with the same four-tab structure as football.
+`/api/basketball-game` normalizes records, live period/clock, and valid ESPN
+field-goal shot coordinates along with player names. Missing coordinates stay
+missing; the court reports the located-versus-total attempt count. Provider
+coordinates use feet with the attacking basket at (25, 5.25). Non-field-goal
+plays, free throws, sentinel coordinates, and out-of-court values are excluded.

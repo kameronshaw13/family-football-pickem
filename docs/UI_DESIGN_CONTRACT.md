@@ -53,3 +53,12 @@ Legacy `--space-1..5` are compatibility aliases, not a competing scale. Page, ba
 - Run `npm run check:code`, `npm run audit:css`, `npm run audit:modules` and production build
 - Before changing visual geometry, compare at 320, 360, 375, 390 and 430px plus tablet in light/dark modes
 - Never merge overlapping style patches solely because a build passes; visually verify high-touch flows
+
+## Shared game detail controls and basketball views (November 1, 2026)
+- `GameDetailClose` is the only close control for CFB/NFL and CBB/NBA detail sheets. Its visible square is 28px and its X is 14px; an invisible extension preserves a 44px touch area. Do not add per-sheet button sizing overrides.
+- Basketball pregame previews and live trackers are independent components. Preview has Analytics, Form, History, and Line Movement, while GameTracker has Live/Shot Chart, Scoring, Plays, and Box Score.
+- Form result squares use the same `badge pick-result-*` classes as My Card and League Card. ATS results are plain colored letters. Missing saved spreads stay unavailable.
+- History shows venue labels once in the team rows; do not restore a second Home/Away label above the score.
+- Basketball box-score stat columns are 44px with a 152px player column; horizontal scrolling stays inside the table. Team selectors use provider abbreviations and full team names remain in the body.
+- Shot locations come only from valid ESPN field-goal coordinates. Reject missing/sentinel coordinates and do not infer a location from text. Made shots are open circles; misses are X marks. Current-period selection follows quarter/half changes automatically, while All periods retains the full game.
+- The shot chart remains accessible after the game ends. Long heaves extend the court instead of being moved or dropped.
