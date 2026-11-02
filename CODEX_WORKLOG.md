@@ -1,10 +1,24 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
-**Last updated:** 2026-10-02  
+**Last updated:** 2026-11-01
 **Current production baseline when this file was created:** `79ef0c88b7377cbf1fc9ae3d3f0c93a854791885`  
 **Production status at creation:** Vercel READY
 
 > **Codex / future sessions:** Read this file before changing the app. Treat it as the running source of truth. After a task is completed, update the relevant status here in the same work session. Do not rely only on chat history.
+
+---
+
+## 2026-11-01 — Batch 3 / Batch 4 UI completion
+
+Baseline: `06979edd8d56c71f054ca2a82f2e532f3b113a89` on main, with the shared football/basketball GameTracker and Matchup Preview changes already shipped. Older status sections below are historical.
+
+- Batch 3: compact profile heading/season placement; consistent flat section headings and light inner dividers for record, breakdown, highlights and Side Bets; clearer dark text in highlights; space below the season Side Bets heading. Biggest Dog Won now separates team/spread from opponent/bonus detail. Narrowed label CSS to direct children so numeric fragments no longer stack vertically.
+- League activity already has separate Shaw Football / Just Cover Football / Just Cover Basketball feeds and rolling 24-hour dates. Switching feeds now clears the previous results immediately while loading, avoiding another league's names under the selected heading.
+- Profile cache keys now include the league, so cached football profiles cannot display in basketball (or another family league).
+- Batch 4: reduced outer filter spacing in Side Bets and the Ledger; compact ledger heading. Pending received offers retain the full sender name above matchup/market details; rows grow for long names instead of overlapping actions.
+- Existing compact side-bet popup, fixed navigation, game-sheet geometry and settlement rules remain inherited from baseline.
+- Browser verification used the real components with intercepted local fixture responses: 320/360/375/390/414/430px in light/dark, long names and dog text, profile open/close, separate activity feed selection. All 12 layouts passed without browser exceptions or horizontal profile/sender overflow. This is not a signed-in production walkthrough or real iPhone Safari verification.
+- Temporary browser fixture route was removed before release. Automated validation and production deployment status are recorded in the associated release/PR.
 
 ---
 

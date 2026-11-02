@@ -21,6 +21,14 @@ export default function AppOpenActivity({ appSlug }: { appSlug: AppSlug }) {
   const [error, setError] = useState("");
   const [refreshCount, setRefreshCount] = useState(0);
 
+  const selectLeague = (nextLeague: ActivityLeague) => {
+    if (nextLeague === league) return;
+    setBusy(true);
+    setError("");
+    setVisits([]);
+    setLeague(nextLeague);
+  };
+
   const refresh = useCallback(() => setRefreshCount((count) => count + 1), []);
   useEffect(() => {
     const controller = new AbortController();
@@ -61,9 +69,9 @@ export default function AppOpenActivity({ appSlug }: { appSlug: AppSlug }) {
       <button type="button" className="app-open-refresh" aria-label="Refresh app activity" title="Refresh" disabled={busy} onClick={refresh}><RefreshCw size={16} /></button>
     </div>
     <div className="theme-toggle app-open-league-toggle" role="group" aria-label="Choose activity league">
-      <button type="button" className={league === "shaw-family" ? "active" : ""} aria-pressed={league === "shaw-family"} onClick={() => setLeague("shaw-family")}>Shaw Football</button>
-      <button type="button" className={league === "friends" ? "active" : ""} aria-pressed={league === "friends"} onClick={() => setLeague("friends")}>Just Cover Football</button>
-      <button type="button" className={league === "friends-basketball" ? "active" : ""} aria-pressed={league === "friends-basketball"} onClick={() => setLeague("friends-basketball")}>Just Cover Basketball</button>
+      <button type="button" className={league === "shaw-family" ? "active" : ""} aria-pressed={league === "shaw-family"} onClick={() => selectLeague("shaw-family")}>Shaw Football</button>
+      <button type="button" className={league === "friends" ? "active" : ""} aria-pressed={league === "friends"} onClick={() => selectLeague("friends")}>Just Cover Football</button>
+      <button type="button" className={league === "friends-basketball" ? "active" : ""} aria-pressed={league === "friends-basketball"} onClick={() => selectLeague("friends-basketball")}>Just Cover Basketball</button>
     </div>
     <div className="app-open-activity-list" aria-live="polite">
       {busy ? <p className="muted">Loading activity…</p>
