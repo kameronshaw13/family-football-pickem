@@ -1366,10 +1366,10 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
 /* Match the standard Weekly Results/Weekly Standings heading geometry exactly
    above the title; only the spacing below toward the filters is tightened. */
 .side-bet-ledger-heading-row {
-  min-height: 42px;
+  min-height: 36px;
   align-items: center !important;
   margin-bottom: 0;
-  padding: 2px 2px var(--ui-space-2);
+  padding: 2px 2px var(--ui-space-1);
 }
 .side-bet-ledger-heading {
   min-height: 0;
@@ -1435,6 +1435,17 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   margin: 0;
 }
 
+
+/* Pending offers keep the sender visible before responsive matchup details. */
+.side-bet-offer-copy > .side-bet-offer-sender {
+  display: block;
+  margin: 0 0 3px;
+  color: var(--ink);
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.side-bet-offer-sender > strong { font-weight: 800; }
 
 /* 2026-10-03: adaptive true-circle separators.
    Keep normal text/token spacing untouched; extra breathing room belongs

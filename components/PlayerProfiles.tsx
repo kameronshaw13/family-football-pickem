@@ -75,7 +75,8 @@ export default function PlayerProfiles() {
     if (!token || !name) return;
 
     const requestId = ++requestSequence.current;
-    const cacheKey = `${name}::${nextPeriod}`;
+    const group = appSlugForPath(window.location.pathname) || "shaw-family";
+    const cacheKey = `${group}::${name}::${nextPeriod}`;
     const cached = profileCache.current.get(cacheKey);
     if (cached) {
       setProfile(cached);
@@ -88,7 +89,7 @@ export default function PlayerProfiles() {
     setError("");
     try {
       const response = await fetch(`/api/player-profile?name=${encodeURIComponent(name)}&year=${encodeURIComponent(nextPeriod)}`, {
-        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlugForPath(window.location.pathname) || "shaw-family" },
+        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": group },
         cache: "no-store"
       });
       const payload = await response.json();
@@ -177,8 +178,12 @@ export default function PlayerProfiles() {
     : "";
   const biggestDog = profile?.signature.longestDog;
   const biggestDogText = biggestDog
-    ? `${biggestDog.team} ${spread(biggestDog.spread)}${biggestDog.opponent ? ` vs ${biggestDog.opponent}` : ""} · +${biggestDog.bonusWins}${profile?.group.slug === "other-family" ? ` ${biggestDog.bonusWins === 1 ? "Pt" : "Pts"}` : "W"}`
+    ? `${biggestDog.team} ${spread(biggestDog.spread)}`
     : "—";
+
+  const biggestDogDetail = biggestDog
+    ? `${biggestDog.opponent ? `vs ${biggestDog.opponent} · ` : ""}+${biggestDog.bonusWins} ${profile?.group.slug === "other-family" ? (biggestDog.bonusWins === 1 ? "point" : "points") : (biggestDog.bonusWins === 1 ? "bonus win" : "bonus wins")}`
+    : "";
 
   return <>
     {error && <div className="profile-loading-toast profile-error-toast" role="alert">{error}</div>}
@@ -192,6 +197,7 @@ export default function PlayerProfiles() {
         <div className="player-profile-content">
           <section className="player-profile-block player-profile-performance">
             <div className="player-profile-section-heading profile-period-heading">
+              <h3>Pick&apos;em Record</h3>
               <MenuSelect
                 ariaLabel="Select profile year"
                 className="compact-select profile-period-select"
@@ -237,7 +243,7 @@ export default function PlayerProfiles() {
                 <strong>{profile.signature.mostPickedTeam || "—"}</strong>
                 {profile.signature.mostPickedTeam && favoriteRecord && <small>{favoriteRecord} spread record</small>}
               </div>
-              <div><span>Biggest Dog Won</span><strong className="profile-dog-highlight"><NumericText text={biggestDogText} /></strong></div>
+              <div><span>Biggest Dog Won</span><strong className="profile-dog-highlight"><NumericText text={biggestDogText} /></strong>{biggestDog && <small><NumericText text={biggestDogDetail} /></small>}</div>
             </div>
           </section>
 

@@ -2331,7 +2331,7 @@ html[data-theme="dark"] .player-profile-highlights,
 html[data-theme="dark"] .player-profile-side-bet-metrics { background: var(--panel); }
 html[data-theme="dark"] .player-profile-performance,
 html[data-theme="dark"] .player-profile-side-bets,
-html[data-theme="dark"] .player-profile-legacy-row { background: var(--surface-soft); }
+html[data-theme="dark"] .player-profile-legacy-row { background: var(--panel); }
 
 html[data-theme="dark"] .matchup-preview-sheet,
 html[data-theme="dark"] .matchup-preview-scroll,
@@ -4856,11 +4856,16 @@ button, input, select, textarea {
   margin-top: var(--ui-space-1);
   margin-bottom: var(--ui-space-3);
 }
-.view-select-row,
-.side-bet-offer-mode-row {
+.view-select-row {
   gap: var(--ui-space-2);
   margin-bottom: var(--ui-space-3);
 }
+.side-bet-filter-row,
+.side-bet-offer-mode-row {
+  gap: var(--ui-space-2);
+  margin-block: 0 var(--ui-space-2);
+}
+.side-bet-ledger-filter-row { margin-block: 0 var(--ui-space-1); }
 
 /* Repeated vertical groups should read as one consistent stack. */
 .game-days,
@@ -5471,7 +5476,9 @@ button, input, select, textarea {
 .profile-period-select.compact-select { height: 32px; min-height: 32px; min-width: 140px; }
 .profile-period-select.compact-select .custom-select-trigger { height: 32px; min-height: 32px; padding-block: 0; font-size: 12px; text-transform: none; }
 .profile-period-select.compact-select::after { bottom: 0; height: 1px; }
-.profile-period-heading { margin-bottom: var(--ui-space-3); }
+.profile-period-heading { margin-bottom: 0; padding-block: var(--ui-space-1); }
+.player-profile-highlights :is(.player-profile-legacy-row, .player-profile-highlight-stack) :is(span, strong) { color: var(--ink); }
+.player-profile-side-bets .player-profile-section-heading { padding-bottom: var(--ui-space-3); }
 .profile-dog-highlight .ui-separator-dot { vertical-align: middle; transform: translateY(-.02em); }
 .card-progress-count .ui-separator-dot { transform: translateY(-.06em); }
 .pick-title-market { min-height: 1.25em; overflow: visible; }
