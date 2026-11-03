@@ -4,6 +4,7 @@ import { getProfileFromRequest } from "@/lib/authServer";
 import { getGroupGameLockTime, getGroupPickWeekOpenTime, getGroupUnderdogBonus, getGroupWeekRule, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
+import { hasUsableStoredGameSpread } from "@/lib/marketSpread";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 const savedPickSchema = z.object({
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     const gamesResult = await supabase.from("games").select("*").eq("week", body.week);
     if (gamesResult.error) throw new Error(gamesResult.error.message);
     const weekGames = (gamesResult.data || [])
-      .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game) && game.current_spread_team != null && game.current_spread != null)
+      .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game) && hasUsableStoredGameSpread(game))
       .map((game: any) => {
         const lockTime = getGroupGameLockTime(context, game.commence_time).toISOString();
         return { ...game, lock_time: lockTime, is_locked: now >= new Date(lockTime) };
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
 
     for (const pick of existing) {
       if (pick.status !== "draft" || !pick.game || (!pick.game.is_locked && new Date(pick.game.lock_time) > now)) continue;
+      if (!hasUsableStoredGameSpread(pick.game)) continue;
       const lockedSpread = normalizeSpreadForSelectedTeam(pick.selected_team, pick.game.current_spread_team, pick.game.current_spread);
       const dogValue = pick.pick_type === "underdog" ? getGroupUnderdogBonus(context, lockedSpread) : null;
       const lockResult = await supabase.from("picks").update({

@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getUnderdogBonusForRules, isGameAllowedByRules } from "@/lib/groupContext";
 import { getGameLockTime } from "@/lib/lockRules";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
+import { hasUsableStoredGameSpread } from "@/lib/marketSpread";
 
 export type LockDuePicksResult = {
   gamesLocked: number;
@@ -101,6 +102,20 @@ export async function lockDuePicks(
     const pickResults = await Promise.all((draftPicks || []).map(async (pick) => {
       const rules = rulesBySeason.get(`${pick.group_id}:${pick.season_year}`) || {};
       if (!isGameAllowedByRules(rules, game)) {
+        const { data: deleted, error } = await supabase
+          .from("picks")
+          .delete()
+          .eq("id", pick.id)
+          .eq("status", "draft")
+          .select("id")
+          .maybeSingle();
+        if (error) throw new Error(error.message);
+        return { picksLocked: 0, picksRemoved: deleted ? 1 : 0 };
+      }
+
+      if (!hasUsableStoredGameSpread(game)) {
+        // At kickoff an unpriced placeholder is not a valid pick. Never grade
+        // a basketball 0 line as though it were a verified PK.
         const { data: deleted, error } = await supabase
           .from("picks")
           .delete()

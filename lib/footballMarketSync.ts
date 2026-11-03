@@ -7,6 +7,7 @@ import { createNotificationSafely } from "@/lib/notifications";
 import { notificationTeamName } from "@/lib/notificationTeamName";
 import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
+import { normalizeVerifiedMarketSpread } from "@/lib/marketSpread";
 import { normalizeTeamNameKey, teamDisplayName } from "@/lib/teamNames";
 import { isVerifiedTbdKickoff } from "@/lib/scheduleTime";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
@@ -375,7 +376,8 @@ export async function persistActionNetworkSpreads(
 
   for (const game of games) {
     const quote = quotesById.get(game.id);
-    const spread = quote?.phase === "pregame" && quote.spread && !quote.spread.suspended ? quote.spread : null;
+    const spread = quote?.phase === "pregame" && quote.spread && !quote.spread.suspended
+      ? normalizeVerifiedMarketSpread(game.league, quote.spread) : null;
     if (!spread || !(isBasketballLeague(game.league) ? now < basketballLockTime(game.commence_time) : canRefreshSpread(game.commence_time, now))) continue;
 
     const nextAwaySpread = Number(spread.awayPoint);

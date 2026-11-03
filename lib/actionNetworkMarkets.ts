@@ -1,4 +1,5 @@
 import { fetchEspnBasketballMarkets } from "./espnBasketballMarkets";
+import { normalizeVerifiedMarketSpread } from "./marketSpread";
 import { isFreshMarketTimestamp } from "./marketFreshness.ts";
 import { officialNflWeek } from "@/lib/cfbMatchupData";
 import type { Game, SideBetMarketQuote, SideBetOfferPhase } from "@/lib/types";
@@ -140,6 +141,7 @@ function actionMatchScore(game: Game, actionGame: ActionGame) {
 }
 
 function finiteNumber(value: unknown) {
+  if (value == null || (typeof value === "string" && !value.trim())) return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
@@ -171,18 +173,23 @@ function marketRowsForPhase(game: ActionGame, phase: SideBetOfferPhase) {
   return sortPreferredMarketRows(rows);
 }
 
-function spreadRow(rows: ActionOddsRow[]) {
-  // Rows are DraftKings-only and newest-first. Use the newest valid two-way
-  // spread while still rejecting malformed provider data.
-  return rows.find((row) => {
-    const awayPoint = finiteNumber(row.spread_away);
-    const homePoint = finiteNumber(row.spread_home);
-    if (awayPoint == null || homePoint == null) return false;
+function verifiedSpreadFromRow(row: ActionOddsRow, league: Game["league"]) {
+  const awayPoint = finiteNumber(row.spread_away);
+  const homePoint = finiteNumber(row.spread_home);
+  if (awayPoint == null || homePoint == null) return null;
+  return normalizeVerifiedMarketSpread(league, {
+    awayPoint,
+    homePoint,
+    awayOdds: validOdds(row.spread_away_line),
+    homeOdds: validOdds(row.spread_home_line),
+    suspended: suspended(row, "spread_away", "spread_home")
+  });
+}
 
-    // A two-way football spread must be exact opposites. This prevents a bad
-    // provider row from ever rendering both teams with the same sign.
-    return Math.abs(awayPoint + homePoint) < 0.001;
-  }) || null;
+function spreadRow(rows: ActionOddsRow[], league: Game["league"]) {
+  // Select the newest genuinely quoted two-sided line. Reject provider nulls
+  // and unpriced zero placeholders rather than saving them as real pick'ems.
+  return rows.find((row) => verifiedSpreadFromRow(row, league) !== null) || null;
 }
 
 function moneylineRow(rows: ActionOddsRow[]) {
@@ -272,9 +279,8 @@ export async function fetchActionNetworkScheduledGames(league: Game["league"], d
     if (!homeTeam || !awayTeam) return [];
 
     const rows = marketRowsForPhase(actionGame, "pregame");
-    const row = spreadRow(rows);
-    const awaySpread = finiteNumber(row?.spread_away);
-    const homeSpread = finiteNumber(row?.spread_home);
+    const row = spreadRow(rows, league);
+    const verifiedSpread = row ? verifiedSpreadFromRow(row, league) : null;
 
     return [{
       actionId: String(actionGame.id || `${actionGame.start_time}:${actionGame.home_team_id}:${actionGame.away_team_id}`),
@@ -284,13 +290,7 @@ export async function fetchActionNetworkScheduledGames(league: Game["league"], d
       awayTeam,
       homeAliases: rawAliases(teams.home),
       awayAliases: rawAliases(teams.away),
-      spread: row && awaySpread != null && homeSpread != null ? {
-        awayPoint: awaySpread,
-        homePoint: homeSpread,
-        awayOdds: validOdds(row.spread_away_line),
-        homeOdds: validOdds(row.spread_home_line),
-        suspended: suspended(row, "spread_away", "spread_home")
-      } : null
+      spread: verifiedSpread
     }];
   });
 }
@@ -317,25 +317,18 @@ function quoteForGame(game: Game, actionGames: ActionGame[]): SideBetMarketQuote
   const rows = marketRowsForPhase(matched, phase);
   if (!rows.length) return null;
 
-  const spreadMarket = spreadRow(rows);
+  const spreadMarket = spreadRow(rows, game.league);
   const moneylineMarket = moneylineRow(rows);
   const totalMarket = totalRow(rows);
 
-  const awaySpread = finiteNumber(spreadMarket?.spread_away);
-  const homeSpread = finiteNumber(spreadMarket?.spread_home);
+  const verifiedSpread = spreadMarket ? verifiedSpreadFromRow(spreadMarket, game.league) : null;
   const total = finiteNumber(totalMarket?.total);
 
   const quote: SideBetMarketQuote = {
     gameId: game.id,
     phase,
     status: String(matched.status || ""),
-    spread: spreadMarket && awaySpread != null && homeSpread != null ? {
-      awayPoint: awaySpread,
-      homePoint: homeSpread,
-      awayOdds: validOdds(spreadMarket.spread_away_line),
-      homeOdds: validOdds(spreadMarket.spread_home_line),
-      suspended: suspended(spreadMarket, "spread_away", "spread_home")
-    } : null,
+    spread: verifiedSpread,
     moneyline: moneylineMarket ? {
       awayOdds: validOdds(moneylineMarket.ml_away)!,
       homeOdds: validOdds(moneylineMarket.ml_home)!,

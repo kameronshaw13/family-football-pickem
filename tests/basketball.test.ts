@@ -120,6 +120,15 @@ test("basketball fallback preserves the explicitly identified DraftKings spread 
   assert.equal(quote?.total?.points, 222.5);
   assert.equal(quote?.moneyline?.awayOdds, -112);
 });
+test("ESPN DK-priced PK defaults to home -0.5 / away +0.5, but missing prices are No Line", () => {
+  const pkRow = { ...dkRow, pointSpread: { away: { close: { line: "0", odds: "-110" } }, home: { close: { line: "0", odds: "-110" } } } };
+  const priced = espnDraftKingsBasketballQuote(marketGame, pkRow, "pre", marketNow);
+  assert.equal(priced?.spread?.homePoint, -0.5);
+  assert.equal(priced?.spread?.awayPoint, 0.5);
+  const missing = espnDraftKingsBasketballQuote(marketGame, { ...pkRow, pointSpread: { away: { close: { line: "0" } }, home: { close: { line: "0" } } } }, "pre", marketNow);
+  assert.equal(missing?.spread, null);
+});
+
 test("basketball pregame fallback never substitutes a different bookmaker or a live game's closing line", () => {
   assert.equal(espnDraftKingsBasketballQuote(marketGame, { ...dkRow, provider: { name: "Other" } }, "pre", marketNow), null);
   assert.equal(espnDraftKingsBasketballQuote(marketGame, dkRow, "in", marketNow), null);

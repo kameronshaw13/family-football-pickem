@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { getGroupGameLockTime, getGroupPickWeekOpenTime, getGroupUnderdogBonus, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
+import { hasUsableStoredGameSpread } from "@/lib/marketSpread";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 const bodySchema = z.object({
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
     const automaticLock = getGroupGameLockTime(context, pick.game.commence_time);
     if (now >= automaticLock) return NextResponse.json({ ok: false, error: "This pick has already reached its automatic lock time." }, { status: 409 });
 
+    if (!hasUsableStoredGameSpread(pick.game)) return NextResponse.json({ ok: false, error: "This pick cannot be locked until a verified spread is available." }, { status: 409 });
     const lockedSpread = normalizeSpreadForSelectedTeam(pick.selected_team, pick.game.current_spread_team, pick.game.current_spread);
     if (lockedSpread == null) return NextResponse.json({ ok: false, error: "This pick cannot be locked until a spread is available." }, { status: 409 });
     const dogValue = pick.pick_type === "underdog" ? getGroupUnderdogBonus(context, lockedSpread) : null;

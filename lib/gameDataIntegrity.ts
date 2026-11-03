@@ -1,4 +1,5 @@
 import { normalizeTeamNameKey, teamDisplayName } from "./teamNames.ts";
+import { hasUsableStoredGameSpread } from "./marketSpread.ts";
 
 export function footballTeamIdentity(name: string) {
   const key = normalizeTeamNameKey(teamDisplayName("CFB", name));
@@ -7,6 +8,7 @@ export function footballTeamIdentity(name: string) {
 
 type GameData = {
   id: string;
+  league?: string;
   home_team: string;
   away_team: string;
   updated_at?: string | null;
@@ -21,7 +23,7 @@ type GameData = {
 
 export function hasValidGameLine(game: GameData) {
   const team = footballTeamIdentity(game.current_spread_team || "");
-  return game.current_spread != null && String(game.current_spread).trim() !== "" && Number.isFinite(Number(game.current_spread)) &&
+  return hasUsableStoredGameSpread(game) &&
     !!team && [game.home_team, game.away_team].some(name => footballTeamIdentity(name) === team);
 }
 

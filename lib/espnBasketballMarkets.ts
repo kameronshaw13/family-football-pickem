@@ -1,5 +1,6 @@
 import type { Game, SideBetMarketQuote } from "./types";
 import { fetchEspnSchedule } from "./espnSchedule";
+import { normalizeVerifiedMarketSpread } from "./marketSpread";
 
 function finite(value: unknown) {
   if (value == null || value === "") return null;
@@ -21,8 +22,9 @@ export function espnDraftKingsBasketballQuote(game: Game, row: any, state: strin
   const awayOdds = odds(row.moneyline?.away?.close?.odds ?? row.awayTeamOdds?.moneyLine);
   const homeOdds = odds(row.moneyline?.home?.close?.odds ?? row.homeTeamOdds?.moneyLine);
   const points = finite(row.overUnder);
-  const spread = awayPoint != null && homePoint != null && Math.abs(awayPoint + homePoint) < 0.001
-    ? { awayPoint, homePoint, awayOdds: odds(row.pointSpread?.away?.close?.odds), homeOdds: odds(row.pointSpread?.home?.close?.odds), suspended: false } : null;
+  const spread = normalizeVerifiedMarketSpread(game.league, awayPoint != null && homePoint != null
+    ? { awayPoint, homePoint, awayOdds: odds(row.pointSpread?.away?.close?.odds), homeOdds: odds(row.pointSpread?.home?.close?.odds), suspended: false }
+    : null);
   const moneyline = awayOdds != null && homeOdds != null ? { awayOdds, homeOdds, suspended: false } : null;
   const total = points != null && points > 0 ? { points, overOdds: odds(row.total?.over?.close?.odds), underOdds: odds(row.total?.under?.close?.odds), suspended: false } : null;
   return spread || moneyline || total ? { gameId: game.id, phase: "pregame", status: "scheduled", spread, moneyline, total } : null;
