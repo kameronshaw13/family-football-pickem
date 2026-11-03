@@ -1,3 +1,4 @@
+import { recoverMissingClosingSpreads } from "@/lib/closingSpreadSync";
 import { refreshBasketballSlate } from "@/lib/basketballSync";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
@@ -107,6 +108,7 @@ export async function GET(req: NextRequest) {
     if (error) throw new Error(error.message);
 
     const games = (data || []) as Game[];
+    const closingSpreadsRecovered = await recoverMissingClosingSpreads(supabase, games.filter(game => game.final_home_score != null && game.final_away_score != null));
     const nearCutoff = now.getTime() + 8 * DAY_MS;
     const nearGames = games.filter((game) => new Date(game.commence_time).getTime() <= nearCutoff);
     const futureGames = games.filter((game) => new Date(game.commence_time).getTime() > nearCutoff);
@@ -123,6 +125,7 @@ export async function GET(req: NextRequest) {
       marketFeed: "Action Network",
       basketball,
       gamesChecked: games.length,
+      closingSpreadsRecovered,
       nearGamesChecked: nearGames.length,
       futureGamesChecked: refreshFuture ? futureGames.length : 0,
       refreshSchedule: MARKET_REFRESH_SCHEDULE,

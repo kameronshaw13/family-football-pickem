@@ -56,3 +56,33 @@ test("slate refresh saves new no-line games alongside existing games without cle
     assert.equal(added.week, 1);
   } finally { globalThis.fetch = originalFetch; }
 });
+
+const { recoverMissingClosingSpreads } = await import("../lib/closingSpreadSync.ts");
+test("closing recovery fills only empty completed games and never writes picks or overwrites saved lines", async () => {
+  const writes: any[] = [];
+  const db: any = { from(table: string) {
+    assert.equal(table, "games");
+    const query: any = {
+      update(values: any) { writes.push({ values }); return query; },
+      eq(key: string, value: string) { assert.equal(key, "id"); writes.at(-1).id = value; return query; },
+      is(key: string, value: null) { assert.equal(key, "current_spread"); assert.equal(value, null); return query; },
+      select() { return Promise.resolve({ data: [{ id: writes.at(-1).id }], error: null }); }
+    }; return query;
+  } };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input: any) => {
+    const id = new URL(String(input)).searchParams.get("event");
+    assert.notEqual(id, "saved");
+    return Response.json({ header: { id, competitions: [{ status: { type: { completed: id === "final" } } }] }, pickcenter: [{
+      provider: { name: "DraftKings" }, pointSpread: { away: { close: { line: "-8.5", odds: "-110" } }, home: { close: { line: "+8.5", odds: "-110" } } }
+    }] });
+  };
+  const game: any = { id: "empty", league: "CBB", away_team: "Away", current_spread: null, espn_event_id: "final" };
+  try {
+    assert.equal(await recoverMissingClosingSpreads(db, [game, { ...game, id: "live", espn_event_id: "live" }, { ...game, id: "saved", espn_event_id: "saved", current_spread: -1.5 }]), 1);
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0].id, "empty");
+    assert.equal(writes[0].values.current_spread, -8.5);
+    assert.equal(writes[0].values.current_bookmaker, "DraftKings (closing)");
+  } finally { globalThis.fetch = originalFetch; }
+});

@@ -14,6 +14,7 @@ import { basketballLockTime, basketballWeek, basketballWeekBounds, basketballSea
 import BasketballMatchupPreview from "@/components/BasketballMatchupPreview";
 import BasketballGameDetails from "@/components/BasketballGameDetails";
 import LeagueHeaderWordmark from "@/components/LeagueHeaderWordmark";
+import { AppChrome } from "@/components/PersistentAppChrome";
 import PrimaryBottomNav from "@/components/PrimaryBottomNav";
 import { warmLeagueData } from "@/lib/leagueWarmup";
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
@@ -21,7 +22,7 @@ import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Settings as SettingsIcon, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Trash2, Trophy, X } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, SideBetMarketQuote, SideBetOfferPhase, SideBetTotalSide, Standing, WeekRule } from "@/lib/types";
 import { MAX_CUSTOM_SIDE_BET_AMOUNT, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
 import { americanOddsText, fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, fairSymmetricMoneyline, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, sideBetCreatorProfit, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
@@ -43,10 +44,11 @@ import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoi
 import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
 import { appLoginPath } from "@/lib/appIdentity";
 import { leagueNameForSlug, type LeagueMembership } from "@/lib/leagueAccess";
-import { leagueTabDestination, leagueTabFromQuery } from "@/lib/leagueNavigation";
+import { leagueTabDestination, leagueTabFromQuery, leagueTabFromPreference } from "@/lib/leagueNavigation";
 import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetResponseSummary, sideBetsForView } from "@/lib/sideBetPresentation";
 import { orderCardPicks } from "@/lib/cardOrdering";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
+import { normalizeVerifiedMarketSpread } from "@/lib/marketSpread";
 import { canRefreshSpread, getCurrentPickWeek } from "@/lib/lockRules";
 
 
@@ -435,7 +437,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   // Preserve the selected destination tab when moving between league routes.
   useBrowserLayoutEffect(() => {
     const url = new URL(window.location.href);
-    const requestedTab = leagueTabFromQuery(url.searchParams.get("view"));
+    let savedTab: Tab | null = null;
+    try {
+      savedTab = leagueTabFromPreference(JSON.parse(window.sessionStorage.getItem("pickem_ui_preferences_v2") || "{}").mainTab);
+    } catch { /* Storage is optional. */ }
+    const requestedTab = leagueTabFromQuery(url.searchParams.get("view")) ?? savedTab;
     if (!requestedTab) return;
     setTab(requestedTab);
     url.searchParams.delete("view");
@@ -447,8 +453,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   useEffect(() => {
     if (selectedLeague && selectedLeague.slug !== appSlug) {
       router.prefetch(selectedLeague.homePath);
+      void warmLeagueData(selectedLeague.slug, selectedWeekOverride).catch(() => undefined);
     }
-  }, [appSlug, router, selectedLeague]);
+  }, [appSlug, router, selectedLeague, selectedWeekOverride]);
 
   const chooseNavTab = useCallback((nextTab: Tab) => {
     ++leagueNavigationIntentRef.current;
@@ -457,7 +464,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       const weekQuery = selectedWeekOverride == null ? "" : `&week=${selectedWeekOverride}`;
       // Navigate immediately; background data warmup must never block a tap.
       void warmLeagueData(selectedLeague.slug, selectedWeekOverride).catch(() => undefined);
-      router.push(destination + weekQuery);
+      router.push(destination + weekQuery, { scroll: false });
       return;
     }
     setTab(nextTab);
@@ -741,7 +748,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             }
 
             const quote = quotesById.get(game.id);
-            const spread = quote?.phase === "pregame" && quote.spread && !quote.spread.suspended ? quote.spread : null;
+            const spread = quote?.phase === "pregame" && quote.spread && !quote.spread.suspended ? normalizeVerifiedMarketSpread(nextGame.league, quote.spread, quote.moneyline) : null;
             if (!spread || !(isBasketballLeague(nextGame.league) ? now < basketballLockTime(nextGame.commence_time) : canRefreshSpread(nextGame.commence_time, now))) return nextGame;
             const nextAwaySpread = Number(spread.awayPoint);
             const currentAwaySpread = normalizeSpreadForSelectedTeam(nextGame.away_team, nextGame.current_spread_team, nextGame.current_spread);
@@ -1035,15 +1042,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
   if (loading) {
     const startupWeek = appSlug === "friends-basketball" ? basketballWeek(new Date(clock)) : getCurrentPickWeek(new Date(clock));
-    const loadingNav = [
-      { label: "Picks", icon: Zap },
-      { label: "My Card", icon: SquareCheck },
-      { label: "Standings", icon: Trophy },
-      { label: "Settings", icon: SettingsIcon }
-    ];
-
     return <div className="app-shell loading-shell">
-      <header className="scoreboard-header">
+      <AppChrome header={<header className="scoreboard-header">
         <div className="scoreboard-main">
           <LeagueHeaderWordmark slug={appSlug} />
           <div className="header-actions" aria-hidden="true">
@@ -1053,12 +1053,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             </div>
           </div>
         </div>
-      </header>
-      <nav className="primary-nav" aria-label="Main navigation">
-        <div className="primary-nav-inner">
-          {loadingNav.map((item, index) => <button type="button" key={item.label} className={index === 0 ? "active" : ""} disabled><span className="nav-icon"><item.icon size={19} /></span><span>{item.label}</span></button>)}
-        </div>
-      </nav>
+      </header>} nav={<PrimaryBottomNav activeTab={tab} counts={{}} onSelect={chooseNavTab} />} />
       <main className="initial-loading" role="status" aria-label="Loading app"><LoaderCircle size={30} /></main>
     </div>;
   }
@@ -1346,7 +1341,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     : Array.from({ length: sportCurrentWeek + 1 }, (_, index) => index);
 
   return <div className="app-shell">
-    <header className="scoreboard-header">
+    <AppChrome header={<header className="scoreboard-header">
       <div className="scoreboard-main">
         <LeagueHeaderWordmark slug={displayedHeaderSlug} />
         <div className="header-actions">
@@ -1371,9 +1366,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           /></div>}
         </div>
       </div>
-    </header>
-
-    <PrimaryBottomNav activeTab={tab} counts={navNotificationCounts} onSelect={chooseNavTab} />
+    </header>} nav={<PrimaryBottomNav activeTab={tab} counts={navNotificationCounts} onSelect={chooseNavTab} />} />
 
     <main className="container">
       {message && <div className="error-card"><NumericText text={message} /></div>}

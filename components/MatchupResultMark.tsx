@@ -1,4 +1,5 @@
-/** Uses the same W/L/P badge classes as My Card and League Card. */
+/** Shared with the result box inside My Card's score display. */
 export default function MatchupResultMark({ result }: { result: string }) {
-  return <span className={`badge pick-result-${result === "W" ? "win" : result === "L" ? "loss" : "push"}`}>{result}</span>;
+  const outcome = result === "W" ? "win" : result === "L" ? "loss" : "push";
+  return <span className={`score-bug-result score-bug-result-${outcome}`}>{result}</span>;
 }

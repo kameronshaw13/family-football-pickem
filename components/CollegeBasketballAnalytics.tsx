@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LoaderCircle } from "lucide-react";
+import { teamDisplayName } from "@/lib/teamNames";
 import { getClientSessionToken } from "@/lib/clientSession";
 import { TORVIK_METRICS, TORVIK_PLAYER_COLUMNS, type TorvikTeam, type TorvikValue } from "@/lib/torvikData";
 
@@ -40,7 +41,7 @@ export default function CollegeBasketballAnalytics({ gameId }: { gameId: string 
       const available = metrics.some(metric => away?.metrics[metric.key]?.value != null || home?.metrics[metric.key]?.value != null);
       return <details className="cbb-stat-section" key={group} open={index === 0 || (group === "Four Factors" && available)}>
         <summary>{group}</summary>
-        {available ? <table className="cbb-advanced-table"><thead><tr><th scope="col">{away?.name || "Away"}</th><th scope="col">Stat</th><th scope="col">{home?.name || "Home"}</th></tr></thead><tbody>{metrics.map(metric => {
+        {available ? <table className="cbb-advanced-table"><thead><tr><th scope="col">{away ? teamDisplayName("CBB", away.name) : "Away"}</th><th scope="col">Stat</th><th scope="col">{home ? teamDisplayName("CBB", home.name) : "Home"}</th></tr></thead><tbody>{metrics.map(metric => {
           const format = metric.format || (["confWinPct", "qualBarthag"].includes(metric.key) ? "probability" : /sos/i.test(metric.key) ? "rating" : undefined);
           return <tr key={metric.key}><td><Stat data={away?.metrics[metric.key]} format={format} /></td><th scope="row">{metric.label}</th><td><Stat data={home?.metrics[metric.key]} format={format} /></td></tr>;
         })}</tbody></table>
@@ -48,7 +49,7 @@ export default function CollegeBasketballAnalytics({ gameId }: { gameId: string 
       </details>;
     })}
     <details className="cbb-stat-section"><summary>Player Advanced Stats</summary>
-      {[away, home].map((team, side) => <section key={side} className="cbb-player-section"><h4>{team?.name || (side ? "Home" : "Away")}</h4>
+      {[away, home].map((team, side) => <section key={side} className="cbb-player-section"><h4>{team ? teamDisplayName("CBB", team.name) : side ? "Home" : "Away"}</h4>
         {team?.players.length ? <div className="basketball-table-scroll" tabIndex={0} role="region" aria-label={`${team.name} advanced player statistics`}><table className="cbb-player-table"><thead><tr><th scope="col">Player</th><th scope="col">GP</th>{TORVIK_PLAYER_COLUMNS.map(([, key]) => <th scope="col" key={key}>{key}</th>)}</tr></thead><tbody>{team.players.map(player => <tr key={player.id}><th scope="row">{player.name}</th><td>{player.games}</td>{TORVIK_PLAYER_COLUMNS.map(([, key]) => <td key={key}>{player.metrics[key]?.toFixed(1) ?? "—"}</td>)}</tr>)}</tbody></table></div> : <p className="cbb-stats-key">Current-season player stats will appear when available.</p>}
       </section>)}
     </details>

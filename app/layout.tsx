@@ -3,6 +3,7 @@ import "./ui-components.css";
 import "./ui-details.css";
 import { Roboto_Slab } from "next/font/google";
 import type { Metadata, Viewport } from "next";
+import { PersistentAppChrome } from "@/components/PersistentAppChrome";
 import AppExperienceEnhancements from "@/components/AppExperienceEnhancements";
 import AppUiCoordinator from "@/components/AppUiCoordinator";
 import DogPickAdjustmentAlerts from "@/components/DogPickAdjustmentAlerts";
@@ -171,7 +172,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/football-pickem-wordmark.png" as="image" type="image/png" />
         <link rel="preload" href="/basketball-pickem-header-v2.png" as="image" type="image/png" />
       </head>
-      <body>{children}<AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /><SideBetBatchEnhancements /><SideBetBatchPresentationEnhancement /><LedgerScopeMenuEnhancement /></body>
+      <body><PersistentAppChrome>{children}</PersistentAppChrome><AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /><SideBetBatchEnhancements /><SideBetBatchPresentationEnhancement /><LedgerScopeMenuEnhancement /></body>
     </html>
   );
 }

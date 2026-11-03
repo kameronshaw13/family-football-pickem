@@ -54,7 +54,7 @@ function currentPanelKey() {
 function restorePreferences() {
   if (new URL(window.location.href).searchParams.has("notification")) return;
   const prefs = readPreferences();
-  if (prefs.mainTab) clickByLabel(document, ".primary-nav button", prefs.mainTab);
+  // Main tab is restored by PickemApp before paint, with route query priority.
   window.setTimeout(() => {
     const panelKey = currentPanelKey();
     const panel = document.querySelector<HTMLElement>("main.container > section.panel");

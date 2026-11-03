@@ -173,7 +173,7 @@ function marketRowsForPhase(game: ActionGame, phase: SideBetOfferPhase) {
   return sortPreferredMarketRows(rows);
 }
 
-function verifiedSpreadFromRow(row: ActionOddsRow, league: Game["league"]) {
+function verifiedSpreadFromRow(row: ActionOddsRow, league: Game["league"], moneyline?: SideBetMarketQuote["moneyline"]) {
   const awayPoint = finiteNumber(row.spread_away);
   const homePoint = finiteNumber(row.spread_home);
   if (awayPoint == null || homePoint == null) return null;
@@ -183,7 +183,7 @@ function verifiedSpreadFromRow(row: ActionOddsRow, league: Game["league"]) {
     awayOdds: validOdds(row.spread_away_line),
     homeOdds: validOdds(row.spread_home_line),
     suspended: suspended(row, "spread_away", "spread_home")
-  });
+  }, awayPoint === 0 ? moneyline : null);
 }
 
 function spreadRow(rows: ActionOddsRow[], league: Game["league"]) {
@@ -321,7 +321,13 @@ function quoteForGame(game: Game, actionGames: ActionGame[]): SideBetMarketQuote
   const moneylineMarket = moneylineRow(rows);
   const totalMarket = totalRow(rows);
 
-  const verifiedSpread = spreadMarket ? verifiedSpreadFromRow(spreadMarket, game.league) : null;
+  const moneyline = moneylineMarket ? {
+    awayOdds: validOdds(moneylineMarket.ml_away)!,
+    homeOdds: validOdds(moneylineMarket.ml_home)!,
+    suspended: suspended(moneylineMarket, "ml_away", "ml_home")
+  } : null;
+  // Keep the NFL favorite when a genuine zero is encoded as a half point.
+  const verifiedSpread = spreadMarket ? verifiedSpreadFromRow(spreadMarket, game.league, moneyline) : null;
   const total = finiteNumber(totalMarket?.total);
 
   const quote: SideBetMarketQuote = {
@@ -329,11 +335,7 @@ function quoteForGame(game: Game, actionGames: ActionGame[]): SideBetMarketQuote
     phase,
     status: String(matched.status || ""),
     spread: verifiedSpread,
-    moneyline: moneylineMarket ? {
-      awayOdds: validOdds(moneylineMarket.ml_away)!,
-      homeOdds: validOdds(moneylineMarket.ml_home)!,
-      suspended: suspended(moneylineMarket, "ml_away", "ml_home")
-    } : null,
+    moneyline,
     total: totalMarket && total != null ? {
       points: total,
       overOdds: validOdds(totalMarket.over),

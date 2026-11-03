@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { leagueTabDestination, leagueTabFromQuery } from "../lib/leagueNavigation.ts";
+import { leagueTabDestination, leagueTabFromQuery, leagueTabFromPreference } from "../lib/leagueNavigation.ts";
 
 const basketball = { slug: "friends-basketball" as const, homePath: "/friends-basketball" };
 
@@ -31,4 +31,12 @@ test("launch always uses first authorized league", () => {
   assert.equal(defaultLeagueForLaunch(assignedLeagues)?.homePath, "/");
   assert.equal(defaultLeagueForLaunch(assignedLeagues.slice(1))?.homePath, "/friends-basketball");
   assert.equal(defaultLeagueForLaunch([]), null);
+});
+
+test("saved tab is a fallback for every supported destination", () => {
+  for (const [label, tab] of [["My Card", "card"], ["Standings", "standings"], ["Settings", "settings"], ["Picks", "picks"]]) {
+    assert.equal(leagueTabFromQuery(null) ?? leagueTabFromPreference(label), tab);
+    assert.equal(leagueTabFromQuery("card") ?? leagueTabFromPreference(label), "card");
+  }
+  assert.equal(leagueTabFromPreference(undefined), null);
 });

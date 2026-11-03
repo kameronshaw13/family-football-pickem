@@ -49,3 +49,12 @@ test("basketball uses school names and NBA nicknames without changing unknown id
   assert.equal(teamAbbreviatedName("NBA", "Oklahoma City Thunder"), "OKC");
   assert.equal(teamDisplayName("CBB", "Unknown School"), "Unknown School");
 });
+
+test("Queens provider and saved-school aliases use the same school-only label", () => {
+  for (const name of ["Queens University Royals", "Queens Royals", "Queens University", "Queens (NC) Royals", "Queens"]) {
+    assert.equal(teamDisplayName("CBB", name), "Queens");
+    assert.equal(teamAbbreviatedName("CBB", name), "QUC");
+  }
+  assert.equal(teamDisplayName("CBB", "New School Royals"), "New School");
+  assert.equal(teamAbbreviatedName("CBB", "Wichita State"), "WICH");
+});

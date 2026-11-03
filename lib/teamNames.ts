@@ -75,13 +75,29 @@ const ABBREVIATION_OVERRIDES: Record<string, string> = {
   "no washington td": "No Washington TD"
 };
 
+// Index both provider names and school-only names so saved picks and fresh feeds
+// resolve to the same labels. Unknown CBB teams still get college mascot cleanup.
+const basketballLabels = Object.fromEntries(Object.entries(BASKETBALL_TEAM_LABELS).map(([league, labels]) => {
+  const aliases = new Map<string, readonly [string, string]>();
+  for (const [provider, label] of Object.entries(labels)) {
+    aliases.set(provider, label);
+    aliases.set(normalizeTeamNameKey(label[0]), label);
+  }
+  if (league === "CBB") {
+    for (const name of ["Queens", "Queens Royals", "Queens University", "Queens University Royals", "Queens (NC)", "Queens (NC) Royals"]) {
+      aliases.set(normalizeTeamNameKey(name), ["Queens", "QUC"]);
+    }
+  }
+  return [league, aliases];
+}));
+
 function restoreStateDisplay(team: string, displayName: string) {
   if (!/\bstate\b/i.test(team)) return displayName;
   return displayName.replace(/\bSt\.(?=\s|$)/g, "State");
 }
 
 export function teamDisplayName(league: string | null | undefined, team: string) {
-  if (league === "CBB" || league === "NBA") return BASKETBALL_TEAM_LABELS[league][normalizeTeamNameKey(team)]?.[0] ?? team;
+  if (league === "CBB" || league === "NBA") return basketballLabels[league].get(normalizeTeamNameKey(team))?.[0] ?? (league === "CBB" ? baseTeamDisplayName(league, team) : team);
   if (league !== "NFL") {
     const override = DISPLAY_OVERRIDES[normalizeTeamNameKey(team)];
     if (override) return override;
@@ -91,7 +107,7 @@ export function teamDisplayName(league: string | null | undefined, team: string)
 }
 
 export function teamAbbreviatedName(league: string | null | undefined, team: string) {
-  if (league === "CBB" || league === "NBA") return BASKETBALL_TEAM_LABELS[league][normalizeTeamNameKey(team)]?.[1] ?? team;
+  if (league === "CBB" || league === "NBA") return basketballLabels[league].get(normalizeTeamNameKey(team))?.[1] ?? teamDisplayName(league, team);
   if (league !== "NFL") {
     const rawKey = normalizeTeamNameKey(team);
     const displayKey = normalizeTeamNameKey(teamDisplayName(league, team));

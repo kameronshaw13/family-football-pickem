@@ -377,7 +377,7 @@ export async function persistActionNetworkSpreads(
   for (const game of games) {
     const quote = quotesById.get(game.id);
     const spread = quote?.phase === "pregame" && quote.spread && !quote.spread.suspended
-      ? normalizeVerifiedMarketSpread(game.league, quote.spread) : null;
+      ? normalizeVerifiedMarketSpread(game.league, quote.spread, quote.moneyline) : null;
     if (!spread || !(isBasketballLeague(game.league) ? now < basketballLockTime(game.commence_time) : canRefreshSpread(game.commence_time, now))) continue;
 
     const nextAwaySpread = Number(spread.awayPoint);
