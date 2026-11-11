@@ -7,7 +7,7 @@ import type { Game, SideBetMarketQuote, SideBetOfferPhase } from "@/lib/types";
 
 const ACTION_BASE = "https://api.actionnetwork.com/web/v1/scoreboard";
 const ACTION_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15";
-const DRAFTKINGS_BOOK_ID = 15;
+const DRAFTKINGS_BOOK_ID = 1533; // DK Kansas, verified against Action Network /web/v1/books
 const ACTION_BOOK_IDS = [DRAFTKINGS_BOOK_ID];
 const LIVE_MAX_AGE_SECONDS = 45;
 const ACTION_CACHE_MS = 5_000;
