@@ -1,4 +1,5 @@
 import { fetchEspnBasketballMarkets } from "./espnBasketballMarkets";
+import { actionV2MarketRows, type V2MarketGame } from "./actionNetworkV2";
 import { normalizeVerifiedMarketSpread } from "./marketSpread";
 import { isFreshMarketTimestamp } from "./marketFreshness.ts";
 import { officialNflWeek } from "@/lib/cfbMatchupData";
@@ -37,7 +38,7 @@ type ActionOddsRow = {
   line_status?: Record<string, number | string | null>;
 };
 
-type ActionGame = {
+type ActionGame = V2MarketGame & {
   id?: number | string;
   status?: string;
   start_time?: string;
@@ -163,7 +164,7 @@ function sortPreferredMarketRows(rows: ActionOddsRow[]) {
 }
 
 function marketRowsForPhase(game: ActionGame, phase: SideBetOfferPhase) {
-  const rows = (game.odds || [])
+  const rows = [...(game.odds || []), ...actionV2MarketRows(game, DRAFTKINGS_BOOK_ID)]
     // DraftKings is the market source of truth. Fail closed when DK has no
     // usable row instead of silently substituting a different sportsbook.
     .filter((row) => Number(row.book_id) === DRAFTKINGS_BOOK_ID)
@@ -220,13 +221,24 @@ async function fetchActionLeagueQuery(
       [selectorKey]: selectorValue
     });
     if (league === "CFB") params.set("division", "FBS");
-    const response = await fetch(`${ACTION_BASE}/${path}?${params.toString()}`, {
-      headers: { "User-Agent": ACTION_USER_AGENT },
-      cache: "no-store"
-    });
-    if (!response.ok) throw new Error(`Action Network ${league} market request failed with ${response.status} for ${selectorKey}=${selectorValue}.`);
-    const payload = await response.json();
-    return Array.isArray(payload?.games) ? payload.games as ActionGame[] : [];
+    // Action's v1 scoreboard began returning 404s. V2 uses a different
+    // markets shape, normalized by actionV2MarketRows. Retain v1 as fallback
+    // while the upstream vendor transition is underway.
+    const failures: string[] = [];
+    for (const version of ["v2", "v1"] as const) {
+      const response = await fetch(`${ACTION_BASE.replace("/v1/", `/${version}/`)}/${path}?${params.toString()}`, {
+        headers: { "User-Agent": ACTION_USER_AGENT },
+        cache: "no-store"
+      });
+      if (!response.ok) {
+        failures.push(`${version}:HTTP ${response.status}`);
+        continue;
+      }
+      const payload = await response.json();
+      if (Array.isArray(payload?.games)) return payload.games as ActionGame[];
+      failures.push(`${version}:invalid games payload`);
+    }
+    throw new Error(`Action Network ${league} market request failed (${failures.join(", ")}) for ${selectorKey}=${selectorValue}.`);
   })();
 
   actionLeagueRequestCache.set(cacheKey, { expiresAt: now + ACTION_CACHE_MS, promise: request });
