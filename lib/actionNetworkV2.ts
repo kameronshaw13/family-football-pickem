@@ -22,6 +22,7 @@ export type V2MarketGame = {
 };
 export type V2LegacyMarketRow = {
   book_id: number;
+  inserted?: string;
   type: "game";
   spread_home: number | string | null;
   spread_away: number | string | null;
