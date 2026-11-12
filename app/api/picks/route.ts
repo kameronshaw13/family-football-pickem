@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     const gamesResult = await supabase.from("games").select("*").eq("week", body.week);
     if (gamesResult.error) throw new Error(gamesResult.error.message);
-    const divisionOneIds = (gamesResult.data || []).some((game: any) => game.league === "CBB")
+    const divisionOneIds = (gamesResult.data || []).some((game: any) => game.league === "CBB" && isGameAllowedForGroup(context, game))
       ? await fetchEspnDivisionOneTeamIds() : null;
     const weekGames = (gamesResult.data || [])
       .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game) && hasUsableStoredGameSpread(game)
