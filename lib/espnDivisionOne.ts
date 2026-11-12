@@ -8,6 +8,20 @@ export function isDivisionOneMatchup(homeId: string | null | undefined, awayId: 
   return Boolean(homeId && awayId && divisionOneIds.has(homeId) && divisionOneIds.has(awayId));
 }
 
+/** Saved basketball games lack team IDs, but their ESPN logo paths contain them. */
+export function espnTeamIdFromLogo(logoUrl: string | null | undefined): string | null {
+  const match = logoUrl?.match(/\/ncaa\/(?:[^/?#]+\/)*(\d+)\.(?:png|svg|webp)(?:[?#].*)?$/i);
+  return match?.[1] || null;
+}
+
+/** Validate both opponents when reading already-imported games. */
+export function isDivisionOneStoredMatchup(
+  game: { home_logo_url?: string | null; away_logo_url?: string | null },
+  divisionOneIds: Set<string>
+): boolean {
+  return isDivisionOneMatchup(espnTeamIdFromLogo(game.home_logo_url), espnTeamIdFromLogo(game.away_logo_url), divisionOneIds);
+}
+
 export async function fetchEspnDivisionOneTeamIds() {
   return cachedDivisionOneTeams("cbb-d1", async () => {
     const url = "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams?groups=50&limit=500";

@@ -74,10 +74,11 @@ import {
   conferenceFilterSections,
 } from "@/components/PickemStandingsViews";
 
-export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview }: {
+export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview, onBlockedOffer }: {
   appSlug: AppSlug;
   view: BetView;
   setView: (value: BetView) => void;
+  onBlockedOffer: () => void;
   currentUser: Profile;
   profiles: Profile[];
   sideBets: SideBet[];
@@ -470,6 +471,10 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
     <div className={`view-select-row side-bet-filter-row ${view === "new" && weekIsOpen && !weekConcluded ? "make-offer" : ""}`.trim()}>
       <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "offers", label: "Offers", badge: offerNotificationCount }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => {
+        if (value === "new" && currentUser.side_bet_offers_disabled) {
+          onBlockedOffer();
+          return;
+        }
         setSlipExpanded(false);
         if (value === "new") {
           setCustomSpread("");

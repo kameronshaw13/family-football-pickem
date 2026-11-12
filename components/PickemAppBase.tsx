@@ -1404,6 +1404,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           appSlug={appSlug}
           view={betView}
           setView={setBetView}
+          onBlockedOffer={() => notify("Side bets are disabled for you.", "error")}
           currentUser={currentUser}
           profiles={profiles.filter((profile) => !isSideBetRestricted(data.groupRules, profile.id))}
           sideBets={sideBets}

@@ -4,6 +4,7 @@ import { fetchActionNetworkMarkets } from "@/lib/actionNetworkMarkets";
 import { persistActionNetworkSpreads } from "@/lib/footballMarketSync";
 import { isGameAllowedForSideBets, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { fetchEspnDivisionOneTeamIds, isDivisionOneStoredMatchup } from "@/lib/espnDivisionOne";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -32,7 +33,10 @@ export async function GET(req: NextRequest) {
       .order("commence_time", { ascending: true });
     if (error) throw new Error(error.message);
 
-    const eligible = (games || []).filter((game) => isGameAllowedForSideBets(context, game));
+    const divisionOneIds = (games || []).some((game) => game.league === "CBB")
+      ? await fetchEspnDivisionOneTeamIds() : null;
+    const eligible = (games || []).filter((game) => isGameAllowedForSideBets(context, game)
+      && (game.league !== "CBB" || (divisionOneIds !== null && isDivisionOneStoredMatchup(game, divisionOneIds))));
     const markets = await fetchActionNetworkMarkets(eligible);
     const persisted = await persistActionNetworkSpreads(supabase, eligible, markets, new Date());
     const schedule = eligible.map((game) => ({

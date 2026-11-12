@@ -9,6 +9,7 @@ import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { americanOddsText, oppositeAmericanOdds, profitForRisk, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { isSideBetRestricted } from "@/lib/sideBetAccess";
+import { fetchEspnDivisionOneTeamIds, isDivisionOneStoredMatchup } from "@/lib/espnDivisionOne";
 import { notificationTeamName } from "@/lib/notificationTeamName";
 import { notificationStakeText } from "@/lib/notificationMoney";
 
@@ -57,6 +58,9 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) return NextResponse.json({ ok: false, error: "Choose 1 to 8 valid side bets and at least one recipient." }, { status: 400 });
     const body = parsed.data;
 
+    if (auth.profile.side_bet_offers_disabled) {
+      return NextResponse.json({ ok: false, error: "Side bets are disabled for you." }, { status: 403 });
+    }
     const supabase = getSupabaseAdmin();
     const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
     if (isSideBetRestricted(context.rules, auth.profile.id)) {
@@ -78,6 +82,11 @@ export async function POST(req: NextRequest) {
     if (gamesError) throw new Error(gamesError.message);
     if (!games || games.length !== gameIds.length) return NextResponse.json({ ok: false, error: "One or more selected games could not be found." }, { status: 404 });
 
+    const divisionOneIds = games.some((game: any) => game.league === "CBB")
+      ? await fetchEspnDivisionOneTeamIds() : null;
+    if (divisionOneIds && games.some((game: any) => game.league === "CBB" && !isDivisionOneStoredMatchup(game, divisionOneIds))) {
+      return NextResponse.json({ ok: false, error: "College basketball side bets require two Division I teams." }, { status: 409 });
+    }
     const gameById = new Map(games.map((game: any) => [game.id, game]));
     const now = new Date();
     const amountCap = context.rules?.sideBets?.amountEntry === "free" ? MAX_CUSTOM_SIDE_BET_AMOUNT : settings.maxAmount;

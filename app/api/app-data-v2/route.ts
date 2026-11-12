@@ -3,6 +3,7 @@ import { fromZonedTime } from "date-fns-tz";
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { normalizeEspnLogoUrl } from "@/lib/espnLogos";
+import { fetchEspnDivisionOneTeamIds, isDivisionOneStoredMatchup } from "@/lib/espnDivisionOne";
 import { getGroupGameLockTime, getGroupPickWeekOpenTime, getGroupSideBetSettings, getGroupWeekRule, isGameAllowedForSideBets, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { computeGroupStandings } from "@/lib/groupScoring";
 import { isEligibleSideBetSeasonGame } from "@/lib/seasonRules";
@@ -84,8 +85,17 @@ export async function GET(req: NextRequest) {
       if (page.error) throw new Error(page.error.message);
       lockedRows.push(...(page.data || []));
     }
+    // A previous import can leave non-D-I games in storage. Recheck them at read
+    // time without deleting historical picks; a directory outage fails closed for CBB.
+    const divisionOneIds = basketball && allGameRows.some((game: any) => game.league === "CBB")
+      ? await fetchEspnDivisionOneTeamIds().catch((error) => {
+          console.warn("[app-data] Could not verify CBB Division I teams.", error);
+          return new Set<string>();
+        })
+      : null;
     const normalizedGames = allGameRows
-      .filter((game: any) => isEligibleSideBetSeasonGame(game) && isGameAllowedForSideBets(context, game))
+      .filter((game: any) => isEligibleSideBetSeasonGame(game) && isGameAllowedForSideBets(context, game)
+        && (game.league !== "CBB" || (divisionOneIds !== null && isDivisionOneStoredMatchup(game, divisionOneIds))))
       .map((game: any) => {
         const lockTime = getGroupGameLockTime(context, game.commence_time).toISOString();
         return {

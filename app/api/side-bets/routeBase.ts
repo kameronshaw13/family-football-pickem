@@ -11,6 +11,7 @@ import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { americanOddsText, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { isSideBetRestricted } from "@/lib/sideBetAccess";
+import { fetchEspnDivisionOneTeamIds, isDivisionOneStoredMatchup } from "@/lib/espnDivisionOne";
 import { notificationTeamName } from "@/lib/notificationTeamName";
 import { notificationStakeText } from "@/lib/notificationMoney";
 
@@ -162,6 +163,9 @@ export async function POST(req: NextRequest) {
     const nowIso = now.toISOString();
 
     if (body.action === "create") {
+      if (auth.profile.side_bet_offers_disabled) {
+        return NextResponse.json({ ok: false, error: "Side bets are disabled for you." }, { status: 403 });
+      }
       if (body.recipientIds.some((id) => isSideBetRestricted(context.rules, id))) {
         return NextResponse.json({ ok: false, error: "This player does not have access to Side Bets." }, { status: 403 });
       }
@@ -179,6 +183,9 @@ export async function POST(req: NextRequest) {
       const { data: game, error: gameError } = await supabase.from("games").select("*").eq("id", body.gameId).maybeSingle();
       if (gameError || !game) return NextResponse.json({ ok: false, error: "Game not found." }, { status: 404 });
       if (!isGameAllowedForSideBets(context, game)) return NextResponse.json({ ok: false, error: "That game is not available in this Pick'em group." }, { status: 409 });
+      if (game.league === "CBB" && !isDivisionOneStoredMatchup(game, await fetchEspnDivisionOneTeamIds())) {
+        return NextResponse.json({ ok: false, error: "College basketball side bets require two Division I teams." }, { status: 409 });
+      }
       if (![game.away_team, game.home_team].includes(body.creatorTeam)) return NextResponse.json({ ok: false, error: "Choose one of the two teams in this game." }, { status: 400 });
 
       const offerPhase = body.offerPhase === "live" ? "live" : "pregame";

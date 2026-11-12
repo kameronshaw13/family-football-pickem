@@ -6,6 +6,7 @@ import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 import { hasUsableStoredGameSpread } from "@/lib/marketSpread";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { fetchEspnDivisionOneTeamIds, isDivisionOneStoredMatchup } from "@/lib/espnDivisionOne";
 
 const savedPickSchema = z.object({
   gameId: z.string().min(1),
@@ -32,8 +33,11 @@ export async function POST(req: NextRequest) {
 
     const gamesResult = await supabase.from("games").select("*").eq("week", body.week);
     if (gamesResult.error) throw new Error(gamesResult.error.message);
+    const divisionOneIds = (gamesResult.data || []).some((game: any) => game.league === "CBB")
+      ? await fetchEspnDivisionOneTeamIds() : null;
     const weekGames = (gamesResult.data || [])
-      .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game) && hasUsableStoredGameSpread(game))
+      .filter((game: any) => isEligibleSeasonGame(game) && isGameAllowedForGroup(context, game) && hasUsableStoredGameSpread(game)
+        && (game.league !== "CBB" || (divisionOneIds !== null && isDivisionOneStoredMatchup(game, divisionOneIds))))
       .map((game: any) => {
         const lockTime = getGroupGameLockTime(context, game.commence_time).toISOString();
         return { ...game, lock_time: lockTime, is_locked: now >= new Date(lockTime) };

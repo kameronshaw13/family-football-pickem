@@ -74,7 +74,7 @@ export async function getProfileFromToken(token: string) {
   if (!sessionError && session?.profile_id) {
     const { data: sessionProfile, error: profileError } = await supabase
       .from("profiles")
-      .select("id,username,display_name,is_admin")
+      .select("id,username,display_name,is_admin,side_bet_offers_disabled")
       .eq("id", session.profile_id)
       .maybeSingle();
     if (!profileError && sessionProfile) {
@@ -86,7 +86,7 @@ export async function getProfileFromToken(token: string) {
   // Keep the most recent pre-migration session working while the new table rolls out.
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("id,username,display_name,is_admin")
+    .select("id,username,display_name,is_admin,side_bet_offers_disabled")
     .eq("session_token", clean)
     .maybeSingle();
 

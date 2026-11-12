@@ -67,6 +67,7 @@ export type Profile = {
   username: string;
   display_name: string;
   is_admin: boolean;
+  side_bet_offers_disabled?: boolean;
 };
 
 export type Standing = {

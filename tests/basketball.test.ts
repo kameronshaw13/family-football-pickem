@@ -17,7 +17,7 @@ const { espnDraftKingsBasketballQuote } = await import("../lib/espnBasketballMar
 const { settleWeekIfReady } = await import("../lib/autoSettlement.ts");
 const { computeWeeklyStandings } = await import("../lib/weeklyBank.ts");
 const { isGameAllowedByRules, getUnderdogBonusForRules } = await import("../lib/groupContext.ts");
-const { isDivisionOneMatchup } = await import("../lib/espnDivisionOne.ts");
+const { isDivisionOneMatchup, isDivisionOneStoredMatchup, espnTeamIdFromLogo } = await import("../lib/espnDivisionOne.ts");
 
 test("basketball rolls over Monday midnight Central and keeps Sunday evening in the old week", () => {
   assert.equal(basketballWeek(new Date("2026-11-09T05:59:59Z")), 1);
@@ -57,6 +57,15 @@ test("college basketball requires both opponents in ESPN's Division I directory"
   assert.equal(isDivisionOneMatchup("1", "2", divisionOneTeams), true);
   assert.equal(isDivisionOneMatchup("1", "999", divisionOneTeams), false);
   assert.equal(isDivisionOneMatchup(undefined, "2", divisionOneTeams), false);
+});
+test("previously imported D-I against non-D-I games cannot reappear on the board", () => {
+  const ids = new Set(["2116", "6", "140"]);
+  const logo = (id: string) => `https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png`;
+  assert.equal(espnTeamIdFromLogo(logo("2116")), "2116");
+  assert.equal(espnTeamIdFromLogo(null), null);
+  assert.equal(isDivisionOneStoredMatchup({ home_logo_url: logo("2116"), away_logo_url: logo("6") }, ids), true);
+  assert.equal(isDivisionOneStoredMatchup({ home_logo_url: logo("140"), away_logo_url: null }, ids), false);
+  assert.equal(isDivisionOneStoredMatchup({ home_logo_url: logo("140"), away_logo_url: logo("9999") }, ids), false);
 });
 const rules = { sport: "basketball", eligibleLeagues: ["CBB", "NBA"], pickRules: { default: { regularTotal: 5, underdogTotal: 1, perfectBonus: true } }, weeklyBank: { mode: "friends_weekly", first: 40, second: 20, third: 0, fourth: 0, fifth: 0, sixth: -10, seventh: -20, eighth: -30, perfectPayouts: { first: 60, second: 20, third: 0, fourth: 0, fifth: 0, sixth: -15, seventh: -25, eighth: -40 } } };
 
