@@ -5430,6 +5430,10 @@ button, input, select, textarea {
 .game-tracker-player-table tbody tr:last-child > * { border-bottom: 0; }
 .game-tracker-player-table th:first-child,
 .game-tracker-player-table td:first-child { border-right: 1px solid var(--tracker-divider); }
+/* The colgroup determines the actual width of the name column per category. */
+.game-tracker-player-table th:first-child,
+.game-tracker-player-table td:first-child { width: auto; min-width: 0; max-width: none; }
+
 .game-tracker-player-table thead th { background: var(--tracker-header-fill); }
 .game-tracker-player-table tbody th[scope="row"] {
   position: sticky;
