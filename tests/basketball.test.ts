@@ -4,7 +4,7 @@ import nodeModule from "node:module";
 const { registerHooks } = nodeModule as unknown as { registerHooks: (hooks: { resolve: (specifier: string, context: { parentURL?: string }, nextResolve: (specifier: string, context: { parentURL?: string }) => any) => any }) => void };
 import { existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { basketballWeek, basketballWeekBounds, basketballFinalWeek, basketballPayoutMultiplier, basketballGameInSeason, basketballGameAvailableForSideBets, basketballSideBetWeekOpenTime, basketballLockTime } from "../lib/basketballRules.ts";
+import { basketballWeek, basketballWeekBounds, basketballFinalWeek, basketballPayoutMultiplier, basketballGameInSeason, basketballGameAvailableForSideBets, basketballSideBetWeekOpenTime, basketballLockTime, basketballPickLockTime } from "../lib/basketballRules.ts";
 
 registerHooks({ resolve(specifier, context, nextResolve) {
   let url: URL | undefined;
@@ -41,8 +41,22 @@ test("only actual March Madness weeks double, including the April championship w
   for (const week of [20, 21, 22, 23]) assert.equal(basketballPayoutMultiplier(week), 2);
   assert.equal(basketballPayoutMultiplier(24), 1);
 });
-test("basketball locks each game an hour before tipoff, including Saturday and Sunday", () => {
-  for (const tipoff of ["2026-11-02T01:00:00Z", "2026-11-07T19:00:00Z"]) assert.equal(Date.parse(tipoff) - basketballLockTime(tipoff).getTime(), 3600000);
+test("basketball spread freezes one hour before tipoff but picks lock at game time, including weekends", async () => {
+  const { gamePickLockTime } = await import("../lib/sportPaths.ts");
+  for (const tipoff of ["2026-11-02T01:00:00Z", "2026-11-07T19:00:00Z"]) {
+    assert.equal(Date.parse(tipoff) - basketballLockTime(tipoff).getTime(), 3600000);
+    assert.equal(basketballPickLockTime(tipoff).toISOString(), new Date(tipoff).toISOString());
+    for (const league of ["CBB", "NBA"]) {
+      assert.equal(gamePickLockTime({ league, commence_time: tipoff }, () => new Date(0)).toISOString(), new Date(tipoff).toISOString());
+    }
+  }
+});
+test("basketball group pick lock and spread freeze are separate", async () => {
+  const { getGroupGameLockTime, getGroupSpreadFreezeTime } = await import("../lib/groupContext.ts");
+  const context = { rules: { sport: "basketball" }, group: { timezone: "America/Chicago" } } as any;
+  const tipoff = "2026-11-15T20:00:00Z";
+  assert.equal(getGroupGameLockTime(context, tipoff).toISOString(), tipoff);
+  assert.equal(getGroupSpreadFreezeTime(context, tipoff).toISOString(), "2026-11-15T19:00:00.000Z");
 });
 test("NBA side bets start October 28 while basketball picks still wait for November 1", () => {
   const tonight = "2026-10-29T00:00:00Z";
