@@ -35,9 +35,8 @@ export default function AppOpenActivity() {
     setEntries(initialEntries());
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) {
-      setEntries(Object.fromEntries(LEAGUES.map(({ slug }) => [slug, {
-        visits: [], busy: false, error: "Sign in again to view activity."
-      }])) as Record<ActivityLeague, ActivityEntry>);
+      const unavailable: ActivityEntry = { visits: [], busy: false, error: "Sign in again to view activity." };
+      setEntries({ "shaw-family": unavailable, "friends": unavailable, "friends-basketball": unavailable });
       return;
     }
     for (const { slug } of LEAGUES) {
