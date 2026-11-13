@@ -316,7 +316,7 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
     <div className="game-tracker-live-meta">
       <div className="game-tracker-possession-label">
         <TeamLogo src={offense.logo} name={offense.name} size={22} />
-        <strong>{offense.shortName || trackerTeamLabel(offense)}</strong>
+        <strong>{teamDisplayName("CFB", offense.name || offense.shortName)}</strong>
         <FieldFootballIcon />
         <strong className="game-tracker-ball-label">Ball</strong>
       </div>
@@ -499,8 +499,8 @@ function Plays({ payload }: { payload: TrackerPayload }) {
 }
 
 function TeamStats({ payload }: { payload: TrackerPayload }) {
-  const awayLabel = payload.teams.away.shortName || payload.teams.away.name || "Away";
-  const homeLabel = payload.teams.home.shortName || payload.teams.home.name || "Home";
+  const awayLabel = teamDisplayName("CFB", payload.teams.away.name || payload.teams.away.shortName || "Away");
+  const homeLabel = teamDisplayName("CFB", payload.teams.home.name || payload.teams.home.shortName || "Home");
 
   return <section className="game-tracker-team-stats" aria-label="Team box score comparison">
     <div className="game-tracker-stat-table-head">
@@ -568,7 +568,7 @@ function TeamBox({ payload, side }: { payload: TrackerPayload; side: Side }) {
   const rows = payload.playerStats.filter((item) => item.side === side);
 
   return <div className="game-tracker-team-box">
-    <h3 className="game-tracker-team-box-title">{payload.teams[side].shortName || payload.teams[side].name}</h3>
+    <h3 className="game-tracker-team-box-title">{teamDisplayName("CFB", payload.teams[side].name || payload.teams[side].shortName)}</h3>
     {rows.length ? rows.map((row) => <section className="game-tracker-box-section" key={row.category}>
       <PlayerTable row={row} />
     </section>) : <p className="game-tracker-empty">Player box score is not available yet.</p>}
