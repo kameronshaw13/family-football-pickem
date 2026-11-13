@@ -86,3 +86,8 @@ export function basketballPayoutMultiplier(week: number, rules?: any) {
 export function basketballLockTime(commenceTime: string) {
   return new Date(new Date(commenceTime).getTime() - 60 * 60 * 1000);
 }
+
+/** Basketball picks remain editable until tipoff; only their spread freezes one hour early. */
+export function basketballPickLockTime(commenceTime: string) {
+  return new Date(commenceTime);
+}
