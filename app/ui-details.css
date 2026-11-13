@@ -5798,7 +5798,7 @@ button, input, select, textarea {
 .game-tracker-score-center > .game-tracker-red-zone-position { color: #c52b30; font-weight: 850; }
 .game-tracker-possession-label > .game-tracker-field-football { display: inline-flex; width: 21px; height: 13px; flex: 0 0 21px; color: #8e4c2c; }
 .game-tracker-possession-label > .game-tracker-ball-label { color: var(--ink); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: none; }
-.game-tracker-endzone img, .game-tracker-endzone .game-tracker-logo-fallback { box-sizing: border-box; padding: 1px; border: 1px solid rgba(255,255,255,.95); border-radius: 2px; background: #fff; filter: none; object-fit: contain; }
+.game-tracker-endzone img, .game-tracker-endzone .game-tracker-logo-fallback { box-sizing: border-box; padding: 1px; border: 1px solid rgba(255,255,255,.95); border-radius: 0; background: #fff; filter: none; object-fit: contain; }
 .game-tracker-drives > .game-tracker-plays-quarter-header:first-child { border-top: 2px solid var(--tracker-section-divider); }
 .game-tracker-collapsed-quarter-headers > .game-tracker-plays-quarter-header:first-child { border-top: 2px solid var(--tracker-section-divider); }
 
