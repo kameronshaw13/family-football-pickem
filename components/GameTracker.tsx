@@ -467,8 +467,9 @@ function DriveDetails({ drive, payload, initiallyOpen, beforeQuarter, crossesQua
       {drive.plays.length ? drive.plays.map((play, index) => {
         const previous = drive.plays[index - 1];
         const newQuarter = previous?.period && play.period && periodLabel(previous.period) !== periodLabel(play.period);
+        const transitionPeriod = payload.status.completed ? play.period : previous?.period || play.period;
         return <Fragment key={play.id}>
-          {newQuarter && <div className="game-tracker-quarter-header game-tracker-drive-quarter-header">{trackerPeriodHeading(periodLabel(play.period))}</div>}
+          {newQuarter && <div className="game-tracker-quarter-header game-tracker-drive-quarter-header">{trackerPeriodHeading(periodLabel(transitionPeriod))}</div>}
           <PlayRow play={play} />
         </Fragment>;
       }) : <p className="game-tracker-drive-empty">No plays listed for this drive.</p>}
