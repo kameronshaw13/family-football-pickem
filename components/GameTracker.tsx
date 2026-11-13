@@ -263,7 +263,7 @@ function PlayRow({ play, compact = false }: { play: TrackerPlay; compact?: boole
   // ESPN sometimes prefixes a start clock in parentheses, while the event clock
   // represents the end of the play. Position them at opposite ends of the copy.
   const raw = playTextWithoutDuplicateClock(play.text, play.clock);
-  const timeMatch = raw.match(/^\\s*\\(?(\\d{1,2}:\\d{2})\\)?(?=\\s|$)[\\s:–—-]*/);
+  const timeMatch = raw.match(/^\s*\(?(\d{1,2}:\d{2})\)?(?=\s|$)[\s:–—-]*/);
   const startClock = timeMatch?.[1] || play.clock;
   const endClock = timeMatch && play.clock && timeMatch[1] !== play.clock ? play.clock : "";
   const description = timeMatch ? raw.slice(timeMatch[0].length).trimStart() : raw;
