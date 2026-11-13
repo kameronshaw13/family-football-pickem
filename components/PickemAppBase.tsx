@@ -183,6 +183,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const loginPath = appLoginPath(appSlug);
   const [tab, setTab] = useState<Tab>("picks");
   const [selectedLeague, setSelectedLeague] = useState<LeagueMembership | null>(null);
+  const [selectedLeagueRules, setSelectedLeagueRules] = useState<{ slug: AppSlug; rules: GroupRules } | null>(null);
   const leagueNavigationIntentRef = useRef(0);
   const [selectedWeekOverride, setSelectedWeekOverride] = useState<number | null>(null);
   const [picksView, setPicksView] = useState<PicksView>("board");
@@ -456,6 +457,21 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       void warmLeagueData(selectedLeague.slug, selectedWeekOverride).catch(() => undefined);
     }
   }, [appSlug, router, selectedLeague, selectedWeekOverride]);
+
+  useEffect(() => {
+    if (!selectedLeague || selectedLeague.slug === appSlug) return;
+    let active = true;
+    const slug = selectedLeague.slug;
+    const week = selectedWeekOverride;
+    const cached = readCachedAppData(slug, week);
+    if (cached?.groupRules) setSelectedLeagueRules({ slug, rules: cached.groupRules });
+    void warmLeagueData(slug, week).then((ready) => {
+      if (!active || !ready) return;
+      const payload = readCachedAppData(slug, week);
+      if (payload?.groupRules) setSelectedLeagueRules({ slug, rules: payload.groupRules });
+    });
+    return () => { active = false; };
+  }, [appSlug, selectedLeague, selectedWeekOverride]);
 
   const chooseNavTab = useCallback((nextTab: Tab) => {
     ++leagueNavigationIntentRef.current;
@@ -1155,7 +1171,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const openBetGames = sideBetsActive ? games.filter((game) => !isFinalGame(game)) : [];
   const selectedBetGame = openBetGames.find((game) => game.id === betGameId);
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : "";
-  const displayedRules = tab === "settings" ? ruleSections(appSlug, data.groupRules || {}) : [];
+  const rulesSlug = selectedLeague?.slug || appSlug;
+  const rulesReady = rulesSlug === appSlug || selectedLeagueRules?.slug === rulesSlug;
+  const displayedRules = tab === "settings" && rulesReady
+    ? ruleSections(rulesSlug, rulesSlug === appSlug ? data.groupRules || {} : selectedLeagueRules!.rules)
+    : [];
 
   function stageCard(nextCard: Pick[]) {
     const normalizedCard = pointsMode ? normalizeConfidenceCard(nextCard, rule.regularTotal) : nextCard;
@@ -1537,11 +1557,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         currentUser={currentUser}
         leagueName={selectedLeague?.name || leagueNameForSlug(appSlug)}
         rules={displayedRules}
+        rulesLoading={!rulesReady}
         loginPath={loginPath}
         onCountsChanged={updateNotificationCounts}
         selectedLeagueSlug={selectedLeague?.slug || appSlug}
         onLeagueSelect={(league) => {
           leagueNavigationIntentRef.current += 1;
+          setSelectedLeagueRules(null);
           setSelectedLeague(league.slug === appSlug ? null : league);
           setSelectedWeekOverride(null);
         }}

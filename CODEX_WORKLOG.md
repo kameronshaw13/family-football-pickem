@@ -1,5 +1,15 @@
 # Shaw Family Pick'em — Codex Worklog / Source of Truth
 
+## 2026-11-12 — Live basketball court and selected league rules
+
+**Status:** Implemented on `codex/basketball-live-court-current` from remote main `79ee183`. Local production build and code checks pass; not yet deployed.
+
+- The live basketball tracker now shows a full court with the eight most recent ESPN shot locations on each team's attacking side, the four latest shot summaries, the latest non-substitution action, and a possession indicator based on clear rebounds, jump balls, turnovers, and made baskets. If possession cannot be established, it says so. The existing shot chart remains available for finished games.
+- Settings loads the selected Pick'em group's own rules as soon as the group is selected. Rule wording is shorter, and the internal $10,000 custom bet safety cap is omitted from League Rules. The cap remains enforced in bet validation, per user clarification.
+- Verification: `npm run check:code` passed (206 tests); `npm run build` passed. A real signed-in live-game visual review is still needed after deployment.
+
+---
+
 **Last updated:** 2026-11-01
 **Current production baseline when this file was created:** `79ef0c88b7377cbf1fc9ae3d3f0c93a854791885`  
 **Production status at creation:** Vercel READY

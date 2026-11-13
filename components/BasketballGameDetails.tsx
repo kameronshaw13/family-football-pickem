@@ -6,6 +6,7 @@ import Image from "next/image";
 import { LoaderCircle } from "lucide-react";
 import GameDetailClose from "@/components/GameDetailClose";
 import BasketballShotChart from "@/components/BasketballShotChart";
+import BasketballLiveCourt from "@/components/BasketballLiveCourt";
 import type { Game } from "@/lib/types";
 import { getClientSessionToken } from "@/lib/clientSession";
 import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
@@ -23,6 +24,7 @@ type Payload = {
   stats: { label: string; away: string; home: string }[];
   players: { id: string; side: "away" | "home"; name: string; groups: { labels: string[]; athletes: { id: string; name: string; stats: string[] }[] }[] }[];
   plays: Play[]; shots: BasketballShot[]; shotAttempts: number;
+  liveState?: { possessionSide: Side | null; latestAction: { id: string; text: string; side: Side | null; period: number; clock: string } | null };
 };
 type Tab = "live" | "scoring" | "plays" | "box";
 type Side = "away" | "home";
@@ -88,7 +90,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
     else latest.plays.push(play);
     return groups;
   }, []);
-  const tabs: [Tab, string][] = [["live", completed ? "Shot Chart" : "Live"], ["scoring", "Scoring"], ["plays", "Plays"], ["box", "Box Score"]];
+  const tabs: [Tab, string][] = [["live", completed ? "Shot Chart" : pregame ? "Preview" : "Live Court"], ["scoring", "Scoring"], ["plays", "Plays"], ["box", "Box Score"]];
   const color = (side: Side) => /^([0-9a-f]{6}|[0-9a-f]{3})$/i.test(payload?.teams[side]?.team?.color || "") ? `#${payload!.teams[side]!.team!.color}` : "transparent";
   const teamStats = payload && <table className="basketball-stats"><thead><tr><th scope="col">{names.away}</th><th scope="col">Team Stats</th><th scope="col">{names.home}</th></tr></thead><tbody>{payload.stats.map(row => <tr key={row.label}><td>{row.away}</td><th scope="row">{row.label}</th><td>{row.home}</td></tr>)}</tbody></table>;
 
@@ -107,8 +109,11 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
       <div ref={scrollArea} className="game-tracker-scroll">
         {!payload && !error && <div className="game-tracker-loading" role="status"><LoaderCircle size={22} /><span>Loading game…</span></div>}
         {error && <div className="game-tracker-empty" role="alert"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
-        {payload && tab === "live" && <><BasketballShotChart key={game.id} shots={payload.shots || []} attempts={payload.shotAttempts || 0} college={game.league === "CBB"} period={payload.status.period || 1}
-          away={{ id: String(payload.teams.away?.team?.id || "away"), name: names.away }} home={{ id: String(payload.teams.home?.team?.id || "home"), name: names.home }} />{payload.stats.length > 0 && teamStats}</>}
+        {payload && tab === "live" && <>{!pregame && !completed
+          ? <BasketballLiveCourt shots={payload.shots || []} possessionSide={payload.liveState?.possessionSide || null} latestAction={payload.liveState?.latestAction || null} away={names.away} home={names.home}
+              awayId={String(payload.teams.away?.team?.id || "away")} homeId={String(payload.teams.home?.team?.id || "home")} college={game.league === "CBB"} />
+          : <BasketballShotChart key={game.id} shots={payload.shots || []} attempts={payload.shotAttempts || 0} college={game.league === "CBB"} period={payload.status.period || 1}
+              away={{ id: String(payload.teams.away?.team?.id || "away"), name: names.away }} home={{ id: String(payload.teams.home?.team?.id || "home"), name: names.home }} />}{payload.stats.length > 0 && teamStats}</>}
         {payload && (tab === "plays" || tab === "scoring") && <div className="basketball-play-list">{!periodGroups.length && <p className="game-tracker-empty">{pregame ? "Play-by-play begins at tipoff." : "No plays available yet."}</p>}{periodGroups.map((group, index) => <section className="basketball-play-period" key={`${group.period}-${index}`} aria-label={`${basketballPeriodLabel(group.period, game.league === "CBB")} ${tab}`}>
           <div className="game-tracker-quarter-header"><span>{basketballPeriodLabel(group.period, game.league === "CBB")}</span>{tab === "scoring" && <div className="basketball-period-scores">{(["away", "home"] as const).map(side => logos[side] ? <Image unoptimized key={side} src={logos[side]!} alt={names[side]} width={22} height={22} /> : <span key={side}>{names[side]}</span>)}</div>}</div>
           {group.plays.map(play => <div className="basketball-play" key={play.id}><time>{play.clock}</time><p>{playTextWithoutDuplicateClock(play.text, play.clock)}</p>{play.scoring && <div className="basketball-period-scores" aria-label={`${names.away} ${play.awayScore ?? "—"}, ${names.home} ${play.homeScore ?? "—"}`}><strong>{play.awayScore ?? "—"}</strong><strong>{play.homeScore ?? "—"}</strong></div>}</div>)}
