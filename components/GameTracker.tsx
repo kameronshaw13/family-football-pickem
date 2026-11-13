@@ -112,10 +112,6 @@ function drivePeriod(drive: TrackerDrive) {
   return drive.plays.find((play) => play.period)?.period || "";
 }
 
-function driveEndPeriod(drive: TrackerDrive) {
-  return [...drive.plays].reverse().find((play) => play.period)?.period || drivePeriod(drive);
-}
-
 function driveQuarterTransitions(drive: TrackerDrive) {
   return drive.plays.flatMap((play, index) => {
     const previous = drive.plays[index - 1];
@@ -561,7 +557,7 @@ function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
   }, []);
 
   return <div ref={scroller} className="game-tracker-player-table-scroll" tabIndex={0} role="region" aria-label={`${row.title} player statistics, scroll horizontally for more columns`}>
-    <table className="game-tracker-player-table" aria-label={row.title} style={{ width: `max(100%, ${nameColumnWidth + visibleLabels.length * 44}px)` }}>
+    <table className="game-tracker-player-table" aria-label={row.title} style={{ width: `${nameColumnWidth + visibleLabels.length * 44}px` }}>
       <colgroup><col style={{ width: nameColumnWidth }} />{visibleLabels.map((label, index) => <col key={`${label}-${index}`} style={{ width: 44 }} />)}</colgroup>
       <thead><tr><th scope="col">{row.title.replace(/\b(Kick|Punt)\s*Returns?\b/gi, (_match, kind: string) => `${kind} Return`)}</th>{visibleLabels.map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead>
       <tbody>{row.athletes.map((athlete) => <tr key={athlete.name}>
