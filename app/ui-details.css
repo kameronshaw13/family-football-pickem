@@ -5796,3 +5796,50 @@ button, input, select, textarea {
 .basketball-box { margin-top: 0; border: 0; border-radius: 0; }
 .basketball-box > h3 { border-top: 1px solid var(--line-strong); }
 .basketball-matchup-preview .matchup-preview-team > strong { overflow-wrap: break-word; }
+
+/* Live basketball follows possession across a full court; the historical shot chart remains for finished games. */
+.basketball-live-view { border-bottom: 1px solid var(--tracker-section-divider); background: var(--panel); }
+.basketball-live-possession { display: flex; min-height: 38px; align-items: center; justify-content: center; gap: 8px; padding: 6px var(--pick-content-inset); border-bottom: 1px solid var(--line); background: var(--surface-muted); color: var(--ink); font-size: 11px; text-transform: uppercase; }
+.basketball-live-possession > span { color: #ba692e; font-size: 16px; line-height: 1; }
+.basketball-live-possession > b { color: var(--blue-dark); font-size: 21px; line-height: 1; }
+.basketball-live-possession.unknown { color: var(--muted); }
+.basketball-live-court { position: relative; width: calc(100% - 2 * var(--pick-content-inset)); aspect-ratio: 94 / 50; min-height: 170px; max-height: 300px; margin: 10px auto 0; overflow: hidden; border: 1px solid #a47749; border-radius: var(--ui-radius-box); background: #d1a064; }
+.basketball-live-court.away { background: linear-gradient(90deg, rgba(77,145,184,.23) 0 50%, transparent 50%), #d1a064; }
+.basketball-live-court.home { background: linear-gradient(90deg, transparent 0 50%, rgba(77,145,184,.23) 50%), #d1a064; }
+.basketball-live-court > svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: rgba(255,255,255,.76); stroke-width: 3; }
+.basketball-live-team { position: absolute; top: 8px; z-index: 1; max-width: 33%; overflow: hidden; padding: 3px 6px; border-radius: var(--ui-radius-label); color: #342a20; background: rgba(255,255,255,.77); font-size: 9px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.basketball-live-team.away { left: 8px; }
+.basketball-live-team.home { right: 8px; }
+.basketball-live-flow { position: absolute; z-index: 1; top: 50%; left: 50%; min-width: 66px; padding: 5px 7px; border: 1px solid rgba(39,58,70,.24); border-radius: var(--ui-radius-filter); color: #193447; background: rgba(255,255,255,.87); font-size: 9px; font-weight: 900; text-align: center; transform: translate(-50%,-50%); }
+.basketball-live-flow.away { animation: basketball-flow-away .4s ease-out; }
+.basketball-live-flow.home { animation: basketball-flow-home .4s ease-out; }
+@keyframes basketball-flow-away { from { transform: translate(-28%,-50%); opacity: .5; } to { transform: translate(-50%,-50%); opacity: 1; } }
+@keyframes basketball-flow-home { from { transform: translate(-72%,-50%); opacity: .5; } to { transform: translate(-50%,-50%); opacity: 1; } }
+.basketball-live-shot { position: absolute; z-index: 2; display: grid; width: 20px; height: 20px; place-items: center; border: 2px solid #fff; border-radius: 50%; color: #fff; background: #2e617b; box-shadow: 0 2px 5px rgba(25,35,40,.3); font-size: 11px; font-weight: 900; transform: translate(-50%,-50%); }
+.basketball-live-shot.home { background: #9b5232; }
+.basketball-live-shot.missed { background: #565d62; font-size: 17px; }
+.basketball-live-shot.latest { z-index: 3; width: 26px; height: 26px; box-shadow: 0 0 0 4px rgba(255,255,255,.52), 0 2px 5px rgba(25,35,40,.36); }
+.basketball-live-waiting { position: absolute; top: 50%; left: 50%; width: 70%; padding: 7px; border-radius: var(--ui-radius-label); color: #342a20; background: rgba(255,255,255,.85); font-size: 10px; font-weight: 700; text-align: center; transform: translate(-50%,-50%); }
+.basketball-live-legend { display: flex; gap: 12px; padding: 8px var(--pick-content-inset); color: var(--muted); font-size: 10px; font-weight: 700; }
+.basketball-live-legend > span { display: inline-flex; align-items: center; gap: 5px; }
+.basketball-live-legend > span:last-child { margin-left: auto; }
+.basketball-live-legend i { width: 9px; height: 9px; border-radius: 50%; background: #2e617b; }
+.basketball-live-legend i.missed { background: #565d62; }
+.basketball-live-recent { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); margin: 0; padding: 0 var(--pick-content-inset) 9px; list-style: none; }
+.basketball-live-recent li { display: grid; min-width: 0; gap: 2px; padding: 6px; border-right: 1px solid var(--line); background: var(--surface-muted); font-size: 9px; }
+.basketball-live-recent li:last-child { border-right: 0; }
+.basketball-live-recent li > span { color: var(--muted); }
+.basketball-live-recent li > strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.basketball-live-action { display: grid; gap: 4px; padding: 10px var(--pick-content-inset) 12px; border-top: 1px solid var(--line); }
+.basketball-live-action > span { color: var(--header-muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.basketball-live-action > strong { color: var(--ink); font-size: 12px; font-weight: 650; line-height: 1.4; }
+html[data-theme="dark"] .basketball-live-court { border-color: #b98859; background-color: #a87848; }
+@media(max-width:420px) {
+ .basketball-live-court { min-height: 160px; }
+ .basketball-live-shot { width: 17px; height: 17px; font-size: 10px; }
+ .basketball-live-shot.latest { width: 22px; height: 22px; }
+ .basketball-live-recent li { padding: 5px 3px; }
+ .basketball-live-recent { grid-template-columns: repeat(2, minmax(0,1fr)); row-gap: 1px; }
+ .basketball-live-recent li:nth-child(2) { border-right: 0; }
+}
+@media(prefers-reduced-motion:reduce) { .basketball-live-flow.away, .basketball-live-flow.home { animation: none; } }

@@ -34,6 +34,7 @@ export default function SettingsPanel({
   currentUser,
   leagueName,
   rules,
+  rulesLoading,
   loginPath,
   onCountsChanged,
   selectedLeagueSlug,
@@ -43,6 +44,7 @@ export default function SettingsPanel({
   currentUser: Profile;
   leagueName?: string;
   rules: RuleSection[];
+  rulesLoading: boolean;
   loginPath: string;
   onCountsChanged: (counts: Record<string, number>) => void;
   selectedLeagueSlug: AppSlug;
@@ -173,10 +175,11 @@ export default function SettingsPanel({
       <details className="settings-card settings-detail">
         <summary>
           <span className="settings-leading-icon"><ScrollText size={17} /></span>
-          <span className="settings-row-copy"><strong>League Rules</strong><span>Scoring, picks, dogs, locks and Side Bets.</span></span>
+          <span className="settings-row-copy"><strong>League Rules</strong><span>{leagueName || "Current league"} · Picks, scoring, locks and side bets.</span></span>
           <ChevronDown className="settings-detail-chevron" size={17} />
         </summary>
         <div className="settings-detail-body settings-rules-list">
+          {rulesLoading && <p role="status">Loading league rules…</p>}
           {rules.map((section) => <details className="settings-rule-item" key={section.title}>
             <summary>{section.title}<ChevronDown size={14} /></summary>
             <ul>{section.items.map((item) => <li key={item}><NumericText text={item} /></li>)}</ul>

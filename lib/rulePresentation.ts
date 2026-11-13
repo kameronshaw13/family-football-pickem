@@ -1,5 +1,3 @@
-import { MAX_CUSTOM_SIDE_BET_AMOUNT } from "@/lib/sideBetLimits";
-
 export type AppSlug = "shaw-family" | "other-family" | "friends" | "friends-basketball";
 export type RuleSection = { title: string; items: string[] };
 
@@ -50,9 +48,9 @@ function dogItems(rules: GroupRules, pointsMode: boolean) {
     const bonus = numberValue(tier.bonusWins, 0);
     return `${maximum == null ? `+${minimum} or more` : `+${minimum} to +${maximum}`}: +${bonus} ${unit}${bonus === 1 ? "" : "s"}.`;
   });
-  return [...tierItems, "The dog must win outright.", pointsMode
-    ? "A winning dog adds its tier value to the weekly and season point totals. A losing dog earns 0 points."
-    : "A losing dog earns 0 bonus wins and does not add a loss."];
+  return [...tierItems, pointsMode
+    ? "Your dog must win outright for bonus points. A loss earns 0."
+    : "Your dog must win outright for bonus wins. A loss earns 0 and does not count as a loss."];
 }
 
 function eligibleItems(rules: GroupRules) {
@@ -69,19 +67,17 @@ function sideBetItems(rules: GroupRules, companion: boolean) {
   const fixed = settings.fixedAmounts?.length ? settings.fixedAmounts : [20, 15, 10, 5];
   const items = ["Spread and moneyline side bets are available."];
   if (companion || settings.amountEntry !== "free") items.push(`Side bets may be ${fixed.map((amount) => `$${amount}`).join(", ")}.`);
-  else items.push(`Maximum: $${MAX_CUSTOM_SIDE_BET_AMOUNT.toLocaleString("en-US")} per bet.`);
-  if (settings.maxPerWeek == null) items.push("There is no weekly side-bet count limit.");
+  else items.push("Choose your side bet amount.");
+  if (settings.maxPerWeek == null) items.push("No weekly bet count limit.");
   else {
     const limit = numberValue(settings.maxPerWeek, 3);
-    items.push(`Each player has ${limit} side-bet slots per week.`, `Accepted and pending offers count toward the ${limit}-bet limit.`);
+    items.push(`Up to ${limit} side bets per player each week, including pending offers.`);
   }
   return [...items,
-    "Offers open Tuesday at 8:00 AM CT with the new week.",
-    "Tuesday–Friday lines freeze 1 hour before kickoff.",
-    "Saturday–Monday lines freeze Saturday at 10:00 AM CT.",
-    "Pregame offers may be sent or accepted until kickoff.",
-    "Live offers may be made after kickoff when a live market is available. They expire on a confirmed score change or when the game ends, not when odds move.",
-    "Settled bets post directly to the bank."
+    "Offers open Tuesday at 8:00 AM CT. Pregame offers close at kickoff.",
+    "Tuesday–Friday lines freeze 1 hour before kickoff; Saturday–Monday lines freeze Saturday at 10:00 AM CT.",
+    "Live offers require a live market and close after a confirmed score change or the final whistle.",
+    "Results post to the bank."
   ];
 }
 
@@ -92,24 +88,21 @@ const seasonSchedule = [
 ];
 
 const pickLocks = [
-  "You can manually lock any selected pick early from My Card before its normal lock time.",
-  "Manual Lock is permanent: that pick cannot be changed or removed, and its spread and underdog bonus (if applicable) are frozen at the moment it is locked.",
-  "Tuesday–Friday lines freeze 1 hour before kickoff.",
-  "Tuesday–Friday picks lock at kickoff.",
-  "Saturday–Monday lines freeze Saturday at 10:00 AM CT.",
-  "Saturday–Monday picks lock Saturday at 11:00 AM CT."
+  "You can lock a pick early in My Card. This is permanent and freezes its line and dog bonus.",
+  "Tuesday–Friday lines freeze 1 hour before kickoff; picks lock at kickoff.",
+  "Saturday–Monday lines freeze Saturday at 10:00 AM CT; picks lock at 11:00 AM CT."
 ];
 
 export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSection[] {
   if (appSlug === "friends-basketball") {
     const sections = ruleSections("friends", rules);
     return sections.map((section) => {
-      if (section.title === "Season Schedule") return { ...section, items: ["The season starts Sunday, November 1, 2026 with Villanova–Notre Dame and runs through Sunday, April 11, 2027, including the NCAA championship game.", "Opening week runs November 1–8. Subsequent weeks run Monday at 12:00 AM through Sunday at 11:59 PM Central Time."] };
-      if (section.title === "Weekly Card") return { ...section, items: ["Every week: 5 regular spread picks from CBB/NBA plus 1 underdog. A perfect regular card earns the perfect-week bonus."] };
-      if (section.title === "Eligible Games") return { ...section, items: ["NBA regular-season games and Division I men's college basketball games are eligible.", "Conference tournaments and NCAA March Madness games are included."] };
-      if (section.title === "Pick Locks") return { ...section, items: [...pickLocks.slice(0, 2), "Each game's picks and spread lock 1 hour before tipoff, every day of the week."] };
-      if (section.title === "Weekly Bank") return { ...section, items: [...section.items, "March Madness weeks have 2× weekly payouts for every position, including losses. This applies March 15–April 11, including the championship week.", "The 2× multiplier applies after perfect-week adjustments and tie splits; scoring and season prizes stay the same."] };
-      if (section.title === "Side Bets") return { ...section, items: ["Spread, moneyline, and over/under side bets are available.", "Offers open with the Monday–Sunday week. Pregame offers expire at tipoff.", "Live offers expire when the score changes or the game ends.", "Credit-based Side Bets require no deposit or positive balance. Players settle their net winnings and losses later."] };
+      if (section.title === "Season Schedule") return { ...section, items: ["November 1, 2026–April 11, 2027. Opening week is November 1–8; later weeks run Monday–Sunday, Central Time."] };
+      if (section.title === "Weekly Card") return { ...section, items: ["Pick 5 CBB/NBA spreads and 1 dog each week. A perfect regular card earns the bonus."] };
+      if (section.title === "Eligible Games") return { ...section, items: ["NBA regular season and Division I men's college games count, including conference tournaments and March Madness."] };
+      if (section.title === "Pick Locks") return { ...section, items: [pickLocks[0], "Picks and lines lock 1 hour before tipoff."] };
+      if (section.title === "Weekly Bank") return { ...section, items: [...section.items, "March Madness weeks (March 15–April 11) double every weekly payout after ties and perfect-week adjustments."] };
+      if (section.title === "Side Bets") return { ...section, items: ["Spread, moneyline, and over/under bets are available.", "Pregame offers close at tipoff. Live offers close after a confirmed score change or when the game ends.", "Bets use credit; no deposit is needed. Players settle up later."] };
       return section;
     });
   }

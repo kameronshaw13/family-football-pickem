@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { espnSportPath } from "@/lib/sportPaths";
 import { isBasketballLeague } from "@/lib/basketballRules";
 import { basketballShots } from "@/lib/basketballShots";
+import { basketballLiveState } from "@/lib/basketballLiveState";
 import { createAsyncCache } from "@/lib/asyncCache";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +48,7 @@ export async function GET(req: NextRequest) {
       ok: true, status: { ...competition?.status?.type, period: competition?.status?.period || 1, clock: competition?.status?.displayClock || "" },
       teams: { away: away ? { ...away, records: away.records || away.record || [] } : null, home: home ? { ...home, records: home.records || home.record || [] } : null },
       shots: basketballShots(rawPlays, athletes),
+      liveState: basketballLiveState(rawPlays, String(away?.team?.id || ""), String(home?.team?.id || "")),
       shotAttempts: rawPlays.filter((play: any) => play.shootingPlay && [2, 3].includes(Number(play.pointsAttempted))).length,
       stats: awayStats.map((row: any) => ({ label: row.label || row.displayName || row.name, away: row.displayValue, home: homeStats.find((item: any) => item.name === row.name)?.displayValue || "—" })),
       players: (data.boxscore?.players || []).map((row: any) => ({
