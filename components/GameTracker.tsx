@@ -272,7 +272,7 @@ function PlayRow({ play, compact = false }: { play: TrackerPlay; compact?: boole
         {play.outcome && <b className="game-tracker-play-outcome">{play.outcome}</b>}
       </div>
       <strong>{description}</strong>
-      {(play.clock || startClock) && <small className="game-tracker-play-timing">{startClock && <span>Start {startClock}</span>}{play.clock && <span>{startClock ? "End " : "Clock "}{play.clock}</span>}</small>
+      {(play.clock || startClock) && <small className="game-tracker-play-timing">{startClock && <span>Start {startClock}</span>}{play.clock && <span>{startClock ? "End " : "Clock "}{play.clock}</span>}</small>}
     </div>
   </div>;
 }
@@ -525,7 +525,7 @@ function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
   const visibleLabels = labelOrder.map((index) => row.labels[index]);
   const scroller = useRef<HTMLDivElement>(null);
   // Align stat columns after the longest player name while preserving horizontal scrolling.
-  const nameColumnWidth = Math.max(110, Math.min(185, Math.ceil(Math.max(row.title.length, ...row.athletes.map((athlete) => athlete.name.length)) * 6.3 + 12))));
+  const nameColumnWidth = Math.max(110, Math.min(185, Math.ceil(Math.max(row.title.length, ...row.athletes.map((athlete) => athlete.name.length)) * 6.3 + 12)));
 
   useEffect(() => {
     const element = scroller.current;
