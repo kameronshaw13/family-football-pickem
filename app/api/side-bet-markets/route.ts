@@ -4,6 +4,8 @@ import { fetchActionNetworkMarkets } from "@/lib/actionNetworkMarkets";
 import { persistActionNetworkSpreads } from "@/lib/footballMarketSync";
 import { isGameAllowedForSideBets, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { gamePickLockTime } from "@/lib/sportPaths";
+import { getGameLockTime } from "@/lib/lockRules";
 import { fetchEspnDivisionOneTeamIds, isDivisionOneStoredMatchup } from "@/lib/espnDivisionOne";
 
 export const dynamic = "force-dynamic";
@@ -39,12 +41,15 @@ export async function GET(req: NextRequest) {
       && (game.league !== "CBB" || (divisionOneIds !== null && isDivisionOneStoredMatchup(game, divisionOneIds))));
     const markets = await fetchActionNetworkMarkets(eligible);
     const persisted = await persistActionNetworkSpreads(supabase, eligible, markets, new Date());
-    const schedule = eligible.map((game) => ({
-      id: game.id,
-      commence_time: game.commence_time,
-      lock_time: game.lock_time,
-      is_locked: game.is_locked
-    }));
+    const schedule = eligible.map((game) => {
+      const lock = gamePickLockTime(game, getGameLockTime);
+      return {
+        id: game.id,
+        commence_time: game.commence_time,
+        lock_time: lock.toISOString(),
+        is_locked: new Date() >= lock
+      };
+    });
     return NextResponse.json({ ok: true, markets, schedule, gamesUpdated: persisted.gamesUpdated }, { headers: NO_STORE_HEADERS });
   } catch (error) {
     return NextResponse.json(
