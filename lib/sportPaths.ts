@@ -5,6 +5,6 @@ export function espnSportPath(league: League) {
 }
 export function gamePickLockTime(game: {league: string; commence_time: string}, footballLock: (iso: string) => Date) {
   return game.league === "CBB" || game.league === "NBA"
-    ? new Date(new Date(game.commence_time).getTime() - 3600000)
+    ? new Date(game.commence_time)
     : footballLock(game.commence_time);
 }
