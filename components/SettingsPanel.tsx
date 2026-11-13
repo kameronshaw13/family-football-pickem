@@ -167,7 +167,7 @@ export default function SettingsPanel({
 
     {String(currentUser.username).toLowerCase() === "kameron" && (appSlug === "friends" || appSlug === "shaw-family" || appSlug === "friends-basketball") && <div className="settings-section">
       <h3>Private Activity</h3>
-      <AppOpenActivity appSlug={appSlug} />
+      <AppOpenActivity />
     </div>}
 
     <div className="settings-section">
