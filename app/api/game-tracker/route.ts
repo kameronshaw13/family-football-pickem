@@ -240,24 +240,11 @@ function normalizePlayerStats(boxscore: any, homeId: string, awayId: string) {
       const key = String(category?.name || category?.label || category?.displayName || "stats").toLowerCase();
       const title = String(category?.displayName || category?.label || category?.name || "Stats");
       const labels: string[] = Array.isArray(category?.labels) ? category.labels.map((label: any) => String(label)) : [];
-      const isReceiving = /receiv/.test(key) || /receiv/i.test(title);
-      const providerTargetIndex = labels.findIndex((label: string) => /^(tgt|tgts|targets?)$/i.test(label.trim()));
-      // ESPN's summary does not always include targets in category.labels.
-      // Add the column when missing, but never invent a target count.
-      // Do not insert an unavailable targets column in college football.
-      const addTargetColumn = false;
-      if (addTargetColumn) labels.unshift("TGT");
-      const athletes = (category?.athletes || []).map((row: any) => {
-        const values = Array.isArray(row?.stats) ? row.stats.map((value: any) => String(value)) : [];
-        if (addTargetColumn) {
-          const targetValue = row?.receivingTargets ?? row?.targetCount ?? row?.statistics?.receivingTargets ?? row?.athlete?.statistics?.receivingTargets;
-          values.unshift(targetValue == null ? "—" : String(targetValue));
-        }
-        return {
-          name: String(row?.athlete?.shortName || row?.athlete?.displayName || "Player"),
-          values
-        };
-      });
+      // Preserve targets only when the provider actually includes a target column.
+      const athletes = (category?.athletes || []).map((row: any) => ({
+        name: String(row?.athlete?.displayName || row?.athlete?.shortName || "Player"),
+        values: Array.isArray(row?.stats) ? row.stats.map((value: any) => String(value)) : []
+      }));
       if (!athletes.length) continue;
       const rawTotals = Array.isArray(category?.totals) ? category.totals : null;
       // ESPN team totals are preferred. Only sum simple counts if the feed omits them;
@@ -267,10 +254,10 @@ function normalizePlayerStats(boxscore: any, homeId: string, awayId: string) {
         : labels.map((label, index) => {
           if (/avg|pct|percent|long|rating|rtg|rate/i.test(label)) return "—";
           const values = athletes.map((athlete: { values: string[] }) => athlete.values[index] || "");
-          if (values.every((value: string) => /^-?\\d+(?:\\.\\d+)?$/.test(value))) {
+          if (values.every((value: string) => /^-?\d+(?:\\.\d+)?$/.test(value))) {
             return String(values.reduce((sum: number, value: string) => sum + Number(value), 0));
           }
-          if (values.every((value: string) => /^\\d+\\/\\d+$/.test(value))) {
+          if (values.every((value: string) => /^\d+\\/\d+$/.test(value))) {
             const counts = values.map((value: string) => value.split("/").map(Number));
             return `${counts.reduce((sum: number, count: number[]) => sum + count[0], 0)}/${counts.reduce((sum: number, count: number[]) => sum + count[1], 0)}`;
           }
