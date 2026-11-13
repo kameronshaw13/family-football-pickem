@@ -136,7 +136,6 @@ export function BankBalanceHistoryRow({ player, weeks, hideAcceptedBets = false 
             <span>Weekly Pick’em</span>
             <strong className={week.weeklyAmount > 0 ? "money-pos" : week.weeklyAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.weeklyAmount)} /></strong>
           </div>}
-          {hideAcceptedBets && week.games.length > 0 && <div className="bank-history-line"><span>Side Bets</span><strong className={week.games.reduce((sum, game) => sum + game.playerAmount, 0) > 0 ? "money-pos" : week.games.reduce((sum, game) => sum + game.playerAmount, 0) < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.games.reduce((sum, game) => sum + game.playerAmount, 0))} /></strong></div>}
           {!hideAcceptedBets && week.games.map((game) => {
             const awayFull = teamDisplayName(game.league, game.awayTeam);
             const homeFull = teamDisplayName(game.league, game.homeTeam);

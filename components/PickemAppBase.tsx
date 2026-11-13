@@ -170,6 +170,7 @@ import {
   BankWeekResults,
   ConfidenceOrder,
 } from "@/components/PickemStandingsViews";
+import { visibleSideBetLedger } from "@/lib/sideBetVisibility";
 import {
   SideBetCenter,
   SideBetGameCard,
@@ -1134,8 +1135,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const previewActive = Boolean(testWeekActive && testWeek);
   const sideBets = previewActive ? testWeek!.sideBets : liveSideBets;
   const viewedSideBetLedger = sortSideBetsGroupedByGame(
-    (previewActive ? testWeek!.sideBets : sideBetLedger)
-      .filter((bet) => (bet.status === "accepted" || bet.status === "settled") && !hideAcceptedBets)
+    visibleSideBetLedger(previewActive ? testWeek!.sideBets : sideBetLedger, currentUser.id, hideAcceptedBets)
       .filter((bet) => sideBetLedgerScope === "all" || bet.creator_id === currentUser.id || bet.accepted_by === currentUser.id)
       .filter((bet) => sideBetMatchesGameFilter(bet, sideBetLedgerGameFilter))
   );
@@ -1188,11 +1188,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   })) : {};
   const weekIsOpen = !previewActive && !weekNotOpenYet && (!data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock);
   const sideBetWeekIsOpen = !previewActive && !weekNotOpenYet && (!data.sideBetWeekOpenTime || new Date(data.sideBetWeekOpenTime).getTime() <= clock);
-  const receivedNotificationCount = previewActive ? 1 : notificationCounts.side_bets_received;
-  const sentNotificationCount = previewActive ? 1 : notificationCounts.side_bets_sent;
+  const receivedNotificationCount = hideAcceptedBets ? 0 : previewActive ? 1 : notificationCounts.side_bets_received;
+  const sentNotificationCount = hideAcceptedBets ? 0 : previewActive ? 1 : notificationCounts.side_bets_sent;
   const myCardNotificationCount = previewActive ? 1 : notificationCounts.my_card;
   const leagueCardsNotificationCount = previewActive ? 1 : notificationCounts.league_cards;
-  const bankNotificationCount = previewActive ? 1 : notificationCounts.side_bet_ledger;
+  const bankNotificationCount = hideAcceptedBets ? 0 : previewActive ? 1 : notificationCounts.side_bet_ledger;
   const picksNotificationCount = receivedNotificationCount + sentNotificationCount;
   const cardNotificationCount = myCardNotificationCount + leagueCardsNotificationCount;
   const navNotificationCounts: Partial<Record<Tab, number>> = {
@@ -1586,7 +1586,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               key={row.id}
               player={row}
               weeks={viewedBankHistory}
-              hideAcceptedBets={hideAcceptedBets}
+              hideAcceptedBets={hideAcceptedBets && row.id === currentUser.id}
             />)}
           </div>
           <div className="subsection bank-section bank-week-section">
@@ -1596,7 +1596,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             </div>
             <BankWeekResults rows={bankWeekStandings} picks={bankResultPicks} games={bankResultGames} amounts={bankWeekAmounts} pointsMode={pointsMode} universalLockReached={universalLockReached} />
           </div>
-          <div className="subsection bank-section bank-week-section"><div className="standings-heading-row side-bet-ledger-heading-row"><h2 className="heading-with-badge side-bet-ledger-heading"><span className="side-bet-ledger-heading-title">Side Bet Ledger</span><span className="side-bet-ledger-summary">{weekConcluded ? <><span className="side-bet-ledger-summary-label">{mySideBetWeekTotal < 0 ? "Loss" : "Profit"}</span><span className={mySideBetWeekTotal > 0 ? "money-pos" : mySideBetWeekTotal < 0 ? "money-neg" : "money-neutral"}><NumericText text={roundedMoney(mySideBetWeekTotal)} /></span></> : <><span className="side-bet-ledger-summary-label">Settled</span><span className={mySideBetWeekTotal > 0 ? "money-pos" : mySideBetWeekTotal < 0 ? "money-neg" : "money-neutral"}><NumericText text={roundedMoney(mySideBetWeekTotal)} /></span>{!hideAcceptedBets && myActiveSideBetCount > 0 && <><span className="side-bet-ledger-summary-divider ui-separator-dot">·</span><span><NumericText text={`${myActiveSideBetCount} Active`} /></span><span className="side-bet-ledger-summary-divider ui-separator-dot">·</span><span className="side-bet-potential-label">Potential</span><span className="side-bet-potential-profit"><NumericText text={roundedMoney(myActivePotentialProfit)} /></span><span className="side-bet-potential-separator">/</span><span className="side-bet-potential-loss"><NumericText text={roundedMoney(-myActivePotentialLoss)} /></span></>}</>}</span><NotificationBadge count={bankNotificationCount} /></h2></div><div className="side-bet-ledger-filter-row"><div className="side-bet-ledger-scope-toggle" role="group" aria-label="Filter side bet ledger"><button type="button" className={sideBetLedgerScope === "all" ? "active" : ""} aria-pressed={sideBetLedgerScope === "all"} onClick={() => setSideBetLedgerScope("all")}>All Bets</button><button type="button" className={sideBetLedgerScope === "mine" ? "active" : ""} aria-pressed={sideBetLedgerScope === "mine"} onClick={() => setSideBetLedgerScope("mine")}>My Bets</button></div><div className="side-bet-game-filter-toggle" role="group" aria-label="Filter side bets by game status"><button type="button" className={sideBetLedgerGameFilter === "all" ? "active" : ""} aria-pressed={sideBetLedgerGameFilter === "all"} onClick={() => setSideBetLedgerGameFilter("all")}>All</button><button type="button" className={sideBetLedgerGameFilter === "upcoming" ? "active" : ""} aria-pressed={sideBetLedgerGameFilter === "upcoming"} onClick={() => setSideBetLedgerGameFilter("upcoming")}>Upcoming</button><button type="button" className={sideBetLedgerGameFilter === "completed" ? "active" : ""} aria-pressed={sideBetLedgerGameFilter === "completed"} onClick={() => setSideBetLedgerGameFilter("completed")}>Completed</button></div></div><div className="ledger-list">{!previewActive && !sideBetLedgerReady && <p className="muted">Loading side bet ledger…</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.length === 0 && <p className="muted ledger-empty-state">{hideAcceptedBets ? "Accepted side bets are hidden." : "No side bets in the ledger yet."}</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
+          <div className="subsection bank-section bank-week-section"><div className="standings-heading-row side-bet-ledger-heading-row"><h2 className="heading-with-badge side-bet-ledger-heading"><span className="side-bet-ledger-heading-title">Side Bet Ledger</span><span className="side-bet-ledger-summary" style={{ display: hideAcceptedBets ? "none" : undefined }}>{weekConcluded ? <><span className="side-bet-ledger-summary-label">{mySideBetWeekTotal < 0 ? "Loss" : "Profit"}</span><span className={mySideBetWeekTotal > 0 ? "money-pos" : mySideBetWeekTotal < 0 ? "money-neg" : "money-neutral"}><NumericText text={roundedMoney(mySideBetWeekTotal)} /></span></> : <><span className="side-bet-ledger-summary-label">Settled</span><span className={mySideBetWeekTotal > 0 ? "money-pos" : mySideBetWeekTotal < 0 ? "money-neg" : "money-neutral"}><NumericText text={roundedMoney(mySideBetWeekTotal)} /></span>{!hideAcceptedBets && myActiveSideBetCount > 0 && <><span className="side-bet-ledger-summary-divider ui-separator-dot">·</span><span><NumericText text={`${myActiveSideBetCount} Active`} /></span><span className="side-bet-ledger-summary-divider ui-separator-dot">·</span><span className="side-bet-potential-label">Potential</span><span className="side-bet-potential-profit"><NumericText text={roundedMoney(myActivePotentialProfit)} /></span><span className="side-bet-potential-separator">/</span><span className="side-bet-potential-loss"><NumericText text={roundedMoney(-myActivePotentialLoss)} /></span></>}</>}</span><NotificationBadge count={bankNotificationCount} /></h2></div><div className="side-bet-ledger-filter-row"><div className="side-bet-ledger-scope-toggle" role="group" aria-label="Filter side bet ledger"><button type="button" className={sideBetLedgerScope === "all" ? "active" : ""} aria-pressed={sideBetLedgerScope === "all"} onClick={() => setSideBetLedgerScope("all")}>All Bets</button><button type="button" className={sideBetLedgerScope === "mine" ? "active" : ""} aria-pressed={sideBetLedgerScope === "mine"} onClick={() => setSideBetLedgerScope("mine")}>My Bets</button></div><div className="side-bet-game-filter-toggle" role="group" aria-label="Filter side bets by game status"><button type="button" className={sideBetLedgerGameFilter === "all" ? "active" : ""} aria-pressed={sideBetLedgerGameFilter === "all"} onClick={() => setSideBetLedgerGameFilter("all")}>All</button><button type="button" className={sideBetLedgerGameFilter === "upcoming" ? "active" : ""} aria-pressed={sideBetLedgerGameFilter === "upcoming"} onClick={() => setSideBetLedgerGameFilter("upcoming")}>Upcoming</button><button type="button" className={sideBetLedgerGameFilter === "completed" ? "active" : ""} aria-pressed={sideBetLedgerGameFilter === "completed"} onClick={() => setSideBetLedgerGameFilter("completed")}>Completed</button></div></div><div className="ledger-list">{!previewActive && !sideBetLedgerReady && <p className="muted">Loading side bet ledger…</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.length === 0 && <p className="muted ledger-empty-state">No side bets in the ledger yet.</p>}{(previewActive || sideBetLedgerReady) && viewedSideBetLedger.map((bet) => <SideBetLedgerRow key={bet.id} bet={bet} currentUser={currentUser} />)}</div></div>
         </>}
       </section>}
 
