@@ -36,6 +36,7 @@ import GroupMoneyControls from "@/components/GroupMoneyControls";
 import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoints";
 import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
 import { appLoginPath } from "@/lib/appIdentity";
+import { visibleOwnSideBetOffers } from "@/lib/sideBetVisibility";
 import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetResponseSummary, sideBetsForView } from "@/lib/sideBetPresentation";
 import { orderCardPicks } from "@/lib/cardOrdering";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
@@ -134,7 +135,7 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
   const slipClosingRef = useRef(false);
   const received = sideBetsForView(sideBets, currentUser.id, "received");
   const sent = sideBetsForView(sideBets, currentUser.id, "sent");
-  const offers = [...received, ...sent];
+  const offers = visibleOwnSideBetOffers([...received, ...sent], hideAcceptedBets);
   const otherPlayers = profiles.filter((profile) => profile.id !== currentUser.id);
   const offeredTeam = selectedGame ? (selectedCreatorTeam === selectedGame.home_team ? selectedGame.away_team : selectedGame.home_team) : "";
   const selectedGameRef = useRef(selectedGame);
@@ -471,7 +472,7 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
 
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
     <div className={`view-select-row side-bet-filter-row ${view === "new" && weekIsOpen && !weekConcluded ? "make-offer" : ""}`.trim()}>
-      <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "offers", label: "Offers", badge: offerNotificationCount }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => {
+      <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "offers", label: "Offers", badge: hideAcceptedBets ? 0 : offerNotificationCount }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => {
         if (value === "new" && currentUser.side_bet_offers_disabled) {
           onBlockedOffer();
           return;
@@ -634,7 +635,7 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
         </div>
       </section>}
 
-    {view === "offers" && (weekIsOpen || weekConcluded) && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter) && !(hideAcceptedBets && (bet.status === "accepted" || bet.status === "settled")))} currentUser={currentUser} marketQuotes={marketQuotes} empty={weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
+    {view === "offers" && (weekIsOpen || weekConcluded) && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter))} currentUser={currentUser} marketQuotes={marketQuotes} empty={hideAcceptedBets ? "No offers yet." : weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
