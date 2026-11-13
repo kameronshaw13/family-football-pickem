@@ -95,6 +95,7 @@ type TrackerPayload = {
     title: string;
     labels: string[];
     athletes: Array<{ name: string; values: string[] }>;
+    totals?: string[];
   }>;
 };
 
@@ -259,20 +260,25 @@ function FieldFootballIcon() {
 }
 
 function PlayRow({ play, compact = false }: { play: TrackerPlay; compact?: boolean }) {
-  const withoutClock = playTextWithoutDuplicateClock(play.text, play.clock);
-  // ESPN may include a second time at the start of its description. Treat that
-  // as the play-start clock and keep the official event clock as the end time.
-  const timeMatch = withoutClock.match(/^\s*\((\d{1,2}:\d{2})\)\s*/);
-  const startClock = timeMatch && timeMatch[1] !== play.clock ? timeMatch[1] : null;
-  const description = startClock ? playTextWithoutDuplicateClock(withoutClock.slice(timeMatch![0].length), play.clock) : withoutClock;
+  // ESPN sometimes prefixes a start clock in parentheses, while the event clock
+  // represents the end of the play. Position them at opposite ends of the copy.
+  const raw = playTextWithoutDuplicateClock(play.text, play.clock);
+  const timeMatch = raw.match(/^\\s*\\(?(\\d{1,2}:\\d{2})\\)?(?=\\s|$)[\\s:–—-]*/);
+  const startClock = timeMatch?.[1] || play.clock;
+  const endClock = timeMatch && play.clock && timeMatch[1] !== play.clock ? play.clock : "";
+  const description = timeMatch ? raw.slice(timeMatch[0].length).trimStart() : raw;
+
   return <div className={`game-tracker-drive-play ${compact ? "compact" : ""}`.trim()}>
     <div>
       <div className="game-tracker-play-context">
         {play.situation && <span>{play.situation}</span>}
         {play.outcome && <b className="game-tracker-play-outcome">{play.outcome}</b>}
       </div>
-      <strong>{description}</strong>
-      {(play.clock || startClock) && <small className="game-tracker-play-timing">{startClock && <span>Start {startClock}</span>}{play.clock && <span>{startClock ? "End " : "Clock "}{play.clock}</span>}</small>}
+      <strong className="game-tracker-play-copy">
+        {startClock && <time className="game-tracker-play-start">{startClock}</time>}
+        <span>{description}</span>
+        {endClock && <time className="game-tracker-play-end">{endClock}</time>}
+      </strong>
     </div>
   </div>;
 }
@@ -518,14 +524,24 @@ function TeamStats({ payload }: { payload: TrackerPayload }) {
   </section>;
 }
 
+function compactPlayerName(name: string) {
+  const parts = name.trim().split(/\\s+/);
+  if (parts.length < 2 || /^[A-Z]\\.$/.test(parts[0])) return name;
+  return `${parts[0].charAt(0)}. ${parts.slice(1).join(" ")}`;
+}
+
 function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
   const targetsIndex = row.category.includes("receiv") ? row.labels.findIndex((label) => /^(TGT|TGTS|TARGETS?)$/i.test(label)) : -1;
   const labelOrder = row.labels.map((_, index) => index);
   if (targetsIndex > 0) labelOrder.unshift(labelOrder.splice(targetsIndex, 1)[0]);
   const visibleLabels = labelOrder.map((index) => row.labels[index]);
   const scroller = useRef<HTMLDivElement>(null);
-  // Align stat columns after the longest player name while preserving horizontal scrolling.
-  const nameColumnWidth = Math.max(110, Math.min(185, Math.ceil(Math.max(row.title.length, ...row.athletes.map((athlete) => athlete.name.length)) * 6.3 + 12)));
+  const displayNames = row.athletes.map((athlete) => compactPlayerName(athlete.name));
+  // Reserve just enough for the widest unwrapped name; the remaining space is
+  // divided evenly across stat columns with no blank right-hand gutter.
+  const nameColumnWidth = Math.max(94, Math.min(190, Math.ceil(Math.max(row.title.length, ...displayNames.map((name) => name.length)) * 6.5 + 12)));
+  const minTableWidth = nameColumnWidth + visibleLabels.length * 34;
+  const showTeamTotals = row.athletes.length > 1;
 
   useEffect(() => {
     const element = scroller.current;
@@ -558,13 +574,15 @@ function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
   }, []);
 
   return <div ref={scroller} className="game-tracker-player-table-scroll" tabIndex={0} role="region" aria-label={`${row.title} player statistics, scroll horizontally for more columns`}>
-    <table className="game-tracker-player-table" aria-label={row.title} style={{ width: `${nameColumnWidth + visibleLabels.length * 44}px` }}>
-      <colgroup><col style={{ width: nameColumnWidth }} />{visibleLabels.map((label, index) => <col key={`${label}-${index}`} style={{ width: 44 }} />)}</colgroup>
+    <table className="game-tracker-player-table" aria-label={row.title} style={{ width: "100%", minWidth: `${minTableWidth}px` }}>
+      <colgroup><col style={{ width: nameColumnWidth }} />{visibleLabels.map((label, index) => <col key={`${label}-${index}`} />)}</colgroup>
       <thead><tr><th scope="col">{row.title.replace(/\b(Kick|Punt)\s*Returns?\b/gi, (_match, kind: string) => `${kind} Return`)}</th>{visibleLabels.map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead>
-      <tbody>{row.athletes.map((athlete) => <tr key={athlete.name}>
-        <th scope="row">{athlete.name}</th>
+      <tbody>{row.athletes.map((athlete, athleteIndex) => <tr key={athlete.name}>
+        <th scope="row" title={athlete.name}>{displayNames[athleteIndex]}</th>
         {visibleLabels.map((_, index) => <td key={index}>{athlete.values[labelOrder[index]] ?? "—"}</td>)}
-      </tr>)}</tbody>
+      </tr>)}
+      {showTeamTotals && <tr className="game-tracker-team-total"><th scope="row">Team</th>{visibleLabels.map((_, index) => <td key={index}>{row.totals?.[labelOrder[index]] ?? "—"}</td>)}</tr>}
+      </tbody>
     </table>
   </div>;
 }
