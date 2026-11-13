@@ -188,7 +188,7 @@ function ScoreboardCenter({ payload, game, completed }: { payload: TrackerPayloa
   return <div className="game-tracker-score-center">
     <span className="game-tracker-center-period">{state.period}</span>
     {state.clock && <strong className="game-tracker-center-clock">{state.clock}</strong>}
-    {situation && <small>{situation}</small>}
+    {situation && <small className={payload?.situation.redZone ? "game-tracker-red-zone-position" : ""}>{payload?.situation.redZone ? (payload.situation.fieldPosition || "Red Zone") : situation}</small>}
   </div>;
 }
 
@@ -243,7 +243,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
 
   return <div className={`game-tracker-score-team ${side}`} aria-label={`${fullName} ${score ?? "score unavailable"}`}>
     <div className="game-tracker-score-team-main">
-      <TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={50} />
+      <TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={56} />
       <div className="game-tracker-score-stack">
         <b className={scoreTone}>{score ?? "—"}</b>
         {!completed && <TimeoutDots remaining={timeouts} />}
@@ -287,7 +287,7 @@ function LiveCurrentDrive({ drive, payload }: { drive: TrackerDrive; payload: Tr
       <div><strong>Current Drive</strong><small className="game-tracker-drive-meta"><MetaDots items={meta} /></small></div>
     </header>
     <div className="game-tracker-live-drive-plays">
-      {drive.plays.length ? drive.plays.slice(0, 4).map((play) => <PlayRow key={play.id} play={play} compact />) : <p className="game-tracker-drive-empty">Waiting for the first play…</p>}
+      {drive.plays.length ? drive.plays.map((play) => <PlayRow key={play.id} play={play} compact />) : <p className="game-tracker-drive-empty">Waiting for the first play…</p>}
     </div>
   </section>;
 }
@@ -316,8 +316,9 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
     <div className="game-tracker-live-meta">
       <div className="game-tracker-possession-label">
         <TeamLogo src={offense.logo} name={offense.name} size={22} />
-        <strong>{trackerTeamLabel(offense)}</strong>
-        <span>Ball</span>
+        <strong>{offense.shortName || trackerTeamLabel(offense)}</strong>
+        <FieldFootballIcon />
+        <strong className="game-tracker-ball-label">Ball</strong>
       </div>
     </div>
 
@@ -518,6 +519,8 @@ function TeamStats({ payload }: { payload: TrackerPayload }) {
 function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
   const visibleLabels = row.labels;
   const scroller = useRef<HTMLDivElement>(null);
+  // Align stat columns after the longest player name while preserving horizontal scrolling.
+  const nameColumnWidth = Math.max(152, Math.min(238, Math.ceil(Math.max(row.title.length, ...row.athletes.map((athlete) => athlete.name.length)) * 7 + 28)));
 
   useEffect(() => {
     const element = scroller.current;
@@ -550,9 +553,9 @@ function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
   }, []);
 
   return <div ref={scroller} className="game-tracker-player-table-scroll" tabIndex={0} role="region" aria-label={`${row.title} player statistics, scroll horizontally for more columns`}>
-    <table className="game-tracker-player-table" aria-label={row.title} style={{ width: `max(100%, ${152 + visibleLabels.length * 44}px)` }}>
-      <colgroup><col style={{ width: 152 }} />{visibleLabels.map((label, index) => <col key={`${label}-${index}`} style={{ width: 44 }} />)}</colgroup>
-      <thead><tr><th scope="col">{row.title}</th>{visibleLabels.map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead>
+    <table className="game-tracker-player-table" aria-label={row.title} style={{ width: `max(100%, ${nameColumnWidth + visibleLabels.length * 44}px)` }}>
+      <colgroup><col style={{ width: nameColumnWidth }} />{visibleLabels.map((label, index) => <col key={`${label}-${index}`} style={{ width: 44 }} />)}</colgroup>
+      <thead><tr><th scope="col">{row.title.replace(/\b(Kick|Punt)\s*Returns?\b/gi, (_match, kind: string) => `${kind} Return`)}</th>{visibleLabels.map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead>
       <tbody>{row.athletes.map((athlete) => <tr key={athlete.name}>
         <th scope="row">{athlete.name}</th>
         {visibleLabels.map((_, index) => <td key={index}>{athlete.values[index] ?? "—"}</td>)}
