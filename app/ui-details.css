@@ -5089,7 +5089,7 @@ button, input, select, textarea {
   min-height: 106px;
   padding: var(--ui-space-3) var(--tracker-inset);
   align-items: center;
-  background: linear-gradient(to right, color-mix(in srgb, var(--tracker-away-color, transparent) 24%, var(--panel)) 0%, var(--panel) 43%, var(--panel) 57%, color-mix(in srgb, var(--tracker-home-color, transparent) 24%, var(--panel)) 100%);
+  background: linear-gradient(to right, color-mix(in srgb, var(--tracker-away-color, transparent) 43%, var(--panel)) 0%, var(--panel) 43%, var(--panel) 57%, color-mix(in srgb, var(--tracker-home-color, transparent) 43%, var(--panel)) 100%);
 }
 .game-tracker-score-team-main { gap: var(--ui-space-2); }
 .game-tracker-score-team.home .game-tracker-score-team-main { flex-direction: row-reverse; }
@@ -5135,6 +5135,7 @@ button, input, select, textarea {
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--tracker-divider);
+  border-top: 2px solid var(--tracker-section-divider);
   border-radius: var(--ui-radius-md);
   background: var(--tracker-row-fill);
 }
@@ -5209,6 +5210,7 @@ button, input, select, textarea {
   margin: 0;
   padding: 9px var(--tracker-inset);
   border: 1px solid var(--tracker-divider);
+  border-top: 2px solid var(--tracker-section-divider);
   border-bottom: 1px solid var(--tracker-divider);
   border-radius: var(--ui-radius-md);
   color: var(--header-muted);
@@ -5351,7 +5353,7 @@ button, input, select, textarea {
 }
 .game-tracker-team-stats {
   overflow: hidden;
-  border: 1px solid var(--tracker-divider);
+  border: 1px solid var(--tracker-section-divider);
   border-radius: var(--ui-radius-md);
   background: var(--panel);
 }
@@ -5359,7 +5361,7 @@ button, input, select, textarea {
   min-height: 40px;
   padding-inline: var(--tracker-inset);
   border: 0;
-  border-bottom: 1px solid var(--tracker-divider);
+  border-bottom: 2px solid var(--tracker-section-divider);
   background: var(--tracker-header-fill);
 }
 .game-tracker-team-stats > .game-tracker-stat-table-head,
@@ -5406,6 +5408,7 @@ button, input, select, textarea {
   margin: 0;
   padding: var(--ui-space-2) var(--tracker-inset);
   border: 0;
+  border-top: 2px solid var(--tracker-section-divider);
   border-bottom: 1px solid var(--tracker-divider);
   color: var(--header-muted);
   background: var(--tracker-header-fill);
@@ -5785,10 +5788,18 @@ button, input, select, textarea {
 .cbb-analytics > .cbb-stats-key { margin: 0; padding: var(--ui-space-3); border-bottom: 1px solid var(--line); }
 .basketball-shot-filters .basketball-period-select { min-height: 36px; }
 
+/* Football GameTracker header and logo refinements; other sheets keep their own spacing. */
+.game-tracker-header { height: 44px; min-height: 44px; flex-basis: 44px; }
+.game-tracker-score-team-main > img { width: 56px; height: 56px; object-fit: contain; }
+.game-tracker-score-center > .game-tracker-red-zone-position { color: #c52b30; font-weight: 850; }
+.game-tracker-possession-label > .game-tracker-field-football { display: inline-flex; width: 21px; height: 13px; flex: 0 0 21px; color: #8e4c2c; }
+.game-tracker-possession-label > .game-tracker-ball-label { color: var(--ink); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: none; }
+.game-tracker-endzone img, .game-tracker-endzone .game-tracker-logo-fallback { box-sizing: border-box; padding: 1px; border: 1px solid rgba(255,255,255,.95); border-radius: 2px; background: #fff; filter: none; object-fit: contain; }
+.game-tracker-drives > .game-tracker-plays-quarter-header:first-child { border-top: 2px solid var(--tracker-section-divider); }
+.game-tracker-collapsed-quarter-headers > .game-tracker-plays-quarter-header:first-child { border-top: 2px solid var(--tracker-section-divider); }
+
 /* Compact top row shared by football and basketball detail sheets. */
-.game-tracker-header, .matchup-preview-header {
-  height: 50px; min-height: 50px; flex-basis: 50px;
-}
+.matchup-preview-header { height: 50px; min-height: 50px; flex-basis: 50px; }
 
 /* Basketball sections use the same flat rows and single dividers as football. */
 .basketball-details .basketball-play-list { gap: 0; padding: 0; }
