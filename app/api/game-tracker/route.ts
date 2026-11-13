@@ -235,11 +235,24 @@ function normalizePlayerStats(boxscore: any, homeId: string, awayId: string) {
     for (const category of team?.statistics || []) {
       const key = String(category?.name || category?.label || category?.displayName || "stats").toLowerCase();
       const title = String(category?.displayName || category?.label || category?.name || "Stats");
-      const labels = Array.isArray(category?.labels) ? category.labels.map((label: any) => String(label)) : [];
-      const athletes = (category?.athletes || []).map((row: any) => ({
-        name: String(row?.athlete?.shortName || row?.athlete?.displayName || "Player"),
-        values: Array.isArray(row?.stats) ? row.stats.map((value: any) => String(value)) : []
-      }));
+      const labels: string[] = Array.isArray(category?.labels) ? category.labels.map((label: any) => String(label)) : [];
+      const isReceiving = /receiv/.test(key) || /receiv/i.test(title);
+      const providerTargetIndex = labels.findIndex((label: string) => /^(tgt|tgts|targets?)$/i.test(label.trim()));
+      // ESPN's summary does not always include targets in category.labels.
+      // Add the column when missing, but never invent a target count.
+      const addTargetColumn = isReceiving && providerTargetIndex < 0;
+      if (addTargetColumn) labels.unshift("TGT");
+      const athletes = (category?.athletes || []).map((row: any) => {
+        const values = Array.isArray(row?.stats) ? row.stats.map((value: any) => String(value)) : [];
+        if (addTargetColumn) {
+          const targetValue = row?.receivingTargets ?? row?.targetCount ?? row?.statistics?.receivingTargets ?? row?.athlete?.statistics?.receivingTargets;
+          values.unshift(targetValue == null ? "—" : String(targetValue));
+        }
+        return {
+          name: String(row?.athlete?.shortName || row?.athlete?.displayName || "Player"),
+          values
+        };
+      });
       if (!athletes.length) continue;
       out.push({ side, category: key, title, labels, athletes });
     }
