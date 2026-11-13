@@ -55,7 +55,7 @@ test("basketball group pick lock and spread freeze are separate", async () => {
   const { getGroupGameLockTime, getGroupSpreadFreezeTime } = await import("../lib/groupContext.ts");
   const context = { rules: { sport: "basketball" }, group: { timezone: "America/Chicago" } } as any;
   const tipoff = "2026-11-15T20:00:00Z";
-  assert.equal(getGroupGameLockTime(context, tipoff).toISOString(), tipoff);
+  assert.equal(getGroupGameLockTime(context, tipoff).getTime(), Date.parse(tipoff));
   assert.equal(getGroupSpreadFreezeTime(context, tipoff).toISOString(), "2026-11-15T19:00:00.000Z");
 });
 test("NBA side bets start October 28 while basketball picks still wait for November 1", () => {
