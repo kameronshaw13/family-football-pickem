@@ -215,10 +215,9 @@ export default function SettingsPanel({
         <span className="settings-row-copy"><strong>Sign Out</strong><span>Sign out on this device.</span></span>
         <ChevronRight size={17} />
       </button>
-      <div className="settings-hide-bet-history" role="group" aria-label="Hide accepted side bet details">
-        <button type="button" className={hideAcceptedBets ? "active" : ""} aria-pressed={hideAcceptedBets} onClick={() => onHideAcceptedBetsChange(true)}>On</button>
-        <button type="button" className={!hideAcceptedBets ? "active" : ""} aria-pressed={!hideAcceptedBets} onClick={() => onHideAcceptedBetsChange(false)}>Off</button>
-      </div>
+      <button type="button" className={`settings-hide-bet-history${hideAcceptedBets ? " active" : ""}`} aria-label="Hide my side bets" aria-pressed={hideAcceptedBets} onClick={() => onHideAcceptedBetsChange(!hideAcceptedBets)}>
+        {hideAcceptedBets ? "On" : "Off"}
+      </button>
 
     </div>
   </section>;
