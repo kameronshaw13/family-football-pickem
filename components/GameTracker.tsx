@@ -520,7 +520,7 @@ function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
   const visibleLabels = row.labels;
   const scroller = useRef<HTMLDivElement>(null);
   // Align stat columns after the longest player name while preserving horizontal scrolling.
-  const nameColumnWidth = Math.max(152, Math.min(238, Math.ceil(Math.max(row.title.length, ...row.athletes.map((athlete) => athlete.name.length)) * 7 + 28)));
+  const nameColumnWidth = Math.max(152, Math.min(238, Math.ceil(Math.max(row.title.length, ...row.athletes.map((athlete) => athlete.name.length)) * 7 + (row.category.includes("receiv") ? 44 : 28))));
 
   useEffect(() => {
     const element = scroller.current;
