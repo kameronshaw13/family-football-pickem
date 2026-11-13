@@ -6107,7 +6107,29 @@ html[data-theme="dark"] .basketball-live-court { border-color: #b98859; backgrou
 .basketball-details .basketball-box th:first-child { width: auto; min-width: 85px; max-width: none; white-space: nowrap; overflow-wrap: normal; }
 .basketball-details .basketball-box th:not(:first-child), .basketball-details .basketball-box td { width: auto; min-width: 34px; }
 .basketball-details .game-tracker-scroll { overscroll-behavior-y: contain; }
-.settings-hide-bet-history { display: grid; gap: var(--ui-space-2); padding: var(--ui-space-3); }
-.settings-hide-bet-history > .theme-toggle { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0; }
-.settings-hide-bet-history > .theme-toggle button { min-height: 36px; }
+.settings-hide-bet-history {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 52px);
+  gap: 0;
+  align-self: flex-start;
+  margin: 0 0 0 var(--ui-space-3);
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--ui-radius-control);
+  background: var(--surface-muted);
+}
+.settings-hide-bet-history > button {
+  min-height: 30px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.settings-hide-bet-history > button + button { border-left: 1px solid var(--line-strong); }
+.settings-hide-bet-history > button.active { color: var(--ink); background: var(--panel); }
+.settings-hide-bet-history > button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 html[data-theme="dark"] .basketball-court-floor { fill: #a88761; stroke: #d3b18a; }
