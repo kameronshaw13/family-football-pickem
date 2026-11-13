@@ -581,9 +581,9 @@ function BoxScore({ payload }: { payload: TrackerPayload }) {
 
   return <div className="game-tracker-box">
     <div className="game-tracker-box-selector" role="group" aria-label="Choose box score team">
-      <button type="button" className={view === "away" ? "active" : ""} aria-pressed={view === "away"} onClick={() => setView("away")}><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><span>{payload.teams.away.abbreviation || trackerTeamLabel(payload.teams.away) || "Away"}</span></button>
+      <button type="button" className={view === "away" ? "active" : ""} aria-pressed={view === "away"} onClick={() => setView("away")}><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><span>{payload.league === "NFL" ? payload.teams.away.shortName : teamDisplayName("CFB", payload.teams.away.name || payload.teams.away.shortName)}</span></button>
       <button type="button" className={view === "all" ? "active" : ""} aria-pressed={view === "all"} onClick={() => setView("all")}>All</button>
-      <button type="button" className={view === "home" ? "active" : ""} aria-pressed={view === "home"} onClick={() => setView("home")}><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /><span>{payload.teams.home.abbreviation || trackerTeamLabel(payload.teams.home) || "Home"}</span></button>
+      <button type="button" className={view === "home" ? "active" : ""} aria-pressed={view === "home"} onClick={() => setView("home")}><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /><span>{payload.league === "NFL" ? payload.teams.home.shortName : teamDisplayName("CFB", payload.teams.home.name || payload.teams.home.shortName)}</span></button>
     </div>
     {view === "all" ? <TeamStats payload={payload} /> : <TeamBox payload={payload} side={view} />}
   </div>;
