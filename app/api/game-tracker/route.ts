@@ -455,7 +455,7 @@ export async function GET(req: NextRequest) {
         distance,
         yardsToGoal,
         fieldPosition: fieldPositionText(situation),
-        redZone: Boolean(situation?.isRedZone),
+        redZone: Boolean(situation?.isRedZone || (!kickoff && yardsToGoal != null && yardsToGoal <= 20 && yardsToGoal >= 0)),
         downDistanceText,
         homeTimeouts: remainingTimeouts(competitionSituation?.homeTimeouts ?? payloadSituation?.homeTimeouts, home),
         awayTimeouts: remainingTimeouts(competitionSituation?.awayTimeouts ?? payloadSituation?.awayTimeouts, away)
