@@ -264,7 +264,7 @@ function PlayRow({ play, compact = false }: { play: TrackerPlay; compact?: boole
   // as the play-start clock and keep the official event clock as the end time.
   const timeMatch = withoutClock.match(/^\s*\((\d{1,2}:\d{2})\)\s*/);
   const startClock = timeMatch && timeMatch[1] !== play.clock ? timeMatch[1] : null;
-  const description = startClock ? withoutClock.slice(timeMatch![0].length) : withoutClock;
+  const description = startClock ? playTextWithoutDuplicateClock(withoutClock.slice(timeMatch![0].length), play.clock) : withoutClock;
   return <div className={`game-tracker-drive-play ${compact ? "compact" : ""}`.trim()}>
     <div>
       <div className="game-tracker-play-context">
