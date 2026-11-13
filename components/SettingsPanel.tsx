@@ -192,7 +192,7 @@ export default function SettingsPanel({
       </details>
     </div>
 
-    <div className="settings-section">
+    <div className="settings-section settings-account-section">
       <h3>Account</h3>
       <details className="settings-card settings-detail settings-password-detail">
         <summary>
