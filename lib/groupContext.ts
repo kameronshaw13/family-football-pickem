@@ -1,4 +1,4 @@
-import { basketballGameAvailableForSideBets, basketballGameInSeason, basketballLockTime, basketballWeekBounds, isBasketballRules } from "./basketballRules";
+import { basketballGameAvailableForSideBets, basketballGameInSeason, basketballLockTime, basketballPickLockTime, basketballWeekBounds, isBasketballRules } from "./basketballRules";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game, WeekRule } from "@/lib/types";
 import { getGameLockTime, getPickWeekOpenTime, getSpreadFreezeTime } from "@/lib/lockRules";
@@ -184,7 +184,7 @@ export function getGroupPickWeekOpenTime(context: GroupContext, week: number, co
 }
 
 export function getGroupGameLockTime(context: GroupContext, commenceTimeIso: string) {
-  return isBasketballRules(context.rules) ? basketballLockTime(commenceTimeIso) : getGameLockTime(commenceTimeIso, context.group.timezone);
+  return isBasketballRules(context.rules) ? basketballPickLockTime(commenceTimeIso) : getGameLockTime(commenceTimeIso, context.group.timezone);
 }
 
 export function getGroupSpreadFreezeTime(context: GroupContext, commenceTimeIso: string) {

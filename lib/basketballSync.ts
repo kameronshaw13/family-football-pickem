@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game } from "./types";
-import { basketballGameAvailableForSideBets, basketballGameInSeason, basketballLockTime, basketballWeek, BASKETBALL_LEAGUES } from "./basketballRules";
+import { basketballGameAvailableForSideBets, basketballGameInSeason, basketballLockTime, basketballPickLockTime, basketballWeek, BASKETBALL_LEAGUES } from "./basketballRules";
 import { fetchEspnDivisionOneTeamIds, isDivisionOneMatchup } from "./espnDivisionOne";
 import { fetchEspnSchedule } from "./espnSchedule";
 import { recoverMissingClosingSpreads } from "./closingSpreadSync";
@@ -32,7 +32,7 @@ export async function refreshBasketballSlate(supabase: SupabaseClient, now = new
       const id = `espn-${league.toLowerCase()}-${event.id}`;
       if (event.completed) completedIds.add(id);
       const old = prior.get(id);
-      const lock = basketballLockTime(event.commenceTime);
+      const lock = basketballPickLockTime(event.commenceTime);
       rows.push({
         ...old,
         id, espn_event_id: event.id, week: basketballWeek(new Date(event.commenceTime)), league,
@@ -44,7 +44,7 @@ export async function refreshBasketballSlate(supabase: SupabaseClient, now = new
         current_spread_team: old?.current_spread_team ?? null,
         current_spread: old?.current_spread ?? null,
         current_bookmaker: old?.current_bookmaker ?? null,
-        lock_time: lock.toISOString(), is_locked: Boolean(old?.is_locked || now >= lock),
+        lock_time: lock.toISOString(), is_locked: now >= lock,
         final_home_score: old?.final_home_score ?? null, final_away_score: old?.final_away_score ?? null,
         // Mixed existing/new batches otherwise send NULL for the new rows' created_at.
         created_at: old?.created_at ?? now.toISOString(),

@@ -81,7 +81,7 @@ export function ConferenceFilter({ value, onChange }: { value: string; onChange:
   />;
 }
 
-export function BankBalanceHistoryRow({ player, weeks }: { player: { id: string; display_name: string; total: number }; weeks: BankHistoryWeek[] }) {
+export function BankBalanceHistoryRow({ player, weeks, hideAcceptedBets = false }: { player: { id: string; display_name: string; total: number }; weeks: BankHistoryWeek[]; hideAcceptedBets?: boolean }) {
   const payoutLabels = bankPayoutLabels(weeks);
   const playerWeeks = weeks.map((week) => {
     const weeklyAmount = Object.prototype.hasOwnProperty.call(week.weeklyAmounts || {}, player.id)
@@ -136,7 +136,8 @@ export function BankBalanceHistoryRow({ player, weeks }: { player: { id: string;
             <span>Weekly Pick’em</span>
             <strong className={week.weeklyAmount > 0 ? "money-pos" : week.weeklyAmount < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.weeklyAmount)} /></strong>
           </div>}
-          {week.games.map((game) => {
+          {hideAcceptedBets && week.games.length > 0 && <div className="bank-history-line"><span>Side Bets</span><strong className={week.games.reduce((sum, game) => sum + game.playerAmount, 0) > 0 ? "money-pos" : week.games.reduce((sum, game) => sum + game.playerAmount, 0) < 0 ? "money-neg" : "money-neutral"}><NumericText text={money(week.games.reduce((sum, game) => sum + game.playerAmount, 0))} /></strong></div>}
+          {!hideAcceptedBets && week.games.map((game) => {
             const awayFull = teamDisplayName(game.league, game.awayTeam);
             const homeFull = teamDisplayName(game.league, game.homeTeam);
             const awayCompact = teamAbbreviatedName(game.league, game.awayTeam);

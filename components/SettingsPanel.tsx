@@ -37,6 +37,8 @@ export default function SettingsPanel({
   rulesLoading,
   loginPath,
   onCountsChanged,
+  hideAcceptedBets,
+  onHideAcceptedBetsChange,
   selectedLeagueSlug,
   onLeagueSelect
 }: {
@@ -47,6 +49,8 @@ export default function SettingsPanel({
   rulesLoading: boolean;
   loginPath: string;
   onCountsChanged: (counts: Record<string, number>) => void;
+  hideAcceptedBets: boolean;
+  onHideAcceptedBetsChange: (hidden: boolean) => void;
   selectedLeagueSlug: AppSlug;
   onLeagueSelect: (league: LeagueMembership) => void;
 }) {
@@ -211,6 +215,17 @@ export default function SettingsPanel({
         <span className="settings-row-copy"><strong>Sign Out</strong><span>Sign out on this device.</span></span>
         <ChevronRight size={17} />
       </button>
+      <div className="settings-card settings-hide-bet-history">
+        <div className="settings-row-copy">
+          <strong>Hide Accepted Side Bets</strong>
+          <span>Only hides offer history, ledger details and bank history. Totals and bets stay unchanged.</span>
+        </div>
+        <div className="theme-toggle" role="group" aria-label="Hide accepted side bet details">
+          <button type="button" className={hideAcceptedBets ? "active" : ""} aria-pressed={hideAcceptedBets} onClick={() => onHideAcceptedBetsChange(true)}>On</button>
+          <button type="button" className={!hideAcceptedBets ? "active" : ""} aria-pressed={!hideAcceptedBets} onClick={() => onHideAcceptedBetsChange(false)}>Off</button>
+        </div>
+      </div>
+
     </div>
   </section>;
 }
