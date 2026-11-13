@@ -690,6 +690,30 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, [appSlug, data?.currentUser?.id, sessionValidated]);
+  // A League Card view is recorded only when that section is actually visible.
+  // Re-entering it (or returning to the visible browser tab) counts as a new visit.
+  useEffect(() => {
+    if (!sessionValidated || !data?.currentUser?.id || tab !== "card" || cardView !== "group") return;
+    if (appSlug !== "friends" && appSlug !== "shaw-family" && appSlug !== "friends-basketball") return;
+    let lastRecorded = 0;
+    const recordView = () => {
+      if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (now - lastRecorded < 1000) return;
+      const token = window.localStorage.getItem("pickem_session_token");
+      if (!token) return;
+      lastRecorded = now;
+      void fetch("/api/app-open?eventType=league_card_view", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
+        cache: "no-store"
+      }).catch(() => { /* Activity tracking must not interrupt navigation. */ });
+    };
+    recordView();
+    document.addEventListener("visibilitychange", recordView);
+    return () => document.removeEventListener("visibilitychange", recordView);
+  }, [appSlug, cardView, data?.currentUser?.id, sessionValidated, tab]);
+
   useEffect(() => {
     const badgeNavigator = navigator as BadgeNavigator;
     if (notificationCounts.total > 0) void badgeNavigator.setAppBadge?.(notificationCounts.total);
