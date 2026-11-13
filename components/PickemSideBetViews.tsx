@@ -74,7 +74,7 @@ import {
   conferenceFilterSections,
 } from "@/components/PickemStandingsViews";
 
-export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview, onBlockedOffer }: {
+export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, hideAcceptedBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview, onBlockedOffer }: {
   appSlug: AppSlug;
   view: BetView;
   setView: (value: BetView) => void;
@@ -82,6 +82,7 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
   currentUser: Profile;
   profiles: Profile[];
   sideBets: SideBet[];
+  hideAcceptedBets: boolean;
   slotCounts: Record<string, number>;
   maxPerWeek: number | null;
   maxAmount: number;
@@ -633,7 +634,7 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
         </div>
       </section>}
 
-    {view === "offers" && (weekIsOpen || weekConcluded) && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter))} currentUser={currentUser} marketQuotes={marketQuotes} empty={weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
+    {view === "offers" && (weekIsOpen || weekConcluded) && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter) && !(hideAcceptedBets && (bet.status === "accepted" || bet.status === "settled")))} currentUser={currentUser} marketQuotes={marketQuotes} empty={weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>
