@@ -43,7 +43,7 @@ function normalizeScoringPlay(play: any, homeId: string, awayId: string, index: 
     teamSide: teamId === homeId ? "home" : teamId === awayId ? "away" : null,
     homeScore: finite(play?.homeScore),
     awayScore: finite(play?.awayScore),
-    type: playOutcome(play) || String(play?.type?.text || "")
+    type: playOutcome({ ...play, scoringPlay: true }) || String(play?.type?.text || "")
   };
 }
 
@@ -57,6 +57,9 @@ function playOutcome(play: any) {
   if (/extra point/.test(combined)) return "Extra Point";
   if (/two.point|2.pt|two point/.test(combined)) return "2PT";
   if (/safety/.test(combined)) return "Safety";
+  // ESPN scoring summaries may say "47 yard run" / "Rush" without naming the touchdown.
+  // Only scoring plays receive this fallback, not ordinary runs or catches.
+  if (play?.scoringPlay && !/conversion failed|missed/i.test(combined)) return "Touchdown";
   if (/intercept/.test(combined)) return "Interception";
   if (/penalty/.test(combined)) return "Penalty";
   if (/fumble/.test(combined)) return "Fumble";
@@ -65,7 +68,7 @@ function playOutcome(play: any) {
 
   const yards = finite(play?.statYardage ?? play?.yards);
   if (yards === 0) return "No Gain";
-  if (yards != null) return `${yards} YD`;
+  if (yards != null) return `${yards > 0 ? "+" : ""}${yards} YD`;
   return "";
 }
 
@@ -225,6 +228,7 @@ function normalizePlayerStats(boxscore: any, homeId: string, awayId: string) {
     title: string;
     labels: string[];
     athletes: Array<{ name: string; values: string[] }>;
+    totals?: string[];
   }> = [];
 
   for (const team of players) {
@@ -240,7 +244,8 @@ function normalizePlayerStats(boxscore: any, homeId: string, awayId: string) {
       const providerTargetIndex = labels.findIndex((label: string) => /^(tgt|tgts|targets?)$/i.test(label.trim()));
       // ESPN's summary does not always include targets in category.labels.
       // Add the column when missing, but never invent a target count.
-      const addTargetColumn = isReceiving && providerTargetIndex < 0;
+      // Do not insert an unavailable targets column in college football.
+      const addTargetColumn = false;
       if (addTargetColumn) labels.unshift("TGT");
       const athletes = (category?.athletes || []).map((row: any) => {
         const values = Array.isArray(row?.stats) ? row.stats.map((value: any) => String(value)) : [];
@@ -254,7 +259,24 @@ function normalizePlayerStats(boxscore: any, homeId: string, awayId: string) {
         };
       });
       if (!athletes.length) continue;
-      out.push({ side, category: key, title, labels, athletes });
+      const rawTotals = Array.isArray(category?.totals) ? category.totals : null;
+      // ESPN team totals are preferred. Only sum simple counts if the feed omits them;
+      // non-additive averages and percentages are never fabricated.
+      const totals = rawTotals
+        ? rawTotals.map((value: unknown) => String(value))
+        : labels.map((label, index) => {
+          if (/avg|pct|percent|long|rating|rtg|rate/i.test(label)) return "—";
+          const values = athletes.map((athlete: { values: string[] }) => athlete.values[index] || "");
+          if (values.every((value: string) => /^-?\\d+(?:\\.\\d+)?$/.test(value))) {
+            return String(values.reduce((sum: number, value: string) => sum + Number(value), 0));
+          }
+          if (values.every((value: string) => /^\\d+\\/\\d+$/.test(value))) {
+            const counts = values.map((value: string) => value.split("/").map(Number));
+            return `${counts.reduce((sum: number, count: number[]) => sum + count[0], 0)}/${counts.reduce((sum: number, count: number[]) => sum + count[1], 0)}`;
+          }
+          return "—";
+        });
+      out.push({ side, category: key, title, labels, athletes, totals });
     }
   }
   return out;
@@ -320,15 +342,16 @@ export async function GET(req: NextRequest) {
           ...uniquePreviousDrives.slice().reverse().map((drive: any, index: number) => normalizeDrive(drive, homeId, awayId, false, index + 1, true, abbreviations))
         ];
 
-    const scoringDriveByPlay = new Map<string, { playsCount: number; yards: number | null; timeElapsed: string }>();
-    const scoringDriveByMoment = new Map<string, { playsCount: number; yards: number | null; timeElapsed: string }>();
+    const scoringDriveByPlay = new Map<string, { playsCount: number; yards: number | null; timeElapsed: string; playText: string }>();
+    const scoringDriveByMoment = new Map<string, { playsCount: number; yards: number | null; timeElapsed: string; playText: string }>();
     for (const drive of drives) {
       for (const play of drive.plays || []) {
         if (!play.scoringPlay) continue;
         const meta = {
           playsCount: Number(drive.playsCount || 0),
           yards: drive.yards == null ? null : Number(drive.yards),
-          timeElapsed: String(drive.timeElapsed || "")
+          timeElapsed: String(drive.timeElapsed || ""),
+          playText: String(play.text || "")
         };
         scoringDriveByPlay.set(String(play.id), meta);
         scoringDriveByMoment.set(`${play.period}|${play.clock}`, meta);
@@ -341,7 +364,7 @@ export async function GET(req: NextRequest) {
         const drive = scoringDriveByPlay.get(normalized.id) ||
           scoringDriveByMoment.get(`${normalized.period}|${normalized.clock}`) ||
           null;
-        return { ...normalized, drive };
+        return { ...normalized, text: drive?.playText || normalized.text, drive: drive ? { playsCount: drive.playsCount, yards: drive.yards, timeElapsed: drive.timeElapsed } : null };
       })
       .sort((a: any, b: any) => {
         const periodDiff = periodNumber(a.period) - periodNumber(b.period);
