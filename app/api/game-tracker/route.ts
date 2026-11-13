@@ -423,7 +423,7 @@ export async function GET(req: NextRequest) {
           name: String(away?.team?.displayName || game.away_team),
           shortName: String(league === "NFL"
             ? away?.team?.name || away?.team?.shortDisplayName || away?.team?.displayName || game.away_team
-            : away?.team?.shortDisplayName || away?.team?.location || away?.team?.displayName || game.away_team),
+            : away?.team?.location || away?.team?.shortDisplayName || away?.team?.displayName || game.away_team),
           abbreviation: String(away?.team?.abbreviation || ""),
           endZoneName: String(league === "NFL"
             ? away?.team?.location || away?.team?.shortDisplayName || game.away_team
@@ -438,7 +438,7 @@ export async function GET(req: NextRequest) {
           name: String(home?.team?.displayName || game.home_team),
           shortName: String(league === "NFL"
             ? home?.team?.name || home?.team?.shortDisplayName || home?.team?.displayName || game.home_team
-            : home?.team?.shortDisplayName || home?.team?.location || home?.team?.displayName || game.home_team),
+            : home?.team?.location || home?.team?.shortDisplayName || home?.team?.displayName || game.home_team),
           abbreviation: String(home?.team?.abbreviation || ""),
           endZoneName: String(league === "NFL"
             ? home?.team?.location || home?.team?.shortDisplayName || game.home_team
@@ -455,7 +455,7 @@ export async function GET(req: NextRequest) {
         distance,
         yardsToGoal,
         fieldPosition: fieldPositionText(situation),
-        redZone: Boolean(situation?.isRedZone),
+        redZone: Boolean(situation?.isRedZone || (!kickoff && yardsToGoal != null && yardsToGoal <= 20 && yardsToGoal >= 0)),
         downDistanceText,
         homeTimeouts: remainingTimeouts(competitionSituation?.homeTimeouts ?? payloadSituation?.homeTimeouts, home),
         awayTimeouts: remainingTimeouts(competitionSituation?.awayTimeouts ?? payloadSituation?.awayTimeouts, away)
