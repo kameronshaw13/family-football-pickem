@@ -5089,7 +5089,7 @@ button, input, select, textarea {
   min-height: 106px;
   padding: var(--ui-space-3) var(--tracker-inset);
   align-items: center;
-  background: linear-gradient(to right, color-mix(in srgb, var(--tracker-away-color, transparent) 43%, var(--panel)) 0%, var(--panel) 43%, var(--panel) 57%, color-mix(in srgb, var(--tracker-home-color, transparent) 43%, var(--panel)) 100%);
+  background: linear-gradient(to right, color-mix(in srgb, var(--tracker-away-color, transparent) 56%, var(--panel)) 0% 26%, var(--panel) 43% 57%, color-mix(in srgb, var(--tracker-home-color, transparent) 56%, var(--panel)) 74% 100%);
 }
 .game-tracker-score-team-main { gap: var(--ui-space-2); }
 .game-tracker-score-team.home .game-tracker-score-team-main { flex-direction: row-reverse; }
@@ -5135,7 +5135,6 @@ button, input, select, textarea {
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--tracker-divider);
-  border-top: 2px solid var(--tracker-section-divider);
   border-radius: var(--ui-radius-md);
   background: var(--tracker-row-fill);
 }
@@ -5323,7 +5322,7 @@ button, input, select, textarea {
 .game-tracker-box-selector {
   box-sizing: border-box;
   min-height: 53px;
-  grid-template-columns: minmax(0,1fr) 60px minmax(0,1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--ui-space-1);
   margin: 0;
   padding: var(--ui-space-2) var(--tracker-inset);
@@ -5344,7 +5343,7 @@ button, input, select, textarea {
 .game-tracker-box-selector button.active {
   border: 1px solid var(--header-muted);
   color: var(--ink);
-  background: var(--surface-muted);
+  background: var(--line-strong);
   font-weight: 850;
 }
 .game-tracker-box-selector button:focus-visible {
@@ -5353,7 +5352,7 @@ button, input, select, textarea {
 }
 .game-tracker-team-stats {
   overflow: hidden;
-  border: 1px solid var(--tracker-section-divider);
+  border: 1px solid var(--tracker-divider);
   border-radius: var(--ui-radius-md);
   background: var(--panel);
 }
@@ -5361,7 +5360,7 @@ button, input, select, textarea {
   min-height: 40px;
   padding-inline: var(--tracker-inset);
   border: 0;
-  border-bottom: 2px solid var(--tracker-section-divider);
+  border-bottom: 1px solid var(--tracker-divider);
   background: var(--tracker-header-fill);
 }
 .game-tracker-team-stats > .game-tracker-stat-table-head,
@@ -5798,9 +5797,9 @@ button, input, select, textarea {
 .game-tracker-score-center > .game-tracker-red-zone-position { color: #c52b30; font-weight: 850; }
 .game-tracker-possession-label > .game-tracker-field-football { display: inline-flex; width: 21px; height: 13px; flex: 0 0 21px; color: #8e4c2c; }
 .game-tracker-possession-label > .game-tracker-ball-label { color: var(--ink); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: none; }
-.game-tracker-endzone img, .game-tracker-endzone .game-tracker-logo-fallback { box-sizing: border-box; padding: 1px; border: 1px solid rgba(255,255,255,.95); border-radius: 0; background: #fff; filter: none; object-fit: contain; }
-.game-tracker-drives > .game-tracker-plays-quarter-header:first-child { border-top: 2px solid var(--tracker-section-divider); }
-.game-tracker-collapsed-quarter-headers > .game-tracker-plays-quarter-header:first-child { border-top: 2px solid var(--tracker-section-divider); }
+.game-tracker-endzone img, .game-tracker-endzone .game-tracker-logo-fallback { box-sizing: border-box; padding: 0; border: 0; border-radius: 0; background: transparent; filter: drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff); object-fit: contain; }
+.game-tracker-drives > .game-tracker-plays-quarter-header:first-child { border-top: 1px solid var(--tracker-divider); }
+
 
 /* Compact top row shared by football and basketball detail sheets. */
 .matchup-preview-header { height: 50px; min-height: 50px; flex-basis: 50px; }
@@ -5858,3 +5857,27 @@ html[data-theme="dark"] .basketball-live-court { border-color: #b98859; backgrou
  .basketball-live-recent li:nth-child(2) { border-right: 0; }
 }
 @media(prefers-reduced-motion:reduce) { .basketball-live-flow.away, .basketball-live-flow.home { animation: none; } }
+
+
+/* Football GameTracker: flat active sections without temporary pressed tint. */
+.game-tracker-tabs button,
+.game-tracker-tabs button:hover,
+.game-tracker-tabs button:active,
+.game-tracker-tabs button:focus:not(:focus-visible) {
+  background: transparent;
+  box-shadow: none;
+  outline: 0;
+}
+.game-tracker-tabs button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.game-tracker-header-logo-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.game-tracker-header-logo-wrap > .game-tracker-field-football { position: absolute; bottom: -3px; right: -10px; z-index: 3; width: 20px; height: 12px; color: #90512c; }
+.game-tracker-play-timing { display: flex; justify-content: flex-start; gap: var(--ui-space-3); margin-top: 5px; color: var(--muted); font-size: 10px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.game-tracker-play-timing > span { white-space: nowrap; }
+.game-tracker-yard-labels > span { top: 57%; text-shadow: 0 1px 1px rgba(0,0,0,.35); }
+.game-tracker-box-selector button { min-width: 0; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.game-tracker-box-selector button > span { min-width: 0; overflow-wrap: anywhere; }
+.game-tracker-box-selector button.active { background: color-mix(in srgb, var(--header-muted) 21%, var(--panel)); border-color: transparent; }
+.game-tracker-box-selector button:active, .game-tracker-box-selector button:focus:not(:focus-visible) { box-shadow: none; outline: 0; }
+.game-tracker-header > .game-detail-close { border-radius: 0; }
+.game-tracker-team-stats { margin-top: 0; }
+.game-tracker-team-stats > .game-tracker-stat-row:first-child { border-top: 0; }
