@@ -254,10 +254,10 @@ function normalizePlayerStats(boxscore: any, homeId: string, awayId: string) {
         : labels.map((label, index) => {
           if (/avg|pct|percent|long|rating|rtg|rate/i.test(label)) return "—";
           const values = athletes.map((athlete: { values: string[] }) => athlete.values[index] || "");
-          if (values.every((value: string) => /^-?\d+(?:\\.\d+)?$/.test(value))) {
+          if (values.every((value: string) => value.trim() !== "" && Number.isFinite(Number(value)))) {
             return String(values.reduce((sum: number, value: string) => sum + Number(value), 0));
           }
-          if (values.every((value: string) => /^\d+\\/\d+$/.test(value))) {
+          if (values.every((value: string) => value.split("/").length === 2 && value.split("/").every((part) => part.trim() !== "" && Number.isInteger(Number(part))))) {
             const counts = values.map((value: string) => value.split("/").map(Number));
             return `${counts.reduce((sum: number, count: number[]) => sum + count[0], 0)}/${counts.reduce((sum: number, count: number[]) => sum + count[1], 0)}`;
           }
