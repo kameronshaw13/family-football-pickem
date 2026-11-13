@@ -6,6 +6,7 @@ import type { AppSlug } from "@/lib/rulePresentation";
 
 type ActivityLeague = "shaw-family" | "friends" | "friends-basketball";
 type Visit = { id: string; name: string; openedAt: string };
+type ActivityType = "league_open" | "league_card_view";
 const visitDate = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Chicago",
   month: "short",
@@ -17,6 +18,7 @@ const visitDate = new Intl.DateTimeFormat("en-US", {
 export default function AppOpenActivity({ appSlug }: { appSlug: AppSlug }) {
   const [league, setLeague] = useState<ActivityLeague>(appSlug === "friends-basketball" ? "friends-basketball" : appSlug === "friends" ? "friends" : "shaw-family");
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [activityType, setActivityType] = useState<ActivityType>("league_card_view");
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [refreshCount, setRefreshCount] = useState(0);
@@ -42,7 +44,7 @@ export default function AppOpenActivity({ appSlug }: { appSlug: AppSlug }) {
       setBusy(true);
       setError("");
       try {
-        const response = await fetch(`/api/app-open?league=${league}`, {
+        const response = await fetch(`/api/app-open?league=${league}&eventType=${activityType}`, {
           headers: { Authorization: `Bearer ${token}`, "x-pickem-group": league },
           cache: "no-store",
           signal: controller.signal
@@ -58,13 +60,13 @@ export default function AppOpenActivity({ appSlug }: { appSlug: AppSlug }) {
     };
     void load();
     return () => controller.abort();
-  }, [league, refreshCount]);
+  }, [league, activityType, refreshCount]);
 
   return <div className="settings-card app-open-activity">
     <div className="app-open-activity-header">
       <div className="settings-row-copy">
-        <strong>Who Opened the App</strong>
-        <span>Private to Kameron · Openings in the last 24 hours</span>
+        <strong>League Activity</strong>
+        <span>Private to Kameron · Rolling last 24 hours</span>
       </div>
       <button type="button" className="app-open-refresh" aria-label="Refresh app activity" title="Refresh" disabled={busy} onClick={refresh}><RefreshCw size={16} /></button>
     </div>
@@ -73,10 +75,14 @@ export default function AppOpenActivity({ appSlug }: { appSlug: AppSlug }) {
       <button type="button" className={league === "friends" ? "active" : ""} aria-pressed={league === "friends"} onClick={() => selectLeague("friends")}>Just Cover Football</button>
       <button type="button" className={league === "friends-basketball" ? "active" : ""} aria-pressed={league === "friends-basketball"} onClick={() => selectLeague("friends-basketball")}>Just Cover Basketball</button>
     </div>
+    <div className="theme-toggle app-open-league-toggle" role="group" aria-label="Choose activity type">
+      <button type="button" className={activityType === "league_card_view" ? "active" : ""} aria-pressed={activityType === "league_card_view"} onClick={() => { setVisits([]); setActivityType("league_card_view"); }}>League Card Views</button>
+      <button type="button" className={activityType === "league_open" ? "active" : ""} aria-pressed={activityType === "league_open"} onClick={() => { setVisits([]); setActivityType("league_open"); }}>League Opens</button>
+    </div>
     <div className="app-open-activity-list" aria-live="polite">
       {busy ? <p className="muted">Loading activity…</p>
         : error ? <p className="muted" role="alert">{error}</p>
-        : visits.length === 0 ? <p className="muted">No app opens recorded in the last 24 hours.</p>
+        : visits.length === 0 ? <p className="muted">No {activityType === "league_card_view" ? "League Card views" : "league opens"} recorded in the last 24 hours.</p>
         : visits.map((visit) => <div className="app-open-activity-item" key={visit.id}>
           <strong>{visit.name || "Player"}</strong>
           <time dateTime={visit.openedAt}>{visitDate.format(new Date(visit.openedAt))}</time>

@@ -6,6 +6,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseServer";
 export const dynamic = "force-dynamic";
 
 const TRACKED_GROUPS = ["shaw-family", "friends", "friends-basketball"] as const;
+const ACTIVITY_TYPES = ["league_open", "league_card_view"] as const;
 
 export async function GET(req: NextRequest) {
   const auth = await getProfileFromRequest(req);
@@ -18,6 +19,9 @@ export async function GET(req: NextRequest) {
   if (league !== "shaw-family" && league !== "friends" && league !== "friends-basketball") {
     return NextResponse.json({ error: "Choose a tracked league." }, { status: 400 });
   }
+
+  const eventType = req.nextUrl.searchParams.get("eventType") || "league_open";
+  if (!ACTIVITY_TYPES.some((type) => type === eventType)) return NextResponse.json({ error: "Invalid activity type." }, { status: 400 });
 
   try {
     const supabase = getSupabaseAdmin();
@@ -33,6 +37,7 @@ export async function GET(req: NextRequest) {
       const { data, error } = await supabase.from("app_open_events")
         .select("id,opened_at,profile:profiles(display_name)")
         .eq("group_id", context.group.id)
+        .eq("event_type", eventType)
         .gte("opened_at", since)
         .order("opened_at", { ascending: false })
         .range(offset, offset + 999);
@@ -67,10 +72,13 @@ export async function POST(req: NextRequest) {
       return new NextResponse(null, { status: 204 });
     }
 
+    const eventType = req.nextUrl.searchParams.get("eventType") || "league_open";
+    if (!ACTIVITY_TYPES.some((type) => type === eventType)) return NextResponse.json({ error: "Invalid activity type." }, { status: 400 });
     const openWindow = new Date().toISOString();
     const { error } = await supabase.from("app_open_events").upsert({
       group_id: context.group.id,
       profile_id: auth.profile.id,
+      event_type: eventType,
       open_window: openWindow
     }, { onConflict: "group_id,profile_id,open_window", ignoreDuplicates: true });
     if (error) throw new Error(error.message);
