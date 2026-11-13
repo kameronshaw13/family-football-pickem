@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   }
 
   const eventType = req.nextUrl.searchParams.get("eventType") || "league_open";
-  if (!ACTIVITY_TYPES.some((type) => type === eventType)) return NextResponse.json({ error: "Invalid activity type." }, { status: 400 });
+  if (eventType !== "all" && !ACTIVITY_TYPES.some((type) => type === eventType)) return NextResponse.json({ error: "Invalid activity type." }, { status: 400 });
 
   try {
     const supabase = getSupabaseAdmin();
@@ -31,22 +31,22 @@ export async function GET(req: NextRequest) {
     }
     // Use a rolling 24-hour window instead of resetting the list at midnight.
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const visits: { id: string; openedAt: string; name: string }[] = [];
+    const visits: { id: string; openedAt: string; name: string; eventType: string }[] = [];
     // Paginate so every recorded opening in the last 24 hours is included.
     for (let offset = 0; ; offset += 1000) {
-      const { data, error } = await supabase.from("app_open_events")
-        .select("id,opened_at,profile:profiles(display_name)")
+      let query = supabase.from("app_open_events")
+        .select("id,opened_at,event_type,profile:profiles(display_name)")
         .eq("group_id", context.group.id)
-        .eq("event_type", eventType)
-        .gte("opened_at", since)
-        .order("opened_at", { ascending: false })
-        .range(offset, offset + 999);
+        .gte("opened_at", since);
+      if (eventType !== "all") query = query.eq("event_type", eventType);
+      const { data, error } = await query.order("opened_at", { ascending: false }).range(offset, offset + 999);
       if (error) throw new Error(error.message);
       for (const row of data || []) {
         const profile = row.profile as unknown as { display_name?: string } | { display_name?: string }[] | null;
         visits.push({
           id: row.id,
           openedAt: row.opened_at,
+          eventType: row.event_type,
           name: (Array.isArray(profile) ? profile[0]?.display_name : profile?.display_name) || "Player"
         });
       }
