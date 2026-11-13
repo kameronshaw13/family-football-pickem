@@ -6109,7 +6109,7 @@ html[data-theme="dark"] .basketball-live-court { border-color: #b98859; backgrou
 .basketball-details .game-tracker-scroll { overscroll-behavior-y: contain; }
 /* Sign Out keeps its own divider; the small On/Off control floats in the open area below. */
 .settings-panel .settings-account-section { border-bottom: 0; }
-.settings-panel .settings-account-section > .settings-signout { border-bottom: 1px solid var(--line); }
+.settings-panel .settings-account-section > .settings-signout { border-bottom: 1px solid var(--line-strong); }
 .settings-hide-bet-history {
   display: inline-flex;
   align-items: center;
