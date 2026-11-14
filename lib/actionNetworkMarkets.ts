@@ -136,7 +136,8 @@ function actionMatchScore(game: Game, actionGame: ActionGame) {
   const timeDelta = Number.isFinite(expectedStart) && Number.isFinite(actionStart)
     ? Math.abs(expectedStart - actionStart)
     : 0;
-  if (timeDelta > 12 * 60 * 60 * 1000) return 0;
+  // A flight delay can move the same team matchup across calendar dates.
+  if (timeDelta > 36 * 60 * 60 * 1000) return 0;
   const timeBonus = timeDelta <= 20 * 60 * 1000 ? 25 : timeDelta <= 2 * 60 * 60 * 1000 ? 10 : 0;
   return homeScore + awayScore + timeBonus;
 }
@@ -257,8 +258,14 @@ async function fetchActionLeagueSelections(league: Game["league"], dateHints: st
       .filter((week) => Number.isInteger(week) && week > 0)));
     return weeks.map((week) => ({ key: "week" as const, value: String(week) }));
   }
-  return Array.from(new Set(dateHints.map((hint) => dateKey(new Date(hint)))))
-    .map((date) => ({ key: "date" as const, value: date }));
+  // Search adjacent provider dates for kickoff delays crossing midnight.
+  const dates = new Set<string>();
+  for (const hint of dateHints) {
+    const when = new Date(hint).getTime();
+    if (!Number.isFinite(when)) continue;
+    for (const offset of [-1, 0, 1]) dates.add(dateKey(new Date(when + offset * 24 * 60 * 60 * 1000)));
+  }
+  return Array.from(dates).sort().map((date) => ({ key: "date" as const, value: date }));
 }
 async function fetchActionLeague(league: Game["league"], games: Game[]) {
   const selections = await fetchActionLeagueSelections(league, games.map((game) => game.commence_time));

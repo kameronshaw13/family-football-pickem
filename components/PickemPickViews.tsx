@@ -230,15 +230,16 @@ export function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; 
 }
 
 export function hasPickScoreBug(game: Game | null | undefined) {
-  if (!game || (game.live_state !== "in" && !isFinalGame(game))) return false;
-  return (game.final_away_score != null && game.final_home_score != null) || (game.live_away_score != null && game.live_home_score != null);
+  if (!game) return false;
+  // League Card GameTracker stays tappable if a live score is late.
+  return isFinalGame(game) || game.live_state === "in" || new Date(game.commence_time).getTime() <= Date.now();
 }
 
 export function PickScoreBug({ game, pick, spread }: { game: Game; pick: Pick; spread: number | null }) {
   const final = isFinalGame(game);
   const awayScore = game.final_away_score ?? game.live_away_score;
   const homeScore = game.final_home_score ?? game.live_home_score;
-  if (awayScore == null || homeScore == null) return null;
+  if (awayScore == null || homeScore == null) return <span className="pick-score-bug-placeholder">GameTracker</span>;
 
   let outcome: GameOutcome | null = pick.result !== "pending" ? pick.result : null;
   if (final && outcome == null) {

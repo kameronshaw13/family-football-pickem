@@ -1,4 +1,4 @@
-export const MARKET_REFRESH_SCHEDULE = "Tue 7:50 AM pre-open; Tue-Fri every 30m 8:20 AM-8:50 PM CT; Sun/Mon 8:50 AM; Sat 8:50 PM and 9:50 PM CT";
+export const MARKET_REFRESH_SCHEDULE = "Tue 7:50 AM pre-open; Tue-Fri every 30m 8:20 AM-8:50 PM CT; Sat every 30m 7:20 AM-9:50 PM CT; Sun/Mon 8:50 AM";
 
 export function scheduledMarketRefreshWindow(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -22,8 +22,8 @@ export function scheduledMarketRefreshWindow(date = new Date()) {
   if (["Sun", "Mon"].includes(weekday) && hour === 8 && minute === 50) {
     return { shouldRefresh: true, refreshFuture: true };
   }
-  if (weekday === "Sat" && (hour === 20 || hour === 21) && minute === 50) {
-    return { shouldRefresh: true, refreshFuture: hour === 20 };
+  if (weekday === "Sat" && hour >= 7 && hour <= 21) {
+    return { shouldRefresh: true, refreshFuture: (hour === 7 || hour === 20) && minute === 50 };
   }
   return { shouldRefresh: false, refreshFuture: false };
 }

@@ -170,7 +170,7 @@ import {
   BankWeekResults,
   ConfidenceOrder,
 } from "@/components/PickemStandingsViews";
-import { visibleSideBetLedger } from "@/lib/sideBetVisibility";
+import { shouldHideOwnSideBets, visibleSideBetLedger } from "@/lib/sideBetVisibility";
 import {
   SideBetCenter,
   SideBetGameCard,
@@ -220,7 +220,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [savingBetId, setSavingBetId] = useState<string | null>(null);
   const [sideBetLedger, setSideBetLedger] = useState<SideBet[]>([]);
   const [sideBetLedgerReady, setSideBetLedgerReady] = useState(false);
-  const [hideAcceptedBets, setHideAcceptedBets] = useState(false);
+  const [storedHideAcceptedBets, setStoredHideAcceptedBets] = useState(false);
+  const [hideBetsViewerId, setHideBetsViewerId] = useState<string | null>(null);
+  // Cosmetic visibility belongs to this viewer only; never changes stored bets.
+  const hideAcceptedBets = shouldHideOwnSideBets(
+    data?.currentUser?.id || "", data?.currentUser?.username, hideBetsViewerId, storedHideAcceptedBets
+  );
   const [stagedPicks, setStagedPicks] = useState<Pick[] | null>(null);
   const [clock, setClock] = useState(() => Date.now());
   const [betGameId, setBetGameId] = useState("");
@@ -254,8 +259,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     if (!userId) return;
     const key = `pickem_hide_accepted_bets:${userId}`;
     const read = () => {
-      try { setHideAcceptedBets(window.localStorage.getItem(key) === "true"); }
-      catch { setHideAcceptedBets(false); }
+      let hidden = false;
+      try { hidden = window.localStorage.getItem(key) === "true"; }
+      catch { /* A blocked storage read means the default is visible. */ }
+      setHideBetsViewerId(userId);
+      setStoredHideAcceptedBets(hidden);
     };
     read();
     window.addEventListener("storage", read);
@@ -263,12 +271,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }, [data?.currentUser?.id]);
 
   const changeHideAcceptedBets = (hidden: boolean) => {
-    setHideAcceptedBets(hidden);
     const userId = data?.currentUser?.id;
-    if (userId) {
-      try { window.localStorage.setItem(`pickem_hide_accepted_bets:${userId}`, String(hidden)); }
-      catch { /* Cosmetic setting still applies to the current page. */ }
-    }
+    if (!userId || String(data?.currentUser?.username || "").trim().toLowerCase() !== "kameron") return;
+    setHideBetsViewerId(userId);
+    setStoredHideAcceptedBets(hidden);
+    try { window.localStorage.setItem(`pickem_hide_accepted_bets:${userId}`, String(hidden)); }
+    catch { /* Cosmetic setting still applies to the current page. */ }
   };
 
   useEffect(() => {

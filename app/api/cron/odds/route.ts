@@ -86,7 +86,8 @@ export async function GET(req: NextRequest) {
     let scheduleSync: { gamesDiscovered: number; start: string; end: string; error?: string } = defaultWindow;
     const refreshFuture = force || !scheduled || refreshWindow.refreshFuture;
 
-    if (refreshFuture) {
+    // Reconcile Saturday's rescheduled football games before kickoff.
+    if (refreshFuture || (scheduled && chicagoParts(now).weekday === "Sat" && minute === 50)) {
       try {
         scheduleSync = await syncUpcomingFootballSchedule(supabase, now);
       } catch (error) {

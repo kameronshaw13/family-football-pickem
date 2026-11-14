@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { visibleOwnSideBetOffers, visibleSideBetLedger } from "../lib/sideBetVisibility.ts";
+import { shouldHideOwnSideBets, visibleOwnSideBetOffers, visibleSideBetLedger } from "../lib/sideBetVisibility.ts";
 
 const ledger = [
   { id: "mine-sent", status: "accepted", creator_id: "me", accepted_by: "alex" },
@@ -22,4 +22,11 @@ test("hidden mode makes sent, received and history offers all appear empty", () 
   const offers = [{ id: "pending" }, { id: "declined" }, { id: "accepted" }, { id: "settled" }];
   assert.deepEqual(visibleOwnSideBetOffers(offers, true), []);
   assert.deepEqual(visibleOwnSideBetOffers(offers, false), offers);
+});
+
+test("Kameron's hide switch cannot hide Quentin's bets", () => {
+  assert.equal(shouldHideOwnSideBets("kameron-id", "kameron", "kameron-id", true), true);
+  assert.equal(shouldHideOwnSideBets("quentin-id", "quentin", "kameron-id", true), false);
+  assert.equal(shouldHideOwnSideBets("quentin-id", "quentin", "quentin-id", true), false);
+  assert.deepEqual(visibleOwnSideBetOffers([{ id: "quentin-bet" }], false), [{ id: "quentin-bet" }]);
 });

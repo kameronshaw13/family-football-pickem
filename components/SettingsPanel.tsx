@@ -215,9 +215,9 @@ export default function SettingsPanel({
         <span className="settings-row-copy"><strong>Sign Out</strong><span>Sign out on this device.</span></span>
         <ChevronRight size={17} />
       </button>
-      <button type="button" className={`settings-hide-bet-history${hideAcceptedBets ? " active" : ""}`} aria-label="Hide my side bets" aria-pressed={hideAcceptedBets} onClick={() => onHideAcceptedBetsChange(!hideAcceptedBets)}>
+      {String(currentUser.username || "").trim().toLowerCase() === "kameron" && <button type="button" className={`settings-hide-bet-history${hideAcceptedBets ? " active" : ""}`} aria-label="Hide my side bets" aria-pressed={hideAcceptedBets} onClick={() => onHideAcceptedBetsChange(!hideAcceptedBets)}>
         {hideAcceptedBets ? "On" : "Off"}
-      </button>
+      </button>}
 
     </div>
   </section>;
