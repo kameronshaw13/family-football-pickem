@@ -50,7 +50,7 @@ export async function refreshBasketballSlate(supabase: SupabaseClient, now = new
     for (const event of schedule) {
       if (!event.timeValid ||
         (league === "NBA" && (!basketballGameAvailableForSideBets(event.commenceTime) || event.seasonType !== 2)) ||
-        (league === "CBB" && (!basketballGameInSeason(event.commenceTime) || event.seasonType === 1 || !isDivisionOneMatchup(event.homeTeam.id, event.awayTeam.id, divisionOneIds)))) continue;
+        (league === "CBB" && (!basketballGameInSeason(event.commenceTime) || event.seasonType === 1 || !isDivisionOneMatchup(event.homeTeam.id, event.awayTeam.id, divisionOneIds ?? new Set<string>())))) continue;
       const id = `espn-${league.toLowerCase()}-${event.id}`;
       if (event.completed) completedIds.add(id);
       const lock = basketballPickLockTime(event.commenceTime);
