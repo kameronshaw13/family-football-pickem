@@ -229,7 +229,8 @@ async function fetchActionLeagueQuery(
     for (const version of ["v2", "v1"] as const) {
       const response = await fetch(`${ACTION_BASE.replace("/v1/", `/${version}/`)}/${path}?${params.toString()}`, {
         headers: { "User-Agent": ACTION_USER_AGENT },
-        cache: "no-store"
+        cache: "no-store",
+        signal: AbortSignal.timeout(8_000)
       });
       if (!response.ok) {
         failures.push(`${version}:HTTP ${response.status}`);

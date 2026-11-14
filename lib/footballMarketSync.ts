@@ -216,6 +216,7 @@ export async function syncUpcomingFootballSchedule(
         // identity lookups must not overwrite a stored or frozen spread.
         lock_time: lockTime.toISOString(),
         is_locked: now >= lockTime,
+        schedule_source_updated_at: now.toISOString(),
         updated_at: now.toISOString()
       };
       rows.push(row);
@@ -271,6 +272,7 @@ export async function syncUpcomingFootballSchedule(
         away_rank: league === "CFB" ? espnRankForLogo(rankMap, awayIdentity?.logo || null) : null,
         lock_time: lockTime.toISOString(),
         is_locked: now >= lockTime,
+        schedule_source_updated_at: now.toISOString(),
         updated_at: now.toISOString()
       };
       rows.push(row);
@@ -321,25 +323,20 @@ async function reconcileDraftDogs(
     const selectedTeam = notificationTeamName(pick.selected_team, game.league);
 
     if (newValue === 0) {
-      const { data: deleted, error: deleteError } = await supabase
-        .from("picks")
-        .delete()
-        .eq("id", pick.id)
-        .eq("status", "draft")
-        .select("id")
-        .maybeSingle();
-      if (deleteError) throw new Error(`Could not remove invalid dog pick: ${deleteError.message}`);
-      if (!deleted) continue;
-      removed += 1;
+      // A changed line can never delete a submitted underdog.
+      if (oldValue === 0) continue;
+      const { data: updated, error: updateError } = await supabase.from("picks")
+        .update({ underdog_win_value: 0, updated_at: changedAt.toISOString() })
+        .eq("id", pick.id).eq("status", "draft").select("id").maybeSingle();
+      if (updateError) throw new Error(`Could not retain dog pick: ${updateError.message}`);
+      if (!updated) continue;
+      tierChanged += 1;
       notifications.push(createNotificationSafely(supabase, {
-        groupId: pick.group_id,
-        userId: pick.user_id,
-        type: "dog_pick_adjustment",
-        destination: "my_card",
-        entityId: pick.id,
+        groupId: pick.group_id, userId: pick.user_id, type: "dog_pick_adjustment",
+        destination: "my_card", entityId: pick.id,
         dedupeKey: `dog-adjust:${pick.id}:${changedAt.getTime()}:${oldValue}:0`,
-        title: "Dog pick removed",
-        body: `${selectedTeam} was removed as your dog: ${spreadText(oldSpread)} → ${spreadText(newSpread)}. Dogs must be +7 or higher.`,
+        title: "Dog pick needs review",
+        body: `${selectedTeam} remains on your card. Its line moved from ${spreadText(oldSpread)} to ${spreadText(newSpread)} and is below the +7 minimum.`,
         url: isBasketballLeague(game.league) ? "/friends-basketball?notification=my_card" : `/?group=${encodeURIComponent(pick.group_id)}&notification=my_card`,
         actionRequired: true
       }));
@@ -421,17 +418,30 @@ export async function persistActionNetworkSpreads(
     });
   }
 
-  if (changedGames.length) {
-    const { error } = await supabase.from("games").upsert(changedGames, { onConflict: "id" });
+  // Update only the quote fields; never upsert a stale copy of the whole game.
+  const committedGames: Game[] = [];
+  for (let offset = 0; offset < changedGames.length; offset += 12) {
+    const chunk = changedGames.slice(offset, offset + 12);
+    const updated = await Promise.all(chunk.map(async (game) => {
+      const { data, error } = await supabase.from("games").update({
+        current_spread_team: game.current_spread_team,
+        current_spread: game.current_spread,
+        current_bookmaker: "DraftKings",
+        spread_source_updated_at: now.toISOString(), updated_at: now.toISOString()
+      }).eq("id", game.id).eq("is_locked", false).select("id").maybeSingle();
+      if (error) throw new Error(error.message);
+      return data ? game : null;
+    }));
+    for (const game of updated) if (game) committedGames.push(game);
+  }
+  const committedIds = new Set(committedGames.map((game) => game.id));
+  const committedSnapshots = snapshots.filter((snapshot) => committedIds.has(snapshot.game_id));
+  if (committedSnapshots.length) {
+    const { error } = await supabase.from("odds_snapshots").insert(committedSnapshots);
     if (error) throw new Error(error.message);
   }
-  if (snapshots.length) {
-    const { error } = await supabase.from("odds_snapshots").insert(snapshots);
-    if (error) throw new Error(error.message);
-  }
-
-  const dogAdjustments = await reconcileDraftDogs(supabase, changedGames, previousGames, now);
-  return { gamesUpdated: changedGames.length, changedGames, dogAdjustments };
+  const dogAdjustments = await reconcileDraftDogs(supabase, committedGames, previousGames, now);
+  return { gamesUpdated: committedGames.length, changedGames: committedGames, dogAdjustments };
 }
 
 export async function refreshActionNetworkSpreads(

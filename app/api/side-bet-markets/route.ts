@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { fetchActionNetworkMarkets } from "@/lib/actionNetworkMarkets";
-import { persistActionNetworkSpreads } from "@/lib/footballMarketSync";
 import { isGameAllowedForSideBets, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { gamePickLockTime } from "@/lib/sportPaths";
@@ -40,7 +39,6 @@ export async function GET(req: NextRequest) {
     const eligible = (games || []).filter((game) => isGameAllowedForSideBets(context, game)
       && (game.league !== "CBB" || (divisionOneIds !== null && isDivisionOneStoredMatchup(game, divisionOneIds))));
     const markets = await fetchActionNetworkMarkets(eligible);
-    const persisted = await persistActionNetworkSpreads(supabase, eligible, markets, new Date());
     const schedule = eligible.map((game) => {
       const lock = gamePickLockTime(game, getGameLockTime);
       return {
@@ -50,7 +48,7 @@ export async function GET(req: NextRequest) {
         is_locked: new Date() >= lock
       };
     });
-    return NextResponse.json({ ok: true, markets, schedule, gamesUpdated: persisted.gamesUpdated }, { headers: NO_STORE_HEADERS });
+    return NextResponse.json({ ok: true, markets, schedule, gamesUpdated: 0 }, { headers: NO_STORE_HEADERS });
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Could not load side bet markets." },

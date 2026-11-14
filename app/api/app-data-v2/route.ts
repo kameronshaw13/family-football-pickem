@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     };
     const [gamesResult, lockedResult, bankResult, sideBetResult, seasonMoneyResult, sideBetDismissalResult, bankResetResult] = await Promise.all([
       gamesQuery().range(0, 999),
-      supabase.from("picks").select("id,user_id,week,pick_type,status,result,underdog_win_value,confidence_points").eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("status", "locked").order("id").range(0, 999),
+      supabase.from("picks").select("id,game_id,user_id,week,pick_type,status,result,underdog_win_value,confidence_points").eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("status", "locked").order("id").range(0, 999),
       supabase.from("bank_entries").select("*, profile:profiles(display_name)").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("week", { ascending: false }).order("created_at", { ascending: false }),
       supabase.from("side_bets").select("*, game:games(*), creator:profiles!side_bets_creator_id_fkey(id,display_name), accepted_by_profile:profiles!side_bets_accepted_by_fkey(id,display_name), targets:side_bet_targets(*, recipient:profiles!side_bet_targets_recipient_id_fkey(id,display_name))").eq("group_id", context.group.id).eq("season_year", context.seasonYear).order("created_at", { ascending: false }).order("id").range(0, 999),
       supabase.from("group_season_money").select("winner_take_all_amount,updated_by,updated_at,submitted_at").eq("group_id", context.group.id).eq("season_year", context.seasonYear).maybeSingle(),
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
     }
     const lockedRows = [...(lockedResult.data || [])];
     for (let offset = 1000; lockedRows.length === offset; offset += 1000) {
-      const page = await supabase.from("picks").select("id,user_id,week,pick_type,status,result,underdog_win_value,confidence_points")
+      const page = await supabase.from("picks").select("id,game_id,user_id,week,pick_type,status,result,underdog_win_value,confidence_points")
         .eq("group_id", context.group.id).eq("season_year", context.seasonYear).eq("status", "locked").order("id").range(offset, offset + 999);
       if (page.error) throw new Error(page.error.message);
       lockedRows.push(...(page.data || []));
@@ -93,6 +93,10 @@ export async function GET(req: NextRequest) {
           return new Set<string>();
         })
       : null;
+    const referencedGameIds = new Set<string>([
+      ...lockedRows.map((pick: any) => String(pick.game_id || "")),
+      ...allSideBets.map((bet: any) => String(bet.game_id || ""))
+    ]);
     const normalizedGames = allGameRows
       .filter((game: any) => isEligibleSideBetSeasonGame(game) && isGameAllowedForSideBets(context, game)
         && (game.league !== "CBB" || (divisionOneIds !== null && isDivisionOneStoredMatchup(game, divisionOneIds))))
@@ -130,7 +134,10 @@ export async function GET(req: NextRequest) {
       // spread; preferring the newer final row made completed games lose their line.
       const line = selectGameLine(prior, game);
       const scores = selectGameFinal(prior, game);
-      const preferred = line || (gameHasSpread !== priorHasSpread
+      const referenced = referencedGameIds.has(game.id) !== referencedGameIds.has(prior.id)
+        ? (referencedGameIds.has(game.id) ? game : prior)
+        : null;
+      const preferred = referenced || line || (gameHasSpread !== priorHasSpread
         ? (gameHasSpread ? game : prior)
         : gameIsFinal !== priorIsFinal
           ? (gameIsFinal ? game : prior)

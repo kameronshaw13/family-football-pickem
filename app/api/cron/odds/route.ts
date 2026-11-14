@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
   const refreshWindow = scheduledMarketRefreshWindow(now);
   let basketball: { gamesDiscovered?: number; gamesUpdated?: number; error?: string } | null = null;
   const { minute } = chicagoParts(now);
-  if (force || !scheduled || (minute === 50 && hour >= 7 && hour <= 23)) {
+  if (force || !scheduled || (minute === 50 && hour >= 6 && hour <= 23)) {
     try { basketball = await refreshBasketballSlate(supabase, now); }
     catch (error) { basketball = { error: error instanceof Error ? error.message : String(error) }; }
   }
@@ -87,7 +87,8 @@ export async function GET(req: NextRequest) {
     const refreshFuture = force || !scheduled || refreshWindow.refreshFuture;
 
     // Reconcile Saturday's rescheduled football games before kickoff.
-    if (refreshFuture || (scheduled && chicagoParts(now).weekday === "Sat" && minute === 50)) {
+    if (refreshFuture || (scheduled && hour >= 7 && hour <= 23 &&
+      (minute === 50 || chicagoParts(now).weekday === "Sat"))) {
       try {
         scheduleSync = await syncUpcomingFootballSchedule(supabase, now);
       } catch (error) {
