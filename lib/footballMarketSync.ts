@@ -69,6 +69,31 @@ function dateHintsForWindow(now = new Date()) {
   return hints;
 }
 
+/** Read every football row; Supabase's default 1,000-row limit silently
+ * dropped schedule identities after the basketball slate was added. */
+async function readFootballScheduleRows(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  columns: string,
+  window?: { start: string; end: string }
+): Promise<any[]> {
+  const pageSize = 500;
+  const rows: any[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    let query = supabase.from("games")
+      .select(columns)
+      .in("league", ["CFB", "NFL"])
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (window) query = query.gte("commence_time", window.start).lte("commence_time", window.end);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    const batch = data || [];
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+  return rows;
+}
+
 export async function syncUpcomingFootballSchedule(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   now = new Date()
@@ -77,22 +102,16 @@ export async function syncUpcomingFootballSchedule(
   // ESPN can move a game after its old kickoff has passed. Keep recent rows in
   // the identity lookup so the same game is rescheduled instead of duplicated.
   const identityStart = new Date(now.getTime() - 21 * DAY_MS).toISOString();
-  const [existingResult, teamIdentityResult] = await Promise.all([
-    supabase
-      .from("games")
-      .select("id,espn_event_id,league,commence_time,home_team,away_team,home_logo_url,away_logo_url,current_spread_team,current_spread,current_bookmaker,updated_at")
-      .gte("commence_time", identityStart)
-      .lte("commence_time", end.toISOString()),
-    supabase
-      .from("games")
-      .select("league,home_team,away_team,home_logo_url,away_logo_url")
+  const [existingRows, teamIdentityRows] = await Promise.all([
+    readFootballScheduleRows(supabase,
+      "id,espn_event_id,league,commence_time,home_team,away_team,home_logo_url,away_logo_url,current_spread_team,current_spread,current_bookmaker,updated_at",
+      { start: identityStart, end: end.toISOString() }),
+    readFootballScheduleRows(supabase, "league,home_team,away_team,home_logo_url,away_logo_url")
   ]);
-  if (existingResult.error) throw new Error(existingResult.error.message);
-  if (teamIdentityResult.error) throw new Error(teamIdentityResult.error.message);
 
   const existingByEspnId = new Map<string, any>();
   const existingByMatchup = new Map<string, any>();
-  for (const game of existingResult.data || []) {
+  for (const game of existingRows) {
     if (game.espn_event_id) existingByEspnId.set(String(game.espn_event_id), game);
 
     const matchupKey = matchupIdentityKey(game.league as League, game.away_team, game.home_team);
@@ -108,7 +127,7 @@ export async function syncUpcomingFootballSchedule(
   }
 
   const teamIdentityMap = new Map<string, TeamIdentity>();
-  for (const game of teamIdentityResult.data || []) {
+  for (const game of teamIdentityRows) {
     const league = game.league as League;
     const candidates: Array<[string, string | null]> = [
       [game.home_team, game.home_logo_url],
@@ -193,11 +212,8 @@ export async function syncUpcomingFootballSchedule(
         away_logo_url: event.awayTeam.logoUrl,
         home_rank: league === "CFB" ? espnRankForLogo(rankMap, event.homeTeam.logoUrl) : null,
         away_rank: league === "CFB" ? espnRankForLogo(rankMap, event.awayTeam.logoUrl) : null,
-        // Schedule discovery must not change a line. The market pass below
-        // applies freeze rules, records snapshots, and reconciles saved dogs.
-        current_spread_team: existing?.current_spread_team ?? null,
-        current_spread: existing?.current_spread ?? null,
-        current_bookmaker: existing?.current_bookmaker ?? null,
+        // Never include market fields in schedule upserts: missing/stale
+        // identity lookups must not overwrite a stored or frozen spread.
         lock_time: lockTime.toISOString(),
         is_locked: now >= lockTime,
         updated_at: now.toISOString()
@@ -253,9 +269,6 @@ export async function syncUpcomingFootballSchedule(
         away_logo_url: awayIdentity?.logo || null,
         home_rank: league === "CFB" ? espnRankForLogo(rankMap, homeIdentity?.logo || null) : null,
         away_rank: league === "CFB" ? espnRankForLogo(rankMap, awayIdentity?.logo || null) : null,
-        current_spread_team: existing?.current_spread_team || null,
-        current_spread: existing?.current_spread ?? null,
-        current_bookmaker: existing?.current_bookmaker || null,
         lock_time: lockTime.toISOString(),
         is_locked: now >= lockTime,
         updated_at: now.toISOString()

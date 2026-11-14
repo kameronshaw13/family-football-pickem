@@ -102,29 +102,16 @@ export async function lockDuePicks(
     const pickResults = await Promise.all((draftPicks || []).map(async (pick) => {
       const rules = rulesBySeason.get(`${pick.group_id}:${pick.season_year}`) || {};
       if (!isGameAllowedByRules(rules, game)) {
-        const { data: deleted, error } = await supabase
-          .from("picks")
-          .delete()
-          .eq("id", pick.id)
-          .eq("status", "draft")
-          .select("id")
-          .maybeSingle();
-        if (error) throw new Error(error.message);
-        return { picksLocked: 0, picksRemoved: deleted ? 1 : 0 };
+        // A schedule/rules mismatch after a valid submission must never
+        // silently destroy a user's pick. Preserve it for reconciliation.
+        return { picksLocked: 0, picksRemoved: 0 };
       }
 
       if (!hasUsableStoredGameSpread(game)) {
-        // At kickoff an unpriced placeholder is not a valid pick. Never grade
-        // a basketball 0 line as though it were a verified PK.
-        const { data: deleted, error } = await supabase
-          .from("picks")
-          .delete()
-          .eq("id", pick.id)
-          .eq("status", "draft")
-          .select("id")
-          .maybeSingle();
-        if (error) throw new Error(error.message);
-        return { picksLocked: 0, picksRemoved: deleted ? 1 : 0 };
+        // A provider outage or schedule sync must never delete a submitted
+        // draft pick. Keep it recoverable; a future lock pass can freeze
+        // it after a verified stored line has been restored.
+        return { picksLocked: 0, picksRemoved: 0 };
       }
 
       const lockedSpread = normalizeSpreadForSelectedTeam(

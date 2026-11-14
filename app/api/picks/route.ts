@@ -160,7 +160,8 @@ export async function POST(req: NextRequest) {
     }
 
     const editableIds = new Set(editable.map((pick) => pick.gameId));
-    const draftsToDelete = existing.filter((pick: any) => pick.status === "draft" && !editableIds.has(pick.game_id)).map((pick: any) => pick.id);
+    // Do not treat picks omitted by a temporary missing line or filtered schedule as intentional removals.
+    const draftsToDelete = existing.filter((pick: any) => pick.status === "draft" && !editableIds.has(pick.game_id) && gameMap.has(pick.game_id)).map((pick: any) => pick.id);
     const existingDraftByGame = new Map(existing.filter((pick: any) => pick.status === "draft").map((pick: any) => [pick.game_id, pick]));
     const writes: Array<PromiseLike<{ error: any }>> = [];
     if (draftsToDelete.length) writes.push(supabase.from("picks").delete().eq("group_id", context.group.id).eq("user_id", auth.profile.id).eq("status", "draft").in("id", draftsToDelete));
