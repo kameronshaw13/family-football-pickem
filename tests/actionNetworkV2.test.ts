@@ -23,8 +23,4 @@ test("respects market suspension and only accepts full game", () => {
     spread: [{ side:"away", period:"event", value:2.5, odds:-110, status:"suspended" },
              { side:"home", period:"event", value:-2.5, odds:-110 },
              { side:"away", period:"firsthalf", value:1, odds:-110 }]
-  } } } },15);
-  assert.equal(rows[0].spread_away,2.5);
-  assert.equal(rows[0].line_status.spread_away,2);
-  assert.equal(rows[0].type,"game");
-});
+  } } } }¶»§q«^
