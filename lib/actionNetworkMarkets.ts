@@ -35,4 +35,368 @@ type ActionOddsRow = {
   total?: number | string | null;
   over?: number | string | null;
   under?: number | string | null;
-  line_status?: Record<strin¶»§q«^
+  line_status?: Record<string, number | string | null>;
+};
+
+type ActionGame = V2MarketGame & {
+  id?: number | string;
+  status?: string;
+  start_time?: string;
+  home_team_id?: number | string;
+  away_team_id?: number | string;
+  teams?: ActionTeam[];
+  odds?: ActionOddsRow[];
+};
+
+export type ActionNetworkScheduledGame = {
+  actionId: string;
+  league: Game["league"];
+  commenceTime: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeAliases: string[];
+  awayAliases: string[];
+  spread: {
+    awayPoint: number;
+    homePoint: number;
+    awayOdds: number | null;
+    homeOdds: number | null;
+    suspended: boolean;
+  } | null;
+};
+
+function dateKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value || "";
+  return `${part("year")}${part("month")}${part("day")}`;
+}
+
+function normalizeName(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function rawAliases(team: ActionTeam | undefined) {
+  if (!team) return [];
+  return [team.full_name, team.display_name, team.short_name, team.name, team.abbr]
+    .filter((value): value is string => Boolean(value));
+}
+
+function aliases(team: ActionTeam | undefined) {
+  return rawAliases(team).map(normalizeName).filter(Boolean);
+}
+
+function primaryTeamName(team: ActionTeam | undefined) {
+  return team?.full_name || team?.display_name || team?.short_name || team?.name || team?.abbr || "";
+}
+
+function teamMatchScore(expected: string, candidates: string[]) {
+  const normalized = normalizeName(expected);
+  if (!normalized) return 0;
+  let best = 0;
+  const expectedTokens = new Set(normalized.split(" ").filter((token) => token.length > 2));
+  for (const candidate of candidates) {
+    if (candidate === normalized) best = Math.max(best, 100);
+    else if (candidate.length >= 5 && (candidate.includes(normalized) || normalized.includes(candidate))) best = Math.max(best, 82);
+    const tokens = new Set(candidate.split(" ").filter((token) => token.length > 2));
+    let common = 0;
+    for (const token of expectedTokens) if (tokens.has(token)) common += 1;
+    if (common >= 2) best = Math.max(best, 45 + common * 8);
+    else if (common === 1 && expectedTokens.size === 1) best = Math.max(best, 48);
+  }
+  return best;
+}
+
+function actionTeams(game: ActionGame) {
+  const byId = new Map((game.teams || []).map((team) => [String(team.id), team]));
+  return {
+    home: byId.get(String(game.home_team_id)),
+    away: byId.get(String(game.away_team_id))
+  };
+}
+
+function actionMatchScore(game: Game, actionGame: ActionGame) {
+  const teams = actionTeams(actionGame);
+  const homeScore = teamMatchScore(game.home_team, aliases(teams.home));
+  const awayScore = teamMatchScore(game.away_team, aliases(teams.away));
+  if (homeScore < 45 || awayScore < 45) return 0;
+
+  const expectedStart = new Date(game.commence_time).getTime();
+  const actionStart = new Date(actionGame.start_time || 0).getTime();
+  const timeDelta = Number.isFinite(expectedStart) && Number.isFinite(actionStart)
+    ? Math.abs(expectedStart - actionStart)
+    : 0;
+  // A flight delay can move the same team matchup across calendar dates.
+  if (timeDelta > 36 * 60 * 60 * 1000) return 0;
+  const timeBonus = timeDelta <= 20 * 60 * 1000 ? 25 : timeDelta <= 2 * 60 * 60 * 1000 ? 10 : 0;
+  return homeScore + awayScore + timeBonus;
+}
+
+function finiteNumber(value: unknown) {
+  if (value == null || (typeof value === "string" && !value.trim())) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function validOdds(value: unknown) {
+  const odds = finiteNumber(value);
+  return odds != null && Number.isInteger(odds) && (odds <= -100 || odds >= 100) ? odds : null;
+}
+
+function suspended(row: ActionOddsRow, ...fields: string[]) {
+  const status = row.line_status || {};
+  return fields.some((field) => Number(status[field]) === 2);
+}
+
+function sortPreferredMarketRows(rows: ActionOddsRow[]) {
+  return [...rows].sort((a, b) =>
+    new Date(b.inserted || 0).getTime() - new Date(a.inserted || 0).getTime()
+  );
+}
+
+function marketRowsForPhase(game: ActionGame, phase: SideBetOfferPhase) {
+  // v1 rows carry inserted timestamps; v2 uses explicit is_live selection
+  // flags instead and has no per-price timestamp.
+  const legacyRows = (game.odds || [])
+    .filter((row) => Number(row.book_id) === DRAFTKINGS_BOOK_ID)
+    .filter((row) => phase === "live" ? row.type === "live" : row.type === "game")
+    .filter((row) => phase !== "live" || isFreshMarketTimestamp(row.inserted, LIVE_MAX_AGE_SECONDS));
+  const v2Rows = actionV2MarketRows(game, DRAFTKINGS_BOOK_ID)
+    .filter((row) => row.type === (phase === "live" ? "live" : "game"));
+  return sortPreferredMarketRows([...legacyRows, ...v2Rows]);
+}
+
+function verifiedSpreadFromRow(row: ActionOddsRow, league: Game["league"], moneyline?: SideBetMarketQuote["moneyline"]) {
+  const awayPoint = finiteNumber(row.spread_away);
+  const homePoint = finiteNumber(row.spread_home);
+  if (awayPoint == null || homePoint == null) return null;
+  return normalizeVerifiedMarketSpread(league, {
+    awayPoint,
+    homePoint,
+    awayOdds: validOdds(row.spread_away_line),
+    homeOdds: validOdds(row.spread_home_line),
+    suspended: suspended(row, "spread_away", "spread_home")
+  }, awayPoint === 0 ? moneyline : null);
+}
+
+function spreadRow(rows: ActionOddsRow[], league: Game["league"]) {
+  // Select the newest genuinely quoted two-sided line. Reject provider nulls
+  // and unpriced zero placeholders rather than saving them as real pick'ems.
+  return rows.find((row) => verifiedSpreadFromRow(row, league) !== null) || null;
+}
+
+function moneylineRow(rows: ActionOddsRow[]) {
+  return rows.find((row) =>
+    validOdds(row.ml_away) != null &&
+    validOdds(row.ml_home) != null
+  ) || null;
+}
+
+function totalRow(rows: ActionOddsRow[]) {
+  return rows.find((row) => finiteNumber(row.total) != null) || null;
+}
+
+async function fetchActionLeagueQuery(
+  league: Game["league"],
+  selectorKey: "date" | "week",
+  selectorValue: string
+) {
+  const cacheKey = `${league}:${selectorKey}:${selectorValue}`;
+  const now = Date.now();
+  const cached = actionLeagueRequestCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) return cached.promise;
+
+  const request = (async () => {
+    const path = ({ NFL: "nfl", CFB: "ncaaf", CBB: "ncaab", NBA: "nba" })[league];
+    const params = new URLSearchParams({
+      bookIds: ACTION_BOOK_IDS.join(","),
+      [selectorKey]: selectorValue
+    });
+    if (league === "CFB") params.set("division", "FBS");
+    // Action's v1 scoreboard began returning 404s. V2 uses a different
+    // markets shape, normalized by actionV2MarketRows. Retain v1 as fallback
+    // while the upstream vendor transition is underway.
+    const failures: string[] = [];
+    for (const version of ["v2", "v1"] as const) {
+      const response = await fetch(`${ACTION_BASE.replace("/v1/", `/${version}/`)}/${path}?${params.toString()}`, {
+        headers: { "User-Agent": ACTION_USER_AGENT },
+        cache: "no-store",
+        signal: AbortSignal.timeout(8_000)
+      });
+      if (!response.ok) {
+        failures.push(`${version}:HTTP ${response.status}`);
+        continue;
+      }
+      const payload = await response.json();
+      if (Array.isArray(payload?.games)) return payload.games as ActionGame[];
+      failures.push(`${version}:invalid games payload`);
+    }
+    throw new Error(`Action Network ${league} market request failed (${failures.join(", ")}) for ${selectorKey}=${selectorValue}.`);
+  })();
+
+  actionLeagueRequestCache.set(cacheKey, { expiresAt: now + ACTION_CACHE_MS, promise: request });
+  try {
+    return await request;
+  } catch (error) {
+    actionLeagueRequestCache.delete(cacheKey);
+    throw error;
+  }
+}
+
+async function fetchActionLeagueSelections(league: Game["league"], dateHints: string[]) {
+  if (league === "NFL") {
+    const weeks = Array.from(new Set(dateHints
+      .map((hint) => officialNflWeek(hint))
+      .filter((week) => Number.isInteger(week) && week > 0)));
+    return weeks.map((week) => ({ key: "week" as const, value: String(week) }));
+  }
+  // Search adjacent provider dates for kickoff delays crossing midnight.
+  const dates = new Set<string>();
+  for (const hint of dateHints) {
+    const when = new Date(hint).getTime();
+    if (!Number.isFinite(when)) continue;
+    for (const offset of [-1, 0, 1]) dates.add(dateKey(new Date(when + offset * 24 * 60 * 60 * 1000)));
+  }
+  return Array.from(dates).sort().map((date) => ({ key: "date" as const, value: date }));
+}
+async function fetchActionLeague(league: Game["league"], games: Game[]) {
+  const selections = await fetchActionLeagueSelections(league, games.map((game) => game.commence_time));
+  const results = await Promise.allSettled(selections.map((selection) =>
+    fetchActionLeagueQuery(league, selection.key, selection.value)
+  ));
+  const successful = results.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+  if (!successful.length && results.some((result) => result.status === "rejected")) {
+    const firstFailure = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+    throw firstFailure?.reason instanceof Error ? firstFailure.reason : new Error(`Action Network ${league} market request failed.`);
+  }
+  return Array.from(new Map(successful.map((game) => [String(game.id || `${game.start_time}:${game.home_team_id}:${game.away_team_id}`), game])).values());
+}
+
+export async function fetchActionNetworkScheduledGames(league: Game["league"], dateHints: string[]) {
+  const selections = await fetchActionLeagueSelections(league, dateHints);
+  const results = await Promise.allSettled(selections.map((selection) =>
+    fetchActionLeagueQuery(league, selection.key, selection.value)
+  ));
+  const actionGames = Array.from(new Map(
+    results.flatMap((result) => result.status === "fulfilled" ? result.value : [])
+      .map((game) => [String(game.id || `${game.start_time}:${game.home_team_id}:${game.away_team_id}`), game])
+  ).values());
+
+  return actionGames.flatMap((actionGame): ActionNetworkScheduledGame[] => {
+    if (!actionGame.start_time) return [];
+    const teams = actionTeams(actionGame);
+    const homeTeam = primaryTeamName(teams.home);
+    const awayTeam = primaryTeamName(teams.away);
+    if (!homeTeam || !awayTeam) return [];
+
+    const rows = marketRowsForPhase(actionGame, "pregame");
+    const row = spreadRow(rows, league);
+    const verifiedSpread = row ? verifiedSpreadFromRow(row, league) : null;
+
+    return [{
+      actionId: String(actionGame.id || `${actionGame.start_time}:${actionGame.home_team_id}:${actionGame.away_team_id}`),
+      league,
+      commenceTime: actionGame.start_time,
+      homeTeam,
+      awayTeam,
+      homeAliases: rawAliases(teams.home),
+      awayAliases: rawAliases(teams.away),
+      spread: verifiedSpread
+    }];
+  });
+}
+
+function quoteForGame(game: Game, actionGames: ActionGame[]): SideBetMarketQuote | null {
+  let matched: ActionGame | null = null;
+  let bestScore = 0;
+  for (const actionGame of actionGames) {
+    const score = actionMatchScore(game, actionGame);
+    if (score > bestScore) {
+      bestScore = score;
+      matched = actionGame;
+    }
+  }
+  if (!matched || bestScore < 90) return null;
+
+  const phase: SideBetOfferPhase | null = matched.status === "scheduled"
+    ? "pregame"
+    : matched.status === "inprogress"
+      ? "live"
+      : null;
+  if (!phase) return null;
+
+  const rows = marketRowsForPhase(matched, phase);
+  if (!rows.length) return null;
+
+  const spreadMarket = spreadRow(rows, game.league);
+  const moneylineMarket = moneylineRow(rows);
+  const totalMarket = totalRow(rows);
+
+  const moneyline = moneylineMarket ? {
+    awayOdds: validOdds(moneylineMarket.ml_away)!,
+    homeOdds: validOdds(moneylineMarket.ml_home)!,
+    suspended: suspended(moneylineMarket, "ml_away", "ml_home")
+  } : null;
+  // Keep the NFL favorite when a genuine zero is encoded as a half point.
+  const verifiedSpread = spreadMarket ? verifiedSpreadFromRow(spreadMarket, game.league, moneyline) : null;
+  const total = finiteNumber(totalMarket?.total);
+
+  const quote: SideBetMarketQuote = {
+    gameId: game.id,
+    phase,
+    status: String(matched.status || ""),
+    spread: verifiedSpread,
+    moneyline,
+    total: totalMarket && total != null ? {
+      points: total,
+      overOdds: validOdds(totalMarket.over),
+      underOdds: validOdds(totalMarket.under),
+      suspended: suspended(totalMarket, "over", "under")
+    } : null
+  };
+  return quote;
+}
+
+export async function fetchActionNetworkMarkets(games: Game[]) {
+  const leagues = Array.from(new Set(games.map((game) => game.league)));
+  const leaguePayloads = new Map<Game["league"], ActionGame[]>();
+  await Promise.all(leagues.map(async (league) => {
+    try {
+      leaguePayloads.set(league, await fetchActionLeague(league, games.filter((game) => game.league === league)));
+    } catch (error) {
+      console.error(`[side-bet-markets] ${league} fetch failed`, error);
+      leaguePayloads.set(league, []);
+    }
+  }));
+
+  const quotes = games.flatMap((game) => {
+    const quote = quoteForGame(game, leaguePayloads.get(game.league) || []);
+    return quote ? [quote] : [];
+  });
+  const quotedIds = new Set(quotes.map((quote) => quote.gameId));
+  const missingBasketball = games.filter((game) => (game.league === "CBB" || game.league === "NBA") && !quotedIds.has(game.id));
+  const fallback = missingBasketball.length ? await fetchEspnBasketballMarkets(missingBasketball) : [];
+  return [...quotes, ...fallback];
+}
+
+export async function fetchActionNetworkMarketForGame(game: Game, phase: SideBetOfferPhase) {
+  const quotes = await fetchActionNetworkMarkets([game]);
+  return quotes.find((quote) => quote.gameId === game.id && quote.phase === phase) || null;
+}
+
+export function actionMarketAvailable(quote: SideBetMarketQuote | null, marketType: "spread" | "moneyline" | "total") {
+  if (!quote) return false;
+  if (marketType === "spread") return Boolean(quote.spread && !quote.spread.suspended);
+  if (marketType === "moneyline") return Boolean(quote.moneyline && !quote.moneyline.suspended);
+  return Boolean(quote.total && !quote.total.suspended);
+}
