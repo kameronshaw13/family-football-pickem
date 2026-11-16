@@ -69,6 +69,7 @@ export type BadgeNavigator = Navigator & { setAppBadge?: (contents?: number) => 
 
 export type LiveScoreUpdate = {
   id: string;
+  event_status?: string | null;
   final_home_score?: number | null;
   final_away_score?: number | null;
   live_home_score?: number | null;
@@ -372,6 +373,9 @@ export function openText(iso: string) {
   return formatOrdinalDate(CENTRAL_OPEN_DATE_FORMATTER, new Date(iso));
 }
 export function cardGameStateText(game: Game, locked: boolean) {
+  if (game.event_status === "STATUS_POSTPONED") return "Postponed";
+  if (game.event_status === "STATUS_CANCELED" || game.event_status === "STATUS_CANCELLED") return "Canceled";
+  if (game.event_status === "STATUS_RESCHEDULED") return "Rescheduled";
   if (game.final_away_score != null && game.final_home_score != null) {
     return `Final ${game.final_away_score}-${game.final_home_score}`;
   }
@@ -407,7 +411,10 @@ export function isClosed(game: Game) {
   return game.is_locked || new Date(game.lock_time) <= new Date();
 }
 export function isFinalGame(game: Game) {
-  return (game.final_away_score != null && game.final_home_score != null) || Boolean(game.live_completed) || game.live_state === "post";
+  return !isPostponedGame(game) && ((game.final_away_score != null && game.final_home_score != null) || Boolean(game.live_completed));
+}
+export function isPostponedGame(game: Game) {
+  return ["STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_CANCELLED", "STATUS_RESCHEDULED"].includes(game.event_status || "");
 }
 export function universalWeekendLockTime(games: Game[]) {
   const candidates = games.flatMap((game) => {
@@ -423,6 +430,7 @@ export function LockedPickIndicator({ hidden = false }: { hidden?: boolean }) {
   return <span className="pick-lock-indicator" aria-label="Locked"><Lock size={14} aria-hidden="true" /></span>;
 }
 export function boardStatusForGame(game: Game, now: number, weekIsOpen: boolean): GameStatusFilter {
+  if (isPostponedGame(game)) return "FINAL";
   if (isFinalGame(game)) return "FINAL";
   const locked = game.is_locked || new Date(game.lock_time).getTime() <= now || new Date(game.commence_time).getTime() <= now;
   return locked || !weekIsOpen ? "LOCKED" : "OPEN";

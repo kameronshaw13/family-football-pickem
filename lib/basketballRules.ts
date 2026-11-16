@@ -16,6 +16,16 @@ export type BasketballCalendar = typeof BASKETBALL_2026_CALENDAR;
 export function isBasketballLeague(league: string) {
   return league === "CBB" || league === "NBA";
 }
+export function isInactiveBasketballEvent(status?: string | null) {
+  return ["STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_CANCELLED", "STATUS_RESCHEDULED"].includes(status || "");
+}
+export function basketballDateChanged(original: string, current: string) {
+  const day = (value: string) => {
+    const local = toZonedTime(new Date(value), BASKETBALL_TIMEZONE);
+    return `${local.getFullYear()}-${local.getMonth()}-${local.getDate()}`;
+  };
+  return day(original) !== day(current);
+}
 export function isBasketballRules(rules: any) {
   return rules?.sport === "basketball";
 }

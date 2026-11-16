@@ -4,6 +4,7 @@ import { getProfileFromRequest } from "@/lib/authServer";
 import { getGroupGameLockTime, getGroupPickWeekOpenTime, getGroupUnderdogBonus, getGroupWeekRule, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { isEligibleSeasonGame } from "@/lib/seasonRules";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
+import { isInactiveBasketballEvent } from "@/lib/basketballRules";
 import { hasUsableStoredGameSpread } from "@/lib/marketSpread";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { fetchEspnDivisionOneTeamIds, isDivisionOneStoredMatchup } from "@/lib/espnDivisionOne";
@@ -109,6 +110,7 @@ export async function POST(req: NextRequest) {
     for (const pick of editable) {
       const game: any = gameMap.get(pick.gameId);
       if (!game) return NextResponse.json({ ok: false, error: "That game is not eligible in this Pick'em group." }, { status: 409 });
+      if (isInactiveBasketballEvent(game.event_status)) return NextResponse.json({ ok: false, error: "This game was postponed or rescheduled and cannot be picked on its original date." }, { status: 409 });
       if (![game.away_team, game.home_team].includes(pick.selectedTeam)) return NextResponse.json({ ok: false, error: "Choose a team in the selected game." }, { status: 400 });
       if (game.is_locked || new Date(game.lock_time) <= now) return NextResponse.json({ ok: false, error: `${pick.selectedTeam} has reached its lock time and cannot be changed.` }, { status: 409 });
       const selectedSpread = normalizeSpreadForSelectedTeam(pick.selectedTeam, game.current_spread_team, game.current_spread);

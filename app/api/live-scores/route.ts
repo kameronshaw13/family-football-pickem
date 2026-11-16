@@ -2,8 +2,9 @@ import { isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext }
 import { LEAGUES } from "@/lib/sportPaths";
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
-import { fetchEspnEvent, fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
+import { fetchEspnEvent, fetchEspnSchedule, findEspnScheduleMatch, fresherBasketballMatch, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { basketballDateChanged, isBasketballLeague } from "@/lib/basketballRules";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
     // pick locking, grading, notifications, settlement, or unrelated database writes.
     const { data: candidates, error } = await supabase
       .from("games")
-      .select("id,espn_event_id,week,league,commence_time,home_team,away_team,home_logo_url,away_logo_url,final_home_score,final_away_score")
+      .select("id,espn_event_id,week,league,commence_time,home_team,away_team,home_logo_url,away_logo_url,final_home_score,final_away_score,event_status")
       .eq("week", week)
       .is("final_home_score", null)
       .is("final_away_score", null)
@@ -55,36 +56,33 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const schedules = new Map<string, Awaited<ReturnType<typeof fetchEspnSchedule>>>();
-    await Promise.all((LEAGUES).map(async (league) => {
+    const schedules = new Map<string, Promise<Awaited<ReturnType<typeof fetchEspnSchedule>>>>();
+    for (const league of LEAGUES) {
       const leagueGames = (candidates || []).filter((game) => game.league === league);
-      if (!leagueGames.length) return;
-      try {
-        schedules.set(
-          league,
-          await fetchEspnSchedule(
-            league,
-            leagueGames.map((game) => game.commence_time),
-            4,
-            0
-          )
-        );
-      } catch {
-        schedules.set(league, []);
-      }
-    }));
+      if (!leagueGames.length) continue;
+      schedules.set(league, fetchEspnSchedule(league, leagueGames.map((game) => game.commence_time), 4, 0).catch(() => []));
+    }
 
-    const eligibleGames = (candidates || []).filter((game) => isGameAllowedForGroup(context, game));
+    const eligibleGames = (candidates || []).filter((game) => game.event_status !== "STATUS_RESCHEDULED" && isGameAllowedForGroup(context, game));
     // One unavailable event must not discard healthy NFL/CFB updates.
     const results = await Promise.allSettled(eligibleGames.map(async (game) => {
       const league = game.league as import("@/lib/types").League;
-      let match = await resolveEspnScheduleMatch(game, schedules.get(game.league) || [], league, { freshness: 4 });
+      // The exact event summary is a smaller, fresher request for live basketball
+      // than fetching and parsing a full college scoreboard on every poll.
+      const exact = isBasketballLeague(league) && game.espn_event_id
+        ? await fetchEspnEvent(league, String(game.espn_event_id), true).catch(() => null)
+        : null;
+      const scoreboard = await (schedules.get(game.league) || Promise.resolve([]));
+      const exactMatch = exact ? findEspnScheduleMatch(game, [exact], { allowOneSided: league === "NFL" }) : null;
+      const boardMatch = findEspnScheduleMatch(game, scoreboard, { allowOneSided: league === "NFL" });
+      let match = isBasketballLeague(league) ? fresherBasketballMatch(exactMatch, boardMatch) : exactMatch || boardMatch;
+      if (!match && !isBasketballLeague(league)) match = await resolveEspnScheduleMatch(game, scoreboard, league, { freshness: 4 });
 
       // ESPN's date scoreboard occasionally returns the event shell before it
       // fills in a score (most often on smaller college games). When that
       // happens, query the exact event summary rather than leaving the board on
       // "Score updating" until the scoreboard feed catches up or the game ends.
-      if (!match || match.game.homeScore == null || match.game.awayScore == null) {
+      if (!match || (match.game.statusState === "in" && (match.game.homeScore == null || match.game.awayScore == null))) {
         const eventId = String(game.espn_event_id || match?.game.id || "");
         if (eventId) {
           const exact = await fetchEspnEvent(league, eventId, true);
@@ -94,10 +92,15 @@ export async function GET(req: NextRequest) {
           }
         }
       }
-      if (!match || match.game.homeScore == null || match.game.awayScore == null) return null;
+      if (!match) return null;
 
-      const homeScore = match.swapped ? match.game.awayScore : match.game.homeScore;
-      const awayScore = match.swapped ? match.game.homeScore : match.game.awayScore;
+      const inactive = ["STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_CANCELLED"].includes(match.game.statusName || "");
+      const moved = isBasketballLeague(league) && match.game.statusState === "pre"
+        && basketballDateChanged(game.commence_time, match.game.commenceTime);
+      if (!inactive && !moved && (match.game.homeScore == null || match.game.awayScore == null)) return null;
+
+      const homeScore = inactive || moved ? null : match.swapped ? match.game.awayScore : match.game.homeScore;
+      const awayScore = inactive || moved ? null : match.swapped ? match.game.homeScore : match.game.awayScore;
       const possessionTeam = match.game.possessionSide === "home"
         ? (match.swapped ? game.away_team : game.home_team)
         : match.game.possessionSide === "away"
@@ -114,6 +117,7 @@ export async function GET(req: NextRequest) {
         live_away_score: awayScore,
         live_status: match.game.statusDetail,
         live_state: match.game.statusState,
+        event_status: moved ? "STATUS_RESCHEDULED" : match.game.statusName,
         live_completed: match.game.completed,
         live_possession_team: possessionTeam,
         live_situation: match.game.situationText,

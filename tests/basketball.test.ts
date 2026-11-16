@@ -4,7 +4,12 @@ import nodeModule from "node:module";
 const { registerHooks } = nodeModule as unknown as { registerHooks: (hooks: { resolve: (specifier: string, context: { parentURL?: string }, nextResolve: (specifier: string, context: { parentURL?: string }) => any) => any }) => void };
 import { existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { basketballWeek, basketballWeekBounds, basketballFinalWeek, basketballPayoutMultiplier, basketballGameInSeason, basketballGameAvailableForSideBets, basketballSideBetWeekOpenTime, basketballLockTime, basketballPickLockTime } from "../lib/basketballRules.ts";
+import { basketballDateChanged, basketballWeek, basketballWeekBounds, basketballFinalWeek, basketballPayoutMultiplier, basketballGameInSeason, basketballGameAvailableForSideBets, basketballSideBetWeekOpenTime, basketballLockTime, basketballPickLockTime } from "../lib/basketballRules.ts";
+
+test("date-change void uses the Central calendar date, not a kickoff-time adjustment", () => {
+  assert.equal(basketballDateChanged("2026-11-15T19:00:00Z", "2026-11-15T23:00:00Z"), false);
+  assert.equal(basketballDateChanged("2026-11-15T23:00:00Z", "2026-11-16T07:00:00Z"), true);
+});
 
 registerHooks({ resolve(specifier, context, nextResolve) {
   let url: URL | undefined;
@@ -104,10 +109,16 @@ function fixture(perfect = false, seasonRules: any = rules) {
     const query: any = { select() { return query; }, eq() { return query; }, upsert(rows: any[]) { writes.push(...rows); return Promise.resolve({ error: null }); }, then(resolve: any) { return Promise.resolve({ data: tables[table] || [], error: null }).then(resolve); } };
     return query;
   } };
-  return { db, writes };
+  return { db, writes, picks };
 }
-test("basketball cannot settle early even if every submitted pick is final", async () => {
+test("basketball settles as soon as every complete card is graded", async () => {
   const { db, writes } = fixture();
+  assert.equal((await settleWeekIfReady(db, 20, undefined, new Date("2027-03-20T19:00:00Z"))).settled, true);
+  assert.equal(writes.length, 8);
+});
+test("basketball waits if any player's pick is still pending", async () => {
+  const { db, writes, picks } = fixture();
+  picks[0].result = "pending";
   assert.equal((await settleWeekIfReady(db, 20, undefined, new Date("2027-03-20T19:00:00Z"))).settled, false);
   assert.equal(writes.length, 0);
 });

@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
   const refreshWindow = scheduledMarketRefreshWindow(now);
   let basketball: { gamesDiscovered?: number; gamesUpdated?: number; error?: string } | null = null;
   const { minute } = chicagoParts(now);
-  if (force || !scheduled || (minute === 50 && hour >= 6 && hour <= 23)) {
+  if (force || !scheduled || minute === 20 || minute === 50) {
     try { basketball = await refreshBasketballSlate(supabase, now); }
     catch (error) { basketball = { error: error instanceof Error ? error.message : String(error) }; }
   }

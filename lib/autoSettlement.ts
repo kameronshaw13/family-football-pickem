@@ -1,4 +1,4 @@
-import { basketballPayoutMultiplier, basketballWeekBounds, isBasketballRules } from "./basketballRules";
+import { basketballPayoutMultiplier, isBasketballRules } from "./basketballRules";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeGroupStandings, rankedPayoutSettlement, winnerTakeAllSettlement } from "@/lib/groupScoring";
 import { computeWeeklySettlement } from "@/lib/weeklyBank";
@@ -38,10 +38,6 @@ export async function settleWeekIfReady(supabase: SupabaseClient, week: number, 
   let anyPerfect = false;
 
   for (const season of seasons) {
-    if (isBasketballRules(season.rules) && currentTime < basketballWeekBounds(week, season.rules).end) {
-      lastReason = "The Monday–Sunday basketball week is still open.";
-      continue;
-    }
     const [{ data: memberships, error: memberError }, { data: picks, error: picksError }] = await Promise.all([
       supabase.from("group_members").select("profile:profiles(id,display_name)").eq("group_id", season.group_id).eq("status", "active"),
       supabase.from("picks").select("*").eq("group_id", season.group_id).eq("season_year", season.season_year).eq("week", week)

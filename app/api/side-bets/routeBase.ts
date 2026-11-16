@@ -183,6 +183,7 @@ export async function POST(req: NextRequest) {
       const { data: game, error: gameError } = await supabase.from("games").select("*").eq("id", body.gameId).maybeSingle();
       if (gameError || !game) return NextResponse.json({ ok: false, error: "Game not found." }, { status: 404 });
       if (!isGameAllowedForSideBets(context, game)) return NextResponse.json({ ok: false, error: "That game is not available in this Pick'em group." }, { status: 409 });
+      if (["STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_CANCELLED", "STATUS_RESCHEDULED"].includes(game.event_status || "")) return NextResponse.json({ ok: false, error: "This game was postponed or rescheduled." }, { status: 409 });
       if (game.league === "CBB" && !isDivisionOneStoredMatchup(game, await fetchEspnDivisionOneTeamIds())) {
         return NextResponse.json({ ok: false, error: "College basketball side bets require two Division I teams." }, { status: 409 });
       }
@@ -424,6 +425,7 @@ export async function POST(req: NextRequest) {
     }
     if (target.response !== "pending" || sideBet.status !== "open") return NextResponse.json({ ok: false, error: "This offer is no longer available." }, { status: 409 });
     if (!sideBet.game) return NextResponse.json({ ok: false, error: "Game unavailable." }, { status: 409 });
+    if (["STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_CANCELLED", "STATUS_RESCHEDULED"].includes(sideBet.game.event_status || "")) return NextResponse.json({ ok: false, error: "This game was postponed or rescheduled." }, { status: 409 });
     const sideBetPhase = sideBet.offer_phase === "live" ? "live" : "pregame";
     const [acceptLiveScore, acceptScoreboardScore] = sideBetPhase === "live"
       ? await Promise.all([currentLiveScore(sideBet.game, 4), scoreboardLiveScore(sideBet.game, 4)])
