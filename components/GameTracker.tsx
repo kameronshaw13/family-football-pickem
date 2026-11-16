@@ -591,7 +591,6 @@ function TeamBox({ payload, side }: { payload: TrackerPayload; side: Side }) {
   const rows = payload.playerStats.filter((item) => item.side === side);
 
   return <div className="game-tracker-team-box">
-    <h3 className="game-tracker-team-box-title">{payload.league === "NFL" ? payload.teams[side].shortName : teamDisplayName("CFB", payload.teams[side].name || payload.teams[side].shortName)}</h3>
     {rows.length ? rows.map((row) => <section className="game-tracker-box-section" key={row.category}>
       <PlayerTable row={row} />
     </section>) : <p className="game-tracker-empty">Player box score is not available yet.</p>}
@@ -604,7 +603,7 @@ function BoxScore({ payload }: { payload: TrackerPayload }) {
   return <div className="game-tracker-box">
     <div className="game-tracker-box-selector" role="group" aria-label="Choose box score team">
       <button type="button" className={view === "away" ? "active" : ""} aria-pressed={view === "away"} onClick={() => setView("away")}><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><span>{payload.league === "NFL" ? payload.teams.away.shortName : teamDisplayName("CFB", payload.teams.away.name || payload.teams.away.shortName)}</span></button>
-      <button type="button" className={view === "all" ? "active" : ""} aria-pressed={view === "all"} onClick={() => setView("all")}>Team Stats</button>
+      <button type="button" className={view === "all" ? "active" : ""} aria-pressed={view === "all"} onClick={() => setView("all")}>Team</button>
       <button type="button" className={view === "home" ? "active" : ""} aria-pressed={view === "home"} onClick={() => setView("home")}><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /><span>{payload.league === "NFL" ? payload.teams.home.shortName : teamDisplayName("CFB", payload.teams.home.name || payload.teams.home.shortName)}</span></button>
     </div>
     {view === "all" ? <TeamStats payload={payload} /> : <TeamBox payload={payload} side={view} />}
