@@ -33,7 +33,7 @@ export default function BasketballShotChart({ shots, attempts, college, period, 
         <circle cx="25" cy="19" r="6" />
         <path d={`M${corner} 0V${arcY} A${radius} ${radius} 0 0 0 ${50 - corner} ${arcY} V0`} />
         <path d="M21 5.25A4 4 0 0 0 29 5.25" />
-        <path d="M0 47H50" /><circle cx="25" cy="47" r="6" />
+        <path d="M0 47H50" />
         {courtLength === 94 && <g transform="translate(50 94) rotate(180)"><path d="M17 0V19H33V0 M22 4H28 M25 4V4.5" /><circle cx="25" cy="5.25" r=".75" /><circle cx="25" cy="19" r="6" /><path d={`M${corner} 0V${arcY} A${radius} ${radius} 0 0 0 ${50 - corner} ${arcY} V0`} /></g>}
       </g>
       {visible.map(shot => <g key={shot.id} className={`basketball-shot ${shot.teamId === away.id ? "away-shot" : "home-shot"} ${shot.made ? "made" : "missed"} ${shot.id === selectedId ? "selected" : ""}`} transform={courtPosition(shot)} role="button" tabIndex={0}
