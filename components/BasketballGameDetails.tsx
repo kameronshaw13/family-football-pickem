@@ -34,6 +34,30 @@ function shortPlayerName(name: string) {
   return parts.length > 1 && !/^[A-Z]\.$/.test(parts[0]) ? `${parts[0][0]}. ${parts.slice(1).join(" ")}` : name;
 }
 
+function BasketballLineScore({ plays, college, names, logos, finalScores }: {
+  plays: Play[]; college: boolean; names: Record<Side, string>;
+  logos: Record<Side, string | null | undefined>; finalScores: Record<Side, number | null>;
+}) {
+  const count = Math.max(college ? 2 : 4, ...plays.map(play => play.period));
+  const periods = Array.from({ length: Math.min(count, 12) }, (_, index) => index + 1);
+  const totals = periods.map(period => {
+    const periodPlays = plays.filter(play => play.period === period && play.awayScore != null && play.homeScore != null);
+    const last = periodPlays[periodPlays.length - 1];
+    return last ? { away: last.awayScore, home: last.homeScore } : null;
+  });
+  const scoreFor = (side: Side, index: number) => {
+    const now = totals[index]?.[side];
+    const previous = index === 0 ? 0 : totals[index - 1]?.[side];
+    return now == null || previous == null ? "—" : now - previous;
+  };
+  return <div className="basketball-linescore-scroll" role="region" aria-label="Scores by period" tabIndex={0}>
+    <table className="basketball-linescore">
+      <thead><tr><th scope="col" aria-label="Team"></th>{periods.map(period => <th scope="col" key={period}>{college ? (period > 2 ? `${period - 2}OT` : period) : (period > 4 ? `${period - 4}OT` : period)}</th>)}<th scope="col">T</th></tr></thead>
+      <tbody>{(["away", "home"] as const).map(side => <tr key={side}><th scope="row">{logos[side] && <Image unoptimized src={logos[side]!} alt="" width={23} height={23} />}<span>{names[side]}</span></th>{periods.map((period, index) => <td key={period}>{scoreFor(side, index)}</td>)}<td className="basketball-linescore-total">{finalScores[side] ?? "—"}</td></tr>)}</tbody>
+    </table>
+  </div>;
+}
+
 export default function BasketballGameDetails({ game, onClose }: { game: Game; onClose: () => void }) {
   const [payload, setPayload] = useState<Payload | null>(null), [error, setError] = useState("");
   const signature = useRef("");
@@ -104,7 +128,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
   return createPortal(<div className="game-tracker-backdrop" onClick={event => { if (event.target === event.currentTarget) close(); }}>
     <section ref={sheet} className="game-tracker-sheet basketball-details basketball-game-tracker" role="dialog" aria-modal="false" aria-label={`${names.away}${game.neutral_site ? " vs " : " at "}${names.home} GameTracker`}>
       <header className="game-tracker-header"><div className="game-detail-title"><strong>{names.away}{game.neutral_site ? " vs " : " at "}{names.home}</strong></div><GameDetailClose onClose={close} label="Close GameTracker" /></header>
-      <div className="game-tracker-scoreboard"><div className="game-tracker-scoreboard-grid">
+      <div className="game-tracker-scoreboard"><div className="game-tracker-scoreboard-grid" style={{ "--tracker-away-color": payload?.teams.away?.team?.color && /^[0-9a-f]{6}$/i.test(payload.teams.away.team.color) ? `#${payload.teams.away.team.color}` : "transparent", "--tracker-home-color": payload?.teams.home?.team?.color && /^[0-9a-f]{6}$/i.test(payload.teams.home.team.color) ? `#${payload.teams.home.team.color}` : "transparent" } as React.CSSProperties}>
         {(["away", "home"] as const).map(side => <div className={`game-tracker-score-team ${side}`} key={side}>
           <div className="game-tracker-score-team-main">{logos[side] ? <Image unoptimized src={logos[side]!} alt={names[side]} width={60} height={60} /> : <span className="game-tracker-logo-fallback">{names[side].slice(0, 1)}</span>}<div className="game-tracker-score-stack">{payload?.teams[side]?.records?.[0]?.summary && <small className="basketball-header-record">{payload.teams[side]!.records![0].summary}</small>}<b className={completed && scores.away != null && scores.home != null ? scores[side]! > scores[side === "away" ? "home" : "away"]! ? "winner" : "loser" : ""}>{scores[side] ?? "—"}</b>{!completed && !pregame && <span className="basketball-team-timeouts" aria-label={timeoutCount(side) == null ? "Timeouts unavailable" : `${timeoutCount(side)} timeouts left`}>{game.league === "NBA" ? `TO: ${timeoutCount(side) ?? "—"}` : <span className="game-tracker-timeout-dots">{[0, 1, 2, 3].map(i => <i key={i} className={timeoutCount(side) != null && i < timeoutCount(side)! ? "active" : ""} />)}</span>}</span>}</div></div>
         </div>)}
@@ -121,12 +145,12 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
           ? <BasketballLiveCourt shots={payload.shots || []} plays={payload.plays || []} possessionSide={payload.liveState?.possessionSide || null} latestAction={payload.liveState?.latestAction || null} away={names.away} home={names.home}
               awayId={String(payload.teams.away?.team?.id || "away")} homeId={String(payload.teams.home?.team?.id || "home")} college={game.league === "CBB"} awayLogo={logos.away} homeLogo={logos.home} />
           : <BasketballShotChart key={game.id} shots={payload.shots || []} attempts={payload.shotAttempts || 0} college={game.league === "CBB"} period={payload.status.period || 1}
-              away={{ id: String(payload.teams.away?.team?.id || "away"), name: names.away }} home={{ id: String(payload.teams.home?.team?.id || "home"), name: names.home }} /><BasketballScoreFlow plays={payload.plays || []} away={names.away} home={names.home} awayLogo={logos.away} homeLogo={logos.home} />}</>}
+              away={{ id: String(payload.teams.away?.team?.id || "away"), name: names.away }} home={{ id: String(payload.teams.home?.team?.id || "home"), name: names.home }} /><BasketballScoreFlow plays={payload.plays || []} away={names.away} home={names.home} awayLogo={logos.away} homeLogo={logos.home} college={game.league === "CBB"} />}</>}
         {payload && (tab === "plays" || tab === "scoring") && <div className="basketball-play-list">{!periodGroups.length && <p className="game-tracker-empty">{pregame ? "Play-by-play begins at tipoff." : "No plays available yet."}</p>}{periodGroups.map((group, index) => <section className="basketball-play-period" key={`${group.period}-${index}`} aria-label={`${basketballPeriodLabel(group.period, game.league === "CBB")} ${tab}`}>
           <div className="game-tracker-quarter-header"><span>{basketballPeriodLabel(group.period, game.league === "CBB")}</span><div className="basketball-period-scores">{(["away", "home"] as const).map(side => logos[side] ? <Image unoptimized key={side} src={logos[side]!} alt={names[side]} width={22} height={22} /> : <span key={side}>{names[side]}</span>)}</div></div>
           {group.plays.map((play, index) => <div className="basketball-play" key={play.id}><p><time>{play.clock},</time> {playTextWithoutDuplicateClock(play.text, play.clock)}</p>{scoreChanged(play, group.plays[index + (completed ? -1 : 1)]) && <div className="basketball-period-scores basketball-play-score" aria-label={`${names.away} ${play.awayScore ?? "—"}, ${names.home} ${play.homeScore ?? "—"}`}>{(["away", "home"] as const).map(side => <span className="basketball-play-team-score" key={side}><strong>{side === "away" ? play.awayScore ?? "—" : play.homeScore ?? "—"}</strong></span>)}</div>}</div>)}
         </section>)}</div>}
-        {payload && tab === "box" && <div className="game-tracker-box">
+        {payload && tab === "box" && <div className="game-tracker-box"><BasketballLineScore plays={payload.plays || []} college={game.league === "CBB"} names={names} logos={logos} finalScores={scores} />
           <div className="game-tracker-box-selector" role="group" aria-label="Box score team">{(["away", "all", "home"] as const).map(side => <button type="button" key={side} className={boxTeam === side ? "active" : ""} aria-pressed={boxTeam === side} onClick={() => setBoxTeam(side)}>{side === "all" ? "Team" : <>{logos[side] && <Image unoptimized src={logos[side]!} alt="" width={20} height={20} />}<span>{teamAbbreviatedName(game.league, game[`${side}_team`])}</span></>}</button>)}</div>
           {boxTeam === "all" && (payload.stats.length > 0 ? teamStats : <p className="game-tracker-empty">Team statistics will appear when available.</p>)}
           {boxTeam !== "all" && !payload.players.length && <p className="game-tracker-empty">Box scores appear when available.</p>}
