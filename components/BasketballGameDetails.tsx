@@ -101,7 +101,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
     return groups;
   }, []);
   const tabs: [Tab, string][] = [["live", completed ? "Shot Chart" : pregame ? "Preview" : "Live Court"], ["scoring", "Scoring"], ["plays", "Plays"], ["box", "Box Score"]];
-  const teamStats = payload && <table className="basketball-stats" aria-label="Team statistics"><tbody>{payload.stats.map(row => <tr key={row.label}><td>{row.away}</td><th scope="row">{row.label}</th><td>{row.home}</td></tr>)}</tbody></table>;
+  const teamStats = payload && <section className="game-tracker-team-stats" aria-label="Team statistics comparison">{payload.stats.map(row => <div className="game-tracker-stat-row" key={row.label}><strong aria-label={`${names.away} ${row.label}: ${row.away}`}>{row.away}</strong><span>{row.label}</span><strong aria-label={`${names.home} ${row.label}: ${row.home}`}>{row.home}</strong></div>)}</section>;
 
   return createPortal(<div className="game-tracker-backdrop" onClick={event => { if (event.target === event.currentTarget) close(); }}>
     <section ref={sheet} className="game-tracker-sheet basketball-details basketball-game-tracker" role="dialog" aria-modal="false" aria-label={`${names.away}${game.neutral_site ? " vs " : " at "}${names.home} GameTracker`}>
@@ -128,10 +128,20 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
           {group.plays.map((play, index) => <div className="basketball-play" key={play.id}><p><time>{play.clock}</time> {playTextWithoutDuplicateClock(play.text, play.clock)}</p>{scoreChanged(play, group.plays[index + (completed ? -1 : 1)]) && <div className="basketball-period-scores basketball-play-score" aria-label={`${names.away} ${play.awayScore ?? "—"}, ${names.home} ${play.homeScore ?? "—"}`}>{(["away", "home"] as const).map(side => <span className="basketball-play-team-score" key={side}><strong>{side === "away" ? play.awayScore ?? "—" : play.homeScore ?? "—"}</strong></span>)}</div>}</div>)}
         </section>)}</div>}
         {payload && tab === "box" && <div className="game-tracker-box">
-          <div className="game-tracker-box-selector" role="group" aria-label="Box score team">{(["away", "all", "home"] as const).map(side => <button type="button" key={side} className={boxTeam === side ? "active" : ""} aria-pressed={boxTeam === side} onClick={() => setBoxTeam(side)}>{side === "all" ? "Team Stats" : <>{logos[side] && <Image unoptimized src={logos[side]!} alt="" width={20} height={20} />}<span>{teamAbbreviatedName(game.league, game[`${side}_team`])}</span></>}</button>)}</div>
+          <div className="game-tracker-box-selector" role="group" aria-label="Box score team">{(["away", "all", "home"] as const).map(side => <button type="button" key={side} className={boxTeam === side ? "active" : ""} aria-pressed={boxTeam === side} onClick={() => setBoxTeam(side)}>{side === "all" ? "Team" : <>{logos[side] && <Image unoptimized src={logos[side]!} alt="" width={20} height={20} />}<span>{teamAbbreviatedName(game.league, game[`${side}_team`])}</span></>}</button>)}</div>
           {boxTeam === "all" && (payload.stats.length > 0 ? teamStats : <p className="game-tracker-empty">Team statistics will appear when available.</p>)}
           {boxTeam !== "all" && !payload.players.length && <p className="game-tracker-empty">Box scores appear when available.</p>}
-          {payload.players.filter(team => boxTeam !== "all" && team.side === boxTeam).map(team => <section key={team.id} className="basketball-box"><h3>{teamDisplayName(game.league, team.name)}</h3>{team.groups.map((group, index) => <div className="basketball-table-scroll" key={index} tabIndex={0} role="region" aria-label={`${teamDisplayName(game.league, team.name)} player statistics`}><table><colgroup><col className="basketball-player-name-column" />{group.labels.map((_, i) => <col className="basketball-player-stat-column" key={i} />)}</colgroup><thead><tr><th scope="col">Players</th>{group.labels.map((label, i) => <th scope="col" key={`${label}-${i}`}>{label}</th>)}</tr></thead><tbody>{group.athletes.map(athlete => <tr key={athlete.id}><th scope="row" title={athlete.name}>{shortPlayerName(athlete.name)}</th>{athlete.stats.map((stat, i) => <td key={i}>{stat}</td>)}</tr>)}</tbody></table></div>)}</section>)}
+          {payload.players.filter(team => boxTeam !== "all" && team.side === boxTeam).map(team => <div key={team.id} className="game-tracker-team-box basketball-team-box">
+            {team.groups.map((group, index) => <section className="game-tracker-box-section" key={index}>
+              <div className="game-tracker-player-table-scroll basketball-table-scroll" tabIndex={0} role="region" aria-label={`${teamDisplayName(game.league, team.name)} player statistics, scroll horizontally for more columns`}>
+                <table className="game-tracker-player-table basketball-player-table" aria-label={`${teamDisplayName(game.league, team.name)} player statistics`} style={{ minWidth: `${Math.max(340, 120 + group.labels.length * 44)}px` }}>
+                  <colgroup><col style={{ width: 120 }} />{group.labels.map((label, i) => <col key={i} />)}</colgroup>
+                  <thead><tr><th scope="col">Players</th>{group.labels.map((label, i) => <th scope="col" key={i}>{label}</th>)}</tr></thead>
+                  <tbody>{group.athletes.map(athlete => <tr key={athlete.id}><th scope="row" title={athlete.name}>{shortPlayerName(athlete.name)}</th>{group.labels.map((_, i) => <td key={i}>{athlete.stats[i] ?? "—"}</td>)}</tr>)}</tbody>
+                </table>
+              </div>
+            </section>)}
+          </div>)}
         </div>}
       </div>
     </section>
