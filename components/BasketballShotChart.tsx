@@ -58,7 +58,7 @@ export default function BasketballShotChart({ shots, attempts, college, period, 
         <p>{selected.text}</p>
         {selected.awayScore != null && selected.homeScore != null && <strong>{away.name} {selected.awayScore} – {selected.homeScore} {home.name}</strong>}
       </div>
-    </div>
+    </div>}
 
   </section>;
 }
