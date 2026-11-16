@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { basketballPeriodLabel, type BasketballShot } from "@/lib/basketballShots";
+import { basketballPeriodLabel, shotBaselineDistance, type BasketballShot } from "@/lib/basketballShots";
 
 type Team = { id: string; name: string; logo?: string | null };
 export default function BasketballShotChart({ shots, attempts, college, period, away, home, neutralSite = false }: {
@@ -12,13 +12,22 @@ export default function BasketballShotChart({ shots, attempts, college, period, 
   const visible = shots.filter(shot => shot.teamId === away.id || shot.teamId === home.id);
   const selected = visible.find(shot => shot.id === selectedId);
   const courtPosition = (shot: BasketballShot) => {
-    const basketDistance = Math.min(shot.y, 94 - shot.y);
-    const courtY = shot.teamId === away.id ? 94 - basketDistance : basketDistance;
+    // ESPN y=1 is the basket; the court draws it 5.25ft from its baseline.
+    const normalizedY = shot.y > 47 ? 94 - shot.y : shot.y;
+    const fromBaseline = Math.max(0, Math.min(47, shotBaselineDistance(normalizedY)));
+    const courtY = shot.teamId === away.id ? 94 - fromBaseline : fromBaseline;
     return `translate(${shot.x} ${courtY})`;
   };
   const radius = college ? 22.1458 : 23.75;
   const corner = college ? 3.3333 : 3;
   const arcY = 5.25 + Math.sqrt(radius ** 2 - (25 - corner) ** 2);
+  // Explicit arc segments avoid SVG sweep-direction ambiguity and ensure the
+  // perimeter is drawn outside the basket at every point of the arc.
+  const threePointArc = Array.from({ length: 49 }, (_, i) => {
+    const x = corner + (50 - 2 * corner) * i / 48;
+    const y = 5.25 + Math.sqrt(Math.max(0, radius ** 2 - (x - 25) ** 2));
+    return `${i ? "L" : "M"}${x.toFixed(3)} ${y.toFixed(3)}`;
+  }).join(" ");
   // Half court by default; extend the actual court for long heaves rather than relocating a shot.
   const courtLength = 94;
   return <section className="basketball-shot-chart" aria-label="Shot chart">
@@ -31,10 +40,10 @@ export default function BasketballShotChart({ shots, attempts, college, period, 
         <path d="M17 0V19H33V0 M22 4H28 M25 4V4.5" />
         <circle cx="25" cy="5.25" r=".75" />
         <circle cx="25" cy="19" r="6" />
-        <path d={`M${corner} 0V${arcY} A${radius} ${radius} 0 0 0 ${50 - corner} ${arcY} V0`} />
+        <path d={`M${corner} 0V${arcY} ${threePointArc} V0`} />
         <path d="M21 5.25A4 4 0 0 0 29 5.25" />
         <path d="M0 47H50" />
-        {courtLength === 94 && <g transform="translate(50 94) rotate(180)"><path d="M17 0V19H33V0 M22 4H28 M25 4V4.5" /><circle cx="25" cy="5.25" r=".75" /><circle cx="25" cy="19" r="6" /><path d={`M${corner} 0V${arcY} A${radius} ${radius} 0 0 0 ${50 - corner} ${arcY} V0`} /></g>}
+        {courtLength === 94 && <g transform="translate(50 94) rotate(180)"><path d="M17 0V19H33V0 M22 4H28 M25 4V4.5" /><circle cx="25" cy="5.25" r=".75" /><circle cx="25" cy="19" r="6" /><path d={`M${corner} 0V${arcY} ${threePointArc} V0`} /></g>}
       </g>
       {visible.map(shot => <g key={shot.id} className={`basketball-shot ${shot.teamId === away.id ? "away-shot" : "home-shot"} ${shot.made ? "made" : "missed"} ${shot.id === selectedId ? "selected" : ""}`} transform={courtPosition(shot)} role="button" tabIndex={0}
         aria-label={`${shot.player}: ${shot.made ? "made" : "missed"}, ${basketballPeriodLabel(shot.period, college)}, ${shot.clock}`}
