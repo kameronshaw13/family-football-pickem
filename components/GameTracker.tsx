@@ -241,10 +241,10 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
 
   return <div className={`game-tracker-score-team ${side}`} aria-label={`${fullName} ${score ?? "score unavailable"}`}>
     <div className="game-tracker-score-team-main">
-      <span className="game-tracker-header-logo-wrap"><TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={56} />{!completed && payload?.situation.possessionSide === side && <FieldFootballIcon />}</span>
+      <span className="game-tracker-header-logo-wrap"><TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={56} /></span>
       <div className="game-tracker-score-stack">
         <b className={scoreTone}>{score ?? "—"}</b>
-        {!completed && <TimeoutDots remaining={timeouts} />}
+        {!completed && <div className="game-tracker-team-indicators"><TimeoutDots remaining={timeouts} />{payload?.situation.possessionSide === side && <FieldFootballIcon />}</div>}
       </div>
     </div>
   </div>;
