@@ -3,13 +3,25 @@ export type BasketballShot = {
   teamId: string; player: string; text: string; awayScore: number | null; homeScore: number | null;
 };
 
-/** ESPN uses court feet with the attacking basket at (25, 5.25).
- * Reject sentinel/missing coordinates and non-field-goal events; never guess a location. */
+/** ESPN's shot frame is hoop-relative, not baseline-relative: the normalized
+ * basket is approximately (25, 1) in feed coordinates. The SVG court basket
+ * is at (25, 5.25) feet from the baseline. See the fitted ESPN coordinate
+ * documentation in sportsdataverse. Never modify an actual coordinate based
+ * on a shot's reported point value. */
+export const ESPN_SHOT_HOOP_Y = 1;
+export const COURT_HOOP_Y = 5.25;
+export function shotDistanceFromHoop(x: number, y: number) {
+  return Math.hypot(x - 25, y - ESPN_SHOT_HOOP_Y);
+}
+export function shotBaselineDistance(y: number) {
+  return COURT_HOOP_Y + (y - ESPN_SHOT_HOOP_Y);
+}
+
 export function basketballShots(plays: any[], athletes = new Map<string, string>()): BasketballShot[] {
   return plays.flatMap((play): BasketballShot[] => {
     const { x, y } = play.coordinate || {};
     if (!play.shootingPlay || ![2, 3].includes(Number(play.pointsAttempted)) ||
-      typeof x !== "number" || typeof y !== "number" || !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 50 || y < 0 || y > 94) return [];
+      typeof x !== "number" || typeof y !== "number" || !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 50 || y < -2 || y > 94) return [];
     const score = (value: unknown) => value == null || value === "" || !Number.isFinite(Number(value)) ? null : Number(value);
     const rawPeriod = Number(play.period?.number);
     const period = Number.isInteger(rawPeriod) && rawPeriod >= 1 && rawPeriod <= 50 ? rawPeriod : 1;
