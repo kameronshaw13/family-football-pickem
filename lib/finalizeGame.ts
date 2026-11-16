@@ -72,13 +72,15 @@ async function lockDraftPicksForGame(supabase: SupabaseClient, game: Game, updat
   }
 }
 
-export async function finalizeGame(supabase: SupabaseClient, game: Game, homeScore: number, awayScore: number, settleWeek = true) {
+export async function finalizeGame(supabase: SupabaseClient, game: Game, homeScore: number, awayScore: number, settleWeek = true, pendingOnly = false) {
   const updatedAt = new Date().toISOString();
   await lockDraftPicksForGame(supabase, game, updatedAt);
   const gameResult = await supabase.from("games").update({ final_home_score: homeScore, final_away_score: awayScore, updated_at: updatedAt }).eq("id", game.id);
   if (gameResult.error) throw new Error(gameResult.error.message);
 
-  const { data: picks, error: pickError } = await supabase.from("picks").select("*, profile:profiles(id,display_name)").eq("game_id", game.id).eq("status", "locked");
+  let picksQuery = supabase.from("picks").select("*, profile:profiles(id,display_name)").eq("game_id", game.id).eq("status", "locked");
+  if (pendingOnly) picksQuery = picksQuery.eq("result", "pending");
+  const { data: picks, error: pickError } = await picksQuery;
   if (pickError) throw new Error(pickError.message);
   const groupCache = new Map<string, { slug: string; members: Array<{ id: string; display_name: string }> }>();
   const awayTeam = notificationTeamName(game.away_team, game.league);

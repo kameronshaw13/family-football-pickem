@@ -45,6 +45,7 @@ import { canRefreshSpread, getCurrentPickWeek } from "@/lib/lockRules";
 import {
   displayTeamName,
   abbreviatedTeamName,
+  matchupSeparator,
   ResponsiveText,
   ResponsiveTeamName,
   cardGameStateText,
@@ -201,7 +202,7 @@ export function BankWeekResults({ rows, picks, games, amounts, pointsMode, unive
         const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
         return <div className="bank-game-result" key={pick.id}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
-          <div><strong className="bank-game-pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator ui-separator-dot" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{game && <p><ResponsiveText full={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} compact={`${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} /></p>}</div>
+          <div><strong className="bank-game-pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator ui-separator-dot" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{game && <p><ResponsiveText full={`${displayTeamName(game, game.away_team)}${matchupSeparator(game)}${displayTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} compact={`${abbreviatedTeamName(game, game.away_team)}${matchupSeparator(game)}${abbreviatedTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} /></p>}</div>
           {game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : locked ? <LockedPickIndicator hidden={universalLockReached} /> : null}
         </div>;
       })}
@@ -234,4 +235,3 @@ export function ConfidenceOrder({ picks, regularTotal, saving, onMove }: { picks
     </div>
   </section>;
 }
-

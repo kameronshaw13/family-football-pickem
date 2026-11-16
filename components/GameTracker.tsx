@@ -728,10 +728,10 @@ export default function GameTracker({ game, onClose, appSlug }: { game: Game; on
     ["plays", "Plays"],
     ["box", "Box Score"]
   ];
-  const matchupHeader = `${awayName} at ${homeName}`;
+  const matchupHeader = `${awayName}${game.neutral_site ? " vs " : " at "}${homeName}`;
 
   return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) closeWithMotion(); }}>
-    <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="false" aria-label={`${awayName} at ${homeName} GameTracker`}>
+    <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="false" aria-label={`${matchupHeader} GameTracker`}>
       <header className="game-tracker-header">
         <div className="game-detail-title">
           

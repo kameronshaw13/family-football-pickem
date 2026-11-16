@@ -59,6 +59,7 @@ export async function refreshBasketballSlate(supabase: SupabaseClient, now = new
         id, espn_event_id: event.id, week: basketballWeek(new Date(event.commenceTime)), league,
         commence_time: event.commenceTime,
         home_team: event.homeTeam.displayName, away_team: event.awayTeam.displayName,
+        neutral_site: Boolean(event.neutralSite),
         home_logo_url: event.homeTeam.logoUrl, away_logo_url: event.awayTeam.logoUrl,
         home_rank: league === "CBB" ? event.homeTeam.rank ?? null : null,
         away_rank: league === "CBB" ? event.awayTeam.rank ?? null : null,

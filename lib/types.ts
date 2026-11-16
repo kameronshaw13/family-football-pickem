@@ -12,6 +12,7 @@ export type Game = {
   commence_time: string;
   home_team: string;
   away_team: string;
+  neutral_site?: boolean;
   home_logo_url: string | null;
   away_logo_url: string | null;
   home_rank?: number | null;

@@ -185,6 +185,10 @@ export function abbreviatedTeamName(game: Game, team: string) {
   return teamAbbreviatedName(game.league, team);
 }
 
+export function matchupSeparator(game: Game) {
+  return game.neutral_site ? " vs " : " at ";
+}
+
 export function matchupTextVariants(game: Game, options: { spreadTeam?: string; spread?: number | null; marketText?: string; suffix?: string; intermediateSuffix?: string; compactSuffix?: string } = {}) {
   const awayFull = displayTeamName(game, game.away_team);
   const homeFull = displayTeamName(game, game.home_team);
@@ -211,7 +215,7 @@ export function matchupTextVariants(game: Game, options: { spreadTeam?: string; 
     const teamMarket = marketText ?? spreadText(spread);
     const awayMarket = spreadTeam === game.away_team ? ` ${teamMarket}` : "";
     const homeMarket = spreadTeam === game.home_team ? ` ${teamMarket}` : "";
-    return `${away}${awayMarket} at ${home}${homeMarket}${suffix}`;
+    return `${away}${awayMarket}${matchupSeparator(game)}${home}${homeMarket}${suffix}`;
   };
 
   return {
@@ -800,7 +804,7 @@ export function totalSideText(side: SideBetTotalSide | null | undefined) {
 export function sideBetTotalMatchupText(game: Game, marketText: string, compact = false) {
   const away = compact ? abbreviatedTeamName(game, game.away_team) : displayTeamName(game, game.away_team);
   const home = compact ? abbreviatedTeamName(game, game.home_team) : displayTeamName(game, game.home_team);
-  return `${away} at ${home} ${marketText}`;
+  return `${away}${matchupSeparator(game)}${home} ${marketText}`;
 }
 
 export function MatchupLogoPair({ game, className = "" }: { game: Game; className?: string }) {
@@ -894,4 +898,3 @@ export function TeamLogo({ url, name, className = "" }: { url?: string | null; n
   if (url) return <NextImage unoptimized src={url} alt="" className={classes} width={68} height={68} loading="eager" decoding="async" />;
   return <div className={`${classes} fallback`}>{name.slice(0, 1)}</div>;
 }
-

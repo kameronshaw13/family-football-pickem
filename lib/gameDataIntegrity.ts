@@ -3,7 +3,9 @@ import { hasUsableStoredGameSpread } from "./marketSpread.ts";
 
 export function footballTeamIdentity(name: string) {
   const key = normalizeTeamNameKey(teamDisplayName("CFB", name));
-  return key === "app state" ? "appalachian state" : key;
+  if (key === "app state") return "appalachian state";
+  if (key === "sam houston state") return "sam houston";
+  return key;
 }
 
 type GameData = {

@@ -125,10 +125,10 @@ function actionTeams(game: ActionGame) {
   };
 }
 
-function actionMatchScore(game: Game, actionGame: ActionGame) {
+function actionMatchScore(game: Game, actionGame: ActionGame, swapped = false) {
   const teams = actionTeams(actionGame);
-  const homeScore = teamMatchScore(game.home_team, aliases(teams.home));
-  const awayScore = teamMatchScore(game.away_team, aliases(teams.away));
+  const homeScore = teamMatchScore(game.home_team, aliases(swapped ? teams.away : teams.home));
+  const awayScore = teamMatchScore(game.away_team, aliases(swapped ? teams.home : teams.away));
   if (homeScore < 45 || awayScore < 45) return 0;
 
   const expectedStart = new Date(game.commence_time).getTime();
@@ -316,14 +316,18 @@ export async function fetchActionNetworkScheduledGames(league: Game["league"], d
   });
 }
 
-function quoteForGame(game: Game, actionGames: ActionGame[]): SideBetMarketQuote | null {
+export function quoteForGame(game: Game, actionGames: ActionGame[]): SideBetMarketQuote | null {
   let matched: ActionGame | null = null;
   let bestScore = 0;
+  let matchedSwapped = false;
   for (const actionGame of actionGames) {
-    const score = actionMatchScore(game, actionGame);
+    const directScore = actionMatchScore(game, actionGame);
+    const swappedScore = actionMatchScore(game, actionGame, true);
+    const score = Math.max(directScore, swappedScore);
     if (score > bestScore) {
       bestScore = score;
       matched = actionGame;
+      matchedSwapped = swappedScore > directScore;
     }
   }
   if (!matched || bestScore < 90) return null;
@@ -342,13 +346,25 @@ function quoteForGame(game: Game, actionGames: ActionGame[]): SideBetMarketQuote
   const moneylineMarket = moneylineRow(rows);
   const totalMarket = totalRow(rows);
 
-  const moneyline = moneylineMarket ? {
+  const providerMoneyline = moneylineMarket ? {
     awayOdds: validOdds(moneylineMarket.ml_away)!,
     homeOdds: validOdds(moneylineMarket.ml_home)!,
     suspended: suspended(moneylineMarket, "ml_away", "ml_home")
   } : null;
+  const moneyline = providerMoneyline && matchedSwapped ? {
+    ...providerMoneyline,
+    awayOdds: providerMoneyline.homeOdds,
+    homeOdds: providerMoneyline.awayOdds
+  } : providerMoneyline;
   // Keep the NFL favorite when a genuine zero is encoded as a half point.
-  const verifiedSpread = spreadMarket ? verifiedSpreadFromRow(spreadMarket, game.league, moneyline) : null;
+  const providerSpread = spreadMarket ? verifiedSpreadFromRow(spreadMarket, game.league, providerMoneyline) : null;
+  const verifiedSpread = providerSpread && matchedSwapped ? {
+    ...providerSpread,
+    awayPoint: providerSpread.homePoint,
+    homePoint: providerSpread.awayPoint,
+    awayOdds: providerSpread.homeOdds,
+    homeOdds: providerSpread.awayOdds
+  } : providerSpread;
   const total = finiteNumber(totalMarket?.total);
 
   const quote: SideBetMarketQuote = {
