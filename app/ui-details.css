@@ -6199,3 +6199,73 @@ html[data-theme="dark"] .basketball-game-tracker .game-tracker-score-center .gam
 }
 
 .game-head .basketball-tracker-right { margin-left: auto; }
+
+/* Unified football/basketball box-score selectors and flat player tables. */
+.game-tracker-box,
+.basketball-details .game-tracker-box {
+  padding-top: 8px;
+  background: var(--panel);
+}
+.game-tracker-box > .game-tracker-box-selector,
+.basketball-details .game-tracker-box > .game-tracker-box-selector {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0 var(--tracker-inset) 8px;
+  border: 0;
+  border-radius: 0;
+  background: var(--panel);
+}
+.game-tracker-box > .game-tracker-box-selector > button,
+.basketball-details .game-tracker-box > .game-tracker-box-selector > button,
+.basketball-details .game-tracker-box > .game-tracker-box-selector > button.active {
+  min-width: 0;
+  min-height: 34px;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+}
+.game-tracker-box > .game-tracker-box-selector > button.active,
+.basketball-details .game-tracker-box > .game-tracker-box-selector > button.active {
+  background: var(--surface-muted);
+  color: var(--ink);
+  outline: 1px solid var(--line-strong);
+  outline-offset: -1px;
+}
+.game-tracker-box > .game-tracker-box-selector > button:last-child,
+.basketball-details .game-tracker-box > .game-tracker-box-selector > button:last-child { border: 0; }
+.game-tracker-box-selector button img { object-fit: contain; flex-shrink: 0; }
+.game-tracker-team-box-title { display: none; }
+.basketball-details .game-tracker-team-box { margin: 0; background: var(--panel); }
+.basketball-details .game-tracker-box-section { margin: 0; padding: 0; border: 0; }
+.basketball-details .game-tracker-player-table-scroll { width: 100%; overflow-x: auto; }
+.basketball-details .basketball-player-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.basketball-details .basketball-player-table th,
+.basketball-details .basketball-player-table td {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 10px 5px;
+  text-align: center;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.basketball-details .basketball-player-table th:first-child {
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
+  text-align: left;
+}
+.basketball-details .basketball-player-table tbody th { font-weight: 650; }
+.basketball-details .basketball-player-table thead th { font-weight: 850; }
+.basketball-details .game-tracker-team-stats { margin-top: 0; }
+.basketball-details .game-tracker-stat-row:first-child { border-top: 0; }
