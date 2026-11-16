@@ -38,7 +38,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
   const [payload, setPayload] = useState<Payload | null>(null), [error, setError] = useState("");
   const signature = useRef("");
   const [mounted, setMounted] = useState(false);
-  const [tab, setTab] = useState<Tab>(game.live_completed ? "scoring" : "live");
+  const [tab, setTab] = useState<Tab>("live");
   const [boxTeam, setBoxTeam] = useState<"all" | Side>("all");
   const [retry, setRetry] = useState(0);
   const sheet = useRef<HTMLElement | null>(null), scrollArea = useRef<HTMLDivElement | null>(null);
@@ -79,7 +79,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
     void load();
     return () => { cancelled = true; controller.abort(); clearTimeout(timer); };
   }, [game.id, retry]);
-  useEffect(() => { setTab(game.live_completed ? "scoring" : "live"); setBoxTeam("all"); }, [game.id, game.live_completed]);
+  useEffect(() => { setTab("live"); setBoxTeam("all"); }, [game.id]);
 
   if (!mounted) return null;
   const completed = Boolean(payload?.status.completed || game.live_completed || (game.final_away_score != null && game.final_home_score != null));
@@ -112,8 +112,9 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
           {completed ? <><small className="basketball-final-date">{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</small><strong>FINAL</strong></> : pregame ? <><span>TIPOFF</span><strong className="basketball-tipoff-time">{new Date(game.commence_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })}</strong><small>CT</small></> : <><span className="game-tracker-center-period">{basketballPeriod(payload?.status.period || 1)}</span><strong className="game-tracker-center-clock">{payload?.status.clock || game.live_status?.match(/\d{1,2}:\d{2}/)?.[0] || "—"}</strong></>}
         </div>
       </div></div>
-      <nav className="game-tracker-tabs" aria-label="Basketball GameTracker sections">{tabs.map(([id, label]) => <button type="button" key={id} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined} onClick={() => { setTab(id); scrollArea.current?.scrollTo(0, 0); }}>{label}</button>)}</nav>
+      <nav className="game-tracker-tabs tracker-primary-tabs" aria-label="Basketball game sections"><button type="button" className={tab !== "box" ? "active" : ""} aria-current={tab !== "box" ? "page" : undefined} onClick={() => { setTab("live"); scrollArea.current?.scrollTo(0, 0); }}>GameTracker</button><button type="button" className={tab === "box" ? "active" : ""} aria-current={tab === "box" ? "page" : undefined} onClick={() => { setTab("box"); scrollArea.current?.scrollTo(0, 0); }}>Box Score</button></nav>
       <div ref={scrollArea} className="game-tracker-scroll">
+        {tab !== "box" && <nav className="tracker-inner-switch" aria-label="Basketball GameTracker views">{tabs.filter(([id]) => id !== "box").map(([id,label]) => <button type="button" key={id} className={tab === id ? "active" : ""} aria-pressed={tab === id} onClick={() => { setTab(id); scrollArea.current?.scrollTo(0, 0); }}>{label}</button>)}</nav>}
         {!payload && !error && <div className="game-tracker-loading" role="status"><LoaderCircle size={22} /><span>Loading game…</span></div>}
         {error && <div className="game-tracker-empty" role="alert"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
         {payload && tab === "live" && <>{!pregame && !completed
