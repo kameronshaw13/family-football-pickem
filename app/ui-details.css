@@ -6131,3 +6131,71 @@ html[data-theme="dark"] .basketball-live-court { border-color: #b98859; backgrou
 .settings-hide-bet-history.active { color: var(--ink); background: var(--surface-muted); }
 .settings-hide-bet-history:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 html[data-theme="dark"] .basketball-court-floor { fill: #a88761; stroke: #d3b18a; }
+
+/* November scoreboard and game-detail refinements. */
+.game-tracker-header > .game-detail-close,
+.matchup-preview-header > .game-detail-close,
+.basketball-details .game-tracker-header > .game-detail-close {
+  border: 0; border-radius: 0; background: transparent;
+  color: #fff; box-shadow: none;
+}
+.game-tracker-header > .game-detail-close:hover,
+.matchup-preview-header > .game-detail-close:hover,
+.basketball-details .game-tracker-header > .game-detail-close:hover { background: transparent; }
+.game-tracker-header > .game-detail-close > svg,
+.matchup-preview-header > .game-detail-close > svg { width: 19px; height: 19px; stroke-width: 2.3; }
+.game-tracker-scoreboard-grid {
+  background: linear-gradient(90deg, color-mix(in srgb,var(--tracker-away-color,transparent) 17%,var(--panel)), var(--panel) 45%, var(--panel) 55%,color-mix(in srgb,var(--tracker-home-color,transparent) 17%,var(--panel)));
+  column-gap: 8px;
+}
+.game-tracker-score-team.away { justify-items: start; }
+.game-tracker-score-team.home { justify-items: end; }
+.game-tracker-score-team.away .game-tracker-score-team-main { justify-content: flex-start; }
+.game-tracker-score-team.home .game-tracker-score-team-main { justify-content: flex-start; }
+.game-tracker-score-team-main { gap: 12px; }
+.game-tracker-score-stack > b, .basketball-details .game-tracker-score-stack > b { font-size: 32px; letter-spacing: .045em; font-variant-numeric: tabular-nums; }
+.game-tracker-team-indicators { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 25px; }
+.game-tracker-team-indicators > .game-tracker-field-football { display: flex; width: 19px; height: 12px; color: #90512c; }
+.game-tracker-team-indicators > .game-tracker-field-football svg { display: block; width: 100%; height: 100%; }
+.basketball-game-tracker .game-tracker-scoreboard-grid {
+  background: linear-gradient(90deg,color-mix(in srgb,var(--tracker-away-color,transparent) 19%,var(--panel)),var(--panel) 43%,var(--panel) 57%,color-mix(in srgb,var(--tracker-home-color,transparent) 19%,var(--panel)));
+}
+.basketball-game-tracker .game-tracker-score-team.away { justify-items: start; }
+.basketball-game-tracker .game-tracker-score-team.home { justify-items: end; }
+.basketball-game-tracker .game-tracker-score-team-main { gap: 11px; }
+.basketball-game-tracker .game-tracker-score-center .game-tracker-center-period { font-size: 15px; font-weight: 900; color: #111; }
+html[data-theme="dark"] .basketball-game-tracker .game-tracker-score-center .game-tracker-center-period { color: #f5f5f5; }
+.basketball-team-timeouts { min-height: 13px; display: flex; justify-content: center; align-items: center; color: var(--ink); font-size: 10px; font-weight: 850; }
+.basketball-team-timeouts .game-tracker-timeout-dots { gap: 3px; }
+.basketball-live-view > .basketball-live-action { display: flex; align-items: center; gap: 10px; }
+.basketball-live-action img, .basketball-last-play img, .basketball-flow-legend img { object-fit: contain; flex-shrink: 0; }
+.basketball-live-action > div { display: grid; gap: 4px; min-width: 0; }
+.basketball-live-action > div > span { color: var(--header-muted); font-size: 10px; font-weight: 800; }
+.basketball-live-action > div > strong { color: var(--ink); font-size: 12px; line-height: 1.4; }
+.basketball-court-with-possession { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.basketball-court-side-possession { width: 44px; min-width: 44px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px; font-size: 14px; }
+.basketball-court-with-possession .basketball-simple-court { width: min(calc(100% - 52px), 320px); margin: 0; }
+.basketball-latest-shot { stroke-width: .3; }
+.basketball-latest-shot.missed { stroke-width: .46; }
+.basketball-last-play { grid-template-columns: 24px minmax(0,1fr) auto; gap: 8px; align-items: center; }
+.basketball-last-play > div:not(.basketball-recent-score) { display: grid; gap: 3px; }
+.basketball-last-play > div > time { color: var(--muted); font-size: 10px; }
+.basketball-last-play > div > span { color: var(--ink); }
+.basketball-recent-score { display: grid; gap: 2px; font-size: 11px; font-weight: 850; font-variant-numeric: tabular-nums; }
+.basketball-recent-score > span { display: flex; align-items: center; justify-content: flex-end; gap: 3px; }
+.basketball-flow-legend { align-items: center; gap: 10px; }
+.basketball-flow-legend > span { width: 50%; display: flex; gap: 5px; align-items: center; color: var(--ink); font-size: 10px; font-weight: 800; }
+.basketball-flow-legend > span:last-child { justify-content: flex-end; text-align: right; }
+.basketball-details .basketball-play-period > .basketball-play { grid-template-columns: minmax(0,1fr) 70px; grid-template-rows: auto; }
+.basketball-details .basketball-play-period .basketball-play > p { grid-column: 1; grid-row: 1; font-size: 12px; font-weight: 600; }
+.basketball-details .basketball-play-period .basketball-play > p > time { color: var(--muted); margin-right: 6px; font-variant-numeric: tabular-nums; }
+.basketball-details .basketball-play-score { grid-column: 2; grid-row: 1; }
+.basketball-details .basketball-play-team-score { gap: 0; }
+.basketball-details .basketball-play-team-score > strong { font-size: 13px; }
+@media(max-width:380px) {
+ .basketball-game-tracker .game-tracker-score-team-main { gap: 5px; }
+ .basketball-details .game-tracker-score-stack > b { font-size: 29px; }
+ .game-tracker-scoreboard-grid { column-gap: 3px; }
+}
+
+.game-head .basketball-tracker-right { margin-left: auto; }
