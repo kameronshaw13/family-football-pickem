@@ -2,12 +2,13 @@
 
 import { basketballPeriodLabel, type BasketballShot } from "@/lib/basketballShots";
 import { playTextWithoutDuplicateClock } from "@/lib/playText";
+import Image from "next/image";
 
 type Side = "away" | "home";
 type Action = { id: string; text: string; side: Side | null; period: number; clock: string };
-type Play = { id: string; text: string; period: number; clock: string; awayScore: number | null; homeScore: number | null };
+type Play = { id: string; text: string; period: number; clock: string; side?: Side | null; awayScore: number | null; homeScore: number | null };
 
-export default function BasketballLiveCourt({ shots, plays, possessionSide, latestAction, away, home, awayId, homeId, college }: {
+export default function BasketballLiveCourt({ shots, plays, possessionSide, latestAction, away, home, awayId, homeId, college, awayLogo, homeLogo }: {
   shots: BasketballShot[];
   plays: Play[];
   possessionSide: Side | null;
@@ -17,8 +18,14 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
   awayId: string;
   homeId: string;
   college: boolean;
+  awayLogo?: string | null;
+  homeLogo?: string | null;
 }) {
   const names = { away, home };
+  const logos = { away: awayLogo, home: homeLogo };
+  const Logo = ({ side, size = 22 }: { side: Side | null; size?: number }) => side && logos[side] ? <Image unoptimized src={logos[side]!} width={size} height={size} alt={names[side]} /> : null;
+  const periodText = (period: number) => basketballPeriodLabel(period, college);
+  const playTeam = (play: Play) => play.side || null;
   const latest = [...shots].reverse().find((shot) => shot.teamId === awayId || shot.teamId === homeId);
   // The ESPN source uses a 50x94-foot court. Mirror a shot from the far
   // half to its attacking basket without fabricating a missing location.
@@ -36,20 +43,19 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
 
   return <section className="basketball-live-view" aria-label="Live basketball court and game flow">
     <div className="basketball-live-action" aria-live="polite">
-      <span>Latest play{latestAction ? ` · ${basketballPeriodLabel(latestAction.period, college)} · ${latestAction.clock}` : ""}</span>
-      <strong>{latestAction ? playTextWithoutDuplicateClock(latestAction.text, latestAction.clock) : "Waiting for the next play…"}</strong>
-    </div>
-    <div className="basketball-live-possession" aria-live="polite">
-      <strong>{possessionSide ? `${names[possessionSide]} ball` : "Possession unavailable"}</strong>
+      <Logo side={latestAction?.side || null} size={27} />
+      <div><span>{latestAction ? `${latestAction.clock} · ${periodText(latestAction.period)}` : "Waiting for play"}</span>
+      <strong>{latestAction ? playTextWithoutDuplicateClock(latestAction.text, latestAction.clock) : "Waiting for the next play…"}</strong></div>
     </div>
     <div className="basketball-simple-court-wrap">
+      <div className="basketball-court-with-possession"><div className="basketball-court-side-possession" aria-label={possessionSide ? `${names[possessionSide]} has possession` : "Possession unavailable"}><Logo side={possessionSide} size={26} />{possessionSide && <span aria-hidden="true">🏀</span>}</div>
       <svg className="basketball-simple-court" viewBox="-1 -1 52 49" role="img" aria-label={latest ? `Last shot: ${latest.player}, ${latest.made ? "made" : "missed"} for ${latest.teamId === awayId ? away : home} at ESPN court coordinates ${latest.x}, ${latest.y}` : "Half basketball court. Last shot coordinates unavailable."}>
         <rect x="0" y="0" width="50" height="47" className="basketball-court-floor" />
         <g className="basketball-simple-lines">
           <rect x="0" y="0" width="50" height="47" />
           <path d="M17 0V19H33V0 M22 4H28 M21 5.25A4 4 0 0 0 29 5.25" />
           <circle cx="25" cy="5.25" r=".75" />
-          <circle cx="25" cy="19" r="6" />
+          <path d="M19 19 A6 6 0 0 0 31 19" />
           <path d={college
             ? "M3.333 0V5.38 A22.1458 22.1458 0 0 0 46.667 5.38 V0"
             : "M3 0V6.55 A23.75 23.75 0 0 0 47 6.55 V0"} />
@@ -57,10 +63,10 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
         </g>
         {latest && shotX != null && shotY != null && <g className={`basketball-latest-shot ${latest.made ? "made" : "missed"}`} transform={`translate(${shotX} ${shotY})`}>
           {latest.made
-            ? <circle r="1.2" />
-            : <path d="M-1.3 -1.3L1.3 1.3 M-1.3 1.3L1.3 -1.3" />}
+            ? <circle r=".65" />
+            : <path d="M-.75 -.75L.75 .75 M-.75 .75L.75 -.75" />}
         </g>}
-      </svg>
+      </svg></div>
       <div className="basketball-last-shot">
         {latest
           ? <><span className={latest.made ? "made" : "missed"}>{latest.made ? "●" : "×"}</span><strong>{latest.player}</strong><span>{latest.made ? "Made" : "Missed"} · {latest.clock} · {latest.teamId === awayId ? away : home}</span></>
@@ -69,14 +75,19 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
     </div>
     <div className="basketball-last-plays">
       <h3>Last 5 plays</h3>
-      {recentPlays.length ? recentPlays.map((play) => <div className="basketball-last-play" key={play.id}>
-        <time>{basketballPeriodLabel(play.period, college)} · {play.clock}</time>
-        <span>{playTextWithoutDuplicateClock(play.text, play.clock)}</span>
-      </div>) : <p className="muted">No earlier plays yet.</p>}
+      {recentPlays.length ? recentPlays.map((play, index) => {
+        const previous = [...plays].reverse().find((row) => row.id !== play.id && plays.indexOf(row) < plays.indexOf(play));
+        const changed = play.awayScore != null && play.homeScore != null && (previous == null || previous.awayScore !== play.awayScore || previous.homeScore !== play.homeScore);
+        return <div className="basketball-last-play" key={play.id}>
+          <Logo side={playTeam(play)} size={23} />
+          <div><time>{play.clock} · {periodText(play.period)}</time><span>{playTextWithoutDuplicateClock(play.text, play.clock)}</span></div>
+          {changed && <div className="basketball-recent-score"><span><Logo side="away" size={16} />{play.awayScore}</span><span><Logo side="home" size={16} />{play.homeScore}</span></div>}
+        </div>;
+      }) : <p className="muted">No earlier plays yet.</p>}
     </div>
     <div className="basketball-score-flow">
       <h3>Score Flow</h3>
-      <div className="basketball-flow-legend"><span>{away} leads ↑</span><span>{home} leads ↓</span></div>
+      <div className="basketball-flow-legend"><span><Logo side="away" size={22} />{away}</span><span><Logo side="home" size={22} />{home}</span></div>
       {diffs.length > 1 ? <svg viewBox="0 0 320 102" role="img" aria-label="Score margin progression from ESPN play-by-play; upward means away team leads and downward means home team leads">
         <line x1="12" y1="51" x2="308" y2="51" className="basketball-flow-zero" />
         <path d={path} className="basketball-flow-line" />
