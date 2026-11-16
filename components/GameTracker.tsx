@@ -59,6 +59,7 @@ type TrackerTeam = {
   color: string;
   alternateColor: string;
   score: number | null;
+  record?: string;
 };
 
 type TrackerPayload = {
@@ -181,8 +182,7 @@ function ScoreboardCenter({ payload, game, completed }: { payload: TrackerPayloa
   const state = gameCenterState(payload, game);
   const situation = completed ? "" : (game.live_situation?.trim() || gameCenterSituation(payload));
 
-  const dateLabel = new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" });
-  if (completed) return <div className="game-tracker-score-center final"><small className="tracker-game-date">{dateLabel}</small><strong>FINAL</strong></div>;
+  if (completed) return <div className="game-tracker-score-center final"><strong>FINAL</strong></div>;
 
   return <div className="game-tracker-score-center">
     <span className="game-tracker-center-period">{state.period}</span>
@@ -762,10 +762,8 @@ export default function GameTracker({ game, onClose, appSlug }: { game: Game; on
       </header>
 
       <div className="game-tracker-scoreboard">
-        <div className="game-tracker-scoreboard-grid" style={{
-          "--tracker-away-color": /^([0-9a-f]{6}|[0-9a-f]{3})$/i.test(payload?.teams.away.color || "") ? `#${payload!.teams.away.color}` : "transparent",
-          "--tracker-home-color": /^([0-9a-f]{6}|[0-9a-f]{3})$/i.test(payload?.teams.home.color || "") ? `#${payload!.teams.home.color}` : "transparent"
-        } as CSSProperties}>
+        <div className="game-tracker-scoreboard-grid">
+          <div className="tracker-header-meta"><span>{payload?.teams.away.record || ""}</span><time dateTime={game.commence_time}>{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</time><span>{payload?.teams.home.record || ""}</span></div>
           <TeamScore side="away" payload={payload} game={game} completed={completed} />
           <ScoreboardCenter payload={payload} game={game} completed={completed} />
           <TeamScore side="home" payload={payload} game={game} completed={completed} />
