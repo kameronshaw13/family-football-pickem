@@ -7362,3 +7362,62 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
   .basketball-details .game-tracker-scoreboard-grid .game-tracker-score-stack > b { font-size: 32px; }
   .game-tracker-score-center > .broadcast-game-date { font-size: 9px; }
 }
+
+/* Final balanced scoreboard nudge: preserve a mirrored grid and anchor
+   records to their own score. No absolute positioning of the team rows. */
+.game-tracker-sheet .game-tracker-header,
+.basketball-details .game-tracker-header {
+  height: 49px;
+  min-height: 49px;
+  flex-basis: 49px;
+}
+.game-tracker-header .game-detail-title > strong,
+.basketball-details .game-tracker-header .game-detail-title > strong {
+  font-size: clamp(15px, 4.05vw, 19px);
+}
+.game-tracker-header > .game-detail-close,
+.basketball-details .game-tracker-header > .game-detail-close {
+  width: 41px; min-width: 41px; max-width: 41px;
+  height: 41px; min-height: 41px; max-height: 41px;
+}
+.game-tracker-header > .game-detail-close > svg,
+.basketball-details .game-tracker-header > .game-detail-close > svg {
+  width: 28px; height: 28px;
+}
+.game-tracker-scoreboard-grid .game-tracker-score-team.away .game-tracker-score-stack {
+  transform: translateX(-7px);
+}
+.game-tracker-scoreboard-grid .game-tracker-score-team.home .game-tracker-score-stack {
+  transform: translateX(7px);
+}
+.game-tracker-scoreboard-grid .game-tracker-score-team-main,
+.game-tracker-scoreboard-grid .game-tracker-score-team.home .game-tracker-score-team-main {
+  align-items: center;
+}
+.game-tracker-scoreboard-grid .game-tracker-score-stack {
+  height: 86px;
+  align-self: center;
+  place-items: center;
+}
+.game-tracker-scoreboard-grid .game-tracker-score-stack > b,
+.basketball-details .game-tracker-scoreboard-grid .game-tracker-score-stack > b {
+  margin-top: 0;
+  align-self: center;
+}
+.game-tracker-scoreboard-grid .game-tracker-score-stack > .broadcast-team-record {
+  top: 8px;
+}
+.game-tracker-scoreboard-grid > .game-tracker-score-center {
+  position: relative;
+}
+.game-tracker-score-center > .broadcast-game-date {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  line-height: 1;
+}
+@media(max-width:380px) {
+  .game-tracker-scoreboard-grid .game-tracker-score-team.away .game-tracker-score-stack { transform: translateX(-4px); }
+  .game-tracker-scoreboard-grid .game-tracker-score-team.home .game-tracker-score-stack { transform: translateX(4px); }
+}
