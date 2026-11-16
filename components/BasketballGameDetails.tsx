@@ -110,7 +110,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
   const pregame = !completed && (payload?.status.state || game.live_state || "pre") === "pre";
   const names = { away: teamDisplayName(game.league, game.away_team), home: teamDisplayName(game.league, game.home_team) };
   const logos = { away: game.away_logo_url, home: game.home_logo_url };
-  const basketballPeriod = (period: number) => basketballPeriodLabel(period, game.league === "CBB").replace(/\\b(half|quarter)\\b/ig, "").trim();
+  const basketballPeriod = (period: number) => basketballPeriodLabel(period, game.league === "CBB").replace(/Half|Quarter/gi, "").trim();
   const timeoutCount = (side: Side) => { const count = Number(payload?.teams[side]?.timeoutsRemaining); return payload?.teams[side]?.timeoutsRemaining == null || !Number.isFinite(count) ? null : Math.max(0, Math.trunc(count)); };
   const scoreChanged = (play: Play, previous?: Play) => Boolean(play.scoring && (previous == null || play.awayScore !== previous.awayScore || play.homeScore !== previous.homeScore));
   const scores = Object.fromEntries((["away", "home"] as const).map(side => [side, pregame ? null : trackerDisplayScore(completed, game.live_state === "in", game[`final_${side}_score`], game[`live_${side}_score`], scoreFromCompetitor(payload?.teams[side]), null)])) as Record<Side, number | null>;
