@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
       return {
         id: game.id,
         commence_time: game.commence_time,
+        neutral_site: Boolean(game.neutral_site),
         lock_time: lock.toISOString(),
         is_locked: new Date() >= lock
       };

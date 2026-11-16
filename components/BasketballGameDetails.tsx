@@ -74,7 +74,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
           setError("");
         }
       } catch (failure) { if (!cancelled) setError(failure instanceof Error ? failure.message : "Could not load game."); }
-      if (!cancelled && !complete) timer = setTimeout(load, 5000);
+      if (!cancelled && !complete) timer = setTimeout(load, 3000);
     }
     void load();
     return () => { cancelled = true; controller.abort(); clearTimeout(timer); };
@@ -99,8 +99,8 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
   const teamStats = payload && <table className="basketball-stats" aria-label="Team statistics"><tbody>{payload.stats.map(row => <tr key={row.label}><td>{row.away}</td><th scope="row">{row.label}</th><td>{row.home}</td></tr>)}</tbody></table>;
 
   return createPortal(<div className="game-tracker-backdrop" onClick={event => { if (event.target === event.currentTarget) close(); }}>
-    <section ref={sheet} className="game-tracker-sheet basketball-details basketball-game-tracker" role="dialog" aria-modal="false" aria-label={`${names.away} at ${names.home} GameTracker`}>
-      <header className="game-tracker-header"><div className="game-detail-title"><strong>{names.away} at {names.home}</strong></div><GameDetailClose onClose={close} label="Close GameTracker" /></header>
+    <section ref={sheet} className="game-tracker-sheet basketball-details basketball-game-tracker" role="dialog" aria-modal="false" aria-label={`${names.away}${game.neutral_site ? " vs " : " at "}${names.home} GameTracker`}>
+      <header className="game-tracker-header"><div className="game-detail-title"><strong>{names.away}{game.neutral_site ? " vs " : " at "}{names.home}</strong></div><GameDetailClose onClose={close} label="Close GameTracker" /></header>
       <div className="game-tracker-scoreboard"><div className="game-tracker-scoreboard-grid">
         {(["away", "home"] as const).map(side => <div className={`game-tracker-score-team ${side}`} key={side}>
           <div className="game-tracker-score-team-main">{logos[side] ? <Image unoptimized src={logos[side]!} alt={names[side]} width={60} height={60} /> : <span className="game-tracker-logo-fallback">{names[side].slice(0, 1)}</span>}<div className="game-tracker-score-stack"><b className={completed && scores.away != null && scores.home != null ? scores[side]! > scores[side === "away" ? "home" : "away"]! ? "winner" : "loser" : ""}>{scores[side] ?? "—"}</b></div></div>

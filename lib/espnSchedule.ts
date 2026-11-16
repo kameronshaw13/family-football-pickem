@@ -18,6 +18,7 @@ export type EspnScheduleGame = {
   id: string;
   commenceTime: string;
   timeValid: boolean;
+  neutralSite?: boolean;
   seasonType?: number;
   draftKingsOdds?: unknown;
   completed: boolean;
@@ -162,6 +163,15 @@ function alignmentScore(firstTeamScore: number, secondTeamScore: number, kickoff
   return 0;
 }
 
+export function espnTeamLogo(team: { id?: string | number; logo?: string; logos?: Array<{ href?: string }> }) {
+  const logo = normalizeEspnLogoUrl(team.logo || team.logos?.[0]?.href);
+  const id = String(team.id || "");
+  if (!logo || !/^\d+$/.test(id)) return logo;
+  // ESPN occasionally crosses neutral-site artwork while keeping team IDs and
+  // names correct. The numeric NCAA logo path must belong to the same team ID.
+  return logo.replace(/(\/ncaa\/(?:[^/?#]+\/)*)(\d+)(\.(?:png|svg|webp)(?:[?#].*)?)$/i, (_match, prefix, _logoId, suffix) => `${prefix}${id}${suffix}`);
+}
+
 function teamFromCompetitor(competitor: any): EspnTeam {
   const team = competitor?.team || {};
   return {
@@ -171,7 +181,7 @@ function teamFromCompetitor(competitor: any): EspnTeam {
     nickname: team.name || "",
     abbreviation: team.abbreviation || "",
     rank: Number(competitor?.curatedRank?.current) >= 1 && Number(competitor?.curatedRank?.current) <= 25 ? Number(competitor.curatedRank.current) : null,
-    logoUrl: normalizeEspnLogoUrl(team.logo || team.logos?.[0]?.href)
+    logoUrl: espnTeamLogo(team)
   };
 }
 
@@ -288,6 +298,7 @@ async function fetchEspnEventUncached(
     id: String(payload?.header?.id || eventId),
     commenceTime,
     timeValid: competition?.timeValid !== false,
+    neutralSite: Boolean(competition?.neutralSite),
     completed: Boolean(competition?.status?.type?.completed),
     homeScore: scoreFromCompetitor(home),
     awayScore: scoreFromCompetitor(away),
@@ -358,6 +369,7 @@ async function fetchEspnTeamSchedule(
       id: String(event.id),
       commenceTime,
       timeValid: competition?.timeValid !== false,
+      neutralSite: Boolean(competition?.neutralSite),
       seasonType: Number(event?.season?.type || 2),
       draftKingsOdds: competition?.odds?.find((row: any) => /^draftkings$/i.test(row?.provider?.name || "")) || null,
       completed: Boolean(competition?.status?.type?.completed),
@@ -469,6 +481,7 @@ async function fetchEspnScheduleUncached(league: League, dateHints: string[], fr
       id: String(event.id),
       commenceTime,
       timeValid: competition?.timeValid !== false,
+      neutralSite: Boolean(competition?.neutralSite),
       seasonType: Number(event?.season?.type || 2),
       draftKingsOdds: competition?.odds?.find((row: any) => /^draftkings$/i.test(row?.provider?.name || "")) || null,
       completed: Boolean(competition?.status?.type?.completed),
@@ -520,6 +533,20 @@ export function findEspnScheduleMatch(matchup: Matchup, schedule: EspnScheduleGa
     const exact = schedule.find((game) => game.id === matchup.espn_event_id);
     if (exact) {
       const distance = Math.abs(new Date(exact.commenceTime).getTime() - sourceTime);
+      // ESPN can publish a neutral-site game with the two logo URLs crossed.
+      // A pair of matching team names is stronger evidence of score orientation
+      // than artwork, even when the event id itself is correct.
+      const directNames = alignmentScore(
+        identityScore(matchup.home_team, exact.homeTeam),
+        identityScore(matchup.away_team, exact.awayTeam), distance, false
+      );
+      const swappedNames = alignmentScore(
+        identityScore(matchup.home_team, exact.awayTeam),
+        identityScore(matchup.away_team, exact.homeTeam), distance, false
+      );
+      if (directNames !== swappedNames && Math.max(directNames, swappedNames) > 0) {
+        return { game: exact, swapped: swappedNames > directNames };
+      }
       const directScore = alignmentScore(
         matchupIdentityScore(matchup.home_team, matchup.home_logo_url, exact.homeTeam),
         matchupIdentityScore(matchup.away_team, matchup.away_logo_url, exact.awayTeam),

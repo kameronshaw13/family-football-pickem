@@ -29,8 +29,9 @@ export function underdogWinValue(spread: number | null) {
 }
 
 export function gradeAgainstSpread(selectedTeam: string, homeTeam: string, awayTeam: string, homeScore: number, awayScore: number, spread: number) {
-  const selectedScore = selectedTeam === homeTeam ? homeScore : awayScore;
-  const opponentScore = selectedTeam === homeTeam ? awayScore : homeScore;
+  const isHome = selectedTeam === homeTeam || footballTeamIdentity(selectedTeam) === footballTeamIdentity(homeTeam);
+  const selectedScore = isHome ? homeScore : awayScore;
+  const opponentScore = isHome ? awayScore : homeScore;
   const adjusted = selectedScore + spread;
   if (adjusted > opponentScore) return "win" as const;
   if (adjusted < opponentScore) return "loss" as const;
@@ -38,8 +39,9 @@ export function gradeAgainstSpread(selectedTeam: string, homeTeam: string, awayT
 }
 
 export function gradeUnderdogOutright(selectedTeam: string, homeTeam: string, awayTeam: string, homeScore: number, awayScore: number) {
-  const selectedScore = selectedTeam === homeTeam ? homeScore : awayScore;
-  const opponentScore = selectedTeam === homeTeam ? awayScore : homeScore;
+  const isHome = selectedTeam === homeTeam || footballTeamIdentity(selectedTeam) === footballTeamIdentity(homeTeam);
+  const selectedScore = isHome ? homeScore : awayScore;
+  const opponentScore = isHome ? awayScore : homeScore;
   if (selectedScore > opponentScore) return "win" as const;
   if (selectedScore < opponentScore) return "loss" as const;
   return "push" as const;

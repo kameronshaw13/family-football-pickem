@@ -1759,12 +1759,24 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   font-size: 9px;
 }
 .pick-score-bug-button {
+  position: relative;
+  z-index: 1;
   display: grid;
+  min-height: 44px;
+  place-items: center;
   padding: 0;
   border: 0;
   border-radius: var(--ui-radius-md);
   background: transparent;
   cursor: pointer;
+  touch-action: manipulation;
+}
+.game-neutral-site {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .02em;
 }
 .pick-score-bug-button:focus-visible {
   outline: 2px solid var(--blue);

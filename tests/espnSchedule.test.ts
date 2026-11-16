@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findEspnScheduleMatch, scoreFromCompetitor, type EspnScheduleGame } from "../lib/espnSchedule.ts";
+import { espnTeamLogo, findEspnScheduleMatch, scoreFromCompetitor, type EspnScheduleGame } from "../lib/espnSchedule.ts";
+
+test("ESPN college artwork follows the competitor team ID", () => {
+  assert.equal(espnTeamLogo({ id: "269", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/142.png" }), "https://a.espncdn.com/i/teamlogos/ncaa/500/269.png");
+});
 
 test("missing ESPN scores stay unknown while numeric and display scores parse", () => {
   assert.equal(scoreFromCompetitor({ score: null }), null);
@@ -75,4 +79,17 @@ test("logo identity still detects swapped home and away alignment", () => {
 
   assert.equal(match?.game.id, "401999999");
   assert.equal(match?.swapped, true);
+});
+
+test("an exact ESPN event uses both team names when saved logos are crossed", () => {
+  const marquette = { displayName: "Marquette Golden Eagles", location: "Marquette", nickname: "Golden Eagles", abbreviation: "MARQ", logoUrl: "https://a.espncdn.com/i/teamlogos/ncaa/500/269.png" };
+  const missouri = { displayName: "Missouri Tigers", location: "Missouri", nickname: "Tigers", abbreviation: "MIZ", logoUrl: "https://a.espncdn.com/i/teamlogos/ncaa/500/142.png" };
+  const matchup = {
+    espn_event_id: "401909525", commence_time: "2026-11-15T19:30:00Z",
+    home_team: marquette.displayName, away_team: missouri.displayName,
+    home_logo_url: missouri.logoUrl, away_logo_url: marquette.logoUrl
+  };
+  const direct = game({ id: "401909525", homeTeam: marquette, awayTeam: missouri, homeScore: 64, awayScore: 69 });
+  assert.equal(findEspnScheduleMatch(matchup, [direct])?.swapped, false);
+  assert.equal(findEspnScheduleMatch(matchup, [game({ ...direct, homeTeam: missouri, awayTeam: marquette })])?.swapped, true);
 });

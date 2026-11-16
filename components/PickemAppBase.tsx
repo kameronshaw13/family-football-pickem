@@ -780,6 +780,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     let cancelled = false;
     let refreshInFlight = false;
     let failedChecks = 0;
+    let lastGameListReload = 0;
 
     async function refreshPickBoardMarkets() {
       if (document.visibilityState === "hidden" || refreshInFlight) return;
@@ -794,7 +795,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         if (!response.ok) throw new Error("Market updates unavailable");
         const payload = await response.json() as {
           markets?: SideBetMarketQuote[];
-          schedule?: Array<{ id: string; commence_time: string; lock_time: string; is_locked: boolean }>;
+          schedule?: Array<{ id: string; commence_time: string; neutral_site: boolean; lock_time: string; is_locked: boolean }>;
         };
         if (cancelled) return;
         if (!Array.isArray(payload.markets)) throw new Error("Invalid market response");
@@ -803,6 +804,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
         const quotesById = new Map(payload.markets.map((quote) => [quote.gameId, quote]));
         const scheduleById = new Map((payload.schedule || []).map((game) => [game.id, game]));
+        const currentIds = new Set(dataRef.current?.week === week ? dataRef.current.games.map((game) => game.id) : []);
+        const newlyScheduled = (payload.schedule || []).some((game) => !currentIds.has(game.id));
+        if (newlyScheduled && Date.now() - lastGameListReload > 120_000) {
+          lastGameListReload = Date.now();
+          void load(week);
+        }
         setData((current) => {
           if (!current || Number(current.week) !== Number(week)) return current;
           let changed = false;
@@ -812,6 +819,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             let nextGame = game;
             if (scheduleGame && (
               scheduleGame.commence_time !== game.commence_time ||
+              scheduleGame.neutral_site !== Boolean(game.neutral_site) ||
               scheduleGame.lock_time !== game.lock_time ||
               scheduleGame.is_locked !== game.is_locked
             )) {
@@ -862,7 +870,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       window.removeEventListener("online", refreshOnResume);
       document.removeEventListener("visibilitychange", refreshOnResume);
     };
-  }, [appSlug, picksView, tab, testWeekActive, week]);
+  }, [appSlug, load, picksView, tab, testWeekActive, week]);
   useEffect(() => {
     if (week == null || !hasActiveGames) return;
     let cancelled = false;

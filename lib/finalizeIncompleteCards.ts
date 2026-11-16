@@ -187,6 +187,14 @@ async function finalizeGroupWeek(
   if (adminPicks.length) {
     const { error } = await supabase.from("picks").upsert(adminPicks, { onConflict: "group_id,user_id,game_id", ignoreDuplicates: true });
     if (error) throw new Error(error.message);
+    // Older administrative rows can retain the default pending result after an
+    // ignored conflict. They represent a known loss and must not block settlement.
+    const { error: repairError } = await supabase.from("picks")
+      .update({ result: "loss", updated_at: currentTime.toISOString() })
+      .in("game_id", adminGames.map(game => game.id))
+      .eq("status", "locked")
+      .eq("result", "pending");
+    if (repairError) throw new Error(repairError.message);
   }
 
   return {

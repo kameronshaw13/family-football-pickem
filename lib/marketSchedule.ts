@@ -12,7 +12,7 @@ export function scheduledMarketRefreshWindow(date = new Date()) {
   const hour = Number(parts.find((part) => part.type === "hour")?.value);
   const minute = Number(parts.find((part) => part.type === "minute")?.value);
   if (minute !== 20 && minute !== 50) return { shouldRefresh: false, refreshFuture: false };
-  if (weekday === "Tue" && hour === 7 && minute === 50) return { shouldRefresh: true, refreshFuture: true };
+  if ((weekday === "Tue" || weekday === "Sat") && hour === 7 && minute === 50) return { shouldRefresh: true, refreshFuture: true };
   if (hour >= 7 && hour <= 23) {
     const refreshFuture = (hour === 8 && minute === 50) ||
       (weekday === "Sat" && hour === 20 && minute === 50);

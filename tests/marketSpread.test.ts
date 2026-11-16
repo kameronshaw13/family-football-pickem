@@ -13,6 +13,7 @@ for (const league of ["CBB", "NBA", "CFB", "NFL"] as const) {
     assert.equal(normalizeSpreadForSelectedTeam("Home", "Away", spread!.awayPoint), -0.5);
     assert.equal(gradeAgainstSpread("Home", "Home", "Away", 80, 79, -0.5), "win");
     assert.equal(gradeAgainstSpread("Away", "Home", "Away", 80, 79, 0.5), "loss");
+    assert.equal(gradeAgainstSpread("Sam Houston Bearkats", "Sam Houston State Bearkats", "New Mexico State Aggies", 24, 30, 3), "loss");
   });
   test(`${league}: unpriced zeroes are never usable market lines`, () => {
     assert.equal(normalizeVerifiedMarketSpread(league, { ...pricedPK, awayOdds: null, homeOdds: null }), null);

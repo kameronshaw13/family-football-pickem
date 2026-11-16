@@ -44,8 +44,10 @@ function findActionScheduleMatch(
   actionSchedule: ActionNetworkScheduledGame[]
 ) {
   return actionSchedule.find((game) =>
-    teamIdentitiesOverlap(league, awayValues, [game.awayTeam, ...game.awayAliases]) &&
-    teamIdentitiesOverlap(league, homeValues, [game.homeTeam, ...game.homeAliases])
+    (teamIdentitiesOverlap(league, awayValues, [game.awayTeam, ...game.awayAliases]) &&
+      teamIdentitiesOverlap(league, homeValues, [game.homeTeam, ...game.homeAliases])) ||
+    (teamIdentitiesOverlap(league, awayValues, [game.homeTeam, ...game.homeAliases]) &&
+      teamIdentitiesOverlap(league, homeValues, [game.awayTeam, ...game.awayAliases]))
   ) || null;
 }
 
@@ -104,7 +106,7 @@ export async function syncUpcomingFootballSchedule(
   const identityStart = new Date(now.getTime() - 21 * DAY_MS).toISOString();
   const [existingRows, teamIdentityRows] = await Promise.all([
     readFootballScheduleRows(supabase,
-      "id,espn_event_id,league,commence_time,home_team,away_team,home_logo_url,away_logo_url,current_spread_team,current_spread,current_bookmaker,updated_at",
+      "id,espn_event_id,league,commence_time,home_team,away_team,neutral_site,home_logo_url,away_logo_url,current_spread_team,current_spread,current_bookmaker,updated_at",
       { start: identityStart, end: end.toISOString() }),
     readFootballScheduleRows(supabase, "league,home_team,away_team,home_logo_url,away_logo_url")
   ]);
@@ -194,6 +196,7 @@ export async function syncUpcomingFootballSchedule(
         commence_time: commenceTime,
         home_team: event.homeTeam.displayName,
         away_team: event.awayTeam.displayName,
+        neutral_site: Boolean(event.neutralSite),
         home_logo_url: event.homeTeam.logoUrl,
         away_logo_url: event.awayTeam.logoUrl
       };
@@ -252,6 +255,7 @@ export async function syncUpcomingFootballSchedule(
         commence_time: actionGame.commenceTime,
         home_team: homeTeam,
         away_team: awayTeam,
+        neutral_site: Boolean(existing?.neutral_site),
         home_logo_url: homeIdentity?.logo || null,
         away_logo_url: awayIdentity?.logo || null
       };

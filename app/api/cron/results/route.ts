@@ -92,6 +92,31 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // A score may have been stored before a pick was locked or migrated. Revisit
+    // pending real picks on scored games without refetching an entire old slate.
+    const recoveryStart = new Date(now.getTime() - 36 * 60 * 60 * 1000).toISOString();
+    const { data: strandedPicks, error: recoveryError } = await supabase.from("picks")
+      .select("game_id,game:games!inner(*)")
+      .eq("status", "locked")
+      .eq("result", "pending")
+      .gte("game.commence_time", recoveryStart)
+      .lte("game.commence_time", now.toISOString())
+      .not("game.final_home_score", "is", null)
+      .not("game.final_away_score", "is", null);
+    if (recoveryError) throw new Error(recoveryError.message);
+    const recoveryGames = new Map<string, Game>();
+    for (const row of strandedPicks || []) {
+      if (String(row.game_id).startsWith("admin-")) continue;
+      const game = Array.isArray(row.game) ? row.game[0] : row.game;
+      if (game) recoveryGames.set(row.game_id, game as Game);
+    }
+    for (const game of recoveryGames.values()) {
+      const finalized = await finalizeGame(supabase, game, Number(game.final_home_score), Number(game.final_away_score), false, true);
+      picksGraded += finalized.picksGraded;
+      sideBetsGraded += finalized.sideBetsGraded;
+      weeksFinalized.add(Number(game.week));
+    }
+
     // Settlement must be retried even when the final scores were already stored
     // in an earlier run. Otherwise a week that was temporarily blocked by a
     // stranded/pending pick can remain unfinalized forever after that pick is fixed.
@@ -111,6 +136,7 @@ export async function GET(req: NextRequest) {
       lookbackHours: Math.round(lookbackMs / (60 * 60 * 1000)),
       ...lockResult,
       gamesFinalized,
+      gamesRecovered: recoveryGames.size,
       picksGraded,
       sideBetsGraded,
       pushRetry,

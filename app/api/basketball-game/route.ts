@@ -6,6 +6,7 @@ import { espnSportPath } from "@/lib/sportPaths";
 import { isBasketballLeague } from "@/lib/basketballRules";
 import { basketballShots } from "@/lib/basketballShots";
 import { basketballLiveState } from "@/lib/basketballLiveState";
+import { basketballSummarySwapped, orientBasketballPlayScores } from "@/lib/basketballSummaryOrientation";
 import { createAsyncCache } from "@/lib/asyncCache";
 
 export const dynamic = "force-dynamic";
@@ -29,8 +30,11 @@ export async function GET(req: NextRequest) {
     });
     const competition = data.header?.competitions?.[0];
     const competitors = competition?.competitors || [];
-    const away = competitors.find((row: any) => row.homeAway === "away");
-    const home = competitors.find((row: any) => row.homeAway === "home");
+    const providerAway = competitors.find((row: any) => row.homeAway === "away");
+    const providerHome = competitors.find((row: any) => row.homeAway === "home");
+    const swapped = basketballSummarySwapped(game, providerHome, providerAway);
+    const away = swapped ? providerHome : providerAway;
+    const home = swapped ? providerAway : providerHome;
     const stats = data.boxscore?.teams || [];
     const teamStats = (side: any) => stats.find((row: any) => row.team?.id === side?.team?.id)?.statistics || [];
     const awayStats = teamStats(away), homeStats = teamStats(home);
@@ -38,16 +42,16 @@ export async function GET(req: NextRequest) {
     for (const team of data.boxscore?.players || []) for (const group of team.statistics || []) for (const player of group.athletes || []) {
       if (player.athlete?.id && player.athlete?.displayName) athletes.set(String(player.athlete.id), player.athlete.displayName);
     }
-    const rawPlays = data.plays || data.scoringPlays || [];
-    const plays = (data.plays || data.scoringPlays || []).map((play: any, index: number) => ({
+    const rawPlays = Array.isArray(data.plays) && data.plays.length ? data.plays : data.scoringPlays || [];
+    const plays = rawPlays.map((play: any, index: number) => orientBasketballPlayScores({
       id: String(play.id || index), text: String(play.text || ""), period: Number(play.period?.number || 1),
       clock: String(play.clock?.displayValue || ""), scoring: Boolean(play.scoringPlay),
       awayScore: play.awayScore ?? null, homeScore: play.homeScore ?? null
-    }));
+    }, swapped));
     return NextResponse.json({
       ok: true, status: { ...competition?.status?.type, period: competition?.status?.period || 1, clock: competition?.status?.displayClock || "" },
       teams: { away: away ? { ...away, records: away.records || away.record || [] } : null, home: home ? { ...home, records: home.records || home.record || [] } : null },
-      shots: basketballShots(rawPlays, athletes),
+      shots: basketballShots(rawPlays, athletes).map(shot => orientBasketballPlayScores(shot, swapped)),
       liveState: basketballLiveState(rawPlays, String(away?.team?.id || ""), String(home?.team?.id || "")),
       shotAttempts: rawPlays.filter((play: any) => play.shootingPlay && [2, 3].includes(Number(play.pointsAttempted))).length,
       stats: awayStats.map((row: any) => ({ label: row.label || row.displayName || row.name, away: row.displayValue, home: homeStats.find((item: any) => item.name === row.name)?.displayValue || "—" })),

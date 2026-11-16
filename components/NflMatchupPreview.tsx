@@ -305,11 +305,11 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
   const tabs: Array<[Tab, string]> = [["matchup", "Analytics"], ["form", "Form"], ["history", "History"], ["movement", "Line Movement"]];
 
   return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) closeWithMotion(); }}>
-    <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="false" aria-label={`${away} at ${home} NFL matchup preview`}>
+    <section ref={sheet} className="matchup-preview-sheet" role="dialog" aria-modal="false" aria-label={`${away}${game.neutral_site ? " vs " : " at "}${home} NFL matchup preview`}>
       <header className="matchup-preview-header">
         <div className="matchup-detail-title">
 
-          <strong>{away} at {home}</strong>
+          <strong>{away}{game.neutral_site ? " vs " : " at "}{home}</strong>
         </div>
         <GameDetailClose onClose={closeWithMotion} label="Close matchup preview" />
       </header>

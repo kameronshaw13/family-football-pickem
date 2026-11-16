@@ -48,6 +48,7 @@ import {
   type SideBetBoardMarket,
   displayTeamName,
   abbreviatedTeamName,
+  matchupSeparator,
   matchupTextVariants,
   ResponsiveText,
   SideBetResponseLine,
@@ -671,11 +672,11 @@ export function SideBetGameCard({ game, market, boardMarket, selectedTeam, disab
   const live = game.live_state === "in";
   return <article className={`game-card matchup-card side-bet-game-card ${disabled ? "closed" : ""} ${selectedTeam ? "selected" : ""}`.trim()}>
     <div className="game-head compact-game-head">
-      <div className="game-time-group"><span className={live ? "game-live-status" : "game-time"}><NumericText text={live ? game.live_status || "Live" : timeText(game.commence_time)} /></span></div>
+      <div className="game-time-group"><span className={live ? "game-live-status" : "game-time"}><NumericText text={live ? game.live_status || "Live" : timeText(game.commence_time)} /></span>{game.neutral_site && <span className="game-neutral-site">Neutral</span>}</div>
       {live && <div className="side-bet-live-actions">{game.live_situation && <span className="side-bet-live-situation"><LiveSituationText game={game} /></span>}<button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>GameTracker</button></div>}
       {!live && <div className="matchup-preview-actions">{modelStars > 0 && game.league === "CFB" && <span className="board-model-stars" aria-label={`${modelStars} model edge star${modelStars === 1 ? "" : "s"}`}>{"★".repeat(modelStars)}</span>}<button type="button" className="matchup-preview-trigger side-bet-matchup-preview-trigger" onClick={() => openPreview(game)}>Matchup Preview</button></div>}
     </div>
-    <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`}>
+    <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)}${matchupSeparator(game)}${displayTeamName(game, game.home_team)}`}>
       {[game.away_team, game.home_team].map((team) => <button
         type="button"
         key={team}
@@ -726,12 +727,12 @@ export function SideBetCard({ bet, mode, currentUser, marketQuote, saving, worki
   const perspectiveSpread = perspective.spread;
   const offeredSideName = game
     ? bet.market_type === "total"
-      ? `${displayTeamName(game, game.away_team)} at ${displayTeamName(game, game.home_team)}`
+      ? `${displayTeamName(game, game.away_team)}${matchupSeparator(game)}${displayTeamName(game, game.home_team)}`
       : displayTeamName(game, bet.offered_team)
     : bet.offered_team;
   const offeredSideCompact = game
     ? bet.market_type === "total"
-      ? `${abbreviatedTeamName(game, game.away_team)} at ${abbreviatedTeamName(game, game.home_team)}`
+      ? `${abbreviatedTeamName(game, game.away_team)}${matchupSeparator(game)}${abbreviatedTeamName(game, game.home_team)}`
       : abbreviatedTeamName(game, bet.offered_team)
     : bet.offered_team;
   const perspectiveMarket = sideBetLineText(bet, perspectiveTeam);
@@ -828,4 +829,3 @@ export function SideBetLedgerRow({ bet, currentUser }: { bet: SideBet; currentUs
         </div>}
   </div>;
 }
-
