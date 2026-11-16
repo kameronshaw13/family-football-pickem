@@ -20,20 +20,11 @@ export default function BasketballShotChart({ shots, attempts, college, period, 
   const corner = college ? 3.3333 : 3;
   const arcY = 5.25 + Math.sqrt(radius ** 2 - (25 - corner) ** 2);
   // Half court by default; extend the actual court for long heaves rather than relocating a shot.
-  const courtLength = visible.some(shot => shot.y > 47) ? 94 : 47;
+  const courtLength = 94;
   return <section className="basketball-shot-chart" aria-label="Shot chart">
     <div className="matchup-section-heading"><h3>Shots</h3><span>{made}/{visible.length} FG</span></div>
-    <div className="basketball-shot-filters">
-      <div className="game-tracker-box-selector" role="group" aria-label="Shot chart team">
-        {[away, home].map(team => <button type="button" key={team.id} className={teamId === team.id ? "active" : ""} aria-pressed={teamId === team.id} onClick={() => { setTeamId(team.id); setSelectedId(null); }}>{team.name}</button>)}
-      </div>
-      <MenuSelect className="compact-select basketball-period-select" plainText ariaLabel="Shot chart period" value={selectedPeriod} onChange={value => { setSelectedPeriod(value); setSelectedId(null); }} sections={[{ options: [
-        { value: "all", label: "All" },
-        ...periods.map(value => ({ value: String(value), label: basketballPeriodLabel(value, college) }))
-      ] }]} />
-    </div>
-    <p className="basketball-shot-key"><span className="shot-key-made">○ Made</span><span className="shot-key-missed">× Missed</span></p>
-    <svg className="basketball-court" viewBox={`-1 -1 52 ${courtLength + 2}`} aria-label="Basketball court with available shot locations">
+    <svg className="basketball-court" viewBox="-1 -1 96 52" aria-label="Basketball court with available shot locations">
+      <g transform="translate(94 0) rotate(90)">
       <g className="basketball-court-lines" fill="none" strokeWidth=".18">
         <rect x="0" y="0" width="50" height={courtLength} />
         <path d="M17 0V19H33V0 M22 4H28 M25 4V4.5" />
@@ -50,7 +41,18 @@ export default function BasketballShotChart({ shots, attempts, college, period, 
         <title>{shot.text}</title><circle r="1.8" fill="transparent" stroke="none" />
         {shot.made ? <circle r=".55" fill="none" strokeWidth=".3" /> : <path d="M-.5-.5L.5.5 M-.5.5L.5-.5" strokeWidth=".3" />}
       </g>)}
+      </g>
     </svg>
+    <div className="basketball-shot-key"><span className="shot-key-made">○ Made</span><span className="shot-key-missed">× Missed</span></div>
+    <div className="basketball-shot-filters">
+      <div className="game-tracker-box-selector" role="group" aria-label="Shot chart team">
+        {[away, home].map(team => <button type="button" key={team.id} className={teamId === team.id ? "active" : ""} aria-pressed={teamId === team.id} onClick={() => { setTeamId(team.id); setSelectedId(null); }}>{team.name}</button>)}
+      </div>
+      <MenuSelect className="compact-select basketball-period-select" plainText ariaLabel="Shot chart period" value={selectedPeriod} onChange={value => { setSelectedPeriod(value); setSelectedId(null); }} sections={[{ options: [
+        { value: "all", label: "All" },
+        ...periods.map(value => ({ value: String(value), label: basketballPeriodLabel(value, college) }))
+      ] }]} />
+    </div>
     {!visible.length && <p className="game-tracker-empty">No shot locations available for this selection yet.</p>}
     {selected && <div className="basketball-shot-detail" aria-live="polite"><strong>{selected.player}</strong><span>{selected.teamId === away.id ? away.name : selected.teamId === home.id ? home.name : ""} · {basketballPeriodLabel(selected.period, college)} · {selected.clock}</span><p>{selected.text}</p><b>{away.name} {selected.awayScore ?? "—"}–{selected.homeScore ?? "—"} {home.name}</b></div>}
 
