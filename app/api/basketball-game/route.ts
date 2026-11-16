@@ -46,11 +46,12 @@ export async function GET(req: NextRequest) {
     const plays = rawPlays.map((play: any, index: number) => orientBasketballPlayScores({
       id: String(play.id || index), text: String(play.text || ""), period: Number(play.period?.number || 1),
       clock: String(play.clock?.displayValue || ""), scoring: Boolean(play.scoringPlay),
+      side: String(play.team?.id || "") === String(away?.team?.id || "") ? "away" : String(play.team?.id || "") === String(home?.team?.id || "") ? "home" : null,
       awayScore: play.awayScore ?? null, homeScore: play.homeScore ?? null
     }, swapped));
     return NextResponse.json({
       ok: true, status: { ...competition?.status?.type, period: competition?.status?.period || 1, clock: competition?.status?.displayClock || "" },
-      teams: { away: away ? { ...away, records: away.records || away.record || [] } : null, home: home ? { ...home, records: home.records || home.record || [] } : null },
+      teams: { away: away ? { ...away, records: away.records || away.record || [], timeoutsRemaining: away.timeoutsRemaining ?? away.timeouts ?? null } : null, home: home ? { ...home, records: home.records || home.record || [], timeoutsRemaining: home.timeoutsRemaining ?? home.timeouts ?? null } : null },
       shots: basketballShots(rawPlays, athletes).map(shot => orientBasketballPlayScores(shot, swapped)),
       liveState: basketballLiveState(rawPlays, String(away?.team?.id || ""), String(home?.team?.id || "")),
       shotAttempts: rawPlays.filter((play: any) => play.shootingPlay && [2, 3].includes(Number(play.pointsAttempted))).length,
