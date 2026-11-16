@@ -454,7 +454,8 @@ export async function GET(req: NextRequest) {
           logo: String(away?.team?.logo || game.away_logo_url || ""),
           color: String(away?.team?.color || "34444c"),
           alternateColor: String(away?.team?.alternateColor || "ffffff"),
-          score: scoreValue(away)
+          score: scoreValue(away),
+          record: String(away?.records?.find((record: any) => record?.type === "total")?.summary || away?.records?.[0]?.summary || away?.record?.[0]?.summary || "")
         },
         home: {
           id: homeId,
@@ -469,7 +470,8 @@ export async function GET(req: NextRequest) {
           logo: String(home?.team?.logo || game.home_logo_url || ""),
           color: String(home?.team?.color || "34444c"),
           alternateColor: String(home?.team?.alternateColor || "ffffff"),
-          score: scoreValue(home)
+          score: scoreValue(home),
+          record: String(home?.records?.find((record: any) => record?.type === "total")?.summary || home?.records?.[0]?.summary || home?.record?.[0]?.summary || "")
         }
       },
       situation: {
