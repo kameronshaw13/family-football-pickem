@@ -7048,3 +7048,16 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
   .game-tracker-scoreboard-grid .game-tracker-score-team-main > img { width: 48px; height: 48px; }
   .game-tracker-scoreboard-grid .game-tracker-score-stack > b { font-size: 31px; }
 }
+
+/* Stat tables consume the full width and may be horizontally swiped without clipping. */
+.game-tracker-sheet .game-tracker-scroll.box-score,
+.basketball-details .game-tracker-scroll:has(.game-tracker-box) {
+  overflow-x: hidden;
+  touch-action: pan-x pan-y;
+}
+.game-tracker-sheet .game-tracker-player-table-scroll,
+.basketball-details .game-tracker-player-table-scroll {
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
