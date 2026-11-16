@@ -182,9 +182,10 @@ function ScoreboardCenter({ payload, game, completed }: { payload: TrackerPayloa
   const state = gameCenterState(payload, game);
   const situation = completed ? "" : (game.live_situation?.trim() || gameCenterSituation(payload));
 
-  if (completed) return <div className="game-tracker-score-center final"><strong>FINAL</strong></div>;
+  if (completed) return <div className="game-tracker-score-center final"><time className="broadcast-game-date" dateTime={game.commence_time}>{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</time><strong>FINAL</strong></div>;
 
   return <div className="game-tracker-score-center">
+    <time className="broadcast-game-date" dateTime={game.commence_time}>{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</time>
     <span className="game-tracker-center-period">{state.period}</span>
     {state.clock && <strong className="game-tracker-center-clock">{state.clock}</strong>}
     {situation && <small className={payload?.situation.redZone ? "game-tracker-red-zone-position" : ""}>{payload?.situation.redZone ? (payload.situation.fieldPosition || "Red Zone") : situation}</small>}
@@ -244,6 +245,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
     <div className="game-tracker-score-team-main">
       <span className="game-tracker-header-logo-wrap"><TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={56} /></span>
       <div className="game-tracker-score-stack">
+        <small className="broadcast-team-record">{team?.record || ""}</small>
         <b className={scoreTone}>{score ?? "—"}</b>
         {!completed && <div className="game-tracker-team-indicators"><TimeoutDots remaining={timeouts} />{payload?.situation.possessionSide === side && <FieldFootballIcon />}</div>}
       </div>
@@ -763,7 +765,7 @@ export default function GameTracker({ game, onClose, appSlug }: { game: Game; on
 
       <div className="game-tracker-scoreboard">
         <div className="game-tracker-scoreboard-grid">
-          <div className="tracker-header-meta"><span>{payload?.teams.away.record || ""}</span><time dateTime={game.commence_time}>{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</time><span>{payload?.teams.home.record || ""}</span></div>
+
           <TeamScore side="away" payload={payload} game={game} completed={completed} />
           <ScoreboardCenter payload={payload} game={game} completed={completed} />
           <TeamScore side="home" payload={payload} game={game} completed={completed} />
