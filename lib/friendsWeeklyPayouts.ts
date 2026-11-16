@@ -5,11 +5,15 @@ function finiteNumber(value: unknown, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function positionValues(source: any, fallback: number[]) {
-  return POSITION_KEYS.map((key, index) => finiteNumber(source?.[key], fallback[index] ?? 0));
+function positionValues(source: any, fallback: number[], count: number) {
+  return POSITION_KEYS.slice(0, count).map((key, index) => finiteNumber(source?.[key], fallback[index] ?? 0));
 }
 
 export function friendsWeeklyPositionPayouts(bankRules: any, perfect: boolean) {
+  const configuredCount = Number(bankRules?.positions);
+  const count = Number.isInteger(configuredCount) && configuredCount >= 2 && configuredCount <= POSITION_KEYS.length
+    ? configuredCount
+    : POSITION_KEYS.length;
   const regular = positionValues(bankRules, [
     finiteNumber(bankRules?.winner, 40),
     20,
@@ -19,12 +23,12 @@ export function friendsWeeklyPositionPayouts(bankRules: any, perfect: boolean) {
     -10,
     -20,
     -30
-  ]);
+  ], count);
   if (!perfect) return regular;
 
   const explicitPerfect = bankRules?.perfectPayouts;
   if (explicitPerfect && typeof explicitPerfect === "object") {
-    return positionValues(explicitPerfect, regular);
+    return positionValues(explicitPerfect, regular, count);
   }
 
   const configuredMultiplier = finiteNumber(bankRules?.perfectMultiplier, 1.5);
