@@ -178,7 +178,7 @@ export function BankBalanceHistoryRow({ player, weeks, hideAcceptedBets = false 
   </details>;
 }
 
-export function BankWeekResults({ rows, picks, games, amounts, pointsMode, universalLockReached }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null>; pointsMode: boolean; universalLockReached: boolean }) {
+export function BankWeekResults({ rows, picks, games, amounts, pointsMode, universalLockReached, openPreview }: { rows: Array<Standing & { rank?: number }>; picks: Pick[]; games: Game[]; amounts: Record<string, number | null>; pointsMode: boolean; universalLockReached: boolean; openPreview: (game: Game) => void }) {
   return <div className="bank-week-results">
     <div className="bank-results-labels"><span>Player</span><span>Balance</span><span>{pointsMode ? "Points" : "Record"}</span><span aria-hidden="true" /></div>
     {rows.map((row) => {
@@ -200,7 +200,7 @@ export function BankWeekResults({ rows, picks, games, amounts, pointsMode, unive
         const displayedSpread = pick.locked_spread != null ? Number(pick.locked_spread) : game ? normalizeSpreadForSelectedTeam(pick.selected_team, game.current_spread_team, game.current_spread) : null;
         const locked = pick.status === "locked" || Boolean(game && isClosed(game));
         const resultLabel = pick.result === "win" ? "W" : pick.result === "loss" ? "L" : pick.result === "push" ? "P" : "—";
-        return <div className="bank-game-result" key={pick.id}>
+        return <div className="bank-game-result" key={pick.id} role={game ? "button" : undefined} tabIndex={game ? 0 : undefined} aria-label={game ? `Open GameTracker for ${game.away_team} at ${game.home_team}` : undefined} onClick={() => { if (game) openPreview(game); }} onKeyDown={(event) => { if (game && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); openPreview(game); } }}>
           <TeamLogo url={game ? logoForTeam(game, pick.selected_team) : null} name={pick.selected_team} />
           <div><strong className="bank-game-pick-title">{game ? <ResponsiveTeamName game={game} team={pick.selected_team} className="pick-title-team" /> : <span className="pick-title-team">{pick.selected_team}</span>}<span className="pick-title-market"><NumericText text={spreadText(displayedSpread)} />{pick.pick_type === "underdog" && <><span className="dog-separator ui-separator-dot" aria-hidden="true">·</span><span className="dog-tag">Dog <NumericText text={dogBonusText(pick.underdog_win_value || "?", pointsMode)} /></span></>}{game && <PossessionIcon game={game} team={pick.selected_team} />}</span></strong>{game && <p><ResponsiveText full={`${displayTeamName(game, game.away_team)}${matchupSeparator(game)}${displayTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} compact={`${abbreviatedTeamName(game, game.away_team)}${matchupSeparator(game)}${abbreviatedTeamName(game, game.home_team)}${hasPickScoreBug(game) ? isFinalGame(game) ? " · Final" : " · Live" : ` · ${cardGameStateText(game, true)}`}`} /></p>}</div>
           {game && hasPickScoreBug(game) ? <PickScoreBug game={game} pick={pick} spread={displayedSpread} /> : pick.result !== "pending" ? <span className={`test-result ${pick.result}`}>{resultLabel}</span> : locked ? <LockedPickIndicator hidden={universalLockReached} /> : null}
