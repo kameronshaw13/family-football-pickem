@@ -181,7 +181,8 @@ function ScoreboardCenter({ payload, game, completed }: { payload: TrackerPayloa
   const state = gameCenterState(payload, game);
   const situation = completed ? "" : (game.live_situation?.trim() || gameCenterSituation(payload));
 
-  if (completed) return <div className="game-tracker-score-center final"><strong>FINAL</strong></div>;
+  const dateLabel = new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" });
+  if (completed) return <div className="game-tracker-score-center final"><small className="tracker-game-date">{dateLabel}</small><strong>FINAL</strong></div>;
 
   return <div className="game-tracker-score-center">
     <span className="game-tracker-center-period">{state.period}</span>
@@ -402,6 +403,26 @@ function ScoringScore({
   </div>;
 }
 
+function FootballGameFlow({ payload }: { payload: TrackerPayload }) {
+  const plays = payload.scoringPlays.filter(play => play.awayScore != null && play.homeScore != null);
+  if (plays.length < 2) return null;
+  const scores = [{ away: 0, home: 0 }, ...plays.map(play => ({ away: Number(play.awayScore), home: Number(play.homeScore) }))];
+  const maximum = Math.ceil(Math.max(10, ...scores.flatMap(score => [score.away, score.home])) / 7) * 7;
+  const x = (index: number) => 36 + index * 276 / (scores.length - 1);
+  const y = (points: number) => 136 - points / maximum * 116;
+  const path = (side: Side) => scores.map((score, index) => `${index === 0 ? "M" : "L"}${x(index).toFixed(2)} ${y(score[side]).toFixed(2)}`).join(" ");
+  return <section className="basketball-score-flow tracker-football-flow" aria-label="Football game flow">
+    <h3>Game Flow</h3>
+    <svg viewBox="0 0 330 164" role="img" aria-label={`Cumulative football scores: ${payload.teams.away.name} solid and ${payload.teams.home.name} dashed.`}>
+      {[0,1,2,3,4].map(tick => { const value = Math.round(maximum * tick / 4); const sy = y(value); return <g key={tick}><line x1="36" y1={sy} x2="312" y2={sy} className="basketball-flow-grid" /><text x="28" y={sy + 3} textAnchor="end" className="basketball-flow-axis">{value}</text></g>; })}
+      <path d={path("away")} className="basketball-flow-away" />
+      <path d={path("home")} className="basketball-flow-home" />
+      {["Q1","Q2","Q3","Q4"].map((label,index) => <text key={label} x={36 + (index + .5) * 276 / 4} y="154" textAnchor="middle" className="basketball-flow-axis">{label}</text>)}
+    </svg>
+    <div className="basketball-flow-legend"><span><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={19} /><i className="basketball-flow-legend-line away" />{payload.teams.away.shortName}</span><span><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={19} /><i className="basketball-flow-legend-line home" />{payload.teams.home.shortName}</span></div>
+  </section>;
+}
+
 function Scoring({ payload }: { payload: TrackerPayload }) {
   if (!payload.scoringPlays.length) return <p className="game-tracker-empty">No scoring plays yet.</p>;
 
@@ -409,6 +430,7 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
   // header-to-first-row, row-to-row, and quarter-to-quarter each draw once.
   const quarters = groupTrackerScoringPlays(payload.scoringPlays, periodLabel);
   return <div className="game-tracker-scoring-list">
+    <FootballGameFlow payload={payload} />
     {quarters.map((quarter, quarterIndex) => <section
       className="game-tracker-scoring-quarter"
       aria-label={`${trackerPeriodHeading(quarter.label)} scoring`}
