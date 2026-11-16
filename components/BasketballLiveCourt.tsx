@@ -85,15 +85,25 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
         </div>;
       }) : <p className="muted">No earlier plays yet.</p>}
     </div>
-    <div className="basketball-score-flow">
+    <BasketballScoreFlow plays={plays} away={away} home={home} awayLogo={awayLogo} homeLogo={homeLogo} />
+  </section>;
+}
+
+export function BasketballScoreFlow({ plays, away, home, awayLogo, homeLogo }: { plays: Play[]; away: string; home: string; awayLogo?: string | null; homeLogo?: string | null }) {
+  const scoring = plays.filter(play => play.awayScore != null && play.homeScore != null);
+  const sampled = scoring.length > 80 ? scoring.filter((_, index) => index % Math.ceil(scoring.length / 80) === 0 || index === scoring.length - 1) : scoring;
+  const diffs = sampled.map(play => Number(play.awayScore) - Number(play.homeScore));
+  const maxMargin = Math.max(5, ...diffs.map(margin => Math.abs(margin)));
+  const path = diffs.map((margin, index) => `${index === 0 ? "M" : "L"} ${12 + index * (296 / Math.max(1, diffs.length - 1))} ${51 - margin / maxMargin * 37}`).join(" ");
+  const Logo = ({ side }: { side: Side }) => (side === "away" ? awayLogo : homeLogo) ? <Image unoptimized src={(side === "away" ? awayLogo : homeLogo)!} width={22} height={22} alt="" /> : null;
+  return <div className="basketball-score-flow">
       <h3>Score Flow</h3>
-      <div className="basketball-flow-legend"><span><Logo side="away" size={22} />{away}</span><span><Logo side="home" size={22} />{home}</span></div>
+      <div className="basketball-flow-legend"><span><Logo side="away" />{away}</span><span><Logo side="home" />{home}</span></div>
       {diffs.length > 1 ? <svg viewBox="0 0 320 102" role="img" aria-label="Score margin progression from ESPN play-by-play; upward means away team leads and downward means home team leads">
         <line x1="12" y1="51" x2="308" y2="51" className="basketball-flow-zero" />
         <path d={path} className="basketball-flow-line" />
         <circle cx="308" cy={51 - diffs[diffs.length - 1] / maxMargin * 37} r="2.4" className="basketball-flow-end" />
       </svg> : <p className="muted">Score flow appears as scoring data becomes available.</p>}
       <div className="basketball-flow-time"><span>Tipoff</span><span>Latest</span></div>
-    </div>
-  </section>;
+    </div>;
 }
