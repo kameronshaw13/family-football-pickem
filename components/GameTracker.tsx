@@ -750,20 +750,13 @@ export default function GameTracker({ game, onClose, appSlug }: { game: Game; on
         </div>
       </div>
 
-      <nav className={`game-tracker-tabs ${completed ? "completed" : ""}`.trim()} aria-label="GameTracker sections">
-        {tabs.map(([id, label]) => <button
-          type="button"
-          key={id}
-          className={tab === id ? "active" : ""}
-          aria-current={tab === id ? "page" : undefined}
-          onClick={() => {
-            setTab(id);
-            scrollArea.current?.scrollTo(0, 0);
-          }}
-        >{label}</button>)}
+      <nav className="game-tracker-tabs tracker-primary-tabs" aria-label="Football game sections">
+        <button type="button" className={tab !== "box" ? "active" : ""} aria-current={tab !== "box" ? "page" : undefined} onClick={() => { setTab(completed ? "scoring" : "live"); scrollArea.current?.scrollTo(0, 0); }}>GameTracker</button>
+        <button type="button" className={tab === "box" ? "active" : ""} aria-current={tab === "box" ? "page" : undefined} onClick={() => { setTab("box"); scrollArea.current?.scrollTo(0, 0); }}>Box Score</button>
       </nav>
 
       <div ref={scrollArea} className={`game-tracker-scroll ${tab === "box" ? "box-score" : ""}`.trim()}>
+        {tab !== "box" && <nav className="tracker-inner-switch" aria-label="Football GameTracker views">{tabs.filter(([id]) => id !== "box").map(([id,label]) => <button type="button" key={id} className={tab === id ? "active" : ""} aria-pressed={tab === id} onClick={() => { setTab(id); scrollArea.current?.scrollTo(0, 0); }}>{label}</button>)}</nav>}
         {!payload && !error && <div className="game-tracker-loading"><LoaderCircle size={22} /><span>Loading GameTracker…</span></div>}
         {error && !payload && <div className="game-tracker-empty" role="alert">{error}</div>}
         {payload && tab === "live" && <LiveField payload={payload} />}
