@@ -56,6 +56,7 @@ import {
   spreadForTeam,
   isClosed,
   isFinalGame,
+  isPostponedGame,
   LockedPickIndicator,
   liveSituationStatus,
   LivePeriodText,
@@ -71,7 +72,7 @@ export function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, 
   const hasLiveScore = game.live_state !== "pre" && game.live_away_score != null && game.live_home_score != null;
   const hasScore = hasFinalScore || hasLiveScore;
   const gameIsFinal = isFinalGame(game);
-  const gameIsLive = !gameIsFinal && new Date(game.commence_time).getTime() <= now;
+  const gameIsLive = !gameIsFinal && !isPostponedGame(game) && new Date(game.commence_time).getTime() <= now;
   const awayScore = hasFinalScore ? game.final_away_score : game.live_away_score;
   const homeScore = hasFinalScore ? game.final_home_score : game.live_home_score;
   const dogView = leagueFilter === "DOGS";
@@ -166,7 +167,7 @@ export function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, 
 
   return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${!weekIsOpen && !gameIsLive && !gameIsFinal ? "locked-out" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
     <div className={`game-head compact-game-head ${gameIsLive ? "live-tracker-head" : ""}`.trim()}>
-      <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : gameIsLive ? <span className="game-live-status"><LivePeriodText game={game} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}{game.neutral_site && <span className="game-neutral-site">Neutral</span>}</div>
+      <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : isPostponedGame(game) ? <span className="game-final-status">{cardGameStateText(game, true)}</span> : gameIsLive ? <span className="game-live-status"><LivePeriodText game={game} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}{game.neutral_site && <span className="game-neutral-site">Neutral</span>}</div>
       {gameIsLive && <button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>GameTracker</button>}
       {gameIsLive && liveSituation && <div className="game-live-situation"><LiveSituationText game={game} /></div>}
       {!gameIsLive && <div className="matchup-preview-actions">{modelStars > 0 && game.league === "CFB" && !gameIsFinal && <span className="board-model-stars" aria-label={`${modelStars} model edge star${modelStars === 1 ? "" : "s"}`}>{"★".repeat(modelStars)}</span>}<button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>{gameIsFinal ? "GameTracker" : "Matchup Preview"}</button></div>}
@@ -233,7 +234,7 @@ export function CardProgress({ rule, counts, hasDog, dirty }: { rule: WeekRule; 
 export function hasPickScoreBug(game: Game | null | undefined) {
   if (!game) return false;
   // League Card GameTracker stays tappable if a live score is late.
-  return isFinalGame(game) || game.live_state === "in" || new Date(game.commence_time).getTime() <= Date.now();
+  return !isPostponedGame(game) && (isFinalGame(game) || game.live_state === "in" || new Date(game.commence_time).getTime() <= Date.now());
 }
 
 export function PickScoreBug({ game, pick, spread }: { game: Game; pick: Pick; spread: number | null }) {

@@ -6,6 +6,7 @@ import { fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule"
 import { finalizeGame } from "@/lib/finalizeGame";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import type { Game, League } from "@/lib/types";
+import { basketballDateChanged, isBasketballLeague } from "@/lib/basketballRules";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
       const start = new Date(game.commence_time).getTime();
       return start <= now &&
         start >= now - 24 * 60 * 60 * 1000 &&
-        isGameAllowedForGroup(context, game);
+        game.event_status !== "STATUS_RESCHEDULED" && isGameAllowedForGroup(context, game);
     });
 
     if (!candidates.length) {
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest) {
       for (const game of leagueGames) {
         const match = await resolveEspnScheduleMatch(game, schedule, league, { freshness: true });
         if (!match?.game.completed || match.game.homeScore == null || match.game.awayScore == null) continue;
+        if (isBasketballLeague(league) && basketballDateChanged(game.commence_time, match.game.commenceTime)) continue;
         const homeScore = match.swapped ? match.game.awayScore : match.game.homeScore;
         const awayScore = match.swapped ? match.game.homeScore : match.game.awayScore;
         await finalizeGame(supabase, game, homeScore, awayScore);

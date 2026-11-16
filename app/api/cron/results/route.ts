@@ -3,6 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { settleWeekIfReady } from "@/lib/autoSettlement";
 import { fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule";
+import { basketballDateChanged, isBasketballLeague } from "@/lib/basketballRules";
 import { finalizeGame } from "@/lib/finalizeGame";
 import { lockDuePicks } from "@/lib/lockDuePicks";
 import { retryPendingPushNotifications } from "@/lib/notifications";
@@ -75,13 +76,14 @@ export async function GET(req: NextRequest) {
     const weeksSettled = new Set<number>();
 
     for (const league of ["CFB", "NFL", "CBB", "NBA"] as League[]) {
-      const leagueGames = games.filter((game) => game.league === league);
+      const leagueGames = games.filter((game) => game.league === league && game.event_status !== "STATUS_RESCHEDULED");
       if (!leagueGames.length) continue;
       const schedule = await fetchEspnSchedule(league, leagueGames.map((game) => game.commence_time), true);
 
       for (const game of leagueGames) {
         const match = await resolveEspnScheduleMatch(game, schedule, league, { freshness: true });
         if (!match?.game.completed || match.game.homeScore == null || match.game.awayScore == null) continue;
+        if (isBasketballLeague(league) && basketballDateChanged(game.commence_time, match.game.commenceTime)) continue;
         const homeScore = match.swapped ? match.game.awayScore : match.game.homeScore;
         const awayScore = match.swapped ? match.game.homeScore : match.game.awayScore;
         const finalized = await finalizeGame(supabase, game, homeScore, awayScore, false);

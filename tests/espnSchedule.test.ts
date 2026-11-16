@@ -1,6 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { espnTeamLogo, findEspnScheduleMatch, scoreFromCompetitor, type EspnScheduleGame } from "../lib/espnSchedule.ts";
+import { espnTeamLogo, findEspnScheduleMatch, fresherBasketballMatch, scoreFromCompetitor, type EspnScheduleGame } from "../lib/espnSchedule.ts";
+
+test("basketball live score picks the fresher verified event feed", () => {
+  const summary = { game: game({ homeScore: 52, awayScore: 49 }), swapped: true };
+  const board = { game: game({ homeScore: 55, awayScore: 50 }), swapped: true };
+  assert.equal(fresherBasketballMatch(summary, board), board);
+  assert.equal(fresherBasketballMatch({ game: game({ ...summary.game, completed: true }), swapped: true }, board)?.game.completed, true);
+  assert.equal(fresherBasketballMatch(summary, { game: game({ statusName: "STATUS_POSTPONED", homeScore: null, awayScore: null }), swapped: true })?.game.statusName, "STATUS_POSTPONED");
+});
 
 test("ESPN college artwork follows the competitor team ID", () => {
   assert.equal(espnTeamLogo({ id: "269", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/142.png" }), "https://a.espncdn.com/i/teamlogos/ncaa/500/269.png");

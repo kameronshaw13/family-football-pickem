@@ -112,6 +112,7 @@ import {
   spreadForTeam,
   isClosed,
   isFinalGame,
+  isPostponedGame,
   universalWeekendLockTime,
   LockedPickIndicator,
   boardStatusForGame,
@@ -250,6 +251,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     return game.final_home_score == null &&
       game.final_away_score == null &&
       !game.live_completed &&
+      !isPostponedGame(game) &&
       start <= clock &&
       start >= clock - 18 * 60 * 60 * 1000;
   }));
@@ -795,7 +797,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         if (!response.ok) throw new Error("Market updates unavailable");
         const payload = await response.json() as {
           markets?: SideBetMarketQuote[];
-          schedule?: Array<{ id: string; commence_time: string; neutral_site: boolean; lock_time: string; is_locked: boolean }>;
+          schedule?: Array<{ id: string; commence_time: string; neutral_site: boolean; event_status: string | null; lock_time: string; is_locked: boolean }>;
         };
         if (cancelled) return;
         if (!Array.isArray(payload.markets)) throw new Error("Invalid market response");
@@ -820,6 +822,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             if (scheduleGame && (
               scheduleGame.commence_time !== game.commence_time ||
               scheduleGame.neutral_site !== Boolean(game.neutral_site) ||
+              scheduleGame.event_status !== (game.event_status || null) ||
               scheduleGame.lock_time !== game.lock_time ||
               scheduleGame.is_locked !== game.is_locked
             )) {
@@ -1164,6 +1167,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const weekConcluded = !previewActive && (Number(data.week) < currentWeek || (appSlug === "friends-basketball" && clock >= basketballSeasonEnd(data.groupRules).getTime()));
   const weekNotOpenYet = !previewActive && Number(data.week) > currentWeek;
   const viewedBankEntries = previewActive ? testWeek!.bankEntries : bankEntries;
+  const basketballPayoutWaiting = appSlug === "friends-basketball" && !previewActive
+    && viewedPicks.length > 0 && viewedPicks.every((pick) => pick.status === "locked" && pick.result !== "pending")
+    && !viewedBankEntries.some((entry) => Number(entry.week) === Number(viewedWeek));
   const viewedBankHistory = previewActive ? [] : data.bankHistory || [];
   const rule = previewActive ? getWeekRule(3) : data.weekRule || getWeekRule(data.week);
   const boardActive = tab === "picks" && picksView === "board";
@@ -1231,7 +1237,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const myActiveSideBetCount = myActiveSideBets.length;
   const myActivePotentialProfit = myActiveSideBets.reduce((sum, bet) => sum + sideBetProfitForUser(bet, currentUser.id), 0);
   const myActivePotentialLoss = myActiveSideBets.reduce((sum, bet) => sum + sideBetRiskForUser(bet, currentUser.id), 0);
-  const openBetGames = sideBetsActive ? games.filter((game) => !isFinalGame(game)) : [];
+  const openBetGames = sideBetsActive ? games.filter((game) => !isFinalGame(game) && !isPostponedGame(game)) : [];
   const selectedBetGame = openBetGames.find((game) => game.id === betGameId);
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : "";
   const rulesSlug = selectedLeague?.slug || appSlug;
@@ -1253,7 +1259,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }
 
   const displayedFinalMatchups = new Set<string>();
+  const replacementEventIds = new Set(viewedGames.filter((game) => game.event_status !== "STATUS_RESCHEDULED" && game.espn_event_id)
+    .map((game) => `${game.league}:${game.espn_event_id}`));
   const filteredGames = boardActive ? viewedGames.filter((g) => {
+    if (g.event_status === "STATUS_RESCHEDULED" && g.espn_event_id && replacementEventIds.has(`${g.league}:${g.espn_event_id}`)) return false;
     if (boardStatusForGame(g, clock, weekIsOpen) !== statusFilter) return false;
     if (leagueFilter === "CFB") {
       return g.league === "CFB" && (conferenceFilter === "ALL" || gameConferences(g).includes(conferenceFilter));
@@ -1575,6 +1584,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         </>}
         {standingsView === "bank" && <>
           <div className="scoreboard-heading"><h2>Bank Balances</h2></div>
+          {basketballPayoutWaiting && <div className="notice-card" role="status">Week {viewedWeek} picks are graded. The weekly payout posts when every player’s card is complete and graded.</div>}
           {data.activeGroup?.slug === "other-family" && data.groupMoney && <GroupMoneyControls
             week={Number(data.week)}
             weeklyAmount={Number(data.groupMoney.weeklyAmount || 0)}

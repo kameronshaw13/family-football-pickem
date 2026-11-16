@@ -15,7 +15,55 @@ registerHooks({ resolve(specifier, context, nextResolve) {
   if (url && !existsSync(fileURLToPath(url)) && existsSync(`${fileURLToPath(url)}.ts`)) return nextResolve(pathToFileURL(`${fileURLToPath(url)}.ts`).href, context);
   return nextResolve(specifier, context);
 } });
-const { refreshBasketballSlate } = await import("../lib/basketballSync.ts");
+const { refreshBasketballSlate, basketballScheduleRow, voidRescheduledGame } = await import("../lib/basketballSync.ts");
+
+test("moving a game to another date voids pending picks and refunds accepted side bets", async () => {
+  const calls: Array<{ table: string; values: any; filters: Array<[string, string]> }> = [];
+  const db: any = { from(table: string) {
+    const call = { table, values: null as any, filters: [] as Array<[string, string]> };
+    const query: any = {
+      update(values: any) { call.values = values; calls.push(call); return query; },
+      delete() { call.values = { status: "draft deleted" }; calls.push(call); return query; },
+      eq(column: string, value: string) { call.filters.push([column, value]); return query; },
+      then(resolve: (value: any) => void) { resolve({ error: null }); }
+    };
+    return query;
+  } };
+  await voidRescheduledGame(db, "espn-cbb-123", new Date("2026-11-16T04:00:00Z"));
+  assert.deepEqual(calls.map((call) => [call.table, call.values.result || call.values.status || call.values.event_status]), [
+    ["picks", "draft deleted"], ["picks", "push"], ["side_bets", "push"], ["side_bets", "cancelled"], ["games", "STATUS_RESCHEDULED"]
+  ]);
+  assert.equal(calls[2].values.winner_id, null);
+  assert.deepEqual(calls[2].filters, [["game_id", "espn-cbb-123"], ["status", "accepted"]]);
+});
+
+test("locked neutral-site games keep logos with the saved teams when ESPN reverses home and away", () => {
+  const old = { id: "espn-cbb-401909525", espn_event_id: "401909525", league: "CBB", week: 2,
+    commence_time: "2026-11-15T19:30:00Z", home_team: "Marquette Golden Eagles", away_team: "Missouri Tigers",
+    home_logo_url: "https://a.espncdn.com/i/teamlogos/ncaa/500/269.png",
+    away_logo_url: "https://a.espncdn.com/i/teamlogos/ncaa/500/142.png" } as any;
+  const event = { id: "401909525", commenceTime: old.commence_time, statusName: "STATUS_FINAL", neutralSite: true,
+    homeTeam: { id: "142", displayName: "Missouri Tigers", logoUrl: old.away_logo_url },
+    awayTeam: { id: "269", displayName: "Marquette Golden Eagles", logoUrl: old.home_logo_url } } as any;
+  const row = basketballScheduleRow("CBB", event, old, new Date("2026-11-16T02:00:00Z"));
+  assert.equal(row.home_team, old.home_team);
+  assert.equal(row.away_team, old.away_team);
+  assert.equal(row.home_logo_url, old.home_logo_url);
+  assert.equal(row.away_logo_url, old.away_logo_url);
+});
+
+test("a moved game follows its new week and discards the stale line", () => {
+  const old = { id: "espn-cbb-401921760", espn_event_id: "401921760", league: "CBB", week: 2,
+    commence_time: "2026-11-15T19:00:00Z", home_team: "Utah Utes", away_team: "Washington Huskies",
+    current_spread_team: "Utah Utes", current_spread: -4.5 } as any;
+  const event = { id: "401921760", commenceTime: "2026-12-06T00:00:00Z", statusName: "STATUS_SCHEDULED",
+    homeTeam: { id: "254", displayName: "Utah Utes", logoUrl: null },
+    awayTeam: { id: "264", displayName: "Washington Huskies", logoUrl: null } } as any;
+  const row = basketballScheduleRow("CBB", event, old, new Date("2026-11-16T02:00:00Z"));
+  assert.notEqual(row.week, old.week);
+  assert.equal(row.current_spread, null);
+  assert.equal(row.is_locked, false);
+});
 
 test("slate refresh writes schedule fields without overwriting existing creation timestamps or lines", async () => {
   const now = new Date("2026-11-01T18:00:00Z");

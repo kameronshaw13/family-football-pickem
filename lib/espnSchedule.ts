@@ -26,6 +26,7 @@ export type EspnScheduleGame = {
   awayScore: number | null;
   statusDetail: string | null;
   statusState: string | null;
+  statusName?: string | null;
   possessionSide: "home" | "away" | null;
   situationText: string | null;
   redZone: boolean;
@@ -42,6 +43,19 @@ export type EspnScheduleMatch = {
   game: EspnScheduleGame;
   swapped: boolean;
 };
+
+export function fresherBasketballMatch(summary: EspnScheduleMatch | null, scoreboard: EspnScheduleMatch | null) {
+  if (!summary) return scoreboard;
+  if (!scoreboard) return summary;
+  const total = (match: EspnScheduleMatch) => match.game.homeScore != null && match.game.awayScore != null
+    ? match.game.homeScore + match.game.awayScore : -1;
+  if (summary.game.completed && total(summary) >= 0) return summary;
+  if (scoreboard.game.completed && total(scoreboard) >= 0) return scoreboard;
+  const inactive = (match: EspnScheduleMatch) => ["STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_CANCELLED"].includes(match.game.statusName || "");
+  if (inactive(scoreboard) && !inactive(summary)) return scoreboard;
+  if (inactive(summary)) return summary;
+  return total(scoreboard) > total(summary) ? scoreboard : summary;
+}
 
 export type EspnWinProbability = {
   home: number;
@@ -304,6 +318,7 @@ async function fetchEspnEventUncached(
     awayScore: scoreFromCompetitor(away),
     statusDetail: competition?.status?.type?.shortDetail || competition?.status?.type?.detail || null,
     statusState: competition?.status?.type?.state || null,
+    statusName: competition?.status?.type?.name || null,
     possessionSide,
     situationText,
     redZone: Boolean(situation?.isRedZone),
@@ -377,6 +392,7 @@ async function fetchEspnTeamSchedule(
       awayScore: scoreFromCompetitor(away),
       statusDetail: competition?.status?.type?.shortDetail || competition?.status?.type?.detail || null,
       statusState: competition?.status?.type?.state || null,
+      statusName: competition?.status?.type?.name || null,
       possessionSide,
       situationText,
       redZone: Boolean(situation?.isRedZone),
@@ -489,6 +505,7 @@ async function fetchEspnScheduleUncached(league: League, dateHints: string[], fr
       awayScore: scoreFromCompetitor(away),
       statusDetail: competition?.status?.type?.shortDetail || competition?.status?.type?.detail || null,
       statusState: competition?.status?.type?.state || null,
+      statusName: competition?.status?.type?.name || null,
       possessionSide,
       situationText,
       redZone: Boolean(situation?.isRedZone),

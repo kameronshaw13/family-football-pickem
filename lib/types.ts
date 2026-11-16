@@ -13,6 +13,7 @@ export type Game = {
   home_team: string;
   away_team: string;
   neutral_site?: boolean;
+  event_status?: string | null;
   home_logo_url: string | null;
   away_logo_url: string | null;
   home_rank?: number | null;
