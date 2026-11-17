@@ -185,7 +185,6 @@ function ScoreboardCenter({ payload, game, completed }: { payload: TrackerPayloa
   if (completed) return <div className="game-tracker-score-center final"><time className="broadcast-game-date" dateTime={game.commence_time}>{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</time><strong>FINAL</strong></div>;
 
   return <div className="game-tracker-score-center">
-    <time className="broadcast-game-date" dateTime={game.commence_time}>{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</time>
     <span className="game-tracker-center-period">{state.period}</span>
     {state.clock && <strong className="game-tracker-center-clock">{state.clock}</strong>}
     {situation && <small className={payload?.situation.redZone ? "game-tracker-red-zone-position" : ""}>{payload?.situation.redZone ? (payload.situation.fieldPosition || "Red Zone") : situation}</small>}
