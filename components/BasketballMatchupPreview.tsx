@@ -115,14 +115,14 @@ export default function BasketballMatchupPreview({ game, onClose }: { game: Game
   const away = teamDisplayName(game.league, game.away_team), home = teamDisplayName(game.league, game.home_team);
   const tabs: [Tab, string][] = [["analytics", "Analytics"], ["form", "Form"], ["history", "History"], ["movement", "Line Movement"]];
   return createPortal(<div className="matchup-preview-backdrop" onClick={event => { if (event.target === event.currentTarget) close(); }}>
-    <section ref={sheet} className="matchup-preview-sheet basketball-matchup-preview" role="dialog" aria-modal="false" aria-label={`${away} at ${home} matchup preview`}>
-      <header className="matchup-preview-header"><div className="matchup-detail-title"><strong>{away} at {home}</strong></div><GameDetailClose onClose={close} label="Close matchup preview" /></header>
+    <section ref={sheet} className="matchup-preview-sheet basketball-matchup-preview" role="dialog" aria-modal="false" aria-label={`${away}${game.neutral_site ? " vs " : " at "}${home} matchup preview`}>
+      <header className="matchup-preview-header"><div className="matchup-detail-title"><strong>{away}{game.neutral_site ? " vs " : " at "}{home}</strong></div><GameDetailClose onClose={close} label="Close matchup preview" /></header>
       <div className="matchup-preview-hero"><MatchupTipoff commenceTime={game.commence_time} />{(["away", "home"] as const).map(side => {
         const name = side === "away" ? away : home, team = payload?.teams[side];
         const rank = game.league === "CBB" ? game[`${side}_rank`] : null;
         const spread = normalizeSpreadForSelectedTeam(game[`${side}_team`], game.current_spread_team, game.current_spread);
         return <div className="matchup-preview-team" key={side}><Logo src={game[`${side}_logo_url`]} name={name} size={46} /><strong>{rank != null && <small className="matchup-team-rank">#{rank} </small>}{name}</strong><span>{team?.games.length ? `${team.record.wins}-${team.record.losses}` : "—"}{spread != null && <b>{spreadText(spread)}</b>}</span></div>;
-      })}<span className="matchup-center-at" aria-hidden="true">AT</span></div>
+      })}<span className="matchup-center-at" aria-hidden="true">{game.neutral_site ? "VS" : "AT"}</span></div>
       <nav className="matchup-preview-tabs has-line-movement" aria-label="Basketball matchup sections">{tabs.map(([id, label]) => <button type="button" key={id} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined} onClick={() => { setTab(id); scroll.current?.scrollTo(0, 0); }}>{label}</button>)}</nav>
       <div className="matchup-preview-scroll" ref={scroll}>
         {tab === "movement" && <LineMovement game={game} />}

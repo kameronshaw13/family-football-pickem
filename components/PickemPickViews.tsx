@@ -166,7 +166,7 @@ export function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, 
   const liveSituation = gameIsLive ? liveSituationStatus(game) : "";
 
   return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${!weekIsOpen && !gameIsLive && !gameIsFinal ? "locked-out" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
-    <div className={`game-head compact-game-head ${gameIsLive ? "live-tracker-head" : ""}`.trim()}>
+    <div className={`game-head compact-game-head ${gameIsLive ? `live-tracker-head ${game.league === "CBB" || game.league === "NBA" ? "basketball-live-head" : ""}` : ""}`.trim()}>
       <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : isPostponedGame(game) ? <span className="game-final-status">{cardGameStateText(game, true)}</span> : gameIsLive ? <span className="game-live-status"><LivePeriodText game={game} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}{game.neutral_site && <span className="game-neutral-site">Neutral</span>}</div>
       {gameIsLive && <button type="button" className={`matchup-preview-trigger game-tracker-trigger ${game.league === "CBB" || game.league === "NBA" ? "basketball-tracker-right" : ""}`} onClick={() => openPreview(game)}>GameTracker</button>}
       {gameIsLive && liveSituation && <div className="game-live-situation"><LiveSituationText game={game} /></div>}

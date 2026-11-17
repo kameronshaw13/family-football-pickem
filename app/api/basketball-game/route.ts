@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { espnSportPath } from "@/lib/sportPaths";
 import { isBasketballLeague } from "@/lib/basketballRules";
 import { basketballShots } from "@/lib/basketballShots";
+import { basketballSituation } from "@/lib/basketballSituation";
 import { basketballLiveState } from "@/lib/basketballLiveState";
 import { basketballSummarySwapped, orientBasketballPlayScores } from "@/lib/basketballSummaryOrientation";
 import { createAsyncCache } from "@/lib/asyncCache";
@@ -76,43 +77,10 @@ export async function GET(req: NextRequest) {
           ? { id: String(entry.playId || index), home: swapped ? 1 - homeProbability : homeProbability, progress } : null;
       }).filter((point: any) => point && point.progress != null)
       .sort((a: any, b: any) => a.progress - b.progress);
-    const numeric = (value: unknown) => {
-      const number = Number(value);
-      return value == null || value === "" || !Number.isFinite(number) ? null : Math.max(0, Math.trunc(number));
-    };
-    const teamFouls = (competitor: any, statsRows: any[]) => {
-      const direct = numeric(competitor?.fouls ?? competitor?.teamFouls ?? competitor?.foulsCommitted);
-      if (direct != null) return direct;
-      const row = statsRows.find((item: any) => /^(?:totalFouls|teamFouls|fouls)$/i.test(String(item.name || "")));
-      return numeric(row?.displayValue ?? row?.value);
-    };
-    const timeoutValue = (competitor: any, max: number) => {
-      const remaining = numeric(competitor?.timeoutsRemaining ?? competitor?.timeouts);
-      if (remaining != null) return remaining;
-      const used = numeric(competitor?.timeoutsUsed);
-      return used == null ? null : Math.max(0, max - used);
-    };
-    const liveSituationSide = (side: "away" | "home") => coreSituation?.[swapped ? (side === "away" ? "home" : "away") : side];
     const currentPeriod = Number(competition?.status?.period || 1);
-    const currentGroup = game.league === "NBA" ? currentPeriod : currentPeriod > 2 ? currentPeriod : Math.max(1, currentPeriod);
-    const periodFouls = (side: any) => rawPlays.filter((play: any) =>
-      Number(play.period?.number || 1) === currentGroup &&
-      String(play.team?.id || "") === String(side?.team?.id || "") &&
-      /\\bfoul\\b/i.test(String(play.type?.text || "") + " " + String(play.text || ""))
-    ).length;
-    const situationFouls = (side: "away" | "home", competitor: any) => {
-      const fromCore = numeric(liveSituationSide(side)?.fouls?.teamFoulsCurrent ?? liveSituationSide(side)?.fouls?.teamFouls);
-      if (fromCore != null) return fromCore;
-      if (rawPlays.length) return periodFouls(competitor);
-      return null;
-    };
-    const situationTimeouts = (side: "away" | "home", competitor: any) =>
-      numeric(liveSituationSide(side)?.timeouts?.timeoutsRemainingCurrent) ??
-      timeoutValue(competitor, game.league === "NBA" ? 7 : 4);
-    const bonusState = (side: "away" | "home") => {
-      const raw = String(liveSituationSide(side)?.fouls?.bonusState || "").toLowerCase();
-      return /double/.test(raw) ? 2 : /bonus/.test(raw) ? 1 : null;
-    };
+    const situationFor = (side: "away" | "home", competitor: any) => basketballSituation(
+      coreSituation, side, swapped, competitor, rawPlays, currentPeriod, game.league === "CBB"
+    );
     const plays = rawPlays.map((play: any, index: number) => orientBasketballPlayScores({
       id: String(play.id || index), text: String(play.text || ""), period: Number(play.period?.number || 1),
       clock: String(play.clock?.displayValue || ""), scoring: Boolean(play.scoringPlay),
@@ -122,7 +90,7 @@ export async function GET(req: NextRequest) {
     }, swapped));
     return NextResponse.json({
       ok: true, status: { ...competition?.status?.type, period: competition?.status?.period || 1, clock: competition?.status?.displayClock || "" },
-      teams: { away: away ? { ...away, records: away.records || away.record || [], timeoutsRemaining: situationTimeouts("away", away), fouls: situationFouls("away", away), bonus: bonusState("away") } : null, home: home ? { ...home, records: home.records || home.record || [], timeoutsRemaining: situationTimeouts("home", home), fouls: situationFouls("home", home), bonus: bonusState("home") } : null },
+      teams: { away: away ? { ...away, records: away.records || away.record || [], ...situationFor("away", away) } : null, home: home ? { ...home, records: home.records || home.record || [], ...situationFor("home", home) } : null },
       shots: basketballShots(rawPlays, athletes).map(shot => orientBasketballPlayScores(shot, swapped)),
       liveState: basketballLiveState(rawPlays, String(away?.team?.id || ""), String(home?.team?.id || "")),
       winProbability: probabilities,

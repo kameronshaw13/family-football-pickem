@@ -292,7 +292,7 @@ export default function MatchupPreview({ game, onClose }: { game: Game; onClose:
       <div className="matchup-preview-hero">
         <MatchupTipoff commenceTime={game.commence_time} />
         {(["away", "home"] as const).map(side => <div className="matchup-preview-team" key={side}><Logo src={side === "away" ? game.away_logo_url : game.home_logo_url} size={46} /><strong>{game[`${side}_rank`] != null && <small className="matchup-team-rank">#{game[`${side}_rank`]} </small>}{side === "away" ? away : home}</strong><span>{payload?.teams[side].resultsAvailable ? <RecordValue wins={payload.teams[side].record.wins} losses={payload.teams[side].record.losses} /> : "—"}{normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread) != null && <b>{spreadText(normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread))}</b>}</span></div>)}
-        <span className="matchup-center-at" aria-hidden="true">AT</span>
+        <span className="matchup-center-at" aria-hidden="true">{game.neutral_site ? "VS" : "AT"}</span>
       </div>
       <nav className="matchup-preview-tabs has-line-movement" aria-label="Matchup sections">{tabs.map(([id, label]) => <button type="button" key={id} aria-current={tab === id ? "page" : undefined} className={tab === id ? "active" : ""} onClick={() => { setTab(id); sheet.current?.querySelector(".matchup-preview-scroll")?.scrollTo(0, 0); }}>{label}</button>)}</nav>
       <div className="matchup-preview-scroll">

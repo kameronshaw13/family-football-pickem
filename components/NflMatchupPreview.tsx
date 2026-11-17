@@ -321,7 +321,7 @@ export default function NflMatchupPreview({ game, onClose }: { game: Game; onClo
           <span>{payload?.teams[side].resultsAvailable ? `${payload.teams[side].record.wins}-${payload.teams[side].record.losses}` : "—"}<b>{spreadText(normalizeSpreadForSelectedTeam(side === "away" ? game.away_team : game.home_team, game.current_spread_team, game.current_spread))}</b></span>
 
         </div>)}
-        <span className="matchup-center-at" aria-hidden="true">AT</span>
+        <span className="matchup-center-at" aria-hidden="true">{game.neutral_site ? "VS" : "AT"}</span>
       </div>
       <nav className="matchup-preview-tabs has-line-movement" aria-label="NFL matchup sections">{tabs.map(([id, label]) => <button type="button" key={id} aria-current={tab === id ? "page" : undefined} className={tab === id ? "active" : ""} onClick={() => { setTab(id); sheet.current?.querySelector(".matchup-preview-scroll")?.scrollTo(0, 0); }}>{label}</button>)}</nav>
       <div className="matchup-preview-scroll">
