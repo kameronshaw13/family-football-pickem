@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { LoaderCircle } from "lucide-react";
 import GameDetailClose from "@/components/GameDetailClose";
 import BasketballShotChart from "@/components/BasketballShotChart";
-import BasketballLiveCourt, { BasketballScoreFlow } from "@/components/BasketballLiveCourt";
+import BasketballLiveCourt, { BasketballScoreFlow, BasketballWinProbability } from "@/components/BasketballLiveCourt";
 import type { Game } from "@/lib/types";
 import { getClientSessionToken } from "@/lib/clientSession";
 import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
@@ -24,7 +24,7 @@ type Payload = {
   stats: { label: string; away: string; home: string }[];
   players: { id: string; side: "away" | "home"; name: string; groups: { labels: string[]; athletes: { id: string; name: string; stats: string[] }[] }[] }[];
   plays: Play[]; shots: BasketballShot[]; shotAttempts: number;
-  winProbability?: { id: string; home: number; progress: number }[];
+  winProbability?: { id: string; home: number; progress: number; period?: number; clock?: string; awayScore?: number | null; homeScore?: number | null }[];
   liveState?: { possessionSide: Side | null; latestAction: { id: string; text: string; side: Side | null; period: number; clock: string } | null };
 };
 type Tab = "live" | "scoring" | "plays" | "box";
@@ -129,15 +129,15 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
     else latest.plays.push(play);
     return groups;
   }, []);
-  const tabs: [Tab, string][] = [...(!completed ? [["live", "Live"] as [Tab, string]] : []), ["scoring", "Scoring"], ["plays", "Plays"], ["box", "Box Score"]];
+  const tabs: [Tab, string][] = [["scoring", "Scoring"], ...(!completed ? [["live", "Live"] as [Tab, string]] : []), ["plays", "Plays"], ["box", "Box Score"]];
   const teamStats = payload && <section className="game-tracker-team-stats" aria-label="Team statistics comparison">{payload.stats.map(row => <div className="game-tracker-stat-row" key={row.label}><strong aria-label={`${names.away} ${row.label}: ${row.away}`}>{row.away}</strong><span>{row.label}</span><strong aria-label={`${names.home} ${row.label}: ${row.home}`}>{row.home}</strong></div>)}</section>;
 
   return createPortal(<div className="game-tracker-backdrop" onClick={event => { if (event.target === event.currentTarget) close(); }}>
     <section ref={sheet} className="game-tracker-sheet basketball-details basketball-game-tracker" role="dialog" aria-modal="false" aria-label={`${names.away}${game.neutral_site ? " vs " : " at "}${names.home} GameTracker`}>
       <header className="game-tracker-header"><div className="game-detail-title"><strong>{names.away}{game.neutral_site ? " vs " : " at "}{names.home}</strong></div><GameDetailClose onClose={close} label="Close GameTracker" /></header>
-      <div className={`game-tracker-scoreboard ${!completed && !pregame ? "basketball-live-scoreboard" : ""}`}><div className="game-tracker-scoreboard-grid">
+      <div className={`game-tracker-scoreboard ${!completed && !pregame ? "basketball-live-scoreboard" : ""}`} style={{ "--tracker-away-color": `#${payload?.teams.away?.team?.color || "747d85"}`, "--tracker-home-color": `#${payload?.teams.home?.team?.color || "747d85"}` } as CSSProperties}><div className="game-tracker-scoreboard-grid">
         {(["away", "home"] as const).map(side => <div className={`game-tracker-score-team ${side}`} key={side}>
-          <div className="game-tracker-score-team-main">{logos[side] ? <Image unoptimized src={logos[side]!} alt={names[side]} width={60} height={60} /> : <span className="game-tracker-logo-fallback">{names[side].slice(0, 1)}</span>}<div className="game-tracker-score-stack"><small className="broadcast-team-record">{payload?.teams[side]?.records?.[0]?.summary || ""}</small><b className={completed && scores.away != null && scores.home != null ? scores[side]! > scores[side === "away" ? "home" : "away"]! ? "winner" : "loser" : ""}>{scores[side] ?? "—"}</b>{!completed && !pregame && <div className="basketball-team-indicators"><span className="basketball-team-timeouts" aria-label={timeoutCount(side) == null ? "Timeouts unavailable" : `${timeoutCount(side)} timeouts left`}>{timeoutCount(side) == null ? <span className="basketball-timeout-unavailable">TO: —</span> : <span className="basketball-timeout-circles">{Array.from({ length: game.league === "NBA" ? 7 : 4 }, (_, i) => <i key={i} className={i < timeoutCount(side)! ? "active" : ""} />)}</span>}</span><small className="basketball-team-fouls">Fouls: {foulsCount(side) ?? "—"}</small></div>}</div></div>
+          <div className="game-tracker-score-team-main">{logos[side] ? <Image unoptimized src={logos[side]!} alt={names[side]} width={60} height={60} /> : <span className="game-tracker-logo-fallback">{names[side].slice(0, 1)}</span>}<div className="game-tracker-score-stack"><small className="broadcast-team-record">{payload?.teams[side]?.records?.[0]?.summary || ""}</small><b className={completed && scores.away != null && scores.home != null ? scores[side]! > scores[side === "away" ? "home" : "away"]! ? "winner" : "loser" : ""}>{scores[side] ?? "—"}</b>{!pregame && <div className="basketball-team-indicators"><span className="basketball-team-timeouts" aria-label={timeoutCount(side) == null ? "Timeouts unavailable" : `${timeoutCount(side)} timeouts left`}>{timeoutCount(side) == null ? <span className="basketball-timeout-unavailable">TO: —</span> : <span className="basketball-timeout-circles">{Array.from({ length: game.league === "NBA" ? 7 : Math.max(4, timeoutCount(side) || 0) }, (_, i) => <i key={i} className={i < timeoutCount(side)! ? "active" : ""} />)}</span>}</span><small className="basketball-team-fouls">Fouls: {foulsCount(side) ?? "—"}</small></div>}</div></div>
         </div>)}
         <div className={`game-tracker-score-center ${completed ? "final" : ""}`}>
           {completed && <time className="broadcast-game-date" dateTime={game.commence_time}>{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</time>}
@@ -152,6 +152,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
         {payload && tab === "live" && <BasketballLiveCourt shots={payload.shots || []} plays={payload.plays || []} possessionSide={payload.liveState?.possessionSide || null} latestAction={payload.liveState?.latestAction || null} away={names.away} home={names.home}
           awayId={String(payload.teams.away?.team?.id || "away")} homeId={String(payload.teams.home?.team?.id || "home")} college={game.league === "CBB"} awayLogo={logos.away} homeLogo={logos.home} winProbability={payload.winProbability || []} />}
         {payload && tab === "scoring" && <BasketballScoreFlow plays={payload.plays || []} away={names.away} home={names.home} awayLogo={logos.away} homeLogo={logos.home} college={game.league === "CBB"} />}
+        {payload && completed && tab === "scoring" && <BasketballWinProbability points={payload.winProbability || []} away={names.away} home={names.home} awayLogo={logos.away} homeLogo={logos.home} college={game.league === "CBB"} />}
         {payload && tab === "plays" && <BasketballShotChart key={game.id} shots={payload.shots || []} attempts={payload.shotAttempts || 0} college={game.league === "CBB"} period={payload.status.period || 1}
           away={{ id: String(payload.teams.away?.team?.id || "away"), name: names.away, logo: logos.away }}
           home={{ id: String(payload.teams.home?.team?.id || "home"), name: names.home, logo: logos.home }} neutralSite={Boolean(game.neutral_site)} />}

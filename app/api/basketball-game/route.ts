@@ -65,7 +65,9 @@ export async function GET(req: NextRequest) {
     const periodLength = game.league === "NBA" ? 12 * 60 : 20 * 60;
     const timeProgress = (period: number, clock: string) => {
       const remaining = clockToSeconds(clock);
-      return remaining == null ? null : (Math.max(0, period - 1) * periodLength + Math.max(0, periodLength - remaining)) / (totalPeriods * periodLength);
+      const elapsedBeforePeriod = Math.min(totalPeriods, Math.max(0, period - 1)) * periodLength + Math.max(0, period - totalPeriods - 1) * 300;
+      const length = period > totalPeriods ? 300 : periodLength;
+      return remaining == null ? null : (elapsedBeforePeriod + Math.max(0, length - remaining)) / (totalPeriods * periodLength);
     };
     const playById = new Map(rawPlays.map((row: any) => [String(row.id), row]));
     const probabilities = (Array.isArray(data.winprobability) ? data.winprobability : [])
@@ -73,11 +75,12 @@ export async function GET(req: NextRequest) {
         const homeProbability = Number(entry.homeWinPercentage);
         const play = playById.get(String(entry.playId)) as any;
         const progress = play ? timeProgress(Number(play.period?.number || 1), String(play.clock?.displayValue || "")) : null;
-        return Number.isFinite(homeProbability) && homeProbability >= 0 && homeProbability <= 1
-          ? { id: String(entry.playId || index), home: swapped ? 1 - homeProbability : homeProbability, progress } : null;
+        return play && progress != null && Number.isFinite(homeProbability) && homeProbability >= 0 && homeProbability <= 1
+          ? { id: String(entry.playId || index), home: swapped ? 1 - homeProbability : homeProbability, progress, period: Number(play.period?.number || 1), clock: String(play.clock?.displayValue || ""), awayScore: swapped ? play.homeScore ?? null : play.awayScore ?? null, homeScore: swapped ? play.awayScore ?? null : play.homeScore ?? null } : null;
       }).filter((point: any) => point && point.progress != null)
       .sort((a: any, b: any) => a.progress - b.progress);
-    const currentPeriod = Number(competition?.status?.period || 1);
+    const latestPlay = rawPlays[rawPlays.length - 1];
+    const currentPeriod = Number(competition?.status?.period || latestPlay?.period?.number || 1);
     const situationFor = (side: "away" | "home", competitor: any) => basketballSituation(
       coreSituation, side, swapped, competitor, rawPlays, currentPeriod, game.league === "CBB"
     );
@@ -89,7 +92,7 @@ export async function GET(req: NextRequest) {
       awayScore: play.awayScore ?? null, homeScore: play.homeScore ?? null
     }, swapped));
     return NextResponse.json({
-      ok: true, status: { ...competition?.status?.type, period: competition?.status?.period || 1, clock: competition?.status?.displayClock || "" },
+      ok: true, status: { ...competition?.status?.type, period: currentPeriod, clock: competition?.status?.displayClock || latestPlay?.clock?.displayValue || "" },
       teams: { away: away ? { ...away, records: away.records || away.record || [], ...situationFor("away", away) } : null, home: home ? { ...home, records: home.records || home.record || [], ...situationFor("home", home) } : null },
       shots: basketballShots(rawPlays, athletes).map(shot => orientBasketballPlayScores(shot, swapped)),
       liveState: basketballLiveState(rawPlays, String(away?.team?.id || ""), String(home?.team?.id || "")),

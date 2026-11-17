@@ -23,3 +23,26 @@ test("missing live data stays unknown rather than inventing zero timeouts", () =
   assert.deepEqual(basketballSituation(null, "away", false, competitor, [], 1, true), { timeoutsRemaining: null, fouls: null, bonus: null });
   assert.equal(basketballSituation(null, "away", false, { ...competitor, timeoutsUsed: 1 }, [], 1, true).timeoutsRemaining, 3);
 });
+
+test("compact ESPN PersonalFoul events count toward the current half", () => {
+  assert.equal(basketballSituation(null, "away", false, competitor, [{ ...foul(2), type: { text: "PersonalFoul" }, text: "Foul on Player." }], 2, true).fouls, 1);
+});
+
+test("team timeouts can be reconstructed from complete play-by-play, excluding TV breaks", () => {
+  const start = { text: "Start game", period: { number: 1 }, clock: { displayValue: "20:00" } };
+  const timeout = (period: number, type = "ShortTimeOut") => ({ team: { id: "a" }, period: { number: period }, type: { text: type } });
+  assert.equal(basketballSituation(null, "away", false, competitor, [start], 1, true).timeoutsRemaining, 4);
+  assert.equal(basketballSituation(null, "away", false, competitor, [start], 2, true).timeoutsRemaining, 3);
+  assert.equal(basketballSituation(null, "away", false, competitor, [start, timeout(1), timeout(2), timeout(2, "OfficialTVTimeOut")], 2, true).timeoutsRemaining, 2);
+  assert.equal(basketballSituation(null, "away", false, competitor, [start, timeout(1, "RegularTimeOut")], 2, true).timeoutsRemaining, 2);
+  assert.equal(basketballSituation(null, "away", false, competitor, [start, timeout(1)], 3, true).timeoutsRemaining, 4);
+  assert.equal(basketballSituation(null, "away", false, competitor, [timeout(2)], 2, true).timeoutsRemaining, null);
+});
+
+test("an all-zero core placeholder does not overwrite actual recorded fouls and timeouts", () => {
+  const situation = { homeTimeouts: { timeoutsRemainingCurrent: 0 }, awayTimeouts: { timeoutsRemainingCurrent: 0 }, homeFouls: { teamFoulsCurrent: 0 }, awayFouls: { teamFoulsCurrent: 0 } };
+  const plays = [{ text: "Start game", period: { number: 1 } }, { ...foul(2), type: { text: "PersonalFoul" } }];
+  const result = basketballSituation(situation, "away", false, competitor, plays, 2, true);
+  assert.equal(result.fouls, 1);
+  assert.equal(result.timeoutsRemaining, 3);
+});

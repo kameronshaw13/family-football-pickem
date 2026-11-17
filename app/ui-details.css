@@ -7749,3 +7749,44 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
   background: #f5c542;
   border-color: #f5c542;
 }
+
+/* Basketball scoreboard refinements; decorative stripes never affect the grid. */
+.basketball-details .game-tracker-scoreboard-grid { isolation: isolate; overflow: hidden; }
+.basketball-details .game-tracker-scoreboard-grid::before,
+.basketball-details .game-tracker-scoreboard-grid::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 7px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .8;
+}
+.basketball-details .game-tracker-scoreboard-grid::before { left: 25px; background: var(--tracker-away-color); }
+.basketball-details .game-tracker-scoreboard-grid::after { right: 25px; background: var(--tracker-home-color); }
+.basketball-details .game-tracker-scoreboard-grid .game-tracker-score-team-main > img {
+  position: relative;
+  width: clamp(52px, 14.5vw, 64px);
+  height: clamp(52px, 14.5vw, 64px);
+  z-index: 1;
+  transform: translateY(2px);
+}
+.basketball-details .basketball-live-scoreboard .game-tracker-score-team-main > img,
+.basketball-details .basketball-live-scoreboard .game-tracker-logo-fallback { transform: translateY(-2px); }
+.basketball-details .game-tracker-scoreboard-grid .game-tracker-score-stack > .broadcast-team-record { font-size: 11.5px; }
+.basketball-details .game-tracker-scoreboard-grid .game-tracker-score-stack > b { letter-spacing: .015em; }
+.basketball-details .basketball-live-clock > .game-tracker-center-clock { font-size: 15px; letter-spacing: .04em; }
+.basketball-team-indicators .basketball-timeout-circles > i,
+.basketball-details .basketball-bonus-indicators > span { background: #c1c6cc; border-color: #c1c6cc; }
+.basketball-team-indicators .basketball-timeout-circles > i.active,
+.basketball-details .basketball-bonus-indicators > span.active { background: #f5c542; border-color: #f5c542; }
+.basketball-probability-chart > svg { touch-action: none; cursor: crosshair; }
+.basketball-probability-chart .basketball-probability-team-label { padding-inline: 18px; }
+.basketball-probability-team-label > strong { margin-left: auto; font-variant-numeric: tabular-nums; }
+.basketball-probability-readout { display: grid; gap: 5px; justify-items: center; padding-top: 5px; font-size: 11px; font-variant-numeric: tabular-nums; }
+.basketball-probability-readout > span { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 750; }
+.basketball-probability-readout img { object-fit: contain; }
+.basketball-probability-cursor { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.basketball-probability-marker { stroke: var(--panel); stroke-width: 1.5; fill: var(--blue); }
+.basketball-probability-chart > input[type="range"] { display: block; width: calc(100% - 48px); margin: 0 18px 8px 30px; accent-color: var(--blue); touch-action: pan-x; }
+.basketball-probability-hint { display: block; text-align: center; padding: 8px 0 0; color: var(--muted); font-size: 10px; }
