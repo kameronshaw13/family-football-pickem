@@ -43,6 +43,42 @@ export async function GET(req: NextRequest) {
       if (player.athlete?.id && player.athlete?.displayName) athletes.set(String(player.athlete.id), player.athlete.displayName);
     }
     const rawPlays = Array.isArray(data.plays) && data.plays.length ? data.plays : data.scoringPlays || [];
+    const totalPeriods = game.league === "NBA" ? 4 : 2;
+    const clockToSeconds = (clock: string) => {
+      const match = String(clock || "").match(/(\d+):(\d{2})/);
+      return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+    };
+    const periodLength = game.league === "NBA" ? 12 * 60 : 20 * 60;
+    const timeProgress = (period: number, clock: string) => {
+      const remaining = clockToSeconds(clock);
+      return remaining == null ? null : (Math.max(0, period - 1) * periodLength + Math.max(0, periodLength - remaining)) / (totalPeriods * periodLength);
+    };
+    const playById = new Map(rawPlays.map((row: any) => [String(row.id), row]));
+    const probabilities = (Array.isArray(data.winprobability) ? data.winprobability : [])
+      .map((entry: any, index: number) => {
+        const homeProbability = Number(entry.homeWinPercentage);
+        const play = playById.get(String(entry.playId)) as any;
+        const progress = play ? timeProgress(Number(play.period?.number || 1), String(play.clock?.displayValue || "")) : null;
+        return Number.isFinite(homeProbability) && homeProbability >= 0 && homeProbability <= 1
+          ? { id: String(entry.playId || index), home: swapped ? 1 - homeProbability : homeProbability, progress } : null;
+      }).filter((point: any) => point && point.progress != null)
+      .sort((a: any, b: any) => a.progress - b.progress);
+    const numeric = (value: unknown) => {
+      const number = Number(value);
+      return value == null || value === "" || !Number.isFinite(number) ? null : Math.max(0, Math.trunc(number));
+    };
+    const teamFouls = (competitor: any, statsRows: any[]) => {
+      const direct = numeric(competitor?.fouls ?? competitor?.teamFouls ?? competitor?.foulsCommitted);
+      if (direct != null) return direct;
+      const row = statsRows.find((item: any) => /^(?:totalFouls|teamFouls|fouls)$/i.test(String(item.name || "")));
+      return numeric(row?.displayValue ?? row?.value);
+    };
+    const timeoutValue = (competitor: any, max: number) => {
+      const remaining = numeric(competitor?.timeoutsRemaining ?? competitor?.timeouts);
+      if (remaining != null) return remaining;
+      const used = numeric(competitor?.timeoutsUsed);
+      return used == null ? null : Math.max(0, max - used);
+    };
     const plays = rawPlays.map((play: any, index: number) => orientBasketballPlayScores({
       id: String(play.id || index), text: String(play.text || ""), period: Number(play.period?.number || 1),
       clock: String(play.clock?.displayValue || ""), scoring: Boolean(play.scoringPlay),
@@ -51,9 +87,10 @@ export async function GET(req: NextRequest) {
     }, swapped));
     return NextResponse.json({
       ok: true, status: { ...competition?.status?.type, period: competition?.status?.period || 1, clock: competition?.status?.displayClock || "" },
-      teams: { away: away ? { ...away, records: away.records || away.record || [], timeoutsRemaining: away.timeoutsRemaining ?? away.timeouts ?? null } : null, home: home ? { ...home, records: home.records || home.record || [], timeoutsRemaining: home.timeoutsRemaining ?? home.timeouts ?? null } : null },
+      teams: { away: away ? { ...away, records: away.records || away.record || [], timeoutsRemaining: timeoutValue(away, game.league === "NBA" ? 7 : 4), fouls: teamFouls(away, awayStats) } : null, home: home ? { ...home, records: home.records || home.record || [], timeoutsRemaining: timeoutValue(home, game.league === "NBA" ? 7 : 4), fouls: teamFouls(home, homeStats) } : null },
       shots: basketballShots(rawPlays, athletes).map(shot => orientBasketballPlayScores(shot, swapped)),
       liveState: basketballLiveState(rawPlays, String(away?.team?.id || ""), String(home?.team?.id || "")),
+      winProbability: probabilities,
       shotAttempts: rawPlays.filter((play: any) => play.shootingPlay && [2, 3].includes(Number(play.pointsAttempted))).length,
       stats: awayStats.map((row: any) => ({ label: row.label || row.displayName || row.name, away: row.displayValue, home: homeStats.find((item: any) => item.name === row.name)?.displayValue || "—" })),
       players: (data.boxscore?.players || []).map((row: any) => ({
