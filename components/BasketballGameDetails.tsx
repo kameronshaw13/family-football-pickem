@@ -17,13 +17,14 @@ import { scoreFromCompetitor } from "@/lib/espnSchedule";
 import { trackerDisplayScore } from "@/lib/trackerDisplayScore";
 
 type Play = { id: string; text: string; period: number; clock: string; scoring: boolean; side?: Side | null; awayScore: number | null; homeScore: number | null };
-type Team = { score?: string; records?: { summary: string; type?: string }[]; timeoutsRemaining?: number | string | null; team?: { id?: string; displayName?: string; logo?: string; color?: string } };
+type Team = { score?: string; records?: { summary: string; type?: string }[]; timeoutsRemaining?: number | string | null; fouls?: number | null; team?: { id?: string; displayName?: string; logo?: string; color?: string } };
 type Payload = {
   status: { state?: string; shortDetail?: string; detail?: string; completed?: boolean; period?: number; clock?: string };
   teams: { away?: Team; home?: Team };
   stats: { label: string; away: string; home: string }[];
   players: { id: string; side: "away" | "home"; name: string; groups: { labels: string[]; athletes: { id: string; name: string; stats: string[] }[] }[] }[];
   plays: Play[]; shots: BasketballShot[]; shotAttempts: number;
+  winProbability?: { id: string; home: number; progress: number }[];
   liveState?: { possessionSide: Side | null; latestAction: { id: string; text: string; side: Side | null; period: number; clock: string } | null };
 };
 type Tab = "live" | "scoring" | "plays" | "box";
@@ -112,6 +113,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
   const logos = { away: game.away_logo_url, home: game.home_logo_url };
   const basketballPeriod = (period: number) => basketballPeriodLabel(period, game.league === "CBB").replace(/Half|Quarter/gi, "").trim();
   const timeoutCount = (side: Side) => { const count = Number(payload?.teams[side]?.timeoutsRemaining); return payload?.teams[side]?.timeoutsRemaining == null || !Number.isFinite(count) ? null : Math.max(0, Math.trunc(count)); };
+  const foulsCount = (side: Side) => payload?.teams[side]?.fouls;
   const scoreChanged = (play: Play, previous?: Play) => Boolean(play.scoring && (previous == null || play.awayScore !== previous.awayScore || play.homeScore !== previous.homeScore));
   const scores = Object.fromEntries((["away", "home"] as const).map(side => [side, pregame ? null : trackerDisplayScore(completed, game.live_state === "in", game[`final_${side}_score`], game[`live_${side}_score`], scoreFromCompetitor(payload?.teams[side]), null)])) as Record<Side, number | null>;
   const plays = (payload?.plays || []).filter(play => tab !== "scoring" || play.scoring);
@@ -130,10 +132,10 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
       <header className="game-tracker-header"><div className="game-detail-title"><strong>{names.away}{game.neutral_site ? " vs " : " at "}{names.home}</strong></div><GameDetailClose onClose={close} label="Close GameTracker" /></header>
       <div className="game-tracker-scoreboard"><div className="game-tracker-scoreboard-grid">
         {(["away", "home"] as const).map(side => <div className={`game-tracker-score-team ${side}`} key={side}>
-          <div className="game-tracker-score-team-main">{logos[side] ? <Image unoptimized src={logos[side]!} alt={names[side]} width={60} height={60} /> : <span className="game-tracker-logo-fallback">{names[side].slice(0, 1)}</span>}<div className="game-tracker-score-stack"><small className="broadcast-team-record">{payload?.teams[side]?.records?.[0]?.summary || ""}</small><b className={completed && scores.away != null && scores.home != null ? scores[side]! > scores[side === "away" ? "home" : "away"]! ? "winner" : "loser" : ""}>{scores[side] ?? "—"}</b>{!completed && !pregame && <span className="basketball-team-timeouts" aria-label={timeoutCount(side) == null ? "Timeouts unavailable" : `${timeoutCount(side)} timeouts left`}>{game.league === "NBA" ? `TO: ${timeoutCount(side) ?? "—"}` : <span className="game-tracker-timeout-dots">{[0, 1, 2, 3].map(i => <i key={i} className={timeoutCount(side) != null && i < timeoutCount(side)! ? "active" : ""} />)}</span>}</span>}</div></div>
+          <div className="game-tracker-score-team-main">{logos[side] ? <Image unoptimized src={logos[side]!} alt={names[side]} width={60} height={60} /> : <span className="game-tracker-logo-fallback">{names[side].slice(0, 1)}</span>}<div className="game-tracker-score-stack"><small className="broadcast-team-record">{payload?.teams[side]?.records?.[0]?.summary || ""}</small><b className={completed && scores.away != null && scores.home != null ? scores[side]! > scores[side === "away" ? "home" : "away"]! ? "winner" : "loser" : ""}>{scores[side] ?? "—"}</b>{!completed && !pregame && <div className="basketball-team-indicators"><span className="basketball-team-timeouts" aria-label={timeoutCount(side) == null ? "Timeouts unavailable" : `${timeoutCount(side)} timeouts left`}>{game.league === "NBA" ? `TO: ${timeoutCount(side) ?? "—"}` : timeoutCount(side) == null ? <span className="basketball-timeout-unavailable">TO: —</span> : <span className="game-tracker-timeout-dots">{[0, 1, 2, 3].map(i => <i key={i} className={i < timeoutCount(side)! ? "active" : ""} />)}</span>}</span><small className="basketball-team-fouls">Fouls: {foulsCount(side) ?? "—"}</small></div>}</div></div>
         </div>)}
         <div className={`game-tracker-score-center ${completed ? "final" : ""}`}>
-          <time className="broadcast-game-date" dateTime={game.commence_time}>{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</time>
+          {completed && <time className="broadcast-game-date" dateTime={game.commence_time}>{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</time>}
           {completed ? <strong>FINAL</strong> : pregame ? <><span>TIPOFF</span><strong className="basketball-tipoff-time">{new Date(game.commence_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })}</strong><small>CT</small></> : <><span className="game-tracker-center-period">{basketballPeriod(payload?.status.period || 1)}</span><strong className="game-tracker-center-clock">{payload?.status.clock || game.live_status?.match(/\d{1,2}:\d{2}/)?.[0] || "—"}</strong></>}
         </div>
       </div></div>
@@ -143,7 +145,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
         {!payload && !error && <div className="game-tracker-loading" role="status"><LoaderCircle size={22} /><span>Loading game…</span></div>}
         {error && <div className="game-tracker-empty" role="alert"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
         {payload && tab === "live" && <BasketballLiveCourt shots={payload.shots || []} plays={payload.plays || []} possessionSide={payload.liveState?.possessionSide || null} latestAction={payload.liveState?.latestAction || null} away={names.away} home={names.home}
-          awayId={String(payload.teams.away?.team?.id || "away")} homeId={String(payload.teams.home?.team?.id || "home")} college={game.league === "CBB"} awayLogo={logos.away} homeLogo={logos.home} />}
+          awayId={String(payload.teams.away?.team?.id || "away")} homeId={String(payload.teams.home?.team?.id || "home")} college={game.league === "CBB"} awayLogo={logos.away} homeLogo={logos.home} winProbability={payload.winProbability || []} />}
         {payload && tab === "scoring" && <BasketballScoreFlow plays={payload.plays || []} away={names.away} home={names.home} awayLogo={logos.away} homeLogo={logos.home} college={game.league === "CBB"} />}
         {payload && tab === "plays" && <BasketballShotChart key={game.id} shots={payload.shots || []} attempts={payload.shotAttempts || 0} college={game.league === "CBB"} period={payload.status.period || 1}
           away={{ id: String(payload.teams.away?.team?.id || "away"), name: names.away, logo: logos.away }}
