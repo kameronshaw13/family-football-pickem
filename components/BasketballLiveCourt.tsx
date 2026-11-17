@@ -2,7 +2,7 @@
 
 import { basketballPeriodLabel, shotBaselineDistance, type BasketballShot } from "@/lib/basketballShots";
 import { playTextWithoutDuplicateClock } from "@/lib/playText";
-import Image from "next/image";
+import Image from "@/components/TeamImage";
 import { spreadText } from "@/lib/spreads";
 import { useId, useState, type PointerEvent } from "react";
 import { estimatedCoverPoints, nearestProbabilityPoint, type BasketballProbabilityPoint } from "@/lib/basketballWinProbability";

@@ -5,7 +5,7 @@ import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
 
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import Image from "@/components/TeamImage";
 import { createPortal } from "react-dom";
 import { LoaderCircle } from "lucide-react";
 import MatchupResultMark from "@/components/MatchupResultMark";

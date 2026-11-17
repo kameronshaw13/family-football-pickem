@@ -18,7 +18,7 @@ import { AppChrome } from "@/components/PersistentAppChrome";
 import PrimaryBottomNav from "@/components/PrimaryBottomNav";
 import { warmLeagueData } from "@/lib/leagueWarmup";
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
-import NextImage from "next/image";
+import NextImage from "@/components/TeamImage";
 import { useRouter } from "next/navigation";
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";

@@ -1,5 +1,5 @@
 "use client";
-import Image from "next/image";
+import Image from "@/components/TeamImage";
 import { useEffect, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import type { Game } from "@/lib/types";

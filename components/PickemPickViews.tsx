@@ -12,7 +12,7 @@ import { dogBonusText, dogLineText, confidencePointText } from "@/lib/pickDispla
 import { basketballLockTime, basketballWeek, basketballWeekBounds, basketballSeasonEnd, isBasketballLeague } from "@/lib/basketballRules";
 import BasketballGameDetails from "@/components/BasketballGameDetails";
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
-import NextImage from "next/image";
+import NextImage from "@/components/TeamImage";
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Settings as SettingsIcon, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";

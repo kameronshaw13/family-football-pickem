@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
+import Image from "@/components/TeamImage";
 import { LoaderCircle } from "lucide-react";
 import type { Game } from "@/lib/types";
 import type { BasketballForm, BasketballResult } from "@/lib/basketballPreviewData";

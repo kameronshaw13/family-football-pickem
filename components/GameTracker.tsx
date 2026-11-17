@@ -6,7 +6,7 @@ import { playTextWithoutDuplicateClock } from "@/lib/playText";
 
 
 import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
-import Image from "next/image";
+import Image from "@/components/TeamImage";
 import { createPortal } from "react-dom";
 import { ChevronDown, LoaderCircle } from "lucide-react";
 import GameDetailClose from "@/components/GameDetailClose";
