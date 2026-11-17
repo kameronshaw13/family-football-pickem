@@ -46,3 +46,10 @@ test("an all-zero core placeholder does not overwrite actual recorded fouls and 
   assert.equal(result.fouls, 1);
   assert.equal(result.timeoutsRemaining, 3);
 });
+
+test("complete team timeout history overrides core zero defaults even when core fouls are populated", () => {
+  const plays = [{ text: "Start game", period: { number: 1 } }, { team: { id: "a" }, period: { number: 2 }, type: { text: "ShortTimeOut" } }];
+  const result = basketballSituation({ awayTimeouts: { timeoutsRemainingCurrent: 0 }, awayFouls: { teamFoulsCurrent: 7 } }, "away", false, competitor, plays, 2, true);
+  assert.equal(result.timeoutsRemaining, 2);
+  assert.equal(result.fouls, 7);
+});

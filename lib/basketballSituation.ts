@@ -36,9 +36,11 @@ export function basketballSituation(situation: Situation, side: Side, swapped: b
   const fouls = live?.[`${providerSide}Fouls`] ?? live?.[providerSide]?.fouls;
   const maxTimeouts = college ? 4 + Math.max(0, period - 2) : 7;
   const used = count(competitor?.timeoutsUsed);
-  const remaining = count(timeouts?.timeoutsRemainingCurrent) ?? count(competitor?.timeoutsRemaining ?? competitor?.timeouts)
-    ?? (used == null ? null : Math.max(0, maxTimeouts - used))
-    ?? (college ? collegeTimeouts(plays, String(competitor?.team?.id || ""), period) : null);
+  // A number of college core feeds publish zero timeouts while their foul
+  // counts are live. A complete play log tracks actual charged team timeouts.
+  const fromPlays = college ? collegeTimeouts(plays, String(competitor?.team?.id || ""), period) : null;
+  const remaining = fromPlays ?? count(timeouts?.timeoutsRemainingCurrent) ?? count(competitor?.timeoutsRemaining ?? competitor?.timeouts)
+    ?? (used == null ? null : Math.max(0, maxTimeouts - used));
   // College overtime continues the second-half team foul count. ESPN uses
   // compact type names (PersonalFoul), so also match the readable play text.
   const periodFouls = plays.filter(play => {
