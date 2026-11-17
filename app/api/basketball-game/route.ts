@@ -91,6 +91,7 @@ export async function GET(req: NextRequest) {
       const used = numeric(competitor?.timeoutsUsed);
       return used == null ? null : Math.max(0, max - used);
     };
+    const liveSituationSide = (side: "away" | "home") => coreSituation?.[swapped ? (side === "away" ? "home" : "away") : side];
     const currentPeriod = Number(competition?.status?.period || 1);
     const currentGroup = game.league === "NBA" ? currentPeriod : currentPeriod > 2 ? currentPeriod : Math.max(1, currentPeriod);
     const periodFouls = (side: any) => rawPlays.filter((play: any) =>
@@ -99,16 +100,16 @@ export async function GET(req: NextRequest) {
       /\\bfoul\\b/i.test(String(play.type?.text || "") + " " + String(play.text || ""))
     ).length;
     const situationFouls = (side: "away" | "home", competitor: any) => {
-      const fromCore = numeric(coreSituation?.[side]?.fouls?.teamFoulsCurrent ?? coreSituation?.[side]?.fouls?.teamFouls);
+      const fromCore = numeric(liveSituationSide(side)?.fouls?.teamFoulsCurrent ?? liveSituationSide(side)?.fouls?.teamFouls);
       if (fromCore != null) return fromCore;
       if (rawPlays.length) return periodFouls(competitor);
       return null;
     };
     const situationTimeouts = (side: "away" | "home", competitor: any) =>
-      numeric(coreSituation?.[side]?.timeouts?.timeoutsRemainingCurrent) ??
+      numeric(liveSituationSide(side)?.timeouts?.timeoutsRemainingCurrent) ??
       timeoutValue(competitor, game.league === "NBA" ? 7 : 4);
     const bonusState = (side: "away" | "home") => {
-      const raw = String(coreSituation?.[side]?.fouls?.bonusState || "").toLowerCase();
+      const raw = String(liveSituationSide(side)?.fouls?.bonusState || "").toLowerCase();
       return /double/.test(raw) ? 2 : /bonus/.test(raw) ? 1 : null;
     };
     const plays = rawPlays.map((play: any, index: number) => orientBasketballPlayScores({
