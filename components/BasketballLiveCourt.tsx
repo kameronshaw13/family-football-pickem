@@ -105,7 +105,7 @@ export function BasketballWinProbability({ points, away, home, awayLogo, homeLog
         <text x="314" y="150" textAnchor="end" className="basketball-flow-axis">End</text>
       </svg>
       <div className="basketball-flow-legend"><span><StableTeamLogo src={awayLogo} name={away} size={22} />{away}</span><span><StableTeamLogo src={homeLogo} name={home} size={22} />{home}: {Math.round(valid[valid.length - 1].home * 100)}%</span></div>
-    </> : <p className="game-tracker-empty">ESPN win probability isn't available for this game yet.</p>}
+    </> : <p className="game-tracker-empty">ESPN win probability is not available for this game yet.</p>}
   </section>;
 }
 
