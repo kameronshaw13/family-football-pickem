@@ -7791,17 +7791,20 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 .basketball-probability-chart > input[type="range"] { display: block; width: calc(100% - 48px); margin: 0 18px 8px 30px; accent-color: var(--blue); touch-action: pan-x; }
 .basketball-probability-hint { display: block; text-align: center; padding: 8px 0 0; color: var(--muted); font-size: 10px; }
 
-/* Full-height team colors blend into a clear center behind the scoreboard. */
-.basketball-details .game-tracker-scoreboard-grid {
-  background: linear-gradient(90deg,
-    var(--tracker-away-color) 0%,
-    color-mix(in srgb, var(--tracker-away-color) 60%, var(--panel)) 13%,
-    var(--panel) 35%, var(--panel) 65%,
-    color-mix(in srgb, var(--tracker-home-color) 60%, var(--panel)) 87%,
-    var(--tracker-home-color) 100%);
-}
+/* Compact, solid team accents behind the logos. */
+.basketball-details .game-tracker-scoreboard-grid { background: var(--panel); }
 .basketball-details .game-tracker-scoreboard-grid::before,
-.basketball-details .game-tracker-scoreboard-grid::after { content: none; display: none; }
+.basketball-details .game-tracker-scoreboard-grid::after {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 24%; height: 5px;
+  top: 50%; bottom: auto;
+  transform: translateY(-50%);
+  opacity: 1;
+}
+.basketball-details .game-tracker-scoreboard-grid::before { left: 0; background: var(--tracker-away-color); }
+.basketball-details .game-tracker-scoreboard-grid::after { right: 0; background: var(--tracker-home-color); }
 .basketball-details .game-tracker-scoreboard-grid .game-tracker-score-team-main > img,
 .basketball-details .basketball-live-scoreboard .game-tracker-score-team-main > img,
 .basketball-details .game-tracker-scoreboard-grid .game-tracker-logo-fallback {
@@ -7905,3 +7908,41 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 .basketball-recent-play-logo > img { display: block; width: 23px; height: 23px; object-fit: contain; }
 .basketball-last-play > .basketball-recent-play-copy { grid-column: 2; }
 .basketball-last-play > .basketball-recent-score { grid-column: 3; }
+
+/* Score columns retain both team logos beside every recorded score. */
+.basketball-details .basketball-play-period > .basketball-play {
+  grid-template-columns: 23px minmax(0, 1fr) 70px;
+  align-items: center;
+}
+.basketball-details .basketball-play > .basketball-play-score { align-self: center; }
+.basketball-details .basketball-play-team-score { gap: 3px; }
+.basketball-details .basketball-play-team-score > img { width: 20px; height: 20px; object-fit: contain; }
+.basketball-last-play { grid-template-columns: 23px minmax(0, 1fr) 70px; align-items: center; }
+.basketball-last-play .basketball-recent-score {
+  width: 70px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  align-items: center;
+}
+.basketball-last-play .basketball-recent-score > span {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+}
+.basketball-last-play .basketball-recent-score img { width: 20px; height: 20px; object-fit: contain; }
+.basketball-last-play .basketball-recent-score strong { font: inherit; }
+.basketball-last-plays > h3,
+.basketball-details .basketball-play-period > .game-tracker-quarter-header {
+  color: var(--ink);
+  background: var(--panel);
+  font-size: 16px;
+  font-weight: 850;
+  line-height: 1.25;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 14px var(--tracker-inset) 8px;
+}
+.basketball-details .basketball-bonus-indicators > span.active { background: var(--blue); border-color: var(--blue); }
+.stacked-matchup[data-neutral-site="true"] .team-row:first-child::after { content: "vs"; }

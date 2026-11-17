@@ -173,7 +173,7 @@ export function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, 
       {!gameIsLive && <div className="matchup-preview-actions">{modelStars > 0 && game.league === "CFB" && !gameIsFinal && <span className="board-model-stars" aria-label={`${modelStars} model edge star${modelStars === 1 ? "" : "s"}`}>{"★".repeat(modelStars)}</span>}<button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>{gameIsFinal ? "GameTracker" : "Matchup Preview"}</button></div>}
     </div>
 
-    <div className="stacked-matchup" role="group" aria-label={`${displayTeamName(game, game.away_team)}${matchupSeparator(game)}${displayTeamName(game, game.home_team)}`}>
+    <div className="stacked-matchup" data-neutral-site={game.neutral_site ? "true" : undefined} role="group" aria-label={`${displayTeamName(game, game.away_team)}${matchupSeparator(game)}${displayTeamName(game, game.home_team)}`}>
       <button
         type="button"
         className={`team-row away-row ${awaySelectable ? "selectable" : ""} ${existingMatchesView && existing?.selected_team === game.away_team ? "picked-side" : ""} ${awayOpponentOnly ? "opponent-only" : ""} ${awayBlocked ? "blocked-side" : ""} ${resultClasses(game.away_team)}`}

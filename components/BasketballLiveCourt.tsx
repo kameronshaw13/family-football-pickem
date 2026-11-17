@@ -70,7 +70,7 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
             }).join(" ");
             return `M${corner} 0V${arcY} ${arc} V0`;
           })()} />
-          <path d={`M0 ${courtLength}H50`} /><path d={`M19 ${courtLength}A6 6 0 0 1 31 ${courtLength}`} />
+          <path d={`M0 ${courtLength}H50`} />
         </g>
         {latest && shotX != null && shotY != null && <g className={`basketball-latest-shot ${latest.made ? "made" : "missed"}`} transform={`translate(${shotX} ${shotY})`}>
           {latest.made
@@ -86,7 +86,7 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
           <span className="basketball-recent-play-logo">{logoFor(playTeam(play), 23)}</span>
           <p className="basketball-recent-play-copy"><time>{play.clock},</time> {playTextWithoutDuplicateClock(play.text, play.clock)}</p>
           <div className="basketball-recent-score" aria-label={`${away} ${play.awayScore ?? "—"}, ${home} ${play.homeScore ?? "—"}`}>
-            <span>{play.awayScore ?? "—"}</span><span>{play.homeScore ?? "—"}</span>
+            <span><StableTeamLogo src={awayLogo} name={away} size={20} /><strong>{play.awayScore ?? "—"}</strong></span><span><StableTeamLogo src={homeLogo} name={home} size={20} /><strong>{play.homeScore ?? "—"}</strong></span>
           </div>
         </div>;
       }) : <p className="muted">No earlier plays yet.</p>}
