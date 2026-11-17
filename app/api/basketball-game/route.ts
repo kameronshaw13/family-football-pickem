@@ -82,6 +82,7 @@ export async function GET(req: NextRequest) {
     const plays = rawPlays.map((play: any, index: number) => orientBasketballPlayScores({
       id: String(play.id || index), text: String(play.text || ""), period: Number(play.period?.number || 1),
       clock: String(play.clock?.displayValue || ""), scoring: Boolean(play.scoringPlay),
+      progress: timeProgress(Number(play.period?.number || 1), String(play.clock?.displayValue || "")),
       side: String(play.team?.id || "") === String(away?.team?.id || "") ? "away" : String(play.team?.id || "") === String(home?.team?.id || "") ? "home" : null,
       awayScore: play.awayScore ?? null, homeScore: play.homeScore ?? null
     }, swapped));
