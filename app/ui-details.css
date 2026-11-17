@@ -7975,7 +7975,7 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 .basketball-details .basketball-bonus-indicators > span.active { background: #2454d7; border-color: #2454d7; }
 .stacked-matchup[data-neutral-site="true"] .team-row:first-child::after { content: "vs"; }
 
-/* CBS-style proportions: prominent logos straddle the diagonal panel edge. */
+/* Logos overlap the diagonal color edge at their original size. */
 .basketball-details .game-tracker-scoreboard-grid::before,
 .basketball-details .game-tracker-scoreboard-grid::after { width: clamp(44px, 13vw, 64px); }
 .basketball-details .game-tracker-scoreboard-grid .game-tracker-score-team-main {
@@ -7985,8 +7985,8 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
   grid-template-columns: minmax(0, 1fr) clamp(58px, 17vw, 72px);
 }
 .basketball-details .game-tracker-scoreboard-grid .game-tracker-score-team-main > img {
-  width: clamp(58px, 17vw, 72px);
-  height: clamp(58px, 17vw, 72px);
+  width: clamp(52px, 14.5vw, 64px);
+  height: clamp(52px, 14.5vw, 64px);
   z-index: 3;
 }
 .basketball-team-watermark {
