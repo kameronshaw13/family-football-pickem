@@ -7791,20 +7791,31 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 .basketball-probability-chart > input[type="range"] { display: block; width: calc(100% - 48px); margin: 0 18px 8px 30px; accent-color: var(--blue); touch-action: pan-x; }
 .basketball-probability-hint { display: block; text-align: center; padding: 8px 0 0; color: var(--muted); font-size: 10px; }
 
-/* Compact, solid team accents behind the logos. */
+/* Full-height side panels with slanted inner edges, behind the logos. */
 .basketball-details .game-tracker-scoreboard-grid { background: var(--panel); }
 .basketball-details .game-tracker-scoreboard-grid::before,
 .basketball-details .game-tracker-scoreboard-grid::after {
   content: "";
   display: block;
   position: absolute;
-  width: 24%; height: 5px;
-  top: 50%; bottom: auto;
-  transform: translateY(-50%);
+  box-sizing: border-box;
+  width: clamp(55px, 17vw, 88px);
+  height: auto;
+  top: 0; bottom: 0;
   opacity: 1;
 }
-.basketball-details .game-tracker-scoreboard-grid::before { left: 0; background: var(--tracker-away-color); }
-.basketball-details .game-tracker-scoreboard-grid::after { right: 0; background: var(--tracker-home-color); }
+.basketball-details .game-tracker-scoreboard-grid::before {
+  left: -12px;
+  background: var(--tracker-away-color);
+  border-right: 5px solid var(--tracker-away-secondary);
+  transform: skewX(-6deg);
+}
+.basketball-details .game-tracker-scoreboard-grid::after {
+  right: -12px;
+  background: var(--tracker-home-color);
+  border-left: 5px solid var(--tracker-home-secondary);
+  transform: skewX(6deg);
+}
 .basketball-details .game-tracker-scoreboard-grid .game-tracker-score-team-main > img,
 .basketball-details .basketball-live-scoreboard .game-tracker-score-team-main > img,
 .basketball-details .game-tracker-scoreboard-grid .game-tracker-logo-fallback {
@@ -7909,7 +7920,7 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 .basketball-last-play > .basketball-recent-play-copy { grid-column: 2; }
 .basketball-last-play > .basketball-recent-score { grid-column: 3; }
 
-/* Score columns retain both team logos beside every recorded score. */
+/* Score columns align beneath the logos in their section header. */
 .basketball-details .basketball-play-period > .basketball-play {
   grid-template-columns: 23px minmax(0, 1fr) 70px;
   align-items: center;
@@ -7933,16 +7944,33 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 }
 .basketball-last-play .basketball-recent-score img { width: 20px; height: 20px; object-fit: contain; }
 .basketball-last-play .basketball-recent-score strong { font: inherit; }
-.basketball-last-plays > h3,
+.basketball-recent-plays-heading,
 .basketball-details .basketball-play-period > .game-tracker-quarter-header {
-  color: var(--ink);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 44px;
+  color: var(--muted);
   background: var(--panel);
   font-size: 16px;
   font-weight: 850;
   line-height: 1.25;
   text-transform: none;
   letter-spacing: normal;
-  padding: 14px var(--tracker-inset) 8px;
+  padding: 0 var(--tracker-inset);
 }
-.basketball-details .basketball-bonus-indicators > span.active { background: var(--blue); border-color: var(--blue); }
+.basketball-recent-plays-heading > h3 { margin: 0; padding: 0; color: inherit; font: inherit; }
+.basketball-recent-plays-heading > .basketball-period-scores,
+.basketball-details .game-tracker-quarter-header > .basketball-period-scores {
+  width: 70px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  align-items: center;
+  justify-items: center;
+  align-self: center;
+}
+.basketball-recent-plays-heading img,
+.basketball-details .game-tracker-quarter-header .basketball-period-scores img { display: block; }
+.basketball-details .basketball-bonus-indicators > span.active { background: #2454d7; border-color: #2454d7; }
 .stacked-matchup[data-neutral-site="true"] .team-row:first-child::after { content: "vs"; }

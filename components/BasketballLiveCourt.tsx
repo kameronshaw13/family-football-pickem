@@ -80,13 +80,13 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
       </svg>
     </div>
     <div className="basketball-last-plays">
-      <h3>Last 5 plays</h3>
+      <div className="basketball-recent-plays-heading"><h3>Last 5 plays</h3><div className="basketball-period-scores"><StableTeamLogo src={awayLogo} name={away} size={22} /><StableTeamLogo src={homeLogo} name={home} size={22} /></div></div>
       {recentPlays.length ? recentPlays.map((play) => {
         return <div className="basketball-last-play" key={play.id}>
           <span className="basketball-recent-play-logo">{logoFor(playTeam(play), 23)}</span>
           <p className="basketball-recent-play-copy"><time>{play.clock},</time> {playTextWithoutDuplicateClock(play.text, play.clock)}</p>
           <div className="basketball-recent-score" aria-label={`${away} ${play.awayScore ?? "—"}, ${home} ${play.homeScore ?? "—"}`}>
-            <span><StableTeamLogo src={awayLogo} name={away} size={20} /><strong>{play.awayScore ?? "—"}</strong></span><span><StableTeamLogo src={homeLogo} name={home} size={20} /><strong>{play.homeScore ?? "—"}</strong></span>
+            <span>{play.awayScore ?? "—"}</span><span>{play.homeScore ?? "—"}</span>
           </div>
         </div>;
       }) : <p className="muted">No earlier plays yet.</p>}
