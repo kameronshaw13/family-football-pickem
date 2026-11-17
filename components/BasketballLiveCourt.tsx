@@ -78,13 +78,13 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
     </div>
     <div className="basketball-last-plays">
       <h3>Last 5 plays</h3>
-      {recentPlays.length ? recentPlays.map((play, index) => {
-        const previous = [...plays].reverse().find((row) => row.id !== play.id && plays.indexOf(row) < plays.indexOf(play));
-        const changed = play.awayScore != null && play.homeScore != null && (previous == null || previous.awayScore !== play.awayScore || previous.homeScore !== play.homeScore);
+      {recentPlays.length ? recentPlays.map((play) => {
         return <div className="basketball-last-play" key={play.id}>
           {logoFor(playTeam(play), 23)}
           <div><time>{play.clock} · {periodText(play.period)}</time><span>{playTextWithoutDuplicateClock(play.text, play.clock)}</span></div>
-          {changed && <div className="basketball-recent-score"><span>{play.awayScore}</span><span>{play.homeScore}</span></div>}
+          <div className="basketball-recent-score" aria-label={`${away} ${play.awayScore ?? "—"}, ${home} ${play.homeScore ?? "—"}`}>
+            <span>{play.awayScore ?? "—"}</span><span>{play.homeScore ?? "—"}</span>
+          </div>
         </div>;
       }) : <p className="muted">No earlier plays yet.</p>}
     </div>
