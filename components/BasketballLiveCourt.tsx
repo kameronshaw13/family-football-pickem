@@ -114,9 +114,9 @@ export function BasketballScoreFlow({ plays, away, home, awayLogo, homeLogo, col
   // progression, not an invented scoring model or margin-only approximation.
   const points = plays
     .filter(play => play.awayScore != null && play.homeScore != null)
-    .map(play => ({ away: Number(play.awayScore), home: Number(play.homeScore), period: play.period }))
+    .map(play => ({ away: Number(play.awayScore), home: Number(play.homeScore), period: play.period, progress: play.progress }))
     .filter(play => Number.isFinite(play.away) && Number.isFinite(play.home));
-  const distinct = [{ away: 0, home: 0, period: 1 }, ...points.filter((play, index) =>
+  const distinct = [{ away: 0, home: 0, period: 1, progress: 0 }, ...points.filter((play, index) =>
     index === 0 || play.away !== points[index - 1].away || play.home !== points[index - 1].home
   )];
   const sampled = distinct.length > 135
@@ -124,24 +124,16 @@ export function BasketballScoreFlow({ plays, away, home, awayLogo, homeLogo, col
     : distinct;
   const maxScore = Math.max(10, ...sampled.flatMap(point => [point.away, point.home]));
   const ceiling = Math.ceil(maxScore / 10) * 10;
-  // Place each scoring change at its real elapsed-game time. The plot always
-  // spans the full regulation duration, including future unplayed time.
-  const scoreProgress = (period: number, clock: string) => {
-    const parts = String(clock || "").match(/(\\d+):(\\d{2})/);
-    if (!parts) return null;
-    const length = college ? 1200 : 720;
-    return Math.min(1, Math.max(0, ((period - 1) * length + (length - Number(parts[1]) * 60 - Number(parts[2]))) / (periodCount * length)));
-  };
-  const chartX = (i: number) => 36 + i * (276 / Math.max(1, sampled.length - 1));
-  const chartY = (value: number) => 136 - value / ceiling * 116;
-  const pathFor = (side: Side) => sampled.map((point, index) => `${index === 0 ? "M" : "L"}${chartX(index).toFixed(2)} ${chartY(point[side]).toFixed(2)}`).join(" ");
   const periodCount = college ? 2 : 4;
-  const boundaries = Array.from({ length: periodCount - 1 }, (_, idx) => {
-    const next = sampled.findIndex(p => p.period > idx + 1);
-    return next > 0 ? chartX(next) : 36 + (idx + 1) * 276 / periodCount;
-  });
-  const Logo = ({ side }: { side: Side }) => (side === "away" ? awayLogo : homeLogo)
-    ? <Image unoptimized src={(side === "away" ? awayLogo : homeLogo)!} width={19} height={19} alt="" /> : null;
+  const chartX = (progress: number) => 36 + Math.max(0, Math.min(1, progress)) * 276;
+  const chartY = (value: number) => 136 - value / ceiling * 116;
+  const pathFor = (side: Side) => sampled.map((point, index) => {
+    const progress = point.progress;
+    // A missing clock is never assigned a fabricated timestamp.
+    if (progress == null || !Number.isFinite(progress)) return "";
+    return `${index === 0 ? "M" : "L"}${chartX(progress).toFixed(2)} ${chartY(point[side]).toFixed(2)}`;
+  }).filter(Boolean).join(" ");
+  const boundaries = Array.from({ length: periodCount - 1 }, (_, idx) => chartX((idx + 1) / periodCount));
   return <section className="basketball-score-flow" aria-label="Game flow">
     <h3>Game Flow</h3>
     {sampled.length > 1 ? <>
@@ -156,7 +148,7 @@ export function BasketballScoreFlow({ plays, away, home, awayLogo, homeLogo, col
         <path d={pathFor("home")} className="basketball-flow-home" />
         {Array.from({ length: periodCount }, (_, idx) => <text key={idx} x={36 + (idx + .5) * 276 / periodCount} y="154" textAnchor="middle" className="basketball-flow-axis">{college ? (idx === 0 ? "1st" : "2nd") : `Q${idx + 1}`}</text>)}
       </svg>
-      <div className="basketball-flow-legend"><span><Logo side="away" /><i className="basketball-flow-legend-line away" />{away}</span><span><Logo side="home" /><i className="basketball-flow-legend-line home" />{home}</span></div>
+      <div className="basketball-flow-legend"><span><StableTeamLogo src={awayLogo} name={away} size={19} /><i className="basketball-flow-legend-line away" />{away}</span><span><StableTeamLogo src={homeLogo} name={home} size={19} /><i className="basketball-flow-legend-line home" />{home}</span></div>
     </> : <p className="muted">Game flow appears as scoring data becomes available.</p>}
   </section>;
 }
