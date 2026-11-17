@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
       stats: awayStats.map((row: any) => ({ label: row.label || row.displayName || row.name, away: row.displayValue, home: homeStats.find((item: any) => item.name === row.name)?.displayValue || "—" })),
       players: (data.boxscore?.players || []).map((row: any) => ({
         id: row.team?.id, name: row.team?.displayName, side: String(row.team?.id) === String(away?.team?.id) ? "away" : "home",
-        groups: (row.statistics || []).map((group: any) => ({ labels: group.labels || [], athletes: (group.athletes || []).map((player: any) => ({ id: player.athlete?.id, name: player.athlete?.displayName, stats: player.stats || [] })) }))
+        groups: (row.statistics || []).map((group: any) => ({ labels: group.labels || [], athletes: (group.athletes || []).map((player: any) => ({ id: player.athlete?.id, name: player.athlete?.displayName, starter: typeof player.starter === "boolean" ? player.starter : null, stats: player.stats || [] })) }))
       })),
       leaders: (data.leaders || []).map((row: any) => ({ name: row.team?.displayName, categories: (row.leaders || []).map((category: any) => ({ label: category.displayName, athletes: (category.leaders || []).map((leader: any) => ({ name: leader.athlete?.displayName, value: leader.displayValue })) })) })),
       plays

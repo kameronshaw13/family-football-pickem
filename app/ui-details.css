@@ -7974,3 +7974,89 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 .basketball-details .game-tracker-quarter-header .basketball-period-scores img { display: block; }
 .basketball-details .basketball-bonus-indicators > span.active { background: #2454d7; border-color: #2454d7; }
 .stacked-matchup[data-neutral-site="true"] .team-row:first-child::after { content: "vs"; }
+
+/* CBS-style proportions: prominent logos straddle the diagonal panel edge. */
+.basketball-details .game-tracker-scoreboard-grid::before,
+.basketball-details .game-tracker-scoreboard-grid::after { width: clamp(44px, 13vw, 64px); }
+.basketball-details .game-tracker-scoreboard-grid .game-tracker-score-team-main {
+  grid-template-columns: clamp(58px, 17vw, 72px) minmax(0, 1fr);
+}
+.basketball-details .game-tracker-scoreboard-grid .game-tracker-score-team.home .game-tracker-score-team-main {
+  grid-template-columns: minmax(0, 1fr) clamp(58px, 17vw, 72px);
+}
+.basketball-details .game-tracker-scoreboard-grid .game-tracker-score-team-main > img {
+  width: clamp(58px, 17vw, 72px);
+  height: clamp(58px, 17vw, 72px);
+  z-index: 3;
+}
+.basketball-team-watermark {
+  position: absolute;
+  top: 50%;
+  left: -5px;
+  writing-mode: vertical-rl;
+  transform: translateY(-50%) rotate(180deg);
+  color: #fff;
+  opacity: .18;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 0;
+}
+.game-tracker-score-team.home > .basketball-team-watermark { left: auto; right: -5px; transform: translateY(-50%); }
+.basketball-details .game-tracker-score-stack { z-index: 2; }
+.basketball-details .basketball-final-scoreboard .game-tracker-score-stack > b.winner { color: var(--ink); }
+.basketball-details .basketball-final-scoreboard .game-tracker-score-stack > b.loser { color: #8b8b8b; }
+.basketball-details .game-tracker-score-stack > .basketball-final-spread {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 104px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.basketball-details .basketball-play-period .basketball-play > p,
+.basketball-details .basketball-play-period .basketball-play > p > time,
+.basketball-last-play > .basketball-recent-play-copy,
+.basketball-recent-play-copy > time { color: var(--muted); }
+.basketball-recent-plays-heading,
+.basketball-details .basketball-play-period > .game-tracker-quarter-header { color: var(--ink); }
+.basketball-details .basketball-play-period > .basketball-play,
+.basketball-last-play { column-gap: 14px; }
+.basketball-details .basketball-play-period .basketball-play > p,
+.basketball-last-play > .basketball-recent-play-copy { padding-right: 5px; }
+.basketball-details .basketball-player-table tr > th:first-child { padding-left: 14px; }
+.basketball-details .basketball-player-table .basketball-roster-section > th {
+  position: static;
+  width: auto;
+  max-width: none;
+  padding: 8px 14px;
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  text-align: left;
+  border-block: 1px solid var(--basketball-box-line);
+}
+.basketball-probability-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px var(--tracker-inset);
+  gap: 12px;
+}
+.basketball-probability-heading > h3 { margin: 0; font-size: 16px; color: var(--ink); }
+.basketball-probability-toggle { display: flex; gap: 3px; padding: 3px; background: var(--surface-muted); border-radius: var(--ui-radius-control); }
+.basketball-probability-toggle > button { padding: 5px 12px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 11px; font-weight: 750; border-radius: var(--ui-radius-control); }
+.basketball-probability-toggle > button[aria-pressed="true"] { background: var(--panel); color: var(--ink); }
+.basketball-cover-estimate-note { display: block; padding: 8px 10px 0; color: var(--muted); font-size: 10px; text-align: center; line-height: 1.4; }
+.basketball-probability-chart > svg:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }

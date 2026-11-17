@@ -14,6 +14,7 @@ import { teamDisplayName, teamAbbreviatedName } from "@/lib/teamNames";
 import { playTextWithoutDuplicateClock } from "@/lib/playText";
 import { basketballPeriodLabel, type BasketballShot } from "@/lib/basketballShots";
 import { scoreFromCompetitor } from "@/lib/espnSchedule";
+import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { trackerDisplayScore } from "@/lib/trackerDisplayScore";
 
 type Play = { id: string; text: string; period: number; clock: string; scoring: boolean; side?: Side | null; awayScore: number | null; homeScore: number | null };
@@ -22,9 +23,9 @@ type Payload = {
   status: { state?: string; shortDetail?: string; detail?: string; completed?: boolean; period?: number; clock?: string };
   teams: { away?: Team; home?: Team };
   stats: { label: string; away: string; home: string }[];
-  players: { id: string; side: "away" | "home"; name: string; groups: { labels: string[]; athletes: { id: string; name: string; stats: string[] }[] }[] }[];
+  players: { id: string; side: "away" | "home"; name: string; groups: { labels: string[]; athletes: { id: string; name: string; starter?: boolean | null; stats: string[] }[] }[] }[];
   plays: Play[]; shots: BasketballShot[]; shotAttempts: number;
-  winProbability?: { id: string; home: number; progress: number; period?: number; clock?: string; awayScore?: number | null; homeScore?: number | null }[];
+  winProbability?: { id: string; home: number; progress: number; push?: boolean; period?: number; clock?: string; awayScore?: number | null; homeScore?: number | null }[];
   liveState?: { possessionSide: Side | null; latestAction: { id: string; text: string; side: Side | null; period: number; clock: string } | null };
 };
 type Tab = "live" | "scoring" | "plays" | "box";
@@ -129,15 +130,16 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
     else latest.plays.push(play);
     return groups;
   }, []);
+  const homeSpread = normalizeSpreadForSelectedTeam(game.home_team, game.current_spread_team, game.current_spread);
   const tabs: [Tab, string][] = [["scoring", "Scoring"], ...(!completed ? [["live", "Live"] as [Tab, string]] : []), ["plays", "Plays"], ["box", "Box Score"]];
   const teamStats = payload && <section className="game-tracker-team-stats" aria-label="Team statistics comparison">{payload.stats.map(row => <div className="game-tracker-stat-row" key={row.label}><strong aria-label={`${names.away} ${row.label}: ${row.away}`}>{row.away}</strong><span>{row.label}</span><strong aria-label={`${names.home} ${row.label}: ${row.home}`}>{row.home}</strong></div>)}</section>;
 
   return createPortal(<div className="game-tracker-backdrop" onClick={event => { if (event.target === event.currentTarget) close(); }}>
     <section ref={sheet} className="game-tracker-sheet basketball-details basketball-game-tracker" role="dialog" aria-modal="false" aria-label={`${names.away}${game.neutral_site ? " vs " : " at "}${names.home} GameTracker`}>
       <header className="game-tracker-header"><div className="game-detail-title"><strong>{names.away}{game.neutral_site ? " vs " : " at "}{names.home}</strong></div><GameDetailClose onClose={close} label="Close GameTracker" /></header>
-      <div className={`game-tracker-scoreboard ${!completed && !pregame ? "basketball-live-scoreboard" : ""}`} style={{ "--tracker-away-color": `#${payload?.teams.away?.team?.color || "747d85"}`, "--tracker-home-color": `#${payload?.teams.home?.team?.color || "747d85"}`, "--tracker-away-secondary": `#${payload?.teams.away?.team?.alternateColor || "d6d9dc"}`, "--tracker-home-secondary": `#${payload?.teams.home?.team?.alternateColor || "d6d9dc"}` } as CSSProperties}><div className="game-tracker-scoreboard-grid">
-        {(["away", "home"] as const).map(side => <div className={`game-tracker-score-team ${side}`} key={side}>
-          <div className="game-tracker-score-team-main">{logos[side] ? <Image unoptimized src={logos[side]!} alt={names[side]} width={60} height={60} /> : <span className="game-tracker-logo-fallback">{names[side].slice(0, 1)}</span>}<div className="game-tracker-score-stack"><small className="broadcast-team-record">{payload?.teams[side]?.records?.[0]?.summary || ""}</small><b className={completed && scores.away != null && scores.home != null ? scores[side]! > scores[side === "away" ? "home" : "away"]! ? "winner" : "loser" : ""}>{scores[side] ?? "—"}</b>{!pregame && <div className="basketball-team-indicators"><span className="basketball-team-timeouts" aria-label={timeoutCount(side) == null ? "Timeouts unavailable" : `${timeoutCount(side)} timeouts left`}>{timeoutCount(side) == null ? <span className="basketball-timeout-unavailable">TO: —</span> : <span className="basketball-timeout-circles">{Array.from({ length: game.league === "NBA" ? 7 : Math.max(4, timeoutCount(side) || 0) }, (_, i) => <i key={i} className={i < timeoutCount(side)! ? "active" : ""} />)}</span>}</span><small className="basketball-team-fouls">Fouls: {foulsCount(side) ?? "—"}</small></div>}</div></div>
+      <div className={`game-tracker-scoreboard ${completed ? "basketball-final-scoreboard" : !pregame ? "basketball-live-scoreboard" : ""}`} style={{ "--tracker-away-color": `#${payload?.teams.away?.team?.color || "747d85"}`, "--tracker-home-color": `#${payload?.teams.home?.team?.color || "747d85"}`, "--tracker-away-secondary": `#${payload?.teams.away?.team?.alternateColor || "d6d9dc"}`, "--tracker-home-secondary": `#${payload?.teams.home?.team?.alternateColor || "d6d9dc"}` } as CSSProperties}><div className="game-tracker-scoreboard-grid">
+        {(["away", "home"] as const).map(side => <div className={`game-tracker-score-team ${side}`} key={side}><span className="basketball-team-watermark" aria-hidden="true">{names[side]}</span>
+          <div className="game-tracker-score-team-main">{logos[side] ? <Image unoptimized src={logos[side]!} alt={names[side]} width={60} height={60} /> : <span className="game-tracker-logo-fallback">{names[side].slice(0, 1)}</span>}<div className="game-tracker-score-stack"><small className="broadcast-team-record">{payload?.teams[side]?.records?.[0]?.summary || ""}</small><b className={completed && scores.away != null && scores.home != null ? scores[side]! > scores[side === "away" ? "home" : "away"]! ? "winner" : "loser" : ""}>{scores[side] ?? "—"}</b>{!completed && !pregame && <div className="basketball-team-indicators"><span className="basketball-team-timeouts" aria-label={timeoutCount(side) == null ? "Timeouts unavailable" : `${timeoutCount(side)} timeouts left`}>{timeoutCount(side) == null ? <span className="basketball-timeout-unavailable">TO: —</span> : <span className="basketball-timeout-circles">{Array.from({ length: game.league === "NBA" ? 7 : Math.max(4, timeoutCount(side) || 0) }, (_, i) => <i key={i} className={i < timeoutCount(side)! ? "active" : ""} />)}</span>}</span><small className="basketball-team-fouls">Fouls: {foulsCount(side) ?? "—"}</small></div>}{completed && <small className="basketball-final-spread">{teamAbbreviatedName(game.league, game[`${side}_team`])} {spreadText(homeSpread == null ? null : side === "home" ? homeSpread : -homeSpread)}</small>}</div></div>
         </div>)}
         <div className={`game-tracker-score-center ${completed ? "final" : ""}`}>
           {completed && <time className="broadcast-game-date" dateTime={game.commence_time}>{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</time>}
@@ -150,9 +152,9 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
         {!payload && !error && <div className="game-tracker-loading" role="status"><LoaderCircle size={22} /><span>Loading game…</span></div>}
         {error && <div className="game-tracker-empty" role="alert"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
         {payload && tab === "live" && <BasketballLiveCourt shots={payload.shots || []} plays={payload.plays || []} possessionSide={payload.liveState?.possessionSide || null} latestAction={payload.liveState?.latestAction || null} away={names.away} home={names.home}
-          awayId={String(payload.teams.away?.team?.id || "away")} homeId={String(payload.teams.home?.team?.id || "home")} college={game.league === "CBB"} awayLogo={logos.away} homeLogo={logos.home} winProbability={payload.winProbability || []} />}
+          awayId={String(payload.teams.away?.team?.id || "away")} homeId={String(payload.teams.home?.team?.id || "home")} college={game.league === "CBB"} awayLogo={logos.away} homeLogo={logos.home} winProbability={payload.winProbability || []} homeSpread={homeSpread} completed={completed} />}
         {payload && tab === "scoring" && <BasketballScoreFlow plays={payload.plays || []} away={names.away} home={names.home} awayLogo={logos.away} homeLogo={logos.home} college={game.league === "CBB"} />}
-        {payload && completed && tab === "scoring" && <BasketballWinProbability points={payload.winProbability || []} away={names.away} home={names.home} awayLogo={logos.away} homeLogo={logos.home} college={game.league === "CBB"} />}
+        {payload && completed && tab === "scoring" && <BasketballWinProbability points={payload.winProbability || []} away={names.away} home={names.home} awayLogo={logos.away} homeLogo={logos.home} college={game.league === "CBB"} homeSpread={homeSpread} completed={completed} />}
         {payload && tab === "plays" && <BasketballShotChart key={game.id} shots={payload.shots || []} attempts={payload.shotAttempts || 0} college={game.league === "CBB"} period={payload.status.period || 1}
           away={{ id: String(payload.teams.away?.team?.id || "away"), name: names.away, logo: logos.away }}
           home={{ id: String(payload.teams.home?.team?.id || "home"), name: names.home, logo: logos.home }} neutralSite={Boolean(game.neutral_site)} />}
@@ -167,10 +169,17 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
           {payload.players.filter(team => boxTeam !== "all" && team.side === boxTeam).map(team => <div key={team.id} className="game-tracker-team-box basketball-team-box">
             {team.groups.map((group, index) => <section className="game-tracker-box-section" key={index}>
               <div className="game-tracker-player-table-scroll basketball-table-scroll" tabIndex={0} role="region" aria-label={`${teamDisplayName(game.league, team.name)} player statistics, scroll horizontally for more columns`}>
-                <table className="game-tracker-player-table basketball-player-table" aria-label={`${teamDisplayName(game.league, team.name)} player statistics`} style={{ minWidth: `${Math.max(340, 120 + group.labels.length * 44)}px` }}>
-                  <colgroup><col style={{ width: 120 }} />{group.labels.map((label, i) => <col key={i} />)}</colgroup>
+                <table className="game-tracker-player-table basketball-player-table" aria-label={`${teamDisplayName(game.league, team.name)} player statistics`} style={{ minWidth: `${Math.max(340, 136 + group.labels.length * 44)}px` }}>
+                  <colgroup><col style={{ width: 136 }} />{group.labels.map((label, i) => <col key={i} />)}</colgroup>
                   <thead><tr><th scope="col">Players</th>{group.labels.map((label, i) => <th scope="col" key={i}>{label}</th>)}</tr></thead>
-                  <tbody>{group.athletes.map(athlete => <tr key={athlete.id}><th scope="row" title={athlete.name}>{shortPlayerName(athlete.name)}</th>{group.labels.map((_, i) => <td key={i}>{athlete.stats[i] ?? "—"}</td>)}</tr>)}</tbody>
+                  {(group.athletes.some(athlete => typeof athlete.starter === "boolean") ? [
+                    { label: "Starters", athletes: group.athletes.filter(athlete => athlete.starter === true) },
+                    { label: "Bench", athletes: group.athletes.filter(athlete => athlete.starter === false) },
+                    { label: "Other Players", athletes: group.athletes.filter(athlete => athlete.starter == null) }
+                  ] : [{ label: "Players", athletes: group.athletes }]).filter(section => section.athletes.length).map(section => <tbody key={section.label}>
+                    <tr className="basketball-roster-section"><th scope="rowgroup" colSpan={group.labels.length + 1}>{section.label}</th></tr>
+                    {section.athletes.map(athlete => <tr key={athlete.id}><th scope="row" title={athlete.name}>{shortPlayerName(athlete.name)}</th>{group.labels.map((_, i) => <td key={i}>{athlete.stats[i] ?? "—"}</td>)}</tr>)}
+                  </tbody>)}
                 </table>
               </div>
             </section>)}

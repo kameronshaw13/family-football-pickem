@@ -3,8 +3,9 @@
 import { basketballPeriodLabel, shotBaselineDistance, type BasketballShot } from "@/lib/basketballShots";
 import { playTextWithoutDuplicateClock } from "@/lib/playText";
 import Image from "next/image";
+import { spreadText } from "@/lib/spreads";
 import { useId, useState, type PointerEvent } from "react";
-import { nearestProbabilityPoint, type BasketballProbabilityPoint } from "@/lib/basketballWinProbability";
+import { estimatedCoverPoints, nearestProbabilityPoint, type BasketballProbabilityPoint } from "@/lib/basketballWinProbability";
 
 type Side = "away" | "home";
 type Action = { id: string; text: string; side: Side | null; period: number; clock: string };
@@ -14,7 +15,7 @@ function StableTeamLogo({ src, name, size = 22 }: { src?: string | null; name: s
   return src ? <Image unoptimized src={src} width={size} height={size} alt={name} /> : <span aria-hidden="true" className="basketball-logo-placeholder" />;
 }
 
-export default function BasketballLiveCourt({ shots, plays, possessionSide, latestAction, away, home, awayId, homeId, college, awayLogo, homeLogo, winProbability }: {
+export default function BasketballLiveCourt({ shots, plays, possessionSide, latestAction, away, home, awayId, homeId, college, awayLogo, homeLogo, winProbability, homeSpread = null, completed = false }: {
   shots: BasketballShot[];
   plays: Play[];
   possessionSide: Side | null;
@@ -27,6 +28,8 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
   awayLogo?: string | null;
   homeLogo?: string | null;
   winProbability?: ProbabilityPoint[];
+  homeSpread?: number | null;
+  completed?: boolean;
 }) {
   const names = { away, home };
   const logos = { away: awayLogo, home: homeLogo };
@@ -91,13 +94,15 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
         </div>;
       }) : <p className="muted">No earlier plays yet.</p>}
     </div>
-    <BasketballWinProbability points={winProbability || []} away={away} home={home} awayLogo={awayLogo} homeLogo={homeLogo} college={college} />
+    <BasketballWinProbability points={winProbability || []} away={away} home={home} awayLogo={awayLogo} homeLogo={homeLogo} college={college} homeSpread={homeSpread} completed={completed} />
   </section>;
 }
 
-export function BasketballWinProbability({ points, away, home, awayLogo, homeLogo, college = true }: { points: ProbabilityPoint[]; away: string; home: string; awayLogo?: string | null; homeLogo?: string | null; college?: boolean }) {
+export function BasketballWinProbability({ points, away, home, awayLogo, homeLogo, college = true, homeSpread = null, completed = false }: { points: ProbabilityPoint[]; away: string; home: string; awayLogo?: string | null; homeLogo?: string | null; college?: boolean; homeSpread?: number | null; completed?: boolean }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const valid = points.filter(point => Number.isFinite(point.home) && point.home >= 0 && point.home <= 1 && Number.isFinite(point.progress) && point.progress >= 0);
+  const [mode, setMode] = useState<"win" | "cover">("win");
+  const source = mode === "cover" ? estimatedCoverPoints(points, homeSpread, college, completed) : points;
+  const valid = source.filter(point => Number.isFinite(point.home) && point.home >= 0 && point.home <= 1 && Number.isFinite(point.progress) && point.progress >= 0);
   const domain = Math.max(1, ...valid.map(point => point.progress));
   const chartX = (point: ProbabilityPoint) => 35 + point.progress / domain * 278;
   const chartY = (point: ProbabilityPoint) => 130 - point.home * 108;
@@ -115,15 +120,18 @@ export function BasketballWinProbability({ points, away, home, awayLogo, homeLog
     if (point) setSelectedId(point.id);
   };
   const selectionText = selected ? `${selected.clock || "Time unavailable"}${selected.period ? ` · ${basketballPeriodLabel(selected.period, college)}` : ""}, ${away} ${selected.awayScore ?? "—"}, ${home} ${selected.homeScore ?? "—"}, ${home} ${(selected.home * 100).toFixed(1)}%, ${away} ${((1 - selected.home) * 100).toFixed(1)}%` : "";
-  return <section className="basketball-score-flow basketball-win-probability" aria-label="ESPN win probability">
-    <h3>Win Probability</h3>
+  return <section className="basketball-score-flow basketball-win-probability" aria-label={mode === "win" ? "ESPN win probability" : "Estimated cover probability"}>
+    <div className="basketball-probability-heading"><h3>Probability</h3><div className="basketball-probability-toggle" role="group" aria-label="Probability type"><button type="button" aria-pressed={mode === "win"} onClick={() => setMode("win")}>Win</button><button type="button" aria-pressed={mode === "cover"} onClick={() => setMode("cover")}>Cover</button></div></div>
     {valid.length > 1 ? <div className="basketball-probability-chart">
-      <div className="basketball-probability-team-label top"><StableTeamLogo src={homeLogo} name={home} size={24} /><span>{home}</span><strong>{(selected.home * 100).toFixed(1)}%</strong></div>
+      <div className="basketball-probability-team-label top"><StableTeamLogo src={homeLogo} name={home} size={24} /><span>{home}</span><strong>{selected.push ? "Push" : `${(selected.home * 100).toFixed(1)}%`}</strong></div>
       <output className="basketball-probability-readout" aria-live="polite" aria-label={selectionText}>
         <time>{selected.clock || "—"}{selected.period ? ` · ${basketballPeriodLabel(selected.period, college)}` : ""}</time>
         <span><StableTeamLogo src={awayLogo} name={away} size={18} />{selected.awayScore ?? "—"}<span>–</span>{selected.homeScore ?? "—"}<StableTeamLogo src={homeLogo} name={home} size={18} /></span>
       </output>
-      <svg viewBox="0 0 330 159" role="img" aria-label={`Drag to inspect ESPN win probabilities: ${home} shown above the curve, ${away} below it`} onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); inspect(event); }} onPointerMove={event => { if (event.buttons || event.pointerType === "mouse") inspect(event); }}>
+      <svg viewBox="0 0 330 159" role="slider" tabIndex={0} aria-valuemin={0} aria-valuemax={valid.length - 1} aria-valuenow={selectedIndex} aria-valuetext={selectionText} aria-label={`Inspect ${mode} probability by play`} onKeyDown={event => {
+        const next = event.key === "Home" ? 0 : event.key === "End" ? valid.length - 1 : event.key === "ArrowLeft" || event.key === "ArrowDown" ? Math.max(0, selectedIndex - 1) : event.key === "ArrowRight" || event.key === "ArrowUp" ? Math.min(valid.length - 1, selectedIndex + 1) : null;
+        if (next != null) { event.preventDefault(); setSelectedId(valid[next].id); }
+      }} onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); inspect(event); }} onPointerMove={event => { if (event.buttons || event.pointerType === "mouse") inspect(event); }}>
         <path d={upperArea} className="basketball-probability-upper" />
         <path d={lowerArea} className="basketball-probability-lower" />
         <line x1="35" x2="313" y1="76" y2="76" className="basketball-flow-grid" />
@@ -136,10 +144,10 @@ export function BasketballWinProbability({ points, away, home, awayLogo, homeLog
         <text x="35" y="151" textAnchor="start" className="basketball-flow-axis">Start</text>
         <text x="313" y="151" textAnchor="end" className="basketball-flow-axis">{domain > 1 ? "OT" : "End"}</text>
       </svg>
-      <input type="range" min="0" max={valid.length - 1} step="1" value={selectedIndex} aria-label="Inspect win probability by play" aria-valuetext={selectionText} onChange={event => setSelectedId(valid[Number(event.target.value)].id)} />
-      <div className="basketball-probability-team-label bottom"><StableTeamLogo src={awayLogo} name={away} size={24} /><span>{away}</span><strong>{((1 - selected.home) * 100).toFixed(1)}%</strong></div>
+      <div className="basketball-probability-team-label bottom"><StableTeamLogo src={awayLogo} name={away} size={24} /><span>{away}</span><strong>{selected.push ? "Push" : `${((1 - selected.home) * 100).toFixed(1)}%`}</strong></div>
       <small className="basketball-probability-hint">Drag the chart to see time, score and probability.</small>
-    </div> : <p className="game-tracker-empty">ESPN win probability is not available for this game yet.</p>}
+      {mode === "cover" && <small className="basketball-cover-estimate-note">Estimate · {home} {spreadText(homeSpread)} / {away} {spreadText(homeSpread == null ? null : -homeSpread)}<br />Uses the pregame spread, opening win probability, score and time.</small>}
+    </div> : <p className="game-tracker-empty">{mode === "cover" ? "Cover estimate needs a pregame spread and an opening win probability consistent with that spread." : "ESPN win probability is not available for this game yet."}</p>}
   </section>;
 }
 
