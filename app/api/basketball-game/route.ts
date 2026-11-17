@@ -50,7 +50,8 @@ export async function GET(req: NextRequest) {
       try {
         const eventId = encodeURIComponent(String(game.espn_event_id));
         const league = game.league === "NBA" ? "nba" : "mens-college-basketball";
-        const url = `https://sports.core.api.espn.com/v2/sports/basketball/leagues/${league}/events/${eventId}/competitions/${eventId}/situation`;
+        const competitionId = encodeURIComponent(String(competition?.id || game.espn_event_id));
+        const url = `https://sports.core.api.espn.com/v2/sports/basketball/leagues/${league}/events/${eventId}/competitions/${competitionId}/situation`;
         const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(3500) });
         return response.ok ? await response.json() : null;
       } catch { return null; }
