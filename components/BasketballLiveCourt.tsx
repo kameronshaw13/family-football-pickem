@@ -6,7 +6,7 @@ import Image from "next/image";
 
 type Side = "away" | "home";
 type Action = { id: string; text: string; side: Side | null; period: number; clock: string };
-type Play = { id: string; text: string; period: number; clock: string; side?: Side | null; awayScore: number | null; homeScore: number | null };
+type Play = { id: string; text: string; period: number; clock: string; progress?: number | null; side?: Side | null; awayScore: number | null; homeScore: number | null };
 type ProbabilityPoint = { id: string; home: number; progress: number };
 function StableTeamLogo({ src, name, size = 22 }: { src?: string | null; name: string; size?: number }) {
   return src ? <Image unoptimized src={src} width={size} height={size} alt={name} /> : <span aria-hidden="true" className="basketball-logo-placeholder" />;
@@ -31,7 +31,9 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
   const logoFor = (side: Side | null, size = 22) => side ? <StableTeamLogo src={logos[side]} name={names[side]} size={size} /> : null;
   const periodText = (period: number) => basketballPeriodLabel(period, college);
   const playTeam = (play: Play) => play.side || null;
-  const latest = [...shots].reverse().find((shot) => shot.teamId === awayId || shot.teamId === homeId);
+  // Only highlight the current play's shot; don't keep showing an older shot
+  // while the ball is elsewhere on the court.
+  const latest = shots.find(shot => shot.id === latestAction?.id && (shot.teamId === awayId || shot.teamId === homeId));
   // The ESPN source uses a 50x94-foot court. Mirror a shot from the far
   // half to its attacking basket without fabricating a missing location.
   const shotX = latest ? latest.x : null;
@@ -122,6 +124,14 @@ export function BasketballScoreFlow({ plays, away, home, awayLogo, homeLogo, col
     : distinct;
   const maxScore = Math.max(10, ...sampled.flatMap(point => [point.away, point.home]));
   const ceiling = Math.ceil(maxScore / 10) * 10;
+  // Place each scoring change at its real elapsed-game time. The plot always
+  // spans the full regulation duration, including future unplayed time.
+  const scoreProgress = (period: number, clock: string) => {
+    const parts = String(clock || "").match(/(\\d+):(\\d{2})/);
+    if (!parts) return null;
+    const length = college ? 1200 : 720;
+    return Math.min(1, Math.max(0, ((period - 1) * length + (length - Number(parts[1]) * 60 - Number(parts[2]))) / (periodCount * length)));
+  };
   const chartX = (i: number) => 36 + i * (276 / Math.max(1, sampled.length - 1));
   const chartY = (value: number) => 136 - value / ceiling * 116;
   const pathFor = (side: Side) => sampled.map((point, index) => `${index === 0 ? "M" : "L"}${chartX(index).toFixed(2)} ${chartY(point[side]).toFixed(2)}`).join(" ");
