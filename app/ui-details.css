@@ -7791,25 +7791,17 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 .basketball-probability-chart > input[type="range"] { display: block; width: calc(100% - 48px); margin: 0 18px 8px 30px; accent-color: var(--blue); touch-action: pan-x; }
 .basketball-probability-hint { display: block; text-align: center; padding: 8px 0 0; color: var(--muted); font-size: 10px; }
 
-/* Edge-to-logo team bands use both colors without taking up layout space. */
+/* Full-height team colors blend into a clear center behind the scoreboard. */
+.basketball-details .game-tracker-scoreboard-grid {
+  background: linear-gradient(90deg,
+    var(--tracker-away-color) 0%,
+    color-mix(in srgb, var(--tracker-away-color) 60%, var(--panel)) 13%,
+    var(--panel) 35%, var(--panel) 65%,
+    color-mix(in srgb, var(--tracker-home-color) 60%, var(--panel)) 87%,
+    var(--tracker-home-color) 100%);
+}
 .basketball-details .game-tracker-scoreboard-grid::before,
-.basketball-details .game-tracker-scoreboard-grid::after {
-  width: 25%;
-  height: 38px;
-  top: 50%; bottom: auto;
-  transform: translateY(-50%);
-  opacity: 1;
-}
-.basketball-details .game-tracker-scoreboard-grid::before {
-  left: 0;
-  background: linear-gradient(170deg, var(--tracker-away-color) 0 72%, var(--tracker-away-secondary) 72% 100%);
-  clip-path: polygon(0 0, 100% 0, 86% 100%, 0 100%);
-}
-.basketball-details .game-tracker-scoreboard-grid::after {
-  right: 0;
-  background: linear-gradient(190deg, var(--tracker-home-color) 0 72%, var(--tracker-home-secondary) 72% 100%);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 14% 100%);
-}
+.basketball-details .game-tracker-scoreboard-grid::after { content: none; display: none; }
 .basketball-details .game-tracker-scoreboard-grid .game-tracker-score-team-main > img,
 .basketball-details .basketball-live-scoreboard .game-tracker-score-team-main > img,
 .basketball-details .game-tracker-scoreboard-grid .game-tracker-logo-fallback {
@@ -7856,3 +7848,60 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
   border-bottom: 1px solid var(--tracker-divider);
 }
 .basketball-details .basketball-shot-chart .two-team-shot-key { border-bottom: 0; }
+
+/* The compact court owns its bounds, so artwork cannot spill into the plays. */
+.basketball-live-view .basketball-simple-court-wrap {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  overflow: hidden;
+  padding-bottom: 10px;
+}
+.basketball-live-view .basketball-simple-court-wrap > .basketball-simple-court {
+  display: block;
+  position: static;
+  flex: 0 0 auto;
+  overflow: hidden;
+  height: auto;
+  max-height: none;
+  aspect-ratio: auto;
+  margin: 0;
+}
+.basketball-last-play > .basketball-recent-play-copy {
+  margin: 0;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.basketball-recent-play-copy > time { color: var(--ink); font: inherit; font-variant-numeric: tabular-nums; margin-right: 3px; }
+/* All box-score rows use the same one-pixel line and one owner per boundary. */
+.basketball-details .game-tracker-box { --basketball-box-line: var(--tracker-divider); }
+.basketball-details .basketball-linescore-scroll,
+.basketball-details .game-tracker-box > .game-tracker-box-selector,
+.basketball-details .game-tracker-box-section,
+.basketball-details .game-tracker-team-stats,
+.basketball-details .game-tracker-player-table-scroll {
+  border: 0;
+  box-shadow: none;
+}
+.basketball-details .game-tracker-box > .game-tracker-box-selector { border-block: 1px solid var(--basketball-box-line); }
+.basketball-details .basketball-linescore,
+.basketball-details .basketball-player-table { border-collapse: collapse; border: 0; }
+.basketball-details .basketball-linescore tr > *,
+.basketball-details .basketball-player-table tr > * {
+  border: 0;
+  border-bottom: 1px solid var(--basketball-box-line);
+}
+.basketball-details .basketball-linescore tbody tr:last-child > *,
+.basketball-details .basketball-player-table tbody tr:last-child > * { border-bottom: 0; }
+.basketball-details .game-tracker-team-stats > .game-tracker-stat-row {
+  border: 0;
+  border-bottom: 1px solid var(--basketball-box-line);
+}
+.basketball-details .game-tracker-team-stats > .game-tracker-stat-row:last-child { border-bottom: 0; }
+
+.basketball-last-play > .basketball-recent-play-logo { grid-column: 1; width: 23px; min-height: 23px; }
+.basketball-recent-play-logo > img { display: block; width: 23px; height: 23px; object-fit: contain; }
+.basketball-last-play > .basketball-recent-play-copy { grid-column: 2; }
+.basketball-last-play > .basketball-recent-score { grid-column: 3; }

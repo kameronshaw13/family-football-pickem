@@ -53,9 +53,9 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
     </div>
     <div className="basketball-simple-court-wrap">
       <svg className="basketball-simple-court" viewBox={`-1 -1 52 ${courtLength + 2}`} role="img" aria-label={latest ? `Last shot: ${latest.player}, ${latest.made ? "made" : "missed"} for ${latest.teamId === awayId ? away : home} at ESPN court coordinates ${latest.x}, ${latest.y}` : "Half basketball court. Last shot coordinates unavailable."}>
-        <rect x="0" y="0" width="50" height="47" className="basketball-court-floor" />
+        <rect x="0" y="0" width="50" height={courtLength} className="basketball-court-floor" />
         <g className="basketball-simple-lines">
-          <rect x="0" y="0" width="50" height="47" />
+          <rect x="0" y="0" width="50" height={courtLength} />
           <path d="M17 0V19H33V0 M22 4H28 M21 5.25A4 4 0 0 0 29 5.25" />
           <circle cx="25" cy="5.25" r=".75" />
           <path d="M19 19 A6 6 0 0 0 31 19" />
@@ -70,7 +70,7 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
             }).join(" ");
             return `M${corner} 0V${arcY} ${arc} V0`;
           })()} />
-          <path d="M0 47H50" /><path d="M19 47A6 6 0 0 1 31 47" />
+          <path d={`M0 ${courtLength}H50`} /><path d={`M19 ${courtLength}A6 6 0 0 1 31 ${courtLength}`} />
         </g>
         {latest && shotX != null && shotY != null && <g className={`basketball-latest-shot ${latest.made ? "made" : "missed"}`} transform={`translate(${shotX} ${shotY})`}>
           {latest.made
@@ -83,8 +83,8 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
       <h3>Last 5 plays</h3>
       {recentPlays.length ? recentPlays.map((play) => {
         return <div className="basketball-last-play" key={play.id}>
-          {logoFor(playTeam(play), 23)}
-          <div><time>{play.clock} · {periodText(play.period)}</time><span>{playTextWithoutDuplicateClock(play.text, play.clock)}</span></div>
+          <span className="basketball-recent-play-logo">{logoFor(playTeam(play), 23)}</span>
+          <p className="basketball-recent-play-copy"><time>{play.clock},</time> {playTextWithoutDuplicateClock(play.text, play.clock)}</p>
           <div className="basketball-recent-score" aria-label={`${away} ${play.awayScore ?? "—"}, ${home} ${play.homeScore ?? "—"}`}>
             <span>{play.awayScore ?? "—"}</span><span>{play.homeScore ?? "—"}</span>
           </div>
