@@ -43,6 +43,18 @@ export async function GET(req: NextRequest) {
       if (player.athlete?.id && player.athlete?.displayName) athletes.set(String(player.athlete.id), player.athlete.displayName);
     }
     const rawPlays = Array.isArray(data.plays) && data.plays.length ? data.plays : data.scoringPlays || [];
+    // Unlike the box score's accumulated fouls, ESPN core Situation carries
+    // current-period team fouls and remaining timeouts.
+    const coreSituation = await (async () => {
+      if (competition?.status?.type?.completed || competition?.status?.type?.state !== "in") return null;
+      try {
+        const eventId = encodeURIComponent(String(game.espn_event_id));
+        const league = game.league === "NBA" ? "nba" : "mens-college-basketball";
+        const url = `https://sports.core.api.espn.com/v2/sports/basketball/leagues/${league}/events/${eventId}/competitions/${eventId}/situation`;
+        const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(3500) });
+        return response.ok ? await response.json() : null;
+      } catch { return null; }
+    })();
     const totalPeriods = game.league === "NBA" ? 4 : 2;
     const clockToSeconds = (clock: string) => {
       const match = String(clock || "").match(/(\d+):(\d{2})/);
@@ -79,6 +91,26 @@ export async function GET(req: NextRequest) {
       const used = numeric(competitor?.timeoutsUsed);
       return used == null ? null : Math.max(0, max - used);
     };
+    const currentPeriod = Number(competition?.status?.period || 1);
+    const currentGroup = game.league === "NBA" ? currentPeriod : currentPeriod > 2 ? currentPeriod : Math.max(1, currentPeriod);
+    const periodFouls = (side: any) => rawPlays.filter((play: any) =>
+      Number(play.period?.number || 1) === currentGroup &&
+      String(play.team?.id || "") === String(side?.team?.id || "") &&
+      /\\bfoul\\b/i.test(String(play.type?.text || "") + " " + String(play.text || ""))
+    ).length;
+    const situationFouls = (side: "away" | "home", competitor: any) => {
+      const fromCore = numeric(coreSituation?.[side]?.fouls?.teamFoulsCurrent ?? coreSituation?.[side]?.fouls?.teamFouls);
+      if (fromCore != null) return fromCore;
+      if (rawPlays.length) return periodFouls(competitor);
+      return null;
+    };
+    const situationTimeouts = (side: "away" | "home", competitor: any) =>
+      numeric(coreSituation?.[side]?.timeouts?.timeoutsRemainingCurrent) ??
+      timeoutValue(competitor, game.league === "NBA" ? 7 : 4);
+    const bonusState = (side: "away" | "home") => {
+      const raw = String(coreSituation?.[side]?.fouls?.bonusState || "").toLowerCase();
+      return /double/.test(raw) ? 2 : /bonus/.test(raw) ? 1 : null;
+    };
     const plays = rawPlays.map((play: any, index: number) => orientBasketballPlayScores({
       id: String(play.id || index), text: String(play.text || ""), period: Number(play.period?.number || 1),
       clock: String(play.clock?.displayValue || ""), scoring: Boolean(play.scoringPlay),
@@ -88,7 +120,7 @@ export async function GET(req: NextRequest) {
     }, swapped));
     return NextResponse.json({
       ok: true, status: { ...competition?.status?.type, period: competition?.status?.period || 1, clock: competition?.status?.displayClock || "" },
-      teams: { away: away ? { ...away, records: away.records || away.record || [], timeoutsRemaining: timeoutValue(away, game.league === "NBA" ? 7 : 4), fouls: teamFouls(away, awayStats) } : null, home: home ? { ...home, records: home.records || home.record || [], timeoutsRemaining: timeoutValue(home, game.league === "NBA" ? 7 : 4), fouls: teamFouls(home, homeStats) } : null },
+      teams: { away: away ? { ...away, records: away.records || away.record || [], timeoutsRemaining: situationTimeouts("away", away), fouls: situationFouls("away", away), bonus: bonusState("away") } : null, home: home ? { ...home, records: home.records || home.record || [], timeoutsRemaining: situationTimeouts("home", home), fouls: situationFouls("home", home), bonus: bonusState("home") } : null },
       shots: basketballShots(rawPlays, athletes).map(shot => orientBasketballPlayScores(shot, swapped)),
       liveState: basketballLiveState(rawPlays, String(away?.team?.id || ""), String(home?.team?.id || "")),
       winProbability: probabilities,
