@@ -94,17 +94,25 @@ export default function BasketballLiveCourt({ shots, plays, possessionSide, late
 
 export function BasketballWinProbability({ points, away, home, awayLogo, homeLogo }: { points: ProbabilityPoint[]; away: string; home: string; awayLogo?: string | null; homeLogo?: string | null }) {
   const valid = points.filter(point => Number.isFinite(point.home) && Number.isFinite(point.progress) && point.progress >= 0);
-  const path = valid.map((point, i) => `${i ? "L" : "M"}${(28 + Math.min(1, point.progress) * 286).toFixed(2)} ${(128 - point.home * 106).toFixed(2)}`).join(" ");
+  const path = valid.map((point, i) => `${i ? "L" : "M"}${(35 + Math.min(1, point.progress) * 278).toFixed(2)} ${(130 - point.home * 108).toFixed(2)}`).join(" ");
+  const lastX = valid.length ? 35 + Math.min(1, valid[valid.length - 1].progress) * 278 : 35;
+  const upperArea = `${path} L${lastX.toFixed(2)} 22 L35 22 Z`;
+  const lowerArea = `${path} L${lastX.toFixed(2)} 130 L35 130 Z`;
   return <section className="basketball-score-flow basketball-win-probability" aria-label="ESPN win probability">
     <h3>Win Probability</h3>
     {valid.length > 1 ? <>
-      <svg viewBox="0 0 330 159" role="img" aria-label={`ESPN home team win probability over elapsed game time for ${home}`}>
-        {[0, .25, .5, .75, 1].map(value => <g key={value}><line x1="28" x2="314" y1={128 - 106 * value} y2={128 - 106 * value} className="basketball-flow-grid" /><text x="23" y={131 - 106 * value} textAnchor="end" className="basketball-flow-axis">{Math.round(value * 100)}%</text></g>)}
-        <path d={path} className="basketball-flow-away" />
-        <text x="28" y="150" textAnchor="start" className="basketball-flow-axis">Start</text>
-        <text x="314" y="150" textAnchor="end" className="basketball-flow-axis">End</text>
-      </svg>
-      <div className="basketball-flow-legend"><span><StableTeamLogo src={awayLogo} name={away} size={22} />{away}</span><span><StableTeamLogo src={homeLogo} name={home} size={22} />{home}: {Math.round(valid[valid.length - 1].home * 100)}%</span></div>
+      <div className="basketball-probability-chart">
+        <div className="basketball-probability-team-label top"><StableTeamLogo src={homeLogo} name={home} size={24} /><span>{home}</span></div>
+        <svg viewBox="0 0 330 159" role="img" aria-label={`ESPN win probabilities: ${home} shown above the curve, ${away} below it`}>
+          <path d={upperArea} className="basketball-probability-upper" />
+          <path d={lowerArea} className="basketball-probability-lower" />
+          <line x1="35" x2="313" y1="76" y2="76" className="basketball-flow-grid" />
+          <path d={path} className="basketball-probability-curve" />
+          <text x="35" y="151" textAnchor="start" className="basketball-flow-axis">Start</text>
+          <text x="313" y="151" textAnchor="end" className="basketball-flow-axis">End</text>
+        </svg>
+        <div className="basketball-probability-team-label bottom"><StableTeamLogo src={awayLogo} name={away} size={24} /><span>{away}</span></div>
+      </div>
     </> : <p className="game-tracker-empty">ESPN win probability is not available for this game yet.</p>}
   </section>;
 }
