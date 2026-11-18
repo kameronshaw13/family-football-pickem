@@ -9,8 +9,8 @@ export type VintageCandidate = { url: string; year: number; kind: "Primary" | "A
 const DIRECTORY: Record<string, string> = {
   ac: "https://www.sportslogos.net/teams/list_by_league/30/NCAA-Division-I-a-c-Logos/NCAA-a-c-Logos/",
   dh: "https://www.sportslogos.net/teams/list_by_league/31/NCAA-Division-I-d-h-Logos/NCAA-d-h-Logos/",
-  in: "https://www.sportslogos.net/teams/list_by_league/32/NCAA-Division-I-i-n-Logos/NCAA-i-n-Logos/",
-  or: "https://www.sportslogos.net/teams/list_by_league/33/NCAA-Division-I-o-r-Logos/NCAA-o-r-Logos/",
+  in: "https://www.sportslogos.net/teams/list_by_league/32/NCAA-Division-I-i-m-Logos/NCAA-i-m-Logos/",
+  or: "https://www.sportslogos.net/teams/list_by_league/33/NCAA-Division-I-n-r-Logos/NCAA-n-r-Logos/",
   st: "https://www.sportslogos.net/teams/list_by_league/34/NCAA-Division-I-s-t-Logos/NCAA-s-t-Logos/",
   uz: "https://www.sportslogos.net/teams/list_by_league/35/NCAA-Division-I-u-z-Logos/NCAA-u-z-Logos/"
 };
@@ -26,7 +26,7 @@ function codeForName(name: string) {
   const c = name[0]?.toLowerCase();
   if (!c || c < "d") return "ac";
   if (c <= "h") return "dh";
-  if (c <= "n") return "in";
+  if (c <= "m") return "in";
   if (c <= "r") return "or";
   if (c <= "t") return "st";
   return "uz";
