@@ -24,11 +24,22 @@ export function trackerTeamColors(primary?: string | null, secondary?: string | 
   const second = rgb(secondary);
   const usable = (color: RGB | null): color is RGB => color != null && logoLuminance(...color) < .88;
   const base = usable(first) ? first : usable(second) ? second : [82, 96, 110] as RGB;
+  // Secondary stripes should look like a different team color, not an
+  // almost-white, gray, or slightly altered version of the primary stripe.
+  const colorfulness = (color: RGB) => Math.max(...color) - Math.min(...color);
+  const distance = (a: RGB, b: RGB) =>
+    Math.hypot(...a.map((channel, index) => channel - b[index]));
   const distinct = (color: RGB | null): color is RGB => usable(color)
-    && color.some((value, index) => Math.abs(value - base[index]) >= 40);
+    && colorfulness(color) >= 38
+    && distance(color, base) >= 95
+    && Math.abs(logoLuminance(...color) - logoLuminance(...base)) >= .055;
   const alternate = distinct(second) ? second : artwork.map(rgb).find(distinct);
+  // When the team has only one useful color, create a clearly visible shade
+  // of that primary instead of letting noisy sampled logo pixels choose it.
   const accent = alternate ? tint(alternate, 1)
-    : Math.max(...base) < 90 ? tint(base.map(value => value * .64 + 92) as RGB, 1) : tint(base, .62);
+    : logoLuminance(...base) < .13
+      ? tint(base.map(value => value * .58 + 100) as RGB, 1)
+      : tint(base, .55);
   const backing = logoLuminance(...base) < .18 ? tint(base, 1) : tint(base, .55);
   return { primary: tint(base, 1), secondary: accent, backing };
 }
