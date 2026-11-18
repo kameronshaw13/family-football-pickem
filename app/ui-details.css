@@ -7973,6 +7973,11 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 /* Logos overlap the diagonal color edge at their original size. */
 .basketball-details .game-tracker-scoreboard-grid::before,
 .basketball-details .game-tracker-scoreboard-grid::after { width: clamp(44px, 13vw, 64px); }
+/* Keep CBS's white Clippers mark over the team color on a light scoreboard. */
+.basketball-details .game-tracker-scoreboard-grid:has(.away img[src$="/clippers-gametracker.svg"])::before,
+.basketball-details .game-tracker-scoreboard-grid:has(.home img[src$="/clippers-gametracker.svg"])::after {
+  width: clamp(80px, 22vw, 96px);
+}
 .basketball-details .game-tracker-scoreboard-grid .game-tracker-score-team-main {
   grid-template-columns: clamp(58px, 17vw, 72px) minmax(0, 1fr);
 }
