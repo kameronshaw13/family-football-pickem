@@ -39,13 +39,21 @@ const ALIASES: Record<string, string[]> = {
   "liusharks": ["long-island-sharks"]
 };
 
+const FORMER_SCHOOL_NAMES: Record<string,string[]> = {
+  "easttexasamlions": ["texasamcommercelions", "easttexasstatelions"],
+  "kansascityroos": ["umkckangaroos", "kansascitykangaroos"],
+  "longislandsharks": ["liusharks", "librooklynblackbirds", "liupostpioneers"],
+  "uc riversidehighlanders": ["californiariversidehighlanders"],
+  "ucriversidehighlanders": ["californiariversidehighlanders"]
+};
+
 export function normalizedSchool(value: string): string {
   return value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/&amp;/g, "and").replace(/&/g,"and").replace(/[^a-z0-9]/g,"");
+    .replace(/&amp;/g, "&").replace(/&/g,"").replace(/[^a-z0-9]/g,"");
 }
 function slug(value: string): string {
   return value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/&/g," and ").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+    .replace(/&/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 }
 export function vintageSchoolSlugs(name: string): string[] {
   const direct = slug(name);
@@ -71,11 +79,12 @@ export function parseCollegeHistoryHtml(
     ?.replace(/<[^>]*>/g, "").trim() || "";
   const expected = normalizedSchool(schoolName);
   if (!expected || !normalizedSchool(heading).startsWith(expected + "logohistory")) return [];
+  const acceptedSchoolNames = new Set([expected, ...(FORMER_SCHOOL_NAMES[expected] || [])]);
   const logos = new Map<string,VintageSchoolOption>();
   for (const match of html.matchAll(/<img\b[^>]*>/gi)) {
     const tag = match[0];
     const alt = attribute(tag, "alt");
-    if (!normalizedSchool(alt).startsWith(expected + kind.toLowerCase() + "logo")) continue;
+    if (![...acceptedSchoolNames].some(school => normalizedSchool(alt).startsWith(school + kind.toLowerCase() + "logo"))) continue;
     const year = Number(alt.match(/(?:19|20)\d{2}/)?.[0] || 0);
     if (year < 1900 || year > 2023) continue;
     const src = attribute(tag,"src") || attribute(tag,"data-src");
