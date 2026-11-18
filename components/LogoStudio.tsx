@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import Image from "next/image";
+import { collegeHistoricalImageSource } from "@/lib/collegeLogoImage";
 import { curatedLogoAlternatives, type LogoAlternative } from "@/lib/logoExtraOptions";
 import {
   getLogoStudioPreferences, LOGO_STUDIO_EVENT,
@@ -11,9 +12,20 @@ import {
 import { ncaaSvgLogo, teamVectorFallbackLogo, teamVectorLogo } from "@/lib/teamLogoSource";
 
 type Team = { league: string; name: string; logo: string; key: string };
-type Option = { label: string; url: string; historical?: boolean };
+type Option = { label: string; url: string; historical?: boolean; year?: number };
 type ArchiveEntry = { name: string; logos: { label: string; url: string; year: number }[] };
 const LEAGUES = ["CBB", "CFB", "NBA", "NFL"];
+
+function LogoOptionTile({ option, chosen, onSelect }: { option: Option; chosen: boolean; onSelect: () => void }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return <button className={chosen ? "logo-studio-option selected" : "logo-studio-option"} aria-pressed={chosen}
+    type="button" onClick={onSelect}>
+    <Image unoptimized src={collegeHistoricalImageSource(option.url)} width={52} height={52} alt="" loading="lazy"
+      onError={() => setFailed(true)} />
+    <span>{option.label}</span>
+  </button>;
+}
 const normalized = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 const teamMatches = (row: ArchiveEntry, name: string) => {
   const a = normalized(row.name).replace(/^la(?=clippers|lakers|rams|chargers)/, "losangeles");
@@ -113,9 +125,30 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
           : "/api/logo-history?league=" + active.league.toLowerCase() + "&team=" + encodeURIComponent(active.name)))
           .then(res => res.json())
           .then(data => {
-            if (!canceled) setHistory((data.logos || [])
+            if (canceled) return;
+            const matches: Option[] = (data.logos || [])
               .filter((item: Option) => validLogoUrl(item.url))
-              .slice(0, 16).map((item: Option) => ({ ...item, historical: true })));
+              .slice(0, 16).map((item: Option) => ({ ...item, historical: true }));
+            setHistory(matches);
+            // The vintage switch can automatically use the school's older artwork
+            // after that thumbnail actually loads. A manual choice always wins.
+            if (active.league === "CBB" || active.league === "CFB") {
+              const available = matches.filter(item => item.year && item.year < 2020);
+              const choice = [...available.filter(item => item.year! <= 2005)].sort((a,b)=>(b.year||0)-(a.year||0))[0]
+                || [...available].sort((a,b)=>(a.year||0)-(b.year||0))[0];
+              if (choice) {
+                const preview = new window.Image();
+                preview.onload = () => {
+                  if (canceled) return;
+                  const latest = getLogoStudioPreferences();
+                  if (latest.vintageDefaults[active.key] || latest.choices[active.key]?.vintage) return;
+                  saveLogoStudioPreferences({ ...latest, vintageDefaults: {
+                    ...latest.vintageDefaults, [active.key]: choice.url
+                  } });
+                };
+                preview.src = collegeHistoricalImageSource(choice.url);
+              }
+            }
           })
           .catch(() => { if (!canceled) setHistory([]); })
           .finally(() => { if (!canceled) setLoadingHistory(false); });
@@ -183,7 +216,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
           const selected = prefs.choices[team.key]?.[prefs.era];
           const logo = selected || (prefs.era === "vintage" ? prefs.vintageDefaults[team.key] : null) || teamVectorFallbackLogo(team.logo) || team.logo;
           return <button type="button" key={team.league + team.key} className={active?.key === team.key && active.league === team.league ? "logo-studio-team active" : "logo-studio-team"} onClick={() => { setActive(team); setMessage(""); }}>
-            <Image unoptimized src={logo} alt="" width={35} height={35} loading="lazy" />
+            <Image unoptimized src={collegeHistoricalImageSource(logo)} alt="" width={35} height={35} loading="lazy" />
             <span>{team.name}</span>
             <ChevronDown size={14} />
           </button>;
@@ -192,16 +225,14 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
           <div className="logo-studio-editor-heading"><strong>{active.name}</strong><span>{prefs.era === "vintage" ? "Vintage" : "Modern"} artwork</span></div>
           <div className="logo-studio-options">
             <button className={!chosen ? "logo-studio-option selected" : "logo-studio-option"} type="button" aria-pressed={!chosen} onClick={() => selectLogo(null)}>
-              <Image unoptimized src={automatic} width={52} height={52} alt="" />
+              <Image unoptimized src={collegeHistoricalImageSource(automatic)} width={52} height={52} alt="" />
               <span>Automatic</span>
             </button>
-            {options.map(option => <button key={option.url} className={chosen === option.url ? "logo-studio-option selected" : "logo-studio-option"} aria-pressed={chosen === option.url} type="button" onClick={() => selectLogo(option.url)}>
-              <Image unoptimized src={option.url} width={52} height={52} alt="" loading="lazy" onError={event => { event.currentTarget.style.opacity = ".25"; }} />
-              <span>{option.label}</span>
-            </button>)}
+            {options.map(option => <LogoOptionTile key={option.url} option={option}
+              chosen={chosen === option.url} onSelect={() => selectLogo(option.url)} />)}
           </div>
           {loadingHistory && <p className="logo-studio-note">Finding historical logos…</p>}
-          {["CFB", "CBB"].includes(active.league) && <p className="logo-studio-note">Historical designs appear above when available for this school. You can also paste an image URL. Archive research: <a href="https://www.sportslogos.net/" target="_blank" rel="noopener noreferrer">SportsLogos.Net</a>.</p>}
+          {["CFB", "CBB"].includes(active.league) && <p className="logo-studio-note">Historical designs appear above when available for this school. You can also paste an image URL. Historical images: <a href="https://sportslogohistory.com/" target="_blank" rel="noopener noreferrer">SportsLogoHistory.com</a>.</p>}
           <div className="logo-studio-custom">
             <input type="url" value={custom} onChange={event => setCustom(event.target.value)} placeholder="Paste PNG, SVG or WebP image URL" aria-label="Custom team logo HTTPS URL" />
             <button type="button" disabled={!validLogoUrl(custom)} onClick={() => { selectLogo(custom); setCustom(""); }}>Use logo</button>

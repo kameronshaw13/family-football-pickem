@@ -1,100 +1,135 @@
 /**
- * On-demand historic college-logo discovery. Only match a complete school/team
- * identity on a known NCAA directory page; never guess by a shared mascot.
- * The archive remains remote and is requested only when someone opens a team.
+ * SportsLogoHistory.com exposes team-specific historical college-logo images,
+ * including years in each image's alt text. We only accept imagery whose
+ * school name matches the requested school exactly.
+ *
+ * The previous SportsLogos.Net HTML directory returned HTTP 403 on Vercel,
+ * so it could not discover older logos despite them existing in its archive.
  */
 export type VintageSchoolOption = { label: string; url: string; year: number; source: string };
-export type VintageCandidate = { url: string; year: number; kind: "Primary" | "Alternate" | "Secondary" };
 
-const DIRECTORY: Record<string, string> = {
-  ac: "https://www.sportslogos.net/teams/list_by_league/30/NCAA-Division-I-a-c-Logos/NCAA-a-c-Logos/",
-  dh: "https://www.sportslogos.net/teams/list_by_league/31/NCAA-Division-I-d-h-Logos/NCAA-d-h-Logos/",
-  in: "https://www.sportslogos.net/teams/list_by_league/32/NCAA-Division-I-i-m-Logos/NCAA-i-m-Logos/",
-  or: "https://www.sportslogos.net/teams/list_by_league/33/NCAA-Division-I-n-r-Logos/NCAA-n-r-Logos/",
-  st: "https://www.sportslogos.net/teams/list_by_league/34/NCAA-Division-I-s-t-Logos/NCAA-s-t-Logos/",
-  uz: "https://www.sportslogos.net/teams/list_by_league/35/NCAA-Division-I-u-z-Logos/NCAA-u-z-Logos/"
+const ALIASES: Record<string, string[]> = {
+  "easttexasam": ["texas-am-commerce-lions"],
+  "easttexasamlions": ["texas-am-commerce-lions"],
+  "texasamcommercelions": ["east-texas-am-lions"],
+  "ucirvineanteaters": ["california-irvine-anteaters"],
+  "ucriversidehighlanders": ["california-riverside-highlanders"],
+  "ucdavisaggies": ["california-davis-aggies"],
+  "ucsandiegotritons": ["california-san-diego-tritons"],
+  "ucsantabarbaragauchos": ["california-santa-barbara-gauchos"],
+  "californiariversidehighlanders": ["uc-riverside-highlanders"],
+  "californiairvineanteaters": ["uc-irvine-anteaters"],
+  "umkckangaroos": ["kansas-city-roos"],
+  "kansascityroos": ["umkc-kangaroos"],
+  "utsaroadrunners": ["texas-san-antonio-roadrunners"],
+  "utepminers": ["texas-el-paso-miners"],
+  "utrgvvaqueros": ["texas-rio-grande-valley-vaqueros"],
+  "unlvrebels": ["nevada-las-vegas-rebels"],
+  "lsutigers": ["louisiana-state-tigers"],
+  "byucougars": ["brigham-young-cougars"],
+  "vcurams": ["virginia-commonwealth-rams"],
+  "umassminutemen": ["massachusetts-minutemen"],
+  "ncstatewolfpack": ["north-carolina-state-wolfpack"],
+  "uncgspartans": ["north-carolina-greensboro-spartans"],
+  "uncwseahawks": ["north-carolina-wilmington-seahawks"],
+  "siuecougars": ["southern-illinois-edwardsville-cougars"],
+  "fgcueagles": ["florida-gulf-coast-eagles"],
+  "fduknights": ["fairleigh-dickinson-knights"],
+  "longislandsharks": ["liu-sharks"],
+  "liusharks": ["long-island-sharks"]
 };
 
-const clean = (name: string) => name.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"")
-  .replace(/&amp;/g,"and").replace(/[^a-z0-9]/g, "");
-function alias(name: string) {
-  return clean(name)
-    .replace(/^ucriversidehighlanders$/, "californiariversidehighlanders")
-    .replace(/^wichitastate/, "wichitastate");
+const FORMER_SCHOOL_NAMES: Record<string,string[]> = {
+  "easttexasamlions": ["texasamcommercelions", "easttexasstatelions"],
+  "kansascityroos": ["umkckangaroos", "kansascitykangaroos"],
+  "longislandsharks": ["liusharks", "librooklynblackbirds", "liupostpioneers"],
+  "uc riversidehighlanders": ["californiariversidehighlanders"],
+  "ucriversidehighlanders": ["californiariversidehighlanders"]
+};
+
+export function normalizedSchool(value: string): string {
+  return value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/&amp;/g, "&").replace(/&/g,"").replace(/[^a-z0-9]/g,"");
 }
-function codeForName(name: string) {
-  const c = name[0]?.toLowerCase();
-  if (!c || c < "d") return "ac";
-  if (c <= "h") return "dh";
-  if (c <= "m") return "in";
-  if (c <= "r") return "or";
-  if (c <= "t") return "st";
-  return "uz";
+function slug(value: string): string {
+  return value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 }
-export function collegeDirectoryUrls(name: string) {
-  const first = codeForName(name);
-  // UC Riverside appears under California in the historical directory.
-  return [DIRECTORY[first], ...(alias(name).startsWith("californiariverside") && first !== "ac" ? [DIRECTORY.ac] : [])];
-}
-export function matchHistoricCollegeDirectory(html: string, school: string) {
-  const needle = alias(school);
-  // Use the team slug rather than nearby content or fuzzy school-name guesses.
-  const teamLink = /(?:https?:\/\/www\.sportslogos\.net)?\/logos\/list_by_team\/(\d+)\/([a-z0-9-]+-Logos)\/?/gi;
-  for (const match of html.matchAll(teamLink)) {
-    const team = alias(match[2].replace(/-Logos$/i, "").replace(/-/g, " "));
-    if (needle === team) return {
-      teamId: match[1], url: "https://www.sportslogos.net/logos/list_by_team/" + match[1] + "/" + match[2] + "/"
-    };
-  }
-  return null;
-}
-export function historicCollegeCandidates(html: string, teamId: string, teamName: string): VintageCandidate[] {
-  // The team name is validated against the archive directory; older logo ids
-  // can be opaque hashes rather than numeric team-id prefixes.
-  const link = /(?:https?:\/\/www\.sportslogos\.net)?(\/logos\/view\/([a-z0-9]+)\/([a-z0-9-]+)\/((?:19|20)\d{2})\/(Primary|Alternate|Secondary)-Logo)\/?/gi;
-  const unique = new Map<string,VintageCandidate>();
-  for (const match of html.matchAll(link)) {
-    const year = Number(match[4]);
-    const pageSchool = alias(match[3].replace(/-Logo$/i,"").replace(/-/g," "));
-    if (year >= 2020 || year < 1900 || pageSchool !== alias(teamName)) continue;
-    const url = "https://www.sportslogos.net" + match[1];
-    if (!unique.has(url)) unique.set(url, { year, kind: match[5] as VintageCandidate["kind"], url });
-  }
-  const sorted = [...unique.values()].sort((a,b)=>a.year-b.year);
-  const primary = sorted.filter(x=>x.kind==="Primary");
-  const others = sorted.filter(x=>x.kind!=="Primary");
-  // Mix decades and marks while capping remote detail requests.
-  const picked = [ ...primary.slice(0,3), ...primary.slice(-2), ...others.slice(0,3)];
-  return [...new Map(picked.map(x=>[x.url,x])).values()].slice(0,9);
+export function vintageSchoolSlugs(name: string): string[] {
+  const direct = slug(name);
+  const possibilities = [direct, ...(ALIASES[normalizedSchool(name)] || [])];
+  if (/\bst\./i.test(name)) possibilities.push(slug(name.replace(/\bst\./gi, "Saint")));
+  if (/\bsaint\b/i.test(name)) possibilities.push(slug(name.replace(/\bsaint\b/gi, "St")));
+  return [...new Set(possibilities)].filter(Boolean).slice(0, 4);
 }
 
-export function historicLogoImageFromDetail(html: string, teamId: string, year: number): string | null {
-  const expanded = html.replace(/&amp;/g,"&").replace(/\\\//g,"/");
-  const re = /https:\/\/content\.sportslogos\.net\/logos\/\d+\/(\d+)\/full\/[^\s"'<>]+\.(?:png|gif|webp|jpg)/gi;
-  const urls = [...expanded.matchAll(re)].filter(x=>x[1]===teamId).map(x=>x[0]).filter(x=>!x.includes("?"));
-  return urls.find(x=>x.includes(String(year))) || urls[0] || null;
+function attribute(tag: string, name: string): string {
+  const result = tag.match(new RegExp("\\b" + name + "\\s*=\\s*([\"'])(.*?)\\1", "i"));
+  return result?.[2]?.replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/&quot;/g,'"') || "";
+}
+
+/**
+ * Parse only logo <img>s from the exact school's history page.
+ * Other img elements (ad banners, site logos and poll icons) never qualify.
+ */
+export function parseCollegeHistoryHtml(
+  html: string, schoolName: string, kind: "Primary" | "Alternate" | "Wordmark"
+): VintageSchoolOption[] {
+  const heading = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1]
+    ?.replace(/<[^>]*>/g, "").trim() || "";
+  const expected = normalizedSchool(schoolName);
+  if (!expected || !normalizedSchool(heading).startsWith(expected + "logohistory")) return [];
+  const acceptedSchoolNames = new Set([expected, ...(FORMER_SCHOOL_NAMES[expected] || [])]);
+  const logos = new Map<string,VintageSchoolOption>();
+  for (const match of html.matchAll(/<img\b[^>]*>/gi)) {
+    const tag = match[0];
+    const alt = attribute(tag, "alt");
+    if (![...acceptedSchoolNames].some(school => normalizedSchool(alt).startsWith(school + kind.toLowerCase() + "logo"))) continue;
+    const year = Number(alt.match(/(?:19|20)\d{2}/)?.[0] || 0);
+    if (year < 1900 || year > 2023) continue;
+    const src = attribute(tag,"src") || attribute(tag,"data-src");
+    try {
+      const url = new URL(src);
+      if (url.protocol !== "https:" || url.hostname !== "sportslogohistory.com"
+          || !/^\/wp-content\/uploads\/\d{4}\/\d{2}\/[a-z0-9_.-]+\.(?:png|webp|jpe?g)$/i.test(url.pathname)
+          || /-\d+x\d+\.(?:png|webp|jpe?g)$/i.test(url.pathname))
+        continue;
+      logos.set(url.href, { label: year + " " + kind, url: url.href, year, source: "SportsLogoHistory.com" });
+    } catch { /* Ignore non-image and external advertising URLs. */ }
+  }
+  return [...logos.values()].sort((a,b)=>a.year-b.year);
+}
+
+async function fetchPage(url: string) {
+  const result = await fetch(url, {
+    headers: { "Accept": "text/html", "User-Agent": "Mozilla/5.0 (compatible; FamilyPickemLogoStudio/1.0)" },
+    next: { revalidate: 86400 }, signal: AbortSignal.timeout(7000)
+  });
+  if (!result.ok) return "";
+  if (new URL(result.url).hostname !== "sportslogohistory.com") return "";
+  return (await result.text()).slice(0, 850_000);
 }
 
 export async function loadHistoricCollegeImages(teamName: string): Promise<VintageSchoolOption[]> {
-  const fetchText = async (url: string) => {
-    const res = await fetch(url, { next: { revalidate: 86400 }, signal: AbortSignal.timeout(6500) });
-    if (!res.ok) throw Error("Logo history unavailable");
-    return (await res.text()).slice(0, 600000);
-  };
-  let team: {teamId: string; url: string} | null = null;
-  for (const directory of collegeDirectoryUrls(teamName)) {
+  for (const schoolSlug of vintageSchoolSlugs(teamName)) {
+    const exactSchool = schoolSlug.replace(/-/g," ");
+    let primary = "";
     try {
-      team = matchHistoricCollegeDirectory(await fetchText(directory), teamName);
-      if (team) break;
-    } catch { /* A missing directory must not change other team logos. */ }
+      primary = await fetchPage("https://sportslogohistory.com/" + schoolSlug + "-primary-logo/");
+    } catch { continue; }
+    const original = parseCollegeHistoryHtml(primary, exactSchool, "Primary");
+    // A 200 error or another school's page is not accepted as a match.
+    if (!original.length) continue;
+    const variants = await Promise.all((["alternate", "wordmark"] as const).map(async kind => {
+      try {
+        const html = await fetchPage("https://sportslogohistory.com/" + schoolSlug + "-" + kind + "-logo/");
+        return parseCollegeHistoryHtml(html, exactSchool, kind === "alternate" ? "Alternate" : "Wordmark");
+      } catch { return [] as VintageSchoolOption[]; }
+    }));
+    return [...new Map(
+      [...original.slice(0,7), ...variants[0].slice(0,6), ...variants[1].slice(0,3)]
+        .map(option=>[option.url, option])
+    ).values()].slice(0,16);
   }
-  if (!team) return [];
-  const history = historicCollegeCandidates(await fetchText(team.url), team.teamId, teamName);
-  const results = await Promise.all(history.map(async item => {
-    try {
-      const image = historicLogoImageFromDetail(await fetchText(item.url), team!.teamId, item.year);
-      return image ? { label: item.year + " " + item.kind, url: image, year: item.year, source: "SportsLogos.Net" } : null;
-    } catch { return null; }
-  }));
-  return results.filter((x): x is VintageSchoolOption => x !== null);
+  return [];
 }
