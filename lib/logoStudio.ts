@@ -16,23 +16,23 @@ export function validLogoUrl(url: string): boolean {
   try {
     const value = new URL(url);
     return value.protocol === "https:" && !value.username && !value.password
-      && !/(?:^|\\.)(?:localhost|local|internal)$/i.test(value.hostname)
-      && !/^\\d+\\.\\d+\\.\\d+\\.\\d+$/.test(value.hostname)
+      && !/(?:^|\.)(?:localhost|local|internal)$/i.test(value.hostname)
+      && !/^\d+\.\d+\.\d+\.\d+$/.test(value.hostname)
       && url.length <= 1200;
   } catch { return false; }
 }
 
 // All variants of a school's ESPN URL resolve to the same CBS asset identity.
 export function logoKeyFromSource(source: string | null | undefined): string | null {
-  if (!source || !/^https?:\\/\\/(?:a|secure)\\.espncdn\\.com\\//i.test(source)) return null;
-  const match = source.match(/\\/teamlogos\\/(ncaa|nba|nfl)\\/(?:[^/?#]+\\/)*([^/?.#]+)\\.(?:png|svg|webp)(?:[?#]|$)/i);
+  if (!source || !/^https?:\/\/(?:a|secure)\.espncdn\.com\//i.test(source)) return null;
+  const match = source.match(/\/teamlogos\/(ncaa|nba|nfl)\/(?:[^/?#]+\/)*([^/?.#]+)\.(?:png|svg|webp)(?:[?#]|$)/i);
   if (match) {
     const league = match[1].toLowerCase();
     const key = match[2].toLowerCase();
     const mapped = CBS_BY_LEAGUE[league]?.[key];
     return mapped ? `cbs:${mapped}` : `${league}:${key}`;
   }
-  const guid = source.match(/\\/guid\\/([^/]+)\\/logos\\//i)?.[1];
+  const guid = source.match(/\/guid\/([^/]+)\/logos\//i)?.[1];
   if (guid) return CBS_BY_ESPN_GUID[guid] ? `cbs:${CBS_BY_ESPN_GUID[guid]}` : `guid:${guid}`;
   return null;
 }
