@@ -48,7 +48,7 @@ export default function TeamImage({ src, onError, onLoad, scoreboardLeague, logo
     </span>;
   }
 
-  return <NextImage {...props} key={preferred} src={preferred ?? src}
+  return <NextImage {...props} key={preferred ? `${preferred}:${opaqueRetry === preferred ? "opaque" : "cors"}` : undefined} src={preferred ?? src}
     // Retry the SAME CBS SVG without CORS if the CDN rejects canvas sampling.
     // Never fall back to a different ESPN artwork for the same team.
     crossOrigin={preferred?.startsWith("https://sports.cbsimg.net/") && opaqueRetry !== preferred ? "anonymous" : props.crossOrigin}
