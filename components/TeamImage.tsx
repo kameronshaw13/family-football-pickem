@@ -11,25 +11,28 @@ type Props = ImageProps & {
   onLogoPalette?: (colors: string[]) => void;
 };
 
-/** One CBS GameTracker artwork variant across the app, not mixed league assets. */
+/** Use CBS's verified directory artwork consistently, without unverified alternate variants. */
 export default function TeamImage({
   src, onError, scoreboardLeague: _scoreboardLeague,
   logoBackground: _logoBackground, onLogoPalette: _onLogoPalette, ...props
 }: Props) {
-  const [failedGameTracker, setFailedGameTracker] = useState<string | null>(null);
-  const [failedStandard, setFailedStandard] = useState<string | null>(null);
+  const [failedCbs, setFailedCbs] = useState<string | null>(null);
+  const [failedNcaa, setFailedNcaa] = useState<string | null>(null);
   const original = typeof src === "string" ? src : "";
-  const gameTracker = original ? teamVectorLogo(original) : null;
-  const standard = original ? teamVectorFallbackLogo(original) : null;
-  const preferred = gameTracker && failedGameTracker !== gameTracker ? gameTracker : null;
-  const fallback = standard && failedStandard !== standard ? standard : null;
-  const selected = preferred || fallback || src;
+
+  // The synced CBS mapping verifies this standard SVG path, not the /alt/ path.
+  const cbs = original ? teamVectorFallbackLogo(original) : null;
+  // Preserve NCAA artwork only for schools absent from the CBS directory.
+  const ncaa = !cbs && original ? teamVectorLogo(original) : null;
+  const useCbs = Boolean(cbs && failedCbs !== cbs);
+  const useNcaa = Boolean(ncaa && failedNcaa !== ncaa);
+  const selected = useCbs ? cbs! : useNcaa ? ncaa! : src;
 
   return <NextImage {...props} key={typeof selected === "string" ? selected : undefined}
-    src={selected} unoptimized={Boolean(preferred || fallback) || props.unoptimized}
+    src={selected} unoptimized={useCbs || useNcaa || props.unoptimized}
     onError={event => {
-      if (preferred) setFailedGameTracker(preferred);
-      else if (fallback) setFailedStandard(fallback);
+      if (useCbs) setFailedCbs(cbs);
+      else if (useNcaa) setFailedNcaa(ncaa);
       else onError?.(event);
     }} />;
 }
