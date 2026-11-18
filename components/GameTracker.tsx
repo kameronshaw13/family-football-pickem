@@ -146,7 +146,7 @@ function statusText(payload: TrackerPayload | null, game: Game) {
 
 function gameCenterState(payload: TrackerPayload | null, game: Game) {
   const detail = statusText(payload, game);
-  const rawPeriod = detail.match(/\b(1st|2nd|3rd|4th|OT|\d+OT)\b/i)?.[1] || "";
+  const rawPeriod = detail.match(/\b(1st|2nd|3rd|4th|OT|\d+OT)\b/i)?.[1] || detail.match(/\b(?:Quarter|Q)\s*([1-4])\b/i)?.[1] || "";
   const clock = detail.match(/\b\d{1,2}:\d{2}\b/)?.[0] || "";
   return {
     period: rawPeriod ? periodLabel(rawPeriod) : "Live",
@@ -244,6 +244,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
     : null;
 
   return <div className={`game-tracker-score-team ${side}`} aria-label={`${fullName} ${score ?? "score unavailable"}`}>
+    <span className="football-team-watermark" aria-hidden="true">{fullName}</span>
     <div className="game-tracker-score-team-main">
       <span className="game-tracker-header-logo-wrap">{logo
         ? <Image unoptimized src={logo} alt="" width={56} height={56} scoreboardLeague={game.league} style={{ "--tracker-logo-backing": logoBacking } as CSSProperties} />
@@ -625,10 +626,57 @@ function TeamBox({ payload, side }: { payload: TrackerPayload; side: Side }) {
   </div>;
 }
 
+function FootballLineScore({ payload }: { payload: TrackerPayload }) {
+  // ESPN provides cumulative scoring plays; calculate each quarter's points
+  // from the last known score while carrying zero-point quarters forward.
+  const periods = ["1st", "2nd", "3rd", "4th"];
+  const points = periods.map(period => {
+    const matching = payload.scoringPlays.filter(play => trackerPeriodLabel(play.period) === period);
+    const latest = matching[matching.length - 1];
+    return latest ? { away: latest.awayScore, home: latest.homeScore } : null;
+  });
+  const scoreAt = (side: Side, index: number) => {
+    for (let j = index; j >= 0; j--) {
+      const score = points[j]?.[side];
+      if (score != null) return score;
+    }
+    return 0;
+  };
+  const regulation = periods.map((period, index) => ({
+    period: String(index + 1),
+    away: scoreAt("away", index) - (index === 0 ? 0 : scoreAt("away", index - 1)),
+    home: scoreAt("home", index) - (index === 0 ? 0 : scoreAt("home", index - 1))
+  }));
+  const overtime = payload.scoringPlays.filter(play => /OT/i.test(trackerPeriodLabel(play.period)));
+  const otPeriods = [...new Set(overtime.map(play => trackerPeriodLabel(play.period)))].sort();
+  let previousAway = scoreAt("away", 3), previousHome = scoreAt("home", 3);
+  const extras = otPeriods.map(period => {
+    const plays = overtime.filter(play => trackerPeriodLabel(play.period) === period);
+    const last = plays[plays.length - 1];
+    const away = (last.awayScore ?? previousAway) - previousAway;
+    const home = (last.homeScore ?? previousHome) - previousHome;
+    previousAway += away;
+    previousHome += home;
+    return { period, away, home };
+  });
+  const columns = [...regulation, ...extras];
+  return <div className="basketball-linescore-scroll football-linescore" role="region" aria-label="Football scoring by quarter" tabIndex={0}>
+    <table className="basketball-linescore"><thead><tr><th scope="col">Team</th>
+      {columns.map(row => <th key={row.period} scope="col">{row.period}</th>)}<th scope="col">T</th>
+    </tr></thead><tbody>{(["away", "home"] as const).map(side =>
+      <tr key={side}><th scope="row"><TeamLogo src={payload.teams[side].logo} name={payload.teams[side].name} size={23} />
+        <span>{payload.teams[side].abbreviation || payload.teams[side].shortName}</span></th>
+        {columns.map(row => <td key={row.period}>{row[side]}</td>)}
+        <td className="basketball-linescore-total">{payload.teams[side].score ?? "—"}</td>
+      </tr>)}</tbody></table>
+  </div>;
+}
+
 function BoxScore({ payload }: { payload: TrackerPayload }) {
   const [view, setView] = useState<BoxView>("all");
 
   return <div className="game-tracker-box">
+    <FootballLineScore payload={payload} />
     <div className="game-tracker-box-selector" role="group" aria-label="Choose box score team">
       <button type="button" className={view === "away" ? "active" : ""} aria-pressed={view === "away"} onClick={() => setView("away")}><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><span>{payload.league === "NFL" ? payload.teams.away.shortName : teamDisplayName("CFB", payload.teams.away.name || payload.teams.away.shortName)}</span></button>
       <button type="button" className={view === "all" ? "active" : ""} aria-pressed={view === "all"} onClick={() => setView("all")}>Team</button>
@@ -767,9 +815,16 @@ export default function GameTracker({ game, onClose, appSlug }: { game: Game; on
         <GameDetailClose onClose={closeWithMotion} label="Close GameTracker" />
       </header>
 
-      <div className="game-tracker-scoreboard">
+      <div className="game-tracker-scoreboard football-scoreboard">
         <div className="game-tracker-scoreboard-grid">
-
+          {(["away", "home"] as const).map(side => {
+            const team = payload?.teams[side];
+            const colors = trackerTeamColors(team?.color, team?.alternateColor);
+            return <svg key={side} className={`football-scoreboard-band ${side}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M0 0H100L81 100H0Z" fill={colors.secondary} />
+              <path d="M0 0H87L75 100H0Z" fill={colors.primary} />
+            </svg>;
+          })}
           <TeamScore side="away" payload={payload} game={game} completed={completed} />
           <ScoreboardCenter payload={payload} game={game} completed={completed} />
           <TeamScore side="home" payload={payload} game={game} completed={completed} />
