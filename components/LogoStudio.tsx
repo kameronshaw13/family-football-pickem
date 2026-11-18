@@ -165,7 +165,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     setCustom("");
     setLoadingHistory(false);
     if (active) {
-      const params = new URLSearchParams({ league: active.league === "College" ? "CBB" : active.league, name: active.name });
+      const params = new URLSearchParams({ league: active.league === "College" ? "CBB" : active.league, name: active.name, logo: active.logo });
       void fetch("/api/logo-alternatives?" + params.toString())
         .then(res => res.json())
         .then(data => { if (!canceled) setExtra(data.ok ? (data.options || []) : []); })
@@ -226,6 +226,10 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     for (const item of curatedLogoAlternatives(active.logo, active.league === "College" ? "CBB" : active.league)) add(item.label, item.url);
     for (const item of extra) add(item.label, item.url);
     for (const item of history) add(item.label, item.url);
+    // Put distinctive picture-first and mascot marks ahead of wordmark/crest
+    // variations without hiding the other valid designs.
+    result.sort((a, b) => Number(/symbol|mascot|secondary|ship|icon|mark/i.test(b.label))
+      - Number(/symbol|mascot|secondary|ship|icon|mark/i.test(a.label)));
     return result;
   }, [active, history, extra]);
 
@@ -292,6 +296,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
         })}</div>
         {active && <div className="logo-studio-editor">
           <div className="logo-studio-editor-heading"><strong>{active.name}</strong><span>{prefs.era === "vintage" ? "Vintage" : "Modern"} artwork</span></div>
+          <p className="logo-studio-note">Symbol and mascot artwork is listed first when available. Modern and vintage options remain separate when saved.</p>
           <div className="logo-studio-options">
             <button className={!chosen ? "logo-studio-option selected" : "logo-studio-option"} type="button" aria-pressed={!chosen} onClick={() => selectLogo(null)}>
               <Image unoptimized src={collegeHistoricalImageSource(automatic)} width={52} height={52} alt="" />
