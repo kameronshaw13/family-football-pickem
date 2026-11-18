@@ -26,7 +26,9 @@ export async function GET(req: NextRequest) {
         const key = logoKeyFromSource(logo);
         if (!name || !key || !logo) continue;
         // CFB and CBB share the same school identity, but retain both sport filters.
-        teams.set(`${game.league}:${key}`, { league: game.league, name, logo, key });
+        const id = `${game.league}:${key}`;
+        // Rows are newest first. Retain today's canonical name and artwork.
+        if (!teams.has(id)) teams.set(id, { league: game.league, name, logo, key });
       }
     }
     if ((data || []).length < 1000) break;

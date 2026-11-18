@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, KeyRound, LogOut, Moon, ScrollText, Sun, UserRound } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, Images, KeyRound, LogOut, Moon, ScrollText, Sun, UserRound } from "lucide-react";
 import type { Profile } from "@/lib/types";
 import type { AppSlug } from "@/lib/rulePresentation";
 import NumericText from "@/components/NumericText";
@@ -57,6 +57,7 @@ export default function SettingsPanel({
   onLeagueSelect: (league: LeagueMembership) => void;
 }) {
   const [theme, setTheme] = useState<Theme>("light");
+  const [logoStudioOpen, setLogoStudioOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMessage, setPasswordMessage] = useState("");
@@ -132,6 +133,16 @@ export default function SettingsPanel({
     window.location.replace(loginPath);
   }
 
+  if (logoStudioOpen) return <section className="panel settings-panel logo-studio-page-shell" aria-label="Logo Studio page">
+    <div className="section-title settings-page-title logo-studio-page-header">
+      <button type="button" className="logo-studio-page-back" onClick={() => setLogoStudioOpen(false)} aria-label="Back to Settings">
+        <ArrowLeft size={18} /> Settings
+      </button>
+      <div><h2>Logo Studio</h2><p>Customize team artwork across all leagues</p></div>
+    </div>
+    <LogoStudio profileId={currentUser.id} />
+  </section>;
+
   return <section className="panel settings-panel">
     <div className="section-title settings-page-title"><div><h2>Settings</h2><p>{leagueName || "League and account preferences"}</p></div></div>
 
@@ -164,7 +175,11 @@ export default function SettingsPanel({
           <button type="button" className={theme === "dark" ? "active" : ""} aria-pressed={theme === "dark"} onClick={() => chooseTheme("dark")}><Moon size={14} /> Dark</button>
         </div>
       </div>
-      <LogoStudio profileId={currentUser.id} />
+      <button className="settings-card settings-logo-studio-link" type="button" onClick={() => setLogoStudioOpen(true)}>
+        <span className="settings-leading-icon"><Images size={17} /></span>
+        <span className="settings-row-copy"><strong>Logo Studio</strong><span>Choose modern, vintage and alternate team artwork.</span></span>
+        <ChevronRight size={17} />
+      </button>
     </div>
 
     <div className="settings-section">

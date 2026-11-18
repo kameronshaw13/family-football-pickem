@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronDown, Images, Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import Image from "next/image";
 import { curatedLogoAlternatives, type LogoAlternative } from "@/lib/logoExtraOptions";
 import {
@@ -23,15 +23,12 @@ const teamMatches = (row: ArchiveEntry, name: string) => {
 
 export default function LogoStudio({ profileId }: { profileId: string }) {
   const [prefs, setPrefs] = useState<LogoStudioPreferences>(getLogoStudioPreferences());
-  const [expanded, setExpanded] = useState(false);
   const [teams, setTeams] = useState<Team[]>([]);
   const [league, setLeague] = useState("CBB");
   const [search, setSearch] = useState("");
   const [active, setActive] = useState<Team | null>(null);
   const [history, setHistory] = useState<Option[]>([]);
   const [extra, setExtra] = useState<LogoAlternative[]>([]);
-  const [fingerprints, setFingerprints] = useState<Record<string, string>>({});
-  const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [message, setMessage] = useState("");
@@ -82,8 +79,8 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     const latest = getLogoStudioPreferences();
     saveLogoStudioPreferences({ ...latest, vintageDefaults: { ...output, ...latest.vintageDefaults } });
     setMessage(Object.keys(output).length
-      ? `Vintage designs available for ${Object.keys(output).length} pro teams. Colleges keep current logos unless you choose another.`
-      : "Vintage palette is active. Add historical designs individually where available.");
+      ? `Vintage designs available for ${Object.keys(output).length} pro teams. For colleges, select a school to see its historical artwork.`
+      : "Vintage palette is active. College historical designs are available in the team picker.");
   }, []);
 
   async function changeEra(era: LogoEra) {
@@ -95,10 +92,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     } else setMessage("");
   }
 
-  useEffect(() => {
-    if (!expanded) return;
-    void loadTeams();
-  }, [expanded, loadTeams]);
+  useEffect(() => { void loadTeams(); }, [loadTeams]);
 
   useEffect(() => {
     let canceled = false;
@@ -112,9 +106,11 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
         .then(res => res.json())
         .then(data => { if (!canceled) setExtra(data.ok ? (data.options || []) : []); })
         .catch(() => { if (!canceled) setExtra([]); });
-      if (["NBA", "NFL"].includes(active.league)) {
+      if (["NBA", "NFL", "CBB", "CFB"].includes(active.league)) {
         setLoadingHistory(true);
-        void fetch("/api/logo-history?league=" + active.league.toLowerCase() + "&team=" + encodeURIComponent(active.name))
+        void fetch((active.league === "CBB" || active.league === "CFB"
+          ? "/api/college-logo-history?league=" + active.league + "&team=" + encodeURIComponent(active.name)
+          : "/api/logo-history?league=" + active.league.toLowerCase() + "&team=" + encodeURIComponent(active.name)))
           .then(res => res.json())
           .then(data => {
             if (!canceled) setHistory((data.logos || [])
@@ -149,40 +145,6 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
   }, [active, history, extra]);
 
 
-  const chosenForPreview = active ? prefs.choices[active.key]?.[prefs.era] : null;
-  const automaticForPreview = active
-    ? (prefs.era === "vintage" ? prefs.vintageDefaults[active.key] : null)
-      || teamVectorFallbackLogo(active.logo) || active.logo
-    : "";
-
-  useEffect(() => {
-    if (!active) { setFingerprints({}); setCheckingDuplicates(false); return; }
-    let canceled = false;
-    const urls = [automaticForPreview, ...options.map(item => item.url)]
-      .filter(Boolean).slice(0, 25);
-    setCheckingDuplicates(true);
-    setFingerprints({});
-    void fetch("/api/logo-option-fingerprints", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ urls })
-    }).then(res => res.json()).then(data => {
-      if (!canceled && data.ok) setFingerprints(data.fingerprints || {});
-    }).catch(() => {}).finally(() => { if (!canceled) setCheckingDuplicates(false); });
-    return () => { canceled = true; };
-  }, [active, automaticForPreview, options]);
-
-  const visibleOptions = useMemo(() => {
-    const used = new Set<string>();
-    if (fingerprints[automaticForPreview]) used.add(fingerprints[automaticForPreview]);
-    return options.filter(option => {
-      if (option.url === automaticForPreview && chosenForPreview !== option.url) return false;
-      const fingerprint = fingerprints[option.url];
-      if (fingerprint && used.has(fingerprint) && chosenForPreview !== option.url) return false;
-      if (fingerprint) used.add(fingerprint);
-      return true;
-    });
-  }, [options, fingerprints, chosenForPreview, automaticForPreview]);
-
   function selectLogo(value: string | null) {
     if (!active) return;
     if (value !== null && !validLogoUrl(value)) { setMessage("Enter a valid HTTPS image URL."); return; }
@@ -203,25 +165,21 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
       : teamVectorFallbackLogo(active.logo) || active.logo
     : "";
 
-  return <div className="settings-card logo-studio-card">
-    <div className="settings-row-heading logo-studio-heading">
-      <span className="settings-leading-icon"><Images size={17} /></span>
-      <span className="settings-row-copy"><strong>Logo Studio</strong><span>Switch styles and choose individual team logos.</span></span>
-    </div>
+  return <div className="logo-studio-page">
+    <div className="logo-studio-style-label"><strong>Team artwork style</strong><span>Choose a look, then customize individual teams.</span></div>
     <div className="theme-toggle logo-studio-era" role="group" aria-label="Team logo style">
       <button type="button" aria-pressed={prefs.era === "modern"} className={prefs.era === "modern" ? "active" : ""} onClick={() => void changeEra("modern")}>Modern</button>
       <button type="button" aria-pressed={prefs.era === "vintage"} className={prefs.era === "vintage" ? "active" : ""} onClick={() => void changeEra("vintage")}>Vintage</button>
     </div>
-    <details className="logo-studio-detail" open={expanded} onToggle={event => setExpanded(event.currentTarget.open)}>
-      <summary>Choose team logos <ChevronDown size={16} /></summary>
-      <div className="logo-studio-body">
+    <div className="logo-studio-body">
         <div className="logo-studio-leagues" role="group" aria-label="Sport">
           {LEAGUES.map(sport => <button key={sport} type="button" className={league === sport ? "active" : ""} aria-pressed={league === sport} onClick={() => { setLeague(sport); setActive(null); }}>{sport}</button>)}
         </div>
-        <label className="logo-studio-search"><Search size={15} /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search teams" aria-label="Search teams" /></label>
+        <label className="logo-studio-search"><Search size={15} /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search all teams" aria-label="Search all teams" /></label>
+        {!loadingTeams && <p className="logo-studio-count">{filtered.length} {filtered.length === 1 ? "team" : "teams"} · Alphabetical A–Z</p>}
         {loadingTeams && <p className="logo-studio-note">Loading teams…</p>}
         {!loadingTeams && !filtered.length && <p className="logo-studio-note">No teams found.</p>}
-        <div className="logo-studio-teams">{filtered.slice(0, 160).map(team => {
+        <div className="logo-studio-teams">{filtered.map(team => {
           const selected = prefs.choices[team.key]?.[prefs.era];
           const logo = selected || (prefs.era === "vintage" ? prefs.vintageDefaults[team.key] : null) || teamVectorFallbackLogo(team.logo) || team.logo;
           return <button type="button" key={team.league + team.key} className={active?.key === team.key && active.league === team.league ? "logo-studio-team active" : "logo-studio-team"} onClick={() => { setActive(team); setMessage(""); }}>
@@ -237,21 +195,20 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
               <Image unoptimized src={automatic} width={52} height={52} alt="" />
               <span>Automatic</span>
             </button>
-            {visibleOptions.map(option => <button key={option.url} className={chosen === option.url ? "logo-studio-option selected" : "logo-studio-option"} aria-pressed={chosen === option.url} type="button" onClick={() => selectLogo(option.url)}>
+            {options.map(option => <button key={option.url} className={chosen === option.url ? "logo-studio-option selected" : "logo-studio-option"} aria-pressed={chosen === option.url} type="button" onClick={() => selectLogo(option.url)}>
               <Image unoptimized src={option.url} width={52} height={52} alt="" loading="lazy" onError={event => { event.currentTarget.style.opacity = ".25"; }} />
               <span>{option.label}</span>
             </button>)}
           </div>
-          {(loadingHistory || checkingDuplicates) && <p className="logo-studio-note">{loadingHistory ? "Finding historical logos…" : "Checking for duplicate designs…"}</p>}
-          {["CFB", "CBB"].includes(active.league) && <p className="logo-studio-note">College artwork varies by school. NCAA and FootyLogos options appear when a matching vector exists; you can still add a vintage image URL.</p>}
+          {loadingHistory && <p className="logo-studio-note">Finding historical logos…</p>}
+          {["CFB", "CBB"].includes(active.league) && <p className="logo-studio-note">Historical designs appear above when available for this school. You can also paste an image URL. Archive research: <a href="https://www.sportslogos.net/" target="_blank" rel="noopener noreferrer">SportsLogos.Net</a>.</p>}
           <div className="logo-studio-custom">
             <input type="url" value={custom} onChange={event => setCustom(event.target.value)} placeholder="Paste PNG, SVG or WebP image URL" aria-label="Custom team logo HTTPS URL" />
             <button type="button" disabled={!validLogoUrl(custom)} onClick={() => { selectLogo(custom); setCustom(""); }}>Use logo</button>
           </div>
         </div>}
         <p className="logo-studio-note">Changes are personal to this account on this device. Game data and other players are unaffected.</p>
-      </div>
-    </details>
+    </div>
     {message && <p className="logo-studio-status" role="status">{message}</p>}
   </div>;
 }

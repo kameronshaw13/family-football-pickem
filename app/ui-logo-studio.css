@@ -43,3 +43,23 @@ html[data-logo-era="vintage"] .game-tracker-tabs { border-top-color: #c4ae87; }
 html[data-logo-era="vintage"][data-theme="dark"] .game-tracker-scoreboard { background: #24231f; }
 html[data-logo-era="vintage"] .matchup-preview-hero { background-color: #f3ecdf; }
 html[data-logo-era="vintage"][data-theme="dark"] .matchup-preview-hero { background-color: #26231c; }
+
+/* Full-width Logo Studio subpage; use the existing Settings scroll area and bottom nav. */
+.settings-logo-studio-link { display:flex; width:100%; min-height:54px; align-items:center; gap:12px; padding:10px var(--ui-space-3); border:0; border-top:1px solid var(--line); background:var(--canvas); color:var(--ink); text-align:left; cursor:pointer; }
+.settings-logo-studio-link .settings-row-copy { flex:1; min-width:0; }
+.settings-logo-studio-link > svg { flex:0 0 auto; color:var(--muted); }
+.logo-studio-page-shell { width:100%; min-width:0; }
+.logo-studio-page-header { display:flex; flex-direction:column; align-items:stretch; gap:7px; }
+.logo-studio-page-back { display:inline-flex; align-self:flex-start; align-items:center; gap:6px; min-height:34px; margin:0 0 5px; padding:0; border:0; background:none; color:var(--blue); font-size:12px; font-weight:750; }
+.logo-studio-page { width:100%; max-width:100%; min-width:0; padding-bottom:10px; }
+.logo-studio-style-label { display:flex; flex-direction:column; gap:3px; padding:13px var(--page-gutter) 10px; border-bottom:1px solid var(--line); }
+.logo-studio-style-label strong { font-size:12px; }
+.logo-studio-style-label span { color:var(--muted); font-size:11px; }
+.logo-studio-page .logo-studio-era { margin:0; }
+.logo-studio-page .logo-studio-body { padding:0 var(--page-gutter) 18px; }
+.logo-studio-page .logo-studio-teams { max-height:min(47dvh,440px); overflow-y:auto; }
+.logo-studio-count { margin:0; padding:5px 0 7px; color:var(--muted); font-size:10px; }
+.logo-studio-page .logo-studio-editor { border-top:1px solid var(--line); margin-top:12px; padding-top:13px; }
+.logo-studio-page .logo-studio-option { min-height:98px; }
+.logo-studio-page .logo-studio-status { margin:0 var(--page-gutter); }
+@media (min-width:680px) { .logo-studio-page .logo-studio-options { grid-template-columns:repeat(4,minmax(0,1fr)); } .logo-studio-page .logo-studio-teams { max-height:min(50dvh,530px); } }
