@@ -1,4 +1,4 @@
-import { CBS_BY_ESPN_GUID, CBS_BY_LEAGUE } from "./cbsLogos";
+import { CBS_BY_ESPN_GUID, CBS_BY_LEAGUE } from "./cbsLogos.ts";
 
 export type LogoEra = "modern" | "vintage";
 export type LogoChoice = { modern?: string; vintage?: string };
@@ -32,7 +32,7 @@ export function logoKeyFromSource(source: string | null | undefined): string | n
     const mapped = CBS_BY_LEAGUE[league]?.[key];
     return mapped ? `cbs:${mapped}` : `${league}:${key}`;
   }
-  const guid = source.match(/\/guid\/([^/]+)\/logos\//i)?.[1];
+  const guid = source.match(/\/guid\/([^/]+)\/logos\//i)?.[1]?.toLowerCase();
   if (guid) return CBS_BY_ESPN_GUID[guid] ? `cbs:${CBS_BY_ESPN_GUID[guid]}` : `guid:${guid}`;
   return null;
 }
