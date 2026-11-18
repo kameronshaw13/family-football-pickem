@@ -24,10 +24,23 @@ export async function GET(req: NextRequest) {
     const html = await page.text();
     const title = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1]?.replace(/<[^>]*>/g, "").trim() || "";
     // Do not treat a generic error/search page as a matching logo.
-    if (!normalize(title).startsWith(normalize(name) + "logo"))
+    const normalizedTitle = normalize(title).replace(/^la(?=[a-z])/, "losangeles");
+    const normalizedName = normalize(name).replace(/^la(?=[a-z])/, "losangeles");
+    if (!normalizedTitle.startsWith(normalizedName + "logo"))
       return NextResponse.json({ ok: true, options: [] });
     const asset = "https://www.footylogos.com/sports-assets/logos/" + slug + "/" + slug + "-logo-footylogos.svg";
-    return NextResponse.json({ ok: true, options: [{ label: "FootyLogos vector", url: asset, source: "FootyLogos" }] }, { headers: { "Cache-Control": "private, max-age=3600" } });
+    const options = [{ label: "FootyLogos vector", url: asset, source: "FootyLogos" }];
+    const paths = [...html.matchAll(/(?:href|src)=["'](\/sports-assets\/variants\/[a-z0-9-]+\/[a-z0-9-]+\.svg)["']/gi)];
+    for (const found of paths) {
+      const pathname = found[1];
+      if (!pathname.startsWith("/sports-assets/variants/" + slug + "/")) continue;
+      const url = "https://www.footylogos.com" + pathname;
+      if (!options.some(option => option.url === url)) {
+        options.push({ label: "FootyLogos alternate " + options.length, url, source: "FootyLogos" });
+      }
+      if (options.length >= 7) break;
+    }
+    return NextResponse.json({ ok: true, options }, { headers: { "Cache-Control": "private, max-age=3600" } });
   } catch {
     return NextResponse.json({ ok: true, options: [] });
   }
