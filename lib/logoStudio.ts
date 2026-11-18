@@ -13,6 +13,7 @@ let activeUser = "";
 let preferences: LogoStudioPreferences = EMPTY;
 let editor = false;
 let eraRevision = 0;
+let draftWrite: Promise<void> = Promise.resolve();
 let published: Record<LogoEra, Record<string, string>> = { modern: {}, vintage: {} };
 
 export function getPublishedLogoCollections() { return published; }
@@ -72,6 +73,7 @@ export function setLogoStudioUser(profileId: string, canEdit = false) {
   window.dispatchEvent(new Event(LOGO_STUDIO_EVENT));
   const currentUser = profileId;
   const readAtRevision = eraRevision;
+  const choicesAtLoad = preferences.choices;
   let session = "";
   try { session = window.localStorage.getItem("pickem_session_token") || ""; } catch { /* Cookie auth still works. */ }
   void fetch("/api/logo-presets", { cache: "no-store", headers: session ? { Authorization: "Bearer " + session } : {} })
@@ -83,6 +85,18 @@ export function setLogoStudioUser(profileId: string, canEdit = false) {
       if (activeUser !== currentUser || !data?.ok) return;
       setPublishedLogoCollection("modern", data.presets?.modern || {});
       setPublishedLogoCollection("vintage", data.presets?.vintage || {});
+      // The database is authoritative for saved drafts. Keep older device-only
+      // selections that were never published, and migrate them to the account.
+      if (editor && data.choices && typeof data.choices === "object") {
+        const local = preferences.choices;
+        const remote = data.choices as LogoStudioPreferences["choices"];
+        const merged = { ...local, ...remote };
+        // Do not overwrite a selection made while this initial request was in flight.
+        if (local !== choicesAtLoad) Object.assign(merged, local);
+        const localOnly = Object.keys(local).some(key => !(key in remote));
+        saveLogoStudioPreferences({ ...preferences, choices: merged });
+        if (localOnly || local !== choicesAtLoad) void persistLogoStudioDrafts(merged).catch(() => {});
+      }
       if (readAtRevision === eraRevision) {
         const remoteEra: LogoEra = data.era === "vintage" ? "vintage" : "modern";
         saveLogoStudioPreferences({ ...preferences, era: remoteEra });
@@ -100,6 +114,25 @@ export function saveLogoStudioPreferences(value: LogoStudioPreferences) {
   }
   window.dispatchEvent(new Event(LOGO_STUDIO_EVENT));
 }
+
+/** All editor drafts live on the profile as well as in the device cache. */
+export function persistLogoStudioDrafts(choices: LogoStudioPreferences["choices"]): Promise<void> {
+  const userId = activeUser;
+  const snapshot = JSON.stringify(choices);
+  draftWrite = draftWrite.catch(() => {}).then(async () => {
+    if (typeof window === "undefined" || !userId || userId !== activeUser || !editor) return;
+    const token = window.localStorage.getItem("pickem_session_token") || "";
+    const response = await fetch("/api/logo-presets", {
+      method: "PATCH", keepalive: true,
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
+      body: JSON.stringify({ choices: JSON.parse(snapshot) })
+    });
+    if (!response.ok) throw new Error("Could not save your logo choices to your account.");
+  });
+  return draftWrite;
+}
+
+export async function waitForLogoStudioDrafts() { await draftWrite; }
 
 export async function setViewerLogoEra(era: LogoEra): Promise<void> {
   const previous = preferences.era;

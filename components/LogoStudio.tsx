@@ -7,7 +7,7 @@ import { collegeHistoricalImageSource } from "@/lib/collegeLogoImage";
 import { curatedLogoAlternatives, type LogoAlternative } from "@/lib/logoExtraOptions";
 import {
   getLogoStudioPreferences, getPublishedLogoCollections, setPublishedLogoCollection, setViewerLogoEra, LOGO_STUDIO_EVENT,
-  saveLogoStudioPreferences, validLogoUrl, type LogoEra, type LogoStudioPreferences
+  saveLogoStudioPreferences, persistLogoStudioDrafts, waitForLogoStudioDrafts, validLogoUrl, type LogoEra, type LogoStudioPreferences
 } from "@/lib/logoStudio";
 import { ncaaSvgLogo, teamVectorFallbackLogo, teamVectorLogo } from "@/lib/teamLogoSource";
 
@@ -114,6 +114,8 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     setSavingEra(era);
     setMessage("");
     try {
+      // Flush in-flight draft changes before publishing the collection.
+      await waitForLogoStudioDrafts().catch(() => {});
       // Read current published artwork at save time to avoid erasing anyone's
       // collection if it was updated in another tab.
       const authToken = window.localStorage.getItem("pickem_session_token") || "";
@@ -147,6 +149,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
         if (Object.keys(remaining).length) choices[key] = remaining;
       }
       saveLogoStudioPreferences({ ...latest, choices });
+      await persistLogoStudioDrafts(choices);
       setMessage(`${era === "modern" ? "Modern" : "Vintage"} logos saved for everyone. ${Object.keys(logos).length} custom team logos published; others keep their built-in logos.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save logo collection.");
@@ -162,7 +165,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     setCustom("");
     setLoadingHistory(false);
     if (active) {
-      const params = new URLSearchParams({ league: active.league === "College" ? "CBB" : active.league, name: active.name });
+      const params = new URLSearchParams({ league: active.league === "College" ? "CBB" : active.league, name: active.name, logo: active.logo });
       void fetch("/api/logo-alternatives?" + params.toString())
         .then(res => res.json())
         .then(data => { if (!canceled) setExtra(data.ok ? (data.options || []) : []); })
@@ -223,6 +226,10 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     for (const item of curatedLogoAlternatives(active.logo, active.league === "College" ? "CBB" : active.league)) add(item.label, item.url);
     for (const item of extra) add(item.label, item.url);
     for (const item of history) add(item.label, item.url);
+    // Put distinctive picture-first and mascot marks ahead of wordmark/crest
+    // variations without hiding the other valid designs.
+    result.sort((a, b) => Number(/symbol|mascot|secondary|ship|icon|mark/i.test(b.label))
+      - Number(/symbol|mascot|secondary|ship|icon|mark/i.test(a.label)));
     return result;
   }, [active, history, extra]);
 
@@ -238,7 +245,10 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     const defaults = { ...latest.vintageDefaults };
     if (value === null && latest.era === "vintage") delete defaults[active.key];
     saveLogoStudioPreferences({ ...latest, choices: nextChoices, vintageDefaults: defaults });
-    setMessage(value ? `Saved ${active.name} for ${latest.era} mode.` : "Restored automatic logo selection.");
+    setMessage(`Saving ${active.name} to your account…`);
+    void persistLogoStudioDrafts(nextChoices)
+      .then(() => setMessage(`${active.name} saved to your account. Press Save ${latest.era === "modern" ? "Modern" : "Vintage"} to publish for everyone.`))
+      .catch(() => setMessage("Your selection is visible here but did not sync. Press Save Modern or Save Vintage to publish it permanently."));
   }
 
   const savedForEra = getPublishedLogoCollections()[prefs.era];
@@ -286,6 +296,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
         })}</div>
         {active && <div className="logo-studio-editor">
           <div className="logo-studio-editor-heading"><strong>{active.name}</strong><span>{prefs.era === "vintage" ? "Vintage" : "Modern"} artwork</span></div>
+          <p className="logo-studio-note">Symbol and mascot artwork is listed first when available. Modern and vintage options remain separate when saved.</p>
           <div className="logo-studio-options">
             <button className={!chosen ? "logo-studio-option selected" : "logo-studio-option"} type="button" aria-pressed={!chosen} onClick={() => selectLogo(null)}>
               <Image unoptimized src={collegeHistoricalImageSource(automatic)} width={52} height={52} alt="" />
@@ -301,7 +312,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
             <button type="button" disabled={!validLogoUrl(custom)} onClick={() => { selectLogo(custom); setCustom(""); }}>Use logo</button>
           </div>
         </div>}
-        <p className="logo-studio-note">Changes are personal to this account on this device. Game data and other players are unaffected.</p>
+        <p className="logo-studio-note">Selections are saved to your account. Save Modern or Save Vintage publishes that collection for everyone, including after reopening the app. Game data is unaffected.</p>
     </div>
     {message && <p className="logo-studio-status" role="status">{message}</p>}
   </div>;
