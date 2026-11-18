@@ -1,4 +1,4 @@
-import { logoKeyFromSource } from "@/lib/logoStudio";
+import { logoKeyFromSource } from "./logoStudio.ts";
 
 export type CollegeLogoDirectoryEntry = { league: "College"; name: string; logo: string; key: string };
 type ESPNTeam = { id?: string; displayName?: string; name?: string; location?: string; logos?: { href?: string }[] };
