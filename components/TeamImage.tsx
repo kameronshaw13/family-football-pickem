@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import NextImage, { type ImageProps } from "next/image";
 import { teamVectorFallbackLogo, teamVectorLogo } from "@/lib/teamLogoSource";
 import { getLogoStudioPreferences, LOGO_STUDIO_EVENT, resolvePersonalLogo } from "@/lib/logoStudio";
+import { collegeHistoricalImageSource } from "@/lib/collegeLogoImage";
 import type { League } from "@/lib/types";
 
 type Props = ImageProps & {
@@ -34,9 +35,10 @@ export default function TeamImage({
   const useCbs = Boolean(cbs && cbs !== failedCbs);
   const useNcaa = Boolean(ncaa && ncaa !== failedNcaa);
   const selected = usePreferred ? personal! : useCbs ? cbs! : useNcaa ? ncaa! : src;
+  const rendered = typeof selected === "string" ? collegeHistoricalImageSource(selected) : selected;
 
-  return <NextImage {...props} key={typeof selected === "string" ? selected : undefined}
-    src={selected} unoptimized={usePreferred || useCbs || useNcaa || props.unoptimized}
+  return <NextImage {...props} key={typeof rendered === "string" ? rendered : undefined}
+    src={rendered} unoptimized={usePreferred || useCbs || useNcaa || props.unoptimized || rendered !== selected}
     onError={event => {
       if (usePreferred) setFailedPreferred(personal);
       else if (useCbs) setFailedCbs(cbs);
