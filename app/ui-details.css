@@ -1645,7 +1645,6 @@
 .game-tracker-endzone .game-tracker-logo-fallback {
   width: 20px;
   height: 20px;
-  filter: url("#team-logo-white-outline");
 }
 .game-tracker-endzone > span {
   max-height: 82px;
@@ -2357,9 +2356,10 @@ html[data-theme="dark"] .bank-history-week-body { background: var(--panel) !impo
 
 /* Solid white outline follows each team mark on dark surfaces. */
 .team-logo-filter-definitions { position: absolute; pointer-events: none; }
-html[data-theme="dark"] .team-logo:not(.fallback),
-html[data-theme="dark"] .matchup-preview-sheet img,
-html[data-theme="dark"] .game-tracker-sheet img {
+html[data-theme="dark"] .team-logo[data-white-outline="dark"],
+html[data-theme="dark"] .matchup-preview-sheet img[data-white-outline="dark"],
+html[data-theme="dark"] .game-tracker-sheet img[data-white-outline="dark"],
+.game-tracker-sheet img[data-white-outline="team"] {
   filter: url("#team-logo-white-outline");
 }
 
@@ -5741,7 +5741,6 @@ button, input, select, textarea {
 .basketball-game-tracker .game-tracker-score-team.away { grid-column: 1; grid-row: 1; }
 .basketball-game-tracker .game-tracker-score-team.home { grid-column: 3; grid-row: 1; }
 .basketball-game-tracker .game-tracker-score-center { grid-column: 2; grid-row: 1; }
-.basketball-game-tracker .game-tracker-score-team-main > img { filter: url("#team-logo-white-outline"); }
 .basketball-tracker-record { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .basketball-tipoff-time { font-size: 12px; }
 .basketball-details .basketball-play-period > .game-tracker-quarter-header { display: flex; justify-content: space-between; align-items: center; }
@@ -5794,7 +5793,7 @@ button, input, select, textarea {
 .game-tracker-score-center > .game-tracker-red-zone-position { color: #c52b30; font-weight: 850; }
 .game-tracker-possession-label > .game-tracker-field-football { display: inline-flex; width: 21px; height: 13px; flex: 0 0 21px; color: #8e4c2c; }
 .game-tracker-possession-label > .game-tracker-ball-label { color: var(--ink); font-family: var(--font-display); font-size: 11px; font-weight: 800; text-transform: none; }
-.game-tracker-endzone img, .game-tracker-endzone .game-tracker-logo-fallback { box-sizing: border-box; padding: 0; border: 0; border-radius: 0; background: transparent; filter: url("#team-logo-white-outline"); object-fit: contain; }
+.game-tracker-endzone img, .game-tracker-endzone .game-tracker-logo-fallback { box-sizing: border-box; padding: 0; border: 0; border-radius: 0; background: transparent; object-fit: contain; }
 .game-tracker-drives > .game-tracker-plays-quarter-header:first-child { border-top: 1px solid var(--tracker-divider); }
 
 
@@ -6753,7 +6752,6 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
   height: 42px;
   object-fit: contain;
   transform: translate(-50%,-50%);
-  filter: url("#team-logo-white-outline");
   pointer-events: none;
 }
 .basketball-shot-chart .basketball-shot.away-shot.made { fill: #175bb8; stroke: #175bb8; }
@@ -7973,10 +7971,17 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 /* Logos overlap the diagonal color edge at their original size. */
 .basketball-details .game-tracker-scoreboard-grid::before,
 .basketball-details .game-tracker-scoreboard-grid::after { width: clamp(44px, 13vw, 64px); }
-/* Keep CBS's white Clippers mark over the team color on a light scoreboard. */
-.basketball-details .game-tracker-scoreboard-grid:has(.away img[src$="/clippers-gametracker.svg"])::before,
-.basketball-details .game-tracker-scoreboard-grid:has(.home img[src$="/clippers-gametracker.svg"])::after {
+/* Pale artwork needs a team-color background on a light scoreboard. */
+.basketball-details .game-tracker-scoreboard-grid:has(.away img[data-logo-backing])::before {
   width: clamp(80px, 22vw, 96px);
+  background: var(--tracker-away-backing);
+}
+.basketball-details .game-tracker-scoreboard-grid:has(.home img[data-logo-backing])::after {
+  width: clamp(80px, 22vw, 96px);
+  background: var(--tracker-home-backing);
+}
+html:not([data-theme="dark"]) .game-tracker-header-logo-wrap > img[data-logo-backing] {
+  background-color: var(--tracker-logo-backing);
 }
 .basketball-details .game-tracker-scoreboard-grid .game-tracker-score-team-main {
   grid-template-columns: clamp(58px, 17vw, 72px) minmax(0, 1fr);

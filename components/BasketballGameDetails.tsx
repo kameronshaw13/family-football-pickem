@@ -16,6 +16,7 @@ import { basketballPeriodLabel, type BasketballShot } from "@/lib/basketballShot
 import { scoreFromCompetitor } from "@/lib/espnSchedule";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { trackerDisplayScore } from "@/lib/trackerDisplayScore";
+import { trackerTeamColors } from "@/lib/trackerTeamColors";
 import { isInactiveBasketballEvent } from "@/lib/basketballRules";
 import { hasValidGameLine } from "@/lib/gameDataIntegrity";
 
@@ -97,6 +98,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
   const [tab, setTab] = useState<Tab>(game.live_completed || (game.final_away_score != null && game.final_home_score != null) ? "scoring" : "live");
   const [boxTeam, setBoxTeam] = useState<"all" | Side>("all");
   const [retry, setRetry] = useState(0);
+  const [logoPalettes, setLogoPalettes] = useState<Partial<Record<Side, { logo: string; colors: string[] }>>>({});
   const sheet = useRef<HTMLElement | null>(null), scrollArea = useRef<HTMLDivElement | null>(null);
   const close = useGameSheetDismiss(sheet, mounted, onClose);
   useEffect(() => {
@@ -142,6 +144,17 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
   const pregame = !completed && (payload?.status.state || game.live_state || "pre") === "pre";
   const names = { away: teamDisplayName(game.league, game.away_team), home: teamDisplayName(game.league, game.home_team) };
   const logos = { away: game.away_logo_url, home: game.home_logo_url };
+  const teamColors = (side: Side) => {
+    const team = payload?.teams[side]?.team;
+    const artwork = logoPalettes[side];
+    return trackerTeamColors(team?.color, team?.alternateColor, artwork?.logo === logos[side] ? artwork.colors : undefined);
+  };
+  const awayColors = teamColors("away");
+  const homeColors = teamColors("home");
+  const scoreboardColors = {
+    "--tracker-away-color": awayColors.primary, "--tracker-away-secondary": awayColors.secondary, "--tracker-away-backing": awayColors.backing,
+    "--tracker-home-color": homeColors.primary, "--tracker-home-secondary": homeColors.secondary, "--tracker-home-backing": homeColors.backing
+  } as CSSProperties;
   const basketballPeriod = (period: number) => basketballPeriodLabel(period, game.league === "CBB").replace(/ Half$/, "");
   const timeoutCount = (side: Side) => { const count = Number(payload?.teams[side]?.timeoutsRemaining); return payload?.teams[side]?.timeoutsRemaining == null || !Number.isFinite(count) ? null : Math.max(0, Math.trunc(count)); };
   const foulsCount = (side: Side) => payload?.teams[side]?.fouls;
@@ -170,9 +183,10 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
   return createPortal(<div className="game-tracker-backdrop" onClick={event => { if (event.target === event.currentTarget) close(); }}>
     <section ref={sheet} className="game-tracker-sheet basketball-details basketball-game-tracker" role="dialog" aria-modal="false" aria-label={`${names.away}${game.neutral_site ? " vs " : " at "}${names.home} GameTracker`}>
       <header className="game-tracker-header"><div className="game-detail-title"><strong>{names.away}{game.neutral_site ? " vs " : " at "}{names.home}</strong></div><GameDetailClose onClose={close} label="Close GameTracker" /></header>
-      <div className={`game-tracker-scoreboard ${completed ? "basketball-final-scoreboard" : !pregame ? "basketball-live-scoreboard" : ""}`} style={{ "--tracker-away-color": `#${payload?.teams.away?.team?.color || "747d85"}`, "--tracker-home-color": `#${payload?.teams.home?.team?.color || "747d85"}`, "--tracker-away-secondary": `#${payload?.teams.away?.team?.alternateColor || "d6d9dc"}`, "--tracker-home-secondary": `#${payload?.teams.home?.team?.alternateColor || "d6d9dc"}` } as CSSProperties}><div className="game-tracker-scoreboard-grid">
+      <div className={`game-tracker-scoreboard ${completed ? "basketball-final-scoreboard" : !pregame ? "basketball-live-scoreboard" : ""}`} style={scoreboardColors}><div className="game-tracker-scoreboard-grid">
         {(["away", "home"] as const).map(side => <div className={`game-tracker-score-team ${side}`} key={side}><span className="basketball-team-watermark" aria-hidden="true">{names[side]}</span>
-          <div className="game-tracker-score-team-main">{logos[side] ? <Image unoptimized basketballScoreboard src={logos[side]!} alt={names[side]} width={60} height={60} /> : <span className="game-tracker-logo-fallback">{names[side].slice(0, 1)}</span>}<div className="game-tracker-score-stack"><small className="broadcast-team-record">{payload?.teams[side]?.records?.[0]?.summary || ""}</small><b className={completed && scores.away != null && scores.home != null ? scores[side]! > scores[side === "away" ? "home" : "away"]! ? "winner" : "loser" : ""}>{scores[side] ?? "—"}</b>{!completed && !pregame && <div className="basketball-team-indicators"><span className="basketball-team-timeouts" aria-label={timeoutCount(side) == null ? "Timeouts unavailable" : `${timeoutCount(side)} timeouts left`}>{timeoutCount(side) == null ? <span className="basketball-timeout-unavailable">TO: —</span> : <span className="basketball-timeout-circles">{Array.from({ length: game.league === "NBA" ? 7 : Math.max(4, timeoutCount(side) || 0) }, (_, i) => <i key={i} className={i < timeoutCount(side)! ? "active" : ""} />)}</span>}</span><small className="basketball-team-fouls">Fouls: {foulsCount(side) ?? "—"}</small></div>}{completed && <small className="basketball-final-spread">{teamAbbreviatedName(game.league, game[`${side}_team`])} {spreadText(homeSpread == null ? null : side === "home" ? homeSpread : -homeSpread)}</small>}</div></div>
+          <div className="game-tracker-score-team-main">{logos[side] ? <Image unoptimized scoreboardLeague={game.league} logoBackground={side === "away" ? awayColors.primary : homeColors.primary} src={logos[side]!} alt={names[side]} width={60} height={60}
+            onLogoPalette={colors => setLogoPalettes(previous => ({ ...previous, [side]: { logo: logos[side]!, colors } }))} /> : <span className="game-tracker-logo-fallback">{names[side].slice(0, 1)}</span>}<div className="game-tracker-score-stack"><small className="broadcast-team-record">{payload?.teams[side]?.records?.[0]?.summary || ""}</small><b className={completed && scores.away != null && scores.home != null ? scores[side]! > scores[side === "away" ? "home" : "away"]! ? "winner" : "loser" : ""}>{scores[side] ?? "—"}</b>{!completed && !pregame && <div className="basketball-team-indicators"><span className="basketball-team-timeouts" aria-label={timeoutCount(side) == null ? "Timeouts unavailable" : `${timeoutCount(side)} timeouts left`}>{timeoutCount(side) == null ? <span className="basketball-timeout-unavailable">TO: —</span> : <span className="basketball-timeout-circles">{Array.from({ length: game.league === "NBA" ? 7 : Math.max(4, timeoutCount(side) || 0) }, (_, i) => <i key={i} className={i < timeoutCount(side)! ? "active" : ""} />)}</span>}</span><small className="basketball-team-fouls">Fouls: {foulsCount(side) ?? "—"}</small></div>}{completed && <small className="basketball-final-spread">{teamAbbreviatedName(game.league, game[`${side}_team`])} {spreadText(homeSpread == null ? null : side === "home" ? homeSpread : -homeSpread)}</small>}</div></div>
         </div>)}
         <div className={`game-tracker-score-center ${completed ? "final" : ""}`}>
           {completed && <time className="broadcast-game-date" dateTime={game.commence_time}>{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</time>}

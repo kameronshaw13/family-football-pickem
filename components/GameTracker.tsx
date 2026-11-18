@@ -14,6 +14,7 @@ import type { Game } from "@/lib/types";
 import type { AppSlug } from "@/lib/rulePresentation";
 import { teamDisplayName } from "@/lib/teamNames";
 import { trackerDisplayScore } from "@/lib/trackerDisplayScore";
+import { trackerTeamColors } from "@/lib/trackerTeamColors";
 import { groupTrackerScoringPlays } from "@/lib/trackerScoringGroups";
 
 type TrackerTab = "live" | "scoring" | "plays" | "box";
@@ -100,9 +101,9 @@ type TrackerPayload = {
   }>;
 };
 
-function TeamLogo({ src, name, size = 40 }: { src?: string | null; name: string; size?: number }) {
+function TeamLogo({ src, name, size = 40, logoBackground }: { src?: string | null; name: string; size?: number; logoBackground?: string }) {
   return src
-    ? <Image unoptimized src={src} alt="" width={size} height={size} />
+    ? <Image unoptimized src={src} alt="" width={size} height={size} logoBackground={logoBackground} />
     : <span className="game-tracker-logo-fallback">{name.slice(0, 2).toUpperCase()}</span>;
 }
 
@@ -221,6 +222,8 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   const team = payload?.teams[side];
   const opponent = payload?.teams[side === "away" ? "home" : "away"];
   const fullName = team?.name || fallbackName;
+  const logo = team?.logo || fallbackLogo;
+  const logoBacking = trackerTeamColors(team?.color, team?.alternateColor).backing;
   // Live game props are refreshed by the Pick Board every five seconds.
   // ESPN's detail summary sometimes lags its scoreboard event feed.
   const liveBoardScore = game.live_state === "in"
@@ -242,7 +245,9 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
 
   return <div className={`game-tracker-score-team ${side}`} aria-label={`${fullName} ${score ?? "score unavailable"}`}>
     <div className="game-tracker-score-team-main">
-      <span className="game-tracker-header-logo-wrap"><TeamLogo src={team?.logo || fallbackLogo} name={fullName} size={56} /></span>
+      <span className="game-tracker-header-logo-wrap">{logo
+        ? <Image unoptimized src={logo} alt="" width={56} height={56} scoreboardLeague={game.league} style={{ "--tracker-logo-backing": logoBacking } as CSSProperties} />
+        : <TeamLogo name={fullName} size={56} />}</span>
       <div className="game-tracker-score-stack">
         <small className="broadcast-team-record">{team?.record || ""}</small>
         <b className={scoreTone}>{score ?? "—"}</b>
@@ -338,7 +343,7 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
         className="game-tracker-endzone left"
         style={{ backgroundColor: `#${offense.color || "34444c"}`, color: `#${offense.alternateColor || "ffffff"}` }}
       >
-        <TeamLogo src={offense.logo} name={offense.name} size={20} />
+        <TeamLogo src={offense.logo} name={offense.name} size={20} logoBackground={`#${offense.color || "34444c"}`} />
         <span>{offense.endZoneName || offense.shortName || offense.abbreviation}</span>
       </div>
 
@@ -366,7 +371,7 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
         className="game-tracker-endzone right"
         style={{ backgroundColor: `#${defense.color || "34444c"}`, color: `#${defense.alternateColor || "ffffff"}` }}
       >
-        <TeamLogo src={defense.logo} name={defense.name} size={20} />
+        <TeamLogo src={defense.logo} name={defense.name} size={20} logoBackground={`#${defense.color || "34444c"}`} />
         <span>{defense.endZoneName || defense.shortName || defense.abbreviation}</span>
       </div>
     </div>
