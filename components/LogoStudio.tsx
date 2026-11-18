@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronDown, Images, Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import Image from "next/image";
 import { curatedLogoAlternatives, type LogoAlternative } from "@/lib/logoExtraOptions";
 import {
@@ -23,7 +23,6 @@ const teamMatches = (row: ArchiveEntry, name: string) => {
 
 export default function LogoStudio({ profileId }: { profileId: string }) {
   const [prefs, setPrefs] = useState<LogoStudioPreferences>(getLogoStudioPreferences());
-  const [expanded, setExpanded] = useState(false);
   const [teams, setTeams] = useState<Team[]>([]);
   const [league, setLeague] = useState("CBB");
   const [search, setSearch] = useState("");
@@ -93,10 +92,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     } else setMessage("");
   }
 
-  useEffect(() => {
-    if (!expanded) return;
-    void loadTeams();
-  }, [expanded, loadTeams]);
+  useEffect(() => { void loadTeams(); }, [loadTeams]);
 
   useEffect(() => {
     let canceled = false;
@@ -169,25 +165,21 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
       : teamVectorFallbackLogo(active.logo) || active.logo
     : "";
 
-  return <div className="settings-card logo-studio-card">
-    <div className="settings-row-heading logo-studio-heading">
-      <span className="settings-leading-icon"><Images size={17} /></span>
-      <span className="settings-row-copy"><strong>Logo Studio</strong><span>Switch styles and choose individual team logos.</span></span>
-    </div>
+  return <div className="logo-studio-page">
+    <div className="logo-studio-style-label"><strong>Team artwork style</strong><span>Choose a look, then customize individual teams.</span></div>
     <div className="theme-toggle logo-studio-era" role="group" aria-label="Team logo style">
       <button type="button" aria-pressed={prefs.era === "modern"} className={prefs.era === "modern" ? "active" : ""} onClick={() => void changeEra("modern")}>Modern</button>
       <button type="button" aria-pressed={prefs.era === "vintage"} className={prefs.era === "vintage" ? "active" : ""} onClick={() => void changeEra("vintage")}>Vintage</button>
     </div>
-    <details className="logo-studio-detail" open={expanded} onToggle={event => setExpanded(event.currentTarget.open)}>
-      <summary>Choose team logos <ChevronDown size={16} /></summary>
-      <div className="logo-studio-body">
+    <div className="logo-studio-body">
         <div className="logo-studio-leagues" role="group" aria-label="Sport">
           {LEAGUES.map(sport => <button key={sport} type="button" className={league === sport ? "active" : ""} aria-pressed={league === sport} onClick={() => { setLeague(sport); setActive(null); }}>{sport}</button>)}
         </div>
-        <label className="logo-studio-search"><Search size={15} /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search teams" aria-label="Search teams" /></label>
+        <label className="logo-studio-search"><Search size={15} /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search all teams" aria-label="Search all teams" /></label>
+        {!loadingTeams && <p className="logo-studio-count">{filtered.length} {filtered.length === 1 ? "team" : "teams"} · Alphabetical A–Z</p>
         {loadingTeams && <p className="logo-studio-note">Loading teams…</p>}
         {!loadingTeams && !filtered.length && <p className="logo-studio-note">No teams found.</p>}
-        <div className="logo-studio-teams">{filtered.slice(0, 160).map(team => {
+        <div className="logo-studio-teams">{filtered.map(team => {
           const selected = prefs.choices[team.key]?.[prefs.era];
           const logo = selected || (prefs.era === "vintage" ? prefs.vintageDefaults[team.key] : null) || teamVectorFallbackLogo(team.logo) || team.logo;
           return <button type="button" key={team.league + team.key} className={active?.key === team.key && active.league === team.league ? "logo-studio-team active" : "logo-studio-team"} onClick={() => { setActive(team); setMessage(""); }}>
@@ -216,8 +208,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
           </div>
         </div>}
         <p className="logo-studio-note">Changes are personal to this account on this device. Game data and other players are unaffected.</p>
-      </div>
-    </details>
+    </div>
     {message && <p className="logo-studio-status" role="status">{message}</p>}
   </div>;
 }
