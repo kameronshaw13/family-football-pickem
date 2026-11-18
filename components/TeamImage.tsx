@@ -30,6 +30,7 @@ type Props = ImageProps & { scoreboardLeague?: League; logoBackground?: string; 
 
 export default function TeamImage({ src, onError, onLoad, scoreboardLeague, logoBackground, onLogoPalette, ...props }: Props) {
   const [failed, setFailed] = useState<string | null>(null);
+  const [opaqueRetry, setOpaqueRetry] = useState<string | null>(null);
   const [sample, setSample] = useState<{ source: string; values: LogoSample } | null>(null);
   const svg = typeof src === "string" ? teamSvgLogo(src) : null;
   const preferred = svg && svg !== failed ? svg : undefined;
@@ -48,7 +49,9 @@ export default function TeamImage({ src, onError, onLoad, scoreboardLeague, logo
   }
 
   return <NextImage {...props} key={preferred} src={preferred ?? src}
-    crossOrigin={preferred?.startsWith("https://sports.cbsimg.net/") ? "anonymous" : props.crossOrigin}
+    // Retry the SAME CBS SVG without CORS if the CDN rejects canvas sampling.
+    // Never fall back to a different ESPN artwork for the same team.
+    crossOrigin={preferred?.startsWith("https://sports.cbsimg.net/") && opaqueRetry !== preferred ? "anonymous" : props.crossOrigin}
     data-white-outline={outline} data-logo-backing={backing || undefined}
     unoptimized={Boolean(preferred) || props.unoptimized}
     onLoad={event => {
@@ -65,7 +68,8 @@ export default function TeamImage({ src, onError, onLoad, scoreboardLeague, logo
       onLoad?.(event);
     }}
     onError={event => {
-      if (preferred) setFailed(preferred);
+      if (preferred && opaqueRetry !== preferred) setOpaqueRetry(preferred);
+      else if (preferred) setFailed(preferred);
       onError?.(event);
     }} />;
 }
