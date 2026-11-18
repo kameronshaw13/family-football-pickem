@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, Images, Search } from "lucide-react";
 import {
-  getLogoStudioPreferences, LOGO_STUDIO_EVENT, logoKeyFromSource,
+  getLogoStudioPreferences, LOGO_STUDIO_EVENT,
   saveLogoStudioPreferences, validLogoUrl, type LogoEra, type LogoStudioPreferences
 } from "@/lib/logoStudio";
 import { ncaaSvgLogo, teamVectorFallbackLogo, teamVectorLogo } from "@/lib/teamLogoSource";
