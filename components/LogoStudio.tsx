@@ -12,7 +12,7 @@ import {
 import { ncaaSvgLogo, teamVectorFallbackLogo, teamVectorLogo } from "@/lib/teamLogoSource";
 
 type Team = { league: string; name: string; logo: string; key: string };
-type Option = { label: string; url: string; historical?: boolean };
+type Option = { label: string; url: string; historical?: boolean; year?: number };
 type ArchiveEntry = { name: string; logos: { label: string; url: string; year: number }[] };
 const LEAGUES = ["CBB", "CFB", "NBA", "NFL"];
 
@@ -125,9 +125,30 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
           : "/api/logo-history?league=" + active.league.toLowerCase() + "&team=" + encodeURIComponent(active.name)))
           .then(res => res.json())
           .then(data => {
-            if (!canceled) setHistory((data.logos || [])
+            if (canceled) return;
+            const matches: Option[] = (data.logos || [])
               .filter((item: Option) => validLogoUrl(item.url))
-              .slice(0, 16).map((item: Option) => ({ ...item, historical: true })));
+              .slice(0, 16).map((item: Option) => ({ ...item, historical: true }));
+            setHistory(matches);
+            // The vintage switch can automatically use the school's older artwork
+            // after that thumbnail actually loads. A manual choice always wins.
+            if (active.league === "CBB" || active.league === "CFB") {
+              const available = matches.filter(item => item.year && item.year < 2020);
+              const choice = [...available.filter(item => item.year! <= 2005)].sort((a,b)=>(b.year||0)-(a.year||0))[0]
+                || [...available].sort((a,b)=>(a.year||0)-(b.year||0))[0];
+              if (choice) {
+                const preview = new window.Image();
+                preview.onload = () => {
+                  if (canceled) return;
+                  const latest = getLogoStudioPreferences();
+                  if (latest.vintageDefaults[active.key] || latest.choices[active.key]?.vintage) return;
+                  saveLogoStudioPreferences({ ...latest, vintageDefaults: {
+                    ...latest.vintageDefaults, [active.key]: choice.url
+                  } });
+                };
+                preview.src = collegeHistoricalImageSource(choice.url);
+              }
+            }
           })
           .catch(() => { if (!canceled) setHistory([]); })
           .finally(() => { if (!canceled) setLoadingHistory(false); });
