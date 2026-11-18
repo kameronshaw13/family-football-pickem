@@ -201,7 +201,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
             </button>)}
           </div>
           {loadingHistory && <p className="logo-studio-note">Finding historical logos…</p>}
-          {["CFB", "CBB"].includes(active.league) && <p className="logo-studio-note">Historic college logos appear below when the school has documented older designs. You can also paste a custom image URL.</p>}
+          {["CFB", "CBB"].includes(active.league) && <p className="logo-studio-note">Historical designs appear above when available for this school. You can also paste an image URL. Archive research: <a href="https://www.sportslogos.net/" target="_blank" rel="noopener noreferrer">SportsLogos.Net</a>.</p>}
           <div className="logo-studio-custom">
             <input type="url" value={custom} onChange={event => setCustom(event.target.value)} placeholder="Paste PNG, SVG or WebP image URL" aria-label="Custom team logo HTTPS URL" />
             <button type="button" disabled={!validLogoUrl(custom)} onClick={() => { selectLogo(custom); setCustom(""); }}>Use logo</button>
