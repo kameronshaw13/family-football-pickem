@@ -176,7 +176,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
           {LEAGUES.map(sport => <button key={sport} type="button" className={league === sport ? "active" : ""} aria-pressed={league === sport} onClick={() => { setLeague(sport); setActive(null); }}>{sport}</button>)}
         </div>
         <label className="logo-studio-search"><Search size={15} /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search all teams" aria-label="Search all teams" /></label>
-        {!loadingTeams && <p className="logo-studio-count">{filtered.length} {filtered.length === 1 ? "team" : "teams"} · Alphabetical A–Z</p>
+        {!loadingTeams && <p className="logo-studio-count">{filtered.length} {filtered.length === 1 ? "team" : "teams"} · Alphabetical A–Z</p>}
         {loadingTeams && <p className="logo-studio-note">Loading teams…</p>}
         {!loadingTeams && !filtered.length && <p className="logo-studio-note">No teams found.</p>}
         <div className="logo-studio-teams">{filtered.map(team => {
