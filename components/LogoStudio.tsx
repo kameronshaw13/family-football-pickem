@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, Images, Search } from "lucide-react";
+import Image from "next/image";
 import {
   getLogoStudioPreferences, LOGO_STUDIO_EVENT,
   saveLogoStudioPreferences, validLogoUrl, type LogoEra, type LogoStudioPreferences
@@ -172,7 +173,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
           const selected = prefs.choices[team.key]?.[prefs.era];
           const logo = selected || (prefs.era === "vintage" ? prefs.vintageDefaults[team.key] : null) || teamVectorFallbackLogo(team.logo) || team.logo;
           return <button type="button" key={team.league + team.key} className={active?.key === team.key && active.league === team.league ? "logo-studio-team active" : "logo-studio-team"} onClick={() => { setActive(team); setMessage(""); }}>
-            <img src={logo} alt="" width={35} height={35} loading="lazy" />
+            <Image unoptimized src={logo} alt="" width={35} height={35} loading="lazy" />
             <span>{team.name}</span>
             <ChevronDown size={14} />
           </button>;
@@ -181,11 +182,11 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
           <div className="logo-studio-editor-heading"><strong>{active.name}</strong><span>{prefs.era === "vintage" ? "Vintage" : "Modern"} artwork</span></div>
           <div className="logo-studio-options">
             <button className={!chosen ? "logo-studio-option selected" : "logo-studio-option"} type="button" aria-pressed={!chosen} onClick={() => selectLogo(null)}>
-              <img src={automatic} width={52} height={52} alt="" />
+              <Image unoptimized src={automatic} width={52} height={52} alt="" />
               <span>Automatic</span>
             </button>
             {options.map(option => <button key={option.url} className={chosen === option.url ? "logo-studio-option selected" : "logo-studio-option"} aria-pressed={chosen === option.url} type="button" onClick={() => selectLogo(option.url)}>
-              <img src={option.url} width={52} height={52} alt="" loading="lazy" onError={event => { event.currentTarget.style.opacity = ".25"; }} />
+              <Image unoptimized src={option.url} width={52} height={52} alt="" loading="lazy" onError={event => { event.currentTarget.style.opacity = ".25"; }} />
               <span>{option.label}</span>
             </button>)}
           </div>
