@@ -25,22 +25,13 @@ export function parseDivisionOneTeams(data: unknown): CollegeLogoDirectoryEntry[
 }
 
 export async function getDivisionOneLogoDirectory(): Promise<CollegeLogoDirectoryEntry[]> {
-  const urls = [
-    // ESPN's group 50 = NCAA Division I basketball; group 90 = FBS + FCS football.
-    "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams?groups=50&limit=500",
-    "https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams?groups=90&limit=500"
-  ];
-  const fetched = await Promise.all(urls.map(async url => {
-    try {
-      const response = await fetch(url, { next: { revalidate: 86400 }, signal: AbortSignal.timeout(9000) });
-      if (!response.ok) return [];
-      return parseDivisionOneTeams(await response.json());
-    } catch { return []; }
-  }));
-  // Never use ESPN's default all-division directory in a Division I-only selector.
-  if (fetched[0].length < 200 && fetched[1].length < 180)
-    throw new Error("Division I team directory unavailable");
-  const entries = new Map<string, CollegeLogoDirectoryEntry>();
-  for (const team of fetched.flat()) if (!entries.has(team.key)) entries.set(team.key, team);
-  return [...entries.values()].sort((a, b) => a.name.localeCompare(b.name));
+  // The men's college basketball teams endpoint returns the current Division I
+  // membership (365 in November 2026). The football /teams endpoint ignores
+  // group=90 and includes Division II/III schools; never union it into this list.
+  const url = "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams?groups=50&limit=500";
+  const response = await fetch(url, { next: { revalidate: 86400 }, signal: AbortSignal.timeout(9000) });
+  if (!response.ok) throw new Error("Division I team directory unavailable");
+  const teams = parseDivisionOneTeams(await response.json());
+  if (teams.length < 300 || teams.length > 425) throw new Error("Division I team list failed validation");
+  return teams.sort((a, b) => a.name.localeCompare(b.name));
 }
