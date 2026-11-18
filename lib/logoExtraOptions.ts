@@ -25,6 +25,11 @@ export function curatedLogoAlternatives(source: string, league: string): LogoAlt
   }
   if (league === "NFL" && sport === "nfl" && key)
     add("NFL vector", NFL_SVG_BY_ESPN_KEY[key], "team-logos GitHub");
+  if ((league === "CBB" || league === "CFB") && sport === "ncaa" && key === "2724") {
+    add("Wichita State 1948 WuShock", "https://content.sportslogos.net/logos/35/911/full/wichita_state_shockers_logo_primary_1948sportslogosnet9223.png", "SportsLogos.Net");
+    add("Wichita State 1959 WuShock", "https://content.sportslogos.net/logos/35/911/full/wichita_state_shockers_logo_primary_1959sportslogosnet1015.png", "SportsLogos.Net");
+    add("Wichita State 1964 WuShock", "https://content.sportslogos.net/logos/35/911/full/wichita_state_shockers_logo_primary_1964sportslogosnet4374.png", "SportsLogos.Net");
+  }
   if ((league === "CBB" || league === "CFB") && sport === "ncaa" && key === "27") {
     add("UC Riverside bear + UCR (2003)", "https://content.sportslogos.net/logos/30/881/full/dmrfj25w2m6zix6pem8ff70lf.gif", "SportsLogos.Net");
     add("UC Riverside bear head (2003)", "https://content.sportslogos.net/logos/30/881/full/f57l1zt62aatjv62zslxwjmaw.gif", "SportsLogos.Net");
