@@ -7,6 +7,21 @@ const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 const slugify = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
   .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 type Option = { label: string; url: string; source: string };
+type EspnResponse = { options: Option[]; colors: string[] };
+function espnTeamColors(payload: unknown): string[] {
+  const team = (payload as { team?: { color?: unknown; alternateColor?: unknown } })?.team;
+  if (!team) return [];
+  const colors: string[] = [];
+  for (const value of [team.color, team.alternateColor]) {
+    if (typeof value !== "string") continue;
+    const clean = value.startsWith("#") ? value.slice(1) : value;
+    if (/^[0-9a-fA-F]{6}$/.test(clean)) {
+      const hex = "#" + clean.toUpperCase();
+      if (!colors.includes(hex)) colors.push(hex);
+    }
+  }
+  return colors;
+}
 
 /** Only accept an ESPN team identity from the same sport being requested. */
 function espnTeamId(source: string, league: string): string | null {
@@ -36,16 +51,17 @@ function espnAlternativeLogos(payload: unknown): Option[] {
   return result.slice(0, 8);
 }
 
-async function fromESPN(league: string, source: string): Promise<Option[]> {
+async function fromESPN(league: string, source: string): Promise<EspnResponse> {
   const id = espnTeamId(source, league);
-  if (!id) return [];
+  if (!id) return { options: [], colors: [] };
   const sport = league === "NBA" ? "basketball/nba"
     : league === "NFL" ? "football/nfl" : "basketball/mens-college-basketball";
   const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/teams/${encodeURIComponent(id)}`, {
     next: { revalidate: 86400 }, signal: AbortSignal.timeout(6000)
   });
-  if (!res.ok) return [];
-  return espnAlternativeLogos(await res.json());
+  if (!res.ok) return { options: [], colors: [] };
+  const payload: unknown = await res.json();
+  return { options: espnAlternativeLogos(payload), colors: espnTeamColors(payload) };
 }
 
 async function fromFootyLogos(name: string): Promise<Option[]> {
@@ -87,16 +103,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, options: [] }, { status: 400 });
 
   // An unavailable provider must never suppress options found at another source.
-  const results = await Promise.allSettled([fromFootyLogos(name), fromESPN(sport, source)]);
+  const [footy, espn] = await Promise.allSettled([fromFootyLogos(name), fromESPN(sport, source)]);
   const options: Option[] = [];
-  for (const result of results) {
-    if (result.status !== "fulfilled") continue;
-    for (const option of result.value) {
-      if (!options.some(old => old.url === option.url)) options.push(option);
-    }
+  const colors = espn.status === "fulfilled" ? espn.value.colors : [];
+  for (const option of [
+    ...(footy.status === "fulfilled" ? footy.value : []),
+    ...(espn.status === "fulfilled" ? espn.value.options : [])
+  ]) {
+    if (!options.some(old => old.url === option.url)) options.push(option);
   }
   options.sort((a, b) => Number(/symbol|secondary|mascot|icon/i.test(b.label)) - Number(/symbol|secondary|mascot|icon/i.test(a.label)));
-  return NextResponse.json({ ok: true, options: options.slice(0, 16) }, {
+  return NextResponse.json({ ok: true, options: options.slice(0, 16), colors }, {
     headers: { "Cache-Control": "private, max-age=3600" }
   });
 }

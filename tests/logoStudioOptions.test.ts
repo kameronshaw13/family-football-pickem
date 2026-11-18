@@ -54,3 +54,20 @@ test("duplicate SVG designs collapse despite palette/colorway changes", () => {
   assert.equal(contentFingerprint(navy, "image/svg+xml"), contentFingerprint(gold, "image/svg+xml"));
   assert.notEqual(contentFingerprint(navy, "image/svg+xml"), contentFingerprint(other, "image/svg+xml"));
 });
+
+test("recommended Modern logo source favors NBA CDN and NCAA school files", async () => {
+  const { recommendedModernLogo, draftRecommendedModernLogos } = await import("../lib/logoRecommendation.ts");
+  const nba = { league: "NBA", name: "LA Clippers", key: "cbs:344", logo: "https://a.espncdn.com/i/teamlogos/nba/500/scoreboard/lac.png" };
+  const college = { league: "College", name: "Wichita State", key: "ncaa:2724", logo: "https://a.espncdn.com/i/teamlogos/ncaa/500/2724.png" };
+  const nfl = { league: "NFL", name: "Kansas City Chiefs", key: "cbs:12", logo: "https://a.espncdn.com/i/teamlogos/nfl/500/12.png" };
+  assert.ok(recommendedModernLogo(nba)?.url.startsWith("https://cdn.nba.com/"));
+  assert.ok(recommendedModernLogo(college)?.url.startsWith("https://www.ncaa.com/"));
+  assert.equal(recommendedModernLogo(nfl)?.url, nfl.logo);
+  const draft = draftRecommendedModernLogos([nba, college, nfl], { [nba.key]: { modern: "https://example.com/custom.svg" }, [college.key]: { vintage: "https://example.com/old.svg" } }, {});
+  assert.equal(draft.added, 2);
+  assert.equal(draft.choices[nba.key].modern, "https://example.com/custom.svg");
+  assert.equal(draft.choices[college.key].vintage, "https://example.com/old.svg");
+  assert.equal(draft.choices[college.key].modern, recommendedModernLogo(college)?.url);
+  assert.equal(draft.choices[nfl.key].modern, nfl.logo);
+  assert.equal(draftRecommendedModernLogos([nba], {}, { [nba.key]: "https://example.com/published.svg" }).added, 0);
+});

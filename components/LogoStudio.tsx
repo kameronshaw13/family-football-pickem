@@ -10,6 +10,7 @@ import {
   saveLogoStudioPreferences, persistLogoStudioDrafts, waitForLogoStudioDrafts, validLogoUrl, type LogoEra, type LogoStudioPreferences
 } from "@/lib/logoStudio";
 import { ncaaSvgLogo, teamVectorFallbackLogo, teamVectorLogo } from "@/lib/teamLogoSource";
+import { draftRecommendedModernLogos, recommendedModernLogo } from "@/lib/logoRecommendation";
 
 type Team = { league: string; name: string; logo: string; key: string };
 type Option = { label: string; url: string; historical?: boolean; year?: number };
@@ -41,6 +42,8 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
   const [active, setActive] = useState<Team | null>(null);
   const [history, setHistory] = useState<Option[]>([]);
   const [extra, setExtra] = useState<LogoAlternative[]>([]);
+  const [referenceColors, setReferenceColors] = useState<string[]>([]);
+  const [preparing, setPreparing] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [message, setMessage] = useState("");
@@ -156,19 +159,38 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     } finally { setSavingEra(null); }
   }
 
+  async function prepareModernDefaults() {
+    if (savingEra || preparing) return;
+    setPreparing(true);
+    setMessage("");
+    try {
+      const list = teams.length ? teams : await loadTeams();
+      if (!list.length) throw new Error("Team directory unavailable. Try again.");
+      const latest = getLogoStudioPreferences();
+      const next = draftRecommendedModernLogos(list, latest.choices, getPublishedLogoCollections().modern);
+      if (!next.added) { setMessage("No uncustomized teams need a Modern recommendation. Existing choices were kept."); return; }
+      saveLogoStudioPreferences({ ...latest, choices: next.choices });
+      await persistLogoStudioDrafts(next.choices);
+      setMessage(`${next.added} Modern recommendations saved to your account. Select Save Modern to publish them for everyone. Existing picks were kept. Sources: ${Object.entries(next.bySource).map(([key, count]) => key + " " + count).join("; ")}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not prepare recommendations.");
+    } finally { setPreparing(false); }
+  }
+
   useEffect(() => { void loadTeams(); }, [loadTeams]);
 
   useEffect(() => {
     let canceled = false;
     setHistory([]);
     setExtra([]);
+    setReferenceColors([]);
     setCustom("");
     setLoadingHistory(false);
     if (active) {
       const params = new URLSearchParams({ league: active.league === "College" ? "CBB" : active.league, name: active.name, logo: active.logo });
       void fetch("/api/logo-alternatives?" + params.toString())
         .then(res => res.json())
-        .then(data => { if (!canceled) setExtra(data.ok ? (data.options || []) : []); })
+        .then(data => { if (!canceled) { setExtra(data.ok ? (data.options || []) : []); setReferenceColors(data.ok && Array.isArray(data.colors) ? data.colors : []); } })
         .catch(() => { if (!canceled) setExtra([]); });
       if (["NBA", "NFL", "College"].includes(active.league)) {
         setLoadingHistory(true);
@@ -219,6 +241,8 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     const add = (label: string, url?: string | null) => {
       if (url && validLogoUrl(url) && !result.some(item => item.url === url)) result.push({ label, url });
     };
+    const recommended = recommendedModernLogo(active);
+    if (prefs.era === "modern" && recommended) add("Recommended · " + recommended.source, recommended.url);
     add("CBS standard", teamVectorFallbackLogo(active.logo));
     if (teamVectorFallbackLogo(active.logo)) add("CBS alternate", teamVectorLogo(active.logo));
     add("ESPN", active.logo);
@@ -228,10 +252,11 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     for (const item of history) add(item.label, item.url);
     // Put distinctive picture-first and mascot marks ahead of wordmark/crest
     // variations without hiding the other valid designs.
-    result.sort((a, b) => Number(/symbol|mascot|secondary|ship|icon|mark/i.test(b.label))
+    result.sort((a, b) => Number(b.label.startsWith("Recommended ·")) - Number(a.label.startsWith("Recommended ·"))
+      || Number(/symbol|mascot|secondary|ship|icon|mark/i.test(b.label))
       - Number(/symbol|mascot|secondary|ship|icon|mark/i.test(a.label)));
     return result;
-  }, [active, history, extra]);
+  }, [active, history, extra, prefs.era]);
 
 
   function selectLogo(value: string | null) {
@@ -276,6 +301,13 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
         {savingEra === "vintage" ? "Saving Vintage…" : "Save Vintage"}
       </button>
     </div>
+    <div className="logo-studio-bulk-action">
+      <button type="button" disabled={preparing || Boolean(savingEra) || loadingTeams || teams.length === 0}
+        onClick={() => void prepareModernDefaults()}>
+        {preparing ? "Preparing recommendations…" : "Fill recommended Modern logos for all untouched teams"}
+      </button>
+      <span>Uses NBA.com and NCAA.com artwork where mapped, ESPN otherwise. Your existing selections stay unchanged. Press Save Modern to publish.</span>
+    </div>
     <div className="logo-studio-body">
         <div className="logo-studio-leagues" role="group" aria-label="Sport">
           {LEAGUES.map(sport => <button key={sport} type="button" className={league === sport ? "active" : ""} aria-pressed={league === sport} onClick={() => { setLeague(sport); setActive(null); }}>{sport}</button>)}
@@ -296,7 +328,13 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
         })}</div>
         {active && <div className="logo-studio-editor">
           <div className="logo-studio-editor-heading"><strong>{active.name}</strong><span>{prefs.era === "vintage" ? "Vintage" : "Modern"} artwork</span></div>
-          <p className="logo-studio-note">Symbol and mascot artwork is listed first when available. Modern and vintage options remain separate when saved.</p>
+          <p className="logo-studio-note">Recommended Modern artwork favors NBA/NCAA sources, with ESPN as fallback. This is a source recommendation, not an official color certification. Your icon/mascot alternatives remain available.</p>
+          {referenceColors.length > 0 && <div className="logo-studio-palette" aria-label="ESPN color reference">
+            <span>ESPN team color reference</span>
+            {referenceColors.map(hex => <span className="logo-studio-color" key={hex}>
+              <i style={{ backgroundColor: hex }} aria-hidden="true" />{hex}
+            </span>)}
+          </div>}
           <div className="logo-studio-options">
             <button className={!chosen ? "logo-studio-option selected" : "logo-studio-option"} type="button" aria-pressed={!chosen} onClick={() => selectLogo(null)}>
               <Image unoptimized src={collegeHistoricalImageSource(automatic)} width={52} height={52} alt="" />

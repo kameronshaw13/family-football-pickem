@@ -84,3 +84,13 @@ html[data-logo-era="vintage"][data-theme="dark"] .matchup-preview-hero { backgro
 }
 .logo-studio-save-actions button:disabled { opacity:.65; cursor:wait; }
 .logo-studio-page .logo-studio-leagues { grid-template-columns:repeat(3,minmax(0,1fr)); }
+
+/* Compact, non-card controls for account-wide Modern logo recommendations. */
+.logo-studio-bulk-action { display:flex; flex-direction:column; gap:4px; padding:9px var(--page-gutter); border-bottom:1px solid var(--line); }
+.logo-studio-bulk-action button { min-height:32px; padding:4px 0; border:0; background:transparent; color:var(--blue); text-align:left; font-size:12px; font-weight:800; }
+.logo-studio-bulk-action button:disabled { opacity:.55; }
+.logo-studio-bulk-action span { color:var(--muted); line-height:1.4; font-size:10px; }
+.logo-studio-palette { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:5px 0 12px; font-size:11px; }
+.logo-studio-palette > span:first-child { color:var(--muted); font-weight:750; }
+.logo-studio-color { display:inline-flex; align-items:center; gap:4px; font-size:10px; color:var(--ink); font-variant-numeric:tabular-nums; }
+.logo-studio-color i { display:inline-block; width:15px; height:15px; border:1px solid var(--line); border-radius:2px; }
