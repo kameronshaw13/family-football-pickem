@@ -134,7 +134,6 @@ def main():
     sources = {
         "nba": (logos["nba"], teams["nba"], NBA_ALIASES, teams["nba"]),
         "nfl": (logos["nfl"], teams["nfl"], {}, teams["nfl"]),
-        "cbb": (logos["cbb"], teams["cbb"], COLLEGE_ALIASES, teams["cbb"]),
         "ncaa": (logos["cbb"] | logos["cfb"], teams["cfb"] | teams["cbb"], COLLEGE_ALIASES, teams["cbb"]),
     }
     for league, (directory, entries, aliases, required) in sources.items():
@@ -146,11 +145,11 @@ def main():
             if not logo:
                 continue
             matches[team_id] = logo
-            if league in {"nba", "nfl"}:
+            if league != "ncaa":
                 matches[team["abbreviation"].lower()] = logo
             for entry in team.get("logos", []):
                 guid = ESPN_GUID.search(entry["href"])
-                if guid and league != "cbb":
+                if guid:
                     by_guid[guid[1]] = logo
 
         missing = required.keys() - matches.keys()

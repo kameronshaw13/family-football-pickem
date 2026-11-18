@@ -20,6 +20,7 @@ test("a white outline improves a dark logo on a dark background, while pale mark
   assert.equal(logoNeedsOutline(edges, "#20282d"), true);
   assert.equal(logoNeedsOutline(edges, "#fbfaf6"), false);
   assert.equal(logoNeedsOutline([1, 1, .8], "#20282d"), false);
+  assert.equal(logoNeedsOutline([...edges, 1, 1], "#20282d"), false);
   assert.equal(logoNeedsDarkBacking(edges), false);
   assert.equal(logoNeedsDarkBacking([1, 1, .8, .4]), true);
   assert.equal(logoNeedsDarkBacking([1, 1, .8, .4], ["#49266c", "#f3b237"]), false);

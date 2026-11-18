@@ -52,6 +52,7 @@ export function logoNeedsOutline(edges: number[], background: string) {
   if (!color || !edges.length) return false;
   const surface = logoLuminance(...color);
   if (1.05 / (surface + .05) < 2.4) return false;
+  if (edges.filter(edge => edge >= .84).length / edges.length >= .45) return false;
   const blendsIn = edges.filter(edge => (Math.max(edge, surface) + .05) / (Math.min(edge, surface) + .05) < 2);
   return blendsIn.length / edges.length >= .3;
 }

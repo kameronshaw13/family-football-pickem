@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "@/components/TeamImage";
 import { LoaderCircle } from "lucide-react";
@@ -151,10 +151,6 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
   };
   const awayColors = teamColors("away");
   const homeColors = teamColors("home");
-  const scoreboardColors = {
-    "--tracker-away-color": awayColors.primary, "--tracker-away-secondary": awayColors.secondary, "--tracker-away-backing": awayColors.backing,
-    "--tracker-home-color": homeColors.primary, "--tracker-home-secondary": homeColors.secondary, "--tracker-home-backing": homeColors.backing
-  } as CSSProperties;
   const basketballPeriod = (period: number) => basketballPeriodLabel(period, game.league === "CBB").replace(/ Half$/, "");
   const timeoutCount = (side: Side) => { const count = Number(payload?.teams[side]?.timeoutsRemaining); return payload?.teams[side]?.timeoutsRemaining == null || !Number.isFinite(count) ? null : Math.max(0, Math.trunc(count)); };
   const foulsCount = (side: Side) => payload?.teams[side]?.fouls;
@@ -183,7 +179,15 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
   return createPortal(<div className="game-tracker-backdrop" onClick={event => { if (event.target === event.currentTarget) close(); }}>
     <section ref={sheet} className="game-tracker-sheet basketball-details basketball-game-tracker" role="dialog" aria-modal="false" aria-label={`${names.away}${game.neutral_site ? " vs " : " at "}${names.home} GameTracker`}>
       <header className="game-tracker-header"><div className="game-detail-title"><strong>{names.away}{game.neutral_site ? " vs " : " at "}{names.home}</strong></div><GameDetailClose onClose={close} label="Close GameTracker" /></header>
-      <div className={`game-tracker-scoreboard ${completed ? "basketball-final-scoreboard" : !pregame ? "basketball-live-scoreboard" : ""}`} style={scoreboardColors}><div className="game-tracker-scoreboard-grid">
+      <div className={`game-tracker-scoreboard ${completed ? "basketball-final-scoreboard" : !pregame ? "basketball-live-scoreboard" : ""}`}><div className="game-tracker-scoreboard-grid">
+        {(["away", "home"] as const).map(side => {
+          const colors = side === "away" ? awayColors : homeColors;
+          return <svg key={side} className={`basketball-scoreboard-band ${side}`} viewBox="0 0 100 100"
+            preserveAspectRatio="none" aria-hidden="true" focusable="false">
+            <path d="M0 0H100L81 100H0Z" fill={colors.secondary} />
+            <path d="M0 0H87L75 100H0Z" fill={colors.primary} />
+          </svg>;
+        })}
         {(["away", "home"] as const).map(side => <div className={`game-tracker-score-team ${side}`} key={side}><span className="basketball-team-watermark" aria-hidden="true">{names[side]}</span>
           <div className="game-tracker-score-team-main">{logos[side] ? <Image unoptimized scoreboardLeague={game.league} logoBackground={side === "away" ? awayColors.primary : homeColors.primary} src={logos[side]!} alt={names[side]} width={60} height={60}
             onLogoPalette={colors => setLogoPalettes(previous => ({ ...previous, [side]: { logo: logos[side]!, colors } }))} /> : <span className="game-tracker-logo-fallback">{names[side].slice(0, 1)}</span>}<div className="game-tracker-score-stack"><small className="broadcast-team-record">{payload?.teams[side]?.records?.[0]?.summary || ""}</small><b className={completed && scores.away != null && scores.home != null ? scores[side]! > scores[side === "away" ? "home" : "away"]! ? "winner" : "loser" : ""}>{scores[side] ?? "—"}</b>{!completed && !pregame && <div className="basketball-team-indicators"><span className="basketball-team-timeouts" aria-label={timeoutCount(side) == null ? "Timeouts unavailable" : `${timeoutCount(side)} timeouts left`}>{timeoutCount(side) == null ? <span className="basketball-timeout-unavailable">TO: —</span> : <span className="basketball-timeout-circles">{Array.from({ length: game.league === "NBA" ? 7 : Math.max(4, timeoutCount(side) || 0) }, (_, i) => <i key={i} className={i < timeoutCount(side)! ? "active" : ""} />)}</span>}</span><small className="basketball-team-fouls">Fouls: {foulsCount(side) ?? "—"}</small></div>}{completed && <small className="basketball-final-spread">{teamAbbreviatedName(game.league, game[`${side}_team`])} {spreadText(homeSpread == null ? null : side === "home" ? homeSpread : -homeSpread)}</small>}</div></div>

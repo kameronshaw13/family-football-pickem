@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import NextImage, { type ImageProps } from "next/image";
-import { teamLogoCandidates } from "@/lib/teamLogoSource";
+import { isTeamLogoSource, teamSvgLogo } from "@/lib/teamLogoSource";
 import { logoNeedsDarkBacking, logoNeedsOutline, readLogoEdges, readLogoPalette } from "@/lib/trackerTeamColors";
 import type { League } from "@/lib/types";
 
@@ -29,22 +29,28 @@ function sampleLogo(image: HTMLImageElement): LogoSample {
 type Props = ImageProps & { scoreboardLeague?: League; logoBackground?: string; onLogoPalette?: (colors: string[]) => void };
 
 export default function TeamImage({ src, onError, onLoad, scoreboardLeague, logoBackground, onLogoPalette, ...props }: Props) {
-  const [attempt, setAttempt] = useState<{ key: string; index: number } | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
   const [sample, setSample] = useState<{ source: string; values: LogoSample } | null>(null);
-  const candidates = typeof src === "string" ? teamLogoCandidates(src, scoreboardLeague) : [];
-  const key = candidates.join("|");
-  const index = attempt?.key === key ? attempt.index : 0;
-  const preferred = candidates[index];
+  const svg = typeof src === "string" ? teamSvgLogo(src) : null;
+  const preferred = svg && svg !== failed ? svg : undefined;
   const values = preferred ? (sample?.source === preferred ? sample.values : sampledLogos.get(preferred)) : undefined;
   const edges = values?.edges ?? [];
   const backing = Boolean(scoreboardLeague && logoNeedsDarkBacking(edges, values?.colors));
   const outline = backing ? undefined : logoBackground && logoNeedsOutline(edges, logoBackground)
     ? "team" : logoNeedsOutline(edges, "#20282d") ? "dark" : undefined;
 
-  return <NextImage {...props} key={preferred ?? key} src={preferred ?? src}
+  if (typeof src === "string" && isTeamLogoSource(src) && !preferred) {
+    const className = [props.className, scoreboardLeague ? "game-tracker-logo-fallback" : "team-artwork-fallback"].filter(Boolean).join(" ");
+    return <span className={className} role={props.alt ? "img" : undefined} aria-label={props.alt || undefined}
+      aria-hidden={props.alt ? undefined : true} style={{ ...props.style, width: props.width, height: props.height }}>
+      {props.alt?.slice(0, 2).toUpperCase()}
+    </span>;
+  }
+
+  return <NextImage {...props} key={preferred} src={preferred ?? src}
     crossOrigin={preferred?.startsWith("https://sports.cbsimg.net/") ? "anonymous" : props.crossOrigin}
     data-white-outline={outline} data-logo-backing={backing || undefined}
-    unoptimized={Boolean(candidates.length) || props.unoptimized}
+    unoptimized={Boolean(preferred) || props.unoptimized}
     onLoad={event => {
       if (preferred) {
         let values = sampledLogos.get(preferred);
@@ -59,7 +65,7 @@ export default function TeamImage({ src, onError, onLoad, scoreboardLeague, logo
       onLoad?.(event);
     }}
     onError={event => {
-      if (preferred) setAttempt({ key, index: index + 1 });
-      else onError?.(event);
+      if (preferred) setFailed(preferred);
+      onError?.(event);
     }} />;
 }
