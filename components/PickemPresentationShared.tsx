@@ -13,7 +13,7 @@ import { basketballLockTime, basketballWeek, basketballWeekBounds, basketballSea
 import BasketballGameDetails from "@/components/BasketballGameDetails";
 import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDates";
 import NextImage from "@/components/TeamImage";
-import { isTeamLogoSource, teamSvgLogo } from "@/lib/teamLogoSource";
+import { ncaaSvgLogo } from "@/lib/teamLogoSource";
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, LoaderCircle, Lock, Send, Settings as SettingsIcon, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
@@ -137,7 +137,7 @@ export const initialBoardLogoCache = new Set<string>();
 
 export function preloadTeamLogo(url: string) {
   if (!url || initialBoardLogoCache.has(url) || typeof window === "undefined") return Promise.resolve();
-  const source = teamSvgLogo(url) ?? (isTeamLogoSource(url) ? null : url);
+  const source = ncaaSvgLogo(url) ?? url;
   if (!source) return Promise.resolve();
   return new Promise<void>((resolve) => {
     const image = new window.Image();
