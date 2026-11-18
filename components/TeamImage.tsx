@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import NextImage, { type ImageProps } from "next/image";
+import { ncaaSvgLogo } from "@/lib/teamLogoSource";
 import type { League } from "@/lib/types";
 
 type Props = ImageProps & {
@@ -11,24 +12,21 @@ type Props = ImageProps & {
 };
 
 /**
- * Render the original saved ESPN team artwork everywhere. The CBS-ID mapping
- * introduced alternate logos for the same club, so there must be no implicit
- * provider swap or secondary CDN fallback.
+ * All supported college logos resolve through the verified NCAA SVG directory.
+ * Keep the original URL only as a fallback when NCAA has no artwork or fails.
+ * Pro leagues keep their original saved logos; CBS overrides are never used.
  */
-export default function TeamImage({ src, onError, scoreboardLeague: _scoreboardLeague, logoBackground: _logoBackground, onLogoPalette: _onLogoPalette, ...props }: Props) {
-  const [failed, setFailed] = useState<string | null>(null);
-  const source = typeof src === "string" ? src : "";
-  if (source && failed === source) {
-    return <span className={["team-artwork-fallback", props.className].filter(Boolean).join(" ")}
-      aria-label={props.alt || "Team logo unavailable"} role="img"
-      style={{ ...props.style, width: props.width, height: props.height }}>
-      {props.alt?.slice(0, 2).toUpperCase() || "—"}
-    </span>;
-  }
-
-  return <NextImage {...props} src={src} unoptimized
+export default function TeamImage({
+  src, onError, scoreboardLeague: _scoreboardLeague,
+  logoBackground: _logoBackground, onLogoPalette: _onLogoPalette, ...props
+}: Props) {
+  const [failedSvg, setFailedSvg] = useState<string | null>(null);
+  const svg = typeof src === "string" ? ncaaSvgLogo(src) : null;
+  const useSvg = Boolean(svg && failedSvg !== svg);
+  return <NextImage {...props} key={useSvg ? svg! : String(src)}
+    src={useSvg ? svg! : src} unoptimized={Boolean(svg) || props.unoptimized}
     onError={event => {
-      if (source) setFailed(source);
-      onError?.(event);
+      if (useSvg) setFailedSvg(svg);
+      else onError?.(event);
     }} />;
 }
