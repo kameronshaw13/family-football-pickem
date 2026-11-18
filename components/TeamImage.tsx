@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import NextImage, { type ImageProps } from "next/image";
-import { teamVectorLogo } from "@/lib/teamLogoSource";
+import { teamVectorFallbackLogo, teamVectorLogo } from "@/lib/teamLogoSource";
 import type { League } from "@/lib/types";
 
 type Props = ImageProps & {
@@ -11,21 +11,25 @@ type Props = ImageProps & {
   onLogoPalette?: (colors: string[]) => void;
 };
 
-/**
- * All leagues resolve to a single SVG provider per league.
- * Keep the saved URL as a fallback if vector artwork fails to load.
- */
+/** One CBS GameTracker artwork variant across the app, not mixed league assets. */
 export default function TeamImage({
   src, onError, scoreboardLeague: _scoreboardLeague,
   logoBackground: _logoBackground, onLogoPalette: _onLogoPalette, ...props
 }: Props) {
-  const [failedSvg, setFailedSvg] = useState<string | null>(null);
-  const svg = typeof src === "string" ? teamVectorLogo(src) : null;
-  const useSvg = Boolean(svg && failedSvg !== svg);
-  return <NextImage {...props} key={useSvg ? svg! : String(src)}
-    src={useSvg ? svg! : src} unoptimized={Boolean(svg) || props.unoptimized}
+  const [failedGameTracker, setFailedGameTracker] = useState<string | null>(null);
+  const [failedStandard, setFailedStandard] = useState<string | null>(null);
+  const original = typeof src === "string" ? src : "";
+  const gameTracker = original ? teamVectorLogo(original) : null;
+  const standard = original ? teamVectorFallbackLogo(original) : null;
+  const preferred = gameTracker && failedGameTracker !== gameTracker ? gameTracker : null;
+  const fallback = standard && failedStandard !== standard ? standard : null;
+  const selected = preferred || fallback || src;
+
+  return <NextImage {...props} key={typeof selected === "string" ? selected : undefined}
+    src={selected} unoptimized={Boolean(preferred || fallback) || props.unoptimized}
     onError={event => {
-      if (useSvg) setFailedSvg(svg);
+      if (preferred) setFailedGameTracker(preferred);
+      else if (fallback) setFailedStandard(fallback);
       else onError?.(event);
     }} />;
 }
