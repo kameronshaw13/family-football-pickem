@@ -63,3 +63,24 @@ html[data-logo-era="vintage"][data-theme="dark"] .matchup-preview-hero { backgro
 .logo-studio-page .logo-studio-option { min-height:98px; }
 .logo-studio-page .logo-studio-status { margin:0 var(--page-gutter); }
 @media (min-width:680px) { .logo-studio-page .logo-studio-options { grid-template-columns:repeat(4,minmax(0,1fr)); } .logo-studio-page .logo-studio-teams { max-height:min(50dvh,530px); } }
+
+/* The two shared collections are published independently; viewers only toggle the active collection. */
+.settings-logo-era-toggle { border-top:1px solid var(--line); }
+.logo-studio-save-actions {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  padding:10px var(--page-gutter);
+  border-bottom:1px solid var(--line);
+}
+.logo-studio-save-actions button {
+  min-width:0; min-height:36px;
+  border:1px solid var(--blue);
+  border-radius:3px;
+  background:var(--graphite);
+  color:#fff;
+  font-size:12px;
+  font-weight:800;
+}
+.logo-studio-save-actions button:disabled { opacity:.65; cursor:wait; }
+.logo-studio-page .logo-studio-leagues { grid-template-columns:repeat(3,minmax(0,1fr)); }
