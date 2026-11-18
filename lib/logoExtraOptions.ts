@@ -1,5 +1,4 @@
 import { NBA_SVG_BY_ESPN_KEY, NFL_SVG_BY_ESPN_KEY } from "./proLogos.ts";
-import { teamVectorFallbackLogo } from "./teamLogoSource.ts";
 
 export type LogoAlternative = { label: string; url: string; source: string };
 
@@ -13,8 +12,6 @@ export function curatedLogoAlternatives(source: string, league: string): LogoAlt
   const key = logo?.[2].toLowerCase();
   // ESPN's full-size logo can differ from its compact scoreboard artwork.
   if (source.includes("/scoreboard/")) add("ESPN full-size", source.replace("/scoreboard/", "/"), "ESPN");
-  const cbs = teamVectorFallbackLogo(source);
-  if (cbs) add("CBS light", cbs.replace("/team-logos/", "/team-logos/light/"), "CBS Sports");
   if (league === "NBA" && sport === "nba" && key) {
     add("Official NBA vector", NBA_SVG_BY_ESPN_KEY[key], "NBA");
     if (["12", "lac"].includes(key)) {
