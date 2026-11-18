@@ -18,9 +18,12 @@ export async function GET() {
         redirect: "manual", signal: AbortSignal.timeout(4500), cache: "no-store"
       });
       const type = response.headers.get("content-type");
-      const body = (await response.text()).slice(0, 200000);
+      const body = (await response.text()).slice(0, 650000);
       return {
         url, status: response.status, type, length: body.length,
+        wpImages: [...body.matchAll(/https?:[^"'<>\s]+wp-content\/uploads\/[^"'<>\s]+\.(?:png|webp|jpg|jpeg)/gi)].slice(0,20).map(x=>x[0].slice(0,260)),
+        htmlImg: [...body.matchAll(/<img\b[^>]*>/gi)].slice(0,25).map(x=>x[0].slice(0,400)),
+        around1948: body.includes("1948") ? body.slice(Math.max(0,body.indexOf("1948")-500),body.indexOf("1948")+600) : null,
         teamLinks: [...body.matchAll(/\/logos\/list_by_team\/\d+\/[a-z0-9-]+/gi)].slice(0, 3).map(x => x[0]),
         detailLinks: [...body.matchAll(/\/logos\/view\/[a-z0-9]+\/[a-z0-9-]+\/(?:19|20)\d{2}\/[a-z-]+/gi)].slice(0, 3).map(x => x[0]),
         logoAssets: [...body.matchAll(/https:\/\/content\.sportslogos\.net\/logos\/\d+\/\d+\/full\/[^\s"']+\.(?:png|gif|webp|jpg)/gi)].slice(0, 4).map(x=>x[0])
