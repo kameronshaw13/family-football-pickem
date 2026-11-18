@@ -151,7 +151,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
   };
   const awayColors = teamColors("away");
   const homeColors = teamColors("home");
-  const basketballPeriod = (period: number) => basketballPeriodLabel(period, game.league === "CBB").replace(/ Half$/, "");
+  const basketballPeriod = (period: number) => game.league === "NBA" && period <= 4 ? `${period}${period === 1 ? "st" : period === 2 ? "nd" : period === 3 ? "rd" : "th"}` : basketballPeriodLabel(period, game.league === "CBB").replace(/ Half$/, "");
   const timeoutCount = (side: Side) => { const count = Number(payload?.teams[side]?.timeoutsRemaining); return payload?.teams[side]?.timeoutsRemaining == null || !Number.isFinite(count) ? null : Math.max(0, Math.trunc(count)); };
   const foulsCount = (side: Side) => payload?.teams[side]?.fouls;
   // The bonus is earned by the opponent committing seven team fouls in a
