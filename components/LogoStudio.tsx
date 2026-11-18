@@ -116,7 +116,8 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     try {
       // Read current published artwork at save time to avoid erasing anyone's
       // collection if it was updated in another tab.
-      const existing = await fetch("/api/logo-presets", { cache: "no-store" });
+      const authToken = window.localStorage.getItem("pickem_session_token") || "";
+      const existing = await fetch("/api/logo-presets", { cache: "no-store", headers: authToken ? { Authorization: "Bearer " + authToken } : {} });
       if (!existing.ok) throw new Error("Could not load saved collections.");
       const data = await existing.json();
       if (!data.ok || !data.canEdit) throw new Error("Logo publishing is unavailable.");
@@ -131,7 +132,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
         if (url === null) delete logos[key];
         else if (validLogoUrl(url)) logos[key] = url;
       }
-      const token = window.localStorage.getItem("pickem_session_token") || "";
+      const token = authToken;
       const response = await fetch("/api/logo-presets", {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
