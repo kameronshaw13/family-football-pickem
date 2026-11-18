@@ -143,7 +143,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
       const choices: LogoStudioPreferences["choices"] = {};
       for (const [key, choice] of Object.entries(latest.choices)) {
         const remaining = { ...choice };
-        delete remaining[era];
+        if (remaining[era] !== null) delete remaining[era];
         if (Object.keys(remaining).length) choices[key] = remaining;
       }
       saveLogoStudioPreferences({ ...latest, choices });
@@ -190,7 +190,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
                 preview.onload = () => {
                   if (canceled) return;
                   const latest = getLogoStudioPreferences();
-                  if (latest.vintageDefaults[active.key] || latest.choices[active.key]?.vintage) return;
+                  if (latest.vintageDefaults[active.key] || Object.prototype.hasOwnProperty.call(latest.choices[active.key] || {}, "vintage")) return;
                   saveLogoStudioPreferences({ ...latest, vintageDefaults: {
                     ...latest.vintageDefaults, [active.key]: choice.url
                   } });
@@ -235,7 +235,9 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     const selection = { ...(nextChoices[active.key] || {}) };
     selection[latest.era] = value;
     nextChoices[active.key] = selection;
-    saveLogoStudioPreferences({ ...latest, choices: nextChoices });
+    const defaults = { ...latest.vintageDefaults };
+    if (value === null && latest.era === "vintage") delete defaults[active.key];
+    saveLogoStudioPreferences({ ...latest, choices: nextChoices, vintageDefaults: defaults });
     setMessage(value ? `Saved ${active.name} for ${latest.era} mode.` : "Restored automatic logo selection.");
   }
 
@@ -245,7 +247,8 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
       : prefs.choices[active.key]?.[prefs.era] ?? savedForEra[active.key] ?? null)
     : null;
   const automatic = active
-    ? prefs.era === "vintage" ? prefs.vintageDefaults[active.key] || teamVectorFallbackLogo(active.logo) || active.logo
+    ? prefs.era === "vintage" && prefs.choices[active.key]?.vintage !== null
+      ? prefs.vintageDefaults[active.key] || teamVectorFallbackLogo(active.logo) || active.logo
       : teamVectorFallbackLogo(active.logo) || active.logo
     : "";
 
@@ -274,7 +277,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
         <div className="logo-studio-teams">{filtered.map(team => {
           const selected = prefs.choices[team.key]?.[prefs.era];
           const shared = getPublishedLogoCollections()[prefs.era][team.key];
-          const logo = (selected === null ? null : selected || shared) || (prefs.era === "vintage" ? prefs.vintageDefaults[team.key] : null) || teamVectorFallbackLogo(team.logo) || team.logo;
+          const logo = (selected === null ? null : selected || shared) || (prefs.era === "vintage" && selected !== null ? prefs.vintageDefaults[team.key] : null) || teamVectorFallbackLogo(team.logo) || team.logo;
           return <button type="button" key={team.league + team.key} className={active?.key === team.key && active.league === team.league ? "logo-studio-team active" : "logo-studio-team"} onClick={() => { setActive(team); setMessage(""); }}>
             <Image unoptimized src={collegeHistoricalImageSource(logo)} alt="" width={35} height={35} loading="lazy" />
             <span>{team.name}</span>
