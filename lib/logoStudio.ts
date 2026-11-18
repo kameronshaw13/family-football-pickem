@@ -23,6 +23,7 @@ export function setPublishedLogoCollection(era: LogoEra, images: Record<string, 
       filtered[key] = url;
   }
   published = { ...published, [era]: filtered };
+  preferences = { ...preferences }; // Update useSyncExternalStore snapshots across all game logos.
   if (typeof window !== "undefined") window.dispatchEvent(new Event(LOGO_STUDIO_EVENT));
 }
 export function isLogoStudioEditor() { return editor; }
