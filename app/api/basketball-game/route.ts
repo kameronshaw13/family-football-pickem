@@ -9,6 +9,7 @@ import { basketballSituation } from "@/lib/basketballSituation";
 import { basketballLiveState } from "@/lib/basketballLiveState";
 import { basketballClosingHomeSpread, basketballSummarySwapped, orientBasketballPlayScores } from "@/lib/basketballSummaryOrientation";
 import { createAsyncCache } from "@/lib/asyncCache";
+import { basketballTimeProgress } from "@/lib/basketballGameFlow";
 import { hasValidGameLine } from "@/lib/gameDataIntegrity";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 
@@ -62,18 +63,7 @@ export async function GET(req: NextRequest) {
         return response.ok ? await response.json() : null;
       } catch { return null; }
     })();
-    const totalPeriods = game.league === "NBA" ? 4 : 2;
-    const clockToSeconds = (clock: string) => {
-      const match = String(clock || "").match(/(\d+):(\d{2})/);
-      return match ? Number(match[1]) * 60 + Number(match[2]) : null;
-    };
-    const periodLength = game.league === "NBA" ? 12 * 60 : 20 * 60;
-    const timeProgress = (period: number, clock: string) => {
-      const remaining = clockToSeconds(clock);
-      const elapsedBeforePeriod = Math.min(totalPeriods, Math.max(0, period - 1)) * periodLength + Math.max(0, period - totalPeriods - 1) * 300;
-      const length = period > totalPeriods ? 300 : periodLength;
-      return remaining == null ? null : (elapsedBeforePeriod + Math.max(0, length - remaining)) / (totalPeriods * periodLength);
-    };
+    const timeProgress = (period: number, clock: string) => basketballTimeProgress(period, clock, game.league === "CBB");
     const playById = new Map(rawPlays.map((row: any) => [String(row.id), row]));
     const probabilities = (Array.isArray(data.winprobability) ? data.winprobability : [])
       .map((entry: any, index: number) => {

@@ -33,6 +33,7 @@ type Payload = {
 };
 type Tab = "live" | "scoring" | "plays" | "box";
 type Side = "away" | "home";
+type PlayerGroup = Payload["players"][number]["groups"][number];
 
 function shortPlayerName(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -59,6 +60,32 @@ function BasketballLineScore({ plays, college, names, logos, finalScores }: {
     <table className="basketball-linescore">
       <thead><tr><th scope="col" aria-label="Team"></th>{periods.map(period => <th scope="col" key={period}>{college ? (period > 2 ? `${period - 2}OT` : period) : (period > 4 ? `${period - 4}OT` : period)}</th>)}<th scope="col">T</th></tr></thead>
       <tbody>{(["away", "home"] as const).map(side => <tr key={side}><th scope="row">{logos[side] && <Image unoptimized src={logos[side]!} alt="" width={23} height={23} />}<span>{names[side]}</span></th>{periods.map((period, index) => <td key={period}>{scoreFor(side, index)}</td>)}<td className="basketball-linescore-total">{finalScores[side] ?? "—"}</td></tr>)}</tbody>
+    </table>
+  </div>;
+}
+
+function BasketballPlayerTable({ group, name }: { group: PlayerGroup; name: string }) {
+  const { athletes, labels } = group;
+  const hasStarterData = athletes.some(athlete => athlete.starter != null);
+  const sections = hasStarterData ? [
+    { label: "Starters", players: athletes.filter(athlete => athlete.starter === true) },
+    { label: "Bench", players: athletes.filter(athlete => athlete.starter === false) },
+    { label: "Other Players", players: athletes.filter(athlete => athlete.starter == null) }
+  ] : [{ label: "Players", players: athletes }];
+
+  return <div className="game-tracker-player-table-scroll basketball-table-scroll" tabIndex={0} role="region" aria-label={`${name} player statistics, scroll horizontally for more columns`}>
+    <table className="game-tracker-player-table basketball-player-table" aria-label={`${name} player statistics`} style={{ minWidth: Math.max(340, 136 + labels.length * 44) }}>
+      <colgroup><col style={{ width: 136 }} />{labels.map((_, index) => <col key={index} />)}</colgroup>
+      {sections.filter(section => section.players.length > 0).map(section => <tbody key={section.label}>
+        <tr className="basketball-player-stat-head">
+          <th scope="rowgroup">{section.label}</th>
+          {labels.map((label, index) => <th scope="col" key={index}>{label}</th>)}
+        </tr>
+        {section.players.map(athlete => <tr key={athlete.id}>
+          <th scope="row" title={athlete.name}>{shortPlayerName(athlete.name)}</th>
+          {labels.map((_, index) => <td key={index}>{athlete.stats[index] ?? "—"}</td>)}
+        </tr>)}
+      </tbody>)}
     </table>
   </div>;
 }
@@ -115,7 +142,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
   const pregame = !completed && (payload?.status.state || game.live_state || "pre") === "pre";
   const names = { away: teamDisplayName(game.league, game.away_team), home: teamDisplayName(game.league, game.home_team) };
   const logos = { away: game.away_logo_url, home: game.home_logo_url };
-  const basketballPeriod = (period: number) => basketballPeriodLabel(period, game.league === "CBB").replace(/Half|Quarter/gi, "").trim();
+  const basketballPeriod = (period: number) => basketballPeriodLabel(period, game.league === "CBB").replace(/ Half$/, "");
   const timeoutCount = (side: Side) => { const count = Number(payload?.teams[side]?.timeoutsRemaining); return payload?.teams[side]?.timeoutsRemaining == null || !Number.isFinite(count) ? null : Math.max(0, Math.trunc(count)); };
   const foulsCount = (side: Side) => payload?.teams[side]?.fouls;
   // The bonus is earned by the opponent committing seven team fouls in a
@@ -159,7 +186,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
         {error && <div className="game-tracker-empty" role="alert"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
         {payload && tab === "live" && <BasketballLiveCourt shots={payload.shots || []} plays={payload.plays || []} possessionSide={payload.liveState?.possessionSide || null} latestAction={payload.liveState?.latestAction || null} away={names.away} home={names.home}
           awayId={String(payload.teams.away?.team?.id || "away")} homeId={String(payload.teams.home?.team?.id || "home")} college={game.league === "CBB"} awayLogo={logos.away} homeLogo={logos.home} winProbability={payload.winProbability || []} homeSpread={homeSpread} completed={completed} />}
-        {payload && tab === "scoring" && <BasketballScoreFlow plays={payload.plays || []} away={names.away} home={names.home} awayLogo={logos.away} homeLogo={logos.home} college={game.league === "CBB"} />}
+        {payload && tab === "scoring" && <BasketballScoreFlow plays={payload.plays || []} away={names.away} home={names.home} awayLogo={logos.away} homeLogo={logos.home} college={game.league === "CBB"} final={completed ? { ...scores, period: payload.status.period ?? 1 } : undefined} />}
         {payload && completed && tab === "scoring" && <BasketballWinProbability points={payload.winProbability || []} away={names.away} home={names.home} awayLogo={logos.away} homeLogo={logos.home} college={game.league === "CBB"} homeSpread={homeSpread} completed={completed} />}
         {payload && tab === "plays" && <BasketballShotChart key={game.id} shots={payload.shots || []} attempts={payload.shotAttempts || 0} college={game.league === "CBB"} period={payload.status.period || 1}
           away={{ id: String(payload.teams.away?.team?.id || "away"), name: names.away, logo: logos.away }}
@@ -174,20 +201,7 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
           {boxTeam !== "all" && !payload.players.length && <p className="game-tracker-empty">Box scores appear when available.</p>}
           {payload.players.filter(team => boxTeam !== "all" && team.side === boxTeam).map(team => <div key={team.id} className="game-tracker-team-box basketball-team-box">
             {team.groups.map((group, index) => <section className="game-tracker-box-section" key={index}>
-              <div className="game-tracker-player-table-scroll basketball-table-scroll" tabIndex={0} role="region" aria-label={`${teamDisplayName(game.league, team.name)} player statistics, scroll horizontally for more columns`}>
-                <table className="game-tracker-player-table basketball-player-table" aria-label={`${teamDisplayName(game.league, team.name)} player statistics`} style={{ minWidth: `${Math.max(340, 136 + group.labels.length * 44)}px` }}>
-                  <colgroup><col style={{ width: 136 }} />{group.labels.map((label, i) => <col key={i} />)}</colgroup>
-                  <thead><tr><th scope="col">Players</th>{group.labels.map((label, i) => <th scope="col" key={i}>{label}</th>)}</tr></thead>
-                  {(group.athletes.some(athlete => typeof athlete.starter === "boolean") ? [
-                    { label: "Starters", athletes: group.athletes.filter(athlete => athlete.starter === true) },
-                    { label: "Bench", athletes: group.athletes.filter(athlete => athlete.starter === false) },
-                    { label: "Other Players", athletes: group.athletes.filter(athlete => athlete.starter == null) }
-                  ] : [{ label: "Players", athletes: group.athletes }]).filter(section => section.athletes.length).map(section => <tbody key={section.label}>
-                    <tr className="basketball-roster-section"><th scope="rowgroup" colSpan={group.labels.length + 1}>{section.label}</th></tr>
-                    {section.athletes.map(athlete => <tr key={athlete.id}><th scope="row" title={athlete.name}>{shortPlayerName(athlete.name)}</th>{group.labels.map((_, i) => <td key={i}>{athlete.stats[i] ?? "—"}</td>)}</tr>)}
-                  </tbody>)}
-                </table>
-              </div>
+              <BasketballPlayerTable group={group} name={teamDisplayName(game.league, team.name)} />
             </section>)}
           </div>)}
         </div>}

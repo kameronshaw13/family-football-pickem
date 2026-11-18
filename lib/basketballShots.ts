@@ -36,7 +36,7 @@ export function basketballShots(plays: any[], athletes = new Map<string, string>
 
 export function basketballPeriodLabel(period: number, college: boolean) {
   const regulation = college ? 2 : 4;
-  return period > regulation ? `${period - regulation}OT` : college ? `${period === 1 ? "1st" : "2nd"} Half` : `Q${period}`;
+  return period > regulation ? `${period - regulation}OT` : college ? `${period === 1 ? "1st" : "2nd"} Half` : `Quarter ${period}`;
 }
 
 export function filterBasketballShots(shots: BasketballShot[], teamId: string, period: string, currentPeriod: number) {

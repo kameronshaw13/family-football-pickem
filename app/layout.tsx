@@ -172,7 +172,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/football-pickem-wordmark.png" as="image" type="image/png" />
         <link rel="preload" href="/basketball-pickem-header-v2.png" as="image" type="image/png" />
       </head>
-      <body><PersistentAppChrome>{children}</PersistentAppChrome><AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /><SideBetBatchEnhancements /><SideBetBatchPresentationEnhancement /><LedgerScopeMenuEnhancement /></body>
+      <body>
+        <svg width="0" height="0" className="team-logo-filter-definitions" aria-hidden="true" focusable="false">
+          <defs>
+            <filter id="team-logo-white-outline" x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
+              <feMorphology in="SourceAlpha" operator="dilate" radius="1.2" result="expanded" />
+              <feFlood floodColor="#fff" />
+              <feComposite in2="expanded" operator="in" result="outline" />
+              <feMerge><feMergeNode in="outline" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
+        </svg>
+        <PersistentAppChrome>{children}</PersistentAppChrome><AppExperienceEnhancements /><AppUiCoordinator /><DogPickAdjustmentAlerts /><PlayerProfiles /><SideBetBatchEnhancements /><SideBetBatchPresentationEnhancement /><LedgerScopeMenuEnhancement /></body>
     </html>
   );
 }

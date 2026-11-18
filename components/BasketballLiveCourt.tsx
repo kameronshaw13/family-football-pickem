@@ -3,6 +3,7 @@
 import { basketballPeriodLabel, shotBaselineDistance, type BasketballShot } from "@/lib/basketballShots";
 import { playTextWithoutDuplicateClock } from "@/lib/playText";
 import Image from "@/components/TeamImage";
+import { basketballScoreFlow } from "@/lib/basketballGameFlow";
 import { spreadText } from "@/lib/spreads";
 import { useId, useState, type PointerEvent } from "react";
 import { estimatedCoverPoints, nearestProbabilityPoint, type BasketballProbabilityPoint } from "@/lib/basketballWinProbability";
@@ -151,46 +152,33 @@ export function BasketballWinProbability({ points, away, home, awayLogo, homeLog
   </section>;
 }
 
-export function BasketballScoreFlow({ plays, away, home, awayLogo, homeLogo, college = true }: { plays: Play[]; away: string; home: string; awayLogo?: string | null; homeLogo?: string | null; college?: boolean }) {
+export function BasketballScoreFlow({ plays, away, home, awayLogo, homeLogo, college, final }: {
+  plays: Play[]; away: string; home: string; awayLogo?: string | null; homeLogo?: string | null;
+  college: boolean; final?: { away: number | null; home: number | null; period: number };
+}) {
   const revealId = `flow-reveal-${useId().replace(/:/g, "")}`;
-  // ESPN supplies the scores on each play. Plot their actual cumulative
-  // progression, not an invented scoring model or margin-only approximation.
-  const points = plays
-    .filter(play => play.awayScore != null && play.homeScore != null)
-    .map(play => ({ away: Number(play.awayScore), home: Number(play.homeScore), period: play.period, progress: play.progress }))
-    .filter(play => Number.isFinite(play.away) && Number.isFinite(play.home));
-  const distinct = [{ away: 0, home: 0, period: 1, progress: 0 }, ...points.filter((play, index) =>
-    index === 0 || play.away !== points[index - 1].away || play.home !== points[index - 1].home
-  )];
-  const sampled = distinct.length > 135
-    ? distinct.filter((_, index) => index === 0 || index % Math.ceil(distinct.length / 135) === 0 || index === distinct.length - 1)
-    : distinct;
-  const maxScore = Math.max(10, ...sampled.flatMap(point => [point.away, point.home]));
-  const ceiling = Math.ceil(maxScore / 10) * 10;
+  const { points, ticks, ceiling, domain } = basketballScoreFlow(plays, final && { ...final, college });
   const periodCount = college ? 2 : 4;
-  const chartX = (progress: number) => 36 + Math.max(0, Math.min(1, progress)) * 276;
+  const chartX = (progress: number) => 36 + progress / domain * 276;
   const chartY = (value: number) => 136 - value / ceiling * 116;
-  const pathFor = (side: Side) => sampled.map((point, index) => {
-    const progress = point.progress;
-    // A missing clock is never assigned a fabricated timestamp.
-    if (progress == null || !Number.isFinite(progress)) return "";
-    return `${index === 0 ? "M" : "L"}${chartX(progress).toFixed(2)} ${chartY(point[side]).toFixed(2)}`;
-  }).filter(Boolean).join(" ");
-  const boundaries = Array.from({ length: periodCount - 1 }, (_, idx) => chartX((idx + 1) / periodCount));
+  const pathFor = (side: Side) => points.map((point, index) =>
+    `${index === 0 ? "M" : "L"}${chartX(point.progress).toFixed(2)} ${chartY(point[side]).toFixed(2)}`).join(" ");
+  const boundaries = Array.from({ length: periodCount - 1 }, (_, index) => (index + 1) / periodCount);
+  if (domain > 1) boundaries.push(1);
   return <section className="basketball-score-flow" aria-label="Game flow">
     <h3>Game Flow</h3>
-    {sampled.length > 1 ? <>
+    {points.length > 1 ? <>
       <svg viewBox="0 0 330 164" role="img" aria-label={`Cumulative points throughout the game. ${away} solid line, ${home} dashed line.`}>
-        {[0, 1, 2, 3, 4].map(tick => {
-          const value = Math.round(ceiling * tick / 4);
+        {ticks.map(value => {
           const y = chartY(value);
-          return <g key={tick}><line x1="36" y1={y} x2="312" y2={y} className="basketball-flow-grid" /><text x="28" y={y + 3} textAnchor="end" className="basketball-flow-axis">{value}</text></g>;
+          return <g key={value}><line x1="36" y1={y} x2="312" y2={y} className="basketball-flow-grid" /><text x="28" y={y + 3} textAnchor="end" className="basketball-flow-axis">{value}</text></g>;
         })}
-        {boundaries.map((x, index) => <line key={index} x1={x} y1="20" x2={x} y2="136" className="basketball-flow-boundary" />)}
+        {boundaries.map(progress => <line key={progress} x1={chartX(progress)} y1="20" x2={chartX(progress)} y2="136" className="basketball-flow-boundary" />)}
         <defs><clipPath id={revealId}><rect x="36" y="0" width="276" height="164" className="basketball-flow-reveal" /></clipPath></defs>
         <g clipPath={`url(#${revealId})`}><path d={pathFor("away")} className="basketball-flow-away" />
         <path d={pathFor("home")} className="basketball-flow-home" /></g>
-        {Array.from({ length: periodCount }, (_, idx) => <text key={idx} x={36 + (idx + .5) * 276 / periodCount} y="154" textAnchor="middle" className="basketball-flow-axis">{college ? (idx === 0 ? "1st" : "2nd") : `Q${idx + 1}`}</text>)}
+        {Array.from({ length: periodCount }, (_, index) => <text key={index} x={chartX((index + .5) / periodCount)} y="154" textAnchor="middle" className="basketball-flow-axis">{college ? (index === 0 ? "1st" : "2nd") : basketballPeriodLabel(index + 1, college)}</text>)}
+        {domain > 1 && <text x={chartX((1 + domain) / 2)} y="154" textAnchor="middle" className="basketball-flow-axis">OT</text>}
       </svg>
       <div className="basketball-flow-legend"><span aria-label={`${away}, solid line`}><StableTeamLogo src={awayLogo} name={away} size={19} /><i className="basketball-flow-legend-line away" /></span><span aria-label={`${home}, dashed line`}><StableTeamLogo src={homeLogo} name={home} size={19} /><i className="basketball-flow-legend-line home" /></span></div>
     </> : <p className="muted">Game flow appears as scoring data becomes available.</p>}
