@@ -99,29 +99,30 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
   }, [expanded, loadTeams]);
 
   useEffect(() => {
+    let canceled = false;
     setHistory([]);
     setExtra([]);
     setCustom("");
+    setLoadingHistory(false);
     if (active) {
       const params = new URLSearchParams({ league: active.league, name: active.name });
-      let canceled = false;
       void fetch("/api/logo-alternatives?" + params.toString())
         .then(res => res.json())
         .then(data => { if (!canceled) setExtra(data.ok ? (data.options || []) : []); })
         .catch(() => { if (!canceled) setExtra([]); });
+      if (["NBA", "NFL"].includes(active.league)) {
+        setLoadingHistory(true);
+        void fetch("/api/logo-history?league=" + active.league.toLowerCase() + "&team=" + encodeURIComponent(active.name))
+          .then(res => res.json())
+          .then(data => {
+            if (!canceled) setHistory((data.logos || [])
+              .filter((item: Option) => validLogoUrl(item.url))
+              .slice(0, 16).map((item: Option) => ({ ...item, historical: true })));
+          })
+          .catch(() => { if (!canceled) setHistory([]); })
+          .finally(() => { if (!canceled) setLoadingHistory(false); });
+      }
     }
-    if (!active || !["NBA", "NFL"].includes(active.league)) return;
-    let canceled = false;
-    setLoadingHistory(true);
-    void fetch(`/api/logo-history?league=${active.league.toLowerCase()}&team=${encodeURIComponent(active.name)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (canceled) return;
-        setHistory((data.logos || []).filter((item: Option) => validLogoUrl(item.url))
-          .slice(0, 16).map((item: Option) => ({ ...item, historical: true })));
-      })
-      .catch(() => { if (!canceled) setHistory([]); })
-      .finally(() => { if (!canceled) setLoadingHistory(false); });
     return () => { canceled = true; };
   }, [active]);
 
