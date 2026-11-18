@@ -72,7 +72,8 @@ export function setLogoStudioUser(profileId: string, canEdit = false) {
   window.dispatchEvent(new Event(LOGO_STUDIO_EVENT));
   const currentUser = profileId;
   const readAtRevision = eraRevision;
-  const session = window.localStorage.getItem("pickem_session_token") || "";
+  let session = "";
+  try { session = window.localStorage.getItem("pickem_session_token") || ""; } catch { /* Cookie auth still works. */ }
   void fetch("/api/logo-presets", { cache: "no-store", headers: session ? { Authorization: "Bearer " + session } : {} })
     .then(async response => {
       if (!response.ok) throw new Error("Could not load published logos.");
