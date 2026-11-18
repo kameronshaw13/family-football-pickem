@@ -5,7 +5,7 @@ export type ArchivedTeam = { name: string; logos: ArchivedLogo[] };
 const ASSET = /https:\/\/assets\.logocdn\.com\/images\/sports\/(nba|nfl)\/(\d{4})\/([a-z0-9-]+)(?:@3x|%403x)?\.(?:svg|png|webp)/gi;
 
 export function normalizeArchiveTeam(value: string) {
-  return value.toLowerCase().replace(/^la(\s|(?=[a-z]))/, "los angeles ").replace(/[^a-z0-9]/g, "");
+  return value.toLowerCase().replace(/^la\s+/, "los angeles ").replace(/[^a-z0-9]/g, "");
 }
 function slug(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
