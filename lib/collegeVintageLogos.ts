@@ -14,9 +14,7 @@ const ALIASES: Record<string, string[]> = {
   "texasamcommercelions": ["east-texas-am-lions"],
   "ucirvineanteaters": ["california-irvine-anteaters"],
   "ucriversidehighlanders": ["california-riverside-highlanders"],
-  "ucdaviesaggies": ["california-davis-aggies"],
   "ucdavisaggies": ["california-davis-aggies"],
-  "ucsan diegotritons": ["california-san-diego-tritons"],
   "ucsandiegotritons": ["california-san-diego-tritons"],
   "ucsantabarbaragauchos": ["california-santa-barbara-gauchos"],
   "californiariversidehighlanders": ["uc-riverside-highlanders"],
@@ -29,11 +27,9 @@ const ALIASES: Record<string, string[]> = {
   "unlvrebels": ["nevada-las-vegas-rebels"],
   "lsutigers": ["louisiana-state-tigers"],
   "byucougars": ["brigham-young-cougars"],
-  "vc urams": ["virginia-commonwealth-rams"],
   "vcurams": ["virginia-commonwealth-rams"],
   "umassminutemen": ["massachusetts-minutemen"],
   "ncstatewolfpack": ["north-carolina-state-wolfpack"],
-  "uncgreensp artans": ["north-carolina-greensboro-spartans"],
   "uncgspartans": ["north-carolina-greensboro-spartans"],
   "uncwseahawks": ["north-carolina-wilmington-seahawks"],
   "siuecougars": ["southern-illinois-edwardsville-cougars"],
@@ -86,7 +82,8 @@ export function parseCollegeHistoryHtml(
     try {
       const url = new URL(src);
       if (url.protocol !== "https:" || url.hostname !== "sportslogohistory.com"
-          || !/^\/wp-content\/uploads\/\d{4}\/\d{2}\/[a-z0-9_.-]+\.(?:png|webp|jpe?g)$/i.test(url.pathname))
+          || !/^\/wp-content\/uploads\/\d{4}\/\d{2}\/[a-z0-9_.-]+\.(?:png|webp|jpe?g)$/i.test(url.pathname)
+          || /-\d+x\d+\.(?:png|webp|jpe?g)$/i.test(url.pathname))
         continue;
       logos.set(url.href, { label: year + " " + kind, url: url.href, year, source: "SportsLogoHistory.com" });
     } catch { /* Ignore non-image and external advertising URLs. */ }
