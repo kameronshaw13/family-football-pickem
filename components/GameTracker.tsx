@@ -222,7 +222,8 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   const team = payload?.teams[side];
   const opponent = payload?.teams[side === "away" ? "home" : "away"];
   const fullName = team?.name || fallbackName;
-  const logo = team?.logo || fallbackLogo;
+  // The saved game artwork is canonical, so opening GameTracker never swaps variants.
+  const logo = fallbackLogo || team?.logo;
   const logoBacking = trackerTeamColors(team?.color, team?.alternateColor).backing;
   // Live game props are refreshed by the Pick Board every five seconds.
   // ESPN's detail summary sometimes lags its scoreboard event feed.
