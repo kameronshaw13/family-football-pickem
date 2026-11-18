@@ -46,3 +46,13 @@ test("only historical college art is proxied; NBA and NFL sources stay unchanged
   assert.equal(collegeHistoricalImageSource(proHistory), proHistory);
   assert.equal(isCollegeHistoricalImage("https://evil.example/wp-content/uploads/2022/08/unknown.png"), false);
 });
+
+
+test("historical former-name art stays attached to the renamed East Texas A&M school", () => {
+  const html = '<h1>East Texas A&M Lions Logo History – Primary Logo</h1>'
+    + '<img src="https://sportslogohistory.com/wp-content/uploads/2022/09/texas_am_commerce_lions_1968-1996.png" alt="Texas A&M Commerce Lions Primary Logo 1968 - 1996">';
+  const found = parseCollegeHistoryHtml(html, "East Texas A&M Lions", "Primary");
+  assert.equal(found.length, 1);
+  assert.equal(found[0].year, 1968);
+  assert.ok(vintageSchoolSlugs("East Texas A&M Lions").includes("east-texas-am-lions"));
+});
