@@ -50,6 +50,7 @@ import { orderCardPicks } from "@/lib/cardOrdering";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 import { normalizeVerifiedMarketSpread } from "@/lib/marketSpread";
 import { retainBasketballSpread } from "@/lib/gameDataIntegrity";
+import { setLogoStudioUser } from "@/lib/logoStudio";
 import { canRefreshSpread, getCurrentPickWeek } from "@/lib/lockRules";
 
 
@@ -256,6 +257,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       start <= clock &&
       start >= clock - 18 * 60 * 60 * 1000;
   }));
+
+  // Load each player's saved logo style and the published Modern/Vintage collections
+  // as soon as app data authenticates, not only when Settings is opened.
+  useEffect(() => {
+    const user = data?.currentUser;
+    if (!user?.id) return;
+    setLogoStudioUser(user.id, String(user.username || "").trim().toLowerCase() === "kameron");
+  }, [data?.currentUser?.id, data?.currentUser?.username]);
 
   useEffect(() => {
     const userId = data?.currentUser?.id;
