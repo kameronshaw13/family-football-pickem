@@ -8,6 +8,8 @@ import NumericText from "@/components/NumericText";
 import PushNotificationControls from "@/components/PushNotificationControls";
 import AppOpenActivity from "@/components/AppOpenActivity";
 import LeagueSwitcher from "@/components/LeagueSwitcher";
+import LogoStudio from "@/components/LogoStudio";
+import { setLogoStudioUser } from "@/lib/logoStudio";
 import type { LeagueMembership } from "@/lib/leagueAccess";
 import { clearClientSession } from "@/lib/clientSession";
 
@@ -60,6 +62,8 @@ export default function SettingsPanel({
   const [passwordMessage, setPasswordMessage] = useState("");
   const [passwordTone, setPasswordTone] = useState<"success" | "error">("success");
   const [passwordBusy, setPasswordBusy] = useState(false);
+
+  useEffect(() => { setLogoStudioUser(currentUser.id); }, [currentUser.id]);
 
   useEffect(() => {
     const active = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
@@ -160,6 +164,7 @@ export default function SettingsPanel({
           <button type="button" className={theme === "dark" ? "active" : ""} aria-pressed={theme === "dark"} onClick={() => chooseTheme("dark")}><Moon size={14} /> Dark</button>
         </div>
       </div>
+      <LogoStudio profileId={currentUser.id} />
     </div>
 
     <div className="settings-section">
