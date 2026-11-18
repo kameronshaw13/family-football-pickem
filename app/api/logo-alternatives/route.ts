@@ -16,11 +16,11 @@ function espnTeamId(source: string, league: string): string | null {
   return match[1].toLowerCase() === expected ? match[2] : null;
 }
 
-export function espnAlternativeLogos(payload: unknown): Option[] {
-  const team = (payload as { team?: { logos?: unknown } })?.team;
-  if (!Array.isArray(team?.logos)) return [];
+function espnAlternativeLogos(payload: unknown): Option[] {
+  const logos = (payload as { team?: { logos?: unknown } })?.team?.logos;
+  if (!Array.isArray(logos)) return [];
   const result: Option[] = [];
-  for (const logo of team.logos) {
+  for (const logo of logos) {
     if (!logo || typeof logo !== "object") continue;
     const candidate = logo as { href?: string; rel?: string[] };
     const href = candidate.href || "";
