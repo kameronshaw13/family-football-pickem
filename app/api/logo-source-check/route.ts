@@ -3,7 +3,7 @@ import { loadHistoricCollegeImages } from "@/lib/collegeVintageLogos";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   if (new URL(request.url).searchParams.has("sample")) {
-    const examples = await Promise.all(["Wichita State Shockers", "UC Riverside Highlanders", "Kansas Jayhawks", "Indiana Hoosiers", "Tulsa Golden Hurricane"].map(async team => {
+    const examples = await Promise.all(["Gonzaga Bulldogs", "Cal State Fullerton Titans", "North Dakota State Bison", "East Texas A&M Lions", "UMKC Kangaroos", "UTSA Roadrunners"].map(async team => {
       try {
         const logos = await loadHistoricCollegeImages(team);
         return { team, found: logos.length, examples: logos.slice(0, 5) };
