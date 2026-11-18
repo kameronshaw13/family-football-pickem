@@ -59,7 +59,7 @@ export function saveLogoStudioPreferences(value: LogoStudioPreferences) {
   if (typeof window === "undefined") return;
   document.documentElement.dataset.logoEra = value.era;
   if (activeUser) {
-    try { window.localStorage.setItem(`pickem_logo_studio:${activeUser}`, JSON.stringify(value)); }
+    try { window.localStorage.setItem(`pickem_logo_studio:${activeUser}`, JSON.stringify({ ...value, vintageCatalogVersion: 2 })); }
     catch { /* Rendering works if storage is disabled. */ }
   }
   window.dispatchEvent(new Event(LOGO_STUDIO_EVENT));
