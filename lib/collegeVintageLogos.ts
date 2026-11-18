@@ -20,7 +20,6 @@ const clean = (name: string) => name.toLowerCase().normalize("NFKD").replace(/[\
 function alias(name: string) {
   return clean(name)
     .replace(/^ucriversidehighlanders$/, "californiariversidehighlanders")
-    .replace(/^texasamcommerce/, "amcommercelions")
     .replace(/^wichitastate/, "wichitastate");
 }
 function codeForName(name: string) {
@@ -49,28 +48,30 @@ export function matchHistoricCollegeDirectory(html: string, school: string) {
   }
   return null;
 }
-export function historicCollegeCandidates(html: string, teamId: string): VintageCandidate[] {
-  // Team id prefix in the image page identifier prevents cross-team matches.
-  const link = /(?:https?:\/\/www\.sportslogos\.net)?(\/logos\/view\/([a-z0-9]+)\/[a-z0-9-]+\/((?:19|20)\d{2})\/(Primary|Alternate|Secondary)-Logo)\/?/gi;
+export function historicCollegeCandidates(html: string, teamId: string, teamName: string): VintageCandidate[] {
+  // The team name is validated against the archive directory; older logo ids
+  // can be opaque hashes rather than numeric team-id prefixes.
+  const link = /(?:https?:\/\/www\.sportslogos\.net)?(\/logos\/view\/([a-z0-9]+)\/([a-z0-9-]+)\/((?:19|20)\d{2})\/(Primary|Alternate|Secondary)-Logo)\/?/gi;
   const unique = new Map<string,VintageCandidate>();
   for (const match of html.matchAll(link)) {
-    const year = Number(match[3]);
-    if (year >= 2020 || year < 1900 || !match[2].toLowerCase().startsWith(teamId)) continue;
+    const year = Number(match[4]);
+    const pageSchool = alias(match[3].replace(/-Logo$/i,"").replace(/-/g," "));
+    if (year >= 2020 || year < 1900 || pageSchool !== alias(teamName)) continue;
     const url = "https://www.sportslogos.net" + match[1];
-    if (!unique.has(url)) unique.set(url, { year, kind: match[4] as VintageCandidate["kind"], url });
+    if (!unique.has(url)) unique.set(url, { year, kind: match[5] as VintageCandidate["kind"], url });
   }
   const sorted = [...unique.values()].sort((a,b)=>a.year-b.year);
   const primary = sorted.filter(x=>x.kind==="Primary");
   const others = sorted.filter(x=>x.kind!=="Primary");
   // Mix decades and marks while capping remote detail requests.
-  const picked = [ ...primary.slice(0,3), ...primary.slice(-2), ...others.slice(0,4)];
+  const picked = [ ...primary.slice(0,3), ...primary.slice(-2), ...others.slice(0,3)];
   return [...new Map(picked.map(x=>[x.url,x])).values()].slice(0,9);
 }
 
 export function historicLogoImageFromDetail(html: string, teamId: string, year: number): string | null {
   const expanded = html.replace(/&amp;/g,"&").replace(/\\\//g,"/");
-  const re = new RegExp("https://content\\\\.sportslogos\\\\.net/logos/\\\\d+/" + teamId + "/full/[^\\\\s\\\"'<>]+?\\\\.(?:png|gif|webp|jpg)", "gi");
-  const urls = [...expanded.matchAll(re)].map(x=>x[0]).filter(x=>!x.includes("?"));
+  const re = /https:\/\/content\.sportslogos\.net\/logos\/\d+\/(\d+)\/full\/[^\s"'<>]+\.(?:png|gif|webp|jpg)/gi;
+  const urls = [...expanded.matchAll(re)].filter(x=>x[1]===teamId).map(x=>x[0]).filter(x=>!x.includes("?"));
   return urls.find(x=>x.includes(String(year))) || urls[0] || null;
 }
 
@@ -88,7 +89,7 @@ export async function loadHistoricCollegeImages(teamName: string): Promise<Vinta
     } catch { /* A missing directory must not change other team logos. */ }
   }
   if (!team) return [];
-  const history = historicCollegeCandidates(await fetchText(team.url), team.teamId);
+  const history = historicCollegeCandidates(await fetchText(team.url), team.teamId, teamName);
   const results = await Promise.all(history.map(async item => {
     try {
       const image = historicLogoImageFromDetail(await fetchText(item.url), team!.teamId, item.year);
