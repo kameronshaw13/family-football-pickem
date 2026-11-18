@@ -3,12 +3,14 @@ import { getProfileFromRequest } from "@/lib/authServer";
 import { requestedGroupFromRequest, resolveGroupContext, isGameAllowedForGroup } from "@/lib/groupContext";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { espnSportPath } from "@/lib/sportPaths";
-import { isBasketballLeague } from "@/lib/basketballRules";
+import { isBasketballLeague, isInactiveBasketballEvent } from "@/lib/basketballRules";
 import { basketballShots } from "@/lib/basketballShots";
 import { basketballSituation } from "@/lib/basketballSituation";
 import { basketballLiveState } from "@/lib/basketballLiveState";
-import { basketballSummarySwapped, orientBasketballPlayScores } from "@/lib/basketballSummaryOrientation";
+import { basketballClosingHomeSpread, basketballSummarySwapped, orientBasketballPlayScores } from "@/lib/basketballSummaryOrientation";
 import { createAsyncCache } from "@/lib/asyncCache";
+import { hasValidGameLine } from "@/lib/gameDataIntegrity";
+import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
 
 export const dynamic = "force-dynamic";
 const cache = createAsyncCache<any>(4000, 64);
@@ -36,6 +38,9 @@ export async function GET(req: NextRequest) {
     const swapped = basketballSummarySwapped(game, providerHome, providerAway);
     const away = swapped ? providerHome : providerAway;
     const home = swapped ? providerAway : providerHome;
+    const homeSpread = isInactiveBasketballEvent(game.event_status) ? null : hasValidGameLine(game)
+      ? normalizeSpreadForSelectedTeam(game.home_team, game.current_spread_team, game.current_spread)
+      : basketballClosingHomeSpread(game, data);
     const stats = data.boxscore?.teams || [];
     const teamStats = (side: any) => stats.find((row: any) => row.team?.id === side?.team?.id)?.statistics || [];
     const awayStats = teamStats(away), homeStats = teamStats(home);
@@ -97,6 +102,7 @@ export async function GET(req: NextRequest) {
       shots: basketballShots(rawPlays, athletes).map(shot => orientBasketballPlayScores(shot, swapped)),
       liveState: basketballLiveState(rawPlays, String(away?.team?.id || ""), String(home?.team?.id || "")),
       winProbability: probabilities,
+      homeSpread,
       shotAttempts: rawPlays.filter((play: any) => play.shootingPlay && [2, 3].includes(Number(play.pointsAttempted))).length,
       stats: awayStats.map((row: any) => ({ label: row.label || row.displayName || row.name, away: row.displayValue, home: homeStats.find((item: any) => item.name === row.name)?.displayValue || "—" })),
       players: (data.boxscore?.players || []).map((row: any) => ({

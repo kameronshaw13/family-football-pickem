@@ -16,10 +16,13 @@ import { basketballPeriodLabel, type BasketballShot } from "@/lib/basketballShot
 import { scoreFromCompetitor } from "@/lib/espnSchedule";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { trackerDisplayScore } from "@/lib/trackerDisplayScore";
+import { isInactiveBasketballEvent } from "@/lib/basketballRules";
+import { hasValidGameLine } from "@/lib/gameDataIntegrity";
 
 type Play = { id: string; text: string; period: number; clock: string; scoring: boolean; side?: Side | null; awayScore: number | null; homeScore: number | null };
 type Team = { score?: string; records?: { summary: string; type?: string }[]; timeoutsRemaining?: number | string | null; fouls?: number | null; bonus?: number | null; team?: { id?: string; displayName?: string; logo?: string; color?: string; alternateColor?: string } };
 type Payload = {
+  homeSpread?: number | null;
   status: { state?: string; shortDetail?: string; detail?: string; completed?: boolean; period?: number; clock?: string };
   teams: { away?: Team; home?: Team };
   stats: { label: string; away: string; home: string }[];
@@ -130,7 +133,10 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
     else latest.plays.push(play);
     return groups;
   }, []);
-  const homeSpread = normalizeSpreadForSelectedTeam(game.home_team, game.current_spread_team, game.current_spread);
+  const boardHomeSpread = hasValidGameLine(game)
+    ? normalizeSpreadForSelectedTeam(game.home_team, game.current_spread_team, game.current_spread)
+    : null;
+  const homeSpread = isInactiveBasketballEvent(game.event_status) ? null : boardHomeSpread ?? payload?.homeSpread ?? null;
   const tabs: [Tab, string][] = [["scoring", "Scoring"], ...(!completed ? [["live", "Live"] as [Tab, string]] : []), ["plays", "Plays"], ["box", "Box Score"]];
   const teamStats = payload && <section className="game-tracker-team-stats" aria-label="Team statistics comparison">{payload.stats.map(row => <div className="game-tracker-stat-row" key={row.label}><strong aria-label={`${names.away} ${row.label}: ${row.away}`}>{row.away}</strong><span>{row.label}</span><strong aria-label={`${names.home} ${row.label}: ${row.home}`}>{row.home}</strong></div>)}</section>;
 

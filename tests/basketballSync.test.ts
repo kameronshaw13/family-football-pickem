@@ -65,17 +65,20 @@ test("a moved game follows its new week and discards the stale line", () => {
   assert.equal(row.is_locked, false);
 });
 
-test("slate refresh writes schedule fields without overwriting existing creation timestamps or lines", async () => {
+test("slate refresh keeps schedule-only rows out of batches that reset rescheduled lines", async () => {
   const now = new Date("2026-11-01T18:00:00Z");
   const created = "2026-10-28T12:00:00Z";
-  const old = { id: "espn-cbb-1", created_at: created, current_spread: -7, current_spread_team: "Home", is_locked: false };
-  const writes: any[] = [];
-  const db: any = { from() {
+  const old = { id: "espn-cbb-1", espn_event_id: "1", league: "CBB", commence_time: "2026-11-02T22:30:00Z",
+    created_at: created, current_spread: -7, current_spread_team: "Home", is_locked: false };
+  const moved = { ...old, id: "espn-cbb-2", espn_event_id: "2", commence_time: "2026-11-01T23:00:00Z" };
+  const batches: any[][] = [];
+  const db: any = { from(table: string) {
     const query: any = {
-      select() { return query; }, in() { return query; }, gte() { return query; }, lte() { return query; }, order() { return query; },
-      range() { return Promise.resolve({ data: [old], error: null }); },
+      select() { return query; }, in() { return query; }, gte() { return query; }, lte() { return query; }, order() { return query; }, eq() { return query; },
+      limit() { assert.notEqual(table, "games"); return Promise.resolve({ data: [], error: null }); },
+      range() { return Promise.resolve({ data: [old, moved], error: null }); },
       upsert(rows: any[]) {
-        writes.push(...rows);
+        batches.push(rows);
         return Promise.resolve({ error: null });
       }
     };
@@ -86,18 +89,21 @@ test("slate refresh writes schedule fields without overwriting existing creation
     const url = String(input);
     if (url.includes("/teams?")) return Response.json({ sports: [{ leagues: [{ teams: Array.from({ length: 365 }, (_, i) => ({ team: { id: String(i + 1) } })) }] }] });
     if (url.includes("/nba/")) return Response.json({ events: [] });
-    return Response.json({ events: [1, 2].map(id => ({ id: String(id), date: "2026-11-02T23:00:00Z", season: { type: 2 }, competitions: [{ date: "2026-11-02T23:00:00Z", timeValid: true, neutralSite: id === 1, competitors: [
+    return Response.json({ events: [1, 2, 3].map(id => ({ id: String(id), date: "2026-11-02T23:00:00Z", season: { type: 2 }, competitions: [{ date: "2026-11-02T23:00:00Z", timeValid: true, neutralSite: id === 1, competitors: [
       { homeAway: "home", team: { id: "1", displayName: "Home" } },
       { homeAway: "away", team: { id: "2", displayName: `Away ${id}` } }
     ] }] })) });
   };
   try {
     const result = await refreshBasketballSlate(db, now);
-    assert.equal(result.gamesDiscovered, 2);
-    assert.equal(writes.find(row => row.id === old.id).created_at, undefined);
-    assert.equal(writes.find(row => row.id === old.id).current_spread, undefined);
-    assert.equal(writes.find(row => row.id === old.id).neutral_site, true);
-    const added = writes.find(row => row.id === "espn-cbb-2");
+    assert.equal(result.gamesDiscovered, 3);
+    assert.deepEqual(batches.map(batch => batch.map(row => row.id)), [[old.id, "espn-cbb-3"], [moved.id]]);
+    const unchanged = batches[0][0];
+    assert.equal(unchanged.created_at, undefined);
+    assert.equal(unchanged.current_spread, undefined);
+    assert.equal(unchanged.neutral_site, true);
+    assert.equal(batches[1][0].current_spread, null);
+    const added = batches[0][1];
     assert.equal(added.created_at, undefined);
     assert.equal(added.current_spread, undefined);
     assert.equal(added.neutral_site, false);
@@ -121,16 +127,19 @@ test("closing recovery fills only empty completed games and never writes picks o
   globalThis.fetch = async (input: any) => {
     const id = new URL(String(input)).searchParams.get("event");
     assert.notEqual(id, "saved");
-    return Response.json({ header: { id, competitions: [{ status: { type: { completed: id === "final" } } }] }, pickcenter: [{
+    return Response.json({ header: { id, competitions: [{
+      date: "2026-11-01T23:00:00Z", status: { type: { completed: id === "final" } },
+      competitors: [{ homeAway: "home", team: { displayName: "Away" } }, { homeAway: "away", team: { displayName: "Home" } }]
+    }] }, pickcenter: [{
       provider: { name: "DraftKings" }, pointSpread: { away: { close: { line: "-8.5", odds: "-110" } }, home: { close: { line: "+8.5", odds: "-110" } } }
     }] });
   };
-  const game: any = { id: "empty", league: "CBB", away_team: "Away", current_spread: null, espn_event_id: "final" };
+  const game: any = { id: "empty", league: "CBB", away_team: "Away", home_team: "Home", commence_time: "2026-11-01T23:00:00Z", current_spread: null, espn_event_id: "final" };
   try {
     assert.equal(await recoverMissingClosingSpreads(db, [game, { ...game, id: "live", espn_event_id: "live" }, { ...game, id: "saved", espn_event_id: "saved", current_spread: -1.5 }]), 1);
     assert.equal(writes.length, 1);
     assert.equal(writes[0].id, "empty");
-    assert.equal(writes[0].values.current_spread, -8.5);
+    assert.equal(writes[0].values.current_spread, 8.5);
     assert.equal(writes[0].values.current_bookmaker, "DraftKings (closing)");
   } finally { globalThis.fetch = originalFetch; }
 });

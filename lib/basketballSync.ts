@@ -45,8 +45,7 @@ export function basketballScheduleRow(league: Game["league"], event: EspnSchedul
   const away = match?.swapped ? event.homeTeam : event.awayTeam;
   const lock = basketballPickLockTime(event.commenceTime);
   const nextWeek = basketballWeek(new Date(event.commenceTime));
-  const moved = old && Number.isFinite(new Date(old.commence_time).getTime())
-    && new Date(old.commence_time).getTime() !== new Date(event.commenceTime).getTime();
+  const moved = old && basketballDateChanged(old.commence_time, event.commenceTime);
   return {
     id: idOverride || `espn-${league.toLowerCase()}-${event.id}`, espn_event_id: event.id, week: nextWeek, league,
     commence_time: event.commenceTime,
@@ -56,7 +55,7 @@ export function basketballScheduleRow(league: Game["league"], event: EspnSchedul
     home_rank: league === "CBB" ? home.rank ?? null : null,
     away_rank: league === "CBB" ? away.rank ?? null : null,
     lock_time: lock.toISOString(), is_locked: now >= lock,
-    ...(moved ? { current_spread_team: null, current_spread: null, current_bookmaker: null } : {}),
+    ...(moved ? { current_spread_team: null, current_spread: null, current_bookmaker: null, spread_source_updated_at: null } : {}),
     schedule_source_updated_at: now.toISOString(), updated_at: now.toISOString()
   };
 }
@@ -77,7 +76,6 @@ export async function refreshBasketballSlate(supabase: SupabaseClient, now = new
     if ((data || []).length < 500) break;
   }
   const prior = new Map((existing || []).map((game: any) => [game.id, game]));
-  const rows: any[] = [];
   const scheduleErrors: string[] = [];
   let successfulSchedules = 0;
   const completedIds = new Set<string>();
@@ -86,20 +84,22 @@ export async function refreshBasketballSlate(supabase: SupabaseClient, now = new
   const addEvent = async (league: Game["league"], event: EspnScheduleGame) => {
     const baseId = `espn-${league.toLowerCase()}-${event.id}`;
     const date = chicagoDate(event.commenceTime);
+    let id = baseId;
     const sameDate = existing.find((game) => game.league === league && String(game.espn_event_id) === event.id && game.commence_time && chicagoDate(game.commence_time) === date);
     const old = sameDate || prior.get(baseId);
     if (old?.commence_time && basketballDateChanged(old.commence_time, event.commenceTime) && await gameHasWagers(supabase, old.id)) {
-      const newId = `${baseId}-${date.replaceAll("-", "")}`;
-      rowsById.set(newId, basketballScheduleRow(league, event, old, now, newId));
+      id = `${baseId}-${date.replaceAll("-", "")}`;
+      rowsById.set(id, basketballScheduleRow(league, event, old, now, id));
       voidedGames.set(old.id, "STATUS_RESCHEDULED");
     } else {
-      const row = basketballScheduleRow(league, event, old, now, old?.id || baseId);
-      rowsById.set(row.id, row);
+      id = old?.id || baseId;
+      rowsById.set(id, basketballScheduleRow(league, event, old, now, id));
       if (old && ["STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_CANCELLED"].includes(event.statusName || "")
         && new Date(event.commenceTime) <= now && await gameHasWagers(supabase, old.id)) {
         voidedGames.set(old.id, event.statusName!);
       }
     }
+    if (event.completed) completedIds.add(id);
   };
   // Don't show a CBB matchup unless both schools are verified Division I.
   // A directory outage should not stop the NBA schedule from updating.
@@ -126,9 +126,7 @@ export async function refreshBasketballSlate(supabase: SupabaseClient, now = new
       if (!event.timeValid ||
         (league === "NBA" && (!basketballGameAvailableForSideBets(event.commenceTime) || event.seasonType !== 2)) ||
         (league === "CBB" && (!basketballGameInSeason(event.commenceTime) || event.seasonType === 1 || !isDivisionOneMatchup(event.homeTeam.id, event.awayTeam.id, divisionOneIds ?? new Set<string>())))) continue;
-      const id = `espn-${league.toLowerCase()}-${event.id}`;
       await addEvent(league, event);
-      if (event.completed) completedIds.add(id);
     }
   }
   // A postponed game or a game moved well into the future disappears from the
@@ -144,10 +142,16 @@ export async function refreshBasketballSlate(supabase: SupabaseClient, now = new
     return event ? { league: game.league, event } : null;
   }));
   for (const result of reconciled) if (result.status === "fulfilled" && result.value) await addEvent(result.value.league, result.value.event);
-  rows.push(...rowsById.values());
-  for (let index = 0; index < rows.length; index += 200) {
-    const result = await supabase.from("games").upsert(rows.slice(index, index + 200), { onConflict: "id" });
-    if (result.error) throw new Error(result.error.message);
+  const rows = [...rowsById.values()];
+  // PostgREST takes the union of columns in a bulk upsert. Keep explicit
+  // line resets out of schedule-only batches so omitted spreads stay intact.
+  const scheduleOnly = rows.filter((row) => row.current_spread === undefined);
+  const resetLines = rows.filter((row) => row.current_spread === null);
+  for (const batch of [scheduleOnly, resetLines]) {
+    for (let index = 0; index < batch.length; index += 200) {
+      const result = await supabase.from("games").upsert(batch.slice(index, index + 200), { onConflict: "id" });
+      if (result.error) throw new Error(result.error.message);
+    }
   }
   for (const [id, status] of voidedGames) await voidRescheduledGame(supabase, id, now, status);
   if (successfulSchedules === 0) throw new Error(`All basketball schedule feeds unavailable: ${scheduleErrors.join("; ")}`);

@@ -49,6 +49,7 @@ import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, 
 import { orderCardPicks } from "@/lib/cardOrdering";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 import { normalizeVerifiedMarketSpread } from "@/lib/marketSpread";
+import { retainBasketballSpread } from "@/lib/gameDataIntegrity";
 import { canRefreshSpread, getCurrentPickWeek } from "@/lib/lockRules";
 
 
@@ -588,6 +589,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       const loadedWeekIsOpen = !payload.weekOpenTime || new Date(payload.weekOpenTime).getTime() <= loadedAt;
       if (!cachedPayload) await preloadInitialBoardLogos(payload);
       if (sequence !== loadSequence.current) return;
+      const previous = dataRef.current;
+      if (previous && previous.week === payload.week) {
+        const previousGames = new Map(previous.games.map((game) => [game.id, game]));
+        payload.games = payload.games.map((game: Game) => retainBasketballSpread(game, previousGames.get(game.id)));
+      }
       dataRef.current = payload;
       setData(payload);
       setWeek(payload.week);

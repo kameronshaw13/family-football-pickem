@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { selectGameLine, selectGameFinal } from "../lib/gameDataIntegrity.ts";
+import { retainBasketballSpread, selectGameLine, selectGameFinal } from "../lib/gameDataIntegrity.ts";
 import { dedupeLocalGames, mergeLocalGameRows, type LocalGame } from "../lib/cfbMatchupData.ts";
 import { trackerNumber, trackerPlaySituation } from "../lib/trackerPlaySituation.ts";
 import { normalizeSpreadForSelectedTeam } from "../lib/spreads.ts";
+import type { Game } from "../lib/types.ts";
 
 const base: LocalGame = { id: "dk", week: 5, home_team: "Detroit Lions", away_team: "New York Jets", commence_time: "2026-09-27T17:00:00Z", current_spread_team: "Detroit Lions", current_spread: -6.5, current_bookmaker: "DraftKings", final_home_score: 31, final_away_score: 24, updated_at: "2026-09-27T20:00:00Z" };
 
@@ -59,4 +60,27 @@ test("App State aliases merge into a single form game without losing the spread"
   assert.equal(rows.length, 1);
   assert.equal(rows[0].current_spread, -12.5);
   assert.equal(normalizeSpreadForSelectedTeam("App State Mountaineers", "Appalachian State Mountaineers", 12.5), 12.5);
+});
+
+test("basketball reload retains the last line only for the same active matchup", () => {
+  const previous: Game = {
+    ...base, league: "NBA", espn_event_id: "123", home_team: "Boston Celtics", away_team: "Denver Nuggets",
+    current_spread_team: "Boston Celtics", current_bookmaker: "DraftKings", home_logo_url: null, away_logo_url: null,
+    lock_time: base.commence_time, is_locked: false, updated_at: undefined
+  };
+  const missing = { ...previous, current_spread: null, current_spread_team: null, current_bookmaker: null, final_home_score: 100 };
+  const refreshed = retainBasketballSpread(missing, previous);
+  assert.equal(refreshed.current_spread, -6.5);
+  assert.equal(refreshed.current_spread_team, previous.home_team);
+  assert.equal(refreshed.final_home_score, 100);
+
+  const replacement = { ...missing, current_spread: -8.5, current_spread_team: missing.away_team };
+  assert.equal(retainBasketballSpread(replacement, previous), replacement);
+  for (const change of [
+    { commence_time: "2026-09-28T17:00:00Z" }, { event_status: "STATUS_POSTPONED" },
+    { espn_event_id: "456" }, { home_team: "Brooklyn Nets" }
+  ]) {
+    const differentGame = { ...missing, ...change };
+    assert.equal(retainBasketballSpread(differentGame, previous), differentGame);
+  }
 });

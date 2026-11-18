@@ -1,5 +1,7 @@
 import { normalizeTeamNameKey, teamDisplayName } from "./teamNames.ts";
 import { hasUsableStoredGameSpread } from "./marketSpread.ts";
+import { isBasketballLeague, isInactiveBasketballEvent } from "./basketballRules.ts";
+import type { Game } from "./types.ts";
 
 export function footballTeamIdentity(name: string) {
   const key = normalizeTeamNameKey(teamDisplayName("CFB", name));
@@ -46,4 +48,23 @@ export function selectGameFinal<T extends GameData>(a: T, b: T): T | null {
   // Keep the home/away pair from one complete source. Nulls are not zeroes.
   return [a, b].filter(game => [game.final_home_score, game.final_away_score].every(score => score != null && Number.isInteger(score) && score >= 0))
     .sort((x, y) => timestamp(y.score_source_updated_at || y.updated_at) - timestamp(x.score_source_updated_at || x.updated_at) || x.id.localeCompare(y.id))[0] || null;
+}
+
+/** Retain a displayed line if an app reload arrives before the quote is saved. */
+export function retainBasketballSpread(game: Game, previous?: Game): Game {
+  if (!previous || !isBasketballLeague(game.league) || hasValidGameLine(game)
+    || previous.current_bookmaker !== "DraftKings" || !hasValidGameLine(previous)
+    || game.id !== previous.id || game.league !== previous.league || game.week !== previous.week
+    || Date.parse(game.commence_time) !== Date.parse(previous.commence_time)
+    || game.espn_event_id !== previous.espn_event_id
+    || isInactiveBasketballEvent(game.event_status) || isInactiveBasketballEvent(previous.event_status)
+    || footballTeamIdentity(game.home_team) !== footballTeamIdentity(previous.home_team)
+    || footballTeamIdentity(game.away_team) !== footballTeamIdentity(previous.away_team)) return game;
+
+  return {
+    ...game,
+    current_spread_team: previous.current_spread_team,
+    current_spread: previous.current_spread,
+    current_bookmaker: previous.current_bookmaker
+  };
 }
