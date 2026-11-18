@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { parseHistoricalLogos, findArchivedTeam } from "../lib/logoHistoryParser.ts";
 import { logoKeyFromSource } from "../lib/logoStudio.ts";
 import { curatedLogoAlternatives } from "../lib/logoExtraOptions.ts";
+import { contentFingerprint } from "../lib/logoFingerprint.ts";
 
 test("historical archive does not leak another team's crest across headings", () => {
   const html = [
@@ -43,4 +44,13 @@ test("supplementary LA logos are offered only to the exact team and league", () 
   assert.ok(curatedLogoAlternatives(lakers, "NBA").some(opt => opt.label.includes("Lakers basketball")));
   assert.ok(!curatedLogoAlternatives(chargers, "NFL").some(opt => opt.label.includes("Clippers")));
   assert.ok(curatedLogoAlternatives(school, "CBB").some(opt => opt.label.includes("Riverside")));
+});
+
+test("duplicate SVG designs collapse despite palette/colorway changes", () => {
+  const encode = (s: string) => new TextEncoder().encode(s);
+  const navy = encode('<svg viewBox="0 0 100 100"><path d="M 0,0 L 60,90" fill="#003b66"/><circle cx="25" cy="25" r="6" stroke="red"/></svg>');
+  const gold = encode('<svg viewBox="0 0 100 100"><path fill="gold" d="M 0 0 L 60 90"/><circle r="6" cx="25" cy="25" stroke="blue"/></svg>');
+  const other = encode('<svg viewBox="0 0 100 100"><path d="M 0 0 L 65 90"/></svg>');
+  assert.equal(contentFingerprint(navy, "image/svg+xml"), contentFingerprint(gold, "image/svg+xml"));
+  assert.notEqual(contentFingerprint(navy, "image/svg+xml"), contentFingerprint(other, "image/svg+xml"));
 });
