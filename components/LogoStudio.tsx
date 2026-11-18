@@ -30,8 +30,6 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
   const [active, setActive] = useState<Team | null>(null);
   const [history, setHistory] = useState<Option[]>([]);
   const [extra, setExtra] = useState<LogoAlternative[]>([]);
-  const [fingerprints, setFingerprints] = useState<Record<string, string>>({});
-  const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [message, setMessage] = useState("");
@@ -149,40 +147,6 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
   }, [active, history, extra]);
 
 
-  const chosenForPreview = active ? prefs.choices[active.key]?.[prefs.era] : null;
-  const automaticForPreview = active
-    ? (prefs.era === "vintage" ? prefs.vintageDefaults[active.key] : null)
-      || teamVectorFallbackLogo(active.logo) || active.logo
-    : "";
-
-  useEffect(() => {
-    if (!active) { setFingerprints({}); setCheckingDuplicates(false); return; }
-    let canceled = false;
-    const urls = [automaticForPreview, ...options.map(item => item.url)]
-      .filter(Boolean).slice(0, 25);
-    setCheckingDuplicates(true);
-    setFingerprints({});
-    void fetch("/api/logo-option-fingerprints", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ urls })
-    }).then(res => res.json()).then(data => {
-      if (!canceled && data.ok) setFingerprints(data.fingerprints || {});
-    }).catch(() => {}).finally(() => { if (!canceled) setCheckingDuplicates(false); });
-    return () => { canceled = true; };
-  }, [active, automaticForPreview, options]);
-
-  const visibleOptions = useMemo(() => {
-    const used = new Set<string>();
-    if (fingerprints[automaticForPreview]) used.add(fingerprints[automaticForPreview]);
-    return options.filter(option => {
-      if (option.url === automaticForPreview && chosenForPreview !== option.url) return false;
-      const fingerprint = fingerprints[option.url];
-      if (fingerprint && used.has(fingerprint) && chosenForPreview !== option.url) return false;
-      if (fingerprint) used.add(fingerprint);
-      return true;
-    });
-  }, [options, fingerprints, chosenForPreview, automaticForPreview]);
-
   function selectLogo(value: string | null) {
     if (!active) return;
     if (value !== null && !validLogoUrl(value)) { setMessage("Enter a valid HTTPS image URL."); return; }
@@ -237,12 +201,12 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
               <Image unoptimized src={automatic} width={52} height={52} alt="" />
               <span>Automatic</span>
             </button>
-            {visibleOptions.map(option => <button key={option.url} className={chosen === option.url ? "logo-studio-option selected" : "logo-studio-option"} aria-pressed={chosen === option.url} type="button" onClick={() => selectLogo(option.url)}>
+            {options.map(option => <button key={option.url} className={chosen === option.url ? "logo-studio-option selected" : "logo-studio-option"} aria-pressed={chosen === option.url} type="button" onClick={() => selectLogo(option.url)}>
               <Image unoptimized src={option.url} width={52} height={52} alt="" loading="lazy" onError={event => { event.currentTarget.style.opacity = ".25"; }} />
               <span>{option.label}</span>
             </button>)}
           </div>
-          {(loadingHistory || checkingDuplicates) && <p className="logo-studio-note">{loadingHistory ? "Finding historical logos…" : "Checking for duplicate designs…"}</p>}
+          {loadingHistory && <p className="logo-studio-note">Finding historical logos…</p>}
           {["CFB", "CBB"].includes(active.league) && <p className="logo-studio-note">College artwork varies by school. NCAA and FootyLogos options appear when a matching vector exists; you can still add a vintage image URL.</p>}
           <div className="logo-studio-custom">
             <input type="url" value={custom} onChange={event => setCustom(event.target.value)} placeholder="Paste PNG, SVG or WebP image URL" aria-label="Custom team logo HTTPS URL" />
