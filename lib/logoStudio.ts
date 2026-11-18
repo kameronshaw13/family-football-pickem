@@ -47,7 +47,7 @@ export function setLogoStudioUser(profileId: string) {
     preferences = {
       era: stored?.era === "vintage" ? "vintage" : "modern",
       choices: stored?.choices && typeof stored.choices === "object" && !Array.isArray(stored.choices) ? stored.choices : {},
-      vintageDefaults: stored?.vintageDefaults && typeof stored.vintageDefaults === "object" && !Array.isArray(stored.vintageDefaults) ? stored.vintageDefaults : {}
+      vintageDefaults: stored?.vintageCatalogVersion === 2 && stored?.vintageDefaults && typeof stored.vintageDefaults === "object" && !Array.isArray(stored.vintageDefaults) ? stored.vintageDefaults : {}
     };
   } catch { preferences = { era: "modern", choices: {}, vintageDefaults: {} }; }
   document.documentElement.dataset.logoEra = preferences.era;
