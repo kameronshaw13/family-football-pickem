@@ -80,8 +80,8 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     const latest = getLogoStudioPreferences();
     saveLogoStudioPreferences({ ...latest, vintageDefaults: { ...output, ...latest.vintageDefaults } });
     setMessage(Object.keys(output).length
-      ? `Vintage designs available for ${Object.keys(output).length} pro teams. Colleges keep current logos unless you choose another.`
-      : "Vintage palette is active. Add historical designs individually where available.");
+      ? `Vintage designs available for ${Object.keys(output).length} pro teams. For colleges, select a school to see its historical artwork.`
+      : "Vintage palette is active. College historical designs are available in the team picker.");
   }, []);
 
   async function changeEra(era: LogoEra) {
@@ -110,9 +110,11 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
         .then(res => res.json())
         .then(data => { if (!canceled) setExtra(data.ok ? (data.options || []) : []); })
         .catch(() => { if (!canceled) setExtra([]); });
-      if (["NBA", "NFL"].includes(active.league)) {
+      if (["NBA", "NFL", "CBB", "CFB"].includes(active.league)) {
         setLoadingHistory(true);
-        void fetch("/api/logo-history?league=" + active.league.toLowerCase() + "&team=" + encodeURIComponent(active.name))
+        void fetch((active.league === "CBB" || active.league === "CFB"
+          ? "/api/college-logo-history?league=" + active.league + "&team=" + encodeURIComponent(active.name)
+          : "/api/logo-history?league=" + active.league.toLowerCase() + "&team=" + encodeURIComponent(active.name)))
           .then(res => res.json())
           .then(data => {
             if (!canceled) setHistory((data.logos || [])
@@ -207,7 +209,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
             </button>)}
           </div>
           {loadingHistory && <p className="logo-studio-note">Finding historical logos…</p>}
-          {["CFB", "CBB"].includes(active.league) && <p className="logo-studio-note">College artwork varies by school. NCAA and FootyLogos options appear when a matching vector exists; you can still add a vintage image URL.</p>}
+          {["CFB", "CBB"].includes(active.league) && <p className="logo-studio-note">Historic college logos appear below when the school has documented older designs. You can also paste a custom image URL.</p>}
           <div className="logo-studio-custom">
             <input type="url" value={custom} onChange={event => setCustom(event.target.value)} placeholder="Paste PNG, SVG or WebP image URL" aria-label="Custom team logo HTTPS URL" />
             <button type="button" disabled={!validLogoUrl(custom)} onClick={() => { selectLogo(custom); setCustom(""); }}>Use logo</button>
