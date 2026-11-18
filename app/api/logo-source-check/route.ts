@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export async function GET() {
   const urls = [
+    "https://sportslogohistory.com/wichita-state-shockers-primary-logo/",
+    "https://sportslogohistory.com/uc-riverside-highlanders-primary-logo/",
+    "https://commons.wikimedia.org/w/api.php?action=query%26generator=search%26gsrsearch=old%20UC%20Riverside%20Highlanders%20logo%26gsrnamespace=6%26gsrlimit=5%26prop=imageinfo%26iiprop=url%26format=json",
     "https://www.sportslogos.net/teams/list_by_league/35/NCAA-Division-I-u-z-Logos/NCAA-u-z-Logos/",
     "https://www.sportslogos.net/logos/list_by_team/911/Wichita-State-Shockers-Logos/",
     "https://www.sportslogos.net/logos/view/91183601948/Wichita-State-Shockers-Logo/1948/Primary-Logo",
