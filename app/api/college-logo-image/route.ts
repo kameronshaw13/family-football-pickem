@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const result = await fetch(src, {
       headers: {
         "Accept": "image/avif,image/webp,image/png,image/jpeg,image/gif,image/*;q=0.8",
-        "Referer": "https://www.sportslogos.net/",
+        "Referer": new URL(src).hostname === "sportslogohistory.com" ? "https://sportslogohistory.com/" : "https://www.sportslogos.net/",
         "User-Agent": "Mozilla/5.0 (compatible; FamilyPickemLogoStudio/1.0)"
       },
       redirect: "manual",
