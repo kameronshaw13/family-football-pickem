@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
+import { loadHistoricCollegeImages } from "@/lib/collegeVintageLogos";
 export const dynamic = "force-dynamic";
-export async function GET() {
+export async function GET(request: Request) {
+  if (new URL(request.url).searchParams.has("sample")) {
+    const examples = await Promise.all(["Wichita State Shockers", "UC Riverside Highlanders", "Kansas Jayhawks", "Indiana Hoosiers", "Tulsa Golden Hurricane"].map(async team => {
+      try {
+        const logos = await loadHistoricCollegeImages(team);
+        return { team, found: logos.length, examples: logos.slice(0, 5) };
+      } catch(error) { return { team, error: error instanceof Error ? error.message : "unknown" }; }
+    }));
+    return NextResponse.json({ examples });
+  }
   const urls = [
     "https://sportslogohistory.com/wichita-state-shockers-primary-logo/",
     "https://sportslogohistory.com/uc-riverside-highlanders-primary-logo/",
