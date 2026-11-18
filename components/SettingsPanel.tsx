@@ -9,7 +9,7 @@ import PushNotificationControls from "@/components/PushNotificationControls";
 import AppOpenActivity from "@/components/AppOpenActivity";
 import LeagueSwitcher from "@/components/LeagueSwitcher";
 import LogoStudio from "@/components/LogoStudio";
-import { setLogoStudioUser } from "@/lib/logoStudio";
+import { getLogoStudioPreferences, LOGO_STUDIO_EVENT, setLogoStudioUser, setViewerLogoEra, type LogoEra } from "@/lib/logoStudio";
 import type { LeagueMembership } from "@/lib/leagueAccess";
 import { clearClientSession } from "@/lib/clientSession";
 
@@ -57,6 +57,9 @@ export default function SettingsPanel({
   onLeagueSelect: (league: LeagueMembership) => void;
 }) {
   const [theme, setTheme] = useState<Theme>("light");
+  const [logoEra, setLogoEra] = useState<LogoEra>("modern");
+  const [logoEraBusy, setLogoEraBusy] = useState(false);
+  const [logoEraMessage, setLogoEraMessage] = useState("");
   const [logoStudioOpen, setLogoStudioOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -64,7 +67,13 @@ export default function SettingsPanel({
   const [passwordTone, setPasswordTone] = useState<"success" | "error">("success");
   const [passwordBusy, setPasswordBusy] = useState(false);
 
-  useEffect(() => { setLogoStudioUser(currentUser.id); }, [currentUser.id]);
+  useEffect(() => {
+    setLogoStudioUser(currentUser.id, String(currentUser.username || "").trim().toLowerCase() === "kameron");
+    const sync = () => setLogoEra(getLogoStudioPreferences().era);
+    sync();
+    window.addEventListener(LOGO_STUDIO_EVENT, sync);
+    return () => window.removeEventListener(LOGO_STUDIO_EVENT, sync);
+  }, [currentUser.id, currentUser.username]);
 
   useEffect(() => {
     const active = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
@@ -74,6 +83,15 @@ export default function SettingsPanel({
   function chooseTheme(next: Theme) {
     setTheme(next);
     applyTheme(next, currentUser.id);
+  }
+
+  async function chooseLogoEra(next: LogoEra) {
+    if (logoEraBusy || next === logoEra) return;
+    setLogoEraBusy(true);
+    setLogoEraMessage("");
+    try { await setViewerLogoEra(next); }
+    catch { setLogoEraMessage("Could not save logo style. Please retry."); }
+    finally { setLogoEraBusy(false); }
   }
 
   async function changePassword(event: React.FormEvent) {
@@ -174,12 +192,17 @@ export default function SettingsPanel({
           <button type="button" className={theme === "light" ? "active" : ""} aria-pressed={theme === "light"} onClick={() => chooseTheme("light")}><Sun size={14} /> Light</button>
           <button type="button" className={theme === "dark" ? "active" : ""} aria-pressed={theme === "dark"} onClick={() => chooseTheme("dark")}><Moon size={14} /> Dark</button>
         </div>
+        <div className="theme-toggle settings-logo-era-toggle" role="group" aria-label="Team logo style">
+          <button type="button" className={logoEra === "modern" ? "active" : ""} aria-pressed={logoEra === "modern"} disabled={logoEraBusy} onClick={() => void chooseLogoEra("modern")}>Modern</button>
+          <button type="button" className={logoEra === "vintage" ? "active" : ""} aria-pressed={logoEra === "vintage"} disabled={logoEraBusy} onClick={() => void chooseLogoEra("vintage")}>Vintage</button>
+        </div>
+        {logoEraMessage && <p className="logo-studio-status" role="status">{logoEraMessage}</p>}
       </div>
-      <button className="settings-card settings-logo-studio-link" type="button" onClick={() => setLogoStudioOpen(true)}>
+      {String(currentUser.username || "").trim().toLowerCase() === "kameron" && <button className="settings-card settings-logo-studio-link" type="button" onClick={() => setLogoStudioOpen(true)}>
         <span className="settings-leading-icon"><Images size={17} /></span>
         <span className="settings-row-copy"><strong>Logo Studio</strong><span>Choose modern, vintage and alternate team artwork.</span></span>
         <ChevronRight size={17} />
-      </button>
+      </button>}
     </div>
 
     <div className="settings-section">
