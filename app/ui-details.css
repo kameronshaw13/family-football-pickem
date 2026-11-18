@@ -8029,3 +8029,34 @@ html:not([data-theme="dark"]) .game-tracker-header-logo-wrap > img[data-logo-bac
 .basketball-probability-toggle > button[aria-pressed="true"] { background: var(--panel); color: var(--ink); }
 .basketball-cover-estimate-note { display: block; padding: 8px 10px 0; color: var(--muted); font-size: 10px; text-align: center; line-height: 1.4; }
 .basketball-probability-chart > svg:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+
+/* White detail-sheet title bars for both sports and matchup previews.
+   Keep the drag handle subtle; replace the former blue rule with one black line. */
+.game-tracker-sheet > .game-tracker-header,
+.matchup-preview-sheet > .matchup-preview-header,
+html[data-theme="dark"] .game-tracker-sheet > .game-tracker-header,
+html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
+  color: #111;
+  background: #fff;
+  border-bottom: 1px solid #111;
+  box-shadow: none;
+}
+.game-tracker-sheet > .game-tracker-header .game-detail-title,
+.matchup-preview-sheet > .matchup-preview-header .matchup-detail-title,
+.game-tracker-sheet > .game-tracker-header strong,
+.matchup-preview-sheet > .matchup-preview-header strong {
+  color: #111;
+}
+.game-tracker-sheet > .game-tracker-header::before,
+.matchup-preview-sheet > .matchup-preview-header::before {
+  background: #a5a5a5;
+}
+.game-tracker-sheet > .game-tracker-header > .game-detail-close,
+.matchup-preview-sheet > .matchup-preview-header > .game-detail-close,
+html[data-theme="dark"] .game-tracker-sheet > .game-tracker-header > .game-detail-close,
+html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header > .game-detail-close {
+  color: #111;
+  border: 0;
+  background: transparent;
+}
