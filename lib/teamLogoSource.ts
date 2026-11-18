@@ -8,3 +8,8 @@ export function ncaaSvgLogo(source: string): string | null {
   const slug = id ? NCAA_SVG_BY_ESPN_ID[id] : guid ? NCAA_SVG_BY_ESPN_GUID[guid] : null;
   return slug ? `https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/${slug}.svg` : null;
 }
+
+/** Recognize saved ESPN logo URLs without changing the artwork provider. */
+export function isTeamLogoSource(source: string) {
+  return /^https?:\/\/(?:a|secure)\.espncdn\.com\//i.test(source) && /\/teamlogos\/|\/guid\/[^/]+\/logos\//i.test(source);
+}
