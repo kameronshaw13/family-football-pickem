@@ -8,13 +8,14 @@ export default function BoardDaySelector({ days, value, today, onChange }: {
   days: string[]; value: string; today: string; onChange: (day: string) => void;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
+  const dayListSignature = days.join("|");
   useEffect(() => {
     const container = scroller.current;
     const selected = container?.querySelector<HTMLElement>('[aria-selected="true"]');
     if (!container || !selected) return;
     const left = selected.offsetLeft - (container.clientWidth - selected.offsetWidth) / 2;
     container.scrollTo({ left, behavior: "smooth" });
-  }, [value, days.join("|")]);
+  }, [value, dayListSignature]);
   if (!days.length) return null;
   return <div className="board-day-selector" role="tablist" ref={scroller} aria-label="Select game day">
     {days.map(day => {
