@@ -449,7 +449,8 @@ function FootballDrive({ drive, payload, initiallyOpen }: {
     drive.timeElapsed ? `${drive.timeElapsed} possession` : ""
   ].filter(Boolean);
 
-  return <details className="football-drive" defaultOpen={initiallyOpen}>
+  const [open, setOpen] = useState(initiallyOpen);
+  return <details className="football-drive" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
     <summary className="football-drive-summary">
       <span className="football-drive-logo" aria-hidden="true">{team && <TeamLogo src={team.logo} name={team.name} size={26} />}</span>
       <span className="football-drive-description">
