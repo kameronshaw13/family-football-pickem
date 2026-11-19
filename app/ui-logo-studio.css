@@ -94,3 +94,14 @@ html[data-logo-era="vintage"][data-theme="dark"] .matchup-preview-hero { backgro
 .logo-studio-palette > span:first-child { color:var(--muted); font-weight:750; }
 .logo-studio-color { display:inline-flex; align-items:center; gap:4px; font-size:10px; color:var(--ink); font-variant-numeric:tabular-nums; }
 .logo-studio-color i { display:inline-block; width:15px; height:15px; border:1px solid var(--line); border-radius:2px; }
+
+/* Logo Studio manual picker: three primary sources, then optional artwork underneath. */
+.logo-studio-page .logo-studio-main-sources {
+  grid-template-columns: repeat(3,minmax(0,1fr));
+}
+.logo-studio-section { padding-top: 9px; }
+.logo-studio-section + .logo-studio-section { margin-top: 13px; border-top: 1px solid var(--line); }
+.logo-studio-section-title { margin: 0 0 9px; font-size: 11px; font-weight: 800; color: var(--ink); }
+.logo-studio-source-note { margin: 5px 0 0; color: var(--muted); font-size: 10px; }
+.logo-studio-reset-actions { display:flex; justify-content:space-between; gap:12px; padding:15px 0 2px; border-top:1px solid var(--line); margin-top:14px; }
+.logo-studio-reset-actions button { background:transparent; color:var(--muted); border:0; padding:4px 0; font-size:11px; font-weight:650; text-decoration:underline; }
