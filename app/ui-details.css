@@ -9309,9 +9309,9 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 .picks-panel .game-days.board-league-days {
   display: grid;
   gap: 9px;
-  margin: 9px calc(var(--page-gutter) * -1) 0;
-  padding: 0;
-  background: transparent;
+  margin: 0 calc(var(--page-gutter) * -1);
+  padding: 9px 0 0;
+  background: var(--canvas-deep);
 }
 .picks-panel .board-favorites-section + .game-days.board-league-days {
   margin-top: 9px;
