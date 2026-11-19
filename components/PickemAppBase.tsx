@@ -1614,14 +1614,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               sections={[
                 { options: [{ value: "ALL", label: "ALL CONF." }, { value: "TOP25", label: "TOP 25" }] },
                 { label: "Power 4", options: [
-                  { value: "POWER4", label: "ALL P4" },
+                  { value: "POWER4", label: "ALL POWER 4" },
                   ...POWER_CONFERENCES.map(value => ({ value, label: value }))
                 ] },
                 { label: "Group of 6", options: [
-                  { value: "GROUP6", label: "ALL G6" },
+                  { value: "GROUP6", label: "ALL GROUP OF 6" },
                   ...GROUP_CONFERENCES.map(value => ({ value, label: value }))
                 ] },
-                { options: [{ value: FBS_INDEPENDENTS_CONFERENCE, label: "IND." }] }
+                { options: [{ value: FBS_INDEPENDENTS_CONFERENCE, label: "INDEPENDENTS" }] }
               ]}
               onChange={setConferenceFilter}
             />}
@@ -1634,7 +1634,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
                 ...(["POWER", "MID", "LOW"] as const).map(tier => ({
                   label: tier === "POWER" ? "Power 5" : tier === "MID" ? "Mid-Major" : "Low-Major",
                   options: [
-                    { value: tier, label: tier === "POWER" ? "ALL P5" : tier === "MID" ? "ALL MID" : "ALL LOW" },
+                    { value: tier, label: tier === "POWER" ? "ALL POWER 5" : tier === "MID" ? "ALL MID-MAJOR" : "ALL LOW-MAJOR" },
                     ...(cbbConferences?.conferences.filter(conference => conference.category === tier)
                       .map(conference => ({ value: conference.value, label: conference.label })) || [])
                   ]
@@ -1654,12 +1654,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           <div className="game-days board-league-days">
             {favoriteDayGames.length > 0 && <BoardLeagueSection
               key={`${dayScope}:${selectedDayKey}:favorites`}
-              league="Favorites" label="Favorites" count={favoriteDayGames.length} favorite>
+              league="Favorites" label="Favorites" favorite>
               {favoriteDayGames.map(renderBoardGame)}
             </BoardLeagueSection>}
             {boardLeagueGroups.map(group => <BoardLeagueSection
               key={`${dayScope}:${selectedDayKey}:${group.league}`}
-              league={group.league} label={group.label} count={group.games.length}>
+              league={group.league} label={group.label}>
               {group.games.map(renderBoardGame)}
             </BoardLeagueSection>)}
           </div>

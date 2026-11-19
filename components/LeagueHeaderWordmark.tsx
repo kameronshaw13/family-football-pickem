@@ -23,6 +23,7 @@ function LeagueHeaderWordmark({ slug }: { slug: PickemAppSlug }) {
         width={800}
         height={item.height}
         unoptimized
+        priority={visible}
         decoding="sync"
         fetchPriority={visible ? "high" : "low"}
         style={{ display: visible ? "block" : "none" }}

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useLayoutEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { usePathname } from "next/navigation";
-import LeagueHeaderWordmark from "@/components/LeagueHeaderWordmark";
+import HeaderLeaguePicker from "@/components/HeaderLeaguePicker";
 import PrimaryBottomNav from "@/components/PrimaryBottomNav";
 
 type Chrome = { header: ReactNode; nav: ReactNode };
@@ -18,7 +18,7 @@ export function PersistentAppChrome({ children }: { children: ReactNode }) {
   const visible = appPaths.has(pathname);
   const slug = pathname === "/friends-basketball" ? "friends-basketball" : pathname === "/friends" ? "friends" : pathname === "/caleb-family" ? "other-family" : "shaw-family";
   return <ChromeContext.Provider value={setChrome}>
-    {visible && (chrome?.header ?? <header className="scoreboard-header"><div className="scoreboard-main"><LeagueHeaderWordmark slug={slug} /><div className="header-actions"><div className="header-slate"><span>Week</span></div></div></div></header>)}
+    {visible && (chrome?.header ?? <header className="scoreboard-header"><div className="scoreboard-main"><HeaderLeaguePicker activeSlug={slug} currentTab="picks" onSelect={ignoreSelection} /><div className="header-actions"><div className="header-slate"><span>Week</span></div></div></div></header>)}
     {visible && (chrome?.nav ?? <PrimaryBottomNav activeTab="picks" counts={{}} onSelect={ignoreSelection} />)}
     {children}
   </ChromeContext.Provider>;

@@ -119,13 +119,13 @@ export default function useGameSheetDismiss(
       // Pulling harder increases resistance rather than dragging the entire
       // sheet halfway down the screen, as a partially-open sheet is not a state.
       dragDistance = gameDetail
-        ? Math.min(72, 72 * (1 - Math.exp(-pullDistance / 155)))
+        ? Math.min(80, 80 * (1 - Math.exp(-pullDistance / 130)))
         : Math.min(pullDistance, sheet!.clientHeight);
       sheet!.style.transition = "none";
       sheet!.style.transform = `translate3d(0, ${dragDistance}px, 0)`;
       // A committed long pull crosses the dismissal boundary immediately.
       // Short, fast flicks can still dismiss when the finger is released.
-      if (gameDetail && pullDistance >= 200) animateClose();
+      if (gameDetail && pullDistance >= 185) animateClose();
     }
 
     function finish(cancelled = false) {
@@ -142,7 +142,7 @@ export default function useGameSheetDismiss(
       const duration = performance.now() - startedAt;
       const dismiss = !cancelled && (
         gameDetail
-          ? pullDistance >= 170 || (pullDistance >= 78 && recentVelocity >= .65 && duration < 600)
+          ? pullDistance >= 150 || (pullDistance >= 70 && recentVelocity >= .6 && duration < 600)
           : dragDistance >= 110 || (dragDistance >= 62 && duration < 330)
       );
       if (dismiss) {

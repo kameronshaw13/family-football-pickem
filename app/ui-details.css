@@ -9583,11 +9583,22 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
    light-gray unit; no individual child moves or changes shade independently. */
 .picks-panel > .picks-top-controls {
   position: sticky;
-  top: calc(env(safe-area-inset-top) + var(--header-height));
+  top: calc(env(safe-area-inset-top) + var(--header-height) + var(--space-3));
   z-index: 24;
   margin: 0 calc(var(--page-gutter) * -1);
   padding-inline: var(--page-gutter);
   background: var(--canvas);
+}
+/* Keep the original inset filled and fully stationary during scroll. */
+.picks-panel > .picks-top-controls::before {
+  position: absolute;
+  top: calc(-1 * var(--space-3));
+  right: 0;
+  left: 0;
+  height: var(--space-3);
+  background: var(--canvas);
+  content: "";
+  pointer-events: none;
 }
 
 /* Keep the SAME typography, selection underline and divider as the existing
@@ -9662,7 +9673,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
    Their section boundaries naturally push prior headings out of the way. */
 .picks-panel .board-league-group > .board-league-header {
   position: sticky;
-  top: calc(env(safe-area-inset-top) + var(--header-height) + 151px);
+  top: calc(env(safe-area-inset-top) + var(--header-height) + 163px);
   z-index: 19;
   border-bottom-color: var(--line-strong) !important;
 }
@@ -9698,28 +9709,20 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   left: auto;
 }
 
-/* Exactly one separator between dropdown cells. The common select layout
-   uses display:contents for sections, so remove its 1px grid gaps and give
-   every item only one top edge, including Power 4 / Group of 6 transitions. */
+/* One and only one border between dropdown entries. Each row owns its
+   bottom border, so grouped headings cannot double it with the next row. */
 .picks-panel .board-filter-row .custom-select-menu {
   row-gap: 0;
   background: var(--panel);
 }
 .picks-panel .board-filter-row .custom-select-section > .custom-select-option,
 .picks-panel .board-filter-row .custom-select-section > .custom-select-group-label {
-  border-top: 1px solid var(--line);
+  border: 0 !important;
+  border-bottom: 1px solid var(--line) !important;
+  box-shadow: none !important;
 }
-.picks-panel .board-filter-row .custom-select-section:first-child > :first-child {
-  border-top: 0;
-}
-
-/* Only one rule immediately below each section label. The next option
-   no longer adds a second border beneath Power 4 / Group of 6. */
-.picks-panel .board-filter-row .custom-select-group-label {
-  border-bottom: 1px solid var(--line);
-}
-.picks-panel .board-filter-row .custom-select-group-label + .custom-select-option {
-  border-top: 0;
+.picks-panel .board-filter-row .custom-select-section:last-child > :last-child {
+  border-bottom: 0 !important;
 }
 /* Keep long conference names within the equal-width third column. */
 .picks-panel .board-filter-row .context-select .custom-select-option {
@@ -9747,4 +9750,16 @@ html[data-theme="dark"] .picks-panel .board-filter-row .custom-select-option.sel
   background: var(--blue-soft) !important;
   color: var(--blue-dark);
   font-weight: 750;
+}
+
+
+/* Smaller, closer-together dates without reducing the touch target height. */
+.picks-panel .board-sticky-controls > .board-day-selector > button {
+  min-width: 92px;
+  padding-inline: 5px;
+}
+@media (max-width: 380px) {
+  .picks-panel .board-sticky-controls > .board-day-selector > button {
+    min-width: 88px;
+  }
 }
