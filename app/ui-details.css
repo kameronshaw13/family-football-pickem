@@ -8878,13 +8878,19 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   font-weight: 800;
 }
 .board-favorites-section > .game-list { margin-inline: 0; margin-bottom: 0; }
-.picks-panel .game-head { position: relative; padding-right: 36px; }
-.picks-panel .game-head > .board-favorite-trigger {
-  position: absolute;
-  top: 2px;
-  right: 4px;
+.picks-panel .game-head { position: relative; }
+.picks-panel .game-head .matchup-preview-actions {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.picks-panel .game-head .matchup-preview-actions > .board-favorite-trigger {
+  position: static;
   z-index: 2;
   display: grid;
+  flex: 0 0 29px;
   width: 29px;
   height: 30px;
   min-width: 29px;
@@ -8894,11 +8900,20 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: var(--muted);
+  color: var(--ink);
   cursor: pointer;
 }
-.picks-panel .game-head > .board-favorite-trigger.active { color: #d34a58; }
-.picks-panel .game-head > .board-favorite-trigger:focus-visible { outline: 2px solid var(--blue); }
+.picks-panel .game-head .matchup-preview-actions > .board-favorite-trigger:focus-visible { outline: 2px solid var(--blue); }
+/* Keep the whole star + GameTracker pair centered when live football has the
+   GameTracker in the middle; basketball retains its right-aligned control. */
+.picks-panel .game-head.live-tracker-head .matchup-preview-actions {
+  grid-column: 2;
+  justify-self: center;
+}
+.picks-panel .game-head.basketball-live-head .matchup-preview-actions.basketball-tracker-right {
+  grid-column: 2;
+  justify-self: end;
+}
 .board-filter-data-notice { margin: -5px 0 8px; padding: 0 4px; color: var(--muted); font-size: 11px; }
 
 /* A stable header logo and the SAME flat listbox treatment as all app
@@ -9255,11 +9270,11 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 
 /* Favorites show an ink-black outline star, filled on selection, with an
    obvious thin divider between every favorited matchup. */
-.picks-panel .game-head > .board-favorite-trigger,
-.picks-panel .game-head > .board-favorite-trigger.active {
+.picks-panel .game-head .matchup-preview-actions > .board-favorite-trigger,
+.picks-panel .game-head .matchup-preview-actions > .board-favorite-trigger.active {
   color: var(--ink);
 }
-.picks-panel .game-head > .board-favorite-trigger svg {
+.picks-panel .game-head .matchup-preview-actions > .board-favorite-trigger svg {
   stroke: currentColor;
   stroke-width: 2;
 }

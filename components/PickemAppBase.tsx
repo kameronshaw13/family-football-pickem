@@ -1361,7 +1361,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const favoriteKey = (game: Game) => `${game.league}:${game.espn_event_id || game.id}`;
   const favoriteSet = new Set(favoriteGames);
   const favoriteDayGames = filteredGames.filter(game => favoriteSet.has(favoriteKey(game)));
-  const otherDayGames = filteredGames.filter(game => !favoriteSet.has(favoriteKey(game)));
+  // Favorites are an extra view of games, never a move out of their league.
+  const otherDayGames = filteredGames;
   // Keep CBB/NBA and CFB/NFL visibly separate on the selected day.
   // The league heading for each group can collapse its games independently.
   const boardLeagueGroups = (appSlug === "friends-basketball" ? ["CBB", "NBA"] : ["CFB", "NFL"])
