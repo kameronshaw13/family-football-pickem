@@ -1585,11 +1585,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           {picksView === "board" && <>
           <div className="view-select-row board-filter-row">
             <MenuSelect ariaLabel="Choose sport or underdog games" className="compact-select league-select" value={leagueFilter}
-              sections={[
-                { options: [{ value: "ALL", label: "All Games" }] },
-                { label: appSlug === "friends-basketball" ? "Basketball" : "Football", options: (appSlug === "friends-basketball" ? ["CBB", "NBA"] : ["CFB", "NFL"]).map(value => ({ value, label: value })) },
-                { options: [{ value: "DOGS", label: "Underdogs", selectedLabel: "Dogs" }] }
-              ]}
+              sections={[{ options: [
+                { value: "ALL", label: "All" },
+                ...(appSlug === "friends-basketball" ? ["CBB", "NBA"] : ["CFB", "NFL"]).map(value => ({ value, label: value })),
+                { value: "DOGS", label: "Dogs" }
+              ] }]}
               onChange={value => setLeagueFilter(value as LeagueFilter)} />
             {(leagueFilter === "CFB" || (leagueFilter === "ALL" && appSlug !== "friends-basketball")) && <MenuSelect
               ariaLabel="Filter college football by rankings or conference"

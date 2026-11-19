@@ -9669,3 +9669,47 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 .picks-panel .board-league-group > .board-league-header[aria-expanded="false"] {
   border-bottom-color: var(--line) !important;
 }
+
+
+/* Return the Pick Board filters to the original three-column rhythm.
+   Sport sits in the left third and conference/dog filter in the right
+   third; the middle third remains open. This does not affect Side Bets. */
+.picks-panel .board-sticky-controls > .board-filter-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 6px;
+}
+.picks-panel .board-sticky-controls > .board-filter-row > .league-select,
+.picks-panel .board-sticky-controls > .board-filter-row > .league-select:only-child {
+  grid-column: 1 / 2 !important;
+}
+.picks-panel .board-sticky-controls > .board-filter-row > .context-select {
+  grid-column: 3 / 4;
+}
+.picks-panel .board-sticky-controls > .board-filter-row > .context-select .custom-select-menu {
+  width: min(230px, calc(100vw - 24px));
+  right: 0;
+  left: auto;
+}
+
+/* Exactly one separator between dropdown cells. The common select layout
+   uses display:contents for sections, so remove its 1px grid gaps and give
+   every item only one top edge, including Power 4 / Group of 6 transitions. */
+.picks-panel .board-filter-row .custom-select-menu {
+  row-gap: 0;
+  background: var(--panel);
+}
+.picks-panel .board-filter-row .custom-select-section > .custom-select-option,
+.picks-panel .board-filter-row .custom-select-section > .custom-select-group-label {
+  border-top: 1px solid var(--line);
+}
+.picks-panel .board-filter-row .custom-select-section:first-child > :first-child {
+  border-top: 0;
+}
+
+/* Restore a full selected-cell fill instead of a text-only bold selection. */
+.picks-panel .board-filter-row .custom-select-option.selected,
+html[data-theme="dark"] .picks-panel .board-filter-row .custom-select-option.selected {
+  background: var(--blue-soft) !important;
+  color: var(--blue-dark);
+  font-weight: 750;
+}
