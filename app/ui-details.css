@@ -9419,3 +9419,88 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   .picks-panel .board-league-header > strong { font-size: 11px; }
   .picks-panel .board-league-header { gap: 7px; }
 }
+
+/* Pick Board filters: the selectors inherit the surrounding surface, rather
+   than painting a contrasting rectangle behind the selected dropdown. */
+.picks-panel .view-select-row.board-filter-row {
+  background: transparent !important;
+}
+.picks-panel .board-filter-row .compact-select,
+.picks-panel .board-filter-row .compact-select .custom-select-trigger,
+.picks-panel .board-filter-row .compact-select .custom-select-label {
+  background: transparent !important;
+}
+.picks-panel .board-filter-row .custom-select-menu {
+  background: var(--panel);
+}
+.picks-panel .board-filter-row .custom-select-option.selected {
+  background: var(--panel) !important;
+  color: var(--ink);
+  font-weight: 850;
+}
+.picks-panel .view-select-row.board-filter-row > .league-select:only-child {
+  grid-column: 1 / 2 !important;
+}
+
+/* Each college/NBA or college/NFL group is a true header cell, with the
+   title and chevron vertically centered and a consistent divider at its edge. */
+.picks-panel .board-league-group > .board-league-header {
+  display: flex !important;
+  box-sizing: border-box;
+  height: 48px;
+  min-height: 48px;
+  max-height: 48px;
+  padding: 0 var(--page-gutter) !important;
+  align-items: center !important;
+  border-top: 1px solid var(--tracker-section-divider);
+  border-bottom: 1px solid var(--tracker-section-divider);
+}
+.picks-panel .board-league-header > b,
+.picks-panel .board-league-header > strong,
+.picks-panel .board-league-header > .board-league-count,
+.picks-panel .board-league-header > .board-league-chevron {
+  align-self: center !important;
+  margin-block: 0;
+}
+.picks-panel .board-league-header > strong {
+  display: flex;
+  align-items: center;
+  min-height: 0;
+  height: 100%;
+  line-height: 1.2;
+}
+
+/* The dark rules frame the complete game section; individual games and
+   their inner head/team rows retain the lighter grey separators. */
+.picks-panel .board-league-group > .game-list {
+  border: 0 !important;
+}
+.picks-panel .board-league-group > .game-list > .game-card {
+  border-top: 0 !important;
+  border-bottom: 1px solid var(--tracker-divider) !important;
+}
+.picks-panel .board-league-group > .game-list > .game-card:last-child {
+  border-bottom: 1px solid var(--tracker-section-divider) !important;
+}
+.picks-panel .board-league-group:last-child {
+  border-bottom: 0 !important;
+}
+.picks-panel .board-league-group + .board-league-group > .board-league-header {
+  border-top: 0;
+}
+.picks-panel .board-league-group > .board-league-header[aria-expanded="false"] {
+  border-bottom: 1px solid var(--tracker-section-divider);
+}
+
+/* Favorites have the same hierarchy: dark section edges, light grey
+   between favorited games and within each game card. */
+.picks-panel .board-favorites-section > .game-list > .game-card {
+  border-top: 0 !important;
+  border-bottom: 1px solid var(--tracker-divider) !important;
+}
+.picks-panel .board-favorites-section > .game-list > .game-card:last-child {
+  border-bottom: 0 !important;
+}
+.picks-panel .board-favorites-section > .game-list {
+  border-bottom: 1px solid var(--tracker-section-divider) !important;
+}

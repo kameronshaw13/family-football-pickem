@@ -1568,7 +1568,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           <div className="view-select-row board-filter-row">
             <MenuSelect ariaLabel="Choose sport or underdog games" className="compact-select league-select" value={leagueFilter}
               sections={[
-                { options: [{ value: "ALL", label: appSlug === "friends-basketball" ? "All Basketball" : "All Football", selectedLabel: "All Games" }] },
+                { options: [{ value: "ALL", label: "All Games" }] },
                 { label: appSlug === "friends-basketball" ? "Basketball" : "Football", options: (appSlug === "friends-basketball" ? ["CBB", "NBA"] : ["CFB", "NFL"]).map(value => ({ value, label: value })) },
                 { options: [{ value: "DOGS", label: "Underdogs", selectedLabel: "Dogs" }] }
               ]}
@@ -1609,13 +1609,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               onChange={setCbbConferenceFilter}
             />}
             {leagueFilter === "DOGS" && <MenuSelect ariaLabel="Filter dogs by win value" className="compact-select context-select" value={dogValueFilter} sections={[{ options: [{ value: "ALL", label: "ALL DOGS" }, ...(["1", "2", "3"] as const).map((value) => ({ value, label: dogBonusText(value, pointsMode) }))] }]} onChange={(value) => setDogValueFilter(value as DogValueFilter)} />}
-            {(leagueFilter === "NFL" || leagueFilter === "NBA") && <MenuSelect
-              ariaLabel="Game filters"
-              className="compact-select context-select"
-              value="ALL"
-              sections={[{ options: [{ value: "ALL", label: leagueFilter === "NFL" ? "ALL NFL" : "ALL NBA" }] }]}
-              onChange={() => undefined}
-            />}
           </div>
           <BoardDaySelector days={calendarDays} value={selectedDayKey} today={todayDayKey}
             onChange={day => setBoardDaySelection({ scope: dayScope, day })} />
