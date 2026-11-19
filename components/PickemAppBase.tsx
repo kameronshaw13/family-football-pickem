@@ -1329,17 +1329,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }) : [];
   // Keep a familiar day ribbon across the selected pick week. Switching days
   // changes visible matchups only; it never changes the chosen OPEN/LOCKED/FINAL tab.
-  const leagueCalendarKeys = Array.from(new Set(viewedGames
-    .filter(game => leagueFilter === "DOGS" ? true : game.league === leagueFilter)
+  // Show only dates with games matching the selected status, sport and
+  // conference filters. Don't output empty days between matchups.
+  const calendarDays = Array.from(new Set(statusFilteredGames
     .map(game => gameDayKey(game.commence_time)))).sort();
-  const calendarDays: string[] = [];
-  if (leagueCalendarKeys.length) {
-    const first = Date.parse(leagueCalendarKeys[0] + "T12:00:00Z");
-    const last = Date.parse(leagueCalendarKeys[leagueCalendarKeys.length - 1] + "T12:00:00Z");
-    for (let day = first; day <= last && calendarDays.length < 14; day += 86_400_000) {
-      calendarDays.push(new Date(day).toISOString().slice(0, 10));
-    }
-  }
   const todayDayKey = gameDayKey(new Date(clock).toISOString());
   const statusDays = Array.from(new Set(statusFilteredGames.map(game => gameDayKey(game.commence_time)))).sort();
   const defaultDayKey = statusFilter === "FINAL"
