@@ -164,8 +164,6 @@ import {
   VisiblePick,
 } from "@/components/PickemPickViews";
 import {
-  conferenceFilterSections,
-  ConferenceFilter,
   BankBalanceHistoryRow,
   BankWeekResults,
   ConfidenceOrder,
@@ -1292,14 +1290,33 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const replacementEventIds = new Set(viewedGames
     .filter(game => game.event_status !== "STATUS_RESCHEDULED" && game.espn_event_id)
     .map(game => `${game.league}:${game.espn_event_id}`));
+  const cfbMatchesSelectedFilter = (game: Game) => {
+    if (conferenceFilter === "ALL") return true;
+    if (conferenceFilter === "TOP25") return teamRank(game, game.home_team) != null || teamRank(game, game.away_team) != null;
+    const conferences = gameConferences(game);
+    if (conferenceFilter === "POWER4") return conferences.some(value => (POWER_CONFERENCES as readonly string[]).includes(value));
+    if (conferenceFilter === "GROUP6") return conferences.some(value => (GROUP_CONFERENCES as readonly string[]).includes(value));
+    return conferences.includes(conferenceFilter);
+  };
+  const cbbMatchesSelectedFilter = (game: Game) =>
+    cbbGameMatchesConference(game, cbbConferenceFilter, cbbConferences?.teams || {});
+
   const boardGames = boardActive ? viewedGames.filter(game => {
     if (game.event_status === "STATUS_RESCHEDULED" && game.espn_event_id &&
         replacementEventIds.has(`${game.league}:${game.espn_event_id}`)) return false;
-    if (leagueFilter === "ALL") return true;
-    if (leagueFilter === "CFB")
-      return game.league === "CFB" && (conferenceFilter === "ALL" || gameConferences(game).includes(conferenceFilter));
-    if (leagueFilter === "CBB")
-      return game.league === "CBB" && cbbGameMatchesConference(game, cbbConferenceFilter, cbbConferences?.teams || {});
+    if (leagueFilter === "ALL") {
+      // "All" includes pro and college games; narrowing the second dropdown
+      // focuses the list on the matching college games.
+      if (appSlug === "friends-basketball")
+        return game.league === "CBB"
+          ? cbbMatchesSelectedFilter(game)
+          : game.league === "NBA" && cbbConferenceFilter === "ALL";
+      return game.league === "CFB"
+        ? cfbMatchesSelectedFilter(game)
+        : game.league === "NFL" && conferenceFilter === "ALL";
+    }
+    if (leagueFilter === "CFB") return game.league === "CFB" && cfbMatchesSelectedFilter(game);
+    if (leagueFilter === "CBB") return game.league === "CBB" && cbbMatchesSelectedFilter(game);
     if (leagueFilter === "NFL" || leagueFilter === "NBA") return game.league === leagueFilter;
     const dogValue = Math.max(...[game.away_team, game.home_team].map(team => teamDogValue(game, team)));
     return dogValue > 0 && (dogValueFilter === "ALL" || dogValue === Number(dogValueFilter));
@@ -1544,8 +1561,25 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
                 { options: [{ value: "DOGS", label: "Underdogs", selectedLabel: "Dogs" }] }
               ]}
               onChange={value => setLeagueFilter(value as LeagueFilter)} />
-            {leagueFilter === "CFB" && <ConferenceFilter value={conferenceFilter} onChange={setConferenceFilter} />}
-            {leagueFilter === "CBB" && <MenuSelect
+            {(leagueFilter === "CFB" || (leagueFilter === "ALL" && appSlug !== "friends-basketball")) && <MenuSelect
+              ariaLabel="Filter college football by rankings or conference"
+              className="compact-select context-select"
+              value={conferenceFilter}
+              sections={[
+                { options: [{ value: "ALL", label: "ALL CONF." }, { value: "TOP25", label: "TOP 25" }] },
+                { label: "Power 4", options: [
+                  { value: "POWER4", label: "ALL POWER 4" },
+                  ...POWER_CONFERENCES.map(value => ({ value, label: value }))
+                ] },
+                { label: "Group of 6", options: [
+                  { value: "GROUP6", label: "ALL GROUP OF 6" },
+                  ...GROUP_CONFERENCES.map(value => ({ value, label: value }))
+                ] },
+                { options: [{ value: FBS_INDEPENDENTS_CONFERENCE, label: "INDEPENDENTS" }] }
+              ]}
+              onChange={setConferenceFilter}
+            />}
+            {(leagueFilter === "CBB" || (leagueFilter === "ALL" && appSlug === "friends-basketball")) && <MenuSelect
               ariaLabel="Filter college basketball by conference or Top 25"
               className="compact-select context-select"
               value={cbbConferenceFilter}
@@ -1563,6 +1597,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               onChange={setCbbConferenceFilter}
             />}
             {leagueFilter === "DOGS" && <MenuSelect ariaLabel="Filter dogs by win value" className="compact-select context-select" value={dogValueFilter} sections={[{ options: [{ value: "ALL", label: "ALL DOGS" }, ...(["1", "2", "3"] as const).map((value) => ({ value, label: dogBonusText(value, pointsMode) }))] }]} onChange={(value) => setDogValueFilter(value as DogValueFilter)} />}
+            {(leagueFilter === "NFL" || leagueFilter === "NBA") && <MenuSelect
+              ariaLabel="Game filters"
+              className="compact-select context-select"
+              value="ALL"
+              sections={[{ options: [{ value: "ALL", label: leagueFilter === "NFL" ? "ALL NFL" : "ALL NBA" }] }]}
+              onChange={() => undefined}
+            />}
           </div>
           <BoardDaySelector days={calendarDays} value={selectedDayKey} today={todayDayKey}
             onChange={day => setBoardDaySelection({ scope: dayScope, day })} />

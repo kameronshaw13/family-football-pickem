@@ -9276,3 +9276,37 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   border-bottom: 1px solid var(--tracker-divider);
 }
 .picks-panel .board-favorites-section { margin-bottom: 0; }
+
+/* Keep both Pick Board dropdowns in one row, including All Games.
+   The second selector is conference/ranking or dog value as appropriate. */
+.picks-panel .view-select-row.board-filter-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  column-gap: 6px;
+}
+.picks-panel .view-select-row.board-filter-row > .league-select,
+.picks-panel .view-select-row.board-filter-row > .context-select {
+  grid-column: auto;
+  min-width: 0;
+  width: 100%;
+}
+
+/* Favorites: a dark rule above and below the heading, then a single
+   dark section-ending rule below the last favorited game. */
+.picks-panel .board-favorites-section > h3 {
+  border-top: 1px solid var(--tracker-section-divider) !important;
+  border-bottom: 1px solid var(--tracker-section-divider) !important;
+  box-shadow: none !important;
+}
+.picks-panel .board-favorites-section > .game-list {
+  border-top: 0 !important;
+  border-bottom: 1px solid var(--tracker-section-divider) !important;
+  box-shadow: none !important;
+}
+.picks-panel .board-favorites-section > .game-list > .game-card:last-child {
+  border-bottom: 0 !important;
+}
+.picks-panel .board-favorites-section > .game-list > .game-card + .game-card {
+  border-top: 1px solid var(--tracker-divider);
+}
