@@ -8,7 +8,7 @@ import { playTextWithoutDuplicateClock } from "@/lib/playText";
 import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "@/components/TeamImage";
 import { createPortal } from "react-dom";
-import { ChevronDown, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import GameDetailClose from "@/components/GameDetailClose";
 import type { Game } from "@/lib/types";
 import type { AppSlug } from "@/lib/rulePresentation";
@@ -109,19 +109,6 @@ function TeamLogo({ src, name, size = 40, logoBackground }: { src?: string | nul
 
 function periodLabel(period: string) {
   return trackerPeriodLabel(period);
-}
-
-function drivePeriod(drive: TrackerDrive) {
-  return drive.plays.find((play) => play.period)?.period || "";
-}
-
-function driveQuarterTransitions(drive: TrackerDrive) {
-  return drive.plays.flatMap((play, index) => {
-    const previous = drive.plays[index - 1];
-    return previous?.period && play.period && periodLabel(previous.period) !== periodLabel(play.period)
-      ? [periodLabel(play.period)]
-      : [];
-  });
 }
 
 async function loadTracker(gameId: string, appSlug: AppSlug) {
@@ -268,56 +255,34 @@ function FieldFootballIcon() {
   </span>;
 }
 
-function PlayRow({ play, compact = false }: { play: TrackerPlay; compact?: boolean }) {
-  // ESPN sometimes prefixes a start clock in parentheses, while the event clock
-  // represents the end of the play. Position them at opposite ends of the copy.
+function PlayRow({ play, team, compact = false }: { play: TrackerPlay; team?: TrackerTeam | null; compact?: boolean }) {
+  // The ESPN description sometimes includes the start clock; don't show it twice.
   const raw = playTextWithoutDuplicateClock(play.text, play.clock);
   const timeMatch = raw.match(/^\s*\(?(\d{1,2}:\d{2})\)?(?=\s|$)[\s:–—-]*/);
   const startClock = timeMatch?.[1] || play.clock;
   const endClock = timeMatch && play.clock && timeMatch[1] !== play.clock ? play.clock : "";
   const description = timeMatch ? raw.slice(timeMatch[0].length).trimStart() : raw;
 
-  return <div className={`game-tracker-drive-play ${compact ? "compact" : ""}`.trim()}>
-    <div>
-      <div className="game-tracker-play-context">
-        {play.situation && <span>{play.situation}</span>}
-        {play.outcome && <b className="game-tracker-play-outcome">{play.outcome}</b>}
-      </div>
-      <strong className="game-tracker-play-copy">
-        {startClock && <time className="game-tracker-play-start">{startClock}</time>}
-        <span>{description}</span>
-        {endClock && <time className="game-tracker-play-end">{endClock}</time>}
-      </strong>
+  return <div className={`football-play-row${compact ? " compact" : ""}`}>
+    <span className="football-play-row-logo" aria-hidden="true">{team && <TeamLogo src={team.logo} name={team.name} size={23} />}</span>
+    <div className="football-play-row-copy">
+      {play.situation && <div className="football-play-row-situation">{play.situation}</div>}
+      <p>{startClock && <time>{startClock}</time>}{description}{endClock && <time className="football-play-end-clock"> – {endClock}</time>}</p>
     </div>
+    {play.outcome && <span className="football-play-row-outcome">{play.outcome}</span>}
   </div>;
-}
-
-function LiveCurrentDrive({ drive, payload }: { drive: TrackerDrive; payload: TrackerPayload }) {
-  const team = drive.teamSide ? payload.teams[drive.teamSide] : null;
-  const meta = [
-    drive.playsCount ? `${drive.playsCount} plays` : "",
-    drive.yards != null ? `${drive.yards} yds` : "",
-    drive.timeElapsed ? `${drive.timeElapsed} Possession` : "Possession"
-  ].filter(Boolean);
-
-  return <section className="game-tracker-live-drive">
-    <header>
-      <span>{team && <TeamLogo src={team.logo} name={team.name} size={28} />}</span>
-      <div><strong>Current Drive</strong><small className="game-tracker-drive-meta"><MetaDots items={meta} /></small></div>
-    </header>
-    <div className="game-tracker-live-drive-plays">
-      {drive.plays.length ? drive.plays.map((play) => <PlayRow key={play.id} play={play} compact />) : <p className="game-tracker-drive-empty">Waiting for the first play…</p>}
-    </div>
-  </section>;
 }
 
 function LiveField({ payload }: { payload: TrackerPayload }) {
   const { situation, teams } = payload;
-  const currentDrive = payload.drives.find((drive) => drive.current) || (!payload.status.completed ? payload.drives[0] : null);
+  const recent = payload.drives.flatMap(drive => drive.plays).slice(0, 5);
+  const latest = recent[0];
+  const currentDrive = payload.drives.find(drive => drive.current) || payload.drives[0];
   const offenseSide = situation.possessionSide || currentDrive?.teamSide || "away";
   const defenseSide: Side = offenseSide === "home" ? "away" : "home";
   const offense = teams[offenseSide];
   const defense = teams[defenseSide];
+  const latestTeam = latest?.teamSide ? teams[latest.teamSide] : null;
 
   const yardsToGoal = situation.yardsToGoal == null ? 50 : Math.max(0, Math.min(100, situation.yardsToGoal));
   const playableLeft = 7;
@@ -331,54 +296,52 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
     : Math.min(playableLeft + playableWidth, lineOfScrimmage + (firstDownYards / 100) * playableWidth);
   const yardLabels = [10, 20, 30, 40, 50, 40, 30, 20, 10];
 
-  return <div className="game-tracker-live">
+  return <div className="game-tracker-live football-live-view">
+    <div className="football-latest-action">
+      <span className="football-latest-action-logo" aria-hidden="true">{latestTeam && <TeamLogo src={latestTeam.logo} name={latestTeam.name} size={25} />}</span>
+      <div>
+        <small>{latest ? "Latest Play" : "On the Field"}</small>
+        <strong>{latest ? playTextWithoutDuplicateClock(latest.text, latest.clock) : payload.status.state === "pre" ? "Play-by-play begins at kickoff." : "Waiting for the next play."}</strong>
+        {latest?.situation && <span>{latest.situation}{latest.clock ? ` · ${latest.clock}` : ""}</span>}
+      </div>
+    </div>
+
     <div className="game-tracker-live-meta">
       <div className="game-tracker-possession-label">
         <TeamLogo src={offense.logo} name={offense.name} size={22} />
         <strong>{payload.league === "NFL" ? offense.shortName : teamDisplayName("CFB", offense.name || offense.shortName)}</strong>
-        <strong className="game-tracker-ball-label">Ball</strong>
+        <span>Possession</span>
       </div>
+      {situation.downDistanceText && <span className="football-live-down-distance">{situation.downDistanceText}</span>}
     </div>
 
     <div className="game-tracker-field" aria-label={gameCenterSituation(payload)}>
-      <div
-        className="game-tracker-endzone left"
-        style={{ backgroundColor: `#${offense.color || "34444c"}`, color: `#${offense.alternateColor || "ffffff"}` }}
-      >
+      <div className="game-tracker-endzone left"
+        style={{ backgroundColor: `#${offense.color || "34444c"}`, color: `#${offense.alternateColor || "ffffff"}` }}>
         <TeamLogo src={offense.logo} name={offense.name} size={20} logoBackground={`#${offense.color || "34444c"}`} />
         <span>{offense.endZoneName || offense.shortName || offense.abbreviation}</span>
       </div>
-
       <div className="game-tracker-field-lines">
-        {yardLabels.map((_, index) => {
-          const left = playableLeft + ((index + 1) * playableWidth / 10);
-          return <i key={index} style={{ left: `${left}%` }} />;
-        })}
+        {yardLabels.map((_, index) => <i key={index} style={{ left: `${playableLeft + ((index + 1) * playableWidth / 10)}%` }} />)}
       </div>
       <div className="game-tracker-yard-labels">
-        {yardLabels.map((label, index) => {
-          const left = playableLeft + ((index + 0.5) * playableWidth / 10);
-          return <span key={index} style={{ left: `${left}%` }}>{label}</span>;
-        })}
+        {yardLabels.map((label, index) => <span key={index} style={{ left: `${playableLeft + ((index + 0.5) * playableWidth / 10)}%` }}>{label}</span>)}
       </div>
-
       <div className="game-tracker-los-line" style={{ left: `${lineOfScrimmage}%` }} aria-hidden="true" />
       {firstDownLine != null && <div className="game-tracker-first-down-line" style={{ left: `${firstDownLine}%` }} aria-hidden="true" />}
-
-      <div className="game-tracker-football-position" style={{ left: `${lineOfScrimmage}%` }}>
-        <FieldFootballIcon />
-      </div>
-
-      <div
-        className="game-tracker-endzone right"
-        style={{ backgroundColor: `#${defense.color || "34444c"}`, color: `#${defense.alternateColor || "ffffff"}` }}
-      >
+      <div className="game-tracker-football-position" style={{ left: `${lineOfScrimmage}%` }}><FieldFootballIcon /></div>
+      <div className="game-tracker-endzone right"
+        style={{ backgroundColor: `#${defense.color || "34444c"}`, color: `#${defense.alternateColor || "ffffff"}` }}>
         <TeamLogo src={defense.logo} name={defense.name} size={20} logoBackground={`#${defense.color || "34444c"}`} />
         <span>{defense.endZoneName || defense.shortName || defense.abbreviation}</span>
       </div>
     </div>
 
-    {currentDrive && <LiveCurrentDrive drive={currentDrive} payload={payload} />}
+    <section className="football-recent-plays" aria-label="Recent football plays">
+      <div className="football-section-heading"><h3>Last 5 Plays</h3></div>
+      {recent.length ? recent.map(play => <PlayRow key={play.id} play={play} team={play.teamSide ? teams[play.teamSide] : null} compact />)
+        : <p className="game-tracker-empty">No plays available yet.</p>}
+    </section>
   </div>;
 }
 
@@ -445,7 +408,8 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
       key={`${quarter.label}-${quarterIndex}`}
     >
       <ScoringQuarterHeader payload={payload} label={quarter.label} />
-      {quarter.rows.map(({ play, previous }) => <div className="game-tracker-score-play" key={play.id}>
+      {quarter.rows.map(({ play, previous }) => <div className="game-tracker-score-play football-score-event" key={play.id}>
+        <span className="football-play-row-logo" aria-hidden="true">{play.teamSide && <TeamLogo src={payload.teams[play.teamSide].logo} name={payload.teams[play.teamSide].name} size={23} />}</span>
         <div className="game-tracker-scoring-copy">
           <div className="game-tracker-scoring-meta">
             <strong>{play.type || "Score"}</strong>
@@ -464,80 +428,23 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
   </div>;
 }
 
-function DriveSummary({ drive, payload }: { drive: TrackerDrive; payload: TrackerPayload }) {
-  const team = drive.teamSide ? payload.teams[drive.teamSide] : null;
-  const scored = drive.plays.some((play) => play.scoringPlay);
-  const scoreText = scored && (drive.awayScore != null || drive.homeScore != null)
-    ? ` (${drive.awayScore ?? "—"}-${drive.homeScore ?? "—"})`
-    : "";
-  const title = drive.current ? "Current Drive" : drive.result || "Drive";
-  const detailParts = [
-    drive.playsCount ? `${drive.playsCount} plays` : "",
-    drive.yards != null ? `${drive.yards} yds` : ""
-  ].filter(Boolean);
-  const timeAndPossession = drive.timeElapsed
-    ? `${drive.timeElapsed}${team ? " Possession" : ""}`
-    : team ? "Possession" : "";
-  const detail = [...detailParts, timeAndPossession].filter(Boolean);
-
-  return <summary>
-    <span className="game-tracker-drive-logo">{team && <TeamLogo src={team.logo} name={team.name} size={28} />}</span>
-    <div>
-      <strong>{title}{scoreText}</strong>
-      <small className="game-tracker-drive-meta">{detail.length ? <MetaDots items={detail} /> : drive.description || "Drive summary"}</small>
-    </div>
-    <ChevronDown size={16} />
-  </summary>;
-}
-
-function DriveDetails({ drive, payload, initiallyOpen, beforeQuarter, crossesQuarter, connectedAbove }: { drive: TrackerDrive; payload: TrackerPayload; initiallyOpen: boolean; beforeQuarter: boolean; crossesQuarter: boolean; connectedAbove: boolean }) {
-  const [open, setOpen] = useState(initiallyOpen);
-
-  return <details
-    className={`game-tracker-drive ${beforeQuarter ? "before-quarter" : ""} ${crossesQuarter ? "crosses-quarter" : ""} ${connectedAbove ? "connected-above" : ""}`.trim()}
-    open={open}
-    onToggle={(event) => setOpen(event.currentTarget.open)}
-  >
-    <DriveSummary drive={drive} payload={payload} />
-    <div className="game-tracker-drive-plays">
-      {drive.plays.length ? drive.plays.map((play, index) => {
-        const previous = drive.plays[index - 1];
-        const newQuarter = previous?.period && play.period && periodLabel(previous.period) !== periodLabel(play.period);
-        const transitionPeriod = payload.status.completed ? play.period : previous?.period || play.period;
-        return <Fragment key={play.id}>
-          {newQuarter && <div className="game-tracker-quarter-header game-tracker-drive-quarter-header">{trackerPeriodHeading(periodLabel(transitionPeriod))}</div>}
-          <PlayRow play={play} />
-        </Fragment>;
-      }) : <p className="game-tracker-drive-empty">No plays listed for this drive.</p>}
-    </div>
-  </details>;
-}
-
 function Plays({ payload }: { payload: TrackerPayload }) {
-  if (!payload.drives.length) return <p className="game-tracker-empty">Drive data is not available yet.</p>;
+  const allPlays = payload.drives.flatMap(drive => drive.plays);
+  if (!allPlays.length) return <p className="game-tracker-empty">Play-by-play begins at kickoff.</p>;
+  // ESPN returns chronological drives after the final whistle, and newest-first drives while live.
+  const quarters = allPlays.reduce<Array<{ label: string; plays: TrackerPlay[] }>>((groups, play) => {
+    const label = periodLabel(play.period || "1");
+    const last = groups[groups.length - 1];
+    if (!last || last.label !== label) groups.push({ label, plays: [play] });
+    else last.plays.push(play);
+    return groups;
+  }, []);
 
-  // In-progress feeds list newest plays/drives first; finished games are chronological.
-  // A drive belongs to the quarter in which it STARTED, even when it spans a break.
-  const driveStartQuarter = (drive: TrackerDrive) => {
-    const ordered = payload.status.completed ? drive.plays : [...drive.plays].reverse();
-    return periodLabel(ordered.find((play) => play.period)?.period || drivePeriod(drive));
-  };
-
-  return <div className="game-tracker-drives">
-    {payload.drives.map((drive, index) => {
-      const previous = payload.drives[index - 1];
-      const period = driveStartQuarter(drive);
-      const showQuarter = !previous || period !== driveStartQuarter(previous);
-      const crossedQuarters = driveQuarterTransitions(drive);
-      const nextDrive = payload.drives[index + 1];
-      const beforeQuarter = Boolean(nextDrive && driveStartQuarter(nextDrive) !== period);
-      const connectedAbove = Boolean(previous && !showQuarter);
-
-      return <Fragment key={drive.id}>
-        {showQuarter && <div className="game-tracker-quarter-header game-tracker-plays-quarter-header">{trackerPeriodHeading(period)}</div>}
-        <DriveDetails drive={drive} payload={payload} initiallyOpen={drive.current || index === 0} beforeQuarter={beforeQuarter} crossesQuarter={crossedQuarters.length > 0} connectedAbove={connectedAbove} />
-      </Fragment>;
-    })}
+  return <div className="football-play-list">
+    {quarters.map((quarter, index) => <section className="football-play-period" key={`${quarter.label}-${index}`}>
+      <ScoringQuarterHeader payload={payload} label={quarter.label} />
+      {quarter.plays.map(play => <PlayRow key={play.id} play={play} team={play.teamSide ? payload.teams[play.teamSide] : null} />)}
+    </section>)}
   </div>;
 }
 
@@ -799,15 +706,14 @@ export default function GameTracker({ game, onClose, appSlug }: { game: Game; on
   const homeName = teamDisplayName(game.league, game.home_team);
   const completed = Boolean(game.live_completed || (game.final_home_score != null && game.final_away_score != null) || payload?.status.completed);
   const tabs: Array<[TrackerTab, string]> = [
-    ...(completed ? [] : [["live", "Live"] as [TrackerTab, string]]),
-    ["scoring", "Scoring"],
     ["plays", "Plays"],
-    ["box", "Box Score"]
+    ["scoring", "Scoring"],
+    ...(completed ? [] : [["live", "Live"] as [TrackerTab, string]])
   ];
   const matchupHeader = `${awayName}${game.neutral_site ? " vs " : " at "}${homeName}`;
 
   return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) closeWithMotion(); }}>
-    <section ref={sheet} className="game-tracker-sheet" role="dialog" aria-modal="false" aria-label={`${matchupHeader} GameTracker`}>
+    <section ref={sheet} className="game-tracker-sheet football-game-tracker" role="dialog" aria-modal="false" aria-label={`${matchupHeader} GameTracker`}>
       <header className="game-tracker-header">
         <div className="game-detail-title">
           
@@ -838,7 +744,7 @@ export default function GameTracker({ game, onClose, appSlug }: { game: Game; on
       </nav>
 
       <div ref={scrollArea} className={`game-tracker-scroll ${tab === "box" ? "box-score" : ""}`.trim()}>
-        {tab !== "box" && <nav className="tracker-inner-switch" aria-label="Football GameTracker views">{tabs.filter(([id]) => id !== "box").map(([id,label]) => <button type="button" key={id} className={tab === id ? "active" : ""} aria-pressed={tab === id} onClick={() => { setTab(id); scrollArea.current?.scrollTo(0, 0); }}>{label}</button>)}</nav>}
+        {tab !== "box" && <nav className="tracker-inner-switch" aria-label="Football GameTracker views">{tabs.map(([id,label]) => <button type="button" key={id} className={tab === id ? "active" : ""} aria-pressed={tab === id} onClick={() => { setTab(id); scrollArea.current?.scrollTo(0, 0); }}>{label}</button>)}</nav>}
         {!payload && !error && <div className="game-tracker-loading"><LoaderCircle size={22} /><span>Loading GameTracker…</span></div>}
         {error && !payload && <div className="game-tracker-empty" role="alert">{error}</div>}
         {payload && tab === "live" && <LiveField payload={payload} />}
