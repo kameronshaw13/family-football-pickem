@@ -280,7 +280,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
                 chosen={modernSelected === option.url} onSelect={() => selectLogo(option.url, "modern")} />)}
             </div>
             {active.league === "College" && options.main[0]?.label === "School website" &&
-              <p className="logo-studio-source-note">School website artwork was checked on the school's athletics homepage.</p>}
+              <p className="logo-studio-source-note">School website artwork was checked on the school’s athletics homepage.</p>}
           </div>
           {options.more.length > 0 && <div className="logo-studio-section">
             <h3 className="logo-studio-section-title">More modern choices</h3>
