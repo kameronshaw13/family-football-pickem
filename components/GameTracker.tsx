@@ -16,6 +16,8 @@ import { teamDisplayName } from "@/lib/teamNames";
 import { trackerDisplayScore } from "@/lib/trackerDisplayScore";
 import { trackerTeamColors } from "@/lib/trackerTeamColors";
 import { groupTrackerScoringPlays } from "@/lib/trackerScoringGroups";
+import { footballTimeProgress, type FootballProbabilityPoint } from "@/lib/footballWinProbability";
+import FootballProbabilityCharts from "@/components/FootballProbabilityChart";
 
 type TrackerTab = "live" | "scoring" | "plays" | "box";
 type Side = "away" | "home";
@@ -90,6 +92,8 @@ type TrackerPayload = {
     drive?: { playsCount: number; yards: number | null; timeElapsed: string } | null;
   }>;
   drives: TrackerDrive[];
+  winProbability: FootballProbabilityPoint[];
+  homeSpread: number | null;
   teamStats: Array<{ label: string; away: string; home: string }>;
   playerStats: Array<{
     side: Side;
@@ -262,20 +266,23 @@ function FieldFootballIcon() {
 }
 
 function PlayRow({ play, team, compact = false }: { play: TrackerPlay; team?: TrackerTeam | null; compact?: boolean }) {
-  // The ESPN description sometimes includes the start clock; don't show it twice.
-  const raw = playTextWithoutDuplicateClock(play.text, play.clock);
-  const timeMatch = raw.match(/^\s*\(?(\d{1,2}:\d{2})\)?(?=\s|$)[\s:–—-]*/);
-  const startClock = timeMatch?.[1] || play.clock;
-  const endClock = timeMatch && play.clock && timeMatch[1] !== play.clock ? play.clock : "";
-  const description = timeMatch ? raw.slice(timeMatch[0].length).trimStart() : raw;
-
-  return <div className={`football-play-row${compact ? " compact" : ""}`}>
-    <span className="football-play-row-logo" aria-hidden="true">{team && <TeamLogo src={team.logo} name={team.name} size={23} />}</span>
+  // Expanded drives match ESPN's two-line style: situation/result on top,
+  // original play narration underneath with a single start time.
+  const raw = String(play.text || "").trim();
+  const hasLeadingClock = /^\s*\(?\d{1,2}:\d{2}\)?(?=\s|,|:|$)/.test(raw);
+  const description = hasLeadingClock || !play.clock ? raw : `(${play.clock}) ${raw}`;
+  const situationMatch = play.situation.match(/^(.*?)(\s+at\s+.+)$/i);
+  return <div className={`football-play-row ${compact ? "compact" : "detailed"}`}>
+    {compact && <span className="football-play-row-logo" aria-hidden="true">{team && <TeamLogo src={team.logo} name={team.name} size={23} />}</span>}
     <div className="football-play-row-copy">
-      {play.situation && <div className="football-play-row-situation">{play.situation}</div>}
-      <p>{startClock && <time>{startClock}</time>}{description}{endClock && <time className="football-play-end-clock"> – {endClock}</time>}</p>
+      <div className="football-play-row-head">
+        <div className="football-play-row-situation">
+          {situationMatch ? <><strong>{situationMatch[1]}</strong><span>{situationMatch[2]}</span></> : <span>{play.situation || trackerPeriodHeading(play.period)}</span>}
+        </div>
+        {play.outcome && <strong className="football-play-row-outcome">{play.outcome}</strong>}
+      </div>
+      <p>{description}</p>
     </div>
-    {play.outcome && <span className="football-play-row-outcome">{play.outcome}</span>}
   </div>;
 }
 
@@ -350,6 +357,12 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
       {recent.length ? recent.map(play => <PlayRow key={play.id} play={play} team={play.teamSide ? teams[play.teamSide] : null} compact />)
         : <p className="game-tracker-empty">No plays available yet.</p>}
     </section>
+    {payload.status.state === "in" && <FootballProbabilityCharts
+      points={payload.winProbability || []}
+      homeSpread={payload.homeSpread ?? null}
+      away={payload.teams.away} home={payload.teams.home}
+      completed={false}
+    />}
   </div>;
 }
 
@@ -384,19 +397,29 @@ function ScoringScore({
 
 function FootballGameFlow({ payload }: { payload: TrackerPayload }) {
   const plays = payload.scoringPlays.filter(play => play.awayScore != null && play.homeScore != null);
-  if (plays.length < 2) return null;
-  const scores = [{ away: 0, home: 0 }, ...plays.map(play => ({ away: Number(play.awayScore), home: Number(play.homeScore) }))];
-  const maximum = Math.ceil(Math.max(10, ...scores.flatMap(score => [score.away, score.home])) / 7) * 7;
-  const x = (index: number) => 36 + index * 276 / (scores.length - 1);
-  const y = (points: number) => 136 - points / maximum * 116;
-  const path = (side: Side) => scores.map((score, index) => `${index === 0 ? "M" : "L"}${x(index).toFixed(2)} ${y(score[side]).toFixed(2)}`).join(" ");
+  if (!plays.length) return null;
+  const events = [{ away: 0, home: 0, progress: 0 }, ...plays.map(play => ({
+    away: Number(play.awayScore), home: Number(play.homeScore),
+    progress: footballTimeProgress(play.period, play.clock) ?? 0
+  }))];
+  const domain = Math.max(1, ...events.map(event => event.progress));
+  if (payload.status.completed) {
+    const last = events[events.length - 1];
+    events.push({ ...last, progress: Math.max(1, last.progress) });
+  }
+  const maximum = Math.ceil(Math.max(10, ...events.flatMap(score => [score.away, score.home])) / 7) * 7;
+  const x = (progress: number) => 36 + progress / domain * 276;
+  const y = (score: number) => 136 - score / maximum * 116;
+  const path = (side: Side) => events.map((score, index) => `${index === 0 ? "M" : "L"}${x(score.progress).toFixed(2)} ${y(score[side]).toFixed(2)}`).join(" ");
   return <section className="basketball-score-flow tracker-football-flow" aria-label="Football game flow">
     <h3>Game Flow</h3>
     <svg viewBox="0 0 330 164" role="img" aria-label={`Cumulative football scores: ${payload.teams.away.name} solid and ${payload.teams.home.name} dashed.`}>
       {[0,1,2,3,4].map(tick => { const value = Math.round(maximum * tick / 4); const sy = y(value); return <g key={tick}><line x1="36" y1={sy} x2="312" y2={sy} className="basketball-flow-grid" /><text x="28" y={sy + 3} textAnchor="end" className="basketball-flow-axis">{value}</text></g>; })}
+      {[.25, .5, .75].map(progress => <line key={progress} x1={x(progress)} x2={x(progress)} y1="20" y2="136" className="basketball-flow-boundary" />)}
       <path d={path("away")} className="basketball-flow-away" />
       <path d={path("home")} className="basketball-flow-home" />
-      {["Q1","Q2","Q3","Q4"].map((label,index) => <text key={label} x={36 + (index + .5) * 276 / 4} y="154" textAnchor="middle" className="basketball-flow-axis">{label}</text>)}
+      {["1st","2nd","3rd","4th"].map((label,index) => <text key={label} x={x((index + .5) / 4)} y="154" textAnchor="middle" className="basketball-flow-axis">{label}</text>)}
+      {domain > 1 && <text x={x((1 + domain) / 2)} y="154" textAnchor="middle" className="basketball-flow-axis">OT</text>}
     </svg>
     <div className="basketball-flow-legend"><span><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={19} /><i className="basketball-flow-legend-line away" />{payload.teams.away.shortName}</span><span><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={19} /><i className="basketball-flow-legend-line home" />{payload.teams.home.shortName}</span></div>
   </section>;
@@ -424,11 +447,11 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
             {play.clock && <time>{play.clock}</time>}
           </div>
           <p>{playTextWithoutDuplicateClock(play.text, play.clock)}</p>
-          {play.drive && <small><MetaDots items={[
-            play.drive.playsCount ? `${play.drive.playsCount} plays` : "",
-            play.drive.yards != null ? `${play.drive.yards} yds` : "",
-            play.drive.timeElapsed ? `${play.drive.timeElapsed} possession` : ""
-          ].filter(Boolean)} /></small>}
+          {play.drive && <small>{[
+            play.drive.playsCount ? `${play.drive.playsCount} Plays` : "",
+            play.drive.yards != null ? `${play.drive.yards} Yards` : "",
+            play.drive.timeElapsed ? `${play.drive.timeElapsed} Possession` : ""
+          ].filter(Boolean).join(", ")}</small>}
         </div>
         <ScoringScore play={play} previous={previous} />
       </div>)}
@@ -443,23 +466,27 @@ function FootballDrive({ drive, payload, initiallyOpen }: {
 }) {
   const team = drive.teamSide ? payload.teams[drive.teamSide] : null;
   const result = drive.current ? "Current Drive" : drive.result || "Drive";
+  const scored = /touchdown|field goal|safety|extra point|2pt|\bTD\b/i.test(result);
+  const scoreText = scored && drive.awayScore != null && drive.homeScore != null
+    ? ` (${drive.awayScore}-${drive.homeScore})` : "";
   const meta = [
-    drive.playsCount ? `${drive.playsCount} plays` : "",
-    drive.yards != null ? `${drive.yards} yds` : "",
-    drive.timeElapsed ? `${drive.timeElapsed} possession` : ""
+    drive.playsCount ? `${drive.playsCount} Plays` : "",
+    drive.yards != null ? `${drive.yards} Yards` : "",
+    drive.timeElapsed ? `${drive.timeElapsed} Possession` : ""
   ].filter(Boolean);
+  const driveColor = team?.color && /^[0-9a-f]{6}$/i.test(team.color) ? `#${team.color}` : "#a12936";
 
   const [open, setOpen] = useState(initiallyOpen);
   return <details className="football-drive" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
     <summary className="football-drive-summary">
       <span className="football-drive-logo" aria-hidden="true">{team && <TeamLogo src={team.logo} name={team.name} size={26} />}</span>
       <span className="football-drive-description">
-        <strong>{team ? `${team.shortName || team.name} · ${result}` : result}</strong>
-        <small>{meta.length ? <MetaDots items={meta} /> : drive.description || "Drive summary"}</small>
+        <strong>{result}{scoreText}</strong>
+        <small>{meta.length ? meta.join(", ") : drive.description || "Drive summary"}</small>
       </span>
       <ChevronDown className="football-drive-chevron" size={17} aria-hidden="true" />
     </summary>
-    <div className="football-drive-plays">
+    <div className="football-drive-plays" style={{ "--football-drive-color": driveColor } as CSSProperties}>
       {drive.plays.length ? drive.plays.map((play, index) => {
         const prior = drive.plays[index - 1];
         const crossedQuarter = prior?.period && play.period && periodLabel(prior.period) !== periodLabel(play.period);
@@ -490,13 +517,15 @@ function Plays({ payload }: { payload: TrackerPayload }) {
   }, []);
 
   return <div className="football-play-list">
+    {payload.status.completed && <FootballProbabilityCharts points={payload.winProbability || []}
+      homeSpread={payload.homeSpread ?? null} away={payload.teams.away} home={payload.teams.home} completed />}
     {quarters.map((quarter, quarterIndex) => <section className="football-play-period" key={`${quarter.label}-${quarterIndex}`}>
       <ScoringQuarterHeader payload={payload} label={quarter.label} />
-      {quarter.drives.map((drive, driveIndex) => <FootballDrive
+      {quarter.drives.map(drive => <FootballDrive
         key={drive.id}
         drive={drive}
         payload={payload}
-        initiallyOpen={drive.current || (quarterIndex === 0 && driveIndex === 0)}
+        initiallyOpen={drive.current}
       />)}
     </section>)}
   </div>;

@@ -64,6 +64,7 @@ function playOutcome(play: any) {
   if (/penalty/.test(combined)) return "Penalty";
   if (/fumble/.test(combined)) return "Fumble";
   if (/punt/.test(combined)) return "Punt";
+  if (/kickoff|kick-off/.test(combined)) return "Kickoff";
   if (/no gain/.test(combined)) return "No Gain";
 
   const yards = finite(play?.statYardage ?? play?.yards);

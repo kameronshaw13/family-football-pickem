@@ -8353,3 +8353,159 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   /* Inherit the same track, rounded selected pills, and spacing as basketball. */
   background: var(--tracker-track);
 }
+
+/* ESPN-style football text presentation: use lines, not cards. */
+.football-game-tracker .football-drive-summary {
+  grid-template-columns: 28px minmax(0, 1fr) 18px;
+  gap: 13px;
+  min-height: 69px;
+  padding-block: 12px;
+}
+.football-game-tracker .football-drive-description > strong {
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+.football-game-tracker .football-drive-description > small {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--muted);
+  white-space: normal;
+}
+.football-game-tracker .football-drive[open] > .football-drive-summary { border-bottom: 1px solid var(--tracker-divider); }
+.football-game-tracker .football-drive-plays {
+  position: relative;
+  margin-left: calc(var(--tracker-inset) + 13px);
+  padding-left: 19px;
+  border-left: 2px solid var(--football-drive-color, #a12936);
+}
+.football-game-tracker .football-drive-plays > .game-tracker-quarter-header { margin-left: -19px; }
+.football-game-tracker .football-drive-plays > .football-play-row.detailed {
+  display: block;
+  min-height: 0;
+  padding: 14px var(--tracker-inset) 15px 0;
+  border-bottom: 1px solid var(--tracker-divider);
+  background: var(--panel);
+}
+.football-game-tracker .football-drive-plays > .football-play-row.detailed:last-child { border-bottom: 0; }
+.football-game-tracker .football-play-row.detailed > .football-play-row-copy { display: block; }
+.football-game-tracker .football-play-row-head {
+  display: flex;
+  min-height: 22px;
+  align-items: baseline;
+  justify-content: space-between;
+  column-gap: 9px;
+}
+.football-game-tracker .football-play-row.detailed .football-play-row-situation {
+  display: inline;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.3;
+}
+.football-game-tracker .football-play-row.detailed .football-play-row-situation > strong {
+  color: var(--ink);
+  font-weight: 750;
+}
+.football-game-tracker .football-play-row.detailed .football-play-row-situation > span { color: var(--muted); font-weight: 500; }
+.football-game-tracker .football-play-row.detailed .football-play-row-outcome {
+  flex: 0 0 auto;
+  align-self: baseline;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.3;
+  text-align: right;
+  text-transform: none;
+  white-space: nowrap;
+}
+.football-game-tracker .football-play-row.detailed .football-play-row-copy > p {
+  margin: 7px 0 0;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.football-game-tracker .football-play-row.compact { grid-template-columns: 23px minmax(0,1fr); align-items: start; min-height: 0; }
+.football-game-tracker .football-play-row.compact .football-play-row-head { min-height: 0; }
+.football-game-tracker .football-play-row.compact .football-play-row-situation { font-size: 11px; line-height: 1.3; }
+.football-game-tracker .football-play-row.compact .football-play-row-situation > strong { color: var(--ink); }
+.football-game-tracker .football-play-row.compact .football-play-row-situation > span { color: var(--muted); }
+.football-game-tracker .football-play-row.compact .football-play-row-outcome { color: var(--ink); font-size: 10px; }
+.football-game-tracker .football-play-row.compact .football-play-row-copy p { margin-top: 5px; font-size: 11.5px; }
+.football-game-tracker .game-tracker-score-play.football-score-event {
+  align-items: start;
+  min-height: 0;
+  padding-top: 15px;
+  padding-bottom: 15px;
+  column-gap: 10px;
+}
+.football-game-tracker .football-score-event > .football-play-row-logo { align-self: start; padding-top: 2px; }
+.football-game-tracker .football-score-event .game-tracker-scoring-copy { gap: 5px; }
+.football-game-tracker .football-score-event .game-tracker-scoring-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  line-height: 1.3;
+}
+.football-game-tracker .football-score-event .game-tracker-scoring-meta > strong {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 750;
+}
+.football-game-tracker .football-score-event .game-tracker-scoring-meta > time {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.football-game-tracker .football-score-event .game-tracker-scoring-copy > p {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.football-game-tracker .football-score-event .game-tracker-scoring-copy > small {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-transform: none;
+}
+.football-game-tracker .football-score-event .game-tracker-score-values {
+  align-self: start;
+  margin-top: 2px;
+  padding: 0;
+}
+.football-game-tracker .football-score-event .game-tracker-score-values > b { font-size: 15px; }
+.football-game-tracker .football-probability-group { background: var(--panel); border-bottom: 1px solid var(--tracker-section-divider); }
+.football-game-tracker .football-probability + .football-probability { border-top: 1px solid var(--tracker-divider); }
+.football-game-tracker .football-probability .basketball-probability-heading {
+  padding: 12px var(--tracker-inset);
+  gap: 6px;
+}
+.football-game-tracker .football-probability .basketball-probability-heading > small {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: right;
+}
+.football-game-tracker .football-probability-empty {
+  margin: 0;
+  padding: 12px var(--tracker-inset) 17px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.football-game-tracker .football-probability .basketball-probability-chart { padding-bottom: 10px; }
+.football-game-tracker .football-probability .basketball-probability-team-label img { object-fit: contain; }
+@media (max-width: 380px) {
+  .football-game-tracker .football-drive-plays { padding-left: 12px; }
+  .football-game-tracker .football-drive-plays > .football-play-row.detailed { padding-right: 7px; }
+  .football-game-tracker .football-play-row.detailed .football-play-row-outcome { font-size: 10px; }
+  .football-game-tracker .football-score-event .game-tracker-scoring-meta > strong { font-size: 12px; }
+}
