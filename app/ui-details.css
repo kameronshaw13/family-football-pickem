@@ -9671,16 +9671,21 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 }
 
 
-/* Return the Pick Board filters to the original three-column rhythm.
-   Sport sits in the left third and conference/dog filter in the right
-   third; the middle third remains open. This does not affect Side Bets. */
+/* Three equal Pick Board dropdown columns: status on the left, sport in
+   the middle, and conference/dog filters on the right. This does not
+   affect Side Bets or the unified sticky board header. */
 .picks-panel .board-sticky-controls > .board-filter-row {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   column-gap: 6px;
 }
+.picks-panel .board-sticky-controls > .board-filter-row > .status-select {
+  grid-column: 1 / 2;
+  min-width: 0;
+  width: 100%;
+}
 .picks-panel .board-sticky-controls > .board-filter-row > .league-select,
 .picks-panel .board-sticky-controls > .board-filter-row > .league-select:only-child {
-  grid-column: 1 / 2 !important;
+  grid-column: 2 / 3 !important;
 }
 .picks-panel .board-sticky-controls > .board-filter-row > .context-select {
   grid-column: 3 / 4;

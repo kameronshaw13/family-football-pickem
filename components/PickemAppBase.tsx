@@ -193,6 +193,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [sideBetLedgerScope, setSideBetLedgerScope] = useState<SideBetLedgerScope>("all");
   const [sideBetLedgerGameFilter, setSideBetLedgerGameFilter] = useState<SideBetGameFilter>("all");
   const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>("ALL");
+  const [boardStatusFilter, setBoardStatusFilter] = useState<"ALL" | "LIVE" | "UPCOMING" | "FINAL">("ALL");
   const [conferenceFilter, setConferenceFilter] = useState("ALL");
   const [cbbConferenceFilter, setCbbConferenceFilter] = useState("ALL");
   const [cbbConferences, setCbbConferences] = useState<CbbConferenceMap | null>(null);
@@ -1351,8 +1352,15 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     isFinalGame(game) ? 1
       : !isPostponedGame(game) && (game.live_state === "in" || gameKickoffMs(game) <= clock) ? 0
       : 2;
+  // The status dropdown is a display-only filter: kickoff/score state
+  // controls Live/Upcoming/Final, never the pick lock or odds.
+  // Keep the selected date stable while switching the status view.
   const filteredGames = boardGames
     .filter(game => gameDayKey(game.commence_time) === selectedDayKey)
+    .filter(game => boardStatusFilter === "ALL" ||
+      (boardStatusFilter === "LIVE" && gameBoardOrder(game) === 0) ||
+      (boardStatusFilter === "FINAL" && gameBoardOrder(game) === 1) ||
+      (boardStatusFilter === "UPCOMING" && gameBoardOrder(game) === 2))
     .sort((a, b) =>
       gameBoardOrder(a) - gameBoardOrder(b) ||
       gameKickoffMs(a) - gameKickoffMs(b) ||
@@ -1584,6 +1592,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           }} />
           {picksView === "board" && <>
           <div className="view-select-row board-filter-row">
+            <MenuSelect ariaLabel="Filter games by status" className="compact-select status-select" value={boardStatusFilter}
+              sections={[{ options: [
+                { value: "ALL", label: "All" },
+                { value: "LIVE", label: "Live" },
+                { value: "UPCOMING", label: "Upcoming" },
+                { value: "FINAL", label: "Final" }
+              ] }]}
+              onChange={value => setBoardStatusFilter(value as "ALL" | "LIVE" | "UPCOMING" | "FINAL")} />
             <MenuSelect ariaLabel="Choose sport or underdog games" className="compact-select league-select" value={leagueFilter}
               sections={[{ options: [
                 { value: "ALL", label: "All" },
