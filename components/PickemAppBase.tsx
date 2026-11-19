@@ -14,6 +14,9 @@ import { basketballLockTime, basketballWeek, basketballWeekBounds, basketballSea
 import BasketballMatchupPreview from "@/components/BasketballMatchupPreview";
 import BasketballGameDetails from "@/components/BasketballGameDetails";
 import LeagueHeaderWordmark from "@/components/LeagueHeaderWordmark";
+import HeaderLeaguePicker from "@/components/HeaderLeaguePicker";
+import BoardDaySelector from "@/components/BoardDaySelector";
+import { cbbGameMatchesConference, type CbbConferenceMap } from "@/lib/cbbConferences";
 import { AppChrome } from "@/components/PersistentAppChrome";
 import PrimaryBottomNav from "@/components/PrimaryBottomNav";
 import { warmLeagueData } from "@/lib/leagueWarmup";
@@ -198,8 +201,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [statusFilter, setStatusFilter] = useState<GameStatusFilter>("OPEN");
   const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>(() => appSlug === "friends-basketball" ? "CBB" : defaultFootballLeague());
   const [conferenceFilter, setConferenceFilter] = useState("ALL");
+  const [cbbConferenceFilter, setCbbConferenceFilter] = useState("ALL");
+  const [cbbConferences, setCbbConferences] = useState<CbbConferenceMap | null>(null);
+  const [cbbConferenceError, setCbbConferenceError] = useState(false);
+  const [boardDaySelection, setBoardDaySelection] = useState<{ scope: string; day: string } | null>(null);
+  const [favoriteGames, setFavoriteGames] = useState<string[]>([]);
   const [dogValueFilter, setDogValueFilter] = useState<DogValueFilter>("ALL");
   const [statusFilterTouched, setStatusFilterTouched] = useState(false);
+  const statusFilterWeekRef = useRef<number | null>(null);
   const [data, setData] = useState<AppData | null>(null);
   const [matchupPreviewGame, setMatchupPreviewGame] = useState<Game | null>(null);
   const closeMatchupPreview = useCallback(() => setMatchupPreviewGame(null), []);
@@ -212,6 +221,31 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sessionValidated, setSessionValidated] = useState(false);
+
+  // The ESPN directory is only needed for the college basketball board.
+  useEffect(() => {
+    if (appSlug !== "friends-basketball" || !sessionValidated) return;
+    const controller = new AbortController();
+    void fetch("/api/cbb-conferences", { cache: "no-store", signal: controller.signal })
+      .then(async response => { if (!response.ok) throw new Error("Conference directory unavailable"); return response.json(); })
+      .then(payload => {
+        if (!controller.signal.aborted && payload.available) {
+          setCbbConferences({ teams: payload.teams || {}, conferences: payload.conferences || [] });
+          setCbbConferenceError(false);
+        }
+      }).catch(() => { if (!controller.signal.aborted) setCbbConferenceError(true); });
+    return () => controller.abort();
+  }, [appSlug, sessionValidated]);
+
+  // Favorites are cosmetic and scoped to the current signed-in profile.
+  useEffect(() => {
+    const userId = data?.currentUser?.id;
+    if (!userId) { setFavoriteGames([]); return; }
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(`pickem_favorite_games:${userId}`) || "[]");
+      setFavoriteGames(Array.isArray(saved) ? saved.filter((id): id is string => typeof id === "string") : []);
+    } catch { setFavoriteGames([]); }
+  }, [data?.currentUser?.id]);
   const lastAppOpenSentAtRef = useRef(0);
   const [message, setMessage] = useState("");
   const [showSavedDataNotice, setShowSavedDataNotice] = useState(false);
@@ -542,8 +576,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       dataRef.current = cachedPayload;
       setData(cachedPayload);
       setWeek(cachedPayload.week);
-      setStatusFilter(defaultBoardStatus(cachedPayload.games || [], cachedAt, cachedWeekIsOpen));
-      setStatusFilterTouched(false);
+      if (statusFilterWeekRef.current !== Number(cachedPayload.week)) {
+        statusFilterWeekRef.current = Number(cachedPayload.week);
+        setStatusFilter(defaultBoardStatus(cachedPayload.games || [], cachedAt, cachedWeekIsOpen));
+        setStatusFilterTouched(false);
+      }
       setLoading(false);
       setRefreshing(true);
       setShowSavedDataNotice(true);
@@ -597,7 +634,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       dataRef.current = payload;
       setData(payload);
       setWeek(payload.week);
-      if (!cachedPayload) {
+      if (statusFilterWeekRef.current !== Number(payload.week)) {
+        statusFilterWeekRef.current = Number(payload.week);
         setStatusFilter(defaultBoardStatus(payload.games || [], loadedAt, loadedWeekIsOpen));
         setStatusFilterTouched(false);
       }
@@ -1269,13 +1307,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const displayedFinalMatchups = new Set<string>();
   const replacementEventIds = new Set(viewedGames.filter((game) => game.event_status !== "STATUS_RESCHEDULED" && game.espn_event_id)
     .map((game) => `${game.league}:${game.espn_event_id}`));
-  const filteredGames = boardActive ? viewedGames.filter((g) => {
+  const statusFilteredGames = boardActive ? viewedGames.filter((g) => {
     if (g.event_status === "STATUS_RESCHEDULED" && g.espn_event_id && replacementEventIds.has(`${g.league}:${g.espn_event_id}`)) return false;
     if (boardStatusForGame(g, clock, weekIsOpen) !== statusFilter) return false;
     if (leagueFilter === "CFB") {
       return g.league === "CFB" && (conferenceFilter === "ALL" || gameConferences(g).includes(conferenceFilter));
     }
-    if (leagueFilter === "NFL" || leagueFilter === "CBB" || leagueFilter === "NBA") return g.league === leagueFilter;
+    if (leagueFilter === "CBB") return g.league === "CBB" && cbbGameMatchesConference(g, cbbConferenceFilter, cbbConferences?.teams || {});
+    if (leagueFilter === "NFL" || leagueFilter === "NBA") return g.league === leagueFilter;
     const dogValue = Math.max(...[g.away_team, g.home_team].map((team) => teamDogValue(g, team)));
     return dogValue > 0 && (dogValueFilter === "ALL" || dogValue === Number(dogValueFilter));
   }).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime()).filter((game) => {
@@ -1288,13 +1327,55 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     displayedFinalMatchups.add(key);
     return true;
   }) : [];
-  const gameGroups = filteredGames.reduce<Array<{ key: string; label: string; shortDay: string; games: Game[] }>>((groups, game) => {
+  // Keep a familiar day ribbon across the selected pick week. Switching days
+  // changes visible matchups only; it never changes the chosen OPEN/LOCKED/FINAL tab.
+  const leagueCalendarKeys = Array.from(new Set(viewedGames
+    .filter(game => leagueFilter === "DOGS" ? true : game.league === leagueFilter)
+    .map(game => gameDayKey(game.commence_time)))).sort();
+  const calendarDays: string[] = [];
+  if (leagueCalendarKeys.length) {
+    const first = Date.parse(leagueCalendarKeys[0] + "T12:00:00Z");
+    const last = Date.parse(leagueCalendarKeys[leagueCalendarKeys.length - 1] + "T12:00:00Z");
+    for (let day = first; day <= last && calendarDays.length < 14; day += 86_400_000) {
+      calendarDays.push(new Date(day).toISOString().slice(0, 10));
+    }
+  }
+  const todayDayKey = gameDayKey(new Date(clock).toISOString());
+  const statusDays = Array.from(new Set(statusFilteredGames.map(game => gameDayKey(game.commence_time)))).sort();
+  const defaultDayKey = statusFilter === "FINAL"
+    ? ([...statusDays].reverse().find(day => day <= todayDayKey) || statusDays[statusDays.length - 1])
+    : (statusDays.find(day => day >= todayDayKey) || statusDays[statusDays.length - 1]);
+  const dayScope = [appSlug, viewedWeek, statusFilter, leagueFilter, conferenceFilter, cbbConferenceFilter, dogValueFilter].join(":");
+  const selectedDayKey = boardDaySelection?.scope === dayScope && calendarDays.includes(boardDaySelection.day)
+    ? boardDaySelection.day : defaultDayKey || calendarDays[0] || "";
+  const filteredGames = statusFilteredGames.filter(game => gameDayKey(game.commence_time) === selectedDayKey);
+
+  const favoriteKey = (game: Game) => `${game.league}:${game.espn_event_id || game.id}`;
+  const favoriteSet = new Set(favoriteGames);
+  const favoriteDayGames = filteredGames.filter(game => favoriteSet.has(favoriteKey(game)));
+  const otherDayGames = filteredGames.filter(game => !favoriteSet.has(favoriteKey(game)));
+  const gameGroups = otherDayGames.reduce<Array<{ key: string; label: string; shortDay: string; games: Game[] }>>((groups, game) => {
     const key = gameDayKey(game.commence_time);
     const existingGroup = groups[groups.length - 1];
     if (existingGroup?.key === key) existingGroup.games.push(game);
     else groups.push({ key, label: gameDayLabel(game.commence_time), shortDay: gameDayShort(game.commence_time), games: [game] });
     return groups;
   }, []);
+  const toggleFavoriteGame = (game: Game) => {
+    const key = favoriteKey(game);
+    setFavoriteGames(existing => {
+      const next = existing.includes(key) ? existing.filter(id => id !== key) : [...existing, key];
+      try { window.localStorage.setItem(`pickem_favorite_games:${currentUser.id}`, JSON.stringify(next)); }
+      catch { /* Favorites remain available for this session. */ }
+      return next;
+    });
+  };
+  const renderBoardGame = (game: Game) => <GameCard key={game.id} game={game} picks={cardPicks}
+    statusFilter={statusFilter} leagueFilter={leagueFilter} weekIsOpen={weekIsOpen} now={clock}
+    pointsMode={pointsMode} modelStars={cfbModelEdges[game.id]?.stars || 0}
+    favorite={favoriteSet.has(favoriteKey(game))} onFavorite={toggleFavoriteGame}
+    addPick={addPick} openPreview={setMatchupPreviewGame} />;
+
   function addPick(game: Game, team: string, pickType: PickType) {
     if (!game.current_spread_team || game.current_spread == null) {
       notify("This game cannot be picked until a spread is available.", "error");
@@ -1443,7 +1524,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   return <div className="app-shell">
     <AppChrome header={<header className="scoreboard-header">
       <div className="scoreboard-main">
-        <LeagueHeaderWordmark slug={displayedHeaderSlug} />
+        <HeaderLeaguePicker activeSlug={appSlug} displaySlug={displayedHeaderSlug} currentTab={tab} />
         <div className="header-actions">
           <span className="header-refresh-indicator" role="status" aria-label={refreshing ? "Updating week" : undefined}>{refreshing && <LoaderCircle size={17} />}</span>
           {displayedHeaderSlug !== appSlug ? <div className="header-slate">
@@ -1489,13 +1570,36 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             <MenuSelect ariaLabel="Choose game status" className="compact-select status-select" value={statusFilter} sections={[{ options: (["OPEN", "LOCKED", "FINAL"] as GameStatusFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => { setStatusFilter(value as GameStatusFilter); setStatusFilterTouched(true); }} />
             <MenuSelect ariaLabel="Choose league" className="compact-select league-select" value={leagueFilter} sections={[{ options: ((appSlug === "friends-basketball" ? ["CBB", "NBA", "DOGS"] : ["CFB", "NFL", "DOGS"]) as LeagueFilter[]).map((option) => ({ value: option, label: option })) }]} onChange={(value) => setLeagueFilter(value as LeagueFilter)} />
             {leagueFilter === "CFB" && <ConferenceFilter value={conferenceFilter} onChange={setConferenceFilter} />}
+            {leagueFilter === "CBB" && <MenuSelect
+              ariaLabel="Filter college basketball by conference or Top 25"
+              className="compact-select context-select"
+              value={cbbConferenceFilter}
+              sections={[
+                { options: [{ value: "ALL", label: "ALL CONF." }, { value: "TOP25", label: "TOP 25" }] },
+                ...(cbbConferences ? (["POWER", "MID", "LOW"] as const).map(tier => ({
+                  label: tier === "POWER" ? "Power 5" : tier === "MID" ? "Mid-Major" : "Low-Major",
+                  options: [
+                    { value: tier, label: tier === "POWER" ? "ALL POWER 5" : tier === "MID" ? "ALL MID-MAJOR" : "ALL LOW-MAJOR" },
+                    ...(cbbConferences.conferences.filter(conference => conference.category === tier)
+                      .map(conference => ({ value: conference.value, label: conference.label })))
+                  ]
+                })) : [])
+              ]}
+              onChange={setCbbConferenceFilter}
+            />}
             {leagueFilter === "DOGS" && <MenuSelect ariaLabel="Filter dogs by win value" className="compact-select context-select" value={dogValueFilter} sections={[{ options: [{ value: "ALL", label: "ALL DOGS" }, ...(["1", "2", "3"] as const).map((value) => ({ value, label: dogBonusText(value, pointsMode) }))] }]} onChange={(value) => setDogValueFilter(value as DogValueFilter)} />}
           </div>
-          {filteredGames.length === 0 && <div className="empty-state board-empty-state">No {statusFilter.toLowerCase()} {leagueFilter === "DOGS" ? "dog" : leagueFilter} games.</div>}
+          <BoardDaySelector days={calendarDays} value={selectedDayKey} today={todayDayKey}
+            onChange={day => setBoardDaySelection({ scope: dayScope, day })} />
+          {leagueFilter === "CBB" && cbbConferenceError && <p className="board-filter-data-notice">Conference directory temporarily unavailable; Top 25 and All still work.</p>}
+          {filteredGames.length === 0 && <div className="empty-state board-empty-state">No {statusFilter.toLowerCase()} {leagueFilter === "DOGS" ? "dog" : leagueFilter} games for this day.</div>}
+          {favoriteDayGames.length > 0 && <section className="board-favorites-section" aria-label="Favorite games">
+            <h3>Favorites</h3>
+            <div className="game-list">{favoriteDayGames.map(renderBoardGame)}</div>
+          </section>}
           <div className="game-days">
-            {gameGroups.map((group) => <div className={`game-day-group ${statusFilter === "FINAL" ? "past-day-group" : ""}`} key={group.key}>
-              <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong></div>
-              <div className="game-list">{group.games.map((game) => <GameCard key={game.id} game={game} picks={cardPicks} statusFilter={statusFilter} leagueFilter={leagueFilter} weekIsOpen={weekIsOpen} now={clock} pointsMode={pointsMode} modelStars={cfbModelEdges[game.id]?.stars || 0} addPick={addPick} openPreview={setMatchupPreviewGame} />)}</div>
+            {gameGroups.map(group => <div className={`game-day-group ${statusFilter === "FINAL" ? "past-day-group" : ""}`} key={group.key}>
+              <div className="game-list">{group.games.map(renderBoardGame)}</div>
             </div>)}
           </div>
         </>}

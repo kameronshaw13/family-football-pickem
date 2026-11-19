@@ -83,6 +83,31 @@ export function normalizeFootballWinProbability(
       coverPush: probability(entry?.spreadPushProb)
     }];
   }).sort((a, b) => a.progress - b.progress);
+  // ESPN's core probability feed supplies entries at many more moments than
+  // the drive arrays supply scoreboard values. Carry actual scoring snapshots
+  // forward so cover estimates react on EACH ESPN probability observation
+  // rather than dropping most non-scoring plays.
+  const scoreSnapshots = rawPlays.flatMap(play => {
+    const away = optionalNumber(play?.awayScore);
+    const home = optionalNumber(play?.homeScore);
+    const progress = footballTimeProgress(play?.period?.number ?? play?.period?.value, play?.clock?.displayValue);
+    return away != null && home != null && progress != null
+      ? [{ progress, away, home }] : [];
+  }).sort((a, b) => a.progress - b.progress);
+  if (scoreSnapshots.length) {
+    let latestAway = 0;
+    let latestHome = 0;
+    let cursor = 0;
+    for (const point of points) {
+      while (cursor < scoreSnapshots.length && scoreSnapshots[cursor].progress <= point.progress + .00001) {
+        latestAway = scoreSnapshots[cursor].away;
+        latestHome = scoreSnapshots[cursor].home;
+        cursor++;
+      }
+      point.awayScore ??= latestAway;
+      point.homeScore ??= latestHome;
+    }
+  }
   const unique = points.filter((point, index) => index === 0
     || point.id !== points[index - 1].id
     || Math.abs(point.progress - points[index - 1].progress) > .0001);
@@ -135,8 +160,11 @@ export function estimatedFootballCoverPoints(points: FootballProbabilityPoint[],
     (point.homeScore == null || point.awayScore == null || point.homeScore === 0 && point.awayScore === 0));
   if (!opening) return [];
   const z = normalQuantile(opening.home);
-  const sigma = -homeSpread / z;
-  if (!Number.isFinite(sigma) || sigma <= 0) return [];
+  const calibratedSigma = -homeSpread / z;
+  if (!Number.isFinite(calibratedSigma) || calibratedSigma <= 0) return [];
+  // Small favorite spreads can imply unrealistically tiny opening variance,
+  // creating huge early cover swings. Apply a conservative uncertainty floor.
+  const sigma = Math.max(12, calibratedSigma);
   return points.flatMap((point, index) => {
     if (point.homeScore == null || point.awayScore == null) return [];
     const margin = point.homeScore - point.awayScore;
@@ -164,4 +192,26 @@ export function espnFootballCoverPoints(points: FootballProbabilityPoint[], espn
     }
   }
   return series;
+}
+
+/** Visually smooth early-game COVER likelihood, preserving the original
+ * probabilities, every observed play and the exact final result.
+ * This is a display transform, not raw ESPN probabilities. */
+export function smoothFootballCoverSeries(points: FootballProbabilityPoint[]): FootballProbabilityPoint[] {
+  if (points.length < 3) return points;
+  let previous = points[0].home;
+  return points.map((point, index) => {
+    if (index === 0) return point;
+    if (point.progress >= .6 || (point.progress >= 1 && point.clock === "0:00")) {
+      previous = point.home;
+      return point;
+    }
+    // About 24% new information per play in the opening quarter,
+    // increasing to full information late in the second quarter.
+    const progress = Math.max(0, Math.min(1, point.progress / .6));
+    const alpha = .24 + progress * .76;
+    const home = previous + alpha * (point.home - previous);
+    previous = home;
+    return { ...point, home };
+  });
 }

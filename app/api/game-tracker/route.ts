@@ -404,7 +404,8 @@ export async function GET(req: NextRequest) {
     const rawProbabilityPlays = [
       ...priorDrives.flatMap((drive: any) => Array.isArray(drive?.plays) ? drive.plays : []),
       ...(Array.isArray(currentDrive?.plays) ? currentDrive.plays : []),
-      ...(Array.isArray(payload?.plays) ? payload.plays : [])
+      ...(Array.isArray(payload?.plays) ? payload.plays : []),
+      ...(Array.isArray(payload?.scoringPlays) ? payload.scoringPlays : [])
     ];
     const homeScore = scoreValue(home);
     const awayScore = scoreValue(away);

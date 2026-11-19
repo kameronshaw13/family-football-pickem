@@ -2,7 +2,7 @@
 
 import { useState, type PointerEvent } from "react";
 import TeamImage from "@/components/TeamImage";
-import { espnFootballCoverPoints, estimatedFootballCoverPoints, type FootballProbabilityPoint } from "@/lib/footballWinProbability";
+import { espnFootballCoverPoints, estimatedFootballCoverPoints, smoothFootballCoverSeries, type FootballProbabilityPoint } from "@/lib/footballWinProbability";
 import { spreadText } from "@/lib/spreads";
 import { trackerPeriodLabel } from "@/lib/trackerPeriods";
 
@@ -23,10 +23,11 @@ export default function FootballProbabilityCharts({ points, away, home, homeSpre
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const directCover = espnFootballCoverPoints(points, espnHomeSpread, completed);
   const useEspnCover = mode === "cover" && directCover.length > 1;
-  const data = mode === "win" ? points
+  const rawData = mode === "win" ? points
     : useEspnCover ? directCover : estimatedFootballCoverPoints(points, homeSpread, completed);
+  const data = mode === "cover" ? smoothFootballCoverSeries(rawData) : rawData;
   const coverLine = useEspnCover ? espnHomeSpread : homeSpread;
-  const coverSource = useEspnCover ? "ESPN" : "Estimated";
+  const coverSource = useEspnCover ? "ESPN (smoothed)" : "Estimated (smoothed)";
   const valid = data.filter(point => Number.isFinite(point.home) && point.home >= 0 && point.home <= 1 && Number.isFinite(point.progress));
   const domain = Math.max(1, ...valid.map(point => point.progress));
   const selected = valid.find(point => point.id === selectedId) || valid[valid.length - 1];
