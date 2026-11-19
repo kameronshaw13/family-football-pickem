@@ -8509,3 +8509,110 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   .football-game-tracker .football-play-row.detailed .football-play-row-outcome { font-size: 10px; }
   .football-game-tracker .football-score-event .game-tracker-scoring-meta > strong { font-size: 12px; }
 }
+
+/* Football drives use CBS-style inset separators after the team logo,
+   never full-width rules across each collapsed drive summary. */
+.football-game-tracker .football-drive { border-bottom: 0; }
+.football-game-tracker .football-drive > .football-drive-summary { position: relative; }
+.football-game-tracker .football-drive + .football-drive > .football-drive-summary::before,
+.football-game-tracker .football-drive[open] > .football-drive-summary::after {
+  position: absolute;
+  right: var(--tracker-inset);
+  left: calc(var(--tracker-inset) + 41px);
+  height: 1px;
+  background: var(--tracker-divider);
+  pointer-events: none;
+  content: "";
+}
+.football-game-tracker .football-drive + .football-drive > .football-drive-summary::before { top: 0; }
+.football-game-tracker .football-drive[open] > .football-drive-summary::after { bottom: 0; }
+.football-game-tracker .football-drive[open] > .football-drive-summary {
+  border-bottom: 0;
+}
+.football-game-tracker .football-play-period > .football-drive:last-child { border-bottom: 0; }
+
+/* The scoring quarter alone owns the score/logo columns. Play quarter headers
+   have only their heading, and both stay vertically centered in a thin row. */
+.football-game-tracker .football-play-period > .game-tracker-quarter-header {
+  display: flex;
+  box-sizing: border-box;
+  align-items: center;
+  height: 42px;
+  min-height: 42px;
+  padding: 0 var(--tracker-inset);
+  line-height: 1.25;
+}
+.football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header {
+  display: flex;
+  box-sizing: border-box;
+  align-items: center;
+  height: 46px;
+  min-height: 46px;
+  padding: 0 var(--tracker-inset);
+  line-height: 1.25;
+}
+.football-game-tracker .football-drive-plays > .game-tracker-quarter-header {
+  display: flex;
+  align-items: center;
+  min-height: 39px;
+  height: 39px;
+  box-sizing: border-box;
+}
+.football-game-tracker .football-scoring-period-heading > .game-tracker-quarter-team-logos,
+.football-game-tracker .football-score-event > .game-tracker-score-values {
+  display: grid;
+  box-sizing: border-box;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  justify-items: center;
+  gap: 6px;
+  flex: 0 0 70px;
+  width: 70px;
+  min-width: 70px;
+  max-width: 70px;
+  padding: 0;
+  margin: 0;
+}
+.football-game-tracker .football-scoring-period-heading .game-tracker-quarter-team-logos > img,
+.football-game-tracker .football-scoring-period-heading .game-tracker-quarter-team-logos > .game-tracker-logo-fallback {
+  display: block;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  place-self: center;
+}
+.football-game-tracker .football-score-event > .game-tracker-score-values > b {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+/* Both basketball and football player box scores: one divider color and
+   continuous 1px lines at the player-name/stat-columns transition. */
+.game-tracker-sheet .game-tracker-player-table,
+.game-tracker-sheet .basketball-player-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 0;
+  box-shadow: none;
+}
+.game-tracker-sheet .game-tracker-player-table tr > *,
+.game-tracker-sheet .basketball-player-table tr > * {
+  box-sizing: border-box;
+  border-top: 0;
+  border-bottom: 1px solid var(--tracker-divider);
+}
+.game-tracker-sheet .game-tracker-player-table tr > :first-child,
+.game-tracker-sheet .basketball-player-table tr > :first-child {
+  border-right: 1px solid var(--tracker-divider);
+}
+.game-tracker-sheet .game-tracker-player-table tbody tr:last-child > *,
+.game-tracker-sheet .basketball-player-table tbody:last-child tr:last-child > * { border-bottom: 0; }
+.game-tracker-sheet .game-tracker-team-box .game-tracker-box-section + .game-tracker-box-section {
+  border-top: 1px solid var(--tracker-divider);
+}
+.game-tracker-sheet .basketball-player-table tbody + tbody .basketball-player-stat-head > th {
+  border-top: 0;
+}

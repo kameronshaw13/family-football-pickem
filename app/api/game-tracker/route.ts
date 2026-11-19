@@ -5,12 +5,48 @@ import { fetchEspnSchedule, resolveEspnScheduleMatch } from "@/lib/espnSchedule"
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { createAsyncCache } from "@/lib/asyncCache";
 import { trackerNumber as finite, trackerPlaySituation } from "@/lib/trackerPlaySituation";
+import { hasValidGameLine } from "@/lib/gameDataIntegrity";
+import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
+import { verifiedClosingSpread } from "@/lib/marketSpread";
+import { normalizeFootballWinProbability } from "@/lib/footballWinProbability";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const NO_STORE = { "Cache-Control": "no-store, max-age=0" };
 const espnSummaryCache = createAsyncCache<any>(2_000, 64);
+const espnProbabilityCache = createAsyncCache<any[]>(7_000, 64);
+
+/** ESPN's core feed contains play-linked win and cover data that may be absent
+ * from site-v2. An optional feed error cannot block the game tracker. */
+async function fetchEspnCoreFootballProbabilities(league: "NFL" | "CFB", eventId: string): Promise<any[]> {
+  return espnProbabilityCache(league + ":" + eventId, async () => {
+    const slug = league === "NFL" ? "nfl" : "college-football";
+    const encoded = encodeURIComponent(eventId);
+    const base = "https://sports.core.api.espn.com/v2/sports/football/leagues/" +
+      slug + "/events/" + encoded + "/competitions/" + encoded +
+      "/probabilities?limit=250&lang=en&region=us";
+    try {
+      const readPage = async (page: number) => {
+        const response = await fetch(base + "&page=" + page, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(4500),
+          headers: { Accept: "application/json" }
+        });
+        if (!response.ok) throw new Error("ESPN core probability feed unavailable");
+        return await response.json();
+      };
+      const first = await readPage(1);
+      const maxPages = Math.max(1, Math.min(6, Number(first?.pageCount) || 1));
+      const rest = maxPages > 1
+        ? await Promise.all(Array.from({ length: maxPages - 1 }, (_, i) => readPage(i + 2)))
+        : [];
+      return [first, ...rest].flatMap(page => Array.isArray(page?.items) ? page.items : []).slice(0, 1200);
+    } catch {
+      return [];
+    }
+  });
+}
 
 function remainingTimeouts(situationValue: unknown, competitor: any) {
   const direct = finite(situationValue);
@@ -280,7 +316,7 @@ export async function GET(req: NextRequest) {
     const supabase = getSupabaseAdmin();
     const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
     const { data: game, error } = await supabase.from("games")
-      .select("id,espn_event_id,league,week,commence_time,home_team,away_team,home_logo_url,away_logo_url,final_home_score,final_away_score")
+      .select("id,espn_event_id,league,week,commence_time,home_team,away_team,home_logo_url,away_logo_url,final_home_score,final_away_score,current_spread,current_spread_team,current_bookmaker")
       .eq("id", gameId).maybeSingle();
     if (error) throw error;
     if (!game || !isGameAllowedForGroup(context, game)) return NextResponse.json({ ok: false, error: "Game not found." }, { status: 404, headers: NO_STORE });
@@ -312,6 +348,9 @@ export async function GET(req: NextRequest) {
     const abbreviations = { [homeId]: String(home?.team?.abbreviation || ""), [awayId]: String(away?.team?.abbreviation || "") };
 
     const completed = Boolean(status?.completed);
+    const coreProbabilityRows = status?.state === "in" || completed
+      ? await fetchEspnCoreFootballProbabilities(league, eventId)
+      : [];
     const priorDrives = Array.isArray(payload?.drives?.previous) ? payload.drives.previous : [];
     const currentDrive = payload?.drives?.current || null;
     const currentDriveId = currentDrive?.id ? String(currentDrive.id) : "";
@@ -359,6 +398,30 @@ export async function GET(req: NextRequest) {
         if (periodDiff !== 0) return periodDiff;
         return clockSeconds(b.clock) - clockSeconds(a.clock);
       });
+
+    // ESPN probability rows reference individual plays; match against every
+    // source, but don't discard entries merely because the play isn't in a drive.
+    const rawProbabilityPlays = [
+      ...priorDrives.flatMap((drive: any) => Array.isArray(drive?.plays) ? drive.plays : []),
+      ...(Array.isArray(currentDrive?.plays) ? currentDrive.plays : []),
+      ...(Array.isArray(payload?.plays) ? payload.plays : [])
+    ];
+    const homeScore = scoreValue(home);
+    const awayScore = scoreValue(away);
+    const summaryRows = Array.isArray(payload?.winprobability) ? payload.winprobability : [];
+    const summaryProbability = normalizeFootballWinProbability(summaryRows, rawProbabilityPlays, completed, homeScore, awayScore);
+    const coreProbability = normalizeFootballWinProbability(coreProbabilityRows, rawProbabilityPlays, completed, homeScore, awayScore);
+    const winProbability = coreProbability.length >= 2 ? coreProbability : summaryProbability;
+
+    // Preserve the Pick'em game's verified line. The prior football endpoint
+    // never returned it at all, even though it existed in public.games.
+    const savedHomeSpread = hasValidGameLine(game)
+      ? normalizeSpreadForSelectedTeam(game.home_team, game.current_spread_team, game.current_spread) : null;
+    const closing = completed && Array.isArray(payload?.pickcenter)
+      ? payload.pickcenter.map((row: any) => verifiedClosingSpread(league, row)).find(Boolean)
+      : null;
+    const homeSpread = savedHomeSpread ?? closing?.homePoint ?? null;
+    const espnHomeSpread = finite(payload?.homeTeamSpread);
 
     const rawCurrentPlays = Array.isArray(currentDrive?.plays) ? currentDrive.plays : [];
     const latestRawPlay = rawCurrentPlays.at(-1) || null;
@@ -488,6 +551,9 @@ export async function GET(req: NextRequest) {
       },
       scoringPlays,
       drives,
+      winProbability,
+      homeSpread,
+      espnHomeSpread,
       teamStats: normalizeTeamStats(payload?.boxscore, homeId, awayId),
       playerStats: normalizePlayerStats(payload?.boxscore, homeId, awayId)
     }, { headers: NO_STORE });

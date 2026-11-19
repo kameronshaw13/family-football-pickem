@@ -2,7 +2,7 @@
 
 import { useState, type PointerEvent } from "react";
 import TeamImage from "@/components/TeamImage";
-import { estimatedFootballCoverPoints, type FootballProbabilityPoint } from "@/lib/footballWinProbability";
+import { espnFootballCoverPoints, estimatedFootballCoverPoints, type FootballProbabilityPoint } from "@/lib/footballWinProbability";
 import { spreadText } from "@/lib/spreads";
 import { trackerPeriodLabel } from "@/lib/trackerPeriods";
 
@@ -12,14 +12,20 @@ type Props = {
   away: Team;
   home: Team;
   homeSpread: number | null;
+  espnHomeSpread: number | null;
   completed: boolean;
 };
 function LabelLogo({ team }: { team: Team }) {
   return team.logo ? <TeamImage unoptimized src={team.logo} alt="" width={22} height={22} /> : null;
 }
-function FootballProbabilityChart({ mode, points, away, home, homeSpread, completed }: Props & { mode: "win" | "cover" }) {
+function FootballProbabilityChart({ mode, points, away, home, homeSpread, espnHomeSpread, completed }: Props & { mode: "win" | "cover" }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const data = mode === "cover" ? estimatedFootballCoverPoints(points, homeSpread, completed) : points;
+  const directCover = espnFootballCoverPoints(points, espnHomeSpread, completed);
+  const useEspnCover = mode === "cover" && directCover.length > 1;
+  const data = mode === "win" ? points
+    : useEspnCover ? directCover : estimatedFootballCoverPoints(points, homeSpread, completed);
+  const coverLine = useEspnCover ? espnHomeSpread : homeSpread;
+  const coverSource = useEspnCover ? "ESPN" : "Estimated";
   const valid = data.filter(point => Number.isFinite(point.home) && point.home >= 0 && point.home <= 1 && Number.isFinite(point.progress));
   const domain = Math.max(1, ...valid.map(point => point.progress));
   const selected = valid.find(point => point.id === selectedId) || valid[valid.length - 1];
@@ -36,18 +42,23 @@ function FootballProbabilityChart({ mode, points, away, home, homeSpread, comple
     const closest = valid.reduce((best, point) => !best || Math.abs(point.progress - progress) < Math.abs(best.progress - progress) ? point : best, null as FootballProbabilityPoint | null);
     if (closest) setSelectedId(closest.id);
   };
-  const selectionText = selected ? `${trackerPeriodLabel(String(selected.period))} ${selected.clock} · ${away.shortName} ${selected.awayScore ?? "—"}–${home.shortName} ${selected.homeScore ?? "—"} · ${home.shortName} ${Math.round(selected.home * 100)}%` : "";
-  const noData = mode === "win" ? "ESPN win probability isn't available for this game." : homeSpread == null
-    ? "Cover probability needs a verified game spread." : "An opening ESPN win probability and the game spread are needed to estimate cover probability.";
-  return <section className="basketball-score-flow basketball-win-probability football-probability" aria-label={mode === "win" ? "ESPN football win probability" : "Estimated football cover probability"}>
+  const selectionTime = selected?.clock
+    ? `${selected.clock} · ${trackerPeriodLabel(String(selected.period))}`
+    : selected ? `Play ${index + 1}` : "—";
+  const selectionText = selected ? `${selectionTime} · ${away.shortName} ${selected.awayScore ?? "—"}–${home.shortName} ${selected.homeScore ?? "—"} · ${home.shortName} ${Math.round(selected.home * 100)}%` : "";
+  const noData = mode === "win"
+    ? "ESPN has not published a usable win-probability series for this game."
+    : homeSpread == null ? "A game spread is required to estimate cover probability."
+    : "The saved spread is available, but there isn't enough ESPN opening probability and play-score data to estimate a cover chart.";
+  return <section className="basketball-score-flow basketball-win-probability football-probability" aria-label={mode === "win" ? "ESPN football win probability" : useEspnCover ? "ESPN football cover probability" : "Estimated football cover probability"}>
     <div className="basketball-probability-heading">
       <h3>{mode === "win" ? "Win Probability" : "Cover Probability"}</h3>
-      {mode === "cover" && <small>Estimated · {home.shortName} {spreadText(homeSpread)}</small>}
+      {mode === "cover" && <small>{coverSource} · {home.shortName} {coverLine != null ? spreadText(coverLine) : "ESPN line"}</small>}
     </div>
     {valid.length > 1 && selected ? <div className="basketball-probability-chart">
       <div className="basketball-probability-team-label top"><LabelLogo team={home} /><span>{home.shortName}</span><strong>{selected.push ? "Push" : `${(selected.home * 100).toFixed(1)}%`}</strong></div>
       <output className="basketball-probability-readout" aria-live="polite" aria-label={selectionText}>
-        <time>{selected.clock} · {trackerPeriodLabel(String(selected.period))}</time>
+        <time>{selectionTime}</time>
         <span><LabelLogo team={away} />{selected.awayScore ?? "—"}<span>–</span>{selected.homeScore ?? "—"}<LabelLogo team={home} /></span>
       </output>
       <svg viewBox="0 0 330 159" role="slider" tabIndex={0} aria-valuemin={0} aria-valuemax={valid.length - 1} aria-valuenow={index} aria-valuetext={selectionText} aria-label={`Inspect football ${mode} probability`}
@@ -73,7 +84,9 @@ function FootballProbabilityChart({ mode, points, away, home, homeSpread, comple
       </svg>
       <div className="basketball-probability-team-label bottom"><LabelLogo team={away} /><span>{away.shortName}</span><strong>{selected.push ? "Push" : `${((1 - selected.home) * 100).toFixed(1)}%`}</strong></div>
       <small className="basketball-probability-hint">Drag to inspect the game by play.</small>
-      {mode === "cover" && <small className="basketball-cover-estimate-note">Model estimate using ESPN win probabilities, the spread and remaining game time. Not sportsbook odds.</small>}
+      {mode === "cover" && <small className="basketball-cover-estimate-note">{useEspnCover
+        ? "ESPN's game-by-game cover probability. Based on ESPN's spread, which may differ from the saved DraftKings line."
+        : "Estimated from the saved game spread, ESPN win probabilities and remaining time. Not sportsbook odds."}</small>}
     </div> : <p className="football-probability-empty">{noData}</p>}
   </section>;
 }

@@ -94,6 +94,7 @@ type TrackerPayload = {
   drives: TrackerDrive[];
   winProbability: FootballProbabilityPoint[];
   homeSpread: number | null;
+  espnHomeSpread: number | null;
   teamStats: Array<{ label: string; away: string; home: string }>;
   playerStats: Array<{
     side: Side;
@@ -360,19 +361,20 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
     {payload.status.state === "in" && <FootballProbabilityCharts
       points={payload.winProbability || []}
       homeSpread={payload.homeSpread ?? null}
+      espnHomeSpread={payload.espnHomeSpread ?? null}
       away={payload.teams.away} home={payload.teams.home}
       completed={false}
     />}
   </div>;
 }
 
-function ScoringQuarterHeader({ payload, label }: { payload: TrackerPayload; label: string }) {
-  return <div className="game-tracker-quarter-header game-tracker-scoring-quarter-header">
+function ScoringQuarterHeader({ payload, label, showScores = false }: { payload: TrackerPayload; label: string; showScores?: boolean }) {
+  return <div className={`game-tracker-quarter-header game-tracker-scoring-quarter-header${showScores ? " football-scoring-period-heading" : ""}`}>
     <span>{trackerPeriodHeading(label)}</span>
-    <div className="game-tracker-quarter-team-logos" aria-hidden="true">
+    {showScores && <div className="game-tracker-quarter-team-logos" aria-hidden="true">
       <TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} />
       <TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} />
-    </div>
+    </div>}
   </div>;
 }
 
@@ -421,7 +423,7 @@ function FootballGameFlow({ payload }: { payload: TrackerPayload }) {
       {["1st","2nd","3rd","4th"].map((label,index) => <text key={label} x={x((index + .5) / 4)} y="154" textAnchor="middle" className="basketball-flow-axis">{label}</text>)}
       {domain > 1 && <text x={x((1 + domain) / 2)} y="154" textAnchor="middle" className="basketball-flow-axis">OT</text>}
     </svg>
-    <div className="basketball-flow-legend"><span><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={19} /><i className="basketball-flow-legend-line away" />{payload.teams.away.shortName}</span><span><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={19} /><i className="basketball-flow-legend-line home" />{payload.teams.home.shortName}</span></div>
+    <div className="basketball-flow-legend"><span aria-label={`${payload.teams.away.name}, solid line`}><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={19} /><i className="basketball-flow-legend-line away" /></span><span aria-label={`${payload.teams.home.name}, dashed line`}><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={19} /><i className="basketball-flow-legend-line home" /></span></div>
   </section>;
 }
 
@@ -438,7 +440,7 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
       aria-label={`${trackerPeriodHeading(quarter.label)} scoring`}
       key={`${quarter.label}-${quarterIndex}`}
     >
-      <ScoringQuarterHeader payload={payload} label={quarter.label} />
+      <ScoringQuarterHeader payload={payload} label={quarter.label} showScores />
       {quarter.rows.map(({ play, previous }) => <div className="game-tracker-score-play football-score-event" key={play.id}>
         <span className="football-play-row-logo" aria-hidden="true">{play.teamSide && <TeamLogo src={payload.teams[play.teamSide].logo} name={payload.teams[play.teamSide].name} size={23} />}</span>
         <div className="game-tracker-scoring-copy">
@@ -518,7 +520,8 @@ function Plays({ payload }: { payload: TrackerPayload }) {
 
   return <div className="football-play-list">
     {payload.status.completed && <FootballProbabilityCharts points={payload.winProbability || []}
-      homeSpread={payload.homeSpread ?? null} away={payload.teams.away} home={payload.teams.home} completed />}
+      homeSpread={payload.homeSpread ?? null}
+      espnHomeSpread={payload.espnHomeSpread ?? null} away={payload.teams.away} home={payload.teams.home} completed />}
     {quarters.map((quarter, quarterIndex) => <section className="football-play-period" key={`${quarter.label}-${quarterIndex}`}>
       <ScoringQuarterHeader payload={payload} label={quarter.label} />
       {quarter.drives.map(drive => <FootballDrive
