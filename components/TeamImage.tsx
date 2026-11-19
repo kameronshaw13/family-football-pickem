@@ -1,10 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
 import NextImage, { type ImageProps } from "next/image";
-import { teamVectorFallbackLogo, teamVectorLogo } from "@/lib/teamLogoSource";
-import { getLogoStudioPreferences, LOGO_STUDIO_EVENT, resolvePersonalLogo } from "@/lib/logoStudio";
-import { collegeHistoricalImageSource } from "@/lib/collegeLogoImage";
 import type { League } from "@/lib/types";
 
 type Props = ImageProps & {
@@ -13,36 +9,12 @@ type Props = ImageProps & {
   onLogoPalette?: (colors: string[]) => void;
 };
 
-function subscribeLogoChoices(callback: () => void) {
-  window.addEventListener(LOGO_STUDIO_EVENT, callback);
-  return () => window.removeEventListener(LOGO_STUDIO_EVENT, callback);
-}
-
-/** Consistent team logo resolution across scoreboards, picks, and game previews. */
+/** Render ESPN's original team artwork everywhere, without alternate sources or saved choices. */
 export default function TeamImage({
-  src, onError, scoreboardLeague: _scoreboardLeague,
-  logoBackground: _logoBackground, onLogoPalette: _onLogoPalette, ...props
+  scoreboardLeague: _scoreboardLeague,
+  logoBackground: _logoBackground,
+  onLogoPalette: _onLogoPalette,
+  ...props
 }: Props) {
-  useSyncExternalStore(subscribeLogoChoices, getLogoStudioPreferences, () => null);
-  const [failedPreferred, setFailedPreferred] = useState<string | null>(null);
-  const [failedCbs, setFailedCbs] = useState<string | null>(null);
-  const [failedNcaa, setFailedNcaa] = useState<string | null>(null);
-  const original = typeof src === "string" ? src : "";
-  const personal = original ? resolvePersonalLogo(original) : null;
-  const cbs = original ? teamVectorFallbackLogo(original) : null;
-  const ncaa = !cbs && original ? teamVectorLogo(original) : null;
-  const usePreferred = Boolean(personal && personal !== failedPreferred);
-  const useCbs = Boolean(cbs && cbs !== failedCbs);
-  const useNcaa = Boolean(ncaa && ncaa !== failedNcaa);
-  const selected = usePreferred ? personal! : useCbs ? cbs! : useNcaa ? ncaa! : src;
-  const rendered = typeof selected === "string" ? collegeHistoricalImageSource(selected) : selected;
-
-  return <NextImage {...props} key={typeof rendered === "string" ? rendered : undefined}
-    src={rendered} unoptimized={usePreferred || useCbs || useNcaa || props.unoptimized || rendered !== selected}
-    onError={event => {
-      if (usePreferred) setFailedPreferred(personal);
-      else if (useCbs) setFailedCbs(cbs);
-      else if (useNcaa) setFailedNcaa(ncaa);
-      else onError?.(event);
-    }} />;
+  return <NextImage {...props} />;
 }

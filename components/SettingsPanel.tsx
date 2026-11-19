@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, ChevronDown, ChevronRight, Images, KeyRound, LogOut, Moon, ScrollText, Sun, UserRound } from "lucide-react";
+import { ChevronDown, ChevronRight, KeyRound, LogOut, Moon, ScrollText, Sun, UserRound } from "lucide-react";
 import type { Profile } from "@/lib/types";
 import type { AppSlug } from "@/lib/rulePresentation";
 import NumericText from "@/components/NumericText";
 import PushNotificationControls from "@/components/PushNotificationControls";
 import AppOpenActivity from "@/components/AppOpenActivity";
 import LeagueSwitcher from "@/components/LeagueSwitcher";
-import LogoStudio from "@/components/LogoStudio";
-import { getLogoStudioPreferences, LOGO_STUDIO_EVENT, setLogoStudioUser, setViewerLogoEra, type LogoEra } from "@/lib/logoStudio";
 import type { LeagueMembership } from "@/lib/leagueAccess";
 import { clearClientSession } from "@/lib/clientSession";
 
@@ -57,23 +55,11 @@ export default function SettingsPanel({
   onLeagueSelect: (league: LeagueMembership) => void;
 }) {
   const [theme, setTheme] = useState<Theme>("light");
-  const [logoEra, setLogoEra] = useState<LogoEra>("modern");
-  const [logoEraBusy, setLogoEraBusy] = useState(false);
-  const [logoEraMessage, setLogoEraMessage] = useState("");
-  const [logoStudioOpen, setLogoStudioOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMessage, setPasswordMessage] = useState("");
   const [passwordTone, setPasswordTone] = useState<"success" | "error">("success");
   const [passwordBusy, setPasswordBusy] = useState(false);
-
-  useEffect(() => {
-    setLogoStudioUser(currentUser.id, String(currentUser.username || "").trim().toLowerCase() === "kameron");
-    const sync = () => setLogoEra(getLogoStudioPreferences().era);
-    sync();
-    window.addEventListener(LOGO_STUDIO_EVENT, sync);
-    return () => window.removeEventListener(LOGO_STUDIO_EVENT, sync);
-  }, [currentUser.id, currentUser.username]);
 
   useEffect(() => {
     const active = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
@@ -83,15 +69,6 @@ export default function SettingsPanel({
   function chooseTheme(next: Theme) {
     setTheme(next);
     applyTheme(next, currentUser.id);
-  }
-
-  async function chooseLogoEra(next: LogoEra) {
-    if (logoEraBusy || next === logoEra) return;
-    setLogoEraBusy(true);
-    setLogoEraMessage("");
-    try { await setViewerLogoEra(next); }
-    catch { setLogoEraMessage("Could not save logo style. Please retry."); }
-    finally { setLogoEraBusy(false); }
   }
 
   async function changePassword(event: React.FormEvent) {
@@ -151,16 +128,6 @@ export default function SettingsPanel({
     window.location.replace(loginPath);
   }
 
-  if (logoStudioOpen) return <section className="panel settings-panel logo-studio-page-shell" aria-label="Logo Studio page">
-    <div className="section-title settings-page-title logo-studio-page-header">
-      <button type="button" className="logo-studio-page-back" onClick={() => setLogoStudioOpen(false)} aria-label="Back to Settings">
-        <ArrowLeft size={18} /> Settings
-      </button>
-      <div><h2>Logo Studio</h2><p>Customize team artwork across all leagues</p></div>
-    </div>
-    <LogoStudio profileId={currentUser.id} />
-  </section>;
-
   return <section className="panel settings-panel">
     <div className="section-title settings-page-title"><div><h2>Settings</h2><p>{leagueName || "League and account preferences"}</p></div></div>
 
@@ -192,17 +159,7 @@ export default function SettingsPanel({
           <button type="button" className={theme === "light" ? "active" : ""} aria-pressed={theme === "light"} onClick={() => chooseTheme("light")}><Sun size={14} /> Light</button>
           <button type="button" className={theme === "dark" ? "active" : ""} aria-pressed={theme === "dark"} onClick={() => chooseTheme("dark")}><Moon size={14} /> Dark</button>
         </div>
-        <div className="theme-toggle settings-logo-era-toggle" role="group" aria-label="Team logo style">
-          <button type="button" className={logoEra === "modern" ? "active" : ""} aria-pressed={logoEra === "modern"} disabled={logoEraBusy} onClick={() => void chooseLogoEra("modern")}>Modern</button>
-          <button type="button" className={logoEra === "vintage" ? "active" : ""} aria-pressed={logoEra === "vintage"} disabled={logoEraBusy} onClick={() => void chooseLogoEra("vintage")}>Vintage</button>
-        </div>
-        {logoEraMessage && <p className="logo-studio-status" role="status">{logoEraMessage}</p>}
       </div>
-      {String(currentUser.username || "").trim().toLowerCase() === "kameron" && <button className="settings-card settings-logo-studio-link" type="button" onClick={() => setLogoStudioOpen(true)}>
-        <span className="settings-leading-icon"><Images size={17} /></span>
-        <span className="settings-row-copy"><strong>Logo Studio</strong><span>Choose modern, vintage and alternate team artwork.</span></span>
-        <ChevronRight size={17} />
-      </button>}
     </div>
 
     <div className="settings-section">
