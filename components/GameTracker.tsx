@@ -171,6 +171,12 @@ function ScoreboardCenter({ payload, game, completed }: { payload: TrackerPayloa
   const situation = completed ? "" : (game.live_situation?.trim() || gameCenterSituation(payload));
 
   if (completed) return <div className="game-tracker-score-center final"><time className="broadcast-game-date" dateTime={game.commence_time}>{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</time><strong>FINAL</strong></div>;
+  const pregame = (payload?.status.state || game.live_state || "pre") === "pre";
+  if (pregame) return <div className="game-tracker-score-center football-kickoff">
+    <span>KICKOFF</span>
+    <strong>{new Date(game.commence_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })}</strong>
+    <small>CT</small>
+  </div>;
 
   return <div className="game-tracker-score-center">
     <span className="game-tracker-center-period">{state.period}</span>
@@ -240,7 +246,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
       <div className="game-tracker-score-stack">
         <small className="broadcast-team-record">{team?.record || ""}</small>
         <b className={scoreTone}>{score ?? "—"}</b>
-        {!completed && <div className="game-tracker-team-indicators"><TimeoutDots remaining={timeouts} />{payload?.situation.possessionSide === side && <FieldFootballIcon />}</div>}
+        {!completed && (payload?.status.state === "in" || game.live_state === "in") && <div className="game-tracker-team-indicators"><TimeoutDots remaining={timeouts} />{payload?.situation.possessionSide === side && <FieldFootballIcon />}</div>}
       </div>
     </div>
   </div>;
@@ -306,14 +312,14 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
       </div>
     </div>
 
-    <div className="game-tracker-live-meta">
+    {payload.status.state !== "pre" && <div className="game-tracker-live-meta">
       <div className="game-tracker-possession-label">
         <TeamLogo src={offense.logo} name={offense.name} size={22} />
         <strong>{payload.league === "NFL" ? offense.shortName : teamDisplayName("CFB", offense.name || offense.shortName)}</strong>
         <span>Possession</span>
       </div>
       {situation.downDistanceText && <span className="football-live-down-distance">{situation.downDistanceText}</span>}
-    </div>
+    </div>}
 
     <div className="game-tracker-field" aria-label={gameCenterSituation(payload)}>
       <div className="game-tracker-endzone left"
@@ -327,9 +333,11 @@ function LiveField({ payload }: { payload: TrackerPayload }) {
       <div className="game-tracker-yard-labels">
         {yardLabels.map((label, index) => <span key={index} style={{ left: `${playableLeft + ((index + 0.5) * playableWidth / 10)}%` }}>{label}</span>)}
       </div>
-      <div className="game-tracker-los-line" style={{ left: `${lineOfScrimmage}%` }} aria-hidden="true" />
-      {firstDownLine != null && <div className="game-tracker-first-down-line" style={{ left: `${firstDownLine}%` }} aria-hidden="true" />}
-      <div className="game-tracker-football-position" style={{ left: `${lineOfScrimmage}%` }}><FieldFootballIcon /></div>
+      {payload.status.state !== "pre" && situation.yardsToGoal != null && <>
+        <div className="game-tracker-los-line" style={{ left: `${lineOfScrimmage}%` }} aria-hidden="true" />
+        {firstDownLine != null && <div className="game-tracker-first-down-line" style={{ left: `${firstDownLine}%` }} aria-hidden="true" />}
+        <div className="game-tracker-football-position" style={{ left: `${lineOfScrimmage}%` }}><FieldFootballIcon /></div>
+      </>}
       <div className="game-tracker-endzone right"
         style={{ backgroundColor: `#${defense.color || "34444c"}`, color: `#${defense.alternateColor || "ffffff"}` }}>
         <TeamLogo src={defense.logo} name={defense.name} size={20} logoBackground={`#${defense.color || "34444c"}`} />
