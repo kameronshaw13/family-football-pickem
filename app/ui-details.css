@@ -8982,3 +8982,228 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   .scoreboard-main .header-league-picker { flex-basis: 197px; max-width: calc(100% - 110px); }
   .picks-panel .board-day-selector > button { min-width: 98px; font-size: 11px; }
 }
+
+
+/* November 19: broadcast-detail refinements.
+   Single inset quarter separators, softer compact drives, and consistent
+   fixed-width stat columns without disabling horizontal swipe. */
+
+/* Side-band watermark is the SCHOOL / CITY wordmark, not mascot text.
+   Outline-only letterforms avoid a solid, distracting wall of lettering. */
+.football-game-tracker .football-scoreboard .football-team-watermark,
+.basketball-details .game-tracker-scoreboard .basketball-team-watermark {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(26px, 7vw, 34px);
+  letter-spacing: .035em;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: .9px color-mix(in srgb, var(--tracker-team-mark, #ffffff) 35%, #ffffff);
+  text-shadow: none;
+  opacity: .68;
+  line-height: 1;
+  user-select: none;
+}
+.game-tracker-sheet > .tracker-header-outline-filter-def {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.football-game-tracker .game-tracker-header-logo-wrap > img,
+.basketball-details .game-tracker-scoreboard .game-tracker-score-team-main > img {
+  /* feMorphology uses the actual alpha boundary and leaves artwork intact;
+     no drop-shadow blur or thick pixelated halo. */
+  filter: url("#tracker-crisp-white-logo-outline");
+}
+
+/* Football Scoring/Plays quarter headers have ONE inset leading rule.
+   No full-bleed top border or duplicated border after Game Flow. */
+.football-game-tracker .game-tracker-scoring-list > .tracker-football-flow {
+  border-bottom: 0 !important;
+}
+.football-game-tracker .football-probability-group { border-bottom: 0 !important; }
+.football-game-tracker .football-play-period > .game-tracker-quarter-header,
+.football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center !important;
+  justify-content: space-between;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  padding: 0 var(--tracker-inset) !important;
+  border-top: 0 !important;
+  border-bottom: 1px solid var(--tracker-divider);
+  margin: 0;
+  line-height: 1.2;
+  background: var(--panel);
+}
+.football-game-tracker .football-play-period > .game-tracker-quarter-header::before,
+.football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: var(--tracker-section-divider);
+  pointer-events: none;
+}
+.football-game-tracker .football-play-period > .game-tracker-quarter-header > span,
+.football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header > span {
+  margin: 0;
+  padding: 0;
+  align-self: center !important;
+  line-height: 1.2;
+  font-size: 16px;
+}
+.football-game-tracker .game-tracker-scoring-quarter .game-tracker-quarter-team-logos {
+  display: grid;
+  width: 70px;
+  height: 27px;
+  min-height: 27px;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 6px;
+  align-items: center;
+  align-self: center;
+  justify-items: center;
+}
+.football-game-tracker .game-tracker-scoring-quarter .game-tracker-quarter-team-logos img {
+  width: 23px !important;
+  height: 23px !important;
+  object-fit: contain;
+}
+
+/* An opened drive has its own inset short color rule, NOT a full-height
+   column running through the first and last row edges. */
+.football-game-tracker .football-drive-plays {
+  position: relative;
+  border-left: 0 !important;
+  margin-left: calc(var(--tracker-inset) + 13px);
+  padding-left: 19px;
+}
+.football-game-tracker .football-drive-plays::before {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+  top: 20px;
+  bottom: 20px;
+  left: -2px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--football-drive-color, #a12936);
+}
+.football-game-tracker .football-drive-summary {
+  min-height: 76px;
+  padding-block: 13px;
+}
+.football-game-tracker .football-drive-description { gap: 5px; }
+.football-game-tracker .football-drive-description > strong { font-size: 14px; }
+.football-game-tracker .football-drive-description > small { font-size: 11.5px; }
+.football-game-tracker .game-tracker-scoring-list .football-score-event .game-tracker-scoring-copy p {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Box score: the first column takes up any available spare space.
+   The numeric columns are each a fixed width, even when there are fewer
+   stats. On narrower screens, scrolling still works with sticky names. */
+.game-tracker-sheet .game-tracker-player-table-scroll,
+.basketball-details .game-tracker-player-table-scroll {
+  overflow-x: auto !important;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.game-tracker-sheet .game-tracker-player-table,
+.basketball-details .basketball-player-table {
+  width: 100%;
+  table-layout: fixed !important;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.game-tracker-sheet .game-tracker-player-table th:not(:first-child),
+.game-tracker-sheet .game-tracker-player-table td:not(:first-child),
+.basketball-details .basketball-player-table th:not(:first-child),
+.basketball-details .basketball-player-table td:not(:first-child) {
+  box-sizing: border-box;
+  padding-inline: 3px !important;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.game-tracker-sheet .game-tracker-player-table tr > *,
+.basketball-details .basketball-player-table tr > * {
+  border-bottom: 1px solid var(--tracker-divider);
+  border-top: 0 !important;
+}
+.game-tracker-sheet .game-tracker-player-table thead > tr > *,
+.basketball-details .basketball-player-table .basketball-player-stat-head > * {
+  background: var(--surface-muted) !important;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 750;
+  min-height: 38px;
+  height: 38px;
+  vertical-align: middle;
+  border-right: 0 !important;
+  border-left: 0 !important;
+  border-top: 0 !important;
+}
+.game-tracker-sheet .game-tracker-player-table tbody tr:not(.game-tracker-team-total) > th:first-child,
+.basketball-details .basketball-player-table tbody tr:not(.basketball-player-stat-head) > th:first-child {
+  border-right: 1px solid var(--tracker-divider) !important;
+  background: var(--panel);
+}
+.game-tracker-sheet .game-tracker-player-table .game-tracker-team-total > th:first-child {
+  border-right: 0 !important;
+}
+.basketball-details .basketball-player-table tbody tr.basketball-player-stat-head > th:first-child {
+  border-right: 0 !important;
+}
+.basketball-details .basketball-player-table tbody tr.basketball-player-stat-head > th:not(:first-child) {
+  text-align: right;
+}
+.game-tracker-sheet .game-tracker-player-table .game-tracker-team-total > td,
+.game-tracker-sheet .game-tracker-player-table .game-tracker-team-total > th {
+  background: var(--panel) !important;
+}
+.game-tracker-sheet .game-tracker-box-section,
+.basketball-details .game-tracker-box-section {
+  background: var(--panel);
+  box-shadow: none;
+}
+/* Team/pill selector measured label: full school/city when room permits. */
+.game-tracker-sheet .game-tracker-box-selector button > .tracker-adaptive-team-label {
+  display: block;
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  overflow: hidden;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.game-tracker-sheet .tracker-adaptive-team-label-value {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.game-tracker-sheet .tracker-adaptive-team-label-meter {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+  width: max-content;
+  visibility: hidden;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.game-tracker-sheet .game-tracker-box-selector > button > img {
+  flex: 0 0 20px;
+}

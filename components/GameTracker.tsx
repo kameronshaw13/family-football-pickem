@@ -12,7 +12,10 @@ import { ChevronDown, LoaderCircle } from "lucide-react";
 import GameDetailClose from "@/components/GameDetailClose";
 import type { Game } from "@/lib/types";
 import type { AppSlug } from "@/lib/rulePresentation";
-import { teamDisplayName } from "@/lib/teamNames";
+import { teamDisplayName, teamAbbreviatedName } from "@/lib/teamNames";
+import { trackerInstitutionName } from "@/lib/trackerInstitutionName";
+import TrackerTeamLabel from "@/components/TrackerTeamLabel";
+import TrackerHeaderLogoFilter from "@/components/TrackerHeaderLogoFilter";
 import { trackerDisplayScore } from "@/lib/trackerDisplayScore";
 import { trackerTeamColors } from "@/lib/trackerTeamColors";
 import { groupTrackerScoringPlays } from "@/lib/trackerScoringGroups";
@@ -220,6 +223,8 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   const team = payload?.teams[side];
   const opponent = payload?.teams[side === "away" ? "home" : "away"];
   const fullName = team?.name || fallbackName;
+  const schoolOrCity = trackerInstitutionName(game.league, side === "away" ? game.away_team : game.home_team);
+  const teamMarkColor = team?.color && /^[0-9a-f]{6}$/i.test(team.color) ? `#${team.color}` : "#ffffff";
   // The saved game artwork is canonical, so opening GameTracker never swaps variants.
   const logo = fallbackLogo || team?.logo;
   const logoBacking = trackerTeamColors(team?.color, team?.alternateColor).backing;
@@ -243,7 +248,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
     : null;
 
   return <div className={`game-tracker-score-team ${side}`} aria-label={`${fullName} ${score ?? "score unavailable"}`}>
-    <span className="football-team-watermark" aria-hidden="true">{fullName}</span>
+    <span className="football-team-watermark" aria-hidden="true" style={{ "--tracker-team-mark": teamMarkColor } as CSSProperties}>{schoolOrCity}</span>
     <div className="game-tracker-score-team-main">
       <span className="game-tracker-header-logo-wrap">{logo
         ? <Image unoptimized src={logo} alt="" width={56} height={56} scoreboardLeague={game.league} style={{ "--tracker-logo-backing": logoBacking } as CSSProperties} />
@@ -372,8 +377,8 @@ function ScoringQuarterHeader({ payload, label, showScores = false }: { payload:
   return <div className={`game-tracker-quarter-header game-tracker-scoring-quarter-header${showScores ? " football-scoring-period-heading" : ""}`}>
     <span>{trackerPeriodHeading(label)}</span>
     {showScores && <div className="game-tracker-quarter-team-logos" aria-hidden="true">
-      <TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} />
-      <TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} />
+      <TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={23} />
+      <TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={23} />
     </div>}
   </div>;
 }
@@ -427,6 +432,23 @@ function FootballGameFlow({ payload }: { payload: TrackerPayload }) {
   </section>;
 }
 
+/** Scoring shows an event summary rather than duplicating the full drive's
+ * play-by-play narration (which remains available under Plays). */
+function conciseFootballScoreText(text: string, clock: string): string {
+  const narration = playTextWithoutDuplicateClock(text, clock).replace(/^\(?\d{1,2}:\d{2}\)?[\s:–—-]*/, "").trim();
+  const fg = narration.match(/^(.{2,45}?)\s+(\d{1,2})\s*-?yard\s+field\s+goal/i);
+  if (fg) return `${fg[1].trim()} · ${fg[2]}-yard field goal`;
+  const rush = narration.match(/^(.{2,45}?)\s+(?:rushed|rushes|ran|runs)\s+for\s+(-?\d+)\s+yards?/i);
+  if (rush) return `${rush[1].trim()} · ${rush[2]}-yard rush`;
+  const reception = narration.match(/\bpass\s+(?:complete\s+)?to\s+(.{2,45}?)\s+for\s+(-?\d+)\s+yards?/i);
+  if (reception) return `${reception[1].trim()} · ${reception[2]}-yard reception`;
+  const firstSentence = narration
+    .replace(/\s*\((?:PAT|Extra Point)[^)]*\)/gi, "")
+    .replace(/[.!]?\s*(?:TOUCHDOWN|FIELD GOAL IS GOOD|NO GOOD)[.!]?/gi, "")
+    .split(/\.(?:\s|$)/)[0].trim();
+  return firstSentence.length > 100 ? `${firstSentence.slice(0, 97).trimEnd()}…` : firstSentence || "Scoring play";
+}
+
 function Scoring({ payload }: { payload: TrackerPayload }) {
   if (!payload.scoringPlays.length) return <p className="game-tracker-empty">No scoring plays yet.</p>;
 
@@ -448,7 +470,7 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
             <strong>{play.type || "Score"}</strong>
             {play.clock && <time>{play.clock}</time>}
           </div>
-          <p>{playTextWithoutDuplicateClock(play.text, play.clock)}</p>
+          <p>{conciseFootballScoreText(play.text, play.clock)}</p>
           {play.drive && <small>{[
             play.drive.playsCount ? `${play.drive.playsCount} Plays` : "",
             play.drive.yards != null ? `${play.drive.yards} Yards` : "",
@@ -562,8 +584,9 @@ function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
   const displayNames = row.athletes.map((athlete) => compactPlayerName(athlete.name));
   // Reserve just enough for the widest unwrapped name; the remaining space is
   // divided evenly across stat columns with no blank right-hand gutter.
-  const nameColumnWidth = Math.max(94, Math.min(190, Math.ceil(Math.max(row.title.length, ...displayNames.map((name) => name.length)) * 6.5 + 12)));
-  const minTableWidth = nameColumnWidth + visibleLabels.length * 34;
+  const nameColumnWidth = 130;
+  const statColumnWidth = 38;
+  const minTableWidth = nameColumnWidth + visibleLabels.length * statColumnWidth;
   const showTeamTotals = row.athletes.length > 1;
 
   useEffect(() => {
@@ -597,8 +620,8 @@ function PlayerTable({ row }: { row: TrackerPayload["playerStats"][number] }) {
   }, []);
 
   return <div ref={scroller} className="game-tracker-player-table-scroll" tabIndex={0} role="region" aria-label={`${row.title} player statistics, scroll horizontally for more columns`}>
-    <table className="game-tracker-player-table" aria-label={row.title} style={{ width: "100%", minWidth: `${minTableWidth}px` }}>
-      <colgroup><col style={{ width: nameColumnWidth }} />{visibleLabels.map((label, index) => <col key={`${label}-${index}`} />)}</colgroup>
+    <table className="game-tracker-player-table" aria-label={row.title} style={{ width: "100%", minWidth: `${minTableWidth}px`, tableLayout: "fixed" }}>
+      <colgroup><col />{visibleLabels.map((label, index) => <col key={`${label}-${index}`} style={{ width: `${statColumnWidth}px` }} />)}</colgroup>
       <thead><tr><th scope="col">{row.title.replace(/\b(Kick|Punt)\s*Returns?\b/gi, (_match, kind: string) => `${kind} Return`)}</th>{visibleLabels.map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead>
       <tbody>{row.athletes.map((athlete, athleteIndex) => <tr key={athlete.name}>
         <th scope="row" title={athlete.name}>{displayNames[athleteIndex]}</th>
@@ -659,7 +682,7 @@ function FootballLineScore({ payload }: { payload: TrackerPayload }) {
       {columns.map(row => <th key={row.period} scope="col">{row.period}</th>)}<th scope="col">T</th>
     </tr></thead><tbody>{(["away", "home"] as const).map(side =>
       <tr key={side}><th scope="row"><TeamLogo src={payload.teams[side].logo} name={payload.teams[side].name} size={23} />
-        <span>{payload.teams[side].abbreviation || payload.teams[side].shortName}</span></th>
+        <span>{trackerInstitutionName(payload.league, payload.teams[side].name || payload.teams[side].shortName)}</span></th>
         {columns.map(row => <td key={row.period}>{row[side]}</td>)}
         <td className="basketball-linescore-total">{payload.teams[side].score ?? "—"}</td>
       </tr>)}</tbody></table>
@@ -672,9 +695,9 @@ function BoxScore({ payload }: { payload: TrackerPayload }) {
   return <div className="game-tracker-box">
     <FootballLineScore payload={payload} />
     <div className="game-tracker-box-selector" role="group" aria-label="Choose box score team">
-      <button type="button" className={view === "away" ? "active" : ""} aria-pressed={view === "away"} onClick={() => setView("away")}><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><span>{payload.league === "NFL" ? payload.teams.away.shortName : teamDisplayName("CFB", payload.teams.away.name || payload.teams.away.shortName)}</span></button>
+      <button type="button" className={view === "away" ? "active" : ""} aria-pressed={view === "away"} onClick={() => setView("away")}><TeamLogo src={payload.teams.away.logo} name={payload.teams.away.name} size={20} /><TrackerTeamLabel full={trackerInstitutionName(payload.league, payload.teams.away.name || payload.teams.away.shortName)} short={payload.teams.away.abbreviation || teamAbbreviatedName(payload.league, payload.teams.away.name)} /></button>
       <button type="button" className={view === "all" ? "active" : ""} aria-pressed={view === "all"} onClick={() => setView("all")}>Team</button>
-      <button type="button" className={view === "home" ? "active" : ""} aria-pressed={view === "home"} onClick={() => setView("home")}><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /><span>{payload.league === "NFL" ? payload.teams.home.shortName : teamDisplayName("CFB", payload.teams.home.name || payload.teams.home.shortName)}</span></button>
+      <button type="button" className={view === "home" ? "active" : ""} aria-pressed={view === "home"} onClick={() => setView("home")}><TeamLogo src={payload.teams.home.logo} name={payload.teams.home.name} size={20} /><TrackerTeamLabel full={trackerInstitutionName(payload.league, payload.teams.home.name || payload.teams.home.shortName)} short={payload.teams.home.abbreviation || teamAbbreviatedName(payload.league, payload.teams.home.name)} /></button>
     </div>
     {view === "all" ? <TeamStats payload={payload} /> : <TeamBox payload={payload} side={view} />}
   </div>;
@@ -792,14 +815,15 @@ export default function GameTracker({ game, onClose, appSlug }: { game: Game; on
   const homeName = teamDisplayName(game.league, game.home_team);
   const completed = Boolean(game.live_completed || (game.final_home_score != null && game.final_away_score != null) || payload?.status.completed);
   const tabs: Array<[TrackerTab, string]> = [
-    ["plays", "Plays"],
     ["scoring", "Scoring"],
+    ["plays", "Plays"],
     ...(completed ? [] : [["live", "Live"] as [TrackerTab, string]])
   ];
   const matchupHeader = `${awayName}${game.neutral_site ? " vs " : " at "}${homeName}`;
 
   return createPortal(<div className="game-tracker-backdrop" onClick={(event) => { if (event.target === event.currentTarget) closeWithMotion(); }}>
     <section ref={sheet} className="game-tracker-sheet football-game-tracker" role="dialog" aria-modal="false" aria-label={`${matchupHeader} GameTracker`}>
+      <TrackerHeaderLogoFilter />
       <header className="game-tracker-header">
         <div className="game-detail-title">
           
