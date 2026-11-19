@@ -334,7 +334,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
         onClick={() => void prepareModernDefaults()}>
         {preparing ? "Preparing recommendations…" : "Fill recommended Modern logos for all untouched teams"}
       </button>
-      <span>Checks school athletics sites first (${countVerifiedSchoolLogos()} sourced marks), then NBA.com / NCAA.com or ESPN. Existing selections are untouched.</span>
+      <span>Checks school athletics sites first ({countVerifiedSchoolLogos()} sourced marks), then NBA.com / NCAA.com or ESPN. Existing selections are untouched.</span>
     </div>
     <div className="logo-studio-body">
         <div className="logo-studio-leagues" role="group" aria-label="Sport">
