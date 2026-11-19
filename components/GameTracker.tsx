@@ -8,7 +8,7 @@ import { playTextWithoutDuplicateClock } from "@/lib/playText";
 import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "@/components/TeamImage";
 import { createPortal } from "react-dom";
-import { LoaderCircle } from "lucide-react";
+import { ChevronDown, LoaderCircle } from "lucide-react";
 import GameDetailClose from "@/components/GameDetailClose";
 import type { Game } from "@/lib/types";
 import type { AppSlug } from "@/lib/rulePresentation";
@@ -436,22 +436,67 @@ function Scoring({ payload }: { payload: TrackerPayload }) {
   </div>;
 }
 
+function FootballDrive({ drive, payload, initiallyOpen }: {
+  drive: TrackerDrive;
+  payload: TrackerPayload;
+  initiallyOpen: boolean;
+}) {
+  const team = drive.teamSide ? payload.teams[drive.teamSide] : null;
+  const result = drive.current ? "Current Drive" : drive.result || "Drive";
+  const meta = [
+    drive.playsCount ? `${drive.playsCount} plays` : "",
+    drive.yards != null ? `${drive.yards} yds` : "",
+    drive.timeElapsed ? `${drive.timeElapsed} possession` : ""
+  ].filter(Boolean);
+
+  return <details className="football-drive" defaultOpen={initiallyOpen}>
+    <summary className="football-drive-summary">
+      <span className="football-drive-logo" aria-hidden="true">{team && <TeamLogo src={team.logo} name={team.name} size={26} />}</span>
+      <span className="football-drive-description">
+        <strong>{team ? `${team.shortName || team.name} · ${result}` : result}</strong>
+        <small>{meta.length ? <MetaDots items={meta} /> : drive.description || "Drive summary"}</small>
+      </span>
+      <ChevronDown className="football-drive-chevron" size={17} aria-hidden="true" />
+    </summary>
+    <div className="football-drive-plays">
+      {drive.plays.length ? drive.plays.map((play, index) => {
+        const prior = drive.plays[index - 1];
+        const crossedQuarter = prior?.period && play.period && periodLabel(prior.period) !== periodLabel(play.period);
+        return <Fragment key={play.id}>
+          {crossedQuarter && <ScoringQuarterHeader payload={payload} label={periodLabel(play.period)} />}
+          <PlayRow play={play} team={play.teamSide ? payload.teams[play.teamSide] : null} />
+        </Fragment>;
+      }) : <p className="game-tracker-drive-empty">Play details are not available yet.</p>}
+    </div>
+  </details>;
+}
+
 function Plays({ payload }: { payload: TrackerPayload }) {
-  const allPlays = payload.drives.flatMap(drive => drive.plays);
-  if (!allPlays.length) return <p className="game-tracker-empty">Play-by-play begins at kickoff.</p>;
-  // ESPN returns chronological drives after the final whistle, and newest-first drives while live.
-  const quarters = allPlays.reduce<Array<{ label: string; plays: TrackerPlay[] }>>((groups, play) => {
-    const label = periodLabel(play.period || "1");
+  if (!payload.drives.length) return <p className="game-tracker-empty">Drive data is not available yet.</p>;
+
+  // ESPN returns chronological drives after the final whistle and newest-first drives while live.
+  // Group each drive by its start quarter, even if the drive spans two quarters.
+  const quarterForDrive = (drive: TrackerDrive) => {
+    const startPlay = payload.status.completed ? drive.plays[0] : drive.plays[drive.plays.length - 1];
+    return periodLabel(startPlay?.period || "1");
+  };
+  const quarters = payload.drives.reduce<Array<{ label: string; drives: TrackerDrive[] }>>((groups, drive) => {
+    const label = quarterForDrive(drive);
     const last = groups[groups.length - 1];
-    if (!last || last.label !== label) groups.push({ label, plays: [play] });
-    else last.plays.push(play);
+    if (!last || last.label !== label) groups.push({ label, drives: [drive] });
+    else last.drives.push(drive);
     return groups;
   }, []);
 
   return <div className="football-play-list">
-    {quarters.map((quarter, index) => <section className="football-play-period" key={`${quarter.label}-${index}`}>
+    {quarters.map((quarter, quarterIndex) => <section className="football-play-period" key={`${quarter.label}-${quarterIndex}`}>
       <ScoringQuarterHeader payload={payload} label={quarter.label} />
-      {quarter.plays.map(play => <PlayRow key={play.id} play={play} team={play.teamSide ? payload.teams[play.teamSide] : null} />)}
+      {quarter.drives.map((drive, driveIndex) => <FootballDrive
+        key={drive.id}
+        drive={drive}
+        payload={payload}
+        initiallyOpen={drive.current || (quarterIndex === 0 && driveIndex === 0)}
+      />)}
     </section>)}
   </div>;
 }
