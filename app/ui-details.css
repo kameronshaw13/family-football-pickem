@@ -8877,7 +8877,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   font-size: 16px;
   font-weight: 800;
 }
-.board-favorites-section > .game-list { margin-inline: 0; border-top: 0; }
+.board-favorites-section > .game-list { margin-inline: 0; margin-bottom: 0; }
 .picks-panel .game-head { position: relative; padding-right: 36px; }
 .picks-panel .game-head > .board-favorite-trigger {
   position: absolute;
@@ -9263,13 +9263,6 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   stroke: currentColor;
   stroke-width: 2;
 }
-.picks-panel .board-favorites-section > .game-list {
-  border-top: 0;
-  border-bottom: 1px solid var(--tracker-section-divider);
-}
-.picks-panel .board-favorites-section > .game-list > .game-card + .game-card {
-  border-top: 1px solid var(--tracker-divider);
-}
 .picks-panel .board-favorites-section > h3 {
   margin: 0;
   border-top: 1px solid var(--tracker-section-divider);
@@ -9298,17 +9291,6 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   border-top: 1px solid var(--tracker-section-divider) !important;
   border-bottom: 1px solid var(--tracker-section-divider) !important;
   box-shadow: none !important;
-}
-.picks-panel .board-favorites-section > .game-list {
-  border-top: 0 !important;
-  border-bottom: 1px solid var(--tracker-section-divider) !important;
-  box-shadow: none !important;
-}
-.picks-panel .board-favorites-section > .game-list > .game-card:last-child {
-  border-bottom: 0 !important;
-}
-.picks-panel .board-favorites-section > .game-list > .game-card + .game-card {
-  border-top: 1px solid var(--tracker-divider);
 }
 
 /* Header league menu anchors to the lower edge of the 32px wordmark,
@@ -9411,12 +9393,16 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 .picks-panel .board-league-group > .game-list {
   margin: 0;
   padding: 0;
-  border: 0;
   background: var(--panel);
 }
 .picks-panel .board-league-group > .game-list[hidden] { display: none !important; }
-.picks-panel .board-league-group:last-child {
-  border-bottom: 1px solid var(--tracker-section-divider);
+/* The open list owns the original top strong line; the header must not
+   create a second line beside it. Collapsed headers retain their closing rule. */
+.picks-panel .board-league-group > .board-league-header[aria-expanded="true"] {
+  border-bottom: 0;
+}
+.picks-panel .board-favorites-section > h3 {
+  border-bottom: 0 !important;
 }
 @media (max-width: 380px) {
   .picks-panel .board-league-header > strong { font-size: 11px; }
@@ -9473,33 +9459,13 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   line-height: 1.2;
 }
 
-/* Dark outline at the top AND bottom of every actual matchup.
-   Each game's bottom rule doubles as the next game's top rule, so there are
-   no doubled 2px lines. Within the game, time/team separators remain light. */
-.picks-panel .board-league-group > .game-list,
-.picks-panel .board-favorites-section > .game-list {
-  border: 0 !important;
-}
-.picks-panel .board-league-group > .game-list > .game-card,
-.picks-panel .board-favorites-section > .game-list > .game-card {
-  border-top: 0 !important;
-  border-bottom: 1px solid var(--tracker-section-divider) !important;
-}
-.picks-panel .board-league-group > .board-league-header {
-  /* A single fine rule separates the clickable league heading from the first game's time row. */
-  border-bottom: 1px solid var(--tracker-divider) !important;
-}
-.picks-panel .board-favorites-section > h3 {
-  border-bottom: 1px solid var(--tracker-section-divider) !important;
-}
-.picks-panel .board-league-group:last-child {
-  border-bottom: 0 !important;
-}
-.picks-panel .board-league-group + .board-league-group > .board-league-header {
-  border-top: 1px solid var(--tracker-section-divider);
-}
+/* Restore the original game-list separators from ui-foundations.css.
+   Settings / Standings use the same --line-strong token for outer rules.
+   No per-card border overrides: .game-card owns its divider and
+   .game-card:last-child defers the final boundary to .game-list.
+   Keep only the heading's existing collapsed-state border. */
 .picks-panel .board-league-group > .board-league-header[aria-expanded="false"] {
-  border-bottom: 1px solid var(--tracker-section-divider);
+  border-bottom: 1px solid var(--line-strong);
 }
 
 /* League header ROW uses the same soft cream shade as the matchup
