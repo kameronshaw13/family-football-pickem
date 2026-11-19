@@ -9599,7 +9599,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: 44px 1px;
   gap: 0;
-  margin: 0 calc(var(--page-gutter) * -1);
+  margin: 0 calc(var(--page-gutter) * -1) var(--space-3);
   padding-inline: var(--page-gutter);
   border-bottom: 0;
   box-shadow: none;
@@ -9662,7 +9662,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
    Their section boundaries naturally push prior headings out of the way. */
 .picks-panel .board-league-group > .board-league-header {
   position: sticky;
-  top: calc(env(safe-area-inset-top) + var(--header-height) + 139px);
+  top: calc(env(safe-area-inset-top) + var(--header-height) + 151px);
   z-index: 19;
   border-bottom-color: var(--line-strong) !important;
 }
@@ -9691,7 +9691,9 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   grid-column: 3 / 4;
 }
 .picks-panel .board-sticky-controls > .board-filter-row > .context-select .custom-select-menu {
-  width: min(230px, calc(100vw - 24px));
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   right: 0;
   left: auto;
 }
@@ -9709,6 +9711,34 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 }
 .picks-panel .board-filter-row .custom-select-section:first-child > :first-child {
   border-top: 0;
+}
+
+/* Only one rule immediately below each section label. The next option
+   no longer adds a second border beneath Power 4 / Group of 6. */
+.picks-panel .board-filter-row .custom-select-group-label {
+  border-bottom: 1px solid var(--line);
+}
+.picks-panel .board-filter-row .custom-select-group-label + .custom-select-option {
+  border-top: 0;
+}
+/* Keep long conference names within the equal-width third column. */
+.picks-panel .board-filter-row .context-select .custom-select-option {
+  min-width: 0;
+  padding-inline: 7px;
+  font-size: 11px;
+}
+.picks-panel .board-filter-row .context-select .custom-select-option .custom-select-label,
+.picks-panel .board-filter-row .context-select .custom-select-group-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.picks-panel .board-filter-row .context-select .custom-select-option .custom-select-label > * {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* Restore a full selected-cell fill instead of a text-only bold selection. */
