@@ -9470,16 +9470,20 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   line-height: 1.2;
 }
 
-/* The dark rules frame the complete game section; individual games and
-   their inner head/team rows retain the lighter grey separators. */
-.picks-panel .board-league-group > .game-list {
+/* Dark outline at the top AND bottom of every actual matchup.
+   Each game's bottom rule doubles as the next game's top rule, so there are
+   no doubled 2px lines. Within the game, time/team separators remain light. */
+.picks-panel .board-league-group > .game-list,
+.picks-panel .board-favorites-section > .game-list {
   border: 0 !important;
 }
-.picks-panel .board-league-group > .game-list > .game-card {
+.picks-panel .board-league-group > .game-list > .game-card,
+.picks-panel .board-favorites-section > .game-list > .game-card {
   border-top: 0 !important;
-  border-bottom: 1px solid var(--tracker-divider) !important;
+  border-bottom: 1px solid var(--tracker-section-divider) !important;
 }
-.picks-panel .board-league-group > .game-list > .game-card:last-child {
+.picks-panel .board-league-group > .board-league-header,
+.picks-panel .board-favorites-section > h3 {
   border-bottom: 1px solid var(--tracker-section-divider) !important;
 }
 .picks-panel .board-league-group:last-child {
@@ -9492,15 +9496,20 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   border-bottom: 1px solid var(--tracker-section-divider);
 }
 
-/* Favorites have the same hierarchy: dark section edges, light grey
-   between favorited games and within each game card. */
-.picks-panel .board-favorites-section > .game-list > .game-card {
-  border-top: 0 !important;
-  border-bottom: 1px solid var(--tracker-divider) !important;
+/* League labels are simple text on the SAME surface as the section heading:
+   no charcoal badge, blue underline, or separate filled CFB/CBB cells. */
+.picks-panel .board-league-group > .board-league-header,
+.picks-panel .board-league-header > b {
+  background: var(--panel) !important;
+  color: var(--ink) !important;
+  box-shadow: none !important;
 }
-.picks-panel .board-favorites-section > .game-list > .game-card:last-child {
-  border-bottom: 0 !important;
-}
-.picks-panel .board-favorites-section > .game-list {
-  border-bottom: 1px solid var(--tracker-section-divider) !important;
+.picks-panel .board-league-header > b {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 0;
+  min-width: 35px;
+  padding: 0;
+  line-height: 1.2;
 }
