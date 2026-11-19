@@ -1573,14 +1573,15 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
       {tab === "picks" && <section className="panel picks-panel">
         {!previewActive && picksView === "board" && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens on <NumericText text={openText(data.weekOpenTime)} />.</div>}
-        <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: "Side Bets", badge: picksNotificationCount }]} value={picksView} onChange={(value) => {
+        <div className={`picks-top-controls${picksView === "board" ? " board-sticky-controls" : ""}`}>
+          <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: "Side Bets", badge: picksNotificationCount }]} value={picksView} onChange={(value) => {
           if (value === "sideBets" && sideBetAccessDenied) {
             notify("No access to Side Bets.", "error");
             return;
           }
           setPicksView(value as PicksView);
-        }} />
-        {picksView === "board" && <>
+          }} />
+          {picksView === "board" && <>
           <div className="view-select-row board-filter-row">
             <MenuSelect ariaLabel="Choose sport or underdog games" className="compact-select league-select" value={leagueFilter}
               sections={[
@@ -1628,6 +1629,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
           </div>
           <BoardDaySelector days={calendarDays} value={selectedDayKey} today={todayDayKey}
             onChange={day => setBoardDaySelection({ scope: dayScope, day })} />
+          </>}
+        </div>
+        {picksView === "board" && <>
           {leagueFilter === "CBB" && cbbConferenceError && <p className="board-filter-data-notice">Conference directory temporarily unavailable; Top 25 and All still work.</p>}
           {filteredGames.length === 0 && <div className="empty-state board-empty-state">No games on this day. Select another date to browse.</div>}
           <div className="game-days board-league-days">

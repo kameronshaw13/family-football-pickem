@@ -9548,40 +9548,100 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 }
 
 
-/* Pick Board remains a full-height deep-gray surface, not a gray strip only
-   behind the league list. Keep this scoped to the board: Side Bets, cards,
-   standings and settings retain their own surface colors. */
-.app-shell:has(.picks-panel .board-league-days),
+/* Game area stays deep gray through the end of the viewport, while the
+   space ABOVE the Pick Board controls retains the same existing light canvas
+   color as My Card / League Cards. */
+.app-shell:has(.picks-panel .board-league-days) {
+  background: linear-gradient(
+    to bottom,
+    var(--canvas) 0,
+    var(--canvas) calc(env(safe-area-inset-top) + var(--header-height) + var(--space-3)),
+    var(--canvas-deep) calc(env(safe-area-inset-top) + var(--header-height) + var(--space-3))
+  );
+}
 .app-shell:has(.picks-panel .board-league-days) > .container,
 .picks-panel:has(.board-league-days) {
-  background: var(--canvas-deep);
+  background: transparent;
 }
 
-/* Fixed app wordmark is followed by one continuous stack of sticky controls:
-   Pick Board/Side Bets tabs, sport/conference filters, then the date ribbon.
-   Use the actual 45/40/54px control heights so no matchups show through gaps. */
-.picks-panel:has(.board-league-days) > .section-tabs {
+/* Pick Board, Side Bets, both filters and the date selector are one STICKY
+   light-gray unit; no individual child moves or changes shade independently. */
+.picks-panel > .picks-top-controls {
+  position: sticky;
   top: calc(env(safe-area-inset-top) + var(--header-height));
   z-index: 24;
-  margin-bottom: 0;
-  background: var(--canvas);
-}
-.picks-panel:has(.board-league-days) > .board-filter-row {
-  position: sticky;
-  top: calc(env(safe-area-inset-top) + var(--header-height) + 45px);
-  z-index: 23;
-  min-height: 40px;
   margin: 0 calc(var(--page-gutter) * -1);
   padding-inline: var(--page-gutter);
-  background: var(--panel) !important;
+  background: var(--canvas);
 }
-.picks-panel:has(.board-league-days) > .board-day-selector {
-  position: sticky;
-  top: calc(env(safe-area-inset-top) + var(--header-height) + 85px);
-  z-index: 22;
+
+/* Keep the SAME typography, selection underline and divider as the existing
+   My Card / League Cards tabs; only the shared wrapper structure differs. */
+.picks-panel .picks-top-controls > .section-tabs {
+  position: relative;
+  display: grid;
+  height: 45px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: 44px 1px;
+  gap: 0;
+  margin: 0 calc(var(--page-gutter) * -1);
+  padding-inline: var(--page-gutter);
+  border-bottom: 0;
+  box-shadow: none;
+  overflow: visible;
+  background: var(--canvas);
+}
+.picks-panel .picks-top-controls > .section-tabs::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: var(--line-strong);
+  content: "";
+  pointer-events: none;
+}
+.picks-panel .picks-top-controls > .section-tabs > button {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding-block: 0;
+  border: 0;
+  text-align: center;
+}
+.picks-panel .picks-top-controls > .section-tabs > button::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: transparent;
+  content: "";
+  pointer-events: none;
+}
+.picks-panel .picks-top-controls > .section-tabs > button.active::after {
+  background: var(--blue);
+}
+.picks-panel .board-sticky-controls > .board-filter-row {
+  position: relative;
+  z-index: 2;
+  min-height: 40px;
+  margin: 0;
+  padding: 0;
+  background: var(--canvas) !important;
+}
+.picks-panel .board-sticky-controls > .board-day-selector {
+  position: relative;
+  z-index: 1;
   min-height: 54px;
-  margin-bottom: 0;
-  background: var(--panel) !important;
+  margin: 0 calc(var(--page-gutter) * -1);
+  padding-inline: var(--page-gutter);
+  background: var(--canvas) !important;
 }
 /* League and Favorites cells pin directly beneath the date ribbon.
    Their section boundaries naturally push prior headings out of the way. */
