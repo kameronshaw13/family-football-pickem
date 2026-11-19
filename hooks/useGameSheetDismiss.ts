@@ -33,6 +33,7 @@ export default function useGameSheetDismiss(
     let candidate = false;
     let dragging = false;
     let dragDistance = 0;
+    let pullDistance = 0;
     let recentVelocity = 0;
     let previousY = 0;
     let previousMoveAt = 0;
@@ -75,6 +76,7 @@ export default function useGameSheetDismiss(
       candidate = isHeader || Boolean(scrollElement && scrollElement.scrollTop <= 1 && !isNestedScroller);
       dragging = false;
       dragDistance = 0;
+      pullDistance = 0;
       recentVelocity = 0;
       originX = event.touches[0].clientX;
       originY = event.touches[0].clientY;
@@ -85,7 +87,7 @@ export default function useGameSheetDismiss(
     }
 
     function move(event: TouchEvent) {
-      if (event.touches.length !== 1) return;
+      if (event.touches.length !== 1 || isClosing) return;
       const currentY = event.touches[0].clientY;
       const dy = currentY - originY;
       // The top-edge downward gesture belongs to dismissal; other profile
@@ -112,17 +114,27 @@ export default function useGameSheetDismiss(
       }
       previousY = currentY;
       previousMoveAt = now;
-      const rawDistance = Math.max(0, dy);
-      dragDistance = Math.min(
-        gameDetail && rawDistance > 180 ? 180 + (rawDistance - 180) * .82 : rawDistance,
-        sheet!.clientHeight
-      );
+      pullDistance = Math.max(0, dy);
+      // The game sheets only reveal a narrow strip of the app underneath.
+      // Pulling harder increases resistance rather than dragging the entire
+      // sheet halfway down the screen, as a partially-open sheet is not a state.
+      dragDistance = gameDetail
+        ? Math.min(72, 72 * (1 - Math.exp(-pullDistance / 155)))
+        : Math.min(pullDistance, sheet!.clientHeight);
       sheet!.style.transition = "none";
       sheet!.style.transform = `translate3d(0, ${dragDistance}px, 0)`;
+      // A committed long pull crosses the dismissal boundary immediately.
+      // Short, fast flicks can still dismiss when the finger is released.
+      if (gameDetail && pullDistance >= 200) animateClose();
     }
 
     function finish(cancelled = false) {
       activeScroller = null;
+      if (isClosing) {
+        candidate = false;
+        dragging = false;
+        return;
+      }
       if (!candidate) return;
       candidate = false;
       if (!dragging) return;
@@ -130,7 +142,7 @@ export default function useGameSheetDismiss(
       const duration = performance.now() - startedAt;
       const dismiss = !cancelled && (
         gameDetail
-          ? dragDistance >= 114 || (dragDistance >= 52 && recentVelocity >= .42 && duration < 700)
+          ? pullDistance >= 170 || (pullDistance >= 78 && recentVelocity >= .65 && duration < 600)
           : dragDistance >= 110 || (dragDistance >= 62 && duration < 330)
       );
       if (dismiss) {
@@ -143,6 +155,7 @@ export default function useGameSheetDismiss(
         }, settleTime);
       }
       dragDistance = 0;
+      pullDistance = 0;
     }
 
     sheet.addEventListener("touchstart", start, { passive: true, capture: true });

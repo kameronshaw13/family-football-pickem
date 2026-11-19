@@ -9513,7 +9513,8 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   padding: 0 !important;
   align-items: stretch !important;
   justify-content: center !important;
-  background: var(--canvas);
+  /* Let the underlying app show through the short resisted pull gesture. */
+  background: transparent !important;
 }
 .game-tracker-sheet,
 .matchup-preview-sheet {
@@ -9536,12 +9537,60 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   scroll-padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Neutral light line ABOVE each cream league heading; darker line BELOW,
-   identical whether the section is collapsed or expanded. */
+/* Neutral light line ABOVE each cream league heading; darker line BELOW
+   when expanded, returning to a soft line on collapsed headings. */
 .picks-panel .board-league-group > .board-league-header {
   border-top: 1px solid var(--line) !important;
   border-bottom: 1px solid var(--line-strong) !important;
 }
 .picks-panel .board-day-selector {
   border-bottom: 1px solid var(--line) !important;
+}
+
+
+/* Pick Board remains a full-height deep-gray surface, not a gray strip only
+   behind the league list. Keep this scoped to the board: Side Bets, cards,
+   standings and settings retain their own surface colors. */
+.app-shell:has(.picks-panel .board-league-days),
+.app-shell:has(.picks-panel .board-league-days) > .container,
+.picks-panel:has(.board-league-days) {
+  background: var(--canvas-deep);
+}
+
+/* Fixed app wordmark is followed by one continuous stack of sticky controls:
+   Pick Board/Side Bets tabs, sport/conference filters, then the date ribbon.
+   Use the actual 45/40/54px control heights so no matchups show through gaps. */
+.picks-panel:has(.board-league-days) > .section-tabs {
+  top: calc(env(safe-area-inset-top) + var(--header-height));
+  z-index: 24;
+  margin-bottom: 0;
+  background: var(--canvas);
+}
+.picks-panel:has(.board-league-days) > .board-filter-row {
+  position: sticky;
+  top: calc(env(safe-area-inset-top) + var(--header-height) + 45px);
+  z-index: 23;
+  min-height: 40px;
+  margin: 0 calc(var(--page-gutter) * -1);
+  padding-inline: var(--page-gutter);
+  background: var(--panel) !important;
+}
+.picks-panel:has(.board-league-days) > .board-day-selector {
+  position: sticky;
+  top: calc(env(safe-area-inset-top) + var(--header-height) + 85px);
+  z-index: 22;
+  min-height: 54px;
+  margin-bottom: 0;
+  background: var(--panel) !important;
+}
+/* League and Favorites cells pin directly beneath the date ribbon.
+   Their section boundaries naturally push prior headings out of the way. */
+.picks-panel .board-league-group > .board-league-header {
+  position: sticky;
+  top: calc(env(safe-area-inset-top) + var(--header-height) + 139px);
+  z-index: 19;
+  border-bottom-color: var(--line-strong) !important;
+}
+.picks-panel .board-league-group > .board-league-header[aria-expanded="false"] {
+  border-bottom-color: var(--line) !important;
 }
