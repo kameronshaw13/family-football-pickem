@@ -15,7 +15,7 @@ import { formatOrdinalDate, formatUppercaseOrdinalDate } from "@/lib/displayDate
 import NextImage from "@/components/TeamImage";
 
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, Heart, LoaderCircle, Lock, Send, Settings as SettingsIcon, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, CircleCheckBig, CircleDollarSign, FlaskConical, Star, LoaderCircle, Lock, Send, Settings as SettingsIcon, SquareCheck, Trash2, Trophy, X, Zap } from "lucide-react";
 import type { BankEntry, BankSettings, Game, Pick, PickType, Profile, SideBet, SideBetMarketQuote, SideBetOfferPhase, SideBetTotalSide, Standing, WeekRule } from "@/lib/types";
 import { MAX_CUSTOM_SIDE_BET_AMOUNT, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlot } from "@/lib/sideBetLimits";
 import { americanOddsText, fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, fairSymmetricMoneyline, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, sideBetCreatorProfit, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
@@ -171,7 +171,7 @@ export function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, 
       {gameIsLive && <button type="button" className={`matchup-preview-trigger game-tracker-trigger ${game.league === "CBB" || game.league === "NBA" ? "basketball-tracker-right" : ""}`} onClick={() => openPreview(game)}>GameTracker</button>}
       {gameIsLive && liveSituation && <div className="game-live-situation"><LiveSituationText game={game} /></div>}
       {!gameIsLive && <div className="matchup-preview-actions">{modelStars > 0 && game.league === "CFB" && !gameIsFinal && <span className="board-model-stars" aria-label={`${modelStars} model edge star${modelStars === 1 ? "" : "s"}`}>{"★".repeat(modelStars)}</span>}<button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>{gameIsFinal ? "GameTracker" : "Matchup Preview"}</button></div>}
-      {onFavorite && <button type="button" className={`board-favorite-trigger${favorite ? " active" : ""}`} aria-label={favorite ? "Remove game from favorites" : "Add game to favorites"} aria-pressed={favorite} onClick={() => onFavorite(game)}><Heart size={17} fill={favorite ? "currentColor" : "none"} aria-hidden="true" /></button>}
+      {onFavorite && <button type="button" className={`board-favorite-trigger${favorite ? " active" : ""}`} aria-label={favorite ? "Remove game from favorites" : "Add game to favorites"} aria-pressed={favorite} onClick={() => onFavorite(game)}><Star size={18} strokeWidth={2} fill={favorite ? "currentColor" : "none"} aria-hidden="true" /></button>}
     </div>
 
     <div className="stacked-matchup" data-neutral-site={game.neutral_site ? "true" : undefined} role="group" aria-label={`${displayTeamName(game, game.away_team)}${matchupSeparator(game)}${displayTeamName(game, game.home_team)}`}>

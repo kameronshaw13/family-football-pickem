@@ -59,7 +59,7 @@ export function defaultFootballLeague(): SideBetLeagueFilter {
 export type SideBetLedgerScope = "all" | "mine";
 
 export type GameStatusFilter = "OPEN" | "LOCKED" | "FINAL";
-export type LeagueFilter = SideBetLeagueFilter | "DOGS";
+export type LeagueFilter = SideBetLeagueFilter | "ALL" | "DOGS";
 export type DogValueFilter = "ALL" | "1" | "2" | "3";
 export type GameOutcome = "win" | "loss" | "push";
 export type Toast = { message: string; tone: "success" | "error" | "info" } | null;

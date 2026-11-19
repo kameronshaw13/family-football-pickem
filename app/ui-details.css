@@ -8901,14 +8901,14 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 .picks-panel .game-head > .board-favorite-trigger:focus-visible { outline: 2px solid var(--blue); }
 .board-filter-data-notice { margin: -5px 0 8px; padding: 0 4px; color: var(--muted); font-size: 11px; }
 
-/* Clicking the league's existing header mark opens a compact, accessible
-   membership menu. Settings keeps its separate league selection. */
+/* A stable header logo and the SAME flat listbox treatment as all app
+   dropdowns. No separate caret, shadow/bubble style or distinct background. */
 .scoreboard-main .header-league-picker {
   position: relative;
   display: flex;
   flex: 0 1 240px;
   min-width: 0;
-  max-width: calc(100% - 110px);
+  max-width: calc(100% - 105px);
   height: 100%;
   align-items: center;
 }
@@ -8918,68 +8918,69 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   min-width: 0;
   height: 100%;
   align-items: center;
-  gap: 1px;
   margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
+  touch-action: manipulation;
   cursor: pointer;
 }
 .scoreboard-main .header-league-trigger .brand-lockup {
-  flex: 1 1 auto;
-  margin-left: 1px;
-  min-width: 0;
-  width: 100%;
-}
-.scoreboard-main .header-league-trigger .header-wordmark { width: min(215px, 100%); }
-.scoreboard-main .header-league-caret { flex: 0 0 13px; opacity: .8; }
-.scoreboard-main .header-league-trigger:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
-.scoreboard-main .header-league-menu {
-  position: absolute;
-  z-index: 110;
-  top: calc(100% + 2px);
-  left: 0;
-  box-sizing: border-box;
-  width: min(325px, 93vw);
-  overflow: hidden;
-  border: 1px solid var(--tracker-section-divider);
-  border-radius: 5px;
-  background: var(--panel);
-  color: var(--ink);
-  box-shadow: 0 5px 20px rgba(0,0,0,.22);
-}
-.scoreboard-main .header-league-menu-heading {
-  display: block;
-  padding: 11px 14px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--tracker-divider);
-  font-size: 12px;
-}
-.scoreboard-main .header-league-menu > button {
   display: flex;
   width: 100%;
-  min-height: 43px;
+  min-width: 0;
+  align-items: center;
+}
+.scoreboard-main .header-league-trigger .header-wordmark {
+  width: min(215px, 100%);
+  max-width: 100%;
+}
+.scoreboard-main .header-league-trigger:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+.scoreboard-main .header-league-menu.custom-select-menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: auto;
+  left: 0;
+  z-index: 110;
+  box-sizing: border-box;
+  display: grid;
+  width: min(318px, calc(100vw - 20px));
+  min-width: 240px;
+  max-height: min(330px, 53svh);
+  overflow-y: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--panel);
+  color: var(--ink);
+}
+.scoreboard-main .header-league-menu > .custom-select-group-label { min-height: 29px; }
+.scoreboard-main .header-league-menu > .custom-select-option {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  height: 42px;
+  gap: 10px;
   align-items: center;
   justify-content: flex-start;
-  gap: 10px;
-  padding: 8px 12px;
-  border: 0;
-  border-bottom: 1px solid var(--tracker-divider);
-  border-radius: 0;
-  color: var(--ink);
-  background: var(--panel);
+  padding-inline: 10px;
   text-align: left;
-  font-size: 12px;
-  cursor: pointer;
+  text-transform: none;
 }
-.scoreboard-main .header-league-menu > button > span { flex: 1 1 auto; }
-.scoreboard-main .header-league-menu > button[aria-checked="true"] { font-weight: 800; }
-.scoreboard-main .header-league-menu > button:last-child { border-bottom: 0; }
-.scoreboard-main .header-league-menu > button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
-.scoreboard-main .header-league-menu-loading { padding: 9px 14px; color: var(--muted); font-size: 12px; }
+.scoreboard-main .header-league-menu > .custom-select-option > img { flex: 0 0 20px; object-fit: contain; }
+.scoreboard-main .header-league-menu .header-league-option-name {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.scoreboard-main .header-league-menu > .custom-select-option svg { flex: 0 0 auto; }
+.scoreboard-main .header-league-menu-loading { margin: 0; padding: 9px 12px; color: var(--muted); font-size: 12px; }
 @media (max-width: 380px) {
-  .scoreboard-main .header-league-picker { flex-basis: 197px; max-width: calc(100% - 110px); }
+  .scoreboard-main .header-league-picker { flex-basis: 197px; max-width: calc(100% - 108px); }
   .picks-panel .board-day-selector > button { min-width: 98px; font-size: 11px; }
 }
 
@@ -9207,3 +9208,71 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 .game-tracker-sheet .game-tracker-box-selector > button > img {
   flex: 0 0 20px;
 }
+
+/* The status selector was removed; sport and optional conference/dog selectors
+   now sit directly above a single-color, swipeable, centered day ribbon. */
+.picks-panel .view-select-row.board-filter-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 0;
+  padding-bottom: 0;
+  background: var(--panel);
+}
+.picks-panel .view-select-row.board-filter-row > .league-select:only-child {
+  grid-column: 1 / -1;
+}
+.picks-panel .board-day-selector {
+  box-sizing: border-box;
+  min-height: 54px;
+  align-items: stretch;
+  margin-top: 0;
+  margin-bottom: 0;
+  border-top: 0;
+  border-bottom: 1px solid var(--tracker-divider);
+  background: transparent !important;
+}
+.picks-panel .board-day-selector > button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-height: 54px;
+  padding: 5px 10px 3px;
+  background: transparent !important;
+  color: var(--muted);
+}
+.picks-panel .board-day-selector > button.active { color: var(--ink); }
+.picks-panel .board-day-selector > button > span { display: block; white-space: nowrap; }
+.picks-panel .board-day-selector > button > small {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1;
+}
+.picks-panel .board-day-selector > button.active > small { color: var(--ink); }
+
+/* Favorites show an ink-black outline star, filled on selection, with an
+   obvious thin divider between every favorited matchup. */
+.picks-panel .game-head > .board-favorite-trigger,
+.picks-panel .game-head > .board-favorite-trigger.active {
+  color: var(--ink);
+}
+.picks-panel .game-head > .board-favorite-trigger svg {
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.picks-panel .board-favorites-section > .game-list {
+  border-top: 0;
+  border-bottom: 1px solid var(--tracker-section-divider);
+}
+.picks-panel .board-favorites-section > .game-list > .game-card + .game-card {
+  border-top: 1px solid var(--tracker-divider);
+}
+.picks-panel .board-favorites-section > h3 {
+  margin: 0;
+  border-top: 1px solid var(--tracker-section-divider);
+  border-bottom: 1px solid var(--tracker-divider);
+}
+.picks-panel .board-favorites-section { margin-bottom: 0; }
