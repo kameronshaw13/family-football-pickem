@@ -9496,20 +9496,15 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   border-bottom: 1px solid var(--tracker-section-divider);
 }
 
-/* League labels are simple text on the SAME surface as the section heading:
-   no charcoal badge, blue underline, or separate filled CFB/CBB cells. */
-.picks-panel .board-league-group > .board-league-header,
-.picks-panel .board-league-header > b {
-  background: var(--panel) !important;
-  color: var(--ink) !important;
-  box-shadow: none !important;
+/* League header ROW uses the same soft cream shade as the matchup
+   header cells, not the white panel background. Keep the compact CFB/CBB
+   league marker itself, rather than flattening its distinct label. */
+.picks-panel .board-league-group > .board-league-header {
+  background: var(--surface-soft) !important;
+  color: var(--ink);
 }
 .picks-panel .board-league-header > b {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  min-height: 0;
-  min-width: 35px;
-  padding: 0;
-  line-height: 1.2;
+  background: var(--graphite) !important;
+  color: #fff !important;
+  box-shadow: inset 0 -2px 0 var(--blue) !important;
 }
