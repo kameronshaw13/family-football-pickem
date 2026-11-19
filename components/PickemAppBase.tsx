@@ -1343,7 +1343,20 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const dayScope = [appSlug, viewedWeek, leagueFilter, conferenceFilter, cbbConferenceFilter, dogValueFilter].join(":");
   const selectedDayKey = boardDaySelection?.scope === dayScope && calendarDays.includes(boardDaySelection.day)
     ? boardDaySelection.day : initialDayKey;
-  const filteredGames = boardGames.filter(game => gameDayKey(game.commence_time) === selectedDayKey);
+  // Keep games in each day's sport and Favorites sections in broadcast order:
+  // in progress first, then finals (oldest kickoff first), then upcoming.
+  // A finished slate is consequently close to original kickoff order.
+  const gameKickoffMs = (game: Game) => new Date(game.commence_time).getTime();
+  const gameBoardOrder = (game: Game) =>
+    isFinalGame(game) ? 1
+      : !isPostponedGame(game) && (game.live_state === "in" || gameKickoffMs(game) <= clock) ? 0
+      : 2;
+  const filteredGames = boardGames
+    .filter(game => gameDayKey(game.commence_time) === selectedDayKey)
+    .sort((a, b) =>
+      gameBoardOrder(a) - gameBoardOrder(b) ||
+      gameKickoffMs(a) - gameKickoffMs(b) ||
+      a.id.localeCompare(b.id));
 
   const favoriteKey = (game: Game) => `${game.league}:${game.espn_event_id || game.id}`;
   const favoriteSet = new Set(favoriteGames);
@@ -1359,7 +1372,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         : league === "CFB" ? "College Football" : "NFL Football",
       games: otherDayGames.filter(game => game.league === league)
     }))
-    .filter(group => group.games.length > 0);
+    .filter(group => group.games.length > 0)
+    // When the league filter is All, put whichever sport has a live game
+    // first; ties retain the established CFB/NFL or CBB/NBA order.
+    .sort((a, b) => gameBoardOrder(a.games[0]) - gameBoardOrder(b.games[0]));
   const toggleFavoriteGame = (game: Game) => {
     const key = favoriteKey(game);
     setFavoriteGames(existing => {
@@ -1614,11 +1630,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             onChange={day => setBoardDaySelection({ scope: dayScope, day })} />
           {leagueFilter === "CBB" && cbbConferenceError && <p className="board-filter-data-notice">Conference directory temporarily unavailable; Top 25 and All still work.</p>}
           {filteredGames.length === 0 && <div className="empty-state board-empty-state">No games on this day. Select another date to browse.</div>}
-          {favoriteDayGames.length > 0 && <section className="board-favorites-section" aria-label="Favorite games">
-            <h3>Favorites</h3>
-            <div className="game-list">{favoriteDayGames.map(renderBoardGame)}</div>
-          </section>}
           <div className="game-days board-league-days">
+            {favoriteDayGames.length > 0 && <BoardLeagueSection
+              key={`${dayScope}:${selectedDayKey}:favorites`}
+              league="Favorites" label="Favorites" count={favoriteDayGames.length} favorite>
+              {favoriteDayGames.map(renderBoardGame)}
+            </BoardLeagueSection>}
             {boardLeagueGroups.map(group => <BoardLeagueSection
               key={`${dayScope}:${selectedDayKey}:${group.league}`}
               league={group.league} label={group.label} count={group.games.length}>

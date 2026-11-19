@@ -9475,3 +9475,26 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   color: #fff !important;
   box-shadow: inset 0 -2px 0 var(--blue) !important;
 }
+
+/* Broadcast-style away/home divider: leave a little more breathing room
+   around the vs/@ marker, centered on the separator even with a 1px row gap. */
+.picks-panel .stacked-matchup .team-row:first-child::before {
+  bottom: -1px;
+  background: linear-gradient(
+    to right,
+    var(--line) 0 calc(var(--matchup-marker-x) - 13px),
+    transparent calc(var(--matchup-marker-x) - 13px) calc(var(--matchup-marker-x) + 13px),
+    var(--line) calc(var(--matchup-marker-x) + 13px) 100%
+  );
+}
+.picks-panel .stacked-matchup .team-row:first-child::after {
+  bottom: -10.5px;
+  display: flex;
+  width: 26px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 11.5px;
+  line-height: 1;
+}
