@@ -1576,14 +1576,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               value={cbbConferenceFilter}
               sections={[
                 { options: [{ value: "ALL", label: "ALL CONF." }, { value: "TOP25", label: "TOP 25" }] },
-                ...(cbbConferences ? (["POWER", "MID", "LOW"] as const).map(tier => ({
+                ...(["POWER", "MID", "LOW"] as const).map(tier => ({
                   label: tier === "POWER" ? "Power 5" : tier === "MID" ? "Mid-Major" : "Low-Major",
                   options: [
                     { value: tier, label: tier === "POWER" ? "ALL POWER 5" : tier === "MID" ? "ALL MID-MAJOR" : "ALL LOW-MAJOR" },
-                    ...(cbbConferences.conferences.filter(conference => conference.category === tier)
-                      .map(conference => ({ value: conference.value, label: conference.label })))
+                    ...(cbbConferences?.conferences.filter(conference => conference.category === tier)
+                      .map(conference => ({ value: conference.value, label: conference.label })) || [])
                   ]
-                })) : [])
+                }))
               ]}
               onChange={setCbbConferenceFilter}
             />}

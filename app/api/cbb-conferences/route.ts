@@ -3,7 +3,6 @@ import { cbbConferenceName, cbbConferenceTier, type CbbConferenceMap } from "@/l
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-export const maxDuration = 60;
 
 let cached: { at: number; data: CbbConferenceMap } | null = null;
 let inflight: Promise<CbbConferenceMap> | null = null;
