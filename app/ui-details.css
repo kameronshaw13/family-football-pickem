@@ -9309,7 +9309,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 .picks-panel .game-days.board-league-days {
   display: grid;
   gap: 9px;
-  margin: 0 calc(var(--page-gutter) * -1);
+  margin: 9px calc(var(--page-gutter) * -1) 0;
   padding: 0;
   background: transparent;
 }
@@ -9393,14 +9393,10 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 .picks-panel .board-league-group > .game-list {
   margin: 0;
   padding: 0;
+  border-top: 0;
   background: var(--panel);
 }
 .picks-panel .board-league-group > .game-list[hidden] { display: none !important; }
-/* The open list owns the original top strong line; the header must not
-   create a second line beside it. Collapsed headers retain their closing rule. */
-.picks-panel .board-league-group > .board-league-header[aria-expanded="true"] {
-  border-bottom: 0;
-}
 .picks-panel .board-favorites-section > h3 {
   border-bottom: 0 !important;
 }
@@ -9459,13 +9455,12 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   line-height: 1.2;
 }
 
-/* Restore the original game-list separators from ui-foundations.css.
-   Settings / Standings use the same --line-strong token for outer rules.
-   No per-card border overrides: .game-card owns its divider and
-   .game-card:last-child defers the final boundary to .game-list.
-   Keep only the heading's existing collapsed-state border. */
-.picks-panel .board-league-group > .board-league-header[aria-expanded="false"] {
-  border-bottom: 1px solid var(--line-strong);
+/* Use the same header border and 48px cell height whether expanded or collapsed.
+   The list below owns its strong bottom line, and its top line is omitted to
+   prevent doubling the header's thin divider. Match Settings/Standings tokens. */
+.picks-panel .board-league-group > .board-league-header {
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
 }
 
 /* League header ROW uses the same soft cream shade as the matchup
