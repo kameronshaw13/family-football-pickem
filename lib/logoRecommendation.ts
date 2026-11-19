@@ -1,5 +1,6 @@
 import { NBA_SVG_BY_ESPN_KEY } from "./proLogos.ts";
 import { ncaaSvgLogo } from "./teamLogoSource.ts";
+import { verifiedSchoolLogo } from "./verifiedSchoolLogos.ts";
 
 export type StudioLogoTeam = { league: string; logo: string; key: string; name: string };
 export type StudioRecommendedLogo = { url: string; source: string };
@@ -19,6 +20,8 @@ export function recommendedModernLogo(team: StudioLogoTeam): StudioRecommendedLo
   if (team.league === "NBA" && kind === "nba" && id && NBA_SVG_BY_ESPN_KEY[id])
     return { url: NBA_SVG_BY_ESPN_KEY[id], source: "NBA.com league artwork" };
   if (team.league === "College" && kind === "ncaa") {
+    const schoolSite = verifiedSchoolLogo(raw);
+    if (schoolSite) return { url: schoolSite.url, source: "School athletics website" };
     const fromNCAA = ncaaSvgLogo(raw);
     if (fromNCAA) return { url: fromNCAA, source: "NCAA.com school artwork" };
   }

@@ -1,4 +1,5 @@
 import { CBS_BY_ESPN_GUID, CBS_BY_LEAGUE } from "./cbsLogos.ts";
+import { verifiedSchoolLogo } from "./verifiedSchoolLogos.ts";
 
 export type LogoEra = "modern" | "vintage";
 export type LogoChoice = { modern?: string | null; vintage?: string | null };
@@ -168,6 +169,12 @@ export function resolvePersonalLogo(source: string): string | null {
   if (editor && era === "vintage") {
     const old = preferences.vintageDefaults[key];
     if (typeof old === "string" && validLogoUrl(old)) return old;
+  }
+  // Default Modern uses school-published athletics artwork when we verified
+  // the school website served a usable symbol. Never override saved picks.
+  if (era === "modern") {
+    const school = verifiedSchoolLogo(source);
+    if (school && validLogoUrl(school.url)) return school.url;
   }
   return null;
 }

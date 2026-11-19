@@ -71,3 +71,12 @@ test("recommended Modern logo source favors NBA CDN and NCAA school files", asyn
   assert.equal(draft.choices[nfl.key].modern, nfl.logo);
   assert.equal(draftRecommendedModernLogos([nba], {}, { [nba.key]: "https://example.com/published.svg" }).added, 0);
 });
+
+test("athletics-site sourced logos map to the correct school and never claim an unknown team", async () => {
+  const { verifiedSchoolLogo, countVerifiedSchoolLogos } = await import("../lib/verifiedSchoolLogos.ts");
+  assert.ok(countVerifiedSchoolLogos() >= 150);
+  const source = verifiedSchoolLogo("https://a.espncdn.com/i/teamlogos/ncaa/500/2724.png");
+  assert.equal(source?.sourcePage, "https://goshockers.com/");
+  assert.ok(source?.url.startsWith("https://"));
+  assert.equal(verifiedSchoolLogo("https://a.espncdn.com/i/teamlogos/ncaa/500/99999999.png"), null);
+});

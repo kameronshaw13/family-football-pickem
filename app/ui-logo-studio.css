@@ -94,3 +94,16 @@ html[data-logo-era="vintage"][data-theme="dark"] .matchup-preview-hero { backgro
 .logo-studio-palette > span:first-child { color:var(--muted); font-weight:750; }
 .logo-studio-color { display:inline-flex; align-items:center; gap:4px; font-size:10px; color:var(--ink); font-variant-numeric:tabular-nums; }
 .logo-studio-color i { display:inline-block; width:15px; height:15px; border:1px solid var(--line); border-radius:2px; }
+
+/* Flat three-source first row, with optional secondary sources collapsed beneath. */
+.logo-studio-primary { grid-template-columns:repeat(3,minmax(0,1fr)) !important; margin:9px 0 4px; }
+.logo-studio-more { margin:8px 0 0; border-top:1px solid var(--line); }
+.logo-studio-more > summary { list-style:none; cursor:pointer; min-height:39px; display:flex; align-items:center; justify-content:space-between; padding:6px 0; font-size:11px; font-weight:750; color:var(--ink); }
+.logo-studio-more > summary::-webkit-details-marker { display:none; }
+.logo-studio-more > summary::after { content:"⌄"; font-size:15px; color:var(--muted); }
+.logo-studio-more[open] > summary::after { transform:rotate(180deg); }
+.logo-studio-more .logo-studio-options { padding:7px 0 11px; }
+.logo-studio-source-link { color:var(--blue); font-size:10px; font-weight:700; text-decoration:underline; }
+.logo-studio-reset { width:100%; border:0; background:transparent; display:flex; align-items:center; gap:9px; min-height:38px; padding:4px 0; color:var(--muted); font-size:11px; font-weight:650; text-align:left; }
+.logo-studio-reset img { width:22px; height:22px; object-fit:contain; }
+.logo-studio-unavailable { color:var(--muted); opacity:.63; border-style:dashed; font-size:10px; text-align:center; }
