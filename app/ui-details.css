@@ -8616,3 +8616,204 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 .game-tracker-sheet .basketball-player-table tbody + tbody .basketball-player-stat-head > th {
   border-top: 0;
 }
+
+
+/* November 19 final tracker refinement: one shared football Win/Cover chart,
+   inset scoring lines, balanced quarter headings and scrollable player stats. */
+.football-game-tracker .football-probability-group {
+  margin: 0;
+  padding: 0;
+  background: var(--panel);
+  border-bottom: 1px solid var(--tracker-section-divider);
+}
+.football-game-tracker .football-probability .basketball-probability-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 49px;
+  padding: 9px var(--tracker-inset);
+  gap: 10px;
+}
+.football-game-tracker .football-probability .basketball-probability-heading > h3 { margin: 0; }
+.football-game-tracker .football-probability .basketball-probability-toggle {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+.football-game-tracker .football-probability .basketball-probability-toggle > button {
+  min-width: 48px;
+  cursor: pointer;
+}
+.football-game-tracker .football-probability .basketball-cover-estimate-note {
+  padding: 9px 16px 4px;
+}
+
+/* CBS-style inset scoring separators, matching collapsed drive rows.
+   One row owns each line; quarter headings own their boundaries. */
+.football-game-tracker .game-tracker-scoring-quarter > .game-tracker-score-play.football-score-event,
+.football-game-tracker .game-tracker-scoring-quarter > .game-tracker-score-play.football-score-event:not(:last-child) {
+  position: relative;
+  border: 0 !important;
+  border-bottom: 0 !important;
+  box-shadow: none;
+}
+.football-game-tracker .game-tracker-scoring-quarter > .game-tracker-score-play.football-score-event:not(:last-child)::after {
+  position: absolute;
+  bottom: 0;
+  left: calc(var(--tracker-inset) + 33px);
+  right: var(--tracker-inset);
+  height: 1px;
+  background: var(--tracker-divider);
+  pointer-events: none;
+  content: "";
+}
+.football-game-tracker .game-tracker-scoring-quarter:last-child > .football-score-event:last-child::after { display: none; }
+.football-game-tracker .game-tracker-scoring-quarter {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+
+/* Center the quarter title (and scoring logos) in exactly the same 44px
+   header in Plays and Scoring; no compounded padding from legacy rules. */
+.football-game-tracker .football-play-period > .game-tracker-quarter-header,
+.football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  padding: 0 var(--tracker-inset) !important;
+  margin: 0;
+  line-height: 1.2;
+  background: var(--panel);
+  border-bottom: 1px solid var(--tracker-divider);
+}
+.football-game-tracker .football-play-period > .game-tracker-quarter-header > span,
+.football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header > span {
+  display: block;
+  margin: 0;
+  padding: 0;
+  align-self: center;
+  line-height: 1.2;
+}
+.football-game-tracker .football-play-period > .game-tracker-quarter-header {
+  border-top: 1px solid var(--tracker-section-divider) !important;
+}
+.football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header {
+  border-top: 1px solid var(--tracker-section-divider) !important;
+}
+.football-game-tracker .football-probability + .football-play-period > .game-tracker-quarter-header,
+.football-game-tracker .football-play-list > .football-play-period:first-child > .game-tracker-quarter-header,
+.football-game-tracker .football-probability-group + .football-play-period > .game-tracker-quarter-header,
+.football-game-tracker .game-tracker-scoring-list > .tracker-football-flow + .game-tracker-scoring-quarter > .game-tracker-quarter-header,
+.football-game-tracker .game-tracker-scoring-list > .game-tracker-scoring-quarter:first-child > .game-tracker-quarter-header {
+  border-top: 0 !important;
+}
+.football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header > .game-tracker-quarter-team-logos {
+  align-self: center;
+  margin: 0;
+  height: 22px;
+  min-height: 22px;
+  align-items: center;
+}
+.football-game-tracker .football-drive-plays > .game-tracker-quarter-header {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: 39px;
+  min-height: 39px;
+  max-height: 39px;
+  padding-block: 0 !important;
+}
+
+/* Football AND basketball: keep swipeable tables and the sticky player-name
+   column. A single cell border owns the line between names and statistics. */
+.game-tracker-sheet .game-tracker-player-table-scroll,
+.basketball-details .game-tracker-player-table-scroll {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.game-tracker-sheet .game-tracker-player-table,
+.basketball-details .basketball-player-table {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 0;
+}
+.game-tracker-sheet .game-tracker-player-table tr > *,
+.basketball-details .basketball-player-table tr > * {
+  box-sizing: border-box;
+  border-top: 0 !important;
+  border-bottom: 1px solid var(--tracker-divider);
+  border-left: 0 !important;
+  border-right: 0;
+  box-shadow: none;
+}
+.game-tracker-sheet .game-tracker-player-table tr > :first-child,
+.basketball-details .basketball-player-table tr > :first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  border-right: 1px solid var(--tracker-divider);
+  background: var(--panel);
+}
+.game-tracker-sheet .game-tracker-player-table thead tr > :first-child,
+.basketball-details .basketball-player-table .basketball-player-stat-head > :first-child {
+  z-index: 3;
+  background: var(--surface-muted);
+}
+.game-tracker-sheet .game-tracker-player-table thead tr > *,
+.basketball-details .basketball-player-table .basketball-player-stat-head > * {
+  background: var(--surface-muted);
+}
+
+/* No doubled lines at the end of each player stats category. A new
+   category supplies ONE top divider; the prior table ends without one. */
+.game-tracker-sheet .game-tracker-team-box .game-tracker-box-section,
+.basketball-details .game-tracker-team-box .game-tracker-box-section {
+  border: 0 !important;
+  border-radius: 0;
+  box-shadow: none;
+}
+.game-tracker-sheet .game-tracker-team-box .game-tracker-box-section + .game-tracker-box-section,
+.basketball-details .game-tracker-team-box .game-tracker-box-section + .game-tracker-box-section {
+  border-top: 1px solid var(--tracker-divider) !important;
+}
+.game-tracker-sheet .game-tracker-player-table tbody tr:last-child > *,
+.basketball-details .basketball-player-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.basketball-details .basketball-player-table tbody + tbody .basketball-player-stat-head > * {
+  border-top: 1px solid var(--tracker-divider) !important;
+}
+.game-tracker-sheet .game-tracker-team-box-heading,
+.basketball-details .game-tracker-team-box-heading { display: none !important; }
+
+/* Team totals are ordinary player-style rows, not a shaded callout.
+   The previous player's bottom line supplies the separator. */
+.game-tracker-sheet .game-tracker-player-table .game-tracker-team-total > th,
+.game-tracker-sheet .game-tracker-player-table .game-tracker-team-total > td {
+  background: var(--panel);
+  border-top: 0 !important;
+}
+.game-tracker-sheet .game-tracker-player-table .game-tracker-team-total > th { font-weight: 750; }
+.game-tracker-sheet .game-tracker-player-table .game-tracker-team-total > td { font-weight: 500; }
+
+/* Line score already has a bottom row divider. The team selector must not
+   draw a second line immediately below it. */
+.game-tracker-sheet .game-tracker-box > .game-tracker-box-selector,
+.basketball-details .game-tracker-box > .game-tracker-box-selector {
+  border-top: 0 !important;
+  border-bottom: 1px solid var(--tracker-divider);
+  box-shadow: none;
+}

@@ -18,7 +18,8 @@ type Props = {
 function LabelLogo({ team }: { team: Team }) {
   return team.logo ? <TeamImage unoptimized src={team.logo} alt="" width={22} height={22} /> : null;
 }
-function FootballProbabilityChart({ mode, points, away, home, homeSpread, espnHomeSpread, completed }: Props & { mode: "win" | "cover" }) {
+export default function FootballProbabilityCharts({ points, away, home, homeSpread, espnHomeSpread, completed }: Props) {
+  const [mode, setMode] = useState<"win" | "cover">("win");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const directCover = espnFootballCoverPoints(points, espnHomeSpread, completed);
   const useEspnCover = mode === "cover" && directCover.length > 1;
@@ -52,8 +53,11 @@ function FootballProbabilityChart({ mode, points, away, home, homeSpread, espnHo
     : "The saved spread is available, but there isn't enough ESPN opening probability and play-score data to estimate a cover chart.";
   return <section className="basketball-score-flow basketball-win-probability football-probability" aria-label={mode === "win" ? "ESPN football win probability" : useEspnCover ? "ESPN football cover probability" : "Estimated football cover probability"}>
     <div className="basketball-probability-heading">
-      <h3>{mode === "win" ? "Win Probability" : "Cover Probability"}</h3>
-      {mode === "cover" && <small>{coverSource} · {home.shortName} {coverLine != null ? spreadText(coverLine) : "ESPN line"}</small>}
+      <h3>Probability</h3>
+      <div className="basketball-probability-toggle" role="group" aria-label="Probability type">
+        <button type="button" aria-pressed={mode === "win"} onClick={() => { setMode("win"); setSelectedId(null); }}>Win</button>
+        <button type="button" aria-pressed={mode === "cover"} onClick={() => { setMode("cover"); setSelectedId(null); }}>Cover</button>
+      </div>
     </div>
     {valid.length > 1 && selected ? <div className="basketball-probability-chart">
       <div className="basketball-probability-team-label top"><LabelLogo team={home} /><span>{home.shortName}</span><strong>{selected.push ? "Push" : `${(selected.home * 100).toFixed(1)}%`}</strong></div>
@@ -84,15 +88,9 @@ function FootballProbabilityChart({ mode, points, away, home, homeSpread, espnHo
       </svg>
       <div className="basketball-probability-team-label bottom"><LabelLogo team={away} /><span>{away.shortName}</span><strong>{selected.push ? "Push" : `${((1 - selected.home) * 100).toFixed(1)}%`}</strong></div>
       <small className="basketball-probability-hint">Drag to inspect the game by play.</small>
-      {mode === "cover" && <small className="basketball-cover-estimate-note">{useEspnCover
+      {mode === "cover" && <small className="basketball-cover-estimate-note">{coverSource} · {home.shortName} {coverLine != null ? spreadText(coverLine) : "ESPN line"} · {useEspnCover
         ? "ESPN's game-by-game cover probability. Based on ESPN's spread, which may differ from the saved DraftKings line."
         : "Estimated from the saved game spread, ESPN win probabilities and remaining time. Not sportsbook odds."}</small>}
     </div> : <p className="football-probability-empty">{noData}</p>}
   </section>;
-}
-export default function FootballProbabilityCharts(props: Props) {
-  return <div className="football-probability-group">
-    <FootballProbabilityChart {...props} mode="win" />
-    <FootballProbabilityChart {...props} mode="cover" />
-  </div>;
 }

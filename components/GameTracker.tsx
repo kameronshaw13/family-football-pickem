@@ -655,7 +655,7 @@ function FootballLineScore({ payload }: { payload: TrackerPayload }) {
   });
   const columns = [...regulation, ...extras];
   return <div className="basketball-linescore-scroll football-linescore" role="region" aria-label="Football scoring by quarter" tabIndex={0}>
-    <table className="basketball-linescore"><thead><tr><th scope="col">Team</th>
+    <table className="basketball-linescore"><thead><tr><th scope="col" aria-label="Team"></th>
       {columns.map(row => <th key={row.period} scope="col">{row.period}</th>)}<th scope="col">T</th>
     </tr></thead><tbody>{(["away", "home"] as const).map(side =>
       <tr key={side}><th scope="row"><TeamLogo src={payload.teams[side].logo} name={payload.teams[side].name} size={23} />
