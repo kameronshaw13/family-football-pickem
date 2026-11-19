@@ -10,11 +10,11 @@ import {
   saveLogoStudioPreferences, persistLogoStudioDrafts, waitForLogoStudioDrafts, validLogoUrl, type LogoEra, type LogoStudioPreferences
 } from "@/lib/logoStudio";
 import { ncaaSvgLogo, teamVectorFallbackLogo, teamVectorLogo } from "@/lib/teamLogoSource";
-import { draftRecommendedModernLogos, recommendedModernLogo } from "@/lib/logoRecommendation";
+import { NBA_SVG_BY_ESPN_KEY } from "@/lib/proLogos";
+import { schoolSiteLogo } from "@/lib/officialSchoolLogos";
 
 type Team = { league: string; name: string; logo: string; key: string };
 type Option = { label: string; url: string; historical?: boolean; year?: number };
-type ArchiveEntry = { name: string; logos: { label: string; url: string; year: number }[] };
 const LEAGUES = ["College", "NBA", "NFL"];
 
 function LogoOptionTile({ option, chosen, onSelect }: { option: Option; chosen: boolean; onSelect: () => void }) {
@@ -28,11 +28,6 @@ function LogoOptionTile({ option, chosen, onSelect }: { option: Option; chosen: 
   </button>;
 }
 const normalized = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-const teamMatches = (row: ArchiveEntry, name: string) => {
-  const a = normalized(row.name).replace(/^la(?=clippers|lakers|rams|chargers)/, "losangeles");
-  const b = normalized(name).replace(/^la(?=clippers|lakers|rams|chargers)/, "losangeles");
-  return a === b;
-};
 
 export default function LogoStudio({ profileId }: { profileId: string }) {
   const [prefs, setPrefs] = useState<LogoStudioPreferences>(getLogoStudioPreferences());
@@ -42,8 +37,6 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
   const [active, setActive] = useState<Team | null>(null);
   const [history, setHistory] = useState<Option[]>([]);
   const [extra, setExtra] = useState<LogoAlternative[]>([]);
-  const [referenceColors, setReferenceColors] = useState<string[]>([]);
-  const [preparing, setPreparing] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [message, setMessage] = useState("");
@@ -75,40 +68,11 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     } finally { setLoadingTeams(false); }
   }, [teams]);
 
-  const loadVintageCatalog = useCallback(async (knownTeams: Team[]) => {
-    if (!knownTeams.length) return;
-    setMessage("Finding historical NBA and NFL logo designs…");
-    const output: Record<string, string> = {};
-    await Promise.all((["nba", "nfl"] as const).map(async sport => {
-      try {
-        const response = await fetch(`/api/logo-history?league=${sport}`);
-        if (!response.ok) return;
-        const payload = await response.json();
-        const archive: ArchiveEntry[] = payload.teams || [];
-        for (const team of knownTeams.filter(t => t.league.toLowerCase() === sport)) {
-          const choices = archive.find(row => teamMatches(row, team.name))?.logos || [];
-          // A genuinely older design, not CBS's alternate current SVG.
-          const older = choices.find(logo => logo.year <= 2005) || choices[choices.length - 1];
-          if (older && validLogoUrl(older.url)) output[team.key] = older.url;
-        }
-      } catch { /* Archive is best-effort and never blocks the preference. */ }
-    }));
-    // Preserve manually selected images and any existing vintage selections.
-    const latest = getLogoStudioPreferences();
-    saveLogoStudioPreferences({ ...latest, vintageDefaults: { ...output, ...latest.vintageDefaults } });
-    setMessage(Object.keys(output).length
-      ? `Vintage designs available for ${Object.keys(output).length} pro teams. For colleges, select a school to see its historical artwork.`
-      : "Vintage palette is active. College historical designs are available in the team picker.");
-  }, []);
 
   async function changeEra(era: LogoEra) {
-    const current = getLogoStudioPreferences();
     try {
       await setViewerLogoEra(era);
-      if (era === "vintage" && Object.keys(current.vintageDefaults).length === 0) {
-        const list = await loadTeams();
-        void loadVintageCatalog(list);
-      } else setMessage("");
+      setMessage("");
     } catch { setMessage("Could not save your viewing style. Please try again."); }
   }
 
@@ -128,9 +92,6 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
       if (!data.ok || !data.canEdit) throw new Error("Logo publishing is unavailable.");
       const logos: Record<string, string> = { ...(data.presets?.[era] || {}) };
       const latest = getLogoStudioPreferences();
-      if (era === "vintage") for (const [key, url] of Object.entries(latest.vintageDefaults)) {
-        if (!(key in logos) && validLogoUrl(url)) logos[key] = url;
-      }
       for (const [key, choice] of Object.entries(latest.choices)) {
         const url = choice?.[era];
         if (url === undefined) continue;
@@ -159,23 +120,6 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     } finally { setSavingEra(null); }
   }
 
-  async function prepareModernDefaults() {
-    if (savingEra || preparing) return;
-    setPreparing(true);
-    setMessage("");
-    try {
-      const list = teams.length ? teams : await loadTeams();
-      if (!list.length) throw new Error("Team directory unavailable. Try again.");
-      const latest = getLogoStudioPreferences();
-      const next = draftRecommendedModernLogos(list, latest.choices, getPublishedLogoCollections().modern);
-      if (!next.added) { setMessage("No uncustomized teams need a Modern recommendation. Existing choices were kept."); return; }
-      saveLogoStudioPreferences({ ...latest, choices: next.choices });
-      await persistLogoStudioDrafts(next.choices);
-      setMessage(`${next.added} Modern recommendations saved to your account. Select Save Modern to publish them for everyone. Existing picks were kept. Sources: ${Object.entries(next.bySource).map(([key, count]) => key + " " + count).join("; ")}.`);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not prepare recommendations.");
-    } finally { setPreparing(false); }
-  }
 
   useEffect(() => { void loadTeams(); }, [loadTeams]);
 
@@ -183,14 +127,13 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     let canceled = false;
     setHistory([]);
     setExtra([]);
-    setReferenceColors([]);
     setCustom("");
     setLoadingHistory(false);
     if (active) {
       const params = new URLSearchParams({ league: active.league === "College" ? "CBB" : active.league, name: active.name, logo: active.logo });
       void fetch("/api/logo-alternatives?" + params.toString())
         .then(res => res.json())
-        .then(data => { if (!canceled) { setExtra(data.ok ? (data.options || []) : []); setReferenceColors(data.ok && Array.isArray(data.colors) ? data.colors : []); } })
+.then(data => { if (!canceled) setExtra(data.ok ? (data.options || []) : []); })
         .catch(() => { if (!canceled) setExtra([]); });
       if (["NBA", "NFL", "College"].includes(active.league)) {
         setLoadingHistory(true);
@@ -204,25 +147,7 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
               .filter((item: Option) => validLogoUrl(item.url))
               .slice(0, 16).map((item: Option) => ({ ...item, historical: true }));
             setHistory(matches);
-            // The vintage switch can automatically use the school's older artwork
-            // after that thumbnail actually loads. A manual choice always wins.
-            if (active.league === "College") {
-              const available = matches.filter(item => item.year && item.year < 2020);
-              const choice = [...available.filter(item => item.year! <= 2005)].sort((a,b)=>(b.year||0)-(a.year||0))[0]
-                || [...available].sort((a,b)=>(a.year||0)-(b.year||0))[0];
-              if (choice) {
-                const preview = new window.Image();
-                preview.onload = () => {
-                  if (canceled) return;
-                  const latest = getLogoStudioPreferences();
-                  if (latest.vintageDefaults[active.key] || Object.prototype.hasOwnProperty.call(latest.choices[active.key] || {}, "vintage")) return;
-                  saveLogoStudioPreferences({ ...latest, vintageDefaults: {
-                    ...latest.vintageDefaults, [active.key]: choice.url
-                  } });
-                };
-                preview.src = collegeHistoricalImageSource(choice.url);
-              }
-            }
+
           })
           .catch(() => { if (!canceled) setHistory([]); })
           .finally(() => { if (!canceled) setLoadingHistory(false); });
@@ -235,60 +160,84 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
     && (!search || normalized(team.name).includes(normalized(search))))
     .sort((a, b) => a.name.localeCompare(b.name)), [teams, league, search]);
 
+  const modernSelected = active
+    ? prefs.choices[active.key]?.modern === null ? null
+      : prefs.choices[active.key]?.modern ?? getPublishedLogoCollections().modern[active.key] ?? null
+    : null;
+  const vintageSelected = active
+    ? prefs.choices[active.key]?.vintage === null ? null
+      : prefs.choices[active.key]?.vintage ?? getPublishedLogoCollections().vintage[active.key] ?? null
+    : null;
+
   const options = useMemo(() => {
-    if (!active) return [];
-    const result: Option[] = [];
-    const add = (label: string, url?: string | null) => {
-      if (url && validLogoUrl(url) && !result.some(item => item.url === url)) result.push({ label, url });
+    const main: Option[] = [];
+    const more: Option[] = [];
+    const vintage: Option[] = [];
+    if (!active) return { main, more, vintage };
+
+    const add = (section: Option[], label: string, url?: string | null) => {
+      if (!url || !validLogoUrl(url) || section.some(item => item.url === url)) return;
+      if (section !== vintage && [...main, ...more].some(item => item.url === url)) return;
+      section.push({ label, url });
     };
-    const recommended = recommendedModernLogo(active);
-    if (prefs.era === "modern" && recommended) add("Recommended · " + recommended.source, recommended.url);
-    add("CBS standard", teamVectorFallbackLogo(active.logo));
-    if (teamVectorFallbackLogo(active.logo)) add("CBS alternate", teamVectorLogo(active.logo));
-    add("ESPN", active.logo);
-    if (active.league === "College") add("NCAA vector", ncaaSvgLogo(active.logo));
-    for (const item of curatedLogoAlternatives(active.logo, active.league === "College" ? "CBB" : active.league)) add(item.label, item.url);
-    for (const item of extra) add(item.label, item.url);
-    for (const item of history) add(item.label, item.url);
-    // Put distinctive picture-first and mascot marks ahead of wordmark/crest
-    // variations without hiding the other valid designs.
-    result.sort((a, b) => Number(b.label.startsWith("Recommended ·")) - Number(a.label.startsWith("Recommended ·"))
-      || Number(/symbol|mascot|secondary|ship|icon|mark/i.test(b.label))
-      - Number(/symbol|mascot|secondary|ship|icon|mark/i.test(a.label)));
-    return result;
-  }, [active, history, extra, prefs.era]);
+    const sport = active.league === "College" ? "CBB" : active.league;
+    const school = active.league === "College" ? schoolSiteLogo(active.logo) : null;
+    const nbaId = active.league === "NBA"
+      ? active.logo.match(/\/teamlogos\/nba\/(?:[^/?#]+\/)*([a-z0-9_-]+)\.(?:png|svg|webp)(?:[?#]|$)/i)?.[1]
+      : null;
+    const nbaLogo = nbaId ? NBA_SVG_BY_ESPN_KEY[nbaId] : null;
 
+    // First line: actual school-athletics site (if confirmed), ESPN and CBS.
+    // An NCAA or alternate source fills the third spot only if the school-site
+    // candidate is missing. No source is silently chosen as the user's default.
+    if (school) add(main, "School website", school.url);
+    else if (nbaLogo) add(main, "NBA.com", nbaLogo);
+    add(main, "ESPN", active.logo);
+    add(main, "CBS", teamVectorFallbackLogo(active.logo) || teamVectorLogo(active.logo));
 
-  function selectLogo(value: string | null) {
+    const curated = curatedLogoAlternatives(active.logo, sport);
+    const otherLogo = active.league === "College" ? ncaaSvgLogo(active.logo)
+      : curated.find(item => item.label === "NFL vector")?.url;
+    if (main.length < 3) add(main, active.league === "College" ? "NCAA" : "Other source", otherLogo);
+    if (main.length < 3) add(main, "Other source", extra[0]?.url || teamVectorLogo(active.logo));
+
+    add(more, "CBS alternate", teamVectorLogo(active.logo));
+    if (active.league === "College") add(more, "NCAA vector", ncaaSvgLogo(active.logo));
+    for (const item of curated) {
+      if (/\b(?:19\d{2}|20[01]\d)\b|vintage|historical|original/i.test(item.label))
+        add(vintage, item.label, item.url);
+      else add(more, item.label, item.url);
+    }
+    for (const item of extra) add(more, item.label, item.url);
+    for (const item of history) add(vintage, item.label, item.url);
+
+    if (modernSelected && ![...main, ...more].some(item => item.url === modernSelected))
+      add(more, "Your saved Modern", modernSelected);
+    if (vintageSelected && !vintage.some(item => item.url === vintageSelected))
+      add(vintage, "Your saved Vintage", vintageSelected);
+    return { main: main.slice(0, 3), more, vintage };
+  }, [active, history, extra, modernSelected, vintageSelected]);
+
+  function selectLogo(value: string | null, era: LogoEra) {
     if (!active) return;
     if (value !== null && !validLogoUrl(value)) { setMessage("Enter a valid HTTPS image URL."); return; }
     const latest = getLogoStudioPreferences();
     const nextChoices = { ...latest.choices };
     const selection = { ...(nextChoices[active.key] || {}) };
-    selection[latest.era] = value;
+    selection[era] = value;
     nextChoices[active.key] = selection;
     const defaults = { ...latest.vintageDefaults };
-    if (value === null && latest.era === "vintage") delete defaults[active.key];
+    if (value === null && era === "vintage") delete defaults[active.key];
     saveLogoStudioPreferences({ ...latest, choices: nextChoices, vintageDefaults: defaults });
-    setMessage(`Saving ${active.name} to your account…`);
+    setMessage(`Saving ${active.name} ${era} selection to your account…`);
     void persistLogoStudioDrafts(nextChoices)
-      .then(() => setMessage(`${active.name} saved to your account. Press Save ${latest.era === "modern" ? "Modern" : "Vintage"} to publish for everyone.`))
+      .then(() => setMessage(`${active.name} ${era} selection saved. Press Save ${era === "modern" ? "Modern" : "Vintage"} to publish your list for everyone.`))
       .catch(() => setMessage("Your selection is visible here but did not sync. Press Save Modern or Save Vintage to publish it permanently."));
   }
 
-  const savedForEra = getPublishedLogoCollections()[prefs.era];
-  const chosen = active
-    ? (prefs.choices[active.key]?.[prefs.era] === null ? null
-      : prefs.choices[active.key]?.[prefs.era] ?? savedForEra[active.key] ?? null)
-    : null;
-  const automatic = active
-    ? prefs.era === "vintage" && prefs.choices[active.key]?.vintage !== null
-      ? prefs.vintageDefaults[active.key] || teamVectorFallbackLogo(active.logo) || active.logo
-      : teamVectorFallbackLogo(active.logo) || active.logo
-    : "";
 
   return <div className="logo-studio-page">
-    <div className="logo-studio-style-label"><strong>Team artwork style</strong><span>Choose a look, then customize individual teams.</span></div>
+    <div className="logo-studio-style-label"><strong>Logo collections</strong><span>Choose a logo from each source. Save your Modern and Vintage lists separately.</span></div>
     <div className="theme-toggle logo-studio-era" role="group" aria-label="Team logo style">
       <button type="button" aria-pressed={prefs.era === "modern"} className={prefs.era === "modern" ? "active" : ""} onClick={() => void changeEra("modern")}>Modern</button>
       <button type="button" aria-pressed={prefs.era === "vintage"} className={prefs.era === "vintage" ? "active" : ""} onClick={() => void changeEra("vintage")}>Vintage</button>
@@ -300,13 +249,6 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
       <button type="button" disabled={Boolean(savingEra)} onClick={() => void publishCollection("vintage")}>
         {savingEra === "vintage" ? "Saving Vintage…" : "Save Vintage"}
       </button>
-    </div>
-    <div className="logo-studio-bulk-action">
-      <button type="button" disabled={preparing || Boolean(savingEra) || loadingTeams || teams.length === 0}
-        onClick={() => void prepareModernDefaults()}>
-        {preparing ? "Preparing recommendations…" : "Fill recommended Modern logos for all untouched teams"}
-      </button>
-      <span>Uses NBA.com and NCAA.com artwork where mapped, ESPN otherwise. Your existing selections stay unchanged. Press Save Modern to publish.</span>
     </div>
     <div className="logo-studio-body">
         <div className="logo-studio-leagues" role="group" aria-label="Sport">
@@ -326,31 +268,46 @@ export default function LogoStudio({ profileId }: { profileId: string }) {
             <ChevronDown size={14} />
           </button>;
         })}</div>
+
         {active && <div className="logo-studio-editor">
-          <div className="logo-studio-editor-heading"><strong>{active.name}</strong><span>{prefs.era === "vintage" ? "Vintage" : "Modern"} artwork</span></div>
-          <p className="logo-studio-note">Recommended Modern artwork favors NBA/NCAA sources, with ESPN as fallback. This is a source recommendation, not an official color certification. Your icon/mascot alternatives remain available.</p>
-          {referenceColors.length > 0 && <div className="logo-studio-palette" aria-label="ESPN color reference">
-            <span>ESPN team color reference</span>
-            {referenceColors.map(hex => <span className="logo-studio-color" key={hex}>
-              <i style={{ backgroundColor: hex }} aria-hidden="true" />{hex}
-            </span>)}
-          </div>}
-          <div className="logo-studio-options">
-            <button className={!chosen ? "logo-studio-option selected" : "logo-studio-option"} type="button" aria-pressed={!chosen} onClick={() => selectLogo(null)}>
-              <Image unoptimized src={collegeHistoricalImageSource(automatic)} width={52} height={52} alt="" />
-              <span>Automatic</span>
-            </button>
-            {options.map(option => <LogoOptionTile key={option.url} option={option}
-              chosen={chosen === option.url} onSelect={() => selectLogo(option.url)} />)}
+          <div className="logo-studio-editor-heading">
+            <strong>{active.name}</strong><span>Choose the logos for your saved lists</span>
           </div>
-          {loadingHistory && <p className="logo-studio-note">Finding historical logos…</p>}
-          {active.league === "College" && <p className="logo-studio-note">Historical designs appear above when available for this school. You can also paste an image URL. Historical images: <a href="https://sportslogohistory.com/" target="_blank" rel="noopener noreferrer">SportsLogoHistory.com</a>.</p>}
+          <div className="logo-studio-section">
+            <h3 className="logo-studio-section-title">Modern · Main sources</h3>
+            <div className="logo-studio-options logo-studio-main-sources">
+              {options.main.map(option => <LogoOptionTile key={option.url} option={option}
+                chosen={modernSelected === option.url} onSelect={() => selectLogo(option.url, "modern")} />)}
+            </div>
+            {active.league === "College" && options.main[0]?.label === "School website" &&
+              <p className="logo-studio-source-note">School website artwork was checked on the school’s athletics homepage.</p>}
+          </div>
+          {options.more.length > 0 && <div className="logo-studio-section">
+            <h3 className="logo-studio-section-title">More modern choices</h3>
+            <div className="logo-studio-options">
+              {options.more.map(option => <LogoOptionTile key={option.url} option={option}
+                chosen={modernSelected === option.url} onSelect={() => selectLogo(option.url, "modern")} />)}
+            </div>
+          </div>}
+          {(options.vintage.length > 0 || loadingHistory) && <div className="logo-studio-section">
+            <h3 className="logo-studio-section-title">Vintage · Historical designs</h3>
+            <div className="logo-studio-options">
+              {options.vintage.map(option => <LogoOptionTile key={option.url} option={option}
+                chosen={vintageSelected === option.url} onSelect={() => selectLogo(option.url, "vintage")} />)}
+            </div>
+            {loadingHistory && <p className="logo-studio-note">Loading vintage designs…</p>}
+          </div>}
+          <div className="logo-studio-reset-actions">
+            <button type="button" onClick={() => selectLogo(null, "modern")}>Reset Modern choice</button>
+            <button type="button" onClick={() => selectLogo(null, "vintage")}>Reset Vintage choice</button>
+          </div>
           <div className="logo-studio-custom">
-            <input type="url" value={custom} onChange={event => setCustom(event.target.value)} placeholder="Paste PNG, SVG or WebP image URL" aria-label="Custom team logo HTTPS URL" />
-            <button type="button" disabled={!validLogoUrl(custom)} onClick={() => { selectLogo(custom); setCustom(""); }}>Use logo</button>
+            <input type="url" value={custom} onChange={event => setCustom(event.target.value)} placeholder="Optional custom logo URL" aria-label="Custom team logo HTTPS URL" />
+            <button type="button" disabled={!validLogoUrl(custom)}
+              onClick={() => { selectLogo(custom, prefs.era); setCustom(""); }}>Use for {prefs.era === "modern" ? "Modern" : "Vintage"}</button>
           </div>
         </div>}
-        <p className="logo-studio-note">Selections are saved to your account. Save Modern or Save Vintage publishes that collection for everyone, including after reopening the app. Game data is unaffected.</p>
+        <p className="logo-studio-note">Pick logos manually, then Save Modern or Save Vintage to make that list the default for everyone. Your existing choices stay saved until you change them.</p>
     </div>
     {message && <p className="logo-studio-status" role="status">{message}</p>}
   </div>;
