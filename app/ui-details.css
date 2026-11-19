@@ -9310,3 +9310,112 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 .picks-panel .board-favorites-section > .game-list > .game-card + .game-card {
   border-top: 1px solid var(--tracker-divider);
 }
+
+/* Header league menu anchors to the lower edge of the 32px wordmark,
+   not the bottom edge of the entire app header. Keep it logo-width. */
+.scoreboard-main .header-league-menu.custom-select-menu {
+  top: calc(50% + 16px + 1px);
+  left: 2px;
+  right: auto;
+  width: min(215px, calc(100% - 2px));
+  min-width: 0;
+  max-width: min(215px, calc(100% - 2px));
+}
+
+/* Restore the original compact day-section look, now used for league
+   headings. All Games groups CBB/NBA or CFB/NFL separately, each collapsible. */
+.picks-panel .game-days.board-league-days {
+  display: grid;
+  gap: 0;
+  margin: 0 calc(var(--page-gutter) * -1);
+  padding: 0;
+  background: var(--panel);
+}
+.picks-panel .board-league-group {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  background: var(--panel);
+}
+.picks-panel .board-league-group > .board-league-header {
+  display: flex;
+  box-sizing: border-box;
+  align-items: center;
+  width: 100%;
+  min-height: 47px;
+  margin: 0;
+  padding: 7px var(--page-gutter);
+  gap: 9px;
+  border: 0;
+  border-top: 1px solid var(--tracker-section-divider);
+  border-bottom: 1px solid var(--tracker-divider);
+  border-radius: 0;
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: none;
+  text-align: left;
+  cursor: pointer;
+}
+.picks-panel .board-favorites-section + .board-league-days .board-league-group:first-child > .board-league-header {
+  border-top: 0;
+}
+.picks-panel .board-league-header > b {
+  display: grid;
+  box-sizing: border-box;
+  min-width: 43px;
+  min-height: 29px;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 7px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--graphite);
+  box-shadow: inset 0 -2px 0 var(--blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.picks-panel .board-league-header > strong {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+.picks-panel .board-league-count {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.picks-panel .board-league-chevron {
+  flex: 0 0 17px;
+  color: var(--muted);
+  transition: transform .14s ease;
+}
+.picks-panel .board-league-chevron.expanded { transform: rotate(180deg); }
+.picks-panel .board-league-header:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+.picks-panel .board-league-group > .game-list {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--panel);
+}
+.picks-panel .board-league-group > .game-list[hidden] { display: none !important; }
+.picks-panel .board-league-group:last-child {
+  border-bottom: 1px solid var(--tracker-section-divider);
+}
+@media (max-width: 380px) {
+  .picks-panel .board-league-header > strong { font-size: 11px; }
+  .picks-panel .board-league-header { gap: 7px; }
+}

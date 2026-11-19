@@ -15,6 +15,7 @@ import BasketballMatchupPreview from "@/components/BasketballMatchupPreview";
 import BasketballGameDetails from "@/components/BasketballGameDetails";
 import HeaderLeaguePicker from "@/components/HeaderLeaguePicker";
 import BoardDaySelector from "@/components/BoardDaySelector";
+import BoardLeagueSection from "@/components/BoardLeagueSection";
 import { cbbGameMatchesConference, type CbbConferenceMap } from "@/lib/cbbConferences";
 import { AppChrome } from "@/components/PersistentAppChrome";
 import PrimaryBottomNav from "@/components/PrimaryBottomNav";
@@ -1348,6 +1349,17 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const favoriteSet = new Set(favoriteGames);
   const favoriteDayGames = filteredGames.filter(game => favoriteSet.has(favoriteKey(game)));
   const otherDayGames = filteredGames.filter(game => !favoriteSet.has(favoriteKey(game)));
+  // Keep CBB/NBA and CFB/NFL visibly separate on the selected day.
+  // The league heading for each group can collapse its games independently.
+  const boardLeagueGroups = (appSlug === "friends-basketball" ? ["CBB", "NBA"] : ["CFB", "NFL"])
+    .map(league => ({
+      league,
+      label: league === "CBB" ? "College Basketball"
+        : league === "NBA" ? "NBA Basketball"
+        : league === "CFB" ? "College Football" : "NFL Football",
+      games: otherDayGames.filter(game => game.league === league)
+    }))
+    .filter(group => group.games.length > 0);
   const toggleFavoriteGame = (game: Game) => {
     const key = favoriteKey(game);
     setFavoriteGames(existing => {
@@ -1613,8 +1625,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             <h3>Favorites</h3>
             <div className="game-list">{favoriteDayGames.map(renderBoardGame)}</div>
           </section>}
-          <div className="game-days">
-            {otherDayGames.length > 0 && <div className="game-list">{otherDayGames.map(renderBoardGame)}</div>}
+          <div className="game-days board-league-days">
+            {boardLeagueGroups.map(group => <BoardLeagueSection
+              key={`${dayScope}:${selectedDayKey}:${group.league}`}
+              league={group.league} label={group.label} count={group.games.length}>
+              {group.games.map(renderBoardGame)}
+            </BoardLeagueSection>)}
           </div>
         </>}
         {picksView === "sideBets" && sideBetAccessDenied && <div className="notice-card" role="alert">No access to Side Bets.</div>}
