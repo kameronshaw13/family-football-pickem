@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 
 const DATE = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" });
-const MONTH_DAY = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "America/Chicago" });
 
 export default function BoardDaySelector({ days, value, today, onChange }: {
   days: string[]; value: string; today: string; onChange: (day: string) => void;
@@ -29,8 +28,7 @@ export default function BoardDaySelector({ days, value, today, onChange }: {
       return <button type="button" role="tab" key={day} aria-selected={value === day}
         aria-label={`${DATE.format(dateValue)}${isToday ? ", today" : ""}`}
         className={value === day ? "active" : ""} onClick={() => onChange(day)}>
-        <span>{isToday ? "Today" : DATE.format(dateValue)}</span>
-        {isToday && <small>{MONTH_DAY.format(dateValue)}</small>}
+        <span>{isToday ? "Today" : DATE.format(dateValue).replace(/,/g, "")}</span>
       </button>;
     })}
   </div>;
