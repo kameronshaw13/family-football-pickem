@@ -479,6 +479,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
   }
 
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
+    <div className="side-bet-top-controls">
     <div className={`view-select-row side-bet-filter-row ${view === "new" && weekIsOpen && !weekConcluded ? "make-offer" : ""}`.trim()}>
       <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "offers", label: "Offers", badge: hideAcceptedBets ? 0 : offerNotificationCount }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => {
         if (value === "new" && currentUser.side_bet_offers_disabled) {
@@ -532,6 +533,8 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
     {view === "new" && weekIsOpen && !weekConcluded && <BoardDaySelector
       days={calendarDays} value={selectedDayKey} today={todayDayKey} onChange={onSelectDay}
     />}
+
+    </div>
 
     {view === "new" && weekConcluded && <div className="side-bet-sportsbook-board"><div className="empty-state side-bet-empty-state">This week has concluded.</div></div>}
 
