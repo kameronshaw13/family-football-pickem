@@ -1657,7 +1657,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             onChange={day => setBoardDaySelection({ scope: dayScope, day })} />
           </>}
         </div>
-        {picksView === "board" && <>
+        {picksView === "board" && <div className="pick-board-content-surface">
           {leagueFilter === "CBB" && cbbConferenceError && <p className="board-filter-data-notice">Conference directory temporarily unavailable; Top 25 and All still work.</p>}
           {filteredGames.length === 0 && <div className="empty-state board-empty-state">No games on this day. Select another date to browse.</div>}
           <div className="game-days board-league-days">
@@ -1672,7 +1672,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               {group.games.map(renderBoardGame)}
             </BoardLeagueSection>)}
           </div>
-        </>}
+        </div>}
         {picksView === "sideBets" && sideBetAccessDenied && <div className="notice-card" role="alert">No access to Side Bets.</div>}
         {picksView === "sideBets" && !sideBetAccessDenied && <SideBetCenter
           appSlug={appSlug}
