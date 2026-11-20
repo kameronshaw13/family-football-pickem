@@ -9826,29 +9826,47 @@ html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-settings svg 
   stroke-width: 1;
 }
 
-/* Under the Pick Board/Side Bets controls, gray continues all the way down,
-   including a completely collapsed or empty day. No two-tone gradient. */
-html:not([data-theme="dark"]) .app-shell:has(.picks-panel),
-html:not([data-theme="dark"]) .app-shell:has(.picks-panel .board-league-days) {
+/* View-specific surfaces: only the Pick Board content BELOW its date
+   selector is gray. The page above the tabs, tab-to-filter gap, selectors,
+   and entire Side Bets view all share the same uninterrupted cream surface.
+   Negative margins make the gray board reach both edges of the phone. */
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel) {
+  background: var(--canvas) !important;
+}
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel) > .container {
+  background: var(--canvas) !important;
+}
+html:not([data-theme="dark"]) .picks-panel.board-view {
+  min-height: calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom));
+  margin-inline: calc(-1 * var(--page-gutter));
+  padding-inline: var(--page-gutter);
   background: var(--app-board-background) !important;
 }
-html:not([data-theme="dark"]) .app-shell:has(.picks-panel) > .container,
-html:not([data-theme="dark"]) .picks-panel {
-  background: transparent !important;
-}
-html:not([data-theme="dark"]) .picks-panel {
+html:not([data-theme="dark"]) .picks-panel.side-bets-view {
   min-height: calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom));
+  background: var(--canvas) !important;
 }
 html:not([data-theme="dark"]) .picks-panel > .section-tabs,
 html:not([data-theme="dark"]) .picks-panel > .picks-top-controls,
 html:not([data-theme="dark"]) .picks-panel .board-filter-row,
 html:not([data-theme="dark"]) .picks-panel .board-day-selector,
-html:not([data-theme="dark"]) .picks-panel .side-bet-top-controls {
+html:not([data-theme="dark"]) .picks-panel .side-bet-top-controls,
+html:not([data-theme="dark"]) .picks-panel .side-bet-sportsbook-board {
   background: var(--canvas) !important;
 }
-html:not([data-theme="dark"]) .picks-panel .game-days.board-league-days,
-html:not([data-theme="dark"]) .picks-panel .side-bet-sportsbook-board {
+html:not([data-theme="dark"]) .picks-panel.board-view .game-days.board-league-days {
   background: var(--app-board-background) !important;
+}
+/* Move the space between tabs and filters INSIDE the cream controls.
+   Otherwise the board's gray surface leaks through their margin. */
+.picks-panel > .section-tabs {
+  margin-bottom: 0;
+}
+.picks-panel > .picks-top-controls {
+  padding-top: var(--space-3);
+}
+.picks-panel.side-bets-view .side-bet-top-controls {
+  padding-top: 0;
 }
 
 /* The main two-tab bar is the ONLY sticky control row; filters/day strip
