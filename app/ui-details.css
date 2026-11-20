@@ -9793,15 +9793,15 @@ html:not([data-theme="dark"]) .scoreboard-header {
   box-shadow: inset 0 -2px 0 var(--blue);
 }
 html:not([data-theme="dark"]) .scoreboard-header .header-wordmark {
-  filter: brightness(0);
+  filter: none;
 }
 html:not([data-theme="dark"]) .header-menu-select .custom-select-trigger,
 html:not([data-theme="dark"]) .header-menu-select > svg,
 html:not([data-theme="dark"]) .header-refresh-indicator {
   color: var(--app-chrome-ink) !important;
 }
-html:not([data-theme="dark"]) .week-select-wrap {
-  border-bottom-color: var(--app-chrome-border);
+html:not([data-theme="dark"]) .week-select-wrap::after {
+  background: var(--app-chrome-border);
 }
 html:not([data-theme="dark"]) .primary-nav {
   background: var(--nav-surface) !important;
@@ -9819,17 +9819,31 @@ html:not([data-theme="dark"]) .primary-nav button.active svg {
   color: var(--app-chrome-ink) !important;
   stroke: currentColor !important;
 }
+/* Mirror the original solid-white active icons in graphite for light chrome. */
 html:not([data-theme="dark"]) .primary-nav button.active svg {
-  fill: none !important;
+  fill: var(--app-chrome-ink) !important;
+  stroke: var(--app-chrome-ink) !important;
+  stroke-width: 2;
 }
-html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-standings svg path,
+html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-card svg rect {
+  fill: var(--app-chrome-ink) !important;
+  stroke: var(--app-chrome-ink) !important;
+}
 html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-card svg path {
   fill: none !important;
-  stroke: currentColor !important;
+  stroke: var(--nav-surface) !important;
+}
+html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-standings svg path {
+  fill: none !important;
+  stroke: var(--app-chrome-ink) !important;
+}
+html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-standings svg path:last-child {
+  fill: var(--app-chrome-ink) !important;
 }
 html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-settings svg circle {
-  fill: none !important;
-  stroke: currentColor !important;
+  fill: var(--nav-surface) !important;
+  stroke: var(--nav-surface) !important;
+  stroke-width: 1;
 }
 
 /* The Pick Board / Side Bets tab row sticks exactly like My Card & Standings.
@@ -9885,5 +9899,18 @@ html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-settings svg 
 /* Keep the iPhone's top/bottom overscroll surfaces consistent with light chrome. */
 html:not([data-theme="dark"]),
 html:not([data-theme="dark"]) body {
+  background: var(--canvas) !important;
+}
+
+/* Light chrome: the breathing room above filters and below Pick Board/Side
+   Bets tabs is the same cream as the rest of the page, not a gray band. */
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel .board-league-days) {
+  background: var(--canvas) !important;
+}
+html:not([data-theme="dark"]) .picks-panel,
+html:not([data-theme="dark"]) .picks-panel > .section-tabs,
+html:not([data-theme="dark"]) .picks-panel > .picks-top-controls,
+html:not([data-theme="dark"]) .picks-panel .board-filter-row,
+html:not([data-theme="dark"]) .picks-panel .board-day-selector {
   background: var(--canvas) !important;
 }
