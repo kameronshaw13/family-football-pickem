@@ -9268,14 +9268,14 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 }
 .picks-panel .board-day-selector > button.active > small { color: var(--ink); }
 
-/* Favorites show an ink-black outline star, filled on selection, with an
+/* Favorites show an ink-black outline star with a gold fill on selection, and an
    obvious thin divider between every favorited matchup. */
 .picks-panel .game-head .matchup-preview-actions > .board-favorite-trigger,
 .picks-panel .game-head .matchup-preview-actions > .board-favorite-trigger.active {
   color: var(--ink);
 }
 .picks-panel .game-head .matchup-preview-actions > .board-favorite-trigger svg {
-  stroke: currentColor;
+  stroke: var(--ink);
   stroke-width: 2;
 }
 .picks-panel .board-favorites-section > h3 {
@@ -9514,14 +9514,13 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   line-height: 1;
 }
 
-/* November 19: detail sheets occupy the entire viewport BELOW app header,
-   with no gap at the top and no cutout for the fixed bottom navigation.
-   The nav stays mounted but is covered while a detail sheet is open. */
+/* Detail sheets stay below the app header and ABOVE the permanently visible
+   bottom navigation. Never intercept taps on the nav. */
 .game-tracker-backdrop,
 .matchup-preview-backdrop {
   top: calc(env(safe-area-inset-top) + var(--header-height)) !important;
   right: 0 !important;
-  bottom: 0 !important;
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom)) !important;
   left: 0 !important;
   height: auto !important;
   max-height: none !important;
@@ -9544,8 +9543,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   border-radius: 0 !important;
   box-shadow: none !important;
 }
-/* Keep the last line of GameTracker / Matchup Preview content out of the
-   home-indicator safe area despite the sheet reaching the screen bottom. */
+/* Detail content now stops above the safe-area bottom navigation. */
 .game-tracker-sheet > .game-tracker-scroll,
 .matchup-preview-sheet > .matchup-preview-scroll {
   padding-bottom: env(safe-area-inset-bottom);
@@ -9579,25 +9577,24 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   background: transparent;
 }
 
-/* Pick Board, Side Bets, both filters and the date selector are one STICKY
-   light-gray unit; no individual child moves or changes shade independently. */
+/* Pick Board controls scroll naturally like the Standings and My Card sections.
+   Only individual sport/league headings stick below the permanent app header. */
 .picks-panel > .picks-top-controls {
-  position: sticky;
-  top: calc(env(safe-area-inset-top) + var(--header-height) + var(--space-3));
-  z-index: 24;
+  position: relative;
+  z-index: 1;
   margin: 0 calc(var(--page-gutter) * -1);
   padding-inline: var(--page-gutter);
   background: var(--canvas);
 }
-/* Keep the original inset filled and fully stationary during scroll. */
+/* No fixed canvas strip should remain above the moving controls. */
 .picks-panel > .picks-top-controls::before {
   position: absolute;
   top: calc(-1 * var(--space-3));
   right: 0;
   left: 0;
-  height: var(--space-3);
-  background: var(--canvas);
-  content: "";
+  height: 0;
+  background: transparent;
+  content: none;
   pointer-events: none;
 }
 
@@ -9664,16 +9661,15 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 .picks-panel .board-sticky-controls > .board-day-selector {
   position: relative;
   z-index: 1;
-  min-height: 54px;
+  min-height: 51px;
   margin: 0 calc(var(--page-gutter) * -1);
   padding-inline: var(--page-gutter);
   background: var(--canvas) !important;
 }
-/* League and Favorites cells pin directly beneath the date ribbon.
-   Their section boundaries naturally push prior headings out of the way. */
+/* League and Favorites headings are the only sticky Pick Board elements. */
 .picks-panel .board-league-group > .board-league-header {
   position: sticky;
-  top: calc(env(safe-area-inset-top) + var(--header-height) + 163px);
+  top: calc(env(safe-area-inset-top) + var(--header-height));
   z-index: 19;
   border-bottom-color: var(--line-strong) !important;
 }
@@ -9763,3 +9759,12 @@ html[data-theme="dark"] .picks-panel .board-filter-row .custom-select-option.sel
     min-width: 88px;
   }
 }
+
+/* Nov 20: one separator at section transitions, not overlapping borders
+   and pseudo-lines at Power/Group or basketball conference tiers. */
+.picks-panel .board-filter-row .context-select .custom-select-section:not(:last-child) > .custom-select-option:last-child { border-bottom: 0 !important; }
+.picks-panel .board-filter-row .context-select .custom-select-section > .custom-select-option:last-child::after,
+.picks-panel .board-filter-row .context-select .custom-select-group-label::after { content: none !important; }
+.picks-panel .board-filter-row .context-select .custom-select-group-label { border-bottom: 1px solid var(--line) !important; }
+/* Reduce the bottom of the date strip by 3px without moving date lettering. */
+.picks-panel .board-sticky-controls > .board-day-selector > button { min-height: 51px; padding-bottom: 0; }
