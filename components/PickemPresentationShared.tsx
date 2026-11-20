@@ -50,16 +50,12 @@ export type SideBetLeagueFilter = "CFB" | "NFL" | "CBB" | "NBA";
 export type SideBetBoardMarket = "spreads" | "total";
 
 export function defaultFootballLeague(): SideBetLeagueFilter {
-  const weekday = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Chicago",
-    weekday: "short"
-  }).format(new Date());
-  return weekday === "Sun" || weekday === "Mon" ? "NFL" : "CFB";
+  return "CFB";
 }
 export type SideBetLedgerScope = "all" | "mine";
 
 export type GameStatusFilter = "OPEN" | "LOCKED" | "FINAL";
-export type LeagueFilter = SideBetLeagueFilter | "ALL" | "DOGS";
+export type LeagueFilter = SideBetLeagueFilter | "DOGS";
 export type DogValueFilter = "ALL" | "1" | "2" | "3";
 export type GameOutcome = "win" | "loss" | "push";
 export type Toast = { message: string; tone: "success" | "error" | "info" } | null;

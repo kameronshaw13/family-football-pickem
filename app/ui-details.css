@@ -9763,3 +9763,55 @@ html[data-theme="dark"] .picks-panel .board-filter-row .custom-select-option.sel
     min-width: 88px;
   }
 }
+
+/* Compact board chrome; the sticky group tucks twelve pixels beneath the header. */
+.picks-panel > .picks-top-controls {
+  top: calc(env(safe-area-inset-top) + var(--header-height) - 12px);
+}
+.picks-panel .board-sticky-controls > .board-day-selector { min-height: 43px; }
+.picks-panel .board-sticky-controls > .board-day-selector > button {
+  min-height: 43px;
+  justify-content: flex-end;
+  padding-top: 3px;
+  padding-bottom: 4px;
+}
+.picks-panel .board-sticky-controls > .board-day-selector > button > span { line-height: 1.1; }
+.picks-panel .board-sticky-controls > .board-day-selector { background: var(--canvas) !important; }
+
+/* Games flow directly below the selector without duplicate sport headings or deep gutters. */
+.app-shell:has(.picks-panel .board-league-days) { background: var(--canvas); }
+.picks-panel .game-days.board-league-days {
+  gap: 0;
+  padding: 0;
+  background: var(--canvas);
+}
+.picks-panel .board-favorites-section + .game-days.board-league-days { margin-top: 0; }
+.picks-panel .board-plain-games { margin: 0; border-color: var(--line); }
+.picks-panel .board-plain-games .game-head { background: var(--panel); }
+.picks-panel .game-head .matchup-preview-actions > .board-favorite-trigger.active { color: #d4a017; }
+
+/* One divider per conference option and recipient cell. */
+.picks-panel .board-filter-row .context-select .custom-select-section:not(:last-child) > .custom-select-option:last-child::after,
+.picks-panel .board-filter-row .context-select .custom-select-group-label::after { display: none; }
+.side-bet-slip-section:has(.side-bet-recipient-grid) { border-bottom: 0; }
+.side-bet-recipient-grid > label {
+  border-top: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.side-bet-recipient-grid[data-columns="2"] > label:nth-child(2n),
+.side-bet-recipient-grid[data-columns="3"] > label:nth-child(3n),
+.side-bet-recipient-grid[data-columns="4"] > label:nth-child(4n),
+.side-bet-recipient-grid > label:last-child { border-right: 0; }
+
+/* Keep all game details inside the space above the fixed bottom navigation. */
+.game-tracker-backdrop,
+.matchup-preview-backdrop {
+  bottom: calc(var(--nav-height) + env(safe-area-inset-bottom)) !important;
+  max-height: calc(100dvh - var(--header-height) - var(--nav-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+}
+.game-tracker-sheet > .game-tracker-scroll,
+.matchup-preview-sheet > .matchup-preview-scroll {
+  padding-bottom: 0;
+  scroll-padding-bottom: 0;
+}

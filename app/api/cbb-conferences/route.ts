@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cbbConferenceName, cbbConferenceTier, type CbbConferenceMap } from "@/lib/cbbConferences";
+import { cbbConferenceAbbreviation, cbbConferenceName, cbbConferenceTier, type CbbConferenceMap } from "@/lib/cbbConferences";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -44,15 +44,16 @@ async function build() {
       const name = String(group?.name || group?.shortName || group?.abbreviation || "").trim();
       if (!name) return null;
       const conference = cbbConferenceName(name);
+      const abbreviation = String(group?.abbreviation || "").trim().toUpperCase();
       const members = (Array.isArray(teams?.items) ? teams.items : [])
         .map((item: any) => idFromReference(hrefOf(item), "teams"))
         .filter((member: unknown): member is string => typeof member === "string" && !!member);
-      return { conference, members };
+      return { conference, abbreviation, members };
     }));
     for (const result of results) {
       if (result.status !== "fulfilled" || !result.value) continue;
-      const { conference, members } = result.value;
-      conferenceOptions.push({ value: conference, label: conference, category: cbbConferenceTier(conference) });
+      const { conference, abbreviation, members } = result.value;
+      conferenceOptions.push({ value: conference, label: abbreviation && abbreviation.length <= 10 ? abbreviation : cbbConferenceAbbreviation(conference), category: cbbConferenceTier(conference) });
       for (const member of members) teamConference[member] = conference;
     }
   }
