@@ -1192,9 +1192,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const weekConcluded = !previewActive && (Number(data.week) < currentWeek || (appSlug === "friends-basketball" && clock >= basketballSeasonEnd(data.groupRules).getTime()));
   const weekNotOpenYet = !previewActive && Number(data.week) > currentWeek;
   const viewedBankEntries = previewActive ? testWeek!.bankEntries : bankEntries;
-  const basketballPayoutWaiting = appSlug === "friends-basketball" && !previewActive
-    && viewedPicks.length > 0 && viewedPicks.every((pick) => pick.status === "locked" && pick.result !== "pending")
-    && !viewedBankEntries.some((entry) => Number(entry.week) === Number(viewedWeek));
   const viewedBankHistory = previewActive ? [] : data.bankHistory || [];
   const rule = previewActive ? getWeekRule(3) : data.weekRule || getWeekRule(data.week);
   const boardActive = tab === "picks" && picksView === "board";
@@ -1773,7 +1770,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         </>}
         {standingsView === "bank" && <>
           <div className="scoreboard-heading"><h2>Bank Balances</h2></div>
-          {basketballPayoutWaiting && <div className="notice-card" role="status">Week {viewedWeek} picks are graded. The weekly payout posts when every player’s card is complete and graded.</div>}
           {data.activeGroup?.slug === "other-family" && data.groupMoney && <GroupMoneyControls
             week={Number(data.week)}
             weeklyAmount={Number(data.groupMoney.weeklyAmount || 0)}
