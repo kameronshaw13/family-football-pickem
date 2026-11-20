@@ -16,7 +16,7 @@ function LeagueHeaderWordmark({ slug }: { slug: PickemAppSlug }) {
       const visible = item.slug === (slug === "friends-basketball" ? "friends-basketball" : slug === "shaw-family" ? "shaw-family" : "friends");
       return <Image
         key={item.slug}
-        className={`header-wordmark${item.slug !== "shaw-family" ? " header-wordmark-pickem" : ""}`}
+        className="header-wordmark"
         src={item.src}
         alt={visible ? item.alt : ""}
         aria-hidden={!visible}
