@@ -8,6 +8,26 @@ export type CbbConferenceMap = {
   conferences: Array<{ value: string; label: string; category: "POWER" | "MID" | "LOW" }>;
 };
 
+/** Short display names for narrow conference filter cells; value stays canonical. */
+export function conferenceAbbreviation(name: string): string {
+  const aliases: Record<string, string> = {
+    "BIG TEN": "B1G", "BIG EAST": "BIG EAST", "ATLANTIC 10": "A-10",
+    "MOUNTAIN WEST": "MW", "AMERICAN": "AAC", "MISSOURI VALLEY": "MVC",
+    "HORIZON LEAGUE": "HORIZON", "WEST COAST": "WCC",
+    "COLONIAL ATHLETIC": "CAA", "COASTAL ATHLETIC": "CAA",
+    "CONFERENCE USA": "C-USA", "MID-AMERICAN": "MAC",
+    "SOUTHERN": "SOCON", "SOUTHLAND": "SOUTHLAND",
+    "NORTHEAST": "NEC", "OHIO VALLEY": "OVC",
+    "BIG SOUTH": "BIG SOUTH", "BIG SKY": "BIG SKY",
+    "METRO ATLANTIC ATHLETIC": "MAAC",
+    "AMERICA EAST": "AM. EAST", "SUMMIT LEAGUE": "SUMMIT",
+    "WESTERN ATHLETIC": "WAC", "SOUTHWESTERN ATHLETIC": "SWAC",
+    "MID-EASTERN ATHLETIC": "MEAC", "ASUN": "ASUN"
+  };
+  const normalized = name.toUpperCase().replace(/\s+CONFERENCE$/, "").trim();
+  return aliases[normalized] ?? normalized;
+}
+
 export function cbbConferenceName(name: string): string {
   const value = name.toLowerCase().replace(/[–—-]/g, " ").replace(/\s+/g, " ").trim();
   if (/^(acc|atlantic coast)( conference)?$/.test(value)) return "ACC";

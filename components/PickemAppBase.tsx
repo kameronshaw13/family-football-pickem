@@ -16,7 +16,7 @@ import BasketballGameDetails from "@/components/BasketballGameDetails";
 import HeaderLeaguePicker from "@/components/HeaderLeaguePicker";
 import BoardDaySelector from "@/components/BoardDaySelector";
 import BoardLeagueSection from "@/components/BoardLeagueSection";
-import { cbbGameMatchesConference, type CbbConferenceMap } from "@/lib/cbbConferences";
+import { cbbGameMatchesConference, conferenceAbbreviation, type CbbConferenceMap } from "@/lib/cbbConferences";
 import { AppChrome } from "@/components/PersistentAppChrome";
 import PrimaryBottomNav from "@/components/PrimaryBottomNav";
 import { warmLeagueData } from "@/lib/leagueWarmup";
@@ -1636,7 +1636,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
                   options: [
                     { value: tier, label: tier === "POWER" ? "ALL POWER 5" : tier === "MID" ? "ALL MID-MAJOR" : "ALL LOW-MAJOR" },
                     ...(cbbConferences?.conferences.filter(conference => conference.category === tier)
-                      .map(conference => ({ value: conference.value, label: conference.label })) || [])
+                      .map(conference => ({ value: conference.value, label: conferenceAbbreviation(conference.label) })) || [])
                   ]
                 }))
               ]}
