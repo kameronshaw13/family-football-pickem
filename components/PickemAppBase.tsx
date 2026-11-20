@@ -1332,16 +1332,28 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     }) : [];
 
   const todayDayKey = gameDayKey(new Date(clock).toISOString());
-  const gameDays = Array.from(new Set(boardGames.map(game => gameDayKey(game.commence_time)))).sort();
-  const distanceToToday = (day: string) => Math.abs(Date.parse(day + "T12:00:00Z") - Date.parse(todayDayKey + "T12:00:00Z"));
+  // The date strip belongs to the SELECTED week, not a floating 15-day window.
+  // Basketball has explicit Sunday-based week bounds; football opens on Tuesday
+  // and extends through Monday (including Monday-night NFL games).
+  const weekGameDays = Array.from(new Set(viewedGames.map(game => gameDayKey(game.commence_time)))).sort();
+  const dateMs = (day: string) => Date.parse(day + "T12:00:00Z");
+  const dayAt = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  const weekAnchor = weekGameDays[0] || todayDayKey;
+  const anchorMs = dateMs(weekAnchor);
+  const anchorWeekday = new Date(anchorMs).getUTCDay();
+  const footballWeekStart = dayAt(anchorMs - ((anchorWeekday + 5) % 7) * 86_400_000);
+  const basketballBounds = appSlug === "friends-basketball" ? basketballWeekBounds(viewedWeek, data.groupRules) : null;
+  const weekStartDay = basketballBounds?.startDate || footballWeekStart;
+  const exclusiveWeekEndDay = basketballBounds?.endDate || dayAt(dateMs(weekStartDay) + 7 * 86_400_000);
+  const calendarDays = Array.from({
+    length: Math.max(1, Math.min(14, Math.round((dateMs(exclusiveWeekEndDay) - dateMs(weekStartDay)) / 86_400_000)))
+  }, (_, offset) => dayAt(dateMs(weekStartDay) + offset * 86_400_000));
+  const distanceToToday = (day: string) => Math.abs(dateMs(day) - dateMs(todayDayKey));
+  const gameDays = weekGameDays.filter(day => calendarDays.includes(day));
   const closestGameDay = gameDays.reduce((best, day) => !best || distanceToToday(day) < distanceToToday(best) ? day : best, "");
-  // A current-week board opens with Today centered even on an idle day.
-  // Historic weeks center the nearest game day instead.
-  const initialDayKey = viewedWeek === currentWeek || !gameDays.length ? todayDayKey : closestGameDay;
-  const centerDayTime = Date.parse(initialDayKey + "T12:00:00Z");
-  const calendarDays = Array.from({ length: 15 }, (_, offset) =>
-    new Date(centerDayTime + (offset - 7) * 86_400_000).toISOString().slice(0, 10));
-  const dayScope = [appSlug, viewedWeek, leagueFilter, conferenceFilter, cbbConferenceFilter, dogValueFilter].join(":");
+  const initialDayKey = viewedWeek === currentWeek && calendarDays.includes(todayDayKey)
+    ? todayDayKey : closestGameDay || calendarDays[0];
+  const dayScope = [appSlug, viewedWeek].join(":");
   const selectedDayKey = boardDaySelection?.scope === dayScope && calendarDays.includes(boardDaySelection.day)
     ? boardDaySelection.day : initialDayKey;
   // Keep games in each day's sport and Favorites sections in broadcast order:
@@ -1582,14 +1594,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
       {tab === "picks" && <section className="panel picks-panel">
         {!previewActive && picksView === "board" && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens on <NumericText text={openText(data.weekOpenTime)} />.</div>}
-        <div className={`picks-top-controls${picksView === "board" ? " board-sticky-controls" : ""}`}>
-          <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: "Side Bets", badge: picksNotificationCount }]} value={picksView} onChange={(value) => {
+        <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: "Side Bets", badge: picksNotificationCount }]} value={picksView} onChange={(value) => {
           if (value === "sideBets" && sideBetAccessDenied) {
             notify("No access to Side Bets.", "error");
             return;
           }
           setPicksView(value as PicksView);
           }} />
+        <div className={`picks-top-controls${picksView === "board" ? " board-sticky-controls" : ""}`}>
           {picksView === "board" && <>
           <div className="view-select-row board-filter-row">
             <MenuSelect ariaLabel="Filter games by status" className="compact-select status-select" value={boardStatusFilter}
@@ -1664,9 +1676,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             </BoardLeagueSection>)}
           </div>
         </>}
+        {picksView === "sideBets" && <BoardDaySelector days={calendarDays} value={selectedDayKey} today={todayDayKey}
+          onChange={day => { setBoardDaySelection({ scope: dayScope, day }); setBetGameId(""); setBetCreatorTeam(""); }} />}
         {picksView === "sideBets" && sideBetAccessDenied && <div className="notice-card" role="alert">No access to Side Bets.</div>}
         {picksView === "sideBets" && !sideBetAccessDenied && <SideBetCenter
           appSlug={appSlug}
+          selectedDayKey={selectedDayKey}
           view={betView}
           setView={setBetView}
           onBlockedOffer={() => notify("Side bets are disabled for you.", "error")}
