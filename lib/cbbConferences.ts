@@ -24,7 +24,7 @@ export function conferenceAbbreviation(name: string): string {
     "WESTERN ATHLETIC": "WAC", "SOUTHWESTERN ATHLETIC": "SWAC",
     "MID-EASTERN ATHLETIC": "MEAC", "ASUN": "ASUN"
   };
-  const normalized = name.toUpperCase().replace(/\\s+CONFERENCE$/, "").trim();
+  const normalized = name.toUpperCase().replace(/\s+CONFERENCE$/, "").trim();
   return aliases[normalized] ?? normalized;
 }
 
