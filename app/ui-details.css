@@ -10025,3 +10025,73 @@ html:not([data-theme="dark"]) .picks-panel .side-bet-sportsbook-board {
   margin-inline: 0;
   margin-bottom: 0;
 }
+
+/* Nov 20 correction: light header stays cream; Pick'em WORDMARK artwork,
+   not the entire header background, uses the primary blue. */
+html:not([data-theme="dark"]) {
+  --app-header-fill: var(--panel);
+  --app-header-foreground: var(--ink);
+}
+html:not([data-theme="dark"]) .scoreboard-header {
+  box-shadow: inset 0 -2px 0 var(--blue) !important;
+}
+html:not([data-theme="dark"]) .week-select-wrap::after {
+  background: var(--app-chrome-border) !important;
+}
+/* Monochrome mask of the existing wordmark gives the letters a solid blue
+   body, rather than leaving their original white face and blue outline. */
+html:not([data-theme="dark"]) .header-wordmark-pickem {
+  filter: brightness(0) saturate(100%) invert(57%) sepia(18%)
+    saturate(1308%) hue-rotate(156deg) brightness(96%) contrast(91%) !important;
+}
+
+/* Resolve the older higher-specificity cream rule that was reappearing below
+   collapsed league groups. Gray covers the full remaining viewport. */
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel .board-league-days),
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel) {
+  background: var(--app-board-background) !important;
+}
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel) > .container {
+  background: transparent !important;
+}
+html:not([data-theme="dark"]) .picks-panel {
+  background: var(--app-board-background) !important;
+  min-height: calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom));
+}
+html:not([data-theme="dark"]) .picks-panel > .section-tabs,
+html:not([data-theme="dark"]) .picks-panel > .picks-top-controls,
+html:not([data-theme="dark"]) .picks-panel .side-bet-top-controls {
+  background: var(--canvas) !important;
+}
+
+/* Side Bets should fill the same horizontal page width as regular Pick Board
+   cards. Shift the whole section out to the page edges once, rather than
+   layering negative margins on nested game groups. */
+.picks-panel > .side-bet-center {
+  width: calc(100% + (2 * var(--page-gutter)));
+  margin-inline: calc(-1 * var(--page-gutter));
+  min-width: 0;
+}
+.picks-panel .side-bet-top-controls {
+  margin-inline: 0;
+  padding-inline: var(--page-gutter);
+}
+.picks-panel .side-bet-sportsbook-board {
+  width: 100%;
+  margin-inline: 0;
+}
+.picks-panel .side-bet-sportsbook-board .side-bet-game-days,
+.picks-panel .side-bet-sportsbook-board .board-league-group,
+.picks-panel .side-bet-sportsbook-board .board-league-group > .game-list,
+.picks-panel .side-bet-sportsbook-board .game-card,
+.picks-panel .side-bet-list,
+.picks-panel .side-bet-list-section {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  min-width: 0;
+}
+.picks-panel .side-bet-sportsbook-board .board-league-group,
+.picks-panel .side-bet-list-section {
+  overflow: visible;
+}
