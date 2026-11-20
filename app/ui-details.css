@@ -9831,21 +9831,31 @@ html:not([data-theme="dark"]) .app-shell:has(.picks-panel) {
   background: var(--canvas) !important;
 }
 html:not([data-theme="dark"]) .app-shell:has(.picks-panel) > .container {
-  /* Gray behind all expanded content and the remaining viewport. The tabs
-     and filters cover this with their own cream surface. */
   background: var(--canvas) !important;
 }
+/* Pick Board needs gray BEHIND the actual game content all the way through
+   main's bottom safe-area padding; its pre-tab padding stays cream. */
 html:not([data-theme="dark"]) .app-shell:has(.picks-panel.board-view) {
   background: var(--app-board-background) !important;
 }
 html:not([data-theme="dark"]) .app-shell:has(.picks-panel.board-view) > .container {
-  background: transparent !important;
-}
-html:not([data-theme="dark"]) .picks-panel.board-view {
-  min-height: calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom));
-  margin-inline: calc(-1 * var(--page-gutter));
-  padding-inline: var(--page-gutter);
+  position: relative;
   background: var(--app-board-background) !important;
+}
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel.board-view) > .container::before {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + var(--header-height));
+  right: 0;
+  left: 0;
+  height: var(--space-3);
+  content: "";
+  background: var(--canvas);
+  pointer-events: none;
+}
+/* The whole page above the Pick Board tabs remains cream. The gray
+   background belongs to the GAME CONTENT only, not the whole panel. */
+html:not([data-theme="dark"]) .picks-panel.board-view {
+  background: var(--canvas) !important;
 }
 html:not([data-theme="dark"]) .picks-panel.side-bets-view {
   min-height: calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom));
@@ -9859,11 +9869,24 @@ html:not([data-theme="dark"]) .picks-panel .side-bet-top-controls,
 html:not([data-theme="dark"]) .picks-panel .side-bet-sportsbook-board {
   background: var(--canvas) !important;
 }
+/* An actual full-height board content wrapper keeps gray visible below
+   expanded or collapsed leagues; no gradient or sliver from the game list. */
+.picks-panel.board-view > .pick-board-content-surface {
+  position: relative;
+  box-sizing: border-box;
+  width: calc(100% + 2 * var(--page-gutter));
+  min-height: calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom) - 158px);
+  margin-inline: calc(-1 * var(--page-gutter));
+  padding: 0;
+  background: var(--canvas-deep);
+}
+html:not([data-theme="dark"]) .picks-panel.board-view > .pick-board-content-surface,
 html:not([data-theme="dark"]) .picks-panel.board-view .game-days.board-league-days {
   background: var(--app-board-background) !important;
 }
-html:not([data-theme="dark"]) .picks-panel.board-view .game-days.board-league-days {
-  min-height: calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - 160px);
+.picks-panel.board-view .pick-board-content-surface > .game-days.board-league-days {
+  min-height: 0;
+  margin-inline: 0;
 }
 
 /* Move the space between tabs and filters INSIDE the cream controls.
@@ -9948,4 +9971,21 @@ html:not([data-theme="dark"]) .picks-panel.board-view .game-days.board-league-da
 }
 .picks-panel .side-bet-sportsbook-board .board-league-group > .game-list {
   margin-bottom: 0;
+}
+
+/* Conference dropdown overlays must remain ABOVE sticky CFB/CBB headings.
+   Lift their parent stacking context only while a menu is open. */
+.picks-panel .picks-top-controls:has(.custom-select.open),
+.picks-panel .side-bet-top-controls:has(.custom-select.open) {
+  position: relative;
+  z-index: 32;
+}
+.picks-panel .picks-top-controls .board-filter-row:has(.custom-select.open),
+.picks-panel .side-bet-top-controls .view-select-row:has(.custom-select.open) {
+  position: relative;
+  z-index: 33;
+}
+.picks-panel .board-filter-row .custom-select.open,
+.picks-panel .side-bet-top-controls .custom-select.open {
+  z-index: 34;
 }
