@@ -9999,3 +9999,29 @@ html:not([data-theme="dark"]) .picks-panel .side-bet-sportsbook-board {
     flex-basis: 88px;
   }
 }
+
+/* Side Bets must use the same edge-to-edge content canvas as Pick Board.
+   The section itself spans the page; only text/control interiors have gutters. */
+.picks-panel .side-bet-center {
+  width: 100%;
+  min-width: 0;
+}
+.picks-panel .side-bet-sportsbook-board {
+  width: calc(100% + 2 * var(--page-gutter));
+  margin-inline: calc(var(--page-gutter) * -1);
+}
+.picks-panel .side-bet-sportsbook-board .side-bet-game-days {
+  width: 100%;
+  margin-inline: 0;
+  padding: 9px 0;
+  display: grid;
+  gap: 9px;
+}
+.picks-panel .side-bet-sportsbook-board .board-league-group {
+  width: 100%;
+  margin-inline: 0;
+}
+.picks-panel .side-bet-sportsbook-board .board-league-group > .game-list {
+  margin-inline: 0;
+  margin-bottom: 0;
+}
