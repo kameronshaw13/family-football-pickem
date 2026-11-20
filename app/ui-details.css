@@ -9764,22 +9764,22 @@ html:not([data-theme="dark"]) {
 html:not([data-theme="dark"]),
 html:not([data-theme="dark"]) body { background: var(--canvas) !important; }
 
-/* Cream header, white/cream nav, full-color Shaw wordmark. */
+/* Restore the original dark blue-gray header; keep the bottom navigation white. */
 html:not([data-theme="dark"]) .scoreboard-header,
 html:not([data-theme="dark"]) .scoreboard-header::before {
-  color: var(--app-chrome-ink) !important;
-  background: var(--canvas) !important;
+  color: #fff !important;
+  background: var(--graphite) !important;
 }
 html:not([data-theme="dark"]) .scoreboard-header {
   box-shadow: inset 0 -2px 0 var(--blue) !important;
 }
 html:not([data-theme="dark"]) .header-menu-select .custom-select-trigger,
 html:not([data-theme="dark"]) .header-menu-select > svg,
-html:not([data-theme="dark"]) .header-refresh-indicator { color: var(--app-chrome-ink) !important; }
+html:not([data-theme="dark"]) .header-refresh-indicator { color: #fff !important; }
 html:not([data-theme="dark"]) .week-select-wrap::after {
   bottom: -2px;
   height: 2px;
-  background: var(--line-strong);
+  background: rgba(255, 255, 255, .5);
 }
 html:not([data-theme="dark"]) .scoreboard-header .header-wordmark {
   filter: none !important;
@@ -9988,4 +9988,66 @@ html:not([data-theme="dark"]) .picks-panel.board-view .game-days.board-league-da
 .picks-panel .board-filter-row .custom-select.open,
 .picks-panel .side-bet-top-controls .custom-select.open {
   z-index: 34;
+}
+
+
+/* Clear the Football Pick'em wordmark's upper edge without changing the other
+   league headers' sizing or the header's fixed position. */
+.scoreboard-main .header-league-trigger .brand-lockup {
+  overflow: visible;
+}
+.scoreboard-main .header-league-trigger .header-wordmark[src*="football-pickem-wordmark"] {
+  transform: translateY(2px);
+}
+
+/* Each Power 4/5, Group of 6 and basketball tier heading owns exactly one
+   TOP rule. The preceding section's final row already suppresses its bottom
+   border; keeping the rule on the label prevents both gaps and double lines. */
+.picks-panel .board-filter-row .context-select
+  .custom-select-section:not(:first-child) > .custom-select-group-label {
+  border-top: 1px solid var(--line) !important;
+}
+
+/* Make Offer has the same dark gray game area and 9px inter-section strips as
+   Pick Board, beginning strictly AFTER the date selector. Offers and every
+   filter/date control above that boundary retain their existing cream fill. */
+html:not([data-theme="dark"]) .app-shell:has(
+  .picks-panel.side-bets-view .side-bet-top-controls > .board-day-selector
+),
+html:not([data-theme="dark"]) .app-shell:has(
+  .picks-panel.side-bets-view .side-bet-top-controls > .board-day-selector
+) > .container {
+  background: var(--app-board-background) !important;
+}
+html:not([data-theme="dark"]) .app-shell:has(
+  .picks-panel.side-bets-view .side-bet-top-controls > .board-day-selector
+) > .container::before {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + var(--header-height));
+  right: 0;
+  left: 0;
+  height: var(--space-3);
+  content: "";
+  background: var(--canvas);
+  pointer-events: none;
+}
+html:not([data-theme="dark"]) .picks-panel.side-bets-view:has(
+  .side-bet-top-controls > .board-day-selector
+),
+html:not([data-theme="dark"]) .picks-panel.side-bets-view
+  .side-bet-center:has(> .side-bet-top-controls > .board-day-selector),
+html:not([data-theme="dark"]) .picks-panel.side-bets-view
+  .side-bet-center:has(> .side-bet-top-controls > .board-day-selector) > .side-bet-sportsbook-board,
+html:not([data-theme="dark"]) .picks-panel.side-bets-view
+  .side-bet-center:has(> .side-bet-top-controls > .board-day-selector) .side-bet-game-days {
+  background: var(--app-board-background) !important;
+}
+.picks-panel.side-bets-view
+  .side-bet-center:has(> .side-bet-top-controls > .board-day-selector) .side-bet-game-days {
+  gap: 9px;
+  padding: 9px 0;
+}
+html:not([data-theme="dark"]) .picks-panel.side-bets-view
+  .side-bet-center > .side-bet-top-controls {
+  background: var(--canvas) !important;
 }
