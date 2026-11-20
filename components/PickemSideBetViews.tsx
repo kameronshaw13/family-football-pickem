@@ -75,9 +75,11 @@ import {
 import {
   conferenceFilterSections,
 } from "@/components/PickemStandingsViews";
+import BoardLeagueSection from "@/components/BoardLeagueSection";
 
-export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, sideBets, hideAcceptedBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview, onBlockedOffer }: {
+export function SideBetCenter({ appSlug, selectedDayKey, view, setView, currentUser, profiles, sideBets, hideAcceptedBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview, onBlockedOffer }: {
   appSlug: AppSlug;
+  selectedDayKey: string;
   view: BetView;
   setView: (value: BetView) => void;
   onBlockedOffer: () => void;
@@ -216,6 +218,7 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
   const recipientGridColumns = ["friends", "friends-basketball"].includes(appSlug) ? 4 : appSlug === "shaw-family" ? 3 : 2;
   const limitReached = Number.isFinite(weeklyLimit) && slotCount >= weeklyLimit;
   const filteredOpenGames = openGames
+    .filter((game) => gameDayKey(game.commence_time) === selectedDayKey)
     .filter((game) => {
       if (game.league !== gameLeague) return false;
       if (gameLeague === "CFB" && gameConference !== "ALL" && !gameConferences(game).includes(gameConference)) return false;
@@ -530,9 +533,9 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
       {limitReached && <div className="empty-state side-bet-empty-state"><NumericText text={`Your ${weeklyLimit} side bet slots are accepted or pending this week.`} /></div>}
       {!limitReached && openGames.length === 0 && <div className="empty-state side-bet-empty-state">No games are available.</div>}
       {!limitReached && openGames.length > 0 && filteredOpenGames.length === 0 && <div className="empty-state side-bet-empty-state">{offerPhase === "live" ? "No live games have this market available right now." : "No pregame markets are available."}</div>}
-      {!limitReached && filteredOpenGames.length > 0 && <div className="game-days side-bet-game-days">{sideBetGameGroups.map((group) => <section key={group.key} className="game-day-section">
-        <div className="game-day-marker"><b>{group.shortDay}</b><strong>{group.label}</strong></div>
-        <div className="game-list">{group.games.map((game) => <SideBetGameCard
+      {!limitReached && filteredOpenGames.length > 0 && <div className="game-days side-bet-game-days">{sideBetGameGroups.map((group) => <BoardLeagueSection key={group.key} league={gameLeague}
+        label={gameLeague === "CFB" ? "College Football" : gameLeague === "CBB" ? "College Basketball" : gameLeague === "NFL" ? "NFL" : "NBA"}>
+        {group.games.map((game) => <SideBetGameCard
           key={game.id}
           game={game}
           market={marketQuotes[game.id]?.phase === offerPhase ? marketQuotes[game.id] : undefined}
@@ -547,8 +550,8 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
           })()}
           onSelect={selectSide}
           openPreview={openPreview}
-        />)}</div>
-      </section>)}</div>}
+        />)}
+      </BoardLeagueSection>)}</div>}
     </div>}
 
     {view === "new" && !weekConcluded && selectedGame && selectedCreatorTeam && !slipExpanded && <button className="side-bet-slip-bar" type="button" aria-expanded="false" onClick={() => setSlipExpanded(true)}>
@@ -636,7 +639,7 @@ export function SideBetCenter({ appSlug, view, setView, currentUser, profiles, s
         </div>
       </section>}
 
-    {view === "offers" && (weekIsOpen || weekConcluded) && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter))} currentUser={currentUser} marketQuotes={marketQuotes} empty={hideAcceptedBets ? "No offers yet." : weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
+    {view === "offers" && (weekIsOpen || weekConcluded) && <SideBetList bets={offers.filter((bet) => (!bet.game || gameDayKey(bet.game.commence_time) === selectedDayKey) && sideBetMatchesGameFilter(bet, offerGameFilter))} currentUser={currentUser} marketQuotes={marketQuotes} empty={hideAcceptedBets ? "No offers yet." : weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>

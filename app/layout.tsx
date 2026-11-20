@@ -27,7 +27,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#20282d"
+  themeColor: "#fbfaf6"
 };
 
 const CRITICAL_HEADER_CSS = `
