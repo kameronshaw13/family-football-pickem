@@ -9862,3 +9862,22 @@ html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-settings svg 
   top: calc(env(safe-area-inset-top) + var(--header-height) + 45px);
   z-index: 18;
 }
+
+/* Center Today even on the first or last day of a selected week. The extra
+   blank space is SCROLL PADDING, never another date from an adjacent week. */
+.picks-panel .board-day-selector,
+.picks-panel > .board-day-selector {
+  padding-inline: max(var(--page-gutter), calc(50% - 46px));
+  scroll-padding-inline: max(var(--page-gutter), calc(50% - 46px));
+}
+.picks-panel .board-day-selector > button {
+  flex: 0 0 92px;
+}
+@media (max-width: 380px) {
+  .picks-panel .board-day-selector,
+  .picks-panel > .board-day-selector {
+    padding-inline: max(var(--page-gutter), calc(50% - 44px));
+    scroll-padding-inline: max(var(--page-gutter), calc(50% - 44px));
+  }
+  .picks-panel .board-day-selector > button { flex-basis: 88px; }
+}
