@@ -76,10 +76,14 @@ import {
   conferenceFilterSections,
 } from "@/components/PickemStandingsViews";
 import BoardLeagueSection from "@/components/BoardLeagueSection";
+import BoardDaySelector from "@/components/BoardDaySelector";
 
-export function SideBetCenter({ appSlug, selectedDayKey, view, setView, currentUser, profiles, sideBets, hideAcceptedBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview, onBlockedOffer }: {
+export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayKey, onSelectDay, view, setView, currentUser, profiles, sideBets, hideAcceptedBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview, onBlockedOffer }: {
   appSlug: AppSlug;
   selectedDayKey: string;
+  calendarDays: string[];
+  todayDayKey: string;
+  onSelectDay: (day: string) => void;
   view: BetView;
   setView: (value: BetView) => void;
   onBlockedOffer: () => void;
@@ -525,6 +529,10 @@ export function SideBetCenter({ appSlug, selectedDayKey, view, setView, currentU
       </div>
     </div>}
 
+    {view === "new" && weekIsOpen && !weekConcluded && <BoardDaySelector
+      days={calendarDays} value={selectedDayKey} today={todayDayKey} onChange={onSelectDay}
+    />}
+
     {view === "new" && weekConcluded && <div className="side-bet-sportsbook-board"><div className="empty-state side-bet-empty-state">This week has concluded.</div></div>}
 
     {!weekConcluded && !weekIsOpen && <div className="side-bet-sportsbook-board"><div className="notice-card side-bet-empty-state">{weekOpenTime ? <>This week opens on <NumericText text={openText(weekOpenTime)} />.</> : "This week is not open yet."}</div></div>}
@@ -639,7 +647,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, view, setView, currentU
         </div>
       </section>}
 
-    {view === "offers" && (weekIsOpen || weekConcluded) && <SideBetList bets={offers.filter((bet) => (!bet.game || gameDayKey(bet.game.commence_time) === selectedDayKey) && sideBetMatchesGameFilter(bet, offerGameFilter))} currentUser={currentUser} marketQuotes={marketQuotes} empty={hideAcceptedBets ? "No offers yet." : weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
+    {view === "offers" && (weekIsOpen || weekConcluded) && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter))} currentUser={currentUser} marketQuotes={marketQuotes} empty={hideAcceptedBets ? "No offers yet." : weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
       <section className="confirmation-sheet" role="dialog" aria-modal="true" aria-labelledby="accept-bet-title" onClick={(event) => event.stopPropagation()}>

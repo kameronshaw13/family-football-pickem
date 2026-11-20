@@ -1676,12 +1676,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             </BoardLeagueSection>)}
           </div>
         </>}
-        {picksView === "sideBets" && <BoardDaySelector days={calendarDays} value={selectedDayKey} today={todayDayKey}
-          onChange={day => { setBoardDaySelection({ scope: dayScope, day }); setBetGameId(""); setBetCreatorTeam(""); }} />}
         {picksView === "sideBets" && sideBetAccessDenied && <div className="notice-card" role="alert">No access to Side Bets.</div>}
         {picksView === "sideBets" && !sideBetAccessDenied && <SideBetCenter
           appSlug={appSlug}
           selectedDayKey={selectedDayKey}
+          calendarDays={calendarDays}
+          todayDayKey={todayDayKey}
+          onSelectDay={day => { setBoardDaySelection({ scope: dayScope, day }); setBetGameId(""); setBetCreatorTeam(""); }}
           view={betView}
           setView={setBetView}
           onBlockedOffer={() => notify("Side bets are disabled for you.", "error")}
