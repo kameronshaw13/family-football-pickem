@@ -9561,21 +9561,6 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 }
 
 
-/* Game area stays deep gray through the end of the viewport, while the
-   space ABOVE the Pick Board controls retains the same existing light canvas
-   color as My Card / League Cards. */
-.app-shell:has(.picks-panel .board-league-days) {
-  background: linear-gradient(
-    to bottom,
-    var(--canvas) 0,
-    var(--canvas) calc(env(safe-area-inset-top) + var(--header-height) + var(--space-3)),
-    var(--canvas-deep) calc(env(safe-area-inset-top) + var(--header-height) + var(--space-3))
-  );
-}
-.app-shell:has(.picks-panel .board-league-days) > .container,
-.picks-panel:has(.board-league-days) {
-  background: transparent;
-}
 
 /* Pick Board controls scroll naturally like the Standings and My Card sections.
    Only individual sport/league headings stick below the permanent app header. */
@@ -9585,17 +9570,6 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   margin: 0 calc(var(--page-gutter) * -1);
   padding-inline: var(--page-gutter);
   background: var(--canvas);
-}
-/* No fixed canvas strip should remain above the moving controls. */
-.picks-panel > .picks-top-controls::before {
-  position: absolute;
-  top: calc(-1 * var(--space-3));
-  right: 0;
-  left: 0;
-  height: 0;
-  background: transparent;
-  content: none;
-  pointer-events: none;
 }
 
 /* Keep the SAME typography, selection underline and divider as the existing
@@ -9771,38 +9745,49 @@ html[data-theme="dark"] .picks-panel .board-filter-row .custom-select-option.sel
 /* Reduce the bottom of the date strip by 3px without moving date lettering. */
 .picks-panel .board-sticky-controls > .board-day-selector > button { min-height: 51px; padding-bottom: 0; }
 
-/* =====================================================================
-   NOV 20 LIGHT CHROME EXPERIMENT — reversible in this single block.
-   To return to the original graphite header/nav, remove this section.
-   The existing per-user Light/Dark setting continues to take precedence.
-   ===================================================================== */
+/* ================================================================
+   PICK'EM LIGHT THEME — single source of truth for chrome and board.
+   Keep theme accents and the board surface adjustable here.
+   Dark mode continues to use its existing defaults.
+   ================================================================ */
 html:not([data-theme="dark"]) {
   --canvas: #fbfaf6;
-  --canvas-deep: #f2f0e9;
+  --canvas-deep: #e3e6e3;
   --nav-surface: #fbfaf6;
   --app-chrome-ink: #20282d;
   --app-chrome-muted: #667178;
   --app-chrome-border: #d6d9d4;
+  --app-board-background: #e3e6e3;
+  --app-logo-blue: #4d91b8;
 }
+html:not([data-theme="dark"]),
+html:not([data-theme="dark"]) body { background: var(--canvas) !important; }
+
+/* Cream header, white/cream nav, full-color Shaw wordmark. */
 html:not([data-theme="dark"]) .scoreboard-header,
 html:not([data-theme="dark"]) .scoreboard-header::before {
-  background: var(--panel) !important;
   color: var(--app-chrome-ink) !important;
+  background: var(--canvas) !important;
 }
 html:not([data-theme="dark"]) .scoreboard-header {
-  box-shadow: inset 0 -2px 0 var(--blue);
-}
-html:not([data-theme="dark"]) .scoreboard-header .header-wordmark {
-  filter: none;
+  box-shadow: inset 0 -2px 0 var(--blue) !important;
 }
 html:not([data-theme="dark"]) .header-menu-select .custom-select-trigger,
 html:not([data-theme="dark"]) .header-menu-select > svg,
-html:not([data-theme="dark"]) .header-refresh-indicator {
-  color: var(--app-chrome-ink) !important;
-}
+html:not([data-theme="dark"]) .header-refresh-indicator { color: var(--app-chrome-ink) !important; }
 html:not([data-theme="dark"]) .week-select-wrap::after {
   background: var(--app-chrome-border);
 }
+html:not([data-theme="dark"]) .scoreboard-header .header-wordmark {
+  filter: none !important;
+}
+/* Only the Football/Basketball Pick'em wordmarks get a blue face.
+   Do not filter the Shaw Family logo or the other team logos. */
+html:not([data-theme="dark"]) .scoreboard-header .header-wordmark-pickem {
+  filter: brightness(0) saturate(100%) invert(57%) sepia(18%)
+    saturate(1308%) hue-rotate(156deg) brightness(96%) contrast(91%) !important;
+}
+
 html:not([data-theme="dark"]) .primary-nav {
   background: var(--nav-surface) !important;
   border-top: 1px solid var(--app-chrome-border) !important;
@@ -9817,25 +9802,20 @@ html:not([data-theme="dark"]) .primary-nav button.active,
 html:not([data-theme="dark"]) .primary-nav button.active .nav-icon,
 html:not([data-theme="dark"]) .primary-nav button.active svg {
   color: var(--app-chrome-ink) !important;
-  stroke: currentColor !important;
+  stroke: var(--app-chrome-ink) !important;
 }
-/* Mirror the original solid-white active icons in graphite for light chrome. */
 html:not([data-theme="dark"]) .primary-nav button.active svg {
   fill: var(--app-chrome-ink) !important;
-  stroke: var(--app-chrome-ink) !important;
   stroke-width: 2;
 }
 html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-card svg rect {
   fill: var(--app-chrome-ink) !important;
-  stroke: var(--app-chrome-ink) !important;
 }
 html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-card svg path {
-  fill: none !important;
-  stroke: var(--nav-surface) !important;
+  fill: none !important; stroke: var(--nav-surface) !important;
 }
 html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-standings svg path {
-  fill: none !important;
-  stroke: var(--app-chrome-ink) !important;
+  fill: none !important; stroke: var(--app-chrome-ink) !important;
 }
 html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-standings svg path:last-child {
   fill: var(--app-chrome-ink) !important;
@@ -9846,115 +9826,18 @@ html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-settings svg 
   stroke-width: 1;
 }
 
-/* The Pick Board / Side Bets tab row sticks exactly like My Card & Standings.
-   Filters and date strips stay in document flow and disappear during scrolling. */
-.picks-panel > .section-tabs {
-  position: sticky;
-  top: calc(env(safe-area-inset-top) + var(--header-height));
-  z-index: 23;
-}
-.picks-panel > .picks-top-controls {
-  position: relative;
-  z-index: auto;
-}
-.picks-panel > .board-day-selector {
-  box-sizing: border-box;
-  min-height: 51px;
-  margin: 0 calc(var(--page-gutter) * -1);
-  padding-inline: var(--page-gutter);
-  background: var(--canvas) !important;
-  border-bottom: 1px solid var(--line) !important;
-}
-.picks-panel > .board-day-selector > button {
-  min-width: 92px;
-  min-height: 51px;
-  padding-inline: 5px;
-  padding-bottom: 0;
-}
-.picks-panel .side-bet-game-days .game-day-marker {
-  position: sticky;
-  top: calc(env(safe-area-inset-top) + var(--header-height) + 45px);
-  z-index: 18;
-}
-
-/* Center Today even on the first or last day of a selected week. The extra
-   blank space is SCROLL PADDING, never another date from an adjacent week. */
-.picks-panel .board-day-selector,
-.picks-panel > .board-day-selector {
-  padding-inline: max(var(--page-gutter), calc(50% - 46px));
-  scroll-padding-inline: max(var(--page-gutter), calc(50% - 46px));
-}
-.picks-panel .board-day-selector > button {
-  flex: 0 0 92px;
-}
-@media (max-width: 380px) {
-  .picks-panel .board-day-selector,
-  .picks-panel > .board-day-selector {
-    padding-inline: max(var(--page-gutter), calc(50% - 44px));
-    scroll-padding-inline: max(var(--page-gutter), calc(50% - 44px));
-  }
-  .picks-panel .board-day-selector > button { flex-basis: 88px; }
-}
-
-/* Keep the iPhone's top/bottom overscroll surfaces consistent with light chrome. */
-html:not([data-theme="dark"]),
-html:not([data-theme="dark"]) body {
-  background: var(--canvas) !important;
-}
-
-/* Light chrome: the breathing room above filters and below Pick Board/Side
-   Bets tabs is the same cream as the rest of the page, not a gray band. */
+/* Under the Pick Board/Side Bets controls, gray continues all the way down,
+   including a completely collapsed or empty day. No two-tone gradient. */
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel),
 html:not([data-theme="dark"]) .app-shell:has(.picks-panel .board-league-days) {
-  background: var(--canvas) !important;
-}
-html:not([data-theme="dark"]) .picks-panel,
-html:not([data-theme="dark"]) .picks-panel > .section-tabs,
-html:not([data-theme="dark"]) .picks-panel > .picks-top-controls,
-html:not([data-theme="dark"]) .picks-panel .board-filter-row,
-html:not([data-theme="dark"]) .picks-panel .board-day-selector {
-  background: var(--canvas) !important;
-}
-
-/* =====================================================================
-   NOV 20 EXPERIMENT: solid primary-blue top chrome.
-   To try cream again, change this one token to var(--panel) and reverse
-   the header text/underline values in this block. Do not filter logos.
-   ===================================================================== */
-html:not([data-theme="dark"]) {
-  --app-header-fill: var(--blue);
-  --app-header-foreground: #fff;
-  --app-board-background: #e3e6e3;
-}
-html:not([data-theme="dark"]) .scoreboard-header,
-html:not([data-theme="dark"]) .scoreboard-header::before {
-  background: var(--app-header-fill) !important;
-  color: var(--app-header-foreground) !important;
-}
-html:not([data-theme="dark"]) .scoreboard-header {
-  box-shadow: none !important;
-}
-html:not([data-theme="dark"]) .scoreboard-header .header-wordmark {
-  filter: none !important;
-}
-html:not([data-theme="dark"]) .header-menu-select .custom-select-trigger,
-html:not([data-theme="dark"]) .header-menu-select > svg,
-html:not([data-theme="dark"]) .header-refresh-indicator {
-  color: var(--app-header-foreground) !important;
-}
-html:not([data-theme="dark"]) .week-select-wrap::after {
-  background: rgba(255, 255, 255, .82);
-}
-
-/* Full-height dark-gray board area; no return to the pale cream after a
-   narrow gutter. Keep the pinned tabs, filters, and date-strip cream. */
-html:not([data-theme="dark"]) .app-shell:has(.picks-panel) {
   background: var(--app-board-background) !important;
 }
-html:not([data-theme="dark"]) .app-shell:has(.picks-panel) > .container {
-  background: linear-gradient(to bottom, var(--canvas) 0 12px, transparent 12px);
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel) > .container,
+html:not([data-theme="dark"]) .picks-panel {
+  background: transparent !important;
 }
 html:not([data-theme="dark"]) .picks-panel {
-  background: var(--app-board-background) !important;
+  min-height: calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom));
 }
 html:not([data-theme="dark"]) .picks-panel > .section-tabs,
 html:not([data-theme="dark"]) .picks-panel > .picks-top-controls,
@@ -9968,60 +9851,74 @@ html:not([data-theme="dark"]) .picks-panel .side-bet-sportsbook-board {
   background: var(--app-board-background) !important;
 }
 
-/* Make Offer follows precisely the Pick Board stack: filters above date strip,
-   with no extra gutter added by the standalone Side Bets date component. */
-.picks-panel .side-bet-top-controls {
-  margin: 0 calc(var(--page-gutter) * -1);
-  padding-inline: var(--page-gutter);
+/* The main two-tab bar is the ONLY sticky control row; filters/day strip
+   scroll out. League headings stick just beneath this bar. */
+.picks-panel > .section-tabs {
+  position: sticky;
+  top: calc(env(safe-area-inset-top) + var(--header-height));
+  z-index: 23;
 }
-.picks-panel .side-bet-top-controls > .side-bet-offer-mode-row {
-  margin-bottom: 0;
+.picks-panel > .picks-top-controls { position: relative; z-index: auto; }
+.picks-panel .board-league-group > .board-league-header {
+  top: calc(env(safe-area-inset-top) + var(--header-height) + 45px);
 }
-.picks-panel .side-bet-top-controls > .board-day-selector {
-  box-sizing: border-box;
-  min-height: 51px;
-  margin: 0 calc(var(--page-gutter) * -1);
-  padding-inline: max(var(--page-gutter), calc(50% - 46px));
-  background: var(--canvas) !important;
-  border-bottom: 1px solid var(--line) !important;
-}
-.picks-panel .side-bet-top-controls > .board-day-selector > button {
+.picks-panel .board-day-selector > button {
   flex: 0 0 92px;
   min-height: 51px;
   padding-inline: 5px;
   padding-bottom: 0;
 }
+.picks-panel .board-day-selector {
+  padding-inline: max(var(--page-gutter), calc(50% - 46px));
+  scroll-padding-inline: max(var(--page-gutter), calc(50% - 46px));
+  min-height: 51px;
+  border-bottom: 1px solid var(--line) !important;
+}
 @media (max-width: 380px) {
-  .picks-panel .side-bet-top-controls > .board-day-selector {
+  .picks-panel .board-day-selector > button { flex-basis: 88px; }
+  .picks-panel .board-day-selector {
     padding-inline: max(var(--page-gutter), calc(50% - 44px));
-  }
-  .picks-panel .side-bet-top-controls > .board-day-selector > button {
-    flex-basis: 88px;
+    scroll-padding-inline: max(var(--page-gutter), calc(50% - 44px));
   }
 }
 
-/* Side Bets must use the same edge-to-edge content canvas as Pick Board.
-   The section itself spans the page; only text/control interiors have gutters. */
-.picks-panel .side-bet-center {
-  width: 100%;
-  min-width: 0;
-}
-.picks-panel .side-bet-sportsbook-board {
+/* Side Bet filters and day selector have one full-width cream surface. */
+.picks-panel > .side-bet-center {
   width: calc(100% + 2 * var(--page-gutter));
-  margin-inline: calc(var(--page-gutter) * -1);
+  min-width: 0;
+  margin-inline: calc(-1 * var(--page-gutter));
+}
+.picks-panel .side-bet-top-controls { margin: 0; padding-inline: var(--page-gutter); }
+.picks-panel .side-bet-top-controls > .side-bet-offer-mode-row { margin-bottom: 0; }
+.picks-panel .side-bet-top-controls > .board-day-selector {
+  margin: 0 calc(-1 * var(--page-gutter));
+  background: var(--canvas) !important;
+}
+
+/* Nested negative gutters previously canceled some full-width fixes and
+   cut off Side Bet matchup cards. Each nested layer is 100% of its parent. */
+.picks-panel .side-bet-sportsbook-board {
+  width: 100%;
+  margin-inline: 0;
+  padding-bottom: var(--space-2);
 }
 .picks-panel .side-bet-sportsbook-board .side-bet-game-days {
+  display: grid;
   width: 100%;
   margin-inline: 0;
   padding: 9px 0;
-  display: grid;
   gap: 9px;
 }
-.picks-panel .side-bet-sportsbook-board .board-league-group {
+.picks-panel .side-bet-sportsbook-board .board-league-group,
+.picks-panel .side-bet-sportsbook-board .board-league-group > .game-list,
+.picks-panel .side-bet-sportsbook-board .game-card,
+.picks-panel .side-bet-list,
+.picks-panel .side-bet-list-section {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   margin-inline: 0;
 }
 .picks-panel .side-bet-sportsbook-board .board-league-group > .game-list {
-  margin-inline: 0;
   margin-bottom: 0;
 }
