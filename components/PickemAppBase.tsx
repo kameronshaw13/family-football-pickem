@@ -1592,7 +1592,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       {hasActiveGames && scoreUpdatesUnavailable && <div className="feed-notice" role="status">Score updates are delayed. Showing the last available scores.</div>}
       {previewActive && <div className="test-mode-banner"><span><FlaskConical size={16} /><span><strong>Board state preview</strong><small>No real picks or bank balances are changed</small></span></span><button type="button" onClick={() => { setTestWeekActive(false); }}><X size={16} /> Exit</button></div>}
 
-      {tab === "picks" && <section className="panel picks-panel">
+      {tab === "picks" && <section className={`panel picks-panel ${picksView === "board" ? "board-view" : "side-bets-view"}`}>
         {!previewActive && picksView === "board" && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens on <NumericText text={openText(data.weekOpenTime)} />.</div>}
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: "Side Bets", badge: picksNotificationCount }]} value={picksView} onChange={(value) => {
           if (value === "sideBets" && sideBetAccessDenied) {
