@@ -1,6 +1,6 @@
 import type { Game, SideBetMarketQuote } from "./types";
 import { fetchEspnSchedule } from "./espnSchedule";
-import { normalizeVerifiedMarketSpread } from "./marketSpread";
+import { alignSpreadFavoriteWithMoneyline, normalizeVerifiedMarketSpread } from "./marketSpread";
 
 function finite(value: unknown) {
   if (value == null || value === "") return null;
@@ -27,7 +27,8 @@ export function espnDraftKingsBasketballQuote(game: Game, row: any, state: strin
     : null);
   const moneyline = awayOdds != null && homeOdds != null ? { awayOdds, homeOdds, suspended: false } : null;
   const total = points != null && points > 0 ? { points, overOdds: odds(row.total?.over?.close?.odds), underOdds: odds(row.total?.under?.close?.odds), suspended: false } : null;
-  return spread || moneyline || total ? { gameId: game.id, phase: "pregame", status: "scheduled", spread, moneyline, total } : null;
+  const verifiedSpread = alignSpreadFavoriteWithMoneyline(spread, moneyline);
+  return verifiedSpread || moneyline || total ? { gameId: game.id, phase: "pregame", status: "scheduled", spread: verifiedSpread, moneyline, total } : null;
 }
 
 export async function fetchEspnBasketballMarkets(games: Game[]) {

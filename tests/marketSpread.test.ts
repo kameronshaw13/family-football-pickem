@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { hasUsableStoredGameSpread, normalizeVerifiedMarketSpread, verifiedClosingSpread } from "../lib/marketSpread.ts";
+import { alignSpreadFavoriteWithMoneyline, hasUsableStoredGameSpread, normalizeVerifiedMarketSpread, verifiedClosingSpread } from "../lib/marketSpread.ts";
 import { gradeAgainstSpread, normalizeSpreadForSelectedTeam } from "../lib/spreads.ts";
 
 const pricedPK = { awayPoint: 0, homePoint: 0, awayOdds: -110, homeOdds: -110, suspended: false };
@@ -77,3 +77,18 @@ for (const league of ["CBB", "NBA", "CFB", "NFL"] as const) {
     }
   });
 }
+
+test("unambiguous heavy favorite fixes a swapped neutral-site spread", () => {
+  const incorrect = { awayPoint: 9.5, homePoint: -9.5, awayOdds: -102, homeOdds: -118, suspended: false };
+  const corrected = alignSpreadFavoriteWithMoneyline(incorrect, { awayOdds: -475, homeOdds: 350 });
+  assert.equal(corrected?.awayPoint, -9.5);
+  assert.equal(corrected?.homePoint, 9.5);
+  assert.equal(alignSpreadFavoriteWithMoneyline(incorrect, { awayOdds: -110, homeOdds: -110 })?.awayPoint, 9.5);
+  assert.equal(alignSpreadFavoriteWithMoneyline(incorrect, { awayOdds: -475, homeOdds: 350, suspended: true })?.awayPoint, 9.5);
+});
+test("correctly oriented lines and narrow spreads are never auto-flipped", () => {
+  const correct = { awayPoint: -9.5, homePoint: 9.5, awayOdds: -110, homeOdds: -110, suspended: false };
+  assert.deepEqual(alignSpreadFavoriteWithMoneyline(correct, { awayOdds: -475, homeOdds: 350 }), correct);
+  const tight = { ...correct, awayPoint: 2.5, homePoint: -2.5 };
+  assert.deepEqual(alignSpreadFavoriteWithMoneyline(tight, { awayOdds: -475, homeOdds: 350 }), tight);
+});

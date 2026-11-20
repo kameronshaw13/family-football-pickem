@@ -1,6 +1,6 @@
 import { fetchEspnBasketballMarkets } from "./espnBasketballMarkets";
 import { actionV2MarketRows, type V2MarketGame } from "./actionNetworkV2";
-import { normalizeVerifiedMarketSpread } from "./marketSpread";
+import { alignSpreadFavoriteWithMoneyline, normalizeVerifiedMarketSpread } from "./marketSpread";
 import { isFreshMarketTimestamp } from "./marketFreshness.ts";
 import { officialNflWeek } from "@/lib/cfbMatchupData";
 import type { Game, SideBetMarketQuote, SideBetOfferPhase } from "@/lib/types";
@@ -358,13 +358,17 @@ export function quoteForGame(game: Game, actionGames: ActionGame[]): SideBetMark
   } : providerMoneyline;
   // Keep the NFL favorite when a genuine zero is encoded as a half point.
   const providerSpread = spreadMarket ? verifiedSpreadFromRow(spreadMarket, game.league, providerMoneyline) : null;
-  const verifiedSpread = providerSpread && matchedSwapped ? {
+  const teamIndexedSpread = providerSpread && matchedSwapped ? {
     ...providerSpread,
     awayPoint: providerSpread.homePoint,
     homePoint: providerSpread.awayPoint,
     awayOdds: providerSpread.homeOdds,
     homeOdds: providerSpread.awayOdds
   } : providerSpread;
+  // Validate spread orientation against the same book's priced moneyline.
+  // In rare neutral-site fixtures, market sides disagree despite a valid
+  // team-name match; use the unambiguous heavy favorite as the tie-breaker.
+  const verifiedSpread = alignSpreadFavoriteWithMoneyline(teamIndexedSpread, moneyline);
   const total = finiteNumber(totalMarket?.total);
 
   const quote: SideBetMarketQuote = {

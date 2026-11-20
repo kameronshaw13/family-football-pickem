@@ -9497,21 +9497,22 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   bottom: -1px;
   background: linear-gradient(
     to right,
-    var(--line) 0 calc(var(--matchup-marker-x) - 13px),
-    transparent calc(var(--matchup-marker-x) - 13px) calc(var(--matchup-marker-x) + 13px),
-    var(--line) calc(var(--matchup-marker-x) + 13px) 100%
+    var(--line) 0 calc(var(--matchup-marker-x) - 8px),
+    transparent calc(var(--matchup-marker-x) - 8px) calc(var(--matchup-marker-x) + 8px),
+    var(--line) calc(var(--matchup-marker-x) + 8px) 100%
   );
 }
 .picks-panel .stacked-matchup .team-row:first-child::after {
-  bottom: -10.5px;
+  bottom: -8px;
   display: flex;
-  width: 26px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   align-items: center;
   justify-content: center;
   padding: 0;
   font-size: 11.5px;
   line-height: 1;
+  transform: translate(-50%, -1px);
 }
 
 /* Detail sheets stay below the app header and ABOVE the permanently visible
@@ -9776,16 +9777,12 @@ html:not([data-theme="dark"]) .header-menu-select .custom-select-trigger,
 html:not([data-theme="dark"]) .header-menu-select > svg,
 html:not([data-theme="dark"]) .header-refresh-indicator { color: var(--app-chrome-ink) !important; }
 html:not([data-theme="dark"]) .week-select-wrap::after {
-  background: var(--app-chrome-border);
+  bottom: -2px;
+  height: 2px;
+  background: var(--line-strong);
 }
 html:not([data-theme="dark"]) .scoreboard-header .header-wordmark {
   filter: none !important;
-}
-/* Only the Football/Basketball Pick'em wordmarks get a blue face.
-   Do not filter the Shaw Family logo or the other team logos. */
-html:not([data-theme="dark"]) .scoreboard-header .header-wordmark-pickem {
-  filter: brightness(0) saturate(100%) invert(57%) sepia(18%)
-    saturate(1308%) hue-rotate(156deg) brightness(96%) contrast(91%) !important;
 }
 
 html:not([data-theme="dark"]) .primary-nav {
@@ -9834,7 +9831,15 @@ html:not([data-theme="dark"]) .app-shell:has(.picks-panel) {
   background: var(--canvas) !important;
 }
 html:not([data-theme="dark"]) .app-shell:has(.picks-panel) > .container {
+  /* Gray behind all expanded content and the remaining viewport. The tabs
+     and filters cover this with their own cream surface. */
   background: var(--canvas) !important;
+}
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel.board-view) {
+  background: var(--app-board-background) !important;
+}
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel.board-view) > .container {
+  background: transparent !important;
 }
 html:not([data-theme="dark"]) .picks-panel.board-view {
   min-height: calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - env(safe-area-inset-bottom));
@@ -9857,6 +9862,10 @@ html:not([data-theme="dark"]) .picks-panel .side-bet-sportsbook-board {
 html:not([data-theme="dark"]) .picks-panel.board-view .game-days.board-league-days {
   background: var(--app-board-background) !important;
 }
+html:not([data-theme="dark"]) .picks-panel.board-view .game-days.board-league-days {
+  min-height: calc(100dvh - env(safe-area-inset-top) - var(--header-height) - var(--nav-height) - 160px);
+}
+
 /* Move the space between tabs and filters INSIDE the cream controls.
    Otherwise the board's gray surface leaks through their margin. */
 .picks-panel > .section-tabs {

@@ -42,6 +42,29 @@ export function normalizeVerifiedMarketSpread(league: League, market: TwoWaySpre
   return market;
 }
 
+/**
+ * Provider-neutral spread sign check. A priced, strong moneyline favorite
+ * cannot simultaneously be a multi-point spread underdog at the same book.
+ * Action Network's neutral-site feed sometimes swaps spread orientation even
+ * though the team-indexed moneylines are correct. Correct only unambiguous
+ * cases; small spreads, suspended quotes and missing/ambiguous ML are untouched.
+ */
+export function alignSpreadFavoriteWithMoneyline(
+  spread: TwoWaySpread | null,
+  moneyline?: { awayOdds: number; homeOdds: number; suspended?: boolean } | null
+): TwoWaySpread | null {
+  if (!spread || spread.suspended || !moneyline || moneyline.suspended) return spread;
+  const { awayOdds, homeOdds } = moneyline;
+  if (!Number.isFinite(awayOdds) || !Number.isFinite(homeOdds)) return spread;
+  if (Math.abs(spread.awayPoint) < 3.5 || Math.abs(spread.homePoint) < 3.5) return spread;
+  const awayHeavyFavorite = awayOdds <= -180 && homeOdds >= 130;
+  const homeHeavyFavorite = homeOdds <= -180 && awayOdds >= 130;
+  if ((awayHeavyFavorite && spread.awayPoint > 0) || (homeHeavyFavorite && spread.homePoint > 0)) {
+    return { ...spread, awayPoint: spread.homePoint, homePoint: spread.awayPoint };
+  }
+  return spread;
+}
+
 /** Stored zeroes must be revalidated and converted before becoming pick lines. */
 export function hasUsableStoredGameSpread(game: {
   league?: string;

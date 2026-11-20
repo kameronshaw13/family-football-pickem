@@ -78,12 +78,13 @@ import {
 import BoardLeagueSection from "@/components/BoardLeagueSection";
 import BoardDaySelector from "@/components/BoardDaySelector";
 
-export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayKey, onSelectDay, view, setView, currentUser, profiles, sideBets, hideAcceptedBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview, onBlockedOffer }: {
+export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayKey, onSelectDay, onMarketQuotesReceived, view, setView, currentUser, profiles, sideBets, hideAcceptedBets, slotCounts, maxPerWeek, maxAmount, manualAmount, weekIsOpen, weekConcluded, weekOpenTime, week, openGames, gameLeague, gameConference, selectedGame, selectedCreatorTeam, amount, recipients, saving, savingBetId, offerNotificationCount, modelEdges, setGame, setGameLeague, setGameConference, setCreatorTeam, setAmount, setRecipients, toggleRecipient, createBet, respond, openPreview, onBlockedOffer }: {
   appSlug: AppSlug;
   selectedDayKey: string;
   calendarDays: string[];
   todayDayKey: string;
   onSelectDay: (day: string) => void;
+  onMarketQuotesReceived?: (quotes: SideBetMarketQuote[]) => void;
   view: BetView;
   setView: (value: BetView) => void;
   onBlockedOffer: () => void;
@@ -131,6 +132,8 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
   const [boardMarket, setBoardMarket] = useState<SideBetBoardMarket>("spreads");
   const [marketQuotes, setMarketQuotes] = useState<Record<string, SideBetMarketQuote>>({});
   const marketQuotesRef = useRef<Record<string, SideBetMarketQuote>>({});
+  const onMarketQuotesReceivedRef = useRef(onMarketQuotesReceived);
+  onMarketQuotesReceivedRef.current = onMarketQuotesReceived;
   const marketQuoteRefreshInFlightRef = useRef(false);
   const [customSpread, setCustomSpread] = useState("");
   const [oddsInput, setOddsInput] = useState("100");
@@ -252,7 +255,11 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
       });
       const payload = await response.json();
       if (!response.ok || !Array.isArray(payload.markets)) return marketQuotesRef.current;
-      const next = Object.fromEntries((payload.markets as SideBetMarketQuote[]).map((quote) => [quote.gameId, quote]));
+      const verifiedQuotes = payload.markets as SideBetMarketQuote[];
+      // Keep the Pick Board game cache synchronized with the exact Side Bets
+      // market payload instead of waiting for its separate polling cycle.
+      onMarketQuotesReceivedRef.current?.(verifiedQuotes);
+      const next = Object.fromEntries(verifiedQuotes.map((quote) => [quote.gameId, quote]));
       const previous = marketQuotesRef.current;
       if (JSON.stringify(previous) !== JSON.stringify(next)) {
         marketQuotesRef.current = next;
