@@ -9914,3 +9914,88 @@ html:not([data-theme="dark"]) .picks-panel .board-filter-row,
 html:not([data-theme="dark"]) .picks-panel .board-day-selector {
   background: var(--canvas) !important;
 }
+
+/* =====================================================================
+   NOV 20 EXPERIMENT: solid primary-blue top chrome.
+   To try cream again, change this one token to var(--panel) and reverse
+   the header text/underline values in this block. Do not filter logos.
+   ===================================================================== */
+html:not([data-theme="dark"]) {
+  --app-header-fill: var(--blue);
+  --app-header-foreground: #fff;
+  --app-board-background: #e3e6e3;
+}
+html:not([data-theme="dark"]) .scoreboard-header,
+html:not([data-theme="dark"]) .scoreboard-header::before {
+  background: var(--app-header-fill) !important;
+  color: var(--app-header-foreground) !important;
+}
+html:not([data-theme="dark"]) .scoreboard-header {
+  box-shadow: none !important;
+}
+html:not([data-theme="dark"]) .scoreboard-header .header-wordmark {
+  filter: none !important;
+}
+html:not([data-theme="dark"]) .header-menu-select .custom-select-trigger,
+html:not([data-theme="dark"]) .header-menu-select > svg,
+html:not([data-theme="dark"]) .header-refresh-indicator {
+  color: var(--app-header-foreground) !important;
+}
+html:not([data-theme="dark"]) .week-select-wrap::after {
+  background: rgba(255, 255, 255, .82);
+}
+
+/* Full-height dark-gray board area; no return to the pale cream after a
+   narrow gutter. Keep the pinned tabs, filters, and date-strip cream. */
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel) {
+  background: var(--app-board-background) !important;
+}
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel) > .container {
+  background: linear-gradient(to bottom, var(--canvas) 0 12px, transparent 12px);
+}
+html:not([data-theme="dark"]) .picks-panel {
+  background: var(--app-board-background) !important;
+}
+html:not([data-theme="dark"]) .picks-panel > .section-tabs,
+html:not([data-theme="dark"]) .picks-panel > .picks-top-controls,
+html:not([data-theme="dark"]) .picks-panel .board-filter-row,
+html:not([data-theme="dark"]) .picks-panel .board-day-selector,
+html:not([data-theme="dark"]) .picks-panel .side-bet-top-controls {
+  background: var(--canvas) !important;
+}
+html:not([data-theme="dark"]) .picks-panel .game-days.board-league-days,
+html:not([data-theme="dark"]) .picks-panel .side-bet-sportsbook-board {
+  background: var(--app-board-background) !important;
+}
+
+/* Make Offer follows precisely the Pick Board stack: filters above date strip,
+   with no extra gutter added by the standalone Side Bets date component. */
+.picks-panel .side-bet-top-controls {
+  margin: 0 calc(var(--page-gutter) * -1);
+  padding-inline: var(--page-gutter);
+}
+.picks-panel .side-bet-top-controls > .side-bet-offer-mode-row {
+  margin-bottom: 0;
+}
+.picks-panel .side-bet-top-controls > .board-day-selector {
+  box-sizing: border-box;
+  min-height: 51px;
+  margin: 0 calc(var(--page-gutter) * -1);
+  padding-inline: max(var(--page-gutter), calc(50% - 46px));
+  background: var(--canvas) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+.picks-panel .side-bet-top-controls > .board-day-selector > button {
+  flex: 0 0 92px;
+  min-height: 51px;
+  padding-inline: 5px;
+  padding-bottom: 0;
+}
+@media (max-width: 380px) {
+  .picks-panel .side-bet-top-controls > .board-day-selector {
+    padding-inline: max(var(--page-gutter), calc(50% - 44px));
+  }
+  .picks-panel .side-bet-top-controls > .board-day-selector > button {
+    flex-basis: 88px;
+  }
+}
