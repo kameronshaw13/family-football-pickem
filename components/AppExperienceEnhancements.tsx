@@ -11,7 +11,6 @@ type Preferences = {
 const STORAGE_KEY = "pickem_ui_preferences_v2";
 const LEGACY_STORAGE_KEY = "pickem_ui_preferences_v1";
 const WEEK_MENU_LABELS = new Set(["Select week", "Select profile year"]);
-const DEFAULT_COLLEGE_MENUS = new Set(["Choose sport or underdog games", "Filter side bet games by league"]);
 
 function readPreferences(): Preferences {
   try { return JSON.parse(window.sessionStorage.getItem(STORAGE_KEY) || "{}") as Preferences; } catch { return {}; }
@@ -61,9 +60,7 @@ function restorePreferences() {
     const panel = document.querySelector<HTMLElement>("main.container > section.panel");
     if (panelKey && panel && prefs.sectionTabs?.[panelKey]) clickByLabel(panel, ".section-tabs button", prefs.sectionTabs[panelKey]);
     window.setTimeout(() => {
-      for (const [ariaLabel, selectedText] of Object.entries(prefs.menus || {})) {
-        if (!DEFAULT_COLLEGE_MENUS.has(ariaLabel)) chooseMenu(ariaLabel, selectedText);
-      }
+      for (const [ariaLabel, selectedText] of Object.entries(prefs.menus || {})) chooseMenu(ariaLabel, selectedText);
     }, 0);
   }, 0);
 }
@@ -91,7 +88,7 @@ function rememberClick(event: MouseEvent) {
   const trigger = root?.querySelector<HTMLButtonElement>(".custom-select-trigger");
   const ariaLabel = trigger?.getAttribute("aria-label") || "";
   const label = cleanLabel(option).replace(/\s+\d+$/, "").trim();
-  if (!ariaLabel || !label || WEEK_MENU_LABELS.has(ariaLabel) || DEFAULT_COLLEGE_MENUS.has(ariaLabel)) return;
+  if (!ariaLabel || !label || WEEK_MENU_LABELS.has(ariaLabel)) return;
   updatePreferences((prefs) => ({ ...prefs, menus: { ...(prefs.menus || {}), [ariaLabel]: label } }));
 }
 function closeConfirmationOnBackdrop(event: PointerEvent) {

@@ -16,7 +16,7 @@ import BasketballGameDetails from "@/components/BasketballGameDetails";
 import HeaderLeaguePicker from "@/components/HeaderLeaguePicker";
 import BoardDaySelector from "@/components/BoardDaySelector";
 import BoardLeagueSection from "@/components/BoardLeagueSection";
-import { cbbConferenceAbbreviation, cbbGameMatchesConference, type CbbConferenceMap } from "@/lib/cbbConferences";
+import { cbbGameMatchesConference, type CbbConferenceMap } from "@/lib/cbbConferences";
 import { AppChrome } from "@/components/PersistentAppChrome";
 import PrimaryBottomNav from "@/components/PrimaryBottomNav";
 import { warmLeagueData } from "@/lib/leagueWarmup";
@@ -192,7 +192,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const [betView, setBetView] = useState<BetView>("offers");
   const [sideBetLedgerScope, setSideBetLedgerScope] = useState<SideBetLedgerScope>("all");
   const [sideBetLedgerGameFilter, setSideBetLedgerGameFilter] = useState<SideBetGameFilter>("all");
-  const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>(() => appSlug === "friends-basketball" ? "CBB" : "CFB");
+  const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>("ALL");
   const [boardStatusFilter, setBoardStatusFilter] = useState<"ALL" | "LIVE" | "UPCOMING" | "FINAL">("ALL");
   const [conferenceFilter, setConferenceFilter] = useState("ALL");
   const [cbbConferenceFilter, setCbbConferenceFilter] = useState("ALL");
@@ -1306,6 +1306,17 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const boardGames = boardActive ? viewedGames.filter(game => {
     if (game.event_status === "STATUS_RESCHEDULED" && game.espn_event_id &&
         replacementEventIds.has(`${game.league}:${game.espn_event_id}`)) return false;
+    if (leagueFilter === "ALL") {
+      // "All" includes pro and college games; narrowing the second dropdown
+      // focuses the list on the matching college games.
+      if (appSlug === "friends-basketball")
+        return game.league === "CBB"
+          ? cbbMatchesSelectedFilter(game)
+          : game.league === "NBA" && cbbConferenceFilter === "ALL";
+      return game.league === "CFB"
+        ? cfbMatchesSelectedFilter(game)
+        : game.league === "NFL" && conferenceFilter === "ALL";
+    }
     if (leagueFilter === "CFB") return game.league === "CFB" && cfbMatchesSelectedFilter(game);
     if (leagueFilter === "CBB") return game.league === "CBB" && cbbMatchesSelectedFilter(game);
     if (leagueFilter === "NFL" || leagueFilter === "NBA") return game.league === leagueFilter;
@@ -1359,6 +1370,21 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const favoriteSet = new Set(favoriteGames);
   const favoriteDayGames = filteredGames.filter(game => favoriteSet.has(favoriteKey(game)));
   // Favorites are an extra view of games, never a move out of their league.
+  const otherDayGames = filteredGames;
+  // Keep CBB/NBA and CFB/NFL visibly separate on the selected day.
+  // The league heading for each group can collapse its games independently.
+  const boardLeagueGroups = (appSlug === "friends-basketball" ? ["CBB", "NBA"] : ["CFB", "NFL"])
+    .map(league => ({
+      league,
+      label: league === "CBB" ? "College Basketball"
+        : league === "NBA" ? "NBA Basketball"
+        : league === "CFB" ? "College Football" : "NFL Football",
+      games: otherDayGames.filter(game => game.league === league)
+    }))
+    .filter(group => group.games.length > 0)
+    // When the league filter is All, put whichever sport has a live game
+    // first; ties retain the established CFB/NFL or CBB/NBA order.
+    .sort((a, b) => gameBoardOrder(a.games[0]) - gameBoardOrder(b.games[0]));
   const toggleFavoriteGame = (game: Game) => {
     const key = favoriteKey(game);
     setFavoriteGames(existing => {
@@ -1576,11 +1602,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               onChange={value => setBoardStatusFilter(value as "ALL" | "LIVE" | "UPCOMING" | "FINAL")} />
             <MenuSelect ariaLabel="Choose sport or underdog games" className="compact-select league-select" value={leagueFilter}
               sections={[{ options: [
+                { value: "ALL", label: "All" },
                 ...(appSlug === "friends-basketball" ? ["CBB", "NBA"] : ["CFB", "NFL"]).map(value => ({ value, label: value })),
                 { value: "DOGS", label: "Dogs" }
               ] }]}
               onChange={value => setLeagueFilter(value as LeagueFilter)} />
-            {leagueFilter === "CFB" && <MenuSelect
+            {(leagueFilter === "CFB" || (leagueFilter === "ALL" && appSlug !== "friends-basketball")) && <MenuSelect
               ariaLabel="Filter college football by rankings or conference"
               className="compact-select context-select"
               value={conferenceFilter}
@@ -1598,7 +1625,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               ]}
               onChange={setConferenceFilter}
             />}
-            {leagueFilter === "CBB" && <MenuSelect
+            {(leagueFilter === "CBB" || (leagueFilter === "ALL" && appSlug === "friends-basketball")) && <MenuSelect
               ariaLabel="Filter college basketball by conference or Top 25"
               className="compact-select context-select"
               value={cbbConferenceFilter}
@@ -1609,7 +1636,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
                   options: [
                     { value: tier, label: tier === "POWER" ? "ALL POWER 5" : tier === "MID" ? "ALL MID-MAJOR" : "ALL LOW-MAJOR" },
                     ...(cbbConferences?.conferences.filter(conference => conference.category === tier)
-                      .map(conference => ({ value: conference.value, label: cbbConferenceAbbreviation(conference.label) })) || [])
+                      .map(conference => ({ value: conference.value, label: conference.label })) || [])
                   ]
                 }))
               ]}
@@ -1630,7 +1657,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               league="Favorites" label="Favorites" favorite>
               {favoriteDayGames.map(renderBoardGame)}
             </BoardLeagueSection>}
-            {filteredGames.length > 0 && <div className="game-list board-plain-games">{filteredGames.map(renderBoardGame)}</div>}
+            {boardLeagueGroups.map(group => <BoardLeagueSection
+              key={`${dayScope}:${selectedDayKey}:${group.league}`}
+              league={group.league} label={group.label}>
+              {group.games.map(renderBoardGame)}
+            </BoardLeagueSection>)}
           </div>
         </>}
         {picksView === "sideBets" && sideBetAccessDenied && <div className="notice-card" role="alert">No access to Side Bets.</div>}

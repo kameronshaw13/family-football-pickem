@@ -3,23 +3,6 @@ import type { Game } from "@/lib/types";
 export const CBB_POWER_CONFERENCES = ["ACC", "BIG 12", "BIG EAST", "BIG TEN", "SEC"] as const;
 export const CBB_MID_CONFERENCES = ["PAC-12", "MOUNTAIN WEST", "AMERICAN", "MISSOURI VALLEY", "ATLANTIC 10"] as const;
 
-const CBB_CONFERENCE_SHORT_NAMES: Record<string, string> = {
-  "BIG 12": "B12", "BIG EAST": "BE", "BIG TEN": "B1G", "PAC-12": "P12",
-  "MOUNTAIN WEST": "MWC", "AMERICAN": "AAC", "MISSOURI VALLEY": "MVC", "ATLANTIC 10": "A-10",
-  "AMERICA EAST": "AE", "ATLANTIC SUN": "ASUN", "ASUN": "ASUN", "BIG SKY": "BSKY",
-  "BIG SOUTH": "BSOUTH", "BIG WEST": "BW", "COASTAL ATHLETIC": "CAA", "COLONIAL ATHLETIC": "CAA",
-  "CONFERENCE USA": "CUSA", "HORIZON": "HL", "IVY LEAGUE": "IVY", "METRO ATLANTIC ATHLETIC": "MAAC",
-  "MID AMERICAN": "MAC", "MID-AMERICAN": "MAC", "MID EASTERN ATHLETIC": "MEAC", "MID-EASTERN ATHLETIC": "MEAC", "NORTHEAST": "NEC",
-  "OHIO VALLEY": "OVC", "PATRIOT LEAGUE": "PATRIOT", "SOUTHLAND": "SLC", "SOUTHERN": "SOCON",
-  "SUMMIT LEAGUE": "SUMMIT", "SUN BELT": "SBC", "SOUTHWESTERN ATHLETIC": "SWAC",
-  "WEST COAST": "WCC", "WESTERN ATHLETIC": "WAC"
-};
-
-export function cbbConferenceAbbreviation(name: string): string {
-  const normalized = name.toUpperCase().replace(/[–—]/g, "-").replace(/\s+/g, " ").trim();
-  return CBB_CONFERENCE_SHORT_NAMES[normalized] || name;
-}
-
 export type CbbConferenceMap = {
   teams: Record<string, string>;
   conferences: Array<{ value: string; label: string; category: "POWER" | "MID" | "LOW" }>;
