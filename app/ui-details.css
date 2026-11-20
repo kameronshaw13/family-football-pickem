@@ -9275,7 +9275,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   color: var(--ink);
 }
 .picks-panel .game-head .matchup-preview-actions > .board-favorite-trigger svg {
-  stroke: var(--ink);
+  stroke: #111;
   stroke-width: 2;
 }
 .picks-panel .board-favorites-section > h3 {
