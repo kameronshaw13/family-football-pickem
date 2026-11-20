@@ -9600,8 +9600,10 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 
 /* Keep the SAME typography, selection underline and divider as the existing
    My Card / League Cards tabs; only the shared wrapper structure differs. */
-.picks-panel .picks-top-controls > .section-tabs {
-  position: relative;
+.picks-panel > .section-tabs {
+  position: sticky;
+  top: calc(env(safe-area-inset-top) + var(--header-height));
+  z-index: 22;
   display: grid;
   height: 45px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -9614,7 +9616,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   overflow: visible;
   background: var(--canvas);
 }
-.picks-panel .picks-top-controls > .section-tabs::after {
+.picks-panel > .section-tabs::after {
   position: absolute;
   right: 0;
   bottom: 0;
@@ -9624,7 +9626,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   content: "";
   pointer-events: none;
 }
-.picks-panel .picks-top-controls > .section-tabs > button {
+.picks-panel > .section-tabs > button {
   position: relative;
   display: flex;
   width: 100%;
@@ -9637,7 +9639,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   border: 0;
   text-align: center;
 }
-.picks-panel .picks-top-controls > .section-tabs > button::after {
+.picks-panel > .section-tabs > button::after {
   position: absolute;
   right: 0;
   bottom: 0;
@@ -9647,7 +9649,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   content: "";
   pointer-events: none;
 }
-.picks-panel .picks-top-controls > .section-tabs > button.active::after {
+.picks-panel > .section-tabs > button.active::after {
   background: var(--blue);
 }
 .picks-panel .board-sticky-controls > .board-filter-row {
@@ -9667,9 +9669,9 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   background: var(--canvas) !important;
 }
 /* League and Favorites headings are the only sticky Pick Board elements. */
-.picks-panel .board-league-group > .board-league-header {
+ .picks-panel .board-league-group > .board-league-header {
   position: sticky;
-  top: calc(env(safe-area-inset-top) + var(--header-height));
+  top: calc(env(safe-area-inset-top) + var(--header-height) + 45px);
   z-index: 19;
   border-bottom-color: var(--line-strong) !important;
 }
@@ -9768,3 +9770,95 @@ html[data-theme="dark"] .picks-panel .board-filter-row .custom-select-option.sel
 .picks-panel .board-filter-row .context-select .custom-select-group-label { border-bottom: 1px solid var(--line) !important; }
 /* Reduce the bottom of the date strip by 3px without moving date lettering. */
 .picks-panel .board-sticky-controls > .board-day-selector > button { min-height: 51px; padding-bottom: 0; }
+
+/* =====================================================================
+   NOV 20 LIGHT CHROME EXPERIMENT — reversible in this single block.
+   To return to the original graphite header/nav, remove this section.
+   The existing per-user Light/Dark setting continues to take precedence.
+   ===================================================================== */
+html:not([data-theme="dark"]) {
+  --canvas: #fbfaf6;
+  --canvas-deep: #f2f0e9;
+  --nav-surface: #fbfaf6;
+  --app-chrome-ink: #20282d;
+  --app-chrome-muted: #667178;
+  --app-chrome-border: #d6d9d4;
+}
+html:not([data-theme="dark"]) .scoreboard-header,
+html:not([data-theme="dark"]) .scoreboard-header::before {
+  background: var(--panel) !important;
+  color: var(--app-chrome-ink) !important;
+}
+html:not([data-theme="dark"]) .scoreboard-header {
+  box-shadow: inset 0 -2px 0 var(--blue);
+}
+html:not([data-theme="dark"]) .scoreboard-header .header-wordmark {
+  filter: brightness(0);
+}
+html:not([data-theme="dark"]) .header-menu-select .custom-select-trigger,
+html:not([data-theme="dark"]) .header-menu-select > svg,
+html:not([data-theme="dark"]) .header-refresh-indicator {
+  color: var(--app-chrome-ink) !important;
+}
+html:not([data-theme="dark"]) .week-select-wrap {
+  border-bottom-color: var(--app-chrome-border);
+}
+html:not([data-theme="dark"]) .primary-nav {
+  background: var(--nav-surface) !important;
+  border-top: 1px solid var(--app-chrome-border) !important;
+  box-shadow: 0 -3px 12px rgba(25, 35, 38, .05) !important;
+}
+html:not([data-theme="dark"]) .primary-nav button,
+html:not([data-theme="dark"]) .primary-nav button svg {
+  color: var(--app-chrome-muted);
+  stroke: currentColor;
+}
+html:not([data-theme="dark"]) .primary-nav button.active,
+html:not([data-theme="dark"]) .primary-nav button.active .nav-icon,
+html:not([data-theme="dark"]) .primary-nav button.active svg {
+  color: var(--app-chrome-ink) !important;
+  stroke: currentColor !important;
+}
+html:not([data-theme="dark"]) .primary-nav button.active svg {
+  fill: none !important;
+}
+html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-standings svg path,
+html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-card svg path {
+  fill: none !important;
+  stroke: currentColor !important;
+}
+html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-settings svg circle {
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+/* The Pick Board / Side Bets tab row sticks exactly like My Card & Standings.
+   Filters and date strips stay in document flow and disappear during scrolling. */
+.picks-panel > .section-tabs {
+  position: sticky;
+  top: calc(env(safe-area-inset-top) + var(--header-height));
+  z-index: 23;
+}
+.picks-panel > .picks-top-controls {
+  position: relative;
+  z-index: auto;
+}
+.picks-panel > .board-day-selector {
+  box-sizing: border-box;
+  min-height: 51px;
+  margin: 0 calc(var(--page-gutter) * -1);
+  padding-inline: var(--page-gutter);
+  background: var(--canvas) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+.picks-panel > .board-day-selector > button {
+  min-width: 92px;
+  min-height: 51px;
+  padding-inline: 5px;
+  padding-bottom: 0;
+}
+.picks-panel .side-bet-game-days .game-day-marker {
+  position: sticky;
+  top: calc(env(safe-area-inset-top) + var(--header-height) + 45px);
+  z-index: 18;
+}
