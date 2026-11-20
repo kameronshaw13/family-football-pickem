@@ -9831,9 +9831,26 @@ html:not([data-theme="dark"]) .app-shell:has(.picks-panel) {
   background: var(--canvas) !important;
 }
 html:not([data-theme="dark"]) .app-shell:has(.picks-panel) > .container {
-  /* Gray behind all expanded content and the remaining viewport. The tabs
-     and filters cover this with their own cream surface. */
   background: var(--canvas) !important;
+}
+/* Pick Board needs gray BEHIND the actual game content all the way through
+   main's bottom safe-area padding; its pre-tab padding stays cream. */
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel.board-view) {
+  background: var(--app-board-background) !important;
+}
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel.board-view) > .container {
+  position: relative;
+  background: var(--app-board-background) !important;
+}
+html:not([data-theme="dark"]) .app-shell:has(.picks-panel.board-view) > .container::before {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + var(--header-height));
+  right: 0;
+  left: 0;
+  height: var(--space-3);
+  content: "";
+  background: var(--canvas);
+  pointer-events: none;
 }
 /* The whole page above the Pick Board tabs remains cream. The gray
    background belongs to the GAME CONTENT only, not the whole panel. */
