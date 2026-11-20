@@ -9881,3 +9881,9 @@ html:not([data-theme="dark"]) .primary-nav button.active .nav-icon-settings svg 
   }
   .picks-panel .board-day-selector > button { flex-basis: 88px; }
 }
+
+/* Keep the iPhone's top/bottom overscroll surfaces consistent with light chrome. */
+html:not([data-theme="dark"]),
+html:not([data-theme="dark"]) body {
+  background: var(--canvas) !important;
+}
