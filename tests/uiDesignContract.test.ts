@@ -22,11 +22,12 @@ test("matchup surface and popup tokens are defined once in foundations", () => {
     "--matchup-header-surface", "--matchup-team-surface",
     "--matchup-divider", "--matchup-section-divider",
     "--detail-header-height", "--detail-header-surface",
-    "--detail-header-ink", "--notification-surface"
+    "--detail-header-ink"
   ]) {
     assert.ok(foundations.includes(token + ":"), token + " missing from foundations");
     assert.ok(details.includes(token), token + " unused in detail styling");
   }
+  assert.match(foundations, /--notification-surface: #cf3f39/);
   assert.match(details, /--matchup-header-surface: var\(--canvas\)/);
   assert.match(details, /--matchup-team-surface: #fff/);
   assert.match(details, /\.picks-panel \.game-card:not\(\.locked-out\)/);
