@@ -15,7 +15,11 @@ export async function GET(req: NextRequest) {
 
     const groups = await listActiveGroupsForProfile(getSupabaseAdmin(), auth.profile.id);
     const leagues = accessibleLeaguesForUser(auth.profile.username || "", groups);
-    const savedDefault = leagues.find(league => league.slug === auth.profile.default_league_slug)?.slug || null;
+    // The shared auth session cache can lag a freshly changed preference.
+    // Read this tiny field directly so Settings never reverts the star.
+    const { data: preference } = await getSupabaseAdmin().from("profiles")
+      .select("default_league_slug").eq("id", auth.profile.id).maybeSingle();
+    const savedDefault = leagues.find(league => league.slug === preference?.default_league_slug)?.slug || null;
     const cookieDefault = leagues.find(league => league.slug === req.cookies.get(DEFAULT_LEAGUE_COOKIE)?.value)?.slug || null;
     const launchDefault = savedDefault || cookieDefault || defaultLeagueForLaunch(leagues)?.slug || null;
     const response = NextResponse.json({
