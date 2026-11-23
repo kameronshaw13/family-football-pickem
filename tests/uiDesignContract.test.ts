@@ -17,7 +17,7 @@ test("all sports use one matchup card shell in Picks and Side Bets", () => {
 
 test("matchup surface and popup tokens are defined once in foundations", () => {
   const foundations = read("app/ui-foundations.css");
-  const details = read("app/ui-details.css");
+  const details = read("app/ui-details.css") + read("app/ui-experience.css");
   for (const token of [
     "--matchup-header-surface", "--matchup-team-surface",
     "--matchup-divider", "--matchup-section-divider",

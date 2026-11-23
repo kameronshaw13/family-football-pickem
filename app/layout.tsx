@@ -1,6 +1,7 @@
 import "./ui-foundations.css";
 import "./ui-components.css";
 import "./ui-details.css";
+import "./ui-experience.css";
 import { Roboto_Slab } from "next/font/google";
 import type { Metadata, Viewport } from "next";
 import { PersistentAppChrome } from "@/components/PersistentAppChrome";
