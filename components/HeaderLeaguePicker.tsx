@@ -33,6 +33,15 @@ function HeaderLeaguePicker({ activeSlug, displaySlug, currentTab, onSelect }: {
   const navigationIntent = useRef(0);
   const [open, setOpen] = useState(false);
   const [leagues, setLeagues] = useState<LeagueMembership[] | null>(() => cachedLeagues());
+  // Preload the tiny fixed league icons before the menu first becomes visible.
+  // Keeping them mounted avoids a decode/paint flash on each dropdown open.
+  useEffect(() => {
+    for (const src of ["/league-football-brown.png", "/league-basketball-orange.png"]) {
+      const img = new window.Image();
+      img.src = src;
+      void img.decode?.().catch(() => undefined);
+    }
+  }, []);
 
   useEffect(() => () => { navigationIntent.current++; }, []);
 
@@ -111,19 +120,19 @@ function HeaderLeaguePicker({ activeSlug, displaySlug, currentTab, onSelect }: {
       onClick={event => { if (event.detail === 0) setOpen(value => !value); }}>
       <LeagueHeaderWordmark slug={displaySlug || activeSlug} />
     </button>
-    {open && <div className="header-league-menu custom-select-menu" role="listbox" aria-label="Choose league">
+    <div className={`header-league-menu custom-select-menu${open ? " open" : ""}`} role="listbox" aria-label="Choose league" aria-hidden={!open} inert={!open}>
       <span className="custom-select-group-label">My Leagues</span>
       {leagues?.map(league => <button type="button" role="option" aria-selected={league.slug === (displaySlug || activeSlug)}
         className={`custom-select-option ${league.slug === (displaySlug || activeSlug) ? "selected" : ""}`}
         key={league.slug} onClick={() => choose(league)}>
         <Image src={league.sport === "Basketball" ? "/league-basketball-orange.png" : "/league-football-brown.png"}
-          alt="" width={20} height={20} unoptimized />
+          alt="" width={20} height={20} unoptimized priority />
         <span className="header-league-option-name">{league.name}</span>
         {league.slug === (displaySlug || activeSlug) && <Check size={16} aria-hidden="true" />}
       </button>)}
       {!leagues && <p className="header-league-menu-loading">Loading leagues…</p>}
       {leagues?.length === 0 && <p className="header-league-menu-loading">No leagues available.</p>}
-    </div>}
+    </div>
   </div>;
 }
 
