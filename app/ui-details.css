@@ -10053,16 +10053,17 @@ html:not([data-theme="dark"]) .picks-panel.side-bets-view
 }
 
 
-/* Neutral board cells use the exact LIGHT THEME chrome surface shared
-   by the bottom nav, dropdown section and date selector (not a separate
-   panel color). Limit this to light mode and retain every divider. */
+/* Cream header cells match the bottom nav and selector surface.
+   Team matchup rows remain white for visual hierarchy. Never alter borders. */
 html:not([data-theme="dark"]) .picks-panel.board-view .board-league-group > .board-league-header,
 html:not([data-theme="dark"]) .picks-panel.board-view .game-card .game-head,
-html:not([data-theme="dark"]) .picks-panel.board-view .game-card .team-row:not(.picked-side):not(.batch-picked-side):not(.picked-win):not(.picked-loss):not(.picked-push):not(.outcome-win):not(.outcome-loss),
 html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-board .board-league-group > .board-league-header,
-html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-board .game-card .game-head,
-html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-board .game-card .team-row:not(.picked-side):not(.batch-picked-side):not(.picked-win):not(.picked-loss):not(.picked-push):not(.outcome-win):not(.outcome-loss) {
+html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-board .game-card .game-head {
   background: var(--canvas) !important;
+}
+html:not([data-theme="dark"]) .picks-panel.board-view .game-card:not(.locked-out) .team-row:not(.picked-side):not(.batch-picked-side):not(.picked-win):not(.picked-loss):not(.picked-push):not(.outcome-win):not(.outcome-loss):not(.opponent-only):not(.blocked-side),
+html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-board .game-card:not(.locked-out):not(.closed) .team-row:not(.picked-side):not(.batch-picked-side):not(.picked-win):not(.picked-loss):not(.picked-push):not(.outcome-win):not(.outcome-loss):not(.opponent-only):not(.blocked-side) {
+  background: #fff !important;
 }
 
 /* Send To: exactly one 1px separator between adjacent recipients.
