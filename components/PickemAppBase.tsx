@@ -61,6 +61,7 @@ import { acceptedSideBetExposure, bankLeaderboardTotals, weeklyBankAmounts } fro
 import { canApplySideBetSnapshot, reconcileSideBetSnapshot, sideBetRequestWithVisibleScores } from "@/lib/sideBetRefreshState";
 import { sideBetOffersRequest, sideBetLedgerRequest, sideBetMutationRequest } from "@/lib/sideBetNetwork";
 import { normalizeNotificationCounts, notificationFetchRequest, notificationReadRequest, locallyReadNotifications } from "@/lib/notificationClient";
+import { pickSaveRequest, attachSavedPickGames, reconcileSavedPicks } from "@/lib/pickSaveClient";
 
 
 import {
@@ -1032,35 +1033,19 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     }
     setSavingPicks(true);
     try {
-      const response = await fetch("/api/picks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
-        body: JSON.stringify({ action: "saveCard", week: data?.week, picks: card.map((pick) => ({ gameId: pick.game_id, selectedTeam: pick.selected_team, pickType: pick.pick_type, confidencePoints: pick.confidence_points ?? null })) })
-      });
+      const { url, init } = pickSaveRequest(token, appSlug, data?.week, card);
+      const response = await fetch(url, init);
       const payload = await response.json();
       if (!response.ok) {
         if (autosave) autosaveBlockedSignatureRef.current = submittedSignature;
         notify(payload.error || "Picks could not be saved.", "error");
         return false;
       }
-      const savedPicks = (payload.picks || []).map((pick: Pick) => ({
-        ...pick,
-        game: data?.games.find((game) => game.id === pick.game_id) || pick.game
-      }));
+      const savedPicks = attachSavedPickGames(payload.picks || [], data?.games || []);
       const savedSignature = pickCardSignature(savedPicks);
       setData((current) => {
         if (!current) return current;
-        const currentSavedPicks = (payload.picks || []).map((pick: Pick) => ({
-          ...pick,
-          game: current.games.find((game) => game.id === pick.game_id) || pick.game
-        }));
-        const nextData = {
-          ...current,
-          picks: [
-            ...current.picks.filter((pick) => !(pick.user_id === current.currentUser.id && pick.week === current.week)),
-            ...currentSavedPicks
-          ]
-        };
+        const nextData = reconcileSavedPicks(current, payload.picks || []);
         dataRef.current = nextData;
         return nextData;
       });
