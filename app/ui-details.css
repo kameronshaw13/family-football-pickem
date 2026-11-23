@@ -10053,15 +10053,16 @@ html:not([data-theme="dark"]) .picks-panel.side-bets-view
 }
 
 
-/* Pick Board palette: league headers, game-time/action headers and matchup
-   rows share the same existing cream panel token. Preserve all dividers. */
-.picks-panel.board-view .board-league-group > .board-league-header,
-.picks-panel.board-view .game-card .game-head,
-.picks-panel.board-view .game-card .team-row,
-.picks-panel.side-bets-view .side-bet-sportsbook-board .board-league-group > .board-league-header,
-.picks-panel.side-bets-view .side-bet-sportsbook-board .game-card .game-head,
-.picks-panel.side-bets-view .side-bet-sportsbook-board .game-card .team-row {
-  background: var(--panel) !important;
+/* Neutral board cells use the exact LIGHT THEME chrome surface shared
+   by the bottom nav, dropdown section and date selector (not a separate
+   panel color). Limit this to light mode and retain every divider. */
+html:not([data-theme="dark"]) .picks-panel.board-view .board-league-group > .board-league-header,
+html:not([data-theme="dark"]) .picks-panel.board-view .game-card .game-head,
+html:not([data-theme="dark"]) .picks-panel.board-view .game-card .team-row:not(.picked-side):not(.batch-picked-side):not(.picked-win):not(.picked-loss):not(.picked-push):not(.outcome-win):not(.outcome-loss),
+html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-board .board-league-group > .board-league-header,
+html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-board .game-card .game-head,
+html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-board .game-card .team-row:not(.picked-side):not(.batch-picked-side):not(.picked-win):not(.picked-loss):not(.picked-push):not(.outcome-win):not(.outcome-loss) {
+  background: var(--canvas) !important;
 }
 
 /* Send To: exactly one 1px separator between adjacent recipients.
