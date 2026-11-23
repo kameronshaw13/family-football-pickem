@@ -4,7 +4,7 @@ import type { PlayerProfileStats } from "@/lib/playerProfileStats";
 import { appSlugForPath } from "@/lib/appIdentity";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import GameDetailClose from "@/components/GameDetailClose";
 import { createPortal } from "react-dom";
 import useGameSheetDismiss from "@/hooks/useGameSheetDismiss";
 import NumericText from "@/components/NumericText";
@@ -190,8 +190,8 @@ export default function PlayerProfiles() {
     {mounted && profile && activeName && createPortal(<div className="player-profile-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) dismissProfile(); }}>
       <section ref={sheetRef} className="player-profile-sheet" role="dialog" aria-modal="true" aria-labelledby="player-profile-title">
         <header className="player-profile-head">
-          <div className="pick-row-actions player-profile-close-wrap"><button type="button" className="icon-btn" aria-label="Close profile" onClick={dismissProfile}><X size={22} strokeWidth={2} /></button></div>
-          <div className="player-profile-head-copy"><span>Player Profile</span><h2 id="player-profile-title">{profile.player.displayName}</h2></div>
+          <GameDetailClose onClose={dismissProfile} label="Close player profile" />
+          <div className="player-profile-head-copy"><h2 id="player-profile-title">{profile.player.displayName}</h2></div>
         </header>
 
         <div className="player-profile-content">

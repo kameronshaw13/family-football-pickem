@@ -39,9 +39,19 @@ export default function LeagueLogin() {
       const payload = await response.json();
       if (!response.ok) { setError(payload.error || "Couldn't sign in."); return; }
       storeClientSession(payload.token, payload.profile);
-      // Restore this profile’s preference after login (the server resets the
-      // navigation cookie to the first allowed league for account safety).
-      const preferred = preferredLeagueAmong(payload.profile.id, payload.leagues || []);
+      // One-time migration for defaults saved on this device before account
+      // preferences existed. Account-backed choices always take precedence.
+      const legacy = preferredLeagueAmong(payload.profile.id, payload.leagues || []);
+      const preferred = payload.savedDefaultLeague || legacy || payload.defaultLeague;
+      if (preferred && !payload.savedDefaultLeague && legacy) {
+        try {
+          await fetch("/api/default-league", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${payload.token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ slug: legacy })
+          });
+        } catch { /* Local and login cookie remain a fallback. */ }
+      }
       if (preferred) savePreferredLeague(payload.profile.id, preferred);
       window.location.replace("/leagues");
     } catch {
