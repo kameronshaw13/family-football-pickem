@@ -3984,8 +3984,6 @@ html[data-theme="dark"] .game-tracker-sheet {
 }
 .game-tracker-score-team.away::before { left: -10px; }
 .game-tracker-score-team.home::before { right: -10px; background: var(--tracker-home-color, transparent); }
-.game-tracker-score-team.away .game-tracker-score-team-main { justify-content: flex-start; }
-.game-tracker-score-team.home .game-tracker-score-team-main { justify-content: flex-start; }
 .game-tracker-score-team-main { gap: clamp(5px, 1.7vw, 11px); }
 .game-tracker-score-team-main .game-tracker-header-logo-wrap > img,
 .basketball-game-tracker .game-tracker-score-team-main > img {
@@ -6152,7 +6150,6 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 .football-game-tracker .football-drive[open] > .football-drive-summary {
   border-bottom: 0;
 }
-.football-game-tracker .football-play-period > .football-drive:last-child { border-bottom: 0; }
 
 /* The scoring quarter alone owns the score/logo columns. Play quarter headers
    have only their heading, and both stay vertically centered in a thin row. */
