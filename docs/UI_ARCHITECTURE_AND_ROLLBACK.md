@@ -20,6 +20,7 @@ This is a Git source-code snapshot, not a Supabase database backup.
 | Pick save transport and signed-in player's current-week cache replacement | `lib/pickSaveClient.ts` | Server validates pick limits, lock status and scoring; other users/weeks preserved |
 | Notification HTTP requests, count normalization and optimistic read calculations | `lib/notificationClient.ts` | Polling frequency, navigation and persisted read state stay in app/API |
 | Side Bet API request URL, headers, and mutation body transport | `lib/sideBetNetwork.ts` | Locking, request sequencing, polling cadence and state remain in app coordinator |
+| Live-game activity and changed-score offer expiry candidates | `lib/liveOfferPresentation.ts` | Expiry requests, polling and mutation locks stay in app/server |
 | Side Bet refresh fingerprints, stale response ordering and live acceptance payloads | `lib/sideBetRefreshState.ts` | Network scheduling, mutations and cache writes stay in the app coordinator |
 | Read-only Bank standings, weekly bank amounts and accepted bet exposure | `lib/bankPresentation.ts` | Does not settle bets or modify persisted credits |
 | Pick Board league filtering, reschedule replacement and final dedup | `lib/boardGameFiltering.ts` | Conference predicates and dog-value rules delegated to sport-aware presentation |
