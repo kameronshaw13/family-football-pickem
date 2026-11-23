@@ -10094,3 +10094,32 @@ html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-b
 .route-app .side-bet-recipient-grid.recipient-layout-eight > label:nth-child(8) {
   border-right: 0;
 }
+
+
+/* Settings: separate league-navigation and default-launch actions, without
+   adding extra card dividers or nested buttons. */
+.settings-panel .settings-league-preference-row {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  border-bottom: 1px solid var(--line);
+}
+.settings-panel .settings-league-preference-row:last-child { border-bottom: 0; }
+.settings-panel .settings-league-preference-row > .settings-league-link {
+  flex: 1;
+  min-width: 0;
+  border-bottom: 0;
+}
+.settings-panel .settings-league-default {
+  display: grid;
+  flex: 0 0 44px;
+  min-width: 44px;
+  place-items: center;
+  border: 0;
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+  background: var(--panel);
+  cursor: pointer;
+}
+.settings-panel .settings-league-default.active { color: #a77b10; }
+.settings-panel .settings-league-default:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
