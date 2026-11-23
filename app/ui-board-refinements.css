@@ -3,7 +3,6 @@
 .picks-panel .board-day-selector {
   position: relative;
   display: flex;
-  align-items: stretch;
   gap: 0;
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -12,7 +11,6 @@
   -webkit-overflow-scrolling: touch;
   margin: 0 calc(var(--page-gutter) * -1) 12px;
   padding: 0 var(--page-gutter);
-  border-bottom: 1px solid var(--tracker-divider);
   background: var(--panel);
 }
 .picks-panel .board-day-selector::-webkit-scrollbar { display: none; }
@@ -27,7 +25,6 @@
   border-bottom: 3px solid transparent;
   border-radius: 0;
   background: var(--panel);
-  color: var(--muted);
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
@@ -35,7 +32,6 @@
   cursor: pointer;
 }
 .picks-panel .board-day-selector > button.active {
-  color: var(--ink);
   border-bottom-color: var(--blue);
   font-weight: 850;
 }
@@ -135,7 +131,6 @@
 .scoreboard-main .header-league-menu.custom-select-menu {
   position: absolute;
   top: calc(100% + 2px);
-  right: auto;
   left: 0;
   z-index: 110;
   box-sizing: border-box;
@@ -407,7 +402,6 @@
 /* The status selector was removed; sport and optional conference/dog selectors
    now sit directly above a single-color, swipeable, centered day ribbon. */
 .picks-panel .view-select-row.board-filter-row {
-  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: 0;
   padding-bottom: 0;
@@ -520,7 +514,6 @@
 }
 .picks-panel .board-league-group > .board-league-header {
   display: flex;
-  box-sizing: border-box;
   align-items: center;
   width: 100%;
   min-height: 47px;
@@ -528,11 +521,9 @@
   padding: 7px var(--page-gutter);
   gap: 9px;
   border: 0;
-  border-top: 1px solid var(--tracker-section-divider);
   border-bottom: 1px solid var(--tracker-divider);
   border-radius: 0;
   background: var(--panel);
-  color: var(--ink);
   box-shadow: none;
   text-align: left;
   cursor: pointer;
