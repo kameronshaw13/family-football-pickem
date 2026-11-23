@@ -758,21 +758,7 @@ export function writeCachedAppData(appSlug: AppSlug, week: number | null, payloa
   }, 0);
 }
 
-export function sideBetSyncSignature(bets: SideBet[] = []) {
-  return bets.map((bet) => ({
-    id: bet.id,
-    status: bet.status,
-    acceptedBy: bet.accepted_by,
-    winnerId: bet.winner_id,
-    result: bet.result,
-    updatedAt: bet.updated_at,
-    targets: (bet.targets || []).map((target) => `${target.recipient_id}:${target.response}:${target.responded_at || ""}`).sort()
-  })).sort((a, b) => a.id.localeCompare(b.id)).map((bet) => JSON.stringify(bet)).join("|");
-}
-
-export function sideBetLedgerSignature(bets: SideBet[] = []) {
-  return bets.map((bet) => `${bet.id}:${bet.status}:${bet.result}:${bet.winner_id || ""}:${bet.updated_at}`).sort().join("|");
-}
+export { sideBetSyncSignature, sideBetLedgerSignature } from "@/lib/sideBetRefreshState";
 
 export function logoForTeam(game: Game, team: string) {
   return team === game.home_team ? game.home_logo_url : game.away_logo_url;
