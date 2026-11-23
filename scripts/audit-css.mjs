@@ -66,7 +66,7 @@ const consolidatedLegacyRules = [
     for (const [selector, expectedDeclarations] of consolidatedLegacyRules) {
       let matches = 0;
       css.walkRules(rule => {
-        if (rule.parent.type !== "root" || rule.selector.replace(/\\s+/g, " ").trim() !== selector) return;
+        if (rule.parent.type !== "root" || rule.selector.replace(/\s+/g, " ").trim() !== selector) return;
         const declarations = rule.nodes.filter(node => node.type === "decl")
           .map(decl => `${decl.prop}:${decl.value}`).join(";");
         if (declarations === expectedDeclarations) matches += 1;
