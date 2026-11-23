@@ -64,6 +64,7 @@ import { normalizeNotificationCounts, notificationFetchRequest, notificationRead
 import { pickSaveRequest, attachSavedPickGames, reconcileSavedPicks } from "@/lib/pickSaveClient";
 import { selectInitialAppCache, fetchAppDataWithRetry, retainReloadedBasketballLines } from "@/lib/appLoadClient";
 import { hasRecentlyStartedGames, changedLiveOfferScores } from "@/lib/liveOfferPresentation";
+import { hasNewBoardScheduleGames, reconcileBoardMarketGames, type BoardScheduleUpdate } from "@/lib/boardMarketRefresh";
 
 
 import {
@@ -788,57 +789,23 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         if (!response.ok) throw new Error("Market updates unavailable");
         const payload = await response.json() as {
           markets?: SideBetMarketQuote[];
-          schedule?: Array<{ id: string; commence_time: string; neutral_site: boolean; event_status: string | null; lock_time: string; is_locked: boolean }>;
+          schedule?: BoardScheduleUpdate[];
         };
         if (cancelled) return;
         if (!Array.isArray(payload.markets)) throw new Error("Invalid market response");
         failedChecks = 0;
         setMarketUpdatesUnavailable(false);
 
-        const quotesById = new Map(payload.markets.map((quote) => [quote.gameId, quote]));
-        const scheduleById = new Map((payload.schedule || []).map((game) => [game.id, game]));
-        const currentIds = new Set(dataRef.current?.week === week ? dataRef.current.games.map((game) => game.id) : []);
-        const newlyScheduled = (payload.schedule || []).some((game) => !currentIds.has(game.id));
+        const currentGames = dataRef.current?.week === week ? dataRef.current.games : [];
+        const newlyScheduled = hasNewBoardScheduleGames(currentGames, payload.schedule || []);
         if (newlyScheduled && Date.now() - lastGameListReload > 120_000) {
           lastGameListReload = Date.now();
           void load(week);
         }
         setData((current) => {
           if (!current || Number(current.week) !== Number(week)) return current;
-          let changed = false;
-          const now = new Date();
-          const nextGames = current.games.map((game) => {
-            const scheduleGame = scheduleById.get(game.id);
-            let nextGame = game;
-            if (scheduleGame && (
-              scheduleGame.commence_time !== game.commence_time ||
-              scheduleGame.neutral_site !== Boolean(game.neutral_site) ||
-              scheduleGame.event_status !== (game.event_status || null) ||
-              scheduleGame.lock_time !== game.lock_time ||
-              scheduleGame.is_locked !== game.is_locked
-            )) {
-              changed = true;
-              nextGame = { ...game, ...scheduleGame };
-            }
-
-            const quote = quotesById.get(game.id);
-            const spread = quote?.phase === "pregame" && quote.spread && !quote.spread.suspended ? normalizeVerifiedMarketSpread(nextGame.league, quote.spread, quote.moneyline) : null;
-            if (!spread || !(isBasketballLeague(nextGame.league) ? now < basketballLockTime(nextGame.commence_time) : canRefreshSpread(nextGame.commence_time, now))) return nextGame;
-            const nextAwaySpread = Number(spread.awayPoint);
-            const currentAwaySpread = normalizeSpreadForSelectedTeam(nextGame.away_team, nextGame.current_spread_team, nextGame.current_spread);
-            if (!Number.isFinite(nextAwaySpread)) return nextGame;
-            const spreadUnchanged = currentAwaySpread != null && Math.abs(currentAwaySpread - nextAwaySpread) < 0.001;
-            if (spreadUnchanged && nextGame.current_bookmaker === "DraftKings") return nextGame;
-            changed = true;
-            return {
-              ...nextGame,
-              current_spread_team: nextGame.away_team,
-              current_spread: nextAwaySpread,
-              current_bookmaker: "DraftKings",
-              updated_at: now.toISOString()
-            };
-          });
-          if (!changed) return current;
+          const nextGames = reconcileBoardMarketGames(current.games, payload.markets || [], payload.schedule || [], new Date());
+          if (nextGames === current.games) return current;
           const nextData = { ...current, games: nextGames };
           dataRef.current = nextData;
           writeCachedAppData(appSlug, current.week, nextData);
