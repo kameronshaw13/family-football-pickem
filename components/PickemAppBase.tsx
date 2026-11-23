@@ -59,6 +59,7 @@ import { boardCalendar, boardGameOrder, boardLeagueGroups as groupBoardGames, fa
 import { filterBoardGames } from "@/lib/boardGameFiltering";
 import { acceptedSideBetExposure, bankLeaderboardTotals, weeklyBankAmounts } from "@/lib/bankPresentation";
 import { canApplySideBetSnapshot, reconcileSideBetSnapshot, sideBetRequestWithVisibleScores } from "@/lib/sideBetRefreshState";
+import { sideBetOffersRequest, sideBetLedgerRequest, sideBetMutationRequest } from "@/lib/sideBetNetwork";
 
 
 import {
@@ -397,10 +398,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     const requestId = ++sideBetRequestSequenceRef.current;
     sideBetRefreshInFlightRef.current = true;
     try {
-      const response = await fetch(`/api/side-bets?week=${current.week}`, {
-        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
-        cache: "no-store"
-      });
+      const { url, init } = sideBetOffersRequest(current.week, token, appSlug);
+      const response = await fetch(url, init);
       if (!response.ok) return;
       const payload = await response.json() as SideBetSnapshot;
       // An earlier week request must never overwrite offers for a newly selected week.
@@ -437,10 +436,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     try {
       const current = dataRef.current;
       if (!current) return;
-      const response = await fetch(`/api/side-bet-ledger?week=${current.week}`, {
-        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
-        cache: "no-store"
-      });
+      const { url, init } = sideBetLedgerRequest(current.week, token, appSlug);
+      const response = await fetch(url, init);
       if (!response.ok) return;
       const payload = await response.json() as { sideBetLedger?: SideBet[] };
       if (dataRef.current?.week !== current.week) return;
@@ -1108,7 +1105,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     try {
       const current = dataRef.current;
       const requestBody = sideBetRequestWithVisibleScores(body, current);
-      const response = await fetch("/api/side-bets", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, body: JSON.stringify({ ...requestBody, viewWeek: current?.week ?? data?.week }) });
+      const { url, init } = sideBetMutationRequest(requestBody, current?.week ?? data?.week, token, appSlug);
+      const response = await fetch(url, init);
       const payload = await response.json();
       if (!response.ok) {
         notify(payload.error || "Side bet action failed.", "error");
