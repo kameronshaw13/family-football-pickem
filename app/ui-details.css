@@ -253,10 +253,6 @@
   border-bottom: 1px solid var(--line-strong);
   background: var(--panel);
 }
-.game-tracker-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.game-tracker-tabs.completed { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.matchup-preview-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.matchup-preview-tabs.has-model-tab { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .game-tracker-tabs button,
 .matchup-preview-tabs button {
   display: grid;
@@ -297,8 +293,6 @@
   scrollbar-gutter: auto;
   background: var(--canvas);
 }
-.game-tracker-scroll::-webkit-scrollbar,
-.matchup-preview-scroll::-webkit-scrollbar { display: none; }
 .game-tracker-quarter-header {
   display: flex;
   min-height: 37px;
@@ -325,7 +319,6 @@
   border-bottom: 1px solid var(--line);
   background: var(--panel);
 }
-.game-tracker-scoring-team-logo { display: grid; width: 27px; place-items: center; align-self: center; }
 .game-tracker-scoring-team-logo img { display: block; width: 25px; height: 25px; object-fit: contain; }
 .game-tracker-scoring-copy { display: grid; min-width: 0; align-content: center; gap: 3px; }
 .game-tracker-scoring-meta { display: flex; min-height: 15px; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0; line-height: 1.16; }
