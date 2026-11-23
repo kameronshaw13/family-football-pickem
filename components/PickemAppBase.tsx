@@ -1628,7 +1628,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               onChange={value => setLeagueFilter(value as LeagueFilter)} />
             {(leagueFilter === "CFB" || (leagueFilter === "ALL" && appSlug !== "friends-basketball")) && <MenuSelect
               ariaLabel="Filter college football by rankings or conference"
-              className="compact-select context-select"
+              className="compact-select context-select football-conference-select"
               value={conferenceFilter}
               sections={[
                 { options: [{ value: "ALL", label: "ALL CONF." }, { value: "TOP25", label: "TOP 25" }] },
