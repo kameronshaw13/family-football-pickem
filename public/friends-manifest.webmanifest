@@ -3,7 +3,7 @@
   "name": "Football Pick'em",
   "short_name": "Football Pick'em",
   "description": "Private Friends football pick'em.",
-  "start_url": "/friends",
+  "start_url": "/leagues",
   "scope": "/friends",
   "display": "standalone",
   "orientation": "portrait-primary",
