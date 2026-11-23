@@ -1240,6 +1240,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     myCardNotificationCount,
     leagueCardsNotificationCount,
     bankNotificationCount,
+    picksNotificationCount,
     navNotificationCounts
   } = navigationNotificationCounts(notificationCounts, hideAcceptedBets, previewActive);
   const bankTotals = bankActive ? profiles.map((profile) => ({
