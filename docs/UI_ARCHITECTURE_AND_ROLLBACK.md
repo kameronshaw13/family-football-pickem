@@ -16,6 +16,7 @@ This is a Git source-code snapshot, not a Supabase database backup.
 | Popup title-bar tokens and close control | `--detail-header-*`, `GameDetailClose` | Popup body, sport-specific information |
 | Notification count geometry | `NotificationBadge` and foundation CSS | Badge placement by navigation/menu/tab |
 | Main navigation | `PersistentAppChrome` and `PrimaryBottomNav` | League header wordmarks |
+| Side Bet refresh fingerprints, stale response ordering and live acceptance payloads | `lib/sideBetRefreshState.ts` | Network scheduling, mutations and cache writes stay in the app coordinator |
 | Read-only Bank standings, weekly bank amounts and accepted bet exposure | `lib/bankPresentation.ts` | Does not settle bets or modify persisted credits |
 | Pick Board league filtering, reschedule replacement and final dedup | `lib/boardGameFiltering.ts` | Conference predicates and dog-value rules delegated to sport-aware presentation |
 | Browser league/week selection and Side Bet cached snapshots | `lib/clientLeagueContext.ts` | Batch actions require matching week; display overlays allow fallback |
