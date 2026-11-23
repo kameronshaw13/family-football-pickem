@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { appSlugFromPath, selectedWeekFromHeader } from "@/lib/clientLeagueContext";
+import { appSlugFromPath, selectedWeekFromHeader, readCachedAppPayload } from "@/lib/clientLeagueContext";
 import { batchSideBetTotalRisk, batchSpreadIsConfigured } from "@/lib/sideBetBatchRisk";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { americanOddsText, validAmericanOdds } from "@/lib/sideBetMarkets";
@@ -39,34 +39,10 @@ type CachedPayload = {
   games?: CachedGame[];
 };
 
-const APP_DATA_CACHE_PREFIX = "pickem_app_data_v2";
 const MAX_BATCH_SELECTIONS = 8;
 
 function readCachedPayload(appSlug: AppSlug): CachedPayload | null {
-  const week = selectedWeekFromHeader();
-  const preferredKeys = [
-    `${APP_DATA_CACHE_PREFIX}:${appSlug}:${week == null ? "default" : week}`,
-    `${APP_DATA_CACHE_PREFIX}:${appSlug}:default`
-  ];
-  const discoveredKeys: string[] = [];
-  for (let index = 0; index < window.sessionStorage.length; index += 1) {
-    const key = window.sessionStorage.key(index);
-    if (key?.startsWith(`${APP_DATA_CACHE_PREFIX}:${appSlug}:`) && !preferredKeys.includes(key)) discoveredKeys.push(key);
-  }
-
-  for (const key of [...preferredKeys, ...discoveredKeys]) {
-    try {
-      const raw = window.sessionStorage.getItem(key);
-      if (!raw) continue;
-      const entry = JSON.parse(raw) as { payload?: CachedPayload } | null;
-      if (!entry?.payload) continue;
-      if (week != null && entry.payload.week != null && Number(entry.payload.week) !== week) continue;
-      return entry.payload;
-    } catch {
-      // Ignore stale cache entries.
-    }
-  }
-  return null;
+  return readCachedAppPayload<CachedPayload>(appSlug, true);
 }
 
 function gameLabel(game: CachedGame) {
