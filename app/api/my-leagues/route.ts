@@ -15,14 +15,16 @@ export async function GET(req: NextRequest) {
 
     const groups = await listActiveGroupsForProfile(getSupabaseAdmin(), auth.profile.id);
     const leagues = accessibleLeaguesForUser(auth.profile.username || "", groups);
+    const savedDefault = leagues.find(league => league.slug === auth.profile.default_league_slug)?.slug || null;
+    const cookieDefault = leagues.find(league => league.slug === req.cookies.get(DEFAULT_LEAGUE_COOKIE)?.value)?.slug || null;
+    const launchDefault = savedDefault || cookieDefault || defaultLeagueForLaunch(leagues)?.slug || null;
     const response = NextResponse.json({
       ok: true,
+      defaultLeague: launchDefault,
       profile: { id: auth.profile.id, username: auth.profile.username, displayName: auth.profile.display_name },
       leagues
     }, { headers: { "Cache-Control": "no-store" } });
-    const preferred = req.cookies.get(DEFAULT_LEAGUE_COOKIE)?.value;
-    const permitted = leagues.find(league => league.slug === preferred);
-    setDefaultLeagueCookie(response, permitted?.slug || defaultLeagueForLaunch(leagues)?.slug || null);
+    setDefaultLeagueCookie(response, launchDefault);
     return response;
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Could not load leagues." }, { status: 500, headers: { "Cache-Control": "no-store" } });
