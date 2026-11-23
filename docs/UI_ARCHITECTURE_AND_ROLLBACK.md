@@ -11,6 +11,8 @@ This is a Git source-code snapshot, not a Supabase database backup.
 | Global spacing, flat radii, colors | `app/ui-foundations.css` `:root` | Dark/light palette substitutions |
 | Matchup header, row, divider semantic variables | `--matchup-*` tokens in foundations, light values in `app/ui-experience.css` | Selected and graded outcomes |
 | All-sport matchup DOM frame | `components/MatchupCardFrame.tsx` | Picks and Side Bets handle their own actions |
+| Original GameTracker and Matchup Preview baseline | `app/ui-overlay-base.css` | Later responsive/detail refinements in `ui-details.css` |
+| Settings and original theme baseline | `app/ui-settings-base.css` | Final light-theme adjustments in `ui-experience.css` |
 | Popup title-bar tokens and close control | `--detail-header-*`, `GameDetailClose` | Popup body, sport-specific information |
 | Notification count geometry | `NotificationBadge` and foundation CSS | Badge placement by navigation/menu/tab |
 | Main navigation | `PersistentAppChrome` and `PrimaryBottomNav` | League header wordmarks |
@@ -27,7 +29,7 @@ This is a Git source-code snapshot, not a Supabase database backup.
 
 ## Safe continuation
 
-When working on a new feature, change the owning component/token rather than appending an overriding rule near the end of `ui-details.css`. `app/ui-experience.css` is the final owner for light-theme colors, chrome, Pick Board/Side Bets surfaces and latest popup layout. Verify `npm run check:code` (including the UI ownership guard) and `npm run build` before merging. The standalone `tests/uiDesignContract.test.ts` checks the styling and component contracts.
+When working on a new feature, change the owning component/token rather than appending an overriding rule near the end of `ui-details.css`. `app/ui-experience.css` is the final owner for light-theme colors, chrome, Pick Board/Side Bets surfaces and latest popup layout. `ui-overlay-base.css` owns the original GameTracker/Matchup Preview styles; `ui-settings-base.css` owns original Settings/theme styles; `ui-details.css` retains later refinements loaded in their historic order. Verify `npm run check:code` (including the UI ownership guard) and `npm run build` before merging. The standalone `tests/uiDesignContract.test.ts` checks the styling and component contracts.
 
 For rollback, create a new branch from the backup SHA and restore the required source files or deploy that SHA. Do not overwrite user database changes when reverting UI code.
 
