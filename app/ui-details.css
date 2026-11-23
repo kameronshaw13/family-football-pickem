@@ -133,11 +133,7 @@
 /* The red X is a true centered icon, not a text glyph aligned by baseline. */
 
 /* GameTracker: bigger numbers, visual symmetry, team identity outside the title. */
-.game-tracker-scoreboard {
-  flex: 0 0 auto;
-  border-bottom: 1px solid var(--line-strong);
-  background: var(--panel);
-}
+
 .game-tracker-scoreboard-grid {
   display: grid;
   min-height: 113px;
@@ -282,17 +278,7 @@
 }
 
 /* Compact, readable game feed with fixed score columns and no extra cards. */
-.game-tracker-scroll,
-.matchup-preview-scroll {
-  min-height: 0;
-  flex: 1 1 auto;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
-  scrollbar-gutter: auto;
-  background: var(--canvas);
-}
+
 .game-tracker-quarter-header {
   display: flex;
   min-height: 37px;
@@ -327,17 +313,17 @@
 .game-tracker-scoring-copy > p { margin: 0; font-size: 11.5px; font-weight: 650; line-height: 1.3; }
 .game-tracker-scoring-copy > small { margin: 0; color: var(--muted); font-size: 9px; font-weight: 650; line-height: 1.2; text-transform: none; }
 .game-tracker-score-values { display: grid; grid-template-columns: repeat(2, 28px); align-items: center; justify-items: center; gap: 5px; }
-.game-tracker-score-values b { font-size: 14px; font-variant-numeric: tabular-nums; }
+
 .game-tracker-drive > summary { min-height: 58px; grid-template-columns: 30px minmax(0, 1fr) 18px; align-items: center; gap: var(--ui-space-2); padding: 9px 11px; }
 .game-tracker-drive > summary > div { display: grid; min-width: 0; align-content: center; gap: 3px; }
 .game-tracker-drive > summary strong { font-size: 12px; line-height: 1.23; }
 .game-tracker-drive > summary small { margin-top: 0; color: var(--muted); font-size: 9.5px; line-height: 1.2; }
 .game-tracker-drive-play { min-height: 57px; padding: 9px 11px; }
-.game-tracker-drive-play strong { font-size: 12px; line-height: 1.35; }
+
 .game-tracker-live { padding: var(--ui-space-3) 11px 18px; }
 .game-tracker-live-meta { margin-bottom: 9px; }
 .game-tracker-field { height: clamp(132px, 22dvh, 182px); border-color: var(--line-strong); }
-.game-tracker-live-drive { margin-top: var(--ui-space-3); }
+
 .game-tracker-live-drive > header { min-height: 54px; padding: 9px var(--ui-space-3); }
 .game-tracker-player-table th,
 .game-tracker-player-table td { padding-block: var(--ui-space-2); }
@@ -402,14 +388,7 @@
   font-size: 9px;
   font-weight: 850;
 }
-.matchup-preview-team {
-  display: grid;
-  min-width: 0;
-  align-content: center;
-  justify-items: center;
-  gap: 6px;
-  text-align: center;
-}
+
 .matchup-preview-team > img,
 .matchup-preview-team > .matchup-logo-fallback {
   display: block;
@@ -646,12 +625,7 @@ html[data-theme="dark"] .primary-nav {
   min-height:120px;
   padding:10px var(--ui-space-3);
 }
-.game-tracker-score-team-name {
-  font-family:var(--font-display);
-  font-size:11px;
-  font-weight:800;
-  line-height:1.2;
-}
+
 .game-tracker-score-stack > b {
   font-family:var(--font-display);
   font-size:clamp(25px,7.3vw,33px);
@@ -689,7 +663,7 @@ html[data-theme="dark"] .primary-nav {
   flex:0 0 132px;
   padding:7px 11px 11px;
 }
-.matchup-preview-team { gap:6px; }
+
 .matchup-preview-team > img,
 .matchup-preview-team > .matchup-logo-fallback {width:45px;height:45px;}
 .matchup-preview-team > strong {
@@ -728,11 +702,7 @@ html[data-theme="dark"] .primary-nav {
 
 /* Feedback from the pull gesture uses transform on the sheet itself.
  * Preserve vertical scrolling; a scroll from the top may convert to dismissal. */
-.game-tracker-scroll,
-.matchup-preview-scroll {
-  overscroll-behavior:contain;
-  touch-action:pan-y;
-}
+
 @media(max-width:380px) {
   .game-tracker-header,
   .matchup-preview-header {padding-inline:46px;min-height:79px;flex-basis:79px;}
@@ -1391,7 +1361,7 @@ html[data-theme="dark"] .primary-nav {
 .game-tracker-drive > summary small {margin:0;font-family:var(--font-display);font-size:9.5px;font-weight:650;line-height:1.2;}
 .game-tracker-drive-play {min-height:58px;align-items:center;padding:10px var(--ui-space-3);}
 .game-tracker-drive-play strong {font-family:var(--font-display);font-size:11.5px;font-weight:650;line-height:1.36;}
-.game-tracker-team-stats {background:var(--panel);}
+
 .game-tracker-stat-table-head,.game-tracker-stat-row {min-height:40px;grid-template-columns:minmax(0,1fr) minmax(98px,1.1fr) minmax(0,1fr);padding-inline:11px;}
 .game-tracker-stat-team b {font-family:var(--font-display);font-size:10px;font-weight:800;}
 .game-tracker-stat-row strong {font-family:var(--font-display);font-size:12px;font-weight:850;}
@@ -1593,7 +1563,7 @@ html[data-theme="dark"] .primary-nav {
   line-height: 1.1;
   font-weight: 900;
 }
-.matchup-history-body .matchup-series-center > small {font-size: 9px;}
+
 .matchup-history-body .matchup-series-summary {
   min-height: 102px;
   padding-block: 9px;
@@ -3384,7 +3354,7 @@ button, input, select, textarea {
 .basketball-shot-chart .matchup-section-heading { padding-inline: 0; }
 .basketball-shot-chart .matchup-section-heading > span { color: var(--ink); font-size: 12px; font-variant-numeric: tabular-nums; }
 .basketball-shot-filters { display: grid; gap: var(--ui-space-2); padding-block: var(--ui-space-2); }
-.basketball-shot-filters .game-tracker-box-selector { margin: 0; }
+
 .basketball-shot-filters .game-tracker-box-selector button { white-space: normal; line-height: 1.2; }
 .basketball-shot-filters .custom-select { width: 100%; }
 .basketball-shot-key { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); align-items: center; margin: var(--ui-space-2) 0; font-size: 10px; }
@@ -3563,7 +3533,7 @@ html[data-theme="dark"] .basketball-live-court { border-color: #b98859; backgrou
 
 
 /* Live basketball: clean regulation-proportioned half court, one latest shot marker. */
-.basketball-details .game-tracker-scoreboard-grid { background: var(--panel); }
+
 .basketball-details .game-tracker-score-team-main > img {
   width: 60px;
   height: 60px;
@@ -3941,5 +3911,5 @@ html[data-theme="dark"] .basketball-shot-filters .game-tracker-box-selector butt
   color: var(--ink); font-size: 12px; font-weight: 650; line-height: 1.3;
 }
 .basketball-details .basketball-play-period .basketball-play > p > time { margin-right: 3px; }
-.basketball-details .basketball-play-team-score > strong { font-size: 15px; }
+
 
