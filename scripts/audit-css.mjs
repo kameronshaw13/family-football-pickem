@@ -60,7 +60,13 @@ const consolidatedLegacyRules = [
   [".basketball-shot-chart .basketball-shot.home-shot.missed", "fill:#eff0f1;stroke:#979fa7"],
   [".game-tracker-score-team.away .game-tracker-score-team-main", "justify-content:flex-start"],
   [".game-tracker-score-team.home .game-tracker-score-team-main", "justify-content:flex-start"],
-  [".football-game-tracker .football-play-period > .football-drive:last-child", "border-bottom:0"]
+  [".football-game-tracker .football-play-period > .football-drive:last-child", "border-bottom:0"],
+  [".game-tracker-tabs", "grid-template-columns:repeat(4,minmax(0,1fr))"],
+  [".game-tracker-tabs.completed", "grid-template-columns:repeat(3,minmax(0,1fr))"],
+  [".matchup-preview-tabs", "grid-template-columns:repeat(3,minmax(0,1fr))"],
+  [".matchup-preview-tabs.has-model-tab", "grid-template-columns:repeat(4,minmax(0,1fr))"],
+  [".game-tracker-scroll::-webkit-scrollbar, .matchup-preview-scroll::-webkit-scrollbar", "display:none"],
+  [".game-tracker-scoring-team-logo", "display:grid;width:27px;place-items:center;align-self:center"]
 ];
 {
   const file = path.join(root, "app", "ui-details.css");
@@ -71,7 +77,7 @@ const consolidatedLegacyRules = [
       css.walkRules(rule => {
         if (rule.parent.type !== "root" || rule.selector.replace(/\s+/g, " ").trim() !== selector) return;
         const declarations = rule.nodes.filter(node => node.type === "decl")
-          .map(decl => `${decl.prop}:${decl.value}`).join(";");
+          .map(decl => `${decl.prop}:${decl.value.replace(/\\s+/g, " ").replace(/,\\s+/g, ",").replace(/\\(\\s+/g, "(").replace(/\\s+\\)/g, ")")}`).join(";");
         if (declarations === expectedDeclarations) matches += 1;
       });
       if (matches !== 1) problems.push(`Expected exactly one canonical root-level block for ${selector}; found ${matches}`);
