@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { appSlugFromPath, selectedWeekFromHeader } from "@/lib/clientLeagueContext";
 import { batchSideBetTotalRisk, batchSpreadIsConfigured } from "@/lib/sideBetBatchRisk";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { americanOddsText, validAmericanOdds } from "@/lib/sideBetMarkets";
@@ -40,19 +41,6 @@ type CachedPayload = {
 
 const APP_DATA_CACHE_PREFIX = "pickem_app_data_v2";
 const MAX_BATCH_SELECTIONS = 8;
-
-function appSlugFromPath(): AppSlug {
-  if (window.location.pathname.startsWith("/friends-basketball")) return "friends-basketball";
-  if (window.location.pathname.startsWith("/friends")) return "friends";
-  if (window.location.pathname.startsWith("/caleb-family")) return "other-family";
-  return "shaw-family";
-}
-
-function selectedWeekFromHeader() {
-  const text = document.querySelector<HTMLElement>(".week-select-wrap .custom-select-trigger")?.textContent || "";
-  const match = text.match(/Week\s+(\d+)/i);
-  return match ? Number(match[1]) : null;
-}
 
 function readCachedPayload(appSlug: AppSlug): CachedPayload | null {
   const week = selectedWeekFromHeader();
