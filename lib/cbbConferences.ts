@@ -11,18 +11,25 @@ export type CbbConferenceMap = {
 /** Short display names for narrow conference filter cells; value stays canonical. */
 export function conferenceAbbreviation(name: string): string {
   const aliases: Record<string, string> = {
-    "BIG TEN": "B1G", "BIG EAST": "BIG EAST", "ATLANTIC 10": "A-10",
-    "MOUNTAIN WEST": "MW", "AMERICAN": "AAC", "MISSOURI VALLEY": "MVC",
+    "BIG TEN": "BIG TEN", "BIG 10": "BIG TEN", "BIG EAST": "BIG EAST",
+    "ATLANTIC 10": "A-10", "MOUNTAIN WEST": "MW", "AMERICAN": "AAC",
+    "AMERICAN ATHLETIC": "AAC", "MISSOURI VALLEY": "MVC",
     "HORIZON LEAGUE": "HORIZON", "WEST COAST": "WCC",
     "COLONIAL ATHLETIC": "CAA", "COASTAL ATHLETIC": "CAA",
-    "CONFERENCE USA": "C-USA", "MID-AMERICAN": "MAC",
-    "SOUTHERN": "SOCON", "SOUTHLAND": "SOUTHLAND",
-    "NORTHEAST": "NEC", "OHIO VALLEY": "OVC",
-    "BIG SOUTH": "BIG SOUTH", "BIG SKY": "BIG SKY",
-    "METRO ATLANTIC ATHLETIC": "MAAC",
+    "COASTAL ATHLETIC ASSOCIATION": "CAA", "CONFERENCE USA": "C-USA",
+    "MID-AMERICAN": "MAC", "SOUTHERN": "SOCON", "SOUTHLAND": "SOUTHLAND",
+    "NORTHEAST": "NEC", "OHIO VALLEY": "OVC", "BIG SOUTH": "BIG SOUTH",
+    "BIG SKY": "BIG SKY", "METRO ATLANTIC ATHLETIC": "MAAC",
+    "METRO ATLANTIC ATHLETIC CONFERENCE": "MAAC",
     "AMERICA EAST": "AM. EAST", "SUMMIT LEAGUE": "SUMMIT",
     "WESTERN ATHLETIC": "WAC", "SOUTHWESTERN ATHLETIC": "SWAC",
-    "MID-EASTERN ATHLETIC": "MEAC", "ASUN": "ASUN"
+    "MID-EASTERN ATHLETIC": "MEAC", "MID EASTERN ATHLETIC": "MEAC",
+    "ASUN": "ASUN", "ATLANTIC SUN": "ASUN",
+    "UNITED ATHLETIC": "UAC", "UNITED ATHLETIC CONFERENCE": "UAC",
+    "BIG WEST": "BIG WEST", "IVY LEAGUE": "IVY",
+    "PATRIOT LEAGUE": "PATRIOT", "SOUTHEASTERN": "SEC",
+    "ATLANTIC COAST": "ACC", "PACIFIC 12": "PAC-12",
+    "WESTERN COAST": "WCC"
   };
   const normalized = name.toUpperCase().replace(/\s+CONFERENCE$/, "").trim();
   return aliases[normalized] ?? normalized;
