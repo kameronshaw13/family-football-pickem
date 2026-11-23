@@ -66,11 +66,12 @@ export async function POST(req: NextRequest) {
     const sessionError = await createProfileSession(profile.id, token);
     if (sessionError) return NextResponse.json({ ok: false, error: `Could not create this device session: ${sessionError.message}` }, { status: 500 });
 
-    const response = NextResponse.json({ ok: true, token, profile: publicProfile(profile), group: unifiedLogin ? null : groupSlug, ...(unifiedLogin ? { leagues: accessibleLeagues } : {}) });
+    const selectedDefault = accessibleLeagues.find(league => league.slug === profile.default_league_slug)?.slug || defaultLeagueForLaunch(accessibleLeagues)?.slug || null;
+    const response = NextResponse.json({ ok: true, token, profile: publicProfile(profile), group: unifiedLogin ? null : groupSlug, ...(unifiedLogin ? { leagues: accessibleLeagues, defaultLeague: selectedDefault } : {}) });
     setSessionCookie(response, token);
-    // Unified sign-in already verified membership: use the first league as
-    // future direct launch destination, and never carry over a previous login.
-    setDefaultLeagueCookie(response, unifiedLogin ? defaultLeagueForLaunch(accessibleLeagues)?.slug || null : null);
+    // Preserve the profile preference when signing back in. The fallback is
+    // the first authorized league only when no saved choice is accessible.
+    setDefaultLeagueCookie(response, unifiedLogin ? selectedDefault : null);
     return response;
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : String(error) }, { status: 500 });
