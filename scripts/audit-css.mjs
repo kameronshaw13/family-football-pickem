@@ -11,13 +11,26 @@ import postcss from "postcss";
 const root = process.cwd();
 const layout = fs.readFileSync(path.join(root, "app/layout.tsx"), "utf8");
 const cssImports = [...layout.matchAll(/import\s+["']\.\/([^"']+\.css)["']/g)].map(m => m[1]);
-const expected = ["ui-foundations.css", "ui-components.css", "ui-overlay-base.css", "ui-settings-base.css", "ui-details.css", "ui-detail-refinements.css", "ui-experience.css"];
+const expected = ["ui-foundations.css", "ui-components.css", "ui-overlay-base.css", "ui-settings-base.css", "ui-details.css", "ui-unified-leagues.css", "ui-detail-refinements.css", "ui-board-refinements.css", "ui-experience.css"];
 const problems = [];
 if (JSON.stringify(cssImports) !== JSON.stringify(expected)) {
   problems.push(`Unexpected app CSS entry points: ${cssImports.join(", ")}`);
 }
 for (const item of cssImports) {
   if (!fs.existsSync(path.join(root, "app", item))) problems.push(`Missing CSS: ${item}`);
+}
+// Keep feature-owned files at their original cascade boundaries. This prevents
+// future edits from accidentally loading a refinement before its base rules.
+const detailOwnershipAnchors = {
+  "ui-unified-leagues.css": "/* Unified Pick'em home. Existing league routes keep their current presentation. */",
+  "ui-detail-refinements.css": "/* Unified broadcast-style GameTracker — compact, flat, shared by both sports. */",
+  "ui-board-refinements.css": "/* Day-by-day Pick Board navigation follows the CBS date-strip interaction:"
+};
+for (const [name, anchor] of Object.entries(detailOwnershipAnchors)) {
+  const file = path.join(root, "app", name);
+  if (fs.existsSync(file) && !fs.readFileSync(file, "utf8").startsWith(anchor)) {
+    problems.push(`Unexpected CSS ownership boundary in ${name}`);
+  }
 }
 const report = [];
 for (const name of cssImports) {
@@ -69,9 +82,9 @@ const consolidatedLegacyRules = [
   [".game-tracker-scoring-team-logo", "display:grid;width:27px;place-items:center;align-self:center"]
 ];
 {
-  // Rules may live in either detail stylesheet, but their exact root-level
+  // Rules may live in any feature-owned detail stylesheet, but their exact root-level
   // declarations must have one owner across the combined cascade.
-  const detailFiles = ["ui-details.css", "ui-detail-refinements.css"];
+  const detailFiles = ["ui-details.css", "ui-unified-leagues.css", "ui-detail-refinements.css", "ui-board-refinements.css"];
   const counts = new Map(consolidatedLegacyRules.map(([selector, declarations]) =>
     [JSON.stringify([selector, declarations]), 0]));
   for (const name of detailFiles) {
