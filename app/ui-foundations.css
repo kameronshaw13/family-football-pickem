@@ -64,6 +64,11 @@
   --matchup-team-surface: var(--panel);
   --matchup-divider: var(--line);
   --matchup-section-divider: var(--line-strong);
+  /* Shared details-sheet and notification geometry across every page. */
+  --detail-header-height: 49px;
+  --detail-header-surface: #fff;
+  --detail-header-ink: #111;
+  --notification-surface: #cf3f39;
   --surface-muted: #e3e6e3;
   --canvas-muted: #e8ebe8;
   --hover: #e5eef1;
@@ -881,7 +886,7 @@ fieldset .field-label { padding: 0; }
   border: 0;
   border-radius: var(--ui-radius-circle);
   color: #fff;
-  background: #cf3f39;
+  background: var(--notification-surface);
   font-family: var(--font-display);
   font-size: 10px;
   font-weight: 800;
