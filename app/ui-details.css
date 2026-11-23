@@ -3518,7 +3518,7 @@ html[data-theme="dark"] .basketball-live-court { border-color: #b98859; backgrou
 .game-tracker-scoreboard-grid { background: var(--panel); }
 .game-tracker-box { padding-top: 0; }
 .game-tracker-box-selector button:last-child { border-right: 0; }
-.game-tracker-team-stats > .game-tracker-stat-row:first-child { border-top: 0; }
+
 .game-tracker-player-table { width: 100%; table-layout: fixed; }
 .game-tracker-player-table th:first-child,
 .game-tracker-player-table td:first-child { white-space: nowrap; overflow-wrap: normal; }
@@ -4620,8 +4620,8 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 }
 .basketball-shot-chart .two-team-shot-key > .shot-legend-team.away { justify-content: flex-start; }
 .basketball-shot-chart .two-team-shot-key > .shot-legend-team.home { justify-content: flex-end; }
-.basketball-shot-chart .basketball-shot.home-shot.made { fill: #383d43; stroke: #383d43; }
-.basketball-shot-chart .basketball-shot.home-shot.missed { fill: #eff0f1; stroke: #979fa7; }
+
+
 .basketball-shot-detail {
   display: flex;
   align-items: flex-start;
@@ -5398,8 +5398,7 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 .basketball-details .basketball-live-clock > .game-tracker-center-clock { font-size: 15px; letter-spacing: .04em; }
 .basketball-team-indicators .basketball-timeout-circles > i,
 .basketball-details .basketball-bonus-indicators > span { background: #c1c6cc; border-color: #c1c6cc; }
-.basketball-team-indicators .basketball-timeout-circles > i.active,
-.basketball-details .basketball-bonus-indicators > span.active { background: #f5c542; border-color: #f5c542; }
+
 .basketball-probability-chart > svg { touch-action: none; cursor: crosshair; }
 .basketball-probability-chart .basketball-probability-team-label { padding-inline: 18px; }
 .basketball-probability-team-label > strong { margin-left: auto; font-variant-numeric: tabular-nums; }
@@ -5997,7 +5996,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   color: var(--muted);
   white-space: normal;
 }
-.football-game-tracker .football-drive[open] > .football-drive-summary { border-bottom: 1px solid var(--tracker-divider); }
+
 .football-game-tracker .football-drive-plays {
   position: relative;
   margin-left: calc(var(--tracker-inset) + 13px);
