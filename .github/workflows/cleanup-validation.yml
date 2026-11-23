@@ -18,6 +18,8 @@ jobs:
       - run: npm ci
       - name: CSS integrity and duplicate audit
         run: npm run audit:css
+      - name: UI stylesheet ownership and contract audit
+        run: npm run audit:ui-ownership
       - name: Import graph and orphaned module inventory
         run: npm run audit:modules
       - name: TypeScript
