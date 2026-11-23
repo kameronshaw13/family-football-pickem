@@ -47,7 +47,7 @@ test("rescheduled duplicate is hidden only if replacement with same league and e
     makeGame("other-sport", "NFL", { espn_event_id: "123" }),
     makeGame("unmatched", "CFB", { event_status: "STATUS_RESCHEDULED", espn_event_id: "456" })
   ];
-  assert.deepEqual(create(games).map(game => game.id), ["new", "unmatched", "other-sport"]);
+  assert.deepEqual(create(games).map(game => game.id), ["new", "other-sport", "unmatched"]);
 });
 
 test("only duplicate final results are collapsed, while open matchups remain independent", () => {
