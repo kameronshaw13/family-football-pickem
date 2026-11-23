@@ -223,6 +223,9 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
   }, [availableRecipientKey, recipients, setRecipients]);
   const allRecipientsSelected = availableRecipientIds.length > 0 && availableRecipientIds.every((id) => recipients.includes(id));
   const recipientGridColumns = ["friends", "friends-basketball"].includes(appSlug) ? 4 : appSlug === "shaw-family" ? 3 : 2;
+  const recipientCellCount = otherPlayers.length + 1; // Includes the All cell.
+  const recipientLayoutClass = ["friends", "friends-basketball"].includes(appSlug) && (recipientCellCount === 7 || recipientCellCount === 8)
+    ? `recipient-layout-${recipientCellCount}` : "";
   const limitReached = Number.isFinite(weeklyLimit) && slotCount >= weeklyLimit;
   const filteredOpenGames = openGames
     .filter((game) => gameDayKey(game.commence_time) === selectedDayKey)
@@ -640,7 +643,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
 
         <section className="side-bet-slip-section">
           <div className="side-bet-slip-section-head"><span>Send to</span></div>
-          <fieldset aria-label="Send side bet to"><div className="side-bet-recipient-grid" style={{ gridTemplateColumns: `repeat(${recipientGridColumns}, minmax(0, 1fr))` }}>
+          <fieldset aria-label="Send side bet to"><div className={`side-bet-recipient-grid ${recipientLayoutClass}`.trim()} style={recipientLayoutClass ? undefined : { gridTemplateColumns: `repeat(${recipientGridColumns}, minmax(0, 1fr))` }}>
             <label className={`${allRecipientsSelected ? "checked" : ""} ${availableRecipientIds.length === 0 ? "disabled" : ""}`.trim()}><input type="checkbox" aria-label="All recipients" disabled={availableRecipientIds.length === 0} checked={allRecipientsSelected} onChange={() => setRecipients(allRecipientsSelected ? [] : availableRecipientIds)} /><span>All</span></label>
             {otherPlayers.map((profile) => {
               const recipientFull = Number.isFinite(weeklyLimit) && (slotCounts[profile.id] || 0) >= weeklyLimit;
