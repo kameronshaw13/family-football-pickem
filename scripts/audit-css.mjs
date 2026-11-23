@@ -62,6 +62,33 @@ for (const name of cssImports) {
   });
   report.push({file:name, rules, declarations, repeatedSelectorOccurrences:duplicates.length, identicalRepeatedRuleBlocks:duplicates.filter(x=>x.identicalBlock).length, samples:duplicates.slice(0,8)});
 }
+// Prevent the feature-owned layers from accumulating another stack of identical
+// root-level declarations for an unchanged selector/property/value combination.
+// Distinct values, @media overrides, and selector-specific refinements remain valid.
+const deduplicatedFeatureFiles = [
+  "ui-unified-leagues.css", "ui-detail-refinements.css", "ui-board-refinements.css"
+];
+for (const name of deduplicatedFeatureFiles) {
+  const file = path.join(root, "app", name);
+  if (!fs.existsSync(file)) continue;
+  const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
+  const declarationsSeen = new Map();
+  css.walkRules(rule => {
+    if (rule.parent.type !== "root") return;
+    const selector = rule.selector.replace(/\s+/g, " ").trim();
+    rule.nodes.filter(node => node.type === "decl").forEach(decl => {
+      if (decl.prop.startsWith("--") || decl.important) return;
+      const key = JSON.stringify([selector, decl.prop, decl.value.trim()]);
+      const priorLine = declarationsSeen.get(key);
+      if (priorLine !== undefined) {
+        problems.push(`Redundant feature CSS declaration at ${name}:${decl.source.start.line}: ${selector} ${decl.prop} (first at line ${priorLine})`);
+      } else {
+        declarationsSeen.set(key, decl.source.start.line);
+      }
+    });
+  });
+}
+
 // These previously repeated declarations have an established single root-level
 // owner. Check the exact fingerprint, not selector reuse: later intentional
 // responsive or more-specific refinements remain valid.
