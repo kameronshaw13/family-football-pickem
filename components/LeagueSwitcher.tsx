@@ -65,10 +65,18 @@ export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect }: {
         const payload = await response.json();
         if (!controller.signal.aborted && Array.isArray(payload.leagues)) {
           saveLeaguesCache(payload.leagues);
-          const saved = payload.defaultLeague as PickemAppSlug | undefined;
+          const legacy = preferredLeagueAmong(profileId(), payload.leagues);
+          const saved = (payload.savedDefaultLeague || legacy || payload.defaultLeague) as PickemAppSlug | undefined;
           if (saved && payload.leagues.some((league: LeagueMembership) => league.slug === saved)) {
             savePreferredLeague(profileId(), saved);
             setDefaultSlug(saved);
+            if (!payload.savedDefaultLeague && legacy) {
+              void fetch("/api/default-league", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ slug: legacy })
+              }).catch(() => undefined);
+            }
           }
           setLeagues((previous) => JSON.stringify(previous) === JSON.stringify(payload.leagues) ? previous : payload.leagues);
           // Warm the existing header images before switching from Settings,
