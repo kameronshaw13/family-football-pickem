@@ -56,6 +56,7 @@ import { retainBasketballSpread } from "@/lib/gameDataIntegrity";
 import { canRefreshSpread, getCurrentPickWeek } from "@/lib/lockRules";
 import { navigationNotificationCounts } from "@/lib/notificationPresentation";
 import { boardCalendar, boardGameOrder, boardLeagueGroups as groupBoardGames, favoriteGameKey, legacyFavoriteGameKey } from "@/lib/boardCalendar";
+import { filterBoardGames } from "@/lib/boardGameFiltering";
 
 
 import {
@@ -1284,10 +1285,6 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   // Every game lives in its chronological day, regardless of whether it is
   // available to pick, already locked, live or final. Locking remains enforced
   // on each actual game, never by visibility/status filters.
-  const displayedFinalMatchups = new Set<string>();
-  const replacementEventIds = new Set(viewedGames
-    .filter(game => game.event_status !== "STATUS_RESCHEDULED" && game.espn_event_id)
-    .map(game => `${game.league}:${game.espn_event_id}`));
   const cfbMatchesSelectedFilter = (game: Game) => {
     if (conferenceFilter === "ALL") return true;
     if (conferenceFilter === "TOP25") return teamRank(game, game.home_team) != null || teamRank(game, game.away_team) != null;
@@ -1299,33 +1296,18 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const cbbMatchesSelectedFilter = (game: Game) =>
     cbbGameMatchesConference(game, cbbConferenceFilter, cbbConferences?.teams || {});
 
-  const boardGames = boardActive ? viewedGames.filter(game => {
-    if (game.event_status === "STATUS_RESCHEDULED" && game.espn_event_id &&
-        replacementEventIds.has(`${game.league}:${game.espn_event_id}`)) return false;
-    if (leagueFilter === "ALL") {
-      // "All" includes pro and college games; narrowing the second dropdown
-      // focuses the list on the matching college games.
-      if (appSlug === "friends-basketball")
-        return game.league === "CBB"
-          ? cbbMatchesSelectedFilter(game)
-          : game.league === "NBA" && cbbConferenceFilter === "ALL";
-      return game.league === "CFB"
-        ? cfbMatchesSelectedFilter(game)
-        : game.league === "NFL" && conferenceFilter === "ALL";
-    }
-    if (leagueFilter === "CFB") return game.league === "CFB" && cfbMatchesSelectedFilter(game);
-    if (leagueFilter === "CBB") return game.league === "CBB" && cbbMatchesSelectedFilter(game);
-    if (leagueFilter === "NFL" || leagueFilter === "NBA") return game.league === leagueFilter;
-    const dogValue = Math.max(...[game.away_team, game.home_team].map(team => teamDogValue(game, team)));
-    return dogValue > 0 && (dogValueFilter === "ALL" || dogValue === Number(dogValueFilter));
-  }).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime())
-    .filter(game => {
-      if (!isFinalGame(game)) return true;
-      const key = [game.league, game.week, game.commence_time, game.away_team, game.home_team].join("|");
-      if (displayedFinalMatchups.has(key)) return false;
-      displayedFinalMatchups.add(key);
-      return true;
-    }) : [];
+  const boardGames = filterBoardGames({
+    games: viewedGames,
+    active: boardActive,
+    basketball: appSlug === "friends-basketball",
+    leagueFilter,
+    conferenceFilter,
+    cbbConferenceFilter,
+    dogValueFilter,
+    matchesFootballConference: cfbMatchesSelectedFilter,
+    matchesBasketballConference: cbbMatchesSelectedFilter,
+    dogValueForTeam: teamDogValue
+  });
 
   const dayScope = [appSlug, viewedWeek].join(":");
   const { todayDayKey, calendarDays, selectedDayKey } = boardCalendar({
