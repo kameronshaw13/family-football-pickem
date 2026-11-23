@@ -16,6 +16,7 @@ This is a Git source-code snapshot, not a Supabase database backup.
 | Popup title-bar tokens and close control | `--detail-header-*`, `GameDetailClose` | Popup body, sport-specific information |
 | Notification count geometry | `NotificationBadge` and foundation CSS | Badge placement by navigation/menu/tab |
 | Main navigation | `PersistentAppChrome` and `PrimaryBottomNav` | League header wordmarks |
+| Notification HTTP requests, count normalization and optimistic read calculations | `lib/notificationClient.ts` | Polling frequency, navigation and persisted read state stay in app/API |
 | Side Bet API request URL, headers, and mutation body transport | `lib/sideBetNetwork.ts` | Locking, request sequencing, polling cadence and state remain in app coordinator |
 | Side Bet refresh fingerprints, stale response ordering and live acceptance payloads | `lib/sideBetRefreshState.ts` | Network scheduling, mutations and cache writes stay in the app coordinator |
 | Read-only Bank standings, weekly bank amounts and accepted bet exposure | `lib/bankPresentation.ts` | Does not settle bets or modify persisted credits |
