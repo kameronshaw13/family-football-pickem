@@ -57,6 +57,7 @@ import { canRefreshSpread, getCurrentPickWeek } from "@/lib/lockRules";
 import { navigationNotificationCounts } from "@/lib/notificationPresentation";
 import { boardCalendar, boardGameOrder, boardLeagueGroups as groupBoardGames, favoriteGameKey, legacyFavoriteGameKey } from "@/lib/boardCalendar";
 import { filterBoardGames } from "@/lib/boardGameFiltering";
+import { acceptedSideBetExposure, bankLeaderboardTotals, weeklyBankAmounts } from "@/lib/bankPresentation";
 
 
 import {
@@ -1229,10 +1230,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     : previewActive
     ? testWeek!.standings
     : data.weeklyStandingsByWeek?.[String(bankResultWeek)] || computeWeeklyStandings(profiles, bankResultPicks);
-  const bankWeekAmounts = bankActive ? Object.fromEntries(profiles.map((profile) => {
-    const entries = viewedBankEntries.filter((entry) => entry.week === bankResultWeek && entry.user_id === profile.id);
-    return [profile.id, entries.length ? entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0) : null];
-  })) : {};
+  const bankWeekAmounts = weeklyBankAmounts(profiles, viewedBankEntries, bankResultWeek, bankActive);
   const weekIsOpen = !previewActive && !weekNotOpenYet && (!data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock);
   const sideBetWeekIsOpen = !previewActive && !weekNotOpenYet && (!data.sideBetWeekOpenTime || new Date(data.sideBetWeekOpenTime).getTime() <= clock);
   const {
@@ -1244,21 +1242,23 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     picksNotificationCount,
     navNotificationCounts
   } = navigationNotificationCounts(notificationCounts, hideAcceptedBets, previewActive);
-  const bankTotals = bankActive ? profiles.map((profile) => ({
-    id: profile.id,
-    display_name: profile.display_name,
-    total: !previewActive && data.bankBalances && Object.prototype.hasOwnProperty.call(data.bankBalances, profile.id)
-      ? Number(data.bankBalances[profile.id] || 0)
-      : viewedBankEntries.filter((entry) => entry.user_id === profile.id).reduce((sum, entry) => sum + Number(entry.amount || 0), 0) + Number(viewedSideBetBankTotals?.[profile.id] || 0)
-  })).sort((a, b) => b.total - a.total) : [];
+  const bankTotals = bankLeaderboardTotals({
+    profiles,
+    entries: viewedBankEntries,
+    sideBetBankTotals: viewedSideBetBankTotals,
+    bankBalances: data.bankBalances,
+    previewActive,
+    active: bankActive
+  });
   const mySideBetWeekTotal = previewActive
     ? Number(testWeek!.sideBetBankTotals?.[currentUser.id] || 0)
     : Number(data.sideBetWeekTotals?.[currentUser.id] || 0);
-  const myActiveSideBets = (previewActive ? testWeek!.sideBets : sideBetLedger)
-    .filter((bet) => bet.status === "accepted" && (bet.creator_id === currentUser.id || bet.accepted_by === currentUser.id));
-  const myActiveSideBetCount = myActiveSideBets.length;
-  const myActivePotentialProfit = myActiveSideBets.reduce((sum, bet) => sum + sideBetProfitForUser(bet, currentUser.id), 0);
-  const myActivePotentialLoss = myActiveSideBets.reduce((sum, bet) => sum + sideBetRiskForUser(bet, currentUser.id), 0);
+  const {
+    activeBets: myActiveSideBets,
+    activeCount: myActiveSideBetCount,
+    potentialProfit: myActivePotentialProfit,
+    potentialLoss: myActivePotentialLoss
+  } = acceptedSideBetExposure(previewActive ? testWeek!.sideBets : sideBetLedger, currentUser.id);
   const openBetGames = sideBetsActive ? games.filter((game) => !isFinalGame(game) && !isPostponedGame(game)) : [];
   const selectedBetGame = openBetGames.find((game) => game.id === betGameId);
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : "";
