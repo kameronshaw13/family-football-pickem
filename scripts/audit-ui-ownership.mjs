@@ -14,6 +14,11 @@ const imports = [...layout.matchAll(/import\s+["']\.\/([^"']+\.css)["']/g)].map(
 const details = read("app/ui-details.css");
 const experience = read("app/ui-experience.css");
 const problems = [];
+const expectedImports = ["ui-foundations.css", "ui-components.css", "ui-overlay-base.css", "ui-settings-base.css", "ui-details.css", "ui-experience.css"];
+if (JSON.stringify(imports) !== JSON.stringify(expectedImports)) problems.push("CSS import ownership/order changed: " + imports.join(", "));
+if (!read("app/ui-overlay-base.css").includes("Former game-tracker.css")) problems.push("Overlay baseline missing from ui-overlay-base.css.");
+if (!read("app/ui-settings-base.css").includes("Former theme-settings.css")) problems.push("Settings baseline missing from ui-settings-base.css.");
+if (details.includes("Former theme-settings.css") || details.includes("Former game-tracker.css")) problems.push("Legacy styles reintroduced into ui-details.css instead of their owners.");
 if (imports.at(-1) !== "ui-experience.css") problems.push("Experience CSS must be the final imported stylesheet.");
 if (details.includes("PICK'EM LIGHT THEME — single source of truth")) {
   problems.push("Final light-theme overrides belong in app/ui-experience.css, not in ui-details.css.");
