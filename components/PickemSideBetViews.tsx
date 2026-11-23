@@ -5,6 +5,7 @@ import { pickCardSignature, completeSeasonStandings } from "@/lib/standingsDispl
 import RuleItem from "@/components/RuleItem";
 import Leaderboard from "@/components/Leaderboard";
 import SectionTabs from "@/components/SectionTabs";
+import MatchupCardFrame from "@/components/MatchupCardFrame";
 import { sideBetMatchesGameFilter, sortSideBetsByGameStatus, sortSideBetsGroupedByGame, type SideBetGameFilter } from "@/lib/sideBetSorting";
 import { sideBetMarketText, sideBetOddsForTeam, sideBetOddsSuffix, sideBetTotalSideForTeam, sideBetLineText } from "@/lib/sideBetDisplay";
 import { money, roundedMoney, stakeMoney, normalizeRiskInput } from "@/lib/moneyDisplay";
@@ -697,7 +698,7 @@ export function SideBetGameCard({ game, market, boardMarket, selectedTeam, disab
     return spreadText(team === game.away_team ? market.spread.awayPoint : market.spread.homePoint);
   };
   const live = game.live_state === "in";
-  return <article className={`game-card matchup-card side-bet-game-card ${disabled ? "closed" : ""} ${weekLocked ? "unopened-week" : ""} ${selectedTeam ? "selected" : ""}`.trim()}>
+  return <MatchupCardFrame className={`side-bet-game-card ${disabled ? "closed" : ""} ${weekLocked ? "unopened-week" : ""} ${selectedTeam ? "selected" : ""}`.trim()}>
     <div className="game-head compact-game-head">
       <div className="game-time-group"><span className={live ? "game-live-status" : "game-time"}><NumericText text={live ? game.live_status || "Live" : timeText(game.commence_time)} /></span>{game.neutral_site && <span className="game-neutral-site">Neutral</span>}</div>
       {live && <div className="side-bet-live-actions">{game.live_situation && <span className="side-bet-live-situation"><LiveSituationText game={game} /></span>}<button type="button" className="matchup-preview-trigger game-tracker-trigger" disabled={weekLocked} onClick={() => openPreview(game)}>GameTracker</button></div>}
@@ -719,7 +720,7 @@ export function SideBetGameCard({ game, market, boardMarket, selectedTeam, disab
           : boardMarket === "spreads" && market?.spread ? <NumericText text={lineFor(team)} /> : null}</span>
       </button>)}
     </div>
-  </article>;
+  </MatchupCardFrame>;
 }
 
 export function SideBetList({ bets, currentUser, marketQuotes, empty, historyOnly = false, saving, savingBetId, canAccept, acceptDisabledText, requestAccept, respond }: { bets: SideBet[]; currentUser: Profile; marketQuotes: Record<string, SideBetMarketQuote>; empty: string; historyOnly?: boolean; saving: boolean; savingBetId: string | null; canAccept: (bet: SideBet) => boolean; acceptDisabledText: string; requestAccept: (sideBetId: string) => void; respond: (action: "accept" | "decline" | "cancel" | "clear", sideBetId: string) => Promise<boolean> }) {

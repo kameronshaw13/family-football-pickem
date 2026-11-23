@@ -6220,7 +6220,7 @@ html[data-theme="dark"] .basketball-game-tracker .game-tracker-score-center .gam
   min-height: 34px;
   padding: 5px 6px;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--ui-radius-box);
   background: transparent;
   color: var(--ink);
   box-shadow: none;
@@ -6294,7 +6294,7 @@ html[data-theme="dark"] .basketball-game-tracker .game-tracker-score-center .gam
   border: 0; background: var(--panel);
 }
 .basketball-shot-filters .game-tracker-box-selector button {
-  border: 0; background: transparent; color: var(--ink); min-height: 34px; border-radius: 4px;
+  border: 0; background: transparent; color: var(--ink); min-height: 34px; border-radius: var(--ui-radius-action);
 }
 .basketball-shot-filters .game-tracker-box-selector button.active {
   color: var(--ink); background: #fff;
@@ -6429,7 +6429,7 @@ html[data-theme="dark"] .game-tracker-sheet {
   min-height: 37px;
   padding: 7px 6px;
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--ui-radius-box);
   background: transparent;
   color: var(--muted);
   font-size: 12px;
@@ -6456,7 +6456,7 @@ html[data-theme="dark"] .game-tracker-sheet {
   border: 0;
   outline: none;
   background: transparent;
-  border-radius: 8px;
+  border-radius: var(--ui-radius-box);
   font-weight: 750;
 }
 .game-tracker-box > .game-tracker-box-selector > button.active,
@@ -6576,7 +6576,7 @@ html[data-theme="dark"] .game-tracker-sheet {
 .basketball-shot-chart .basketball-shot-filters .game-tracker-box-selector {
   gap: 3px;
   padding: 4px;
-  border-radius: 8px;
+  border-radius: var(--ui-radius-box);
   background: var(--tracker-track);
 }
 .basketball-shot-chart .basketball-shot-filters .game-tracker-box-selector > button,
@@ -6584,7 +6584,7 @@ html[data-theme="dark"] .game-tracker-sheet {
   border: 0;
   outline: 0;
   box-shadow: none;
-  border-radius: 6px;
+  border-radius: var(--ui-radius-box);
   color: var(--muted);
   background: transparent;
 }
@@ -7452,7 +7452,7 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 .basketball-team-indicators .game-tracker-timeout-dots > i {
   width: 9px;
   height: 5px;
-  border-radius: 1px;
+  border-radius: var(--ui-radius-label);
   background: #c9d0d6;
   box-shadow: none;
 }
@@ -8036,8 +8036,8 @@ html:not([data-theme="dark"]) .game-tracker-header-logo-wrap > img[data-logo-bac
 .matchup-preview-sheet > .matchup-preview-header,
 html[data-theme="dark"] .game-tracker-sheet > .game-tracker-header,
 html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
-  color: #111;
-  background: #fff;
+  color: var(--detail-header-ink);
+  background: var(--detail-header-surface);
   border-bottom: 1px solid var(--line);
   box-shadow: none;
 }
@@ -9110,7 +9110,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   bottom: 20px;
   left: -2px;
   width: 2px;
-  border-radius: 1px;
+  border-radius: var(--ui-radius-label);
   background: var(--football-drive-color, #a12936);
 }
 .football-game-tracker .football-drive-summary {
@@ -9760,6 +9760,11 @@ html:not([data-theme="dark"]) {
   --app-chrome-border: #d6d9d4;
   --app-board-background: #e3e6e3;
   --app-logo-blue: #4d91b8;
+  /* One light-theme hierarchy across the board, side bets and leagues. */
+  --matchup-header-surface: var(--canvas);
+  --matchup-team-surface: #fff;
+  --matchup-divider: var(--line);
+  --matchup-section-divider: var(--line-strong);
 }
 html:not([data-theme="dark"]),
 html:not([data-theme="dark"]) body { background: var(--canvas) !important; }
@@ -10053,17 +10058,15 @@ html:not([data-theme="dark"]) .picks-panel.side-bets-view
 }
 
 
-/* Cream header cells match the bottom nav and selector surface.
-   Team matchup rows remain white for visual hierarchy. Never alter borders. */
-html:not([data-theme="dark"]) .picks-panel.board-view .board-league-group > .board-league-header,
-html:not([data-theme="dark"]) .picks-panel.board-view .game-card .game-head,
-html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-board .board-league-group > .board-league-header,
-html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-board .game-card .game-head {
-  background: var(--canvas) !important;
+/* Shared matchup hierarchy for all four sports and both boards.
+   The neutral row rule excludes intentional pick/result and disabled states;
+   those have their own semantic meaning and are not flattened. */
+html:not([data-theme="dark"]) .picks-panel :is(.board-league-group > .board-league-header, .game-card > .game-head) {
+  background: var(--matchup-header-surface) !important;
 }
-html:not([data-theme="dark"]) .picks-panel.board-view .game-card:not(.locked-out) .team-row:not(.picked-side):not(.batch-picked-side):not(.picked-win):not(.picked-loss):not(.picked-push):not(.outcome-win):not(.outcome-loss):not(.opponent-only):not(.blocked-side),
-html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-board .game-card:not(.locked-out):not(.closed) .team-row:not(.picked-side):not(.batch-picked-side):not(.picked-win):not(.picked-loss):not(.picked-push):not(.outcome-win):not(.outcome-loss):not(.opponent-only):not(.blocked-side) {
-  background: #fff !important;
+html:not([data-theme="dark"]) .picks-panel .game-card:not(.locked-out):not(.closed)
+  .team-row:not(.picked-side):not(.batch-picked-side):not(.picked-win):not(.picked-loss):not(.picked-push):not(.outcome-win):not(.outcome-loss):not(.opponent-only):not(.blocked-side) {
+  background: var(--matchup-team-surface) !important;
 }
 
 /* Send To: exactly one 1px separator between adjacent recipients.
@@ -10157,53 +10160,17 @@ html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-b
   object-fit: contain;
 }
 
-/* Player profile uses the same flush white sheet header as other popups.
-   Header starts directly beneath the fixed app header; close X is black,
-   left-aligned, and title stays centered in the remaining space. */
+/* The shared popup title-bar geometry is defined with GameTracker below.
+   Only the overlay's safe-area anchor belongs here. */
 .player-profile-backdrop {
   top: calc(env(safe-area-inset-top) + var(--header-height));
 }
-.player-profile-head {
-  min-height: 56px;
-  padding: 0 var(--ui-space-3) 0 54px;
-  color: var(--ink);
-  background: #fff;
-  border-bottom: 1px solid var(--line);
-}
-.player-profile-head::before { background: var(--line-strong); }
-.player-profile-head-copy > span { color: var(--muted); }
-.player-profile-head h2 { color: var(--ink); }
-.player-profile-close-wrap {
-  top: 50%;
-  left: 0;
-  right: auto;
-  min-width: 44px;
-  transform: translateY(-50%);
-}
-.player-profile-close-wrap > .icon-btn {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  color: #111;
-  background: transparent;
-}
-.player-profile-close-wrap > .icon-btn svg {
-  stroke: #111;
-}
-@media (max-width: 420px) {
-  .player-profile-head { padding: 0 var(--ui-space-3) 0 54px; }
-}
-
 
 /* Unopened weeks: keep normal white matchup cells and ink text while native
    disabled buttons prevent pick/side-bet selection. Dividers stay intact. */
 html:not([data-theme="dark"]) .picks-panel.board-view .game-card.locked-out:not(.final-outcome) .team-row:not(.blocked-side):not(.opponent-only),
 html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-game-card.unopened-week .team-row:not(.blocked-side):not(.opponent-only) {
-  background: #fff !important;
+  background: var(--matchup-team-surface) !important;
   color: var(--ink) !important;
   -webkit-text-fill-color: var(--ink) !important;
 }
@@ -10237,21 +10204,21 @@ html:not([data-theme="dark"]) .picks-panel > .week-opening-notice {
   border-top: 1px solid var(--line);
 }
 .player-profile-head {
-  height: 49px;
-  min-height: 49px;
-  max-height: 49px;
-  flex-basis: 49px;
+  height: var(--detail-header-height);
+  min-height: var(--detail-header-height);
+  max-height: var(--detail-header-height);
+  flex-basis: var(--detail-header-height);
   display: grid;
   grid-template-columns: minmax(0,1fr);
   place-items: center;
   padding: 0 44px;
-  background: #fff;
+  background: var(--detail-header-surface);
   border-bottom: 1px solid var(--line);
-  color: #111;
+  color: var(--detail-header-ink);
 }
 .player-profile-head-copy { text-align: center; width: 100%; }
 .player-profile-head h2 {
-  color: #111;
+  color: var(--detail-header-ink);
   font-size: clamp(15px, 4.05vw, 19px);
   font-weight: 800;
   line-height: 1.2;

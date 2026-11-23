@@ -5,6 +5,7 @@ import { pickCardSignature, completeSeasonStandings } from "@/lib/standingsDispl
 import RuleItem from "@/components/RuleItem";
 import Leaderboard from "@/components/Leaderboard";
 import SectionTabs from "@/components/SectionTabs";
+import MatchupCardFrame from "@/components/MatchupCardFrame";
 import { sideBetMatchesGameFilter, sortSideBetsByGameStatus, sortSideBetsGroupedByGame, type SideBetGameFilter } from "@/lib/sideBetSorting";
 import { sideBetMarketText, sideBetOddsForTeam, sideBetOddsSuffix, sideBetTotalSideForTeam, sideBetLineText } from "@/lib/sideBetDisplay";
 import { money, roundedMoney, stakeMoney, normalizeRiskInput } from "@/lib/moneyDisplay";
@@ -165,7 +166,7 @@ export function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, 
   const homeResultLine = showScoreValues ? resultLine(game.home_team) : null;
   const liveSituation = gameIsLive ? liveSituationStatus(game) : "";
 
-  return <article className={`game-card matchup-card filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${!weekIsOpen && !gameIsLive && !gameIsFinal ? "locked-out" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
+  return <MatchupCardFrame className={`filter-${leagueFilter.toLowerCase()} status-${statusFilter.toLowerCase()} ${dogView ? "dog-view" : ""} ${closed ? "closed" : ""} ${!weekIsOpen && !gameIsLive && !gameIsFinal ? "locked-out" : ""} ${existingMatchesView ? "selected" : ""} ${gameIsFinal && hasScore ? "final-outcome" : ""} ${showScoreValues ? "score-values" : ""}`}>
     <div className={`game-head compact-game-head ${gameIsLive ? `live-tracker-head ${game.league === "CBB" || game.league === "NBA" ? "basketball-live-head" : ""}` : ""}`.trim()}>
       <div className="game-time-group">{gameIsFinal ? <span className="game-final-status">Final</span> : isPostponedGame(game) ? <span className="game-final-status">{cardGameStateText(game, true)}</span> : gameIsLive ? <span className="game-live-status"><LivePeriodText game={game} /></span> : <span className="game-time"><NumericText text={timeText(game.commence_time)} /></span>}{game.neutral_site && <span className="game-neutral-site">Neutral</span>}</div>
       <div className={`matchup-preview-actions${gameIsLive && (game.league === "CBB" || game.league === "NBA") ? " basketball-tracker-right" : ""}`}>
@@ -199,7 +200,7 @@ export function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, 
         {showScoreValues ? <span className="team-result-line"><PossessionIcon game={game} team={game.home_team} /><span className="team-result-score"><NumericText text={homeScore ?? "—"} /></span></span> : hasSpread && !homeOpponentOnly && <span className={`team-spread ${homeBlocked ? "unavailable" : ""}`}><span>{homeBlocked ? "Not eligible" : <NumericText text={sideLine(game.home_team)} />}</span></span>}
       </button>
     </div>
-  </article>;
+  </MatchupCardFrame>;
 }
 
 export function PossessionIcon({ game, team }: { game: Game; team: string }) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { appSlugFromPath, selectedWeekFromHeader, readCachedAppPayload } from "@/lib/clientLeagueContext";
 import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { americanOddsText, oppositeAmericanOdds } from "@/lib/sideBetMarkets";
 import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
@@ -29,7 +30,6 @@ type SelectionInfo = {
   offeredSpread: string;
 };
 
-const APP_DATA_CACHE_PREFIX = "pickem_app_data_v2";
 const CENTRAL_DATE = new Intl.DateTimeFormat("en-US", {
   weekday: "short",
   month: "short",
@@ -42,42 +42,8 @@ const CENTRAL_TIME = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Chicago"
 });
 
-function appSlugFromPath(): AppSlug {
-  if (window.location.pathname.startsWith("/friends-basketball")) return "friends-basketball";
-  if (window.location.pathname.startsWith("/friends")) return "friends";
-  if (window.location.pathname.startsWith("/caleb-family")) return "other-family";
-  return "shaw-family";
-}
-
-function selectedWeekFromHeader() {
-  const text = document.querySelector<HTMLElement>(".scoreboard-header .week-select-wrap .custom-select-trigger")?.textContent || "";
-  const match = text.match(/Week\s+(\d+)/i);
-  return match ? Number(match[1]) : null;
-}
-
 function readCachedPayload(appSlug: AppSlug): CachedPayload | null {
-  const week = selectedWeekFromHeader();
-  const preferredKeys = [
-    `${APP_DATA_CACHE_PREFIX}:${appSlug}:${week == null ? "default" : week}`,
-    `${APP_DATA_CACHE_PREFIX}:${appSlug}:default`
-  ];
-  const discoveredKeys: string[] = [];
-  for (let index = 0; index < window.sessionStorage.length; index += 1) {
-    const key = window.sessionStorage.key(index);
-    if (key?.startsWith(`${APP_DATA_CACHE_PREFIX}:${appSlug}:`) && !preferredKeys.includes(key)) discoveredKeys.push(key);
-  }
-
-  for (const key of [...preferredKeys, ...discoveredKeys]) {
-    try {
-      const raw = window.sessionStorage.getItem(key);
-      if (!raw) continue;
-      const entry = JSON.parse(raw) as { payload?: CachedPayload } | null;
-      if (entry?.payload) return entry.payload;
-    } catch {
-      // Ignore stale cache entries.
-    }
-  }
-  return null;
+  return readCachedAppPayload<CachedPayload>(appSlug, false);
 }
 
 function gameLabel(game: CachedGame) {

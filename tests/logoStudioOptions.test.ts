@@ -39,11 +39,13 @@ test("supplementary LA logos are offered only to the exact team and league", () 
   const clippers = "https://a.espncdn.com/i/teamlogos/nba/500/scoreboard/lac.png";
   const lakers = "https://a.espncdn.com/i/teamlogos/nba/500/scoreboard/lal.png";
   const chargers = "https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/lac.png";
-  const school = "https://a.espncdn.com/i/teamlogos/ncaa/500/27.png";
+  const school = "https://a.espncdn.com/i/teamlogos/ncaa/500/2724.png";
+  const unrelatedSchool = "https://a.espncdn.com/i/teamlogos/ncaa/500/27.png";
   assert.ok(curatedLogoAlternatives(clippers, "NBA").some(opt => opt.label.includes("Clippers full round")));
   assert.ok(curatedLogoAlternatives(lakers, "NBA").some(opt => opt.label.includes("Lakers basketball")));
   assert.ok(!curatedLogoAlternatives(chargers, "NFL").some(opt => opt.label.includes("Clippers")));
-  assert.ok(curatedLogoAlternatives(school, "CBB").some(opt => opt.label.includes("Riverside")));
+  assert.ok(curatedLogoAlternatives(school, "CBB").some(opt => opt.label.includes("WuShock")));
+  assert.ok(!curatedLogoAlternatives(unrelatedSchool, "CBB").some(opt => opt.label.includes("WuShock")));
 });
 
 test("duplicate SVG designs collapse despite palette/colorway changes", () => {
