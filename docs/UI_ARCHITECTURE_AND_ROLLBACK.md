@@ -14,6 +14,7 @@ This is a Git source-code snapshot, not a Supabase database backup.
 | Popup title-bar tokens and close control | `--detail-header-*`, `GameDetailClose` | Popup body, sport-specific information |
 | Notification count geometry | `NotificationBadge` and foundation CSS | Badge placement by navigation/menu/tab |
 | Main navigation | `PersistentAppChrome` and `PrimaryBottomNav` | League header wordmarks |
+| Browser league/week selection and Side Bet cached snapshots | `lib/clientLeagueContext.ts` | Batch actions require matching week; display overlays allow fallback |
 | Pick limits and Side Bet policies | Server-side group season rules | Different leagues and week overrides |
 
 ## UI invariants
