@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     if (!auth.profile) return NextResponse.redirect(new URL("/leagues/login", req.url), 307);
     const groups = await listActiveGroupsForProfile(getSupabaseAdmin(), auth.profile.id);
     const leagues = accessibleLeaguesForUser(auth.profile.username || "", groups);
-    const league = defaultLeagueForLaunch(leagues);
+    const league = leagues.find(league => league.slug === auth.profile.default_league_slug) || defaultLeagueForLaunch(leagues);
     if (!league) return new NextResponse("No active Pick'em leagues are assigned to this account.", {
       status: 403, headers: { "Cache-Control": "no-store", "Content-Type": "text/plain; charset=utf-8" }
     });
