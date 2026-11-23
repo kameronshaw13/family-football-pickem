@@ -16,6 +16,7 @@ This is a Git source-code snapshot, not a Supabase database backup.
 | Popup title-bar tokens and close control | `--detail-header-*`, `GameDetailClose` | Popup body, sport-specific information |
 | Notification count geometry | `NotificationBadge` and foundation CSS | Badge placement by navigation/menu/tab |
 | Main navigation | `PersistentAppChrome` and `PrimaryBottomNav` | League header wordmarks |
+| App loading cache selection, retry policy and basketball line continuity | `lib/appLoadClient.ts` | Loading indicators, auth redirect, session validation and cancellation stay in app coordinator |
 | Pick save transport and signed-in player's current-week cache replacement | `lib/pickSaveClient.ts` | Server validates pick limits, lock status and scoring; other users/weeks preserved |
 | Notification HTTP requests, count normalization and optimistic read calculations | `lib/notificationClient.ts` | Polling frequency, navigation and persisted read state stay in app/API |
 | Side Bet API request URL, headers, and mutation body transport | `lib/sideBetNetwork.ts` | Locking, request sequencing, polling cadence and state remain in app coordinator |
