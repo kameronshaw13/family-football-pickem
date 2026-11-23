@@ -490,7 +490,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
 
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
     <div className="side-bet-top-controls">
-    <div className={`view-select-row side-bet-filter-row ${view === "new" && weekIsOpen && !weekConcluded ? "make-offer" : ""}`.trim()}>
+    <div className={`view-select-row side-bet-filter-row ${view === "new" && !weekConcluded ? "make-offer" : ""}`.trim()}>
       <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "offers", label: "Offers", badge: hideAcceptedBets ? 0 : offerNotificationCount }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => {
         if (value === "new" && currentUser.side_bet_offers_disabled) {
           onBlockedOffer();
@@ -513,14 +513,14 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
         
       }} />
       {view === "offers" && (weekIsOpen || weekConcluded) && <div className="side-bet-game-filter-toggle side-bet-offers-game-filter" role="group" aria-label="Filter offers by game status"><button type="button" className={offerGameFilter === "all" ? "active" : ""} aria-pressed={offerGameFilter === "all"} onClick={() => setOfferGameFilter("all")}>All</button><button type="button" className={offerGameFilter === "upcoming" ? "active" : ""} aria-pressed={offerGameFilter === "upcoming"} onClick={() => setOfferGameFilter("upcoming")}>Upcoming</button><button type="button" className={offerGameFilter === "completed" ? "active" : ""} aria-pressed={offerGameFilter === "completed"} onClick={() => setOfferGameFilter("completed")}>Completed</button></div>}
-      {view === "new" && weekIsOpen && !weekConcluded && <MenuSelect
+      {view === "new" && !weekConcluded && <MenuSelect
         ariaLabel="Filter side bet games by league"
         className="compact-select"
         value={gameLeague}
         sections={[{ options: (appSlug === "friends-basketball" ? ["CBB", "NBA"] : ["CFB", "NFL"]).map((league) => ({ value: league, label: league })) }]}
         onChange={(value) => { setSlipExpanded(false); setGameLeague(value as SideBetLeagueFilter); }}
       />}
-      {view === "new" && weekIsOpen && !weekConcluded && gameLeague === "CFB" && <MenuSelect
+      {view === "new" && !weekConcluded && gameLeague === "CFB" && <MenuSelect
         ariaLabel="Filter side bet games by conference"
         className="compact-select context-select"
         value={gameConference}
@@ -529,7 +529,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
       />}
     </div>
 
-    {view === "new" && weekIsOpen && !weekConcluded && <div className="side-bet-offer-mode-row">
+    {view === "new" && !weekConcluded && <div className="side-bet-offer-mode-row">
       <div className="side-bet-game-filter-toggle side-bet-two-option-toggle" role="group" aria-label="Choose pregame or live games">
         <button type="button" className={offerPhase === "pregame" ? "active" : ""} aria-pressed={offerPhase === "pregame"} onClick={() => { clearSlip(); setOfferPhase("pregame"); }}>Pregame</button>
         <button type="button" className={offerPhase === "live" ? "active" : ""} aria-pressed={offerPhase === "live"} onClick={() => { clearSlip(); setOfferPhase("live"); }}>Live</button>
@@ -540,7 +540,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
       </div>
     </div>}
 
-    {view === "new" && weekIsOpen && !weekConcluded && <BoardDaySelector
+    {view === "new" && !weekConcluded && <BoardDaySelector
       days={calendarDays} value={selectedDayKey} today={todayDayKey} onChange={onSelectDay}
     />}
 
@@ -548,12 +548,12 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
 
     {view === "new" && weekConcluded && <div className="side-bet-sportsbook-board"><div className="empty-state side-bet-empty-state">This week has concluded.</div></div>}
 
-    {!weekConcluded && !weekIsOpen && <div className="side-bet-sportsbook-board"><div className="notice-card side-bet-empty-state">{weekOpenTime ? <>This week opens on <NumericText text={openText(weekOpenTime)} />.</> : "This week is not open yet."}</div></div>}
+    
 
-    {view === "new" && !weekConcluded && weekIsOpen && <div className="side-bet-sportsbook-board">
+    {view === "new" && !weekConcluded && <div className="side-bet-sportsbook-board">
       {limitReached && <div className="empty-state side-bet-empty-state"><NumericText text={`Your ${weeklyLimit} side bet slots are accepted or pending this week.`} /></div>}
-      {!limitReached && openGames.length === 0 && <div className="empty-state side-bet-empty-state">No games are available.</div>}
-      {!limitReached && openGames.length > 0 && filteredOpenGames.length === 0 && <div className="empty-state side-bet-empty-state">{offerPhase === "live" ? "No live games have this market available right now." : "No pregame markets are available."}</div>}
+      {weekIsOpen && !limitReached && openGames.length === 0 && <div className="empty-state side-bet-empty-state">No games are available.</div>}
+      {weekIsOpen && !limitReached && openGames.length > 0 && filteredOpenGames.length === 0 && <div className="empty-state side-bet-empty-state">{offerPhase === "live" ? "No live games have this market available right now." : "No pregame markets are available."}</div>}
       {!limitReached && filteredOpenGames.length > 0 && <div className="game-days side-bet-game-days">{sideBetGameGroups.map((group) => <BoardLeagueSection key={group.key} league={gameLeague}
         label={gameLeague === "CFB" ? "College Football" : gameLeague === "CBB" ? "College Basketball" : gameLeague === "NFL" ? "NFL" : "NBA"}>
         {group.games.map((game) => <SideBetGameCard
@@ -659,6 +659,8 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
         <button className="btn accent side-bet-slip-submit" type="button" disabled={!weekIsOpen || saving || !riskIsValid || !recipients.length || !validAmericanOdds(creatorOdds) || (marketType === "spread" && creatorSpread == null) || (marketType === "total" && creatorTotalPoints == null)} onClick={() => void sendOffer()}><Send size={15} /> {saving ? "Sending…" : "Send offer"}</button>
         </div>
       </section>}
+
+    {view === "offers" && !weekIsOpen && !weekConcluded && <div className="side-bet-list"><div className="empty-state">No offers yet.</div></div>}
 
     {view === "offers" && (weekIsOpen || weekConcluded) && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter))} currentUser={currentUser} marketQuotes={marketQuotes} empty={hideAcceptedBets ? "No offers yet." : weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
 
