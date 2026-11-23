@@ -6294,7 +6294,7 @@ html[data-theme="dark"] .basketball-game-tracker .game-tracker-score-center .gam
   border: 0; background: var(--panel);
 }
 .basketball-shot-filters .game-tracker-box-selector button {
-  border: 0; background: transparent; color: var(--ink); min-height: 34px; border-radius: 4px;
+  border: 0; background: transparent; color: var(--ink); min-height: 34px; border-radius: var(--ui-radius-action);
 }
 .basketball-shot-filters .game-tracker-box-selector button.active {
   color: var(--ink); background: #fff;
@@ -6456,7 +6456,7 @@ html[data-theme="dark"] .game-tracker-sheet {
   border: 0;
   outline: none;
   background: transparent;
-  border-radius: 8px;
+  border-radius: var(--ui-radius-box);
   font-weight: 750;
 }
 .game-tracker-box > .game-tracker-box-selector > button.active,
@@ -9110,7 +9110,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   bottom: 20px;
   left: -2px;
   width: 2px;
-  border-radius: 1px;
+  border-radius: var(--ui-radius-label);
   background: var(--football-drive-color, #a12936);
 }
 .football-game-tracker .football-drive-summary {
