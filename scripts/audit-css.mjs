@@ -11,7 +11,7 @@ import postcss from "postcss";
 const root = process.cwd();
 const layout = fs.readFileSync(path.join(root, "app/layout.tsx"), "utf8");
 const cssImports = [...layout.matchAll(/import\s+["']\.\/([^"']+\.css)["']/g)].map(m => m[1]);
-const expected = ["ui-foundations.css", "ui-components.css", "ui-details.css", "ui-experience.css"];
+const expected = ["ui-foundations.css", "ui-components.css", "ui-overlay-base.css", "ui-settings-base.css", "ui-details.css", "ui-experience.css"];
 const problems = [];
 if (JSON.stringify(cssImports) !== JSON.stringify(expected)) {
   problems.push(`Unexpected app CSS entry points: ${cssImports.join(", ")}`);
