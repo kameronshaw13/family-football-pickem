@@ -1375,9 +1375,17 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       gameKickoffMs(a) - gameKickoffMs(b) ||
       a.id.localeCompare(b.id));
 
-  const favoriteKey = (game: Game) => `${game.league}:${game.espn_event_id || game.id}`;
+  // The matchup identity survives rescheduling and regenerated internal game IDs.
+  // Continue to recognize existing stored ESPN / database favorites as well.
+  const favoriteKey = (game: Game) => [game.league, game.week, game.away_team.trim().toLowerCase(), game.home_team.trim().toLowerCase()].join(":");
+  const legacyFavoriteKey = (game: Game) => `${game.league}:${game.espn_event_id || game.id}`;
   const favoriteSet = new Set(favoriteGames);
-  const favoriteDayGames = filteredGames.filter(game => favoriteSet.has(favoriteKey(game)));
+  const isFavoriteGame = (game: Game) => favoriteSet.has(favoriteKey(game)) || favoriteSet.has(legacyFavoriteKey(game));
+  // Favorites stay visible for this week even when the date selector moves,
+  // including after a fresh app launch. Other sections remain day-specific.
+  const favoriteDayGames = viewedGames.filter(isFavoriteGame)
+    .filter(game => appSlug === "friends-basketball" ? game.league === "CBB" || game.league === "NBA" : game.league === "CFB" || game.league === "NFL")
+    .sort((a, b) => gameBoardOrder(a) - gameBoardOrder(b) || gameKickoffMs(a) - gameKickoffMs(b));
   // Favorites are an extra view of games, never a move out of their league.
   const otherDayGames = filteredGames;
   // Keep CBB/NBA and CFB/NFL visibly separate on the selected day.
@@ -1397,7 +1405,9 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const toggleFavoriteGame = (game: Game) => {
     const key = favoriteKey(game);
     setFavoriteGames(existing => {
-      const next = existing.includes(key) ? existing.filter(id => id !== key) : [...existing, key];
+      const legacy = legacyFavoriteKey(game);
+      const alreadySaved = existing.includes(key) || existing.includes(legacy);
+      const next = alreadySaved ? existing.filter(id => id !== key && id !== legacy) : [...existing, key];
       try { window.localStorage.setItem(`pickem_favorite_games:${currentUser.id}`, JSON.stringify(next)); }
       catch { /* Favorites remain available for this session. */ }
       return next;
@@ -1406,7 +1416,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const renderBoardGame = (game: Game) => <GameCard key={game.id} game={game} picks={cardPicks}
     statusFilter={boardStatusForGame(game, clock, weekIsOpen)} leagueFilter={leagueFilter} weekIsOpen={weekIsOpen} now={clock}
     pointsMode={pointsMode} modelStars={cfbModelEdges[game.id]?.stars || 0}
-    favorite={favoriteSet.has(favoriteKey(game))} onFavorite={toggleFavoriteGame}
+    favorite={isFavoriteGame(game)} onFavorite={toggleFavoriteGame}
     addPick={addPick} openPreview={setMatchupPreviewGame} />;
 
   function addPick(game: Game, team: string, pickType: PickType) {
