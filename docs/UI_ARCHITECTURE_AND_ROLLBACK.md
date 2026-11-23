@@ -28,6 +28,8 @@ This is a Git source-code snapshot, not a Supabase database backup.
 | Browser league/week selection and Side Bet cached snapshots | `lib/clientLeagueContext.ts` | Batch actions require matching week; display overlays allow fallback |
 | Pick limits and Side Bet policies | Server-side group season rules | Different leagues and week overrides |
 
+The CSS audit additionally guards five consolidated, exact duplicate GameTracker/basketball declarations in `ui-details.css`. Intentional responsive and theme variants remain distinct.
+
 ## UI invariants
 
 1. In light mode, cream game headers and neutral white team rows are shared across CFB, NFL, CBB and NBA; gray strips exist between game groups.
