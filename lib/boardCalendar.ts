@@ -1,6 +1,6 @@
 import type { Game } from "@/lib/types";
 import { basketballWeekBounds } from "@/lib/basketballRules";
-import { gameDayKey, isFinalGame, isPostponedGame } from "@/components/PickemPresentationShared";
+import { gameDayKey, isFinalGame, isPostponedGame } from "@/lib/gameBoardStatus";
 import type { GroupRules } from "@/lib/rulePresentation";
 
 /** Pure calendar calculations shared by football and basketball Pick Board.
