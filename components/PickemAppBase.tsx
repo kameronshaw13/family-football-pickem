@@ -58,6 +58,7 @@ import { navigationNotificationCounts } from "@/lib/notificationPresentation";
 import { boardCalendar, boardGameOrder, boardLeagueGroups as groupBoardGames, favoriteGameKey, legacyFavoriteGameKey } from "@/lib/boardCalendar";
 import { filterBoardGames } from "@/lib/boardGameFiltering";
 import { acceptedSideBetExposure, bankLeaderboardTotals, weeklyBankAmounts } from "@/lib/bankPresentation";
+import { canApplySideBetSnapshot, reconcileSideBetSnapshot, sideBetRequestWithVisibleScores } from "@/lib/sideBetRefreshState";
 
 
 import {
@@ -375,18 +376,12 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }, [appSlug, updateNotificationCounts]);
 
   const applySideBetSnapshot = useCallback((payload: SideBetSnapshot, requestId: number) => {
-    if (requestId < sideBetRequestSequenceRef.current || requestId < sideBetAppliedRequestRef.current) return;
+    if (!canApplySideBetSnapshot(requestId, sideBetRequestSequenceRef.current, sideBetAppliedRequestRef.current)) return;
     sideBetAppliedRequestRef.current = requestId;
     setData((current) => {
       if (!current) return current;
-      const nextSideBets = payload.sideBets.map((bet) => ({
-        ...bet,
-        game: current.games.find((game) => game.id === bet.game_id) || bet.game
-      }));
-      const nextSlotCounts = payload.sideBetSlotCounts || current.sideBetSlotCounts;
-      if (sideBetSyncSignature(current.sideBets) === sideBetSyncSignature(nextSideBets) &&
-          JSON.stringify(current.sideBetSlotCounts) === JSON.stringify(nextSlotCounts)) return current;
-      const nextData = { ...current, sideBets: nextSideBets, sideBetSlotCounts: nextSlotCounts };
+      const nextData = reconcileSideBetSnapshot(current, payload);
+      if (nextData === current) return current;
       dataRef.current = nextData;
       writeCachedAppData(appSlug, nextData.week, nextData);
       return nextData;
@@ -1112,19 +1107,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     setSavingBetId(body.sideBetId || null);
     try {
       const current = dataRef.current;
-      const liveBet = body.action === "accept" && body.sideBetId
-        ? current?.sideBets.find((bet) => bet.id === body.sideBetId)
-        : null;
-      const liveGame = liveBet?.offer_phase === "live"
-        ? current?.games.find((game) => game.id === liveBet.game_id)
-        : null;
-      const requestBody = liveGame
-        ? {
-            ...body,
-            visibleLiveHomeScore: liveGame.live_home_score ?? undefined,
-            visibleLiveAwayScore: liveGame.live_away_score ?? undefined
-          }
-        : body;
+      const requestBody = sideBetRequestWithVisibleScores(body, current);
       const response = await fetch("/api/side-bets", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, body: JSON.stringify({ ...requestBody, viewWeek: current?.week ?? data?.week }) });
       const payload = await response.json();
       if (!response.ok) {
