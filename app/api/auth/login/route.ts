@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     if (sessionError) return NextResponse.json({ ok: false, error: `Could not create this device session: ${sessionError.message}` }, { status: 500 });
 
     const selectedDefault = accessibleLeagues.find(league => league.slug === profile.default_league_slug)?.slug || defaultLeagueForLaunch(accessibleLeagues)?.slug || null;
-    const response = NextResponse.json({ ok: true, token, profile: publicProfile(profile), group: unifiedLogin ? null : groupSlug, ...(unifiedLogin ? { leagues: accessibleLeagues, defaultLeague: selectedDefault } : {}) });
+    const response = NextResponse.json({ ok: true, token, profile: publicProfile(profile), group: unifiedLogin ? null : groupSlug, ...(unifiedLogin ? { leagues: accessibleLeagues, defaultLeague: selectedDefault, savedDefaultLeague: accessibleLeagues.find(league => league.slug === profile.default_league_slug)?.slug || null } : {}) });
     setSessionCookie(response, token);
     // Preserve the profile preference when signing back in. The fallback is
     // the first authorized league only when no saved choice is accessible.
