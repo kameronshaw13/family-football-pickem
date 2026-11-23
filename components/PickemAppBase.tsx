@@ -54,6 +54,8 @@ import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 import { normalizeVerifiedMarketSpread } from "@/lib/marketSpread";
 import { retainBasketballSpread } from "@/lib/gameDataIntegrity";
 import { canRefreshSpread, getCurrentPickWeek } from "@/lib/lockRules";
+import { navigationNotificationCounts } from "@/lib/notificationPresentation";
+import { boardCalendar, boardGameOrder, boardLeagueGroups as groupBoardGames, favoriteGameKey, legacyFavoriteGameKey } from "@/lib/boardCalendar";
 
 
 import {
@@ -1232,18 +1234,15 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   })) : {};
   const weekIsOpen = !previewActive && !weekNotOpenYet && (!data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock);
   const sideBetWeekIsOpen = !previewActive && !weekNotOpenYet && (!data.sideBetWeekOpenTime || new Date(data.sideBetWeekOpenTime).getTime() <= clock);
-  const receivedNotificationCount = hideAcceptedBets ? 0 : previewActive ? 1 : notificationCounts.side_bets_received;
-  const sentNotificationCount = hideAcceptedBets ? 0 : previewActive ? 1 : notificationCounts.side_bets_sent;
-  const myCardNotificationCount = previewActive ? 1 : notificationCounts.my_card;
-  const leagueCardsNotificationCount = previewActive ? 1 : notificationCounts.league_cards;
-  const bankNotificationCount = hideAcceptedBets ? 0 : previewActive ? 1 : notificationCounts.side_bet_ledger;
-  const picksNotificationCount = receivedNotificationCount + sentNotificationCount;
-  const cardNotificationCount = myCardNotificationCount + leagueCardsNotificationCount;
-  const navNotificationCounts: Partial<Record<Tab, number>> = {
-    picks: picksNotificationCount,
-    card: cardNotificationCount,
-    standings: bankNotificationCount
-  };
+  const {
+    receivedNotificationCount,
+    sentNotificationCount,
+    myCardNotificationCount,
+    leagueCardsNotificationCount,
+    bankNotificationCount,
+    picksNotificationCount,
+    navNotificationCounts
+  } = navigationNotificationCounts(notificationCounts, hideAcceptedBets, previewActive);
   const bankTotals = bankActive ? profiles.map((profile) => ({
     id: profile.id,
     display_name: profile.display_name,
@@ -1328,39 +1327,19 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       return true;
     }) : [];
 
-  const todayDayKey = gameDayKey(new Date(clock).toISOString());
-  // The date strip belongs to the SELECTED week, not a floating 15-day window.
-  // Basketball has explicit Sunday-based week bounds; football opens on Tuesday
-  // and extends through Monday (including Monday-night NFL games).
-  const weekGameDays = Array.from(new Set(viewedGames.map(game => gameDayKey(game.commence_time)))).sort();
-  const dateMs = (day: string) => Date.parse(day + "T12:00:00Z");
-  const dayAt = (ms: number) => new Date(ms).toISOString().slice(0, 10);
-  const weekAnchor = weekGameDays[0] || todayDayKey;
-  const anchorMs = dateMs(weekAnchor);
-  const anchorWeekday = new Date(anchorMs).getUTCDay();
-  const footballWeekStart = dayAt(anchorMs - ((anchorWeekday + 5) % 7) * 86_400_000);
-  const basketballBounds = appSlug === "friends-basketball" ? basketballWeekBounds(viewedWeek, data.groupRules) : null;
-  const weekStartDay = basketballBounds?.startDate || footballWeekStart;
-  const exclusiveWeekEndDay = basketballBounds?.endDate || dayAt(dateMs(weekStartDay) + 7 * 86_400_000);
-  const calendarDays = Array.from({
-    length: Math.max(1, Math.min(14, Math.round((dateMs(exclusiveWeekEndDay) - dateMs(weekStartDay)) / 86_400_000)))
-  }, (_, offset) => dayAt(dateMs(weekStartDay) + offset * 86_400_000));
-  const distanceToToday = (day: string) => Math.abs(dateMs(day) - dateMs(todayDayKey));
-  const gameDays = weekGameDays.filter(day => calendarDays.includes(day));
-  const closestGameDay = gameDays.reduce((best, day) => !best || distanceToToday(day) < distanceToToday(best) ? day : best, "");
-  const initialDayKey = viewedWeek === currentWeek && calendarDays.includes(todayDayKey)
-    ? todayDayKey : closestGameDay || calendarDays[0];
   const dayScope = [appSlug, viewedWeek].join(":");
-  const selectedDayKey = boardDaySelection?.scope === dayScope && calendarDays.includes(boardDaySelection.day)
-    ? boardDaySelection.day : initialDayKey;
-  // Keep games in each day's sport and Favorites sections in broadcast order:
-  // in progress first, then finals (oldest kickoff first), then upcoming.
-  // A finished slate is consequently close to original kickoff order.
+  const { todayDayKey, calendarDays, selectedDayKey } = boardCalendar({
+    games: viewedGames,
+    clock,
+    week: viewedWeek,
+    currentWeek,
+    basketball: appSlug === "friends-basketball",
+    rules: data.groupRules || {},
+    selectedDay: boardDaySelection?.scope === dayScope ? boardDaySelection.day : null
+  });
+  // Use one ordering function for the status filter, day slate and favorites.
   const gameKickoffMs = (game: Game) => new Date(game.commence_time).getTime();
-  const gameBoardOrder = (game: Game) =>
-    isFinalGame(game) ? 1
-      : !isPostponedGame(game) && (game.live_state === "in" || gameKickoffMs(game) <= clock) ? 0
-      : 2;
+  const gameBoardOrder = (game: Game) => boardGameOrder(game, clock);
   // The status dropdown is a display-only filter: kickoff/score state
   // controls Live/Upcoming/Final, never the pick lock or odds.
   // Keep the selected date stable while switching the status view.
@@ -1377,8 +1356,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
 
   // The matchup identity survives rescheduling and regenerated internal game IDs.
   // Continue to recognize existing stored ESPN / database favorites as well.
-  const favoriteKey = (game: Game) => [game.league, game.week, game.away_team.trim().toLowerCase(), game.home_team.trim().toLowerCase()].join(":");
-  const legacyFavoriteKey = (game: Game) => `${game.league}:${game.espn_event_id || game.id}`;
+  const favoriteKey = favoriteGameKey;
+  const legacyFavoriteKey = legacyFavoriteGameKey;
   const favoriteSet = new Set(favoriteGames);
   const isFavoriteGame = (game: Game) => favoriteSet.has(favoriteKey(game)) || favoriteSet.has(legacyFavoriteKey(game));
   // Favorites stay visible for this week even when the date selector moves,
@@ -1390,18 +1369,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const otherDayGames = filteredGames;
   // Keep CBB/NBA and CFB/NFL visibly separate on the selected day.
   // The league heading for each group can collapse its games independently.
-  const boardLeagueGroups = (appSlug === "friends-basketball" ? ["CBB", "NBA"] : ["CFB", "NFL"])
-    .map(league => ({
-      league,
-      label: league === "CBB" ? "College Basketball"
-        : league === "NBA" ? "NBA Basketball"
-        : league === "CFB" ? "College Football" : "NFL Football",
-      games: otherDayGames.filter(game => game.league === league)
-    }))
-    .filter(group => group.games.length > 0)
-    // When the league filter is All, put whichever sport has a live game
-    // first; ties retain the established CFB/NFL or CBB/NBA order.
-    .sort((a, b) => gameBoardOrder(a.games[0]) - gameBoardOrder(b.games[0]));
+  const boardLeagueGroups = groupBoardGames(otherDayGames, appSlug === "friends-basketball", clock);
   const toggleFavoriteGame = (game: Game) => {
     const key = favoriteKey(game);
     setFavoriteGames(existing => {

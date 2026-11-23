@@ -1,4 +1,7 @@
 "use client";
+import { gameDayKey, isFinalGame, isPostponedGame, CENTRAL_DAY_KEY_FORMATTER } from "@/lib/gameBoardStatus";
+export { gameDayKey, isFinalGame, isPostponedGame, CENTRAL_DAY_KEY_FORMATTER } from "@/lib/gameBoardStatus";
+
 
 import { buildTestWeek } from "@/lib/demoWeekFixture";
 import { pickCardSignature, completeSeasonStandings } from "@/lib/standingsDisplay";
@@ -176,7 +179,6 @@ export const CENTRAL_WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat("en-US", 
 export const CENTRAL_FULL_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/Chicago" });
 export const CENTRAL_OPEN_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
 export const CENTRAL_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
-export const CENTRAL_DAY_KEY_FORMATTER = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "America/Chicago" });
 export const CENTRAL_DAY_LABEL_FORMATTER = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "America/Chicago" });
 export const CENTRAL_WEEKDAY_LONG_FORMATTER = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "America/Chicago" });
 
@@ -397,9 +399,6 @@ export function cardGameStateText(game: Game, locked: boolean) {
 export function timeText(iso: string) {
   return CENTRAL_TIME_FORMATTER.format(new Date(iso));
 }
-export function gameDayKey(iso: string) {
-  return CENTRAL_DAY_KEY_FORMATTER.format(new Date(iso));
-}
 export function gameDayLabel(iso: string) {
   return formatUppercaseOrdinalDate(CENTRAL_DAY_LABEL_FORMATTER, new Date(iso));
 }
@@ -411,12 +410,6 @@ export function spreadForTeam(game: Game, team: string) {
 }
 export function isClosed(game: Game) {
   return game.is_locked || new Date(game.lock_time) <= new Date();
-}
-export function isFinalGame(game: Game) {
-  return !isPostponedGame(game) && ((game.final_away_score != null && game.final_home_score != null) || Boolean(game.live_completed));
-}
-export function isPostponedGame(game: Game) {
-  return ["STATUS_POSTPONED", "STATUS_CANCELED", "STATUS_CANCELLED", "STATUS_RESCHEDULED"].includes(game.event_status || "");
 }
 export function universalWeekendLockTime(games: Game[]) {
   const candidates = games.flatMap((game) => {
