@@ -1336,7 +1336,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     week: viewedWeek,
     currentWeek,
     basketball: appSlug === "friends-basketball",
-    rules: data.groupRules,
+    rules: data.groupRules || {},
     selectedDay: boardDaySelection?.scope === dayScope ? boardDaySelection.day : null
   });
   // Use one ordering function for the status filter, day slate and favorites.
