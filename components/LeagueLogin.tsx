@@ -41,7 +41,7 @@ export default function LeagueLogin() {
       storeClientSession(payload.token, payload.profile);
       // Restore this profile’s preference after login (the server resets the
       // navigation cookie to the first allowed league for account safety).
-      const preferred = preferredLeagueAmong(payload.profile.id, payload.leagues || []);
+      const preferred = payload.defaultLeague || preferredLeagueAmong(payload.profile.id, payload.leagues || []);
       if (preferred) savePreferredLeague(payload.profile.id, preferred);
       window.location.replace("/leagues");
     } catch {
