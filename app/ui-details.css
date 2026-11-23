@@ -6220,7 +6220,7 @@ html[data-theme="dark"] .basketball-game-tracker .game-tracker-score-center .gam
   min-height: 34px;
   padding: 5px 6px;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--ui-radius-box);
   background: transparent;
   color: var(--ink);
   box-shadow: none;
@@ -6429,7 +6429,7 @@ html[data-theme="dark"] .game-tracker-sheet {
   min-height: 37px;
   padding: 7px 6px;
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--ui-radius-box);
   background: transparent;
   color: var(--muted);
   font-size: 12px;
@@ -6576,7 +6576,7 @@ html[data-theme="dark"] .game-tracker-sheet {
 .basketball-shot-chart .basketball-shot-filters .game-tracker-box-selector {
   gap: 3px;
   padding: 4px;
-  border-radius: 8px;
+  border-radius: var(--ui-radius-box);
   background: var(--tracker-track);
 }
 .basketball-shot-chart .basketball-shot-filters .game-tracker-box-selector > button,
@@ -6584,7 +6584,7 @@ html[data-theme="dark"] .game-tracker-sheet {
   border: 0;
   outline: 0;
   box-shadow: none;
-  border-radius: 6px;
+  border-radius: var(--ui-radius-box);
   color: var(--muted);
   background: transparent;
 }
@@ -7452,7 +7452,7 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
 .basketball-team-indicators .game-tracker-timeout-dots > i {
   width: 9px;
   height: 5px;
-  border-radius: 1px;
+  border-radius: var(--ui-radius-label);
   background: #c9d0d6;
   box-shadow: none;
 }
