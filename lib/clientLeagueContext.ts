@@ -25,7 +25,7 @@ export function selectedWeekFromHeader(): number | null {
  * Batch submissions require the selected week to match; read-only display
  * overlays preserve their prior permissive fallback behavior.
  */
-export function readCachedAppPayload<T extends { week?: number | null }>(
+export function readCachedAppPayload<T>(
   slug: ClientLeagueSlug,
   requireWeekMatch: boolean,
   cachePrefix = "pickem_app_data_v2"
@@ -48,7 +48,8 @@ export function readCachedAppPayload<T extends { week?: number | null }>(
         const entry = JSON.parse(raw) as { payload?: T } | null;
         const payload = entry?.payload;
         if (!payload) continue;
-        if (requireWeekMatch && week != null && payload.week != null && Number(payload.week) !== week) continue;
+        const payloadWeek = (payload as { week?: number | null }).week;
+        if (requireWeekMatch && week != null && payloadWeek != null && Number(payloadWeek) !== week) continue;
         return payload;
       } catch {
         // Skip one malformed or stale snapshot without hiding other candidates.
