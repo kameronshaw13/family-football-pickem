@@ -9,7 +9,7 @@ This is a Git source-code snapshot, not a Supabase database backup.
 | Concern | Authoritative owner | Keep distinct |
 | --- | --- | --- |
 | Global spacing, flat radii, colors | `app/ui-foundations.css` `:root` | Dark/light palette substitutions |
-| Matchup header, row, divider semantic variables | `--matchup-*` tokens in foundations, light values in details | Selected and graded outcomes |
+| Matchup header, row, divider semantic variables | `--matchup-*` tokens in foundations, light values in `app/ui-experience.css` | Selected and graded outcomes |
 | All-sport matchup DOM frame | `components/MatchupCardFrame.tsx` | Picks and Side Bets handle their own actions |
 | Popup title-bar tokens and close control | `--detail-header-*`, `GameDetailClose` | Popup body, sport-specific information |
 | Notification count geometry | `NotificationBadge` and foundation CSS | Badge placement by navigation/menu/tab |
@@ -27,6 +27,17 @@ This is a Git source-code snapshot, not a Supabase database backup.
 
 ## Safe continuation
 
-When working on a new feature, change the owning component/token rather than appending an overriding rule near the end of `ui-details.css`. Verify `npm run check:code` and `npm run build` before merging. The standalone `tests/uiDesignContract.test.ts` checks the styling and component contracts.
+When working on a new feature, change the owning component/token rather than appending an overriding rule near the end of `ui-details.css`. `app/ui-experience.css` is the final owner for light-theme colors, chrome, Pick Board/Side Bets surfaces and latest popup layout. Verify `npm run check:code` (including the UI ownership guard) and `npm run build` before merging. The standalone `tests/uiDesignContract.test.ts` checks the styling and component contracts.
 
 For rollback, create a new branch from the backup SHA and restore the required source files or deploy that SHA. Do not overwrite user database changes when reverting UI code.
+
+## Future changes: clean-code workflow
+
+1. **Locate the owner first.** Look up this table and the current component before changing CSS or business logic. Edit the existing declaration instead of creating another selector with stronger specificity or `!important`.
+2. **One source of truth.** Shared typography, colors, geometry and spacing belong to existing tokens. A new reusable UI pattern gets a small named component and a test; per-league variation belongs in data or explicit props.
+3. **Separate appearance from game rules.** Presentation changes must not alter existing picks, odds sync, Side Bets, lock times, bank or payout calculations. For rule changes add tests and database migrations deliberately.
+4. **Run checks before the single PR:** `npm run check:code && npm run build`. The `audit:ui-ownership` check enforces correct light-theme ownership and import order; the existing CSS integrity audit checks shared radii and token uniqueness.
+5. **Review on phone first.** Verify both themes, open/locked weeks, selected and graded games, date scrollers, popups, keyboard, and non-moving bottom nav across CFB/NFL/CBB/NBA.
+6. **Merge a single tested PR.** Keep a rollback ref at every major milestone. No needless test deploys or separate PRs for minor refinements.
+
+This is a living policy, not a blanket prohibition on refactoring old selectors. For new styles, prefer improving the owned rules and deleting the superseded rule in the same change rather than further lengthening the cascade.
