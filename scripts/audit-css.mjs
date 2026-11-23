@@ -77,7 +77,7 @@ const consolidatedLegacyRules = [
       css.walkRules(rule => {
         if (rule.parent.type !== "root" || rule.selector.replace(/\s+/g, " ").trim() !== selector) return;
         const declarations = rule.nodes.filter(node => node.type === "decl")
-          .map(decl => `${decl.prop}:${decl.value.replace(/\\s+/g, " ").replace(/,\\s+/g, ",").replace(/\\(\\s+/g, "(").replace(/\\s+\\)/g, ")")}`).join(";");
+          .map(decl => `${decl.prop}:${decl.value.replace(/\s+/g, " ").replace(/,\s+/g, ",").replace(/\(\s+/g, "(").replace(/\s+\)/g, ")")}`).join(";");
         if (declarations === expectedDeclarations) matches += 1;
       });
       if (matches !== 1) problems.push(`Expected exactly one canonical root-level block for ${selector}; found ${matches}`);
