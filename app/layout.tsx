@@ -3,6 +3,7 @@ import "./ui-components.css";
 import "./ui-overlay-base.css";
 import "./ui-settings-base.css";
 import "./ui-details.css";
+import "./ui-detail-refinements.css";
 import "./ui-experience.css";
 import { Roboto_Slab } from "next/font/google";
 import type { Metadata, Viewport } from "next";
