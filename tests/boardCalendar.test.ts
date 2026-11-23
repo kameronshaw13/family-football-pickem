@@ -31,7 +31,7 @@ test("basketball calendar honors basketball's week boundaries and current day", 
 test("broadcast board ordering keeps active before finals before upcoming", () => {
   const clock = Date.parse("2026-11-25T18:00:00Z");
   const live = game("live", "CFB", "2026-11-25T17:00:00Z", { live_state: "in" });
-  const final = game("final", "CFB", "2026-11-25T15:00:00Z", { live_state: "post", event_status: "STATUS_FINAL" });
+  const final = game("final", "CFB", "2026-11-25T15:00:00Z", { live_state: "post", final_away_score: 7, final_home_score: 10 });
   const future = game("future", "CFB", "2026-11-26T17:00:00Z");
   assert.equal(boardGameOrder(live, clock), 0);
   assert.equal(boardGameOrder(final, clock), 1);
