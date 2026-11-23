@@ -8036,8 +8036,8 @@ html:not([data-theme="dark"]) .game-tracker-header-logo-wrap > img[data-logo-bac
 .matchup-preview-sheet > .matchup-preview-header,
 html[data-theme="dark"] .game-tracker-sheet > .game-tracker-header,
 html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
-  color: #111;
-  background: #fff;
+  color: var(--detail-header-ink);
+  background: var(--detail-header-surface);
   border-bottom: 1px solid var(--line);
   box-shadow: none;
 }
@@ -10160,47 +10160,11 @@ html:not([data-theme="dark"]) .picks-panel .game-card:not(.locked-out):not(.clos
   object-fit: contain;
 }
 
-/* Player profile uses the same flush white sheet header as other popups.
-   Header starts directly beneath the fixed app header; close X is black,
-   left-aligned, and title stays centered in the remaining space. */
+/* The shared popup title-bar geometry is defined with GameTracker below.
+   Only the overlay's safe-area anchor belongs here. */
 .player-profile-backdrop {
   top: calc(env(safe-area-inset-top) + var(--header-height));
 }
-.player-profile-head {
-  min-height: 56px;
-  padding: 0 var(--ui-space-3) 0 54px;
-  color: var(--ink);
-  background: #fff;
-  border-bottom: 1px solid var(--line);
-}
-.player-profile-head::before { background: var(--line-strong); }
-.player-profile-head-copy > span { color: var(--muted); }
-.player-profile-head h2 { color: var(--ink); }
-.player-profile-close-wrap {
-  top: 50%;
-  left: 0;
-  right: auto;
-  min-width: 44px;
-  transform: translateY(-50%);
-}
-.player-profile-close-wrap > .icon-btn {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  color: #111;
-  background: transparent;
-}
-.player-profile-close-wrap > .icon-btn svg {
-  stroke: #111;
-}
-@media (max-width: 420px) {
-  .player-profile-head { padding: 0 var(--ui-space-3) 0 54px; }
-}
-
 
 /* Unopened weeks: keep normal white matchup cells and ink text while native
    disabled buttons prevent pick/side-bet selection. Dividers stay intact. */
@@ -10240,21 +10204,21 @@ html:not([data-theme="dark"]) .picks-panel > .week-opening-notice {
   border-top: 1px solid var(--line);
 }
 .player-profile-head {
-  height: 49px;
-  min-height: 49px;
-  max-height: 49px;
-  flex-basis: 49px;
+  height: var(--detail-header-height);
+  min-height: var(--detail-header-height);
+  max-height: var(--detail-header-height);
+  flex-basis: var(--detail-header-height);
   display: grid;
   grid-template-columns: minmax(0,1fr);
   place-items: center;
   padding: 0 44px;
-  background: #fff;
+  background: var(--detail-header-surface);
   border-bottom: 1px solid var(--line);
-  color: #111;
+  color: var(--detail-header-ink);
 }
 .player-profile-head-copy { text-align: center; width: 100%; }
 .player-profile-head h2 {
-  color: #111;
+  color: var(--detail-header-ink);
   font-size: clamp(15px, 4.05vw, 19px);
   font-weight: 800;
   line-height: 1.2;
