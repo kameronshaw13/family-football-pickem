@@ -11,7 +11,7 @@ import postcss from "postcss";
 const root = process.cwd();
 const layout = fs.readFileSync(path.join(root, "app/layout.tsx"), "utf8");
 const cssImports = [...layout.matchAll(/import\s+["']\.\/([^"']+\.css)["']/g)].map(m => m[1]);
-const expected = ["ui-foundations.css", "ui-components.css", "ui-overlay-base.css", "ui-settings-base.css", "ui-details.css", "ui-detail-refinements.css", "ui-experience.css"];
+const expected = ["ui-foundations.css", "ui-components.css", "ui-overlay-base.css", "ui-settings-base.css", "ui-details.css", "ui-unified-leagues.css", "ui-detail-refinements.css", "ui-board-refinements.css", "ui-experience.css"];
 const problems = [];
 if (JSON.stringify(cssImports) !== JSON.stringify(expected)) {
   problems.push(`Unexpected app CSS entry points: ${cssImports.join(", ")}`);
@@ -69,9 +69,9 @@ const consolidatedLegacyRules = [
   [".game-tracker-scoring-team-logo", "display:grid;width:27px;place-items:center;align-self:center"]
 ];
 {
-  // Rules may live in either detail stylesheet, but their exact root-level
+  // Rules may live in any feature-owned detail stylesheet, but their exact root-level
   // declarations must have one owner across the combined cascade.
-  const detailFiles = ["ui-details.css", "ui-detail-refinements.css"];
+  const detailFiles = ["ui-details.css", "ui-unified-leagues.css", "ui-detail-refinements.css", "ui-board-refinements.css"];
   const counts = new Map(consolidatedLegacyRules.map(([selector, declarations]) =>
     [JSON.stringify([selector, declarations]), 0]));
   for (const name of detailFiles) {
