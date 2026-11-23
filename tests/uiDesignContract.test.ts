@@ -46,3 +46,18 @@ test("GameTracker and Player Profile close buttons share an actual component", (
   assert.match(profiles, /<GameDetailClose\b/);
   assert.match(tracker, /<GameDetailClose\b/);
 });
+
+test("side bet batch, presentation and lock enhancements share league/week lookup", () => {
+  const helper = read("lib/clientLeagueContext.ts");
+  for (const file of [
+    "components/SideBetBatchEnhancements.tsx",
+    "components/SideBetBatchPresentationEnhancement.tsx",
+    "components/WeekScopeAndManualLockEnhancements.tsx"
+  ]) {
+    const source = read(file);
+    assert.match(source, /from "@\/lib\/clientLeagueContext"/);
+    assert.doesNotMatch(source, /function selectedWeekFromHeader\(/);
+  }
+  assert.match(helper, /export function selectedWeekFromHeader\(/);
+  assert.match(helper, /export function appSlugFromPath\(/);
+});
