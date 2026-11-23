@@ -98,7 +98,7 @@ export function ruleSections(appSlug: AppSlug, rules: GroupRules = {}): RuleSect
     const sections = ruleSections("friends", rules);
     return sections.map((section) => {
       if (section.title === "Season Schedule") return { ...section, items: ["November 1, 2026–April 11, 2027. Opening week is November 1–8; later weeks run Monday–Sunday, Central Time."] };
-      if (section.title === "Weekly Card") return { ...section, items: ["Pick 5 CBB/NBA spreads and 1 dog each week. A perfect regular card earns the bonus."] };
+      if (section.title === "Weekly Card") return { ...section, items: ["Normally: 5 CBB/NBA spread picks plus 1 dog.", "Week 4 (November 23–29): 10 regular spread picks plus 1 dog.", "A perfect regular card earns the bonus."] };
       if (section.title === "Eligible Games") return { ...section, items: ["NBA regular season and Division I men's college games count, including conference tournaments and March Madness."] };
       if (section.title === "Pick Locks") return { ...section, items: [pickLocks[0], "Picks and lines lock 1 hour before tipoff."] };
       if (section.title === "Weekly Bank") return { ...section, items: [...section.items, "March Madness weeks (March 15–April 11) double every weekly payout after ties and perfect-week adjustments."] };
