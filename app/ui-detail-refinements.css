@@ -2151,7 +2151,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   padding: 0;
 }
 .football-game-tracker .football-score-event .game-tracker-score-values > b { font-size: 15px; }
-.football-game-tracker .football-probability-group { background: var(--panel); border-bottom: 1px solid var(--tracker-section-divider); }
+
 .football-game-tracker .football-probability + .football-probability { border-top: 1px solid var(--tracker-divider); }
 .football-game-tracker .football-probability .basketball-probability-heading {
   padding: 12px var(--tracker-inset);
@@ -2219,13 +2219,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   padding: 0 var(--tracker-inset);
   line-height: 1.25;
 }
-.football-game-tracker .football-drive-plays > .game-tracker-quarter-header {
-  display: flex;
-  align-items: center;
-  min-height: 39px;
-  height: 39px;
-  box-sizing: border-box;
-}
+
 .football-game-tracker .football-scoring-period-heading > .game-tracker-quarter-team-logos,
 .football-game-tracker .football-score-event > .game-tracker-score-values {
   display: grid;
@@ -3098,9 +3092,7 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 .picks-panel .board-filter-row .compact-select .custom-select-label {
   background: transparent !important;
 }
-.picks-panel .board-filter-row .custom-select-menu {
-  background: var(--panel);
-}
+
 .picks-panel .board-filter-row .custom-select-option.selected {
   background: var(--panel) !important;
   color: var(--ink);
