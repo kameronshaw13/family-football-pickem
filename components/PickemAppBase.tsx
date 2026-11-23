@@ -54,6 +54,7 @@ import { teamAbbreviatedName, teamDisplayName } from "@/lib/teamNames";
 import { normalizeVerifiedMarketSpread } from "@/lib/marketSpread";
 import { retainBasketballSpread } from "@/lib/gameDataIntegrity";
 import { canRefreshSpread, getCurrentPickWeek } from "@/lib/lockRules";
+import { navigationNotificationCounts } from "@/lib/notificationPresentation";
 import { boardCalendar, boardGameOrder, boardLeagueGroups as groupBoardGames, favoriteGameKey, legacyFavoriteGameKey } from "@/lib/boardCalendar";
 
 
@@ -1233,18 +1234,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   })) : {};
   const weekIsOpen = !previewActive && !weekNotOpenYet && (!data.weekOpenTime || new Date(data.weekOpenTime).getTime() <= clock);
   const sideBetWeekIsOpen = !previewActive && !weekNotOpenYet && (!data.sideBetWeekOpenTime || new Date(data.sideBetWeekOpenTime).getTime() <= clock);
-  const receivedNotificationCount = hideAcceptedBets ? 0 : previewActive ? 1 : notificationCounts.side_bets_received;
-  const sentNotificationCount = hideAcceptedBets ? 0 : previewActive ? 1 : notificationCounts.side_bets_sent;
-  const myCardNotificationCount = previewActive ? 1 : notificationCounts.my_card;
-  const leagueCardsNotificationCount = previewActive ? 1 : notificationCounts.league_cards;
-  const bankNotificationCount = hideAcceptedBets ? 0 : previewActive ? 1 : notificationCounts.side_bet_ledger;
-  const picksNotificationCount = receivedNotificationCount + sentNotificationCount;
-  const cardNotificationCount = myCardNotificationCount + leagueCardsNotificationCount;
-  const navNotificationCounts: Partial<Record<Tab, number>> = {
-    picks: picksNotificationCount,
-    card: cardNotificationCount,
-    standings: bankNotificationCount
-  };
+  const {
+    receivedNotificationCount,
+    sentNotificationCount,
+    myCardNotificationCount,
+    leagueCardsNotificationCount,
+    bankNotificationCount,
+    navNotificationCounts
+  } = navigationNotificationCounts(notificationCounts, hideAcceptedBets, previewActive);
   const bankTotals = bankActive ? profiles.map((profile) => ({
     id: profile.id,
     display_name: profile.display_name,
