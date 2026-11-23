@@ -60,6 +60,7 @@ import { filterBoardGames } from "@/lib/boardGameFiltering";
 import { acceptedSideBetExposure, bankLeaderboardTotals, weeklyBankAmounts } from "@/lib/bankPresentation";
 import { canApplySideBetSnapshot, reconcileSideBetSnapshot, sideBetRequestWithVisibleScores } from "@/lib/sideBetRefreshState";
 import { sideBetOffersRequest, sideBetLedgerRequest, sideBetMutationRequest } from "@/lib/sideBetNetwork";
+import { normalizeNotificationCounts, notificationFetchRequest, notificationReadRequest, locallyReadNotifications } from "@/lib/notificationClient";
 
 
 import {
@@ -353,21 +354,15 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   }, [appSlug]);
 
   const updateNotificationCounts = useCallback((next: Record<string, number>) => {
-    setNotificationCounts({
-      side_bets_received: Number(next.side_bets_received || 0),
-      side_bets_sent: Number(next.side_bets_sent || 0),
-      my_card: Number(next.my_card || 0),
-      league_cards: Number(next.league_cards || 0),
-      side_bet_ledger: Number(next.side_bet_ledger || 0),
-      total: Number(next.total || 0)
-    });
+    setNotificationCounts(normalizeNotificationCounts(next));
   }, []);
 
   const refreshNotificationCounts = useCallback(async () => {
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) return;
     try {
-      const response = await fetch("/api/notifications", { headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, cache: "no-store" });
+      const { url, init } = notificationFetchRequest(token, appSlug);
+      const response = await fetch(url, init);
       if (!response.ok) return;
       const payload = await response.json();
       updateNotificationCounts(payload.counts || {});
@@ -454,17 +449,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const markNotificationsSeen = useCallback(async (destination: NotificationDestination) => {
     const token = window.localStorage.getItem("pickem_session_token");
     if (!token) return;
-    setNotificationCounts((current) => ({
-      ...current,
-      [destination]: 0,
-      total: Math.max(0, current.total - current[destination])
-    }));
+    setNotificationCounts((current) => locallyReadNotifications(current, destination));
     try {
-      const response = await fetch("/api/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
-        body: JSON.stringify({ action: "read", destination })
-      });
+      const { url, init } = notificationReadRequest(destination, token, appSlug);
+      const response = await fetch(url, init);
       if (!response.ok) return;
       const payload = await response.json();
       updateNotificationCounts(payload.counts || {});
