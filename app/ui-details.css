@@ -10197,3 +10197,36 @@ html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-sportsbook-b
 @media (max-width: 420px) {
   .player-profile-head { padding: 0 var(--ui-space-3) 0 54px; }
 }
+
+
+/* Unopened weeks: keep normal white matchup cells and ink text while native
+   disabled buttons prevent pick/side-bet selection. Dividers stay intact. */
+html:not([data-theme="dark"]) .picks-panel.board-view .game-card.locked-out:not(.final-outcome) .team-row:not(.blocked-side):not(.opponent-only),
+html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-game-card.unopened-week .team-row:not(.blocked-side):not(.opponent-only) {
+  background: #fff !important;
+  color: var(--ink) !important;
+  -webkit-text-fill-color: var(--ink) !important;
+}
+html:not([data-theme="dark"]) .picks-panel.board-view .game-card.locked-out:not(.final-outcome) .team-row:not(.blocked-side):not(.opponent-only) :is(.team-name,.team-spread,.team-board-market),
+html:not([data-theme="dark"]) .picks-panel.side-bets-view .side-bet-game-card.unopened-week .team-row:not(.blocked-side):not(.opponent-only) :is(.team-name,.team-spread,.team-board-market) {
+  color: var(--ink) !important;
+  -webkit-text-fill-color: var(--ink) !important;
+}
+
+/* One consistent full-width cream opening notice across Pick Board and
+   Side Bets; it must not reveal the gray board gutters at either side. */
+html:not([data-theme="dark"]) .picks-panel > .week-opening-notice {
+  box-sizing: border-box;
+  width: calc(100% + 2 * var(--page-gutter));
+  margin: 0 calc(-1 * var(--page-gutter));
+  padding: 11px var(--page-gutter);
+  border-left: 0;
+  border-radius: 0;
+  background: var(--canvas) !important;
+  color: var(--ink);
+}
+
+/* Exactly one boundary line under Sun Belt / above Independents. */
+.picks-panel .board-filter-row .football-conference-select .custom-select-section:last-child > .custom-select-option:first-child {
+  border-top: 1px solid var(--line) !important;
+}

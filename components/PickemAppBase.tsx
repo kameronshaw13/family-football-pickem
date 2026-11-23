@@ -1600,7 +1600,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       {previewActive && <div className="test-mode-banner"><span><FlaskConical size={16} /><span><strong>Board state preview</strong><small>No real picks or bank balances are changed</small></span></span><button type="button" onClick={() => { setTestWeekActive(false); }}><X size={16} /> Exit</button></div>}
 
       {tab === "picks" && <section className={`panel picks-panel ${picksView === "board" ? "board-view" : "side-bets-view"}`}>
-        {!previewActive && picksView === "board" && !weekIsOpen && data.weekOpenTime && <div className="notice-card">This week opens on <NumericText text={openText(data.weekOpenTime)} />.</div>}
+        {!previewActive && ((picksView === "board" && !weekIsOpen) || (picksView === "sideBets" && !sideBetWeekIsOpen)) && <div className="notice-card week-opening-notice">{(picksView === "board" ? data.weekOpenTime : data.sideBetWeekOpenTime ?? data.weekOpenTime) ? <>This week opens on <NumericText text={openText((picksView === "board" ? data.weekOpenTime : data.sideBetWeekOpenTime ?? data.weekOpenTime)!)} />.</> : "This week is not open yet."}</div>}
         <SectionTabs items={[{ id: "board", label: "Pick Board" }, { id: "sideBets", label: "Side Bets", badge: picksNotificationCount }]} value={picksView} onChange={(value) => {
           if (value === "sideBets" && sideBetAccessDenied) {
             notify("No access to Side Bets.", "error");
@@ -1628,7 +1628,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
               onChange={value => setLeagueFilter(value as LeagueFilter)} />
             {(leagueFilter === "CFB" || (leagueFilter === "ALL" && appSlug !== "friends-basketball")) && <MenuSelect
               ariaLabel="Filter college football by rankings or conference"
-              className="compact-select context-select"
+              className="compact-select context-select football-conference-select"
               value={conferenceFilter}
               sections={[
                 { options: [{ value: "ALL", label: "ALL CONF." }, { value: "TOP25", label: "TOP 25" }] },

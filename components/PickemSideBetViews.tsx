@@ -490,7 +490,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
 
   return <div className={`side-bet-center ${view === "new" && hasSlip ? "has-bet-slip" : ""}`.trim()}>
     <div className="side-bet-top-controls">
-    <div className={`view-select-row side-bet-filter-row ${view === "new" && weekIsOpen && !weekConcluded ? "make-offer" : ""}`.trim()}>
+    <div className={`view-select-row side-bet-filter-row ${view === "new" && !weekConcluded ? "make-offer" : ""}`.trim()}>
       <MenuSelect ariaLabel="Choose side bet view" className="compact-select" value={view} sections={[{ options: [{ value: "offers", label: "Offers", badge: hideAcceptedBets ? 0 : offerNotificationCount }, { value: "new", label: "Make Offer" }] }]} onChange={(value) => {
         if (value === "new" && currentUser.side_bet_offers_disabled) {
           onBlockedOffer();
@@ -513,14 +513,14 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
         
       }} />
       {view === "offers" && (weekIsOpen || weekConcluded) && <div className="side-bet-game-filter-toggle side-bet-offers-game-filter" role="group" aria-label="Filter offers by game status"><button type="button" className={offerGameFilter === "all" ? "active" : ""} aria-pressed={offerGameFilter === "all"} onClick={() => setOfferGameFilter("all")}>All</button><button type="button" className={offerGameFilter === "upcoming" ? "active" : ""} aria-pressed={offerGameFilter === "upcoming"} onClick={() => setOfferGameFilter("upcoming")}>Upcoming</button><button type="button" className={offerGameFilter === "completed" ? "active" : ""} aria-pressed={offerGameFilter === "completed"} onClick={() => setOfferGameFilter("completed")}>Completed</button></div>}
-      {view === "new" && weekIsOpen && !weekConcluded && <MenuSelect
+      {view === "new" && !weekConcluded && <MenuSelect
         ariaLabel="Filter side bet games by league"
         className="compact-select"
         value={gameLeague}
         sections={[{ options: (appSlug === "friends-basketball" ? ["CBB", "NBA"] : ["CFB", "NFL"]).map((league) => ({ value: league, label: league })) }]}
         onChange={(value) => { setSlipExpanded(false); setGameLeague(value as SideBetLeagueFilter); }}
       />}
-      {view === "new" && weekIsOpen && !weekConcluded && gameLeague === "CFB" && <MenuSelect
+      {view === "new" && !weekConcluded && gameLeague === "CFB" && <MenuSelect
         ariaLabel="Filter side bet games by conference"
         className="compact-select context-select"
         value={gameConference}
@@ -529,7 +529,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
       />}
     </div>
 
-    {view === "new" && weekIsOpen && !weekConcluded && <div className="side-bet-offer-mode-row">
+    {view === "new" && !weekConcluded && <div className="side-bet-offer-mode-row">
       <div className="side-bet-game-filter-toggle side-bet-two-option-toggle" role="group" aria-label="Choose pregame or live games">
         <button type="button" className={offerPhase === "pregame" ? "active" : ""} aria-pressed={offerPhase === "pregame"} onClick={() => { clearSlip(); setOfferPhase("pregame"); }}>Pregame</button>
         <button type="button" className={offerPhase === "live" ? "active" : ""} aria-pressed={offerPhase === "live"} onClick={() => { clearSlip(); setOfferPhase("live"); }}>Live</button>
@@ -540,7 +540,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
       </div>
     </div>}
 
-    {view === "new" && weekIsOpen && !weekConcluded && <BoardDaySelector
+    {view === "new" && !weekConcluded && <BoardDaySelector
       days={calendarDays} value={selectedDayKey} today={todayDayKey} onChange={onSelectDay}
     />}
 
@@ -548,12 +548,12 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
 
     {view === "new" && weekConcluded && <div className="side-bet-sportsbook-board"><div className="empty-state side-bet-empty-state">This week has concluded.</div></div>}
 
-    {!weekConcluded && !weekIsOpen && <div className="side-bet-sportsbook-board"><div className="notice-card side-bet-empty-state">{weekOpenTime ? <>This week opens on <NumericText text={openText(weekOpenTime)} />.</> : "This week is not open yet."}</div></div>}
+    
 
-    {view === "new" && !weekConcluded && weekIsOpen && <div className="side-bet-sportsbook-board">
+    {view === "new" && !weekConcluded && <div className="side-bet-sportsbook-board">
       {limitReached && <div className="empty-state side-bet-empty-state"><NumericText text={`Your ${weeklyLimit} side bet slots are accepted or pending this week.`} /></div>}
-      {!limitReached && openGames.length === 0 && <div className="empty-state side-bet-empty-state">No games are available.</div>}
-      {!limitReached && openGames.length > 0 && filteredOpenGames.length === 0 && <div className="empty-state side-bet-empty-state">{offerPhase === "live" ? "No live games have this market available right now." : "No pregame markets are available."}</div>}
+      {weekIsOpen && !limitReached && openGames.length === 0 && <div className="empty-state side-bet-empty-state">No games are available.</div>}
+      {weekIsOpen && !limitReached && openGames.length > 0 && filteredOpenGames.length === 0 && <div className="empty-state side-bet-empty-state">{offerPhase === "live" ? "No live games have this market available right now." : "No pregame markets are available."}</div>}
       {!limitReached && filteredOpenGames.length > 0 && <div className="game-days side-bet-game-days">{sideBetGameGroups.map((group) => <BoardLeagueSection key={group.key} league={gameLeague}
         label={gameLeague === "CFB" ? "College Football" : gameLeague === "CBB" ? "College Basketball" : gameLeague === "NFL" ? "NFL" : "NBA"}>
         {group.games.map((game) => <SideBetGameCard
@@ -563,6 +563,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
           boardMarket={boardMarket}
           selectedTeam={selectedGame?.id === game.id ? selectedCreatorTeam : ""}
           modelStars={modelEdges[game.id]?.stars || 0}
+          weekLocked={!weekIsOpen}
           disabled={!weekIsOpen || (() => {
             const quote = marketQuotes[game.id]?.phase === offerPhase ? marketQuotes[game.id] : undefined;
             return boardMarket === "total"
@@ -660,6 +661,8 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
         </div>
       </section>}
 
+    {view === "offers" && !weekIsOpen && !weekConcluded && <div className="side-bet-list"><div className="empty-state">No offers yet.</div></div>}
+
     {view === "offers" && (weekIsOpen || weekConcluded) && <SideBetList bets={offers.filter((bet) => sideBetMatchesGameFilter(bet, offerGameFilter))} currentUser={currentUser} marketQuotes={marketQuotes} empty={hideAcceptedBets ? "No offers yet." : weekConcluded ? "No side bet history yet." : !weekIsOpen ? "This week is not open yet." : "No side bet offers yet."} historyOnly={weekConcluded} saving={saving} savingBetId={savingBetId} canAccept={(bet) => !weekConcluded && weekIsOpen && hasAvailableSideBetSlot(sideBets, currentUser.id, bet.week, weeklyLimit, bet.id)} acceptDisabledText={weekConcluded ? "Week concluded" : !weekIsOpen ? "Not open yet" : "Limit reached"} requestAccept={requestAcceptBet} respond={respond} />}
 
     {confirmingBet && <div className="confirmation-backdrop" onClick={(event) => { if (event.target === event.currentTarget && !saving) setConfirmingBetId(null); }}>
@@ -684,7 +687,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
   </div>;
 }
 
-export function SideBetGameCard({ game, market, boardMarket, selectedTeam, disabled, modelStars = 0, onSelect, openPreview }: { game: Game; market?: SideBetMarketQuote; boardMarket: SideBetBoardMarket; selectedTeam: string; disabled: boolean; modelStars?: number; onSelect: (game: Game, team: string) => void; openPreview: (game: Game) => void }) {
+export function SideBetGameCard({ game, market, boardMarket, selectedTeam, disabled, weekLocked = false, modelStars = 0, onSelect, openPreview }: { game: Game; market?: SideBetMarketQuote; boardMarket: SideBetBoardMarket; selectedTeam: string; disabled: boolean; weekLocked?: boolean; modelStars?: number; onSelect: (game: Game, team: string) => void; openPreview: (game: Game) => void }) {
   const lineFor = (team: string) => {
     if (boardMarket === "total") {
       if (!market?.total) return "—";
@@ -694,11 +697,11 @@ export function SideBetGameCard({ game, market, boardMarket, selectedTeam, disab
     return spreadText(team === game.away_team ? market.spread.awayPoint : market.spread.homePoint);
   };
   const live = game.live_state === "in";
-  return <article className={`game-card matchup-card side-bet-game-card ${disabled ? "closed" : ""} ${selectedTeam ? "selected" : ""}`.trim()}>
+  return <article className={`game-card matchup-card side-bet-game-card ${disabled ? "closed" : ""} ${weekLocked ? "unopened-week" : ""} ${selectedTeam ? "selected" : ""}`.trim()}>
     <div className="game-head compact-game-head">
       <div className="game-time-group"><span className={live ? "game-live-status" : "game-time"}><NumericText text={live ? game.live_status || "Live" : timeText(game.commence_time)} /></span>{game.neutral_site && <span className="game-neutral-site">Neutral</span>}</div>
-      {live && <div className="side-bet-live-actions">{game.live_situation && <span className="side-bet-live-situation"><LiveSituationText game={game} /></span>}<button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>GameTracker</button></div>}
-      {!live && <div className="matchup-preview-actions">{modelStars > 0 && game.league === "CFB" && <span className="board-model-stars" aria-label={`${modelStars} model edge star${modelStars === 1 ? "" : "s"}`}>{"★".repeat(modelStars)}</span>}<button type="button" className="matchup-preview-trigger side-bet-matchup-preview-trigger" onClick={() => openPreview(game)}>Matchup Preview</button></div>}
+      {live && <div className="side-bet-live-actions">{game.live_situation && <span className="side-bet-live-situation"><LiveSituationText game={game} /></span>}<button type="button" className="matchup-preview-trigger game-tracker-trigger" disabled={weekLocked} onClick={() => openPreview(game)}>GameTracker</button></div>}
+      {!live && <div className="matchup-preview-actions">{modelStars > 0 && game.league === "CFB" && <span className="board-model-stars" aria-label={`${modelStars} model edge star${modelStars === 1 ? "" : "s"}`}>{"★".repeat(modelStars)}</span>}<button type="button" className="matchup-preview-trigger side-bet-matchup-preview-trigger" disabled={weekLocked} onClick={() => openPreview(game)}>Matchup Preview</button></div>}
     </div>
     <div className="stacked-matchup" data-neutral-site={game.neutral_site ? "true" : undefined} role="group" aria-label={`${displayTeamName(game, game.away_team)}${matchupSeparator(game)}${displayTeamName(game, game.home_team)}`}>
       {[game.away_team, game.home_team].map((team) => <button
