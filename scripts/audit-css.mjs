@@ -11,7 +11,7 @@ import postcss from "postcss";
 const root = process.cwd();
 const layout = fs.readFileSync(path.join(root, "app/layout.tsx"), "utf8");
 const cssImports = [...layout.matchAll(/import\s+["']\.\/([^"']+\.css)["']/g)].map(m => m[1]);
-const expected = ["ui-foundations.css", "ui-components.css", "ui-overlay-base.css", "ui-settings-base.css", "ui-details.css", "ui-experience.css"];
+const expected = ["ui-foundations.css", "ui-components.css", "ui-overlay-base.css", "ui-settings-base.css", "ui-details.css", "ui-detail-refinements.css", "ui-experience.css"];
 const problems = [];
 if (JSON.stringify(cssImports) !== JSON.stringify(expected)) {
   problems.push(`Unexpected app CSS entry points: ${cssImports.join(", ")}`);
@@ -69,18 +69,28 @@ const consolidatedLegacyRules = [
   [".game-tracker-scoring-team-logo", "display:grid;width:27px;place-items:center;align-self:center"]
 ];
 {
-  const file = path.join(root, "app", "ui-details.css");
-  if (fs.existsSync(file)) {
+  // Rules may live in either detail stylesheet, but their exact root-level
+  // declarations must have one owner across the combined cascade.
+  const detailFiles = ["ui-details.css", "ui-detail-refinements.css"];
+  const counts = new Map(consolidatedLegacyRules.map(([selector, declarations]) =>
+    [JSON.stringify([selector, declarations]), 0]));
+  for (const name of detailFiles) {
+    const file = path.join(root, "app", name);
+    if (!fs.existsSync(file)) continue;
     const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
-    for (const [selector, expectedDeclarations] of consolidatedLegacyRules) {
-      let matches = 0;
-      css.walkRules(rule => {
-        if (rule.parent.type !== "root" || rule.selector.replace(/\s+/g, " ").trim() !== selector) return;
-        const declarations = rule.nodes.filter(node => node.type === "decl")
-          .map(decl => `${decl.prop}:${decl.value.replace(/\s+/g, " ").replace(/,\s+/g, ",").replace(/\(\s+/g, "(").replace(/\s+\)/g, ")")}`).join(";");
-        if (declarations === expectedDeclarations) matches += 1;
-      });
-      if (matches !== 1) problems.push(`Expected exactly one canonical root-level block for ${selector}; found ${matches}`);
+    css.walkRules(rule => {
+      if (rule.parent.type !== "root") return;
+      const selector = rule.selector.replace(/\s+/g, " ").trim();
+      const declarations = rule.nodes.filter(node => node.type === "decl")
+        .map(decl => `${decl.prop}:${decl.value.replace(/\s+/g, " ").replace(/,\s+/g, ",").replace(/\(\s+/g, "(").replace(/\s+\)/g, ")")}`).join(";");
+      const key = JSON.stringify([selector, declarations]);
+      if (counts.has(key)) counts.set(key, counts.get(key) + 1);
+    });
+  }
+  for (const [key, count] of counts) {
+    if (count !== 1) {
+      const [selector] = JSON.parse(key);
+      problems.push(`Expected exactly one canonical root-level block for ${selector} across detail styles; found ${count}`);
     }
   }
 }
