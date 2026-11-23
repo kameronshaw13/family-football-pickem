@@ -190,8 +190,8 @@ export default function PlayerProfiles() {
     {mounted && profile && activeName && createPortal(<div className="player-profile-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) dismissProfile(); }}>
       <section ref={sheetRef} className="player-profile-sheet" role="dialog" aria-modal="true" aria-labelledby="player-profile-title">
         <header className="player-profile-head">
+          <div className="pick-row-actions player-profile-close-wrap"><button type="button" className="icon-btn" aria-label="Close profile" onClick={dismissProfile}><X size={22} strokeWidth={2} /></button></div>
           <div className="player-profile-head-copy"><span>Player Profile</span><h2 id="player-profile-title">{profile.player.displayName}</h2></div>
-          <div className="pick-row-actions player-profile-close-wrap"><button type="button" className="icon-btn" aria-label="Close profile" onClick={dismissProfile}><X size={16} /></button></div>
         </header>
 
         <div className="player-profile-content">
