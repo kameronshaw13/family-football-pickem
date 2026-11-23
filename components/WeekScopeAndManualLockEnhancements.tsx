@@ -3,6 +3,7 @@
 import { formatOrdinalDate } from "@/lib/displayDates";
 
 import { useEffect } from "react";
+import { selectedWeekFromHeader } from "@/lib/clientLeagueContext";
 import type { AppSlug } from "@/lib/rulePresentation";
 import { teamDisplayName } from "@/lib/teamNames";
 
@@ -35,12 +36,6 @@ type CachedPayload = {
   games?: CachedGame[];
   sideBets?: CachedSideBet[];
 };
-
-function selectedWeekFromHeader() {
-  const text = document.querySelector<HTMLElement>(".week-select-wrap .custom-select-trigger")?.textContent || "";
-  const match = text.match(/Week\s+(\d+)/i);
-  return match ? Number(match[1]) : null;
-}
 
 function syncWeekCookie() {
   const week = selectedWeekFromHeader();
