@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Check, ChevronRight, Layers3 } from "lucide-react";
+import { Check, ChevronRight, Layers3, Star } from "lucide-react";
 import { getClientSessionToken } from "@/lib/clientSession";
 import { warmLeagueData } from "@/lib/leagueWarmup";
 import type { LeagueMembership } from "@/lib/leagueAccess";
 import type { PickemAppSlug } from "@/lib/authUsers";
+import { preferredLeagueAmong, savePreferredLeague } from "@/lib/clientDefaultLeague";
 
 type LeagueCache = { profileId: string; at: number; leagues: LeagueMembership[] };
 const LEAGUE_CACHE_KEY = "pickem_leagues_session_v1";
@@ -42,6 +43,15 @@ export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect }: {
 }) {
   const router = useRouter();
   const [leagues, setLeagues] = useState<LeagueMembership[] | null>(() => readLeaguesCache());
+  const [defaultSlug, setDefaultSlug] = useState<PickemAppSlug | null>(null);
+
+  useEffect(() => {
+    const list = leagues || [];
+    if (!list.length) return;
+    const fromProfile = preferredLeagueAmong(profileId(), list);
+    setDefaultSlug(fromProfile || list[0].slug);
+    if (fromProfile) savePreferredLeague(profileId(), fromProfile);
+  }, [leagues]);
 
   useEffect(() => {
     const token = getClientSessionToken();
@@ -71,6 +81,11 @@ export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect }: {
     return () => controller.abort();
   }, [activeSlug, router]);
 
+  function chooseDefault(league: LeagueMembership) {
+    savePreferredLeague(profileId(), league.slug);
+    setDefaultSlug(league.slug);
+  }
+
   function selectLeague(league: LeagueMembership) {
     onSelect(league);
     if (league.slug !== activeSlug) {
@@ -82,10 +97,13 @@ export default function LeagueSwitcher({ activeSlug, selectedSlug, onSelect }: {
   return <div className="settings-section settings-league-switcher">
     <h3>My Leagues</h3>
     <div className="settings-card">
-      <div className="settings-row-heading"><div className="settings-leading-icon"><Layers3 size={17} /></div><div className="settings-row-copy"><strong>Switch League</strong><span>Choose which league to view.</span></div></div>
-      {leagues?.map((league) => <button key={league.slug} type="button" onClick={() => selectLeague(league)} aria-pressed={league.slug === selectedSlug} className={`settings-league-link ${league.slug === selectedSlug ? "active" : ""}`}>
-        <span className={`settings-league-sport-mark ${league.sport.toLowerCase()}`} aria-hidden="true"><Image src={league.sport === "Basketball" ? "/league-basketball-orange.png" : "/league-football-brown.png"} alt="" width={22} height={22} unoptimized /></span><strong>{league.name}</strong>{league.slug === selectedSlug ? <><small>{league.slug === activeSlug ? "Current" : "Selected"}</small><Check size={16} /></> : <ChevronRight size={17} />}
-      </button>)}
+      <div className="settings-row-heading"><div className="settings-leading-icon"><Layers3 size={17} /></div><div className="settings-row-copy"><strong>Switch League</strong><span>Tap a league to view it, or star it to open here by default.</span></div></div>
+      {leagues?.map((league) => <div className="settings-league-preference-row" key={league.slug}>
+        <button type="button" onClick={() => selectLeague(league)} aria-pressed={league.slug === selectedSlug} className={`settings-league-link ${league.slug === selectedSlug ? "active" : ""}`}>
+          <span className={`settings-league-sport-mark ${league.sport.toLowerCase()}`} aria-hidden="true"><Image src={league.sport === "Basketball" ? "/league-basketball-orange.png" : "/league-football-brown.png"} alt="" width={22} height={22} unoptimized /></span><strong>{league.name}</strong>{league.slug === selectedSlug ? <><small>{league.slug === activeSlug ? "Current" : "Selected"}</small><Check size={16} /></> : <ChevronRight size={17} />}
+        </button>
+        <button type="button" className={`settings-league-default ${defaultSlug === league.slug ? "active" : ""}`} aria-label={`Set ${league.name} as default opening league`} aria-pressed={defaultSlug === league.slug} title={defaultSlug === league.slug ? "Default opening league" : "Set as default"} onClick={() => chooseDefault(league)}><Star size={17} fill={defaultSlug === league.slug ? "currentColor" : "none"} /></button>
+      </div>)}
       {!leagues && <div className="settings-league-loading">Loading leagues…</div>}
     </div>
   </div>;
