@@ -10051,3 +10051,44 @@ html:not([data-theme="dark"]) .picks-panel.side-bets-view
   .side-bet-center > .side-bet-top-controls {
   background: var(--canvas) !important;
 }
+
+
+/* Pick Board palette: league headers, game-time/action headers and matchup
+   rows share the same existing cream panel token. Preserve all dividers. */
+.picks-panel.board-view .board-league-group > .board-league-header,
+.picks-panel.board-view .game-card .game-head,
+.picks-panel.board-view .game-card .team-row,
+.picks-panel.side-bets-view .side-bet-sportsbook-board .board-league-group > .board-league-header,
+.picks-panel.side-bets-view .side-bet-sportsbook-board .game-card .game-head,
+.picks-panel.side-bets-view .side-bet-sportsbook-board .game-card .team-row {
+  background: var(--panel) !important;
+}
+
+/* Send To: exactly one 1px separator between adjacent recipients.
+   All counts as a recipient cell. Seven = 4 top / 3 bottom,
+   eight = 4 top / 4 bottom. The 12-column grid lets both rows fill
+   the width evenly, without changing the native form or selection state. */
+.route-app .side-bet-recipient-grid.recipient-layout-seven,
+.route-app .side-bet-recipient-grid.recipient-layout-eight {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: 47px;
+}
+.route-app .side-bet-recipient-grid.recipient-layout-seven > label,
+.route-app .side-bet-recipient-grid.recipient-layout-eight > label {
+  grid-column: span 3;
+  border-top: 0;
+  border-right: 1px solid var(--line);
+}
+.route-app .side-bet-recipient-grid.recipient-layout-seven > label:nth-child(n + 5),
+.route-app .side-bet-recipient-grid.recipient-layout-eight > label:nth-child(n + 5) {
+  border-top: 1px solid var(--line);
+}
+.route-app .side-bet-recipient-grid.recipient-layout-seven > label:nth-child(n + 5) {
+  grid-column: span 4;
+}
+.route-app .side-bet-recipient-grid.recipient-layout-seven > label:nth-child(4),
+.route-app .side-bet-recipient-grid.recipient-layout-seven > label:nth-child(7),
+.route-app .side-bet-recipient-grid.recipient-layout-eight > label:nth-child(4),
+.route-app .side-bet-recipient-grid.recipient-layout-eight > label:nth-child(8) {
+  border-right: 0;
+}
