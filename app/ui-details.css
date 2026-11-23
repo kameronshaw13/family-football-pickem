@@ -10219,14 +10219,100 @@ html:not([data-theme="dark"]) .picks-panel > .week-opening-notice {
   box-sizing: border-box;
   width: calc(100% + 2 * var(--page-gutter));
   margin: 0 calc(-1 * var(--page-gutter));
-  padding: 11px var(--page-gutter);
-  border-left: 0;
+  padding: 12px var(--page-gutter);
+  border-left: 3px solid var(--gold);
   border-radius: 0;
-  background: var(--canvas) !important;
+  background: var(--saved) !important;
   color: var(--ink);
 }
 
 /* Exactly one boundary line under Sun Belt / above Independents. */
 .picks-panel .board-filter-row .football-conference-select .custom-select-section:last-child > .custom-select-option:first-child {
   border-top: 1px solid var(--line) !important;
+}
+
+/* Player Profile: borrow the same 49px white header and black X as GameTracker,
+   followed by compact flat statistic sections and single-owner dividers. */
+.player-profile-sheet {
+  border-top: 1px solid var(--line);
+}
+.player-profile-head {
+  height: 49px;
+  min-height: 49px;
+  max-height: 49px;
+  flex-basis: 49px;
+  display: grid;
+  grid-template-columns: minmax(0,1fr);
+  place-items: center;
+  padding: 0 44px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  color: #111;
+}
+.player-profile-head-copy { text-align: center; width: 100%; }
+.player-profile-head h2 {
+  color: #111;
+  font-size: clamp(15px, 4.05vw, 19px);
+  font-weight: 800;
+  line-height: 1.2;
+}
+.player-profile-head > .game-detail-close {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  right: auto;
+  display: grid;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #111;
+  transform: translateY(-50%);
+}
+.player-profile-head > .game-detail-close > svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.3;
+}
+.player-profile-head::before { background: #a5a5a5; }
+.player-profile-content { background: var(--panel); }
+.player-profile-section-heading {
+  min-height: 38px;
+  padding: 7px var(--page-gutter);
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--line);
+}
+.player-profile-section-heading h3 { font-size: 11px; font-weight: 800; }
+.player-profile-performance-row {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  align-items: center;
+  gap: 0;
+  padding: 0;
+}
+.player-profile-performance-row > div {
+  min-width: 0;
+  padding: 13px var(--page-gutter);
+}
+.player-profile-performance-row > div + div { border-left: 1px solid var(--line); }
+.player-profile-win-mark { text-align: left; padding-bottom: 13px; }
+.player-profile-record-mark strong, .player-profile-win-mark strong {
+  font-size: 21px;
+  line-height: 1.1;
+}
+.player-profile-side-bet-metrics > div { text-align: left; }
+.player-profile-detail-grid > div, .player-profile-highlight-stack > div,
+.player-profile-side-bet-metrics > div { padding: 11px var(--page-gutter); }
+.player-profile-detail-grid span, .player-profile-highlight-stack > div > span,
+.player-profile-legacy-row > div > span, .player-profile-side-bet-metrics > div > span {
+  font-size: 10px;
+}
+.player-profile-detail-grid small { font-size: 9px; }
+.player-profile-block { border-bottom: 1px solid var(--line-strong); }
+@media (max-width: 420px) {
+  .player-profile-head { min-height: 49px; padding: 0 44px; }
 }
