@@ -5,6 +5,7 @@ import { Trophy } from "lucide-react";
 import MenuSelect from "@/components/MenuSelect";
 import { FAMILY_USERS } from "@/lib/authUsers";
 import { getClientSessionToken, storeClientSession } from "@/lib/clientSession";
+import { preferredLeagueAmong, savePreferredLeague } from "@/lib/clientDefaultLeague";
 
 const choices = FAMILY_USERS.map((user) => ({ value: user.username, label: user.displayName })).sort((a, b) => a.label.localeCompare(b.label));
 
@@ -38,6 +39,10 @@ export default function LeagueLogin() {
       const payload = await response.json();
       if (!response.ok) { setError(payload.error || "Couldn't sign in."); return; }
       storeClientSession(payload.token, payload.profile);
+      // Restore this profile’s preference after login (the server resets the
+      // navigation cookie to the first allowed league for account safety).
+      const preferred = preferredLeagueAmong(payload.profile.id, payload.leagues || []);
+      if (preferred) savePreferredLeague(payload.profile.id, preferred);
       window.location.replace("/leagues");
     } catch {
       setError("Couldn't connect. Please try again.");

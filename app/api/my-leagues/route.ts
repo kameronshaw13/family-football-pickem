@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { listActiveGroupsForProfile } from "@/lib/groupContext";
 import { accessibleLeaguesForUser, defaultLeagueForLaunch } from "@/lib/leagueAccess";
-import { setDefaultLeagueCookie } from "@/lib/defaultLeagueCookie";
+import { DEFAULT_LEAGUE_COOKIE, setDefaultLeagueCookie } from "@/lib/defaultLeagueCookie";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,9 @@ export async function GET(req: NextRequest) {
       profile: { id: auth.profile.id, username: auth.profile.username, displayName: auth.profile.display_name },
       leagues
     }, { headers: { "Cache-Control": "no-store" } });
-    setDefaultLeagueCookie(response, defaultLeagueForLaunch(leagues)?.slug || null);
+    const preferred = req.cookies.get(DEFAULT_LEAGUE_COOKIE)?.value;
+    const permitted = leagues.find(league => league.slug === preferred);
+    setDefaultLeagueCookie(response, permitted?.slug || defaultLeagueForLaunch(leagues)?.slug || null);
     return response;
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Could not load leagues." }, { status: 500, headers: { "Cache-Control": "no-store" } });

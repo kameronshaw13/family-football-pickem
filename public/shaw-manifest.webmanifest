@@ -3,7 +3,7 @@
   "name": "Family Football Pick'em",
   "short_name": "Pick'em",
   "description": "Private Shaw Family football pick'em app.",
-  "start_url": "/",
+  "start_url": "/leagues",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

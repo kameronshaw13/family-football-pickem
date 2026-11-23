@@ -3,7 +3,7 @@
   "name": "Caleb Family Pick'em",
   "short_name": "Family Pick'em",
   "description": "Private Caleb Family football confidence pick'em.",
-  "start_url": "/caleb-family",
+  "start_url": "/leagues",
   "scope": "/caleb-family",
   "display": "standalone",
   "orientation": "portrait-primary",

@@ -3,7 +3,7 @@
   "name": "Basketball Pick'em",
   "short_name": "Basketball Pick'em",
   "description": "Private Friends basketball pick'em.",
-  "start_url": "/friends-basketball",
+  "start_url": "/leagues",
   "scope": "/friends-basketball",
   "display": "standalone",
   "orientation": "portrait-primary",
