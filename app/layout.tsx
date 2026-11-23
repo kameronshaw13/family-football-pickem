@@ -1,5 +1,6 @@
 import "./ui-foundations.css";
 import "./ui-components.css";
+import "./ui-overlay-base.css";
 import "./ui-details.css";
 import "./ui-experience.css";
 import { Roboto_Slab } from "next/font/google";
