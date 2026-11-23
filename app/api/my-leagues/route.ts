@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
     const response = NextResponse.json({
       ok: true,
       defaultLeague: launchDefault,
+      savedDefaultLeague: savedDefault,
       profile: { id: auth.profile.id, username: auth.profile.username, displayName: auth.profile.display_name },
       leagues
     }, { headers: { "Cache-Control": "no-store" } });
