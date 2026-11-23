@@ -62,6 +62,7 @@ import { canApplySideBetSnapshot, reconcileSideBetSnapshot, sideBetRequestWithVi
 import { sideBetOffersRequest, sideBetLedgerRequest, sideBetMutationRequest } from "@/lib/sideBetNetwork";
 import { normalizeNotificationCounts, notificationFetchRequest, notificationReadRequest, locallyReadNotifications } from "@/lib/notificationClient";
 import { pickSaveRequest, attachSavedPickGames, reconcileSavedPicks } from "@/lib/pickSaveClient";
+import { selectInitialAppCache, fetchAppDataWithRetry, retainReloadedBasketballLines } from "@/lib/appLoadClient";
 
 
 import {
@@ -552,9 +553,8 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     }
     // A warmed league is cached by its default-week key. If navigation passed
     // that same week explicitly, still reuse the warmed payload before paint.
-    const exactCache = isInitialLoad ? readCachedAppData(appSlug, nextWeek) : null;
-    const defaultCache = isInitialLoad && nextWeek != null && !exactCache ? readCachedAppData(appSlug, null) : null;
-    const cachedPayload = exactCache || (defaultCache?.week === nextWeek ? defaultCache : null);
+    const cachedPayload = selectInitialAppCache(isInitialLoad, nextWeek, (requestedWeek) =>
+      readCachedAppData(appSlug, requestedWeek));
     if (cachedPayload) {
       void preloadInitialBoardLogos(cachedPayload);
       dataRef.current = cachedPayload;
@@ -573,18 +573,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     try {
       const url = new URL("/api/app-data", window.location.origin);
       if (nextWeek != null) url.searchParams.set("week", String(nextWeek));
-      let response: Response | null = null;
-      let lastError: unknown = null;
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        try {
-          response = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug }, cache: "no-store" });
-          break;
-        } catch (error) {
-          lastError = error;
-          if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 250 * (attempt + 1)));
-        }
-      }
-      if (!response) throw lastError || new Error("Could not load app data.");
+      const response = await fetchAppDataWithRetry(url.toString(), {
+        headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
+        cache: "no-store"
+      });
       const payload = await response.json();
       if (sequence !== loadSequence.current) return;
       if (!response.ok) {
@@ -603,15 +595,11 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       setShowSavedDataNotice(usingSavedResponse);
       if (!cachedPayload) await preloadInitialBoardLogos(payload);
       if (sequence !== loadSequence.current) return;
-      const previous = dataRef.current;
-      if (previous && previous.week === payload.week) {
-        const previousGames = new Map(previous.games.map((game) => [game.id, game]));
-        payload.games = payload.games.map((game: Game) => retainBasketballSpread(game, previousGames.get(game.id)));
-      }
-      dataRef.current = payload;
-      setData(payload);
-      setWeek(payload.week);
-      if (!usingSavedResponse) writeCachedAppData(appSlug, nextWeek, payload);
+      const nextData = retainReloadedBasketballLines(payload as AppData, dataRef.current);
+      dataRef.current = nextData;
+      setData(nextData);
+      setWeek(nextData.week);
+      if (!usingSavedResponse) writeCachedAppData(appSlug, nextWeek, nextData);
     } catch {
       if (sequence === loadSequence.current && !cachedPayload) setMessage("Could not load app data.");
     } finally {
