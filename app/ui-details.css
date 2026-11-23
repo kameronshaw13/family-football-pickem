@@ -10316,3 +10316,14 @@ html:not([data-theme="dark"]) .picks-panel > .week-opening-notice {
 @media (max-width: 420px) {
   .player-profile-head { min-height: 49px; padding: 0 44px; }
 }
+
+
+/* Side Bets dates: show the start of the week at the left edge, with no
+   artificial half-screen blank padding. BoardDaySelector's scrollTo then
+   centers the selected/today date only when earlier days allow it. */
+.picks-panel.side-bets-view .side-bet-top-controls > .board-day-selector {
+  padding-inline: var(--page-gutter);
+  scroll-padding-inline: var(--page-gutter);
+  justify-content: flex-start;
+}
+

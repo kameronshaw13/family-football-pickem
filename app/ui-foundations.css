@@ -875,7 +875,7 @@ fieldset .field-label { padding: 0; }
   padding: 0;
   place-items: center;
   border: 0;
-  border-radius: var(--ui-radius-md);
+  border-radius: var(--ui-radius-circle);
   color: #fff;
   background: #cf3f39;
   font-family: var(--font-display);
@@ -884,6 +884,7 @@ fieldset .field-label { padding: 0; }
   font-variant-numeric: tabular-nums;
   line-height: 1;
   text-align: center;
+  box-shadow: none;
 }
 
 .notification-badge-value {
@@ -905,7 +906,7 @@ fieldset .field-label { padding: 0; }
   height: 17px;
   padding: 0;
   border: 0;
-  box-shadow: 0 0 0 2px var(--graphite);
+  box-shadow: none;
 }
 
 /* Top page tabs stay centered whether a badge exists or not. */

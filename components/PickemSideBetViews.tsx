@@ -225,7 +225,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
   const recipientGridColumns = ["friends", "friends-basketball"].includes(appSlug) ? 4 : appSlug === "shaw-family" ? 3 : 2;
   const recipientCellCount = otherPlayers.length + 1; // Includes the All cell.
   const recipientLayoutClass = ["friends", "friends-basketball"].includes(appSlug) && (recipientCellCount === 7 || recipientCellCount === 8)
-    ? `recipient-layout-${recipientCellCount}` : "";
+    ? (recipientCellCount === 7 ? "recipient-layout-seven" : "recipient-layout-eight") : "";
   const limitReached = Number.isFinite(weeklyLimit) && slotCount >= weeklyLimit;
   const filteredOpenGames = openGames
     .filter((game) => gameDayKey(game.commence_time) === selectedDayKey)
