@@ -26,3 +26,9 @@ The app is phone-first. Styling is maintained in one ordered global CSS cascade 
 `npm run audit:css` protects the CSS import order, canonical tokens, and the single owner of previously consolidated detail rules **across all four** feature-owned detail files.
 
 Recovery branch: `backup/pre-universal-cleanup-2026-11-23`. Latest work should be committed to a feature branch and merged into `main` only after checks pass.
+
+## Repeated declaration cleanup (November 23, 2026)
+
+The feature-owned `ui-unified-leagues.css`, `ui-detail-refinements.css` and `ui-board-refinements.css` styles now avoid repeated **root-level** declarations with the same complete selector, CSS property, and value. The consolidation removed 20, 56, and 9 such declarations respectively (85 total). A new `audit:css` assertion detects their reintroduction.
+
+This rule is deliberately narrow: it does not remove declarations for different selectors, different values, important declarations, custom properties, or conditional `@media` and `@supports` rules. Later root-level declarations remain the owners. Retain intentional responsive overrides and verify the rendered appearance after future changes.
