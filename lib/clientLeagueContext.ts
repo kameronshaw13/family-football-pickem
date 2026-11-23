@@ -18,3 +18,44 @@ export function selectedWeekFromHeader(): number | null {
   const match = text.match(/Week\s+(\d+)/i);
   return match ? Number(match[1]) : null;
 }
+
+/**
+ * Read an enhancement's current app-data snapshot without duplicating the
+ * storage-key scan. Rendering enhancements must not mutate the stored payload.
+ * Batch submissions require the selected week to match; read-only display
+ * overlays preserve their prior permissive fallback behavior.
+ */
+export function readCachedAppPayload<T extends { week?: number | null }>(
+  slug: ClientLeagueSlug,
+  requireWeekMatch: boolean,
+  cachePrefix = "pickem_app_data_v2"
+): T | null {
+  const week = selectedWeekFromHeader();
+  const preferredKeys = [
+    `${cachePrefix}:${slug}:${week == null ? "default" : week}`,
+    `${cachePrefix}:${slug}:default`
+  ];
+  const additionalKeys: string[] = [];
+  try {
+    for (let index = 0; index < window.sessionStorage.length; index += 1) {
+      const key = window.sessionStorage.key(index);
+      if (key?.startsWith(`${cachePrefix}:${slug}:`) && !preferredKeys.includes(key)) additionalKeys.push(key);
+    }
+    for (const key of [...preferredKeys, ...additionalKeys]) {
+      try {
+        const raw = window.sessionStorage.getItem(key);
+        if (!raw) continue;
+        const entry = JSON.parse(raw) as { payload?: T } | null;
+        const payload = entry?.payload;
+        if (!payload) continue;
+        if (requireWeekMatch && week != null && payload.week != null && Number(payload.week) !== week) continue;
+        return payload;
+      } catch {
+        // Skip one malformed or stale snapshot without hiding other candidates.
+      }
+    }
+  } catch {
+    // Storage can be disabled; the feature falls back to its empty state.
+  }
+  return null;
+}
