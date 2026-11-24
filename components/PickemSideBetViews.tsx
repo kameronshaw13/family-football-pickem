@@ -513,7 +513,9 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
         setView(value as BetView);
         
       }} />
-      {view === "offers" && (weekIsOpen || weekConcluded) && <div className="side-bet-game-filter-toggle side-bet-offers-game-filter" role="group" aria-label="Filter offers by game status"><button type="button" className={offerGameFilter === "all" ? "active" : ""} aria-pressed={offerGameFilter === "all"} onClick={() => setOfferGameFilter("all")}>All</button><button type="button" className={offerGameFilter === "upcoming" ? "active" : ""} aria-pressed={offerGameFilter === "upcoming"} onClick={() => setOfferGameFilter("upcoming")}>Upcoming</button><button type="button" className={offerGameFilter === "completed" ? "active" : ""} aria-pressed={offerGameFilter === "completed"} onClick={() => setOfferGameFilter("completed")}>Completed</button></div>}
+      {view === "offers" && (weekIsOpen || weekConcluded) && <SideBetGameStatusFilter
+        value={offerGameFilter} onChange={setOfferGameFilter} offers
+      />}
       {view === "new" && !weekConcluded && <MenuSelect
         ariaLabel="Filter side bet games by league"
         className="compact-select"
@@ -688,6 +690,22 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
   </div>;
 }
 
+const statusFilters = [
+  ["all", "All"],
+  ["upcoming", "Upcoming"],
+  ["completed", "Completed"],
+] as const;
+
+export function SideBetGameStatusFilter({ value, onChange, offers = false }: {
+  value: SideBetGameFilter;
+  onChange: (value: SideBetGameFilter) => void;
+  offers?: boolean;
+}) {
+  return <div className={`side-bet-game-filter-toggle${offers ? " side-bet-offers-game-filter" : ""}`} role="group" aria-label={offers ? "Filter offers by game status" : "Filter side bets by game status"}>
+    {statusFilters.map(([id, label]) => <button type="button" key={id} className={value === id ? "active" : ""} aria-pressed={value === id} onClick={() => onChange(id)}>{label}</button>)}
+  </div>;
+}
+
 export function SideBetGameCard({ game, market, boardMarket, selectedTeam, disabled, weekLocked = false, modelStars = 0, onSelect, openPreview }: { game: Game; market?: SideBetMarketQuote; boardMarket: SideBetBoardMarket; selectedTeam: string; disabled: boolean; weekLocked?: boolean; modelStars?: number; onSelect: (game: Game, team: string) => void; openPreview: (game: Game) => void }) {
   const lineFor = (team: string) => {
     if (boardMarket === "total") {
@@ -701,8 +719,8 @@ export function SideBetGameCard({ game, market, boardMarket, selectedTeam, disab
   return <MatchupCardFrame className={`side-bet-game-card ${disabled ? "closed" : ""} ${weekLocked ? "unopened-week" : ""} ${selectedTeam ? "selected" : ""}`.trim()}>
     <div className="game-head compact-game-head">
       <div className="game-time-group"><span className={live ? "game-live-status" : "game-time"}><NumericText text={live ? game.live_status || "Live" : timeText(game.commence_time)} /></span>{game.neutral_site && <span className="game-neutral-site">Neutral</span>}</div>
-      {live && <div className="side-bet-live-actions">{game.live_situation && <span className="side-bet-live-situation"><LiveSituationText game={game} /></span>}<button type="button" className="matchup-preview-trigger game-tracker-trigger" disabled={weekLocked} onClick={() => openPreview(game)}>GameTracker</button></div>}
-      {!live && <div className="matchup-preview-actions">{modelStars > 0 && game.league === "CFB" && <span className="board-model-stars" aria-label={`${modelStars} model edge star${modelStars === 1 ? "" : "s"}`}>{"★".repeat(modelStars)}</span>}<button type="button" className="matchup-preview-trigger side-bet-matchup-preview-trigger" disabled={weekLocked} onClick={() => openPreview(game)}>Matchup Preview</button></div>}
+      {live && <div className="side-bet-live-actions">{game.live_situation && <span className="side-bet-live-situation"><LiveSituationText game={game} /></span>}<button type="button" className="matchup-preview-trigger game-tracker-trigger" disabled={weekLocked} onClick={() => openPreview(game)}><span>GameTracker</span></button></div>}
+      {!live && <div className="matchup-preview-actions">{modelStars > 0 && game.league === "CFB" && <span className="board-model-stars" aria-label={`${modelStars} model edge star${modelStars === 1 ? "" : "s"}`}>{"★".repeat(modelStars)}</span>}<button type="button" className="matchup-preview-trigger side-bet-matchup-preview-trigger" disabled={weekLocked} onClick={() => openPreview(game)}><span>Matchup Preview</span></button></div>}
     </div>
     <div className="stacked-matchup" data-neutral-site={game.neutral_site ? "true" : undefined} role="group" aria-label={`${displayTeamName(game, game.away_team)}${matchupSeparator(game)}${displayTeamName(game, game.home_team)}`}>
       {[game.away_team, game.home_team].map((team) => <button

@@ -15,5 +15,5 @@ export function formatUppercaseOrdinalDate(formatter: Intl.DateTimeFormat, date:
 }
 
 export const matchupDateFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "long", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago"
+  weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago"
 });

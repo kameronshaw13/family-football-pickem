@@ -16,6 +16,8 @@ import { teamDisplayName, teamAbbreviatedName } from "@/lib/teamNames";
 import { trackerInstitutionName } from "@/lib/trackerInstitutionName";
 import TrackerTeamLabel from "@/components/TrackerTeamLabel";
 import TrackerHeaderLogoFilter from "@/components/TrackerHeaderLogoFilter";
+import { hasValidGameLine } from "@/lib/gameDataIntegrity";
+import { normalizeSpreadForSelectedTeam, spreadText } from "@/lib/spreads";
 import { trackerDisplayScore } from "@/lib/trackerDisplayScore";
 import { trackerTeamColors } from "@/lib/trackerTeamColors";
 import { groupTrackerScoringPlays } from "@/lib/trackerScoringGroups";
@@ -243,6 +245,11 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
   const scoreTone = completed && score != null && opponentScore != null
     ? score > opponentScore ? "winner" : score < opponentScore ? "loser" : ""
     : "";
+  const boardSpread = hasValidGameLine(game)
+    ? normalizeSpreadForSelectedTeam(game[`${side}_team`], game.current_spread_team, game.current_spread)
+    : null;
+  const homeSpread = payload?.homeSpread;
+  const finalSpread = boardSpread ?? (homeSpread == null ? null : side === "home" ? homeSpread : -homeSpread);
   const timeouts = payload
     ? side === "away" ? payload.situation.awayTimeouts : payload.situation.homeTimeouts
     : null;
@@ -256,6 +263,7 @@ function TeamScore({ side, payload, game, completed }: { side: Side; payload: Tr
       <div className="game-tracker-score-stack">
         <small className="broadcast-team-record">{team?.record || ""}</small>
         <b className={scoreTone}>{score ?? "—"}</b>
+        {completed && finalSpread != null && <small className="tracker-final-spread">{spreadText(finalSpread)}</small>}
         {!completed && (payload?.status.state === "in" || game.live_state === "in") && <div className="game-tracker-team-indicators"><TimeoutDots remaining={timeouts} />{payload?.situation.possessionSide === side && <FieldFootballIcon />}</div>}
       </div>
     </div>

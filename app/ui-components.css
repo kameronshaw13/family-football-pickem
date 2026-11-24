@@ -974,7 +974,7 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
 .side-bet-ledger-heading-row + .side-bet-game-filter-toggle { margin-top: 2px; }
 
 
-/* Keep both Side Bet Ledger filters on one compact line. */
+/* Keep the status filter full width on narrow phones. */
 .side-bet-ledger-filter-row {
   display: flex;
   width: 100%;
@@ -997,16 +997,19 @@ body.side-bet-batch-active .side-bet-game-card .team-row.picked-side:not(.batch-
   padding-inline: 5px;
   font-size: 9px;
 }
-@media (max-width: 360px) {
-  .side-bet-ledger-filter-row { gap: 5px; }
-  .side-bet-ledger-filter-row .side-bet-ledger-scope-toggle {
-    width: 112px;
-    flex-basis: 112px;
+@media (max-width: 390px) {
+  .side-bet-ledger-filter-row {
+    flex-wrap: wrap;
+    gap: var(--ui-space-1);
   }
-  .side-bet-ledger-filter-row .side-bet-ledger-scope-toggle button,
-  .side-bet-ledger-filter-row .side-bet-game-filter-toggle button {
-    padding-inline: 3px;
-    font-size: 8.5px;
+  .side-bet-ledger-filter-row .side-bet-game-filter-toggle {
+    height: 38px;
+    flex: 1 1 100%;
+  }
+  .side-bet-ledger-filter-row .side-bet-ledger-scope-toggle { height: 38px; }
+  .side-bet-ledger-filter-row :is(.side-bet-ledger-scope-toggle, .side-bet-game-filter-toggle) button {
+    min-height: 34px;
+    font-size: 11px;
   }
 }
 

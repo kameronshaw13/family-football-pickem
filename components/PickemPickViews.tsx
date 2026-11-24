@@ -172,7 +172,7 @@ export function GameCard({ game, picks, statusFilter, leagueFilter, weekIsOpen, 
       <div className={`matchup-preview-actions${gameIsLive && (game.league === "CBB" || game.league === "NBA") ? " basketball-tracker-right" : ""}`}>
         {!gameIsLive && modelStars > 0 && game.league === "CFB" && !gameIsFinal && <span className="board-model-stars" aria-label={`${modelStars} model edge star${modelStars === 1 ? "" : "s"}`}>{"★".repeat(modelStars)}</span>}
         {onFavorite && <button type="button" className={`board-favorite-trigger${favorite ? " active" : ""}`} aria-label={favorite ? "Remove game from favorites" : "Add game to favorites"} aria-pressed={favorite} onClick={() => onFavorite(game)}><Star size={18} strokeWidth={2} fill={favorite ? "#D4A72C" : "none"} aria-hidden="true" /></button>}
-        <button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}>{gameIsLive || gameIsFinal ? "GameTracker" : "Matchup Preview"}</button>
+        <button type="button" className="matchup-preview-trigger game-tracker-trigger" onClick={() => openPreview(game)}><span>{gameIsLive || gameIsFinal ? "GameTracker" : "Matchup Preview"}</span></button>
       </div>
       {gameIsLive && liveSituation && <div className="game-live-situation"><LiveSituationText game={game} /></div>}
     </div>
@@ -271,7 +271,7 @@ export function PickScoreBug({ game, pick, spread }: { game: Game; pick: Pick; s
   return <span className={`pick-score-bug ${final ? "final" : "live"}`} role="img" aria-label={`${displayTeamName(game, game.away_team)} ${awayScore}, ${displayTeamName(game, game.home_team)} ${homeScore}, ${status}`}>
     <span className={`score-bug-team${teamOutcomeClass(game.away_team)}`}><TeamLogo url={logoForTeam(game, game.away_team)} name={game.away_team} /><span className="score-bug-score"><NumericText text={awayScore} /></span></span>
     <span className={`score-bug-team${teamOutcomeClass(game.home_team)}`}><TeamLogo url={logoForTeam(game, game.home_team)} name={game.home_team} /><span className="score-bug-score"><NumericText text={homeScore} /></span></span>
-    <span className="score-bug-meta">{final ? <span className={`score-bug-result score-bug-result-${outcome || "pending"}`}>{resultLabel}</span> : <><span><NumericText text={periodAndClock} /></span><span><NumericText text={downAndDistance || "—"} /></span><span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={fieldPosition || "—"} /></span></>}</span>
+    <span className="score-bug-meta">{final ? <span className={`score-bug-result score-bug-result-${outcome || "pending"}`}>{resultLabel}</span> : <><span><NumericText text={periodAndClock} /></span>{downAndDistance && <span><NumericText text={downAndDistance} /></span>}{fieldPosition && <span className={game.live_red_zone ? "red-zone-field" : ""}><NumericText text={fieldPosition} /></span>}</>}</span>
   </span>;
 }
 

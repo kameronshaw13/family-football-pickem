@@ -195,13 +195,42 @@ export default function BasketballGameDetails({ game, onClose }: { game: Game; o
             <path d="M0 0H87L75 100H0Z" fill={colors.primary} />
           </svg>;
         })}
-        {(["away", "home"] as const).map(side => <div className={`game-tracker-score-team ${side}`} key={side}><span className="basketball-team-watermark" style={{ "--tracker-team-mark": (side === "away" ? awayColors : homeColors).primary } as CSSProperties} aria-hidden="true">{scoreNames[side]}</span>
-          <div className="game-tracker-score-team-main">{logos[side] ? <Image unoptimized scoreboardLeague={game.league} logoBackground={side === "away" ? awayColors.primary : homeColors.primary} src={logos[side]!} alt={names[side]} width={60} height={60}
-            onLogoPalette={colors => setLogoPalettes(previous => ({ ...previous, [side]: { logo: logos[side]!, colors } }))} /> : <span className="game-tracker-logo-fallback">{names[side].slice(0, 1)}</span>}<div className="game-tracker-score-stack"><small className="broadcast-team-record">{payload?.teams[side]?.records?.[0]?.summary || ""}</small><b className={completed && scores.away != null && scores.home != null ? scores[side]! > scores[side === "away" ? "home" : "away"]! ? "winner" : "loser" : ""}>{scores[side] ?? "—"}</b>{!completed && !pregame && <div className="basketball-team-indicators"><span className="basketball-team-timeouts" aria-label={timeoutCount(side) == null ? "Timeouts unavailable" : `${timeoutCount(side)} timeouts left`}>{timeoutCount(side) == null ? <span className="basketball-timeout-unavailable">TO: —</span> : <span className="basketball-timeout-circles">{Array.from({ length: game.league === "NBA" ? 7 : Math.max(4, timeoutCount(side) || 0) }, (_, i) => <i key={i} className={i < timeoutCount(side)! ? "active" : ""} />)}</span>}</span><small className="basketball-team-fouls">Fouls: {foulsCount(side) ?? "—"}</small></div>}{completed && <small className="basketball-final-spread">{teamAbbreviatedName(game.league, game[`${side}_team`])} {spreadText(homeSpread == null ? null : side === "home" ? homeSpread : -homeSpread)}</small>}</div></div>
-        </div>)}
+        {(["away", "home"] as const).map(side => {
+          const score = scores[side];
+          const opponentScore = scores[side === "away" ? "home" : "away"];
+          const tone = completed && score != null && opponentScore != null
+            ? score > opponentScore ? "winner" : score < opponentScore ? "loser" : ""
+            : "";
+          const timeouts = timeoutCount(side);
+          const colors = side === "away" ? awayColors : homeColors;
+          return <div className={`game-tracker-score-team ${side}`} key={side}>
+            <span className="basketball-team-watermark" style={{ "--tracker-team-mark": colors.primary } as CSSProperties} aria-hidden="true">{scoreNames[side]}</span>
+            <div className="game-tracker-score-team-main">
+              {logos[side] ? <Image unoptimized scoreboardLeague={game.league} logoBackground={colors.primary} src={logos[side]!} alt={names[side]} width={60} height={60}
+                onLogoPalette={palette => setLogoPalettes(previous => ({ ...previous, [side]: { logo: logos[side]!, colors: palette } }))} />
+                : <span className="game-tracker-logo-fallback">{names[side].slice(0, 1)}</span>}
+              <div className="game-tracker-score-stack">
+                <small className="broadcast-team-record">{payload?.teams[side]?.records?.[0]?.summary || ""}</small>
+                <b className={tone}>{score ?? "—"}</b>
+                {!completed && !pregame && <div className="basketball-team-indicators">
+                  <span className="basketball-team-timeouts" aria-label={timeouts == null ? "Timeouts unavailable" : `${timeouts} timeouts left`}>
+                    {timeouts == null ? <span className="basketball-timeout-unavailable">TO: —</span> : <span className="basketball-timeout-circles">
+                      {Array.from({ length: game.league === "NBA" ? 7 : Math.max(4, timeouts) }, (_, i) => <i key={i} className={i < timeouts ? "active" : ""} />)}
+                    </span>}
+                  </span>
+                  <div className="basketball-team-foul-status">
+                    <small className="basketball-team-fouls">Fouls: {foulsCount(side) ?? "—"}</small>
+                    {bonusCount(side) > 0 && <small className="basketball-team-bonus" aria-label={`${names[side]} in bonus`}>Bonus</small>}
+                  </div>
+                </div>}
+                {completed && homeSpread != null && <small className="tracker-final-spread">{spreadText(side === "home" ? homeSpread : -homeSpread)}</small>}
+              </div>
+            </div>
+          </div>;
+        })}
         <div className={`game-tracker-score-center ${completed ? "final" : ""}`}>
           {completed && <time className="broadcast-game-date" dateTime={game.commence_time}>{new Date(game.commence_time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" })}</time>}
-          {completed ? <strong>FINAL</strong> : pregame ? <><span>TIPOFF</span><strong className="basketball-tipoff-time">{new Date(game.commence_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })}</strong><small>CT</small></> : <><div className="basketball-live-clock"><span className="game-tracker-center-period">{basketballPeriod(payload?.status.period || 1)}</span><strong className="game-tracker-center-clock">{payload?.status.clock || game.live_status?.match(/\d{1,2}:\d{2}/)?.[0] || "—"}</strong></div><div className="basketball-bonus-indicators" aria-label="Bonus status"><span className={bonusCount("away") > 0 ? "active" : ""} aria-label={`${names.away} ${bonusCount("away") > 0 ? "in bonus" : "not in bonus"}`} /><small>Bonus</small><span className={bonusCount("home") > 0 ? "active" : ""} aria-label={`${names.home} ${bonusCount("home") > 0 ? "in bonus" : "not in bonus"}`} /></div></>}
+          {completed ? <strong>FINAL</strong> : pregame ? <><span>TIPOFF</span><strong className="basketball-tipoff-time">{new Date(game.commence_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })}</strong><small>CT</small></> : <><div className="basketball-live-clock"><span className="game-tracker-center-period">{basketballPeriod(payload?.status.period || 1)}</span><strong className="game-tracker-center-clock">{payload?.status.clock || game.live_status?.match(/\d{1,2}:\d{2}/)?.[0] || "—"}</strong></div></>}
         </div>
       </div></div>
       <nav className="game-tracker-tabs tracker-primary-tabs" aria-label="Basketball game sections"><button type="button" className={tab !== "box" ? "active" : ""} aria-current={tab !== "box" ? "page" : undefined} onClick={() => { setTab(completed ? "scoring" : "live"); scrollArea.current?.scrollTo(0, 0); }}>GameTracker</button><button type="button" className={tab === "box" ? "active" : ""} aria-current={tab === "box" ? "page" : undefined} onClick={() => { setTab("box"); scrollArea.current?.scrollTo(0, 0); }}>Box Score</button></nav>

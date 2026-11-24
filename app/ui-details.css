@@ -1051,8 +1051,11 @@ html[data-theme="dark"] .primary-nav {
 }
 .matchup-strength-team > img,
 .matchup-role-side > img { flex-shrink: 0; }
-.matchup-strength-right {text-align:right;}
-.matchup-role-right .matchup-role-copy {text-align:right;}
+.matchup-column-heads :is(.matchup-role-side, .matchup-strength-team) {
+  justify-content: center;
+  text-align: center;
+}
+.matchup-column-heads .matchup-role-copy { flex: 0 1 auto; text-align: center; }
 
 /* Form: less blank space per stat, stronger label and number readability. */
 .matchup-form-stats {
@@ -1250,29 +1253,30 @@ html[data-theme="dark"] .primary-nav {
 
 /* Preview matchup hero: clean vertical stack with one obvious score/spread row. */
 .matchup-preview-hero {
-  min-height:166px;
+  min-height:138px;
   height:auto;
   flex-basis:auto;
   grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);
-  grid-template-rows:36px auto;
+  grid-template-rows:auto auto;
   gap:0 var(--ui-space-2);
   padding:var(--ui-space-1) 13px 10px;
   background:var(--panel);
 }
 .matchup-preview-hero > .matchup-preview-kickoff {
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  gap:3px;
-  min-height:36px;
-  height:36px;
+  display:block;
+  padding-block:var(--ui-space-1);
   color:var(--header-muted);
+  text-align:center;
   font-family:var(--detail-body);
   font-size:10px;
   font-weight:750;
   letter-spacing:.005em;
 }
-.matchup-preview-team {gap:5px;}
+.matchup-preview-team {
+  align-self: stretch;
+  grid-template-rows: auto 1fr auto;
+  gap: 4px;
+}
 .matchup-preview-team > img,.matchup-preview-team > .matchup-logo-fallback {
   width:56px;
   height:56px;
@@ -1331,7 +1335,7 @@ html[data-theme="dark"] .primary-nav {
   letter-spacing:.02em;
 }
 .matchup-column-heads,.matchup-metric-row {
-  grid-template-columns:minmax(0,1fr) minmax(110px,1.25fr) minmax(0,1fr);
+  grid-template-columns:minmax(0,3fr) minmax(0,4fr) minmax(0,3fr);
   gap:6px;
   padding-inline:10px;
 }
@@ -1653,7 +1657,7 @@ html[data-theme="dark"] .primary-nav {
 
 /* Low-height and narrow screens retain the same hierarchy without overflow. */
 @media(max-width:380px) {
- .matchup-column-heads,.matchup-metric-row {grid-template-columns:minmax(0,1fr) minmax(96px,1.3fr) minmax(0,1fr);gap:var(--ui-space-1);padding-inline:7px;}
+ .matchup-column-heads,.matchup-metric-row {gap:var(--ui-space-1);padding-inline:7px;}
  .matchup-strength-team > strong,.matchup-role-copy > small {font-size:9.5px;}
  .game-tracker-scoreboard-grid {grid-template-columns:minmax(0,1fr) 88px minmax(0,1fr);gap:3px;padding-inline:6px;}
  .game-tracker-score-team-main,.game-tracker-score-team.home .game-tracker-score-team-main {gap:5px;}
@@ -1699,7 +1703,7 @@ html[data-theme="dark"] .primary-nav {
 .cbb-advanced-table th, .cbb-advanced-table td { padding: 9px var(--ui-space-1); border-bottom: var(--ui-divider-row); text-align: center; font-size: 12px; overflow-wrap: anywhere; }
 .cbb-advanced-table thead th { font-size: 11px; background: var(--surface-soft); }
 .cbb-advanced-table tbody th { color: var(--muted); font-size: 10px; font-weight: 600; }
-.cbb-advanced-table td > span { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: var(--ui-space-1); }
+.cbb-advanced-table td > span { display: grid; justify-items: center; gap: 2px; }
 .cbb-advanced-table small { font-size: 9px; color: var(--muted); }
 .cbb-advanced-table tr:last-child > * { border-bottom: 0; }
 .cbb-player-section h4 { padding: var(--ui-space-3); margin: 0; font-size: 12px; }
@@ -1709,6 +1713,12 @@ html[data-theme="dark"] .primary-nav {
 .basketball-stats, .basketball-box table { border-collapse: collapse; width: 100%; font-size: 12px; }
 .basketball-stats th, .basketball-stats td, .basketball-box th, .basketball-box td { padding: 10px var(--ui-space-2); border-bottom: 1px solid var(--border, #ccc); text-align: center; }
 .basketball-stats th { font-weight: 500; }
+.matchup-preview-sheet :is(.basketball-stats, .cbb-advanced-table) {
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+.matchup-preview-sheet :is(.basketball-stats, .cbb-advanced-table) thead th:nth-child(2) { width: 40%; }
+.matchup-preview-sheet .basketball-stats th { overflow-wrap: anywhere; }
 .basketball-box h3 { font-size: 14px; padding: var(--ui-space-3); margin: 0; }
 .basketball-table-scroll { overflow-x: auto; overscroll-behavior: contain; }
 .basketball-box table { white-space: nowrap; }
@@ -1768,7 +1778,7 @@ select:focus-visible,
 .game-day-marker { gap: 9px; }
 .game-day-marker > b { min-height: 30px; border-radius: var(--ui-radius-label); font-size: 11px; }
 .game-day-marker strong { font-size: 12px; font-weight: 700; }
-.game-head { min-height: 37px; height: 37px; }
+.game-head { min-height: 45px; height: 45px; }
 .badge, .status-mark { font-size: 10px; letter-spacing: .025em; }
 .game-time, .game-final-status, .game-live-status, .game-live-situation { font-size: 12px; }
 .team-name { font-weight: 700; }
