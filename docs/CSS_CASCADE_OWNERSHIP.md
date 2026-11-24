@@ -69,7 +69,7 @@ For routine builds the audit logs compact counts and any problems. To inspect fu
 
 The shared GameTracker and Matchup Preview overlay foundation now omits **129** repeated root-level presentation declarations (colors, typography, and alignment) that already have identical later owners in detail and experience stylesheets. This is a selector/property/value consolidation, not a visual redesign. Positioning, dimensions, borders, overflow, scroll, collapse, sticky controls, and touch interactions remain unchanged.
 
-The CSS audit checks exact cross-file duplicates for this presentation-property set across `ui-overlay-base.css` and the later imported detail/experience layers. Four single-property legacy base rules are explicitly allowed until their owning selectors can be migrated cleanly. New duplicate declarations are build failures. The check intentionally excludes conditional media rules and layout or interaction-related properties. Continue to use the ownership report before touching overlay behavior, and manually verify GameTracker / Matchup Preview on a phone when changing structural CSS.
+The CSS audit checks exact cross-file duplicates for this presentation-property set across `ui-overlay-base.css` and the later imported detail/experience layers. Three single-property legacy base rules are explicitly allowed until their owning selectors can be migrated cleanly. New duplicate declarations are build failures. The check intentionally excludes conditional media rules and layout or interaction-related properties. Continue to use the ownership report before touching overlay behavior, and manually verify GameTracker / Matchup Preview on a phone when changing structural CSS.
 
 ## Shared GameTracker and box-score detail ownership
 
