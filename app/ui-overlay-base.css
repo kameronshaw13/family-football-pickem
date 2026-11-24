@@ -849,11 +849,6 @@
   background: var(--graphite);
 }
 .game-tracker-header > span { font-family: var(--font-display); font-size: 11px; letter-spacing: .1em; }
-
-.game-tracker-scoreboard {
-  flex: 0 0 auto;
-  border-bottom: var(--ui-divider-section);
-}
 .game-tracker-scoreboard-grid {
   min-height: 92px;
   grid-template-columns: minmax(0, 1fr) minmax(112px, 132px) minmax(0, 1fr);
@@ -895,7 +890,6 @@
 }
 .game-tracker-score-stack {
   min-width: 32px;
-  gap: 5px;
 }
 .game-tracker-score-stack > b {
   min-width: 28px;
@@ -905,11 +899,6 @@
 }
 .game-tracker-score-stack > b.loser { color: var(--muted); }
 .game-tracker-score-stack > b.winner { color: var(--ink); }
-.game-tracker-timeout-dots {
-  display: flex;
-  height: 5px;
-  gap: 3px;
-}
 .game-tracker-timeout-dots i {
   display: block;
   width: 5px;
@@ -1003,11 +992,6 @@
   font-weight: 750;
   letter-spacing: .02em;
   text-transform: uppercase;
-}
-.game-tracker-quarter-team-logos {
-  display: grid;
-  grid-template-columns: repeat(2, 28px);
-  gap: 5px;
 }
 .game-tracker-quarter-team-logos img,
 .game-tracker-quarter-team-logos .game-tracker-logo-fallback {
@@ -1172,11 +1156,6 @@
 .game-tracker-score-play > div:first-child { min-width: 0; align-self: center; }
 .game-tracker-score-play small { display: block; margin-bottom: var(--ui-space-1); color: var(--muted); font-size: 9.5px; font-weight: 650; line-height: 1.2; text-transform: uppercase; }
 .game-tracker-score-play strong { display: block; font-size: 12.5px; font-weight: 600; line-height: 1.34; }
-.game-tracker-score-values {
-  display: grid;
-  grid-template-columns: repeat(2, 28px);
-  gap: 5px;
-}
 .game-tracker-score-values b {
   color: var(--ink);
   font-size: 14px;
@@ -1431,7 +1410,6 @@
   border-right: 0;
   border-bottom: 0;
   border-left: 0;
-  border-radius: 0;
   box-shadow: 0 -8px 22px rgba(20, 33, 43, .12);
 }
 .game-tracker-header > span {

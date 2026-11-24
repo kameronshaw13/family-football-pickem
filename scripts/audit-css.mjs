@@ -351,10 +351,10 @@ const sharedCascadePairs = [
     "ui-experience.css"
   ]}
 ];
-// Residual exact-value declarations await deliberate whole-rule migration.
+// Zero legacy shared declaration overlaps remain in the guarded base layers.
 const sharedCascadeMaxOverlap = new Map([
-  ["ui-foundations.css", 6],
-  ["ui-overlay-base.css", 13]
+  ["ui-foundations.css", 0],
+  ["ui-overlay-base.css", 0]
 ]);
 const sharedCascadeOverlapReport = [];
 for (const {base, owners} of sharedCascadePairs) {
