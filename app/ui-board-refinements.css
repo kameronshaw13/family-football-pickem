@@ -64,11 +64,9 @@
   position: static;
   z-index: 2;
   display: grid;
-  flex: 0 0 29px;
-  width: 29px;
-  height: 30px;
-  min-width: 29px;
-  min-height: 30px;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   place-items: center;
   border: 0;
@@ -369,9 +367,8 @@
 .game-tracker-sheet .game-tracker-box-selector button > .tracker-adaptive-team-label {
   display: block;
   position: relative;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
-  width: auto;
   overflow: hidden;
   white-space: nowrap;
   line-height: 1.2;
@@ -655,14 +652,14 @@
 }
 
 /* Broadcast-style away/home divider: leave a little more breathing room
-   around the vs/@ marker, centered on the separator even with a 1px row gap. */
+   around the at/vs marker, centered on the separator even with a 1px row gap. */
 .picks-panel .stacked-matchup .team-row:first-child::before {
   bottom: -1px;
   background: linear-gradient(
     to right,
-    var(--line) 0 calc(var(--matchup-marker-x) - 8px),
-    transparent calc(var(--matchup-marker-x) - 8px) calc(var(--matchup-marker-x) + 8px),
-    var(--line) calc(var(--matchup-marker-x) + 8px) 100%
+    var(--line) 0 calc(var(--matchup-marker-x) - 9px),
+    transparent calc(var(--matchup-marker-x) - 9px) calc(var(--matchup-marker-x) + 9px),
+    var(--line) calc(var(--matchup-marker-x) + 9px) 100%
   );
 }
 .picks-panel .stacked-matchup .team-row:first-child::after {
@@ -675,7 +672,7 @@
   padding: 0;
   font-size: 11.5px;
   line-height: 1;
-  transform: translate(-50%, -1px);
+  transform: translate(-50%, -0.5px);
 }
 
 /* Detail sheets stay below the app header and ABOVE the permanently visible

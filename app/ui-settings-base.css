@@ -100,7 +100,6 @@
   text-decoration: none;
 }
 .settings-appearance-card { overflow: hidden; }
-.settings-appearance-card .settings-row-heading { border-bottom: var(--ui-divider-row); }
 .theme-toggle {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

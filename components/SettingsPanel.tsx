@@ -151,10 +151,6 @@ export default function SettingsPanel({
     <div className="settings-section">
       <h3>Appearance</h3>
       <div className="settings-card settings-appearance-card">
-        <div className="settings-row-heading">
-          <div className="settings-leading-icon">{theme === "dark" ? <Moon size={17} /> : <Sun size={17} />}</div>
-          <div className="settings-row-copy"><strong>Appearance</strong><span>Choose how the app looks on this device.</span></div>
-        </div>
         <div className="theme-toggle" role="group" aria-label="Appearance">
           <button type="button" className={theme === "light" ? "active" : ""} aria-pressed={theme === "light"} onClick={() => chooseTheme("light")}><Sun size={14} /> Light</button>
           <button type="button" className={theme === "dark" ? "active" : ""} aria-pressed={theme === "dark"} onClick={() => chooseTheme("dark")}><Moon size={14} /> Dark</button>
@@ -216,7 +212,8 @@ export default function SettingsPanel({
         <ChevronRight size={17} />
       </button>
       {String(currentUser.username || "").trim().toLowerCase() === "kameron" && <button type="button" className={`settings-hide-bet-history${hideAcceptedBets ? " active" : ""}`} aria-label="Hide my side bets" aria-pressed={hideAcceptedBets} onClick={() => onHideAcceptedBetsChange(!hideAcceptedBets)}>
-        {hideAcceptedBets ? "On" : "Off"}
+        <span>Hide my side bets</span>
+        <strong>{hideAcceptedBets ? "On" : "Off"}</strong>
       </button>}
 
     </div>

@@ -175,7 +175,7 @@ for (const name of deduplicatedFeatureFiles) {
 // responsive or more-specific refinements remain valid.
 const consolidatedLegacyRules = [
   [".game-tracker-team-stats > .game-tracker-stat-row:first-child", "border-top:0"],
-  [".basketball-team-indicators .basketball-timeout-circles > i.active, .basketball-details .basketball-bonus-indicators > span.active", "background:#f5c542;border-color:#f5c542"],
+  [".basketball-team-indicators .basketball-timeout-circles > i.active", "background:#f5c542;border-color:#f5c542"],
   [".football-game-tracker .football-drive[open] > .football-drive-summary", "border-bottom:1px solid var(--tracker-divider)"],
   [".basketball-shot-chart .basketball-shot.home-shot.made", "fill:#383d43;stroke:#383d43"],
   [".basketball-shot-chart .basketball-shot.home-shot.missed", "fill:#eff0f1;stroke:#979fa7"],

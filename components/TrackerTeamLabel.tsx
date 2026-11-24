@@ -12,9 +12,17 @@ export default function TrackerTeamLabel({ full, short }: { full: string; short:
     const label = host.current;
     const measure = meter.current;
     if (!label || !measure) return;
-    const update = () => setCompact(measure.getBoundingClientRect().width > label.getBoundingClientRect().width - 2);
+    const button = label.parentElement;
+    if (!button) return;
+    const update = () => {
+      const style = getComputedStyle(button);
+      const logoWidth = label.previousElementSibling?.getBoundingClientRect().width ?? 0;
+      const logoGap = logoWidth ? parseFloat(style.columnGap) || 0 : 0;
+      const available = button.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - logoWidth - logoGap;
+      setCompact(measure.getBoundingClientRect().width > available);
+    };
     const observer = new ResizeObserver(update);
-    observer.observe(label);
+    observer.observe(button);
     void document.fonts?.ready.then(update).catch(() => undefined);
     update();
     return () => observer.disconnect();
