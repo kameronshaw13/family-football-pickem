@@ -50,7 +50,7 @@ const contract = [
 // intentionally matched as selector fragments to preserve the current contract.
 const experienceSelectors = [];
 css.walkRules(rule => {
-  if (rule.selector) experienceSelectors.push(rule.selector.replace(/\\s+/g, " ").trim());
+  if (rule.selector) experienceSelectors.push(rule.selector.replace(/\s+/g, " ").trim());
 });
 for (const selector of contract) {
   if (!experienceSelectors.some(value => value.includes(selector))) {
