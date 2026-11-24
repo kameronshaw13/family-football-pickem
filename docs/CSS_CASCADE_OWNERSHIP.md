@@ -56,3 +56,9 @@ Use **`var(--ui-divider-row)`** for a standard subtle one-pixel separator and **
 The 266 former declarations of `1px solid var(--line)` or `1px solid var(--line-strong)` across nine CSS entrypoints have been consolidated to those tokens. The CSS audit enforces these definitions and rejects future raw duplicates.
 
 Do not automatically replace `var(--tracker-divider)`, `var(--tracker-section-divider)`, `var(--matchup-divider)`, or explicit team/broadcast-color borders. They carry a distinct component semantic. For each row/section, retain a single border owner to avoid doubled lines and preserve the existing mobile geometry.
+
+## Cross-file component ownership and build protection
+
+`npm run audit:css` parses each of the nine imported stylesheets **once**, reusing the same PostCSS syntax trees for canonical tokens, duplicate declarations, legacy single-owner rules, and advisory override reports. The `componentOwnershipReport` now identifies exact selector/property definitions spanning multiple files in GameTracker, Matchup Preview, Pick Board, league headers, and basketball detail sections. Each entry includes the affected files and final source location. These cross-file results are advisory: matching selectors can have intentional state-specific or conditional behavior and should not be automatically deleted.
+
+A production `npm run build` now runs `npm run audit:css` first through `prebuild`, so a broken divider/spacing/shape contract, import order, or canonical owner fails **before** the Next.js production build. Continue running `npm run check:code` for the broader source, type, lint, and test checks. Preview builds are not substitutes for manual phone UI checks.
