@@ -66,7 +66,7 @@ for (const name of cssImports) {
 // root-level declarations for an unchanged selector/property/value combination.
 // Distinct values, @media overrides, and selector-specific refinements remain valid.
 const deduplicatedFeatureFiles = [
-  "ui-unified-leagues.css", "ui-detail-refinements.css", "ui-board-refinements.css"
+  "ui-details.css", "ui-unified-leagues.css", "ui-detail-refinements.css", "ui-board-refinements.css"
 ];
 for (const name of deduplicatedFeatureFiles) {
   const file = path.join(root, "app", name);
