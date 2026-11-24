@@ -285,6 +285,14 @@ const detailRules = detailOwnershipFiles.flatMap((file, fileIndex) => {
     declarations: rule.nodes.filter(node => node.type === "decl")
   }));
 });
+// Four legacy root-level layout selectors still overlap later layers.
+// Preserve them until their geometry and specificity can be verified on mobile.
+const legacyCrossFileLayoutSelectors = new Set([
+  ".football-game-tracker .football-play-period > .game-tracker-quarter-header > span, .football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header > span",
+  ".football-game-tracker .football-play-period > .game-tracker-quarter-header, .football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header",
+  ".game-tracker-sheet, .matchup-preview-sheet",
+  ".game-tracker-backdrop, .matchup-preview-backdrop"
+]);
 const laterDetailDeclarations = new Map();
 for (let i = detailRules.length - 1; i >= 0; i--) {
   const entry = detailRules[i];
@@ -294,7 +302,7 @@ for (let i = detailRules.length - 1; i >= 0; i--) {
     laterDetailDeclarations.has(JSON.stringify([entry.selector, decl.prop, decl.value.trim()])) &&
     laterDetailDeclarations.get(JSON.stringify([entry.selector, decl.prop, decl.value.trim()])) > entry.fileIndex
   );
-  if (isDetail && eligible.length && eligible.length < entry.declarations.length &&
+  if (isDetail && !legacyCrossFileLayoutSelectors.has(entry.selector) &&\n      eligible.length && eligible.length < entry.declarations.length &&
       !entry.rule.nodes.some(node => node.type === "comment")) {
     for (const decl of eligible) {
       problems.push(`Cross-file duplicate detail declaration: ${entry.file}:${decl.source.start.line} ${entry.selector} ${decl.prop}`);
