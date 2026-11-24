@@ -1647,13 +1647,13 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header > .game
    and scoreboard now use the standard muted 1px section divider. */
 .game-tracker-sheet,
 .matchup-preview-sheet {
-  border-top: 1px solid var(--line);
+  border-top: var(--ui-divider-row);
 }
 .game-tracker-sheet > .game-tracker-header,
 .matchup-preview-sheet > .matchup-preview-header,
 html[data-theme="dark"] .game-tracker-sheet > .game-tracker-header,
 html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
-  border-bottom: 1px solid var(--line);
+  border-bottom: var(--ui-divider-row);
 }
 .game-tracker-sheet > .game-tracker-scoreboard,
 .basketball-details > .game-tracker-scoreboard {
