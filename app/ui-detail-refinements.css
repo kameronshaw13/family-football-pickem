@@ -335,7 +335,6 @@ html[data-theme="dark"] .basketball-shot-chart .basketball-shot-filters .game-tr
   overflow: visible;
   border: 0;
   border-bottom: 1px solid var(--tracker-divider);
-  background: var(--panel);
 }
 .game-tracker-sheet .game-tracker-player-table-scroll,
 .basketball-details .game-tracker-player-table-scroll {
@@ -1931,7 +1930,6 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   padding-block: 12px;
 }
 .football-game-tracker .football-drive-description > strong {
-  font-size: 14px;
   font-weight: 750;
   line-height: 1.25;
 }
@@ -1944,9 +1942,6 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 }
 
 .football-game-tracker .football-drive-plays {
-  position: relative;
-  margin-left: calc(var(--tracker-inset) + 13px);
-  padding-left: 19px;
   border-left: 2px solid var(--football-drive-color, #a12936);
 }
 .football-game-tracker .football-drive-plays > .game-tracker-quarter-header { margin-left: -19px; }
@@ -2240,27 +2235,16 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
    header in Plays and Scoring; no compounded padding from legacy rules. */
 .football-game-tracker .football-play-period > .game-tracker-quarter-header,
 .football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: row;
   align-items: center;
-  justify-content: space-between;
   height: 44px;
   min-height: 44px;
   max-height: 44px;
   padding: 0 var(--tracker-inset) !important;
-  margin: 0;
-  line-height: 1.2;
-  background: var(--panel);
-  border-bottom: 1px solid var(--tracker-divider);
 }
 .football-game-tracker .football-play-period > .game-tracker-quarter-header > span,
 .football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header > span {
   display: block;
-  margin: 0;
-  padding: 0;
   align-self: center;
-  line-height: 1.2;
 }
 .football-game-tracker .football-play-period > .game-tracker-quarter-header {
   border-top: 1px solid var(--tracker-section-divider) !important;
@@ -2301,22 +2285,16 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
   max-width: 100%;
   overflow-x: auto !important;
   overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  -webkit-overflow-scrolling: touch;
 }
 .game-tracker-sheet .game-tracker-player-table,
 .basketball-details .basketball-player-table {
-  width: 100%;
   table-layout: auto;
-  border-collapse: separate;
-  border-spacing: 0;
   border: 0;
 }
 .game-tracker-sheet .game-tracker-player-table tr > *,
 .basketball-details .basketball-player-table tr > * {
   box-sizing: border-box;
   border-top: 0 !important;
-  border-bottom: 1px solid var(--tracker-divider);
   border-left: 0 !important;
   border-right: 0;
   box-shadow: none;
