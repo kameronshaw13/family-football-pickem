@@ -45,8 +45,17 @@ const contract = [
   ".side-bet-recipient-grid.recipient-layout-eight",
   ".primary-nav"
 ];
+// Validate actual parsed stylesheet selectors, not arbitrary substring matches
+// in comments or descriptions. Complex :has() and compound selectors are
+// intentionally matched as selector fragments to preserve the current contract.
+const experienceSelectors = [];
+css.walkRules(rule => {
+  if (rule.selector) experienceSelectors.push(rule.selector.replace(/\\s+/g, " ").trim());
+});
 for (const selector of contract) {
-  if (!experience.includes(selector)) problems.push(`Missing final owner rule: ${selector}`);
+  if (!experienceSelectors.some(value => value.includes(selector))) {
+    problems.push(`Missing final owner rule: ${selector}`);
+  }
 }
 console.log(JSON.stringify({ imports, experienceLines: experience.split("\n").length, legacyDetailLines: details.split("\n").length, problems }, null, 2));
 if (problems.length) process.exitCode = 1;
