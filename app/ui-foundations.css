@@ -1323,14 +1323,6 @@ fieldset .field-label { padding: 0; }
   height: 36px;
   min-height: 36px;
 }
-.header-menu-select .custom-select-trigger {
-  display: flex;
-  height: 36px;
-  min-height: 36px;
-  align-items: center;
-  padding-top: 0;
-  padding-bottom: 0;
-}
 
 .compact-select {
   height: var(--data-header-height);
