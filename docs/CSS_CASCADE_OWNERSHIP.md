@@ -32,3 +32,7 @@ Recovery branch: `backup/pre-universal-cleanup-2026-11-23`. Latest work should b
 The feature-owned `ui-unified-leagues.css`, `ui-detail-refinements.css` and `ui-board-refinements.css` styles now avoid repeated **root-level** declarations with the same complete selector, CSS property, and value. The consolidation removed 20, 56, and 9 such declarations respectively (85 total). A new `audit:css` assertion detects their reintroduction.
 
 This rule is deliberately narrow: it does not remove declarations for different selectors, different values, important declarations, custom properties, or conditional `@media` and `@supports` rules. Later root-level declarations remain the owners. Retain intentional responsive overrides and verify the rendered appearance after future changes.
+
+## Legacy detail consolidation
+
+The original `ui-details.css` layer now also follows the no-identical-root-declarations audit. This cleanup removed **435** repeated selector/property/value declarations across **140** legacy rule blocks, while retaining their later identical owners and all conditional, important, and CSS custom-property declarations. The guard now applies to all four feature-owned detail CSS files. Keep responsive and visually distinct overrides intentional; avoid adding a second identical root declaration to work around existing styling.
