@@ -302,7 +302,8 @@ for (let i = detailRules.length - 1; i >= 0; i--) {
     laterDetailDeclarations.has(JSON.stringify([entry.selector, decl.prop, decl.value.trim()])) &&
     laterDetailDeclarations.get(JSON.stringify([entry.selector, decl.prop, decl.value.trim()])) > entry.fileIndex
   );
-  if (isDetail && !legacyCrossFileLayoutSelectors.has(entry.selector) &&\n      eligible.length && eligible.length < entry.declarations.length &&
+  if (isDetail && !legacyCrossFileLayoutSelectors.has(entry.selector) &&
+      eligible.length && eligible.length < entry.declarations.length &&
       !entry.rule.nodes.some(node => node.type === "comment")) {
     for (const decl of eligible) {
       problems.push(`Cross-file duplicate detail declaration: ${entry.file}:${decl.source.start.line} ${entry.selector} ${decl.prop}`);
