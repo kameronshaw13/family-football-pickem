@@ -215,6 +215,59 @@ const consolidatedLegacyRules = [
   }
 }
 
+// Base overlay declarations should not repeat the same final presentation
+// value in a later feature stylesheet. Four single-declaration base rules
+// are intentionally retained until their selector ownership is migrated.
+const overlayPresentationProperties = new Set([
+  "color", "background", "font-family", "font-size", "font-weight",
+  "line-height", "text-align", "text-transform", "font-variant-numeric",
+  "text-overflow", "white-space", "align-items", "align-content",
+  "justify-items", "justify-content", "object-fit", "place-items",
+  "flex-direction"
+]);
+const retainedOverlayPresentation = new Set([
+  JSON.stringify([".game-tracker-score-values b.changed", "color", "var(--ink)"]),
+  JSON.stringify([".game-tracker-score-values b.unchanged", "color", "var(--muted)"]),
+  JSON.stringify([".game-tracker-score-play", "align-items", "center"]),
+  JSON.stringify([".game-tracker-score-team.home .game-tracker-score-team-main", "flex-direction", "row-reverse"])
+]);
+const laterPresentation = new Map();
+for (const name of cssImports.slice(cssImports.indexOf("ui-details.css"))) {
+  const css = parsedCss.get(name);
+  if (!css) continue;
+  css.walkRules(rule => {
+    if (rule.parent.type !== "root") return;
+    const selector = rule.selector.replace(/\s+/g, " ").trim();
+    rule.nodes.filter(node => node.type === "decl").forEach(decl => {
+      if (!overlayPresentationProperties.has(decl.prop) || decl.important) return;
+      laterPresentation.set(JSON.stringify([selector, decl.prop, decl.value.trim()]),
+        { file: name, line: decl.source.start.line });
+    });
+  });
+}
+const retainedOverlayFound = new Set();
+const overlayCss = parsedCss.get("ui-overlay-base.css");
+if (overlayCss) overlayCss.walkRules(rule => {
+  if (rule.parent.type !== "root" ||
+      !/(game-tracker|matchup-preview)/.test(rule.selector)) return;
+  const selector = rule.selector.replace(/\s+/g, " ").trim();
+  rule.nodes.filter(node => node.type === "decl").forEach(decl => {
+    if (!overlayPresentationProperties.has(decl.prop) || decl.important) return;
+    const key = JSON.stringify([selector, decl.prop, decl.value.trim()]);
+    if (!laterPresentation.has(key)) return;
+    if (retainedOverlayPresentation.has(key)) {
+      retainedOverlayFound.add(key);
+    } else {
+      problems.push(`Duplicate cross-file overlay presentation: ${selector} ${decl.prop} at ui-overlay-base.css:${decl.source.start.line}`);
+    }
+  });
+});
+for (const key of retainedOverlayPresentation) {
+  if (!retainedOverlayFound.has(key)) {
+    problems.push(`Expected retained overlay single-declaration owner: ${key}`);
+  }
+}
+
 // Enforce a single authoritative design-token definition across every CSS entry point.
 const canonicalTokens = {
   "--ui-space-1": "4px", "--ui-space-2": "8px", "--ui-space-3": "12px",
