@@ -36,3 +36,9 @@ This rule is deliberately narrow: it does not remove declarations for different 
 ## Legacy detail consolidation
 
 The original `ui-details.css` layer now also follows the no-identical-root-declarations audit. This cleanup removed **435** repeated selector/property/value declarations across **140** legacy rule blocks, while retaining their later identical owners and all conditional, important, and CSS custom-property declarations. The guard now applies to all four feature-owned detail CSS files. Keep responsive and visually distinct overrides intentional; avoid adding a second identical root declaration to work around existing styling.
+
+## Typography override consolidation
+
+The four feature-owned detail stylesheets have undergone a conservative root-level typography pass. It removes earlier declarations only when a later declaration in the **same file** has the exact same complete selector and CSS property but a different value. The pass targets only `font-size`, `font-weight`, `line-height`, `letter-spacing`, and `text-align`, with no changes to media-query rules, custom properties, `!important`, or spacing/dimension declarations. It leaves blocks intact when deleting their last declaration would require rewriting the surrounding rule.
+
+The CSS audit now includes an advisory `typographyConflictReport` with per-file remaining counts and sample source lines. An override can be intentional, so this report is informational rather than an automatic build failure. Audit changes to shared nav and GameTracker type scales against the rendered phone layout before further consolidation.

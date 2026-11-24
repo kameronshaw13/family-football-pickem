@@ -89,6 +89,42 @@ for (const name of deduplicatedFeatureFiles) {
   });
 }
 
+// Report conflicting typography values without failing the build. A later
+// root-level declaration for the same selector/property wins, but many older
+// overrides still serve as historical or intentional responsive context.
+const typographyConflictProperties = new Set([
+  "font-size", "font-weight", "line-height", "letter-spacing", "text-align"
+]);
+const typographyConflictReport = [];
+for (const name of deduplicatedFeatureFiles) {
+  const file = path.join(root, "app", name);
+  if (!fs.existsSync(file)) continue;
+  const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
+  const lastValues = new Map();
+  let overridden = 0;
+  const examples = [];
+  css.walkRules(rule => {
+    if (rule.parent.type !== "root") return;
+    const selector = rule.selector.replace(/\s+/g, " ").trim();
+    rule.nodes.filter(node => node.type === "decl").forEach(decl => {
+      if (decl.important || !typographyConflictProperties.has(decl.prop)) return;
+      const key = JSON.stringify([selector, decl.prop]);
+      const previous = lastValues.get(key);
+      if (previous && previous.value !== decl.value) {
+        overridden += 1;
+        if (examples.length < 5) {
+          examples.push({
+            selector, property: decl.prop,
+            previousLine: previous.line, line: decl.source.start.line
+          });
+        }
+      }
+      lastValues.set(key, { value: decl.value, line: decl.source.start.line });
+    });
+  });
+  typographyConflictReport.push({ file: name, overrides: overridden, examples });
+}
+
 // These previously repeated declarations have an established single root-level
 // owner. Check the exact fingerprint, not selector reuse: later intentional
 // responsive or more-specific refinements remain valid.
@@ -168,5 +204,5 @@ for (const [token, expectedValue] of Object.entries(canonicalTokens)) {
   }
 }
 
-console.log(JSON.stringify({cssImports, report, problems}, null, 2));
+console.log(JSON.stringify({cssImports, report, typographyConflictReport, problems}, null, 2));
 if (problems.length) process.exitCode = 1;

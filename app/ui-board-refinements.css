@@ -557,7 +557,6 @@
   color: var(--ink);
   font-size: 12px;
   font-weight: 750;
-  line-height: 1.25;
 }
 .picks-panel .board-league-count {
   flex: 0 0 auto;
