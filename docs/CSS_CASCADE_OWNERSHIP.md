@@ -94,3 +94,9 @@ The reusable form, side-bet ledger and base overlay styles now defer to their fi
 Retired the last **19** tracked exact-value declarations in the foundation/component and overlay/detail ownership boundaries. Five base blocks were fully duplicated by later root-level rules and removed as whole rules: the header menu select trigger, GameTracker scoreboard, timeout dots, quarter team logos, and score values. Kept the original `min-width` on the score stack and all nonduplicated sheet geometry while removing their repeated `gap` and `border-radius` declarations. The later effective rules are unchanged, as are all media-specific rules and conditional styling.
 
 The previous legacy overlap allowances of 6 in foundations and 13 in overlay base are now **0 and 0**. The audit rejects reintroducing shared duplicate properties in multi-declaration root blocks; future single-declaration block migrations should be reviewed individually. This cleanup makes no changes to pick or bet records. Visual phone review of overlays, box-score columns, and header controls remains a separate acceptance step.
+
+## Production UI ownership gate
+
+Production builds now run both `npm run audit:css` and `npm run audit:ui-ownership` through `prebuild`. This preserves the ordered CSS imports, the single light-theme surface palette, the final `ui-experience.css` ownership of critical controls, and the documented overlay/settings split before Next.js compilation. The final-selector check searches parsed PostCSS rules instead of relying on literal string matches that could be satisfied by comments. `npm run check:code` still includes the additional import-graph, type, lint, and test checks.
+
+This gate verifies source structure, not actual phone rendering. Continue to manually review both themes, the permanently visible bottom navigation, GameTracker/Matchup overlays, sheet dismissal and scrolling, and pick-board/side-bet header spacing before changing layout behavior.
