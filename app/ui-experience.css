@@ -186,7 +186,7 @@ html:not([data-theme="dark"]) .picks-panel.board-view .game-days.board-league-da
   padding-inline: max(var(--page-gutter), calc(50% - 46px));
   scroll-padding-inline: max(var(--page-gutter), calc(50% - 46px));
   min-height: 51px;
-  border-bottom: 1px solid var(--line) !important;
+  border-bottom: var(--ui-divider-row) !important;
 }
 @media (max-width: 380px) {
   .picks-panel .board-day-selector > button { flex-basis: 88px; }
@@ -269,7 +269,7 @@ html:not([data-theme="dark"]) .picks-panel.board-view .game-days.board-league-da
    border; keeping the rule on the label prevents both gaps and double lines. */
 .picks-panel .board-filter-row .context-select
   .custom-select-section:not(:first-child) > .custom-select-group-label {
-  border-top: 1px solid var(--line) !important;
+  border-top: var(--ui-divider-row) !important;
 }
 
 /* Make Offer has the same dark gray game area and 9px inter-section strips as
@@ -341,11 +341,11 @@ html:not([data-theme="dark"]) .picks-panel .game-card:not(.locked-out):not(.clos
 .route-app .side-bet-recipient-grid.recipient-layout-eight > label {
   grid-column: span 3;
   border-top: 0;
-  border-right: 1px solid var(--line);
+  border-right: var(--ui-divider-row);
 }
 .route-app .side-bet-recipient-grid.recipient-layout-seven > label:nth-child(n + 5),
 .route-app .side-bet-recipient-grid.recipient-layout-eight > label:nth-child(n + 5) {
-  border-top: 1px solid var(--line);
+  border-top: var(--ui-divider-row);
 }
 .route-app .side-bet-recipient-grid.recipient-layout-seven > label:nth-child(n + 5) {
   grid-column: span 4;
@@ -364,7 +364,7 @@ html:not([data-theme="dark"]) .picks-panel .game-card:not(.locked-out):not(.clos
   display: flex;
   align-items: stretch;
   min-width: 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: var(--ui-divider-row);
 }
 .settings-panel .settings-league-preference-row:last-child { border-bottom: 0; }
 .settings-panel .settings-league-preference-row > .settings-league-link {
@@ -378,7 +378,7 @@ html:not([data-theme="dark"]) .picks-panel .game-card:not(.locked-out):not(.clos
   min-width: 44px;
   place-items: center;
   border: 0;
-  border-left: 1px solid var(--line);
+  border-left: var(--ui-divider-row);
   color: var(--muted);
   background: var(--panel);
   cursor: pointer;
@@ -454,13 +454,13 @@ html:not([data-theme="dark"]) .picks-panel > .week-opening-notice {
 
 /* Exactly one boundary line under Sun Belt / above Independents. */
 .picks-panel .board-filter-row .football-conference-select .custom-select-section:last-child > .custom-select-option:first-child {
-  border-top: 1px solid var(--line) !important;
+  border-top: var(--ui-divider-row) !important;
 }
 
 /* Player Profile: borrow the same 49px white header and black X as GameTracker,
    followed by compact flat statistic sections and single-owner dividers. */
 .player-profile-sheet {
-  border-top: 1px solid var(--line);
+  border-top: var(--ui-divider-row);
 }
 .player-profile-head {
   height: var(--detail-header-height);
@@ -472,7 +472,7 @@ html:not([data-theme="dark"]) .picks-panel > .week-opening-notice {
   place-items: center;
   padding: 0 44px;
   background: var(--detail-header-surface);
-  border-bottom: 1px solid var(--line);
+  border-bottom: var(--ui-divider-row);
   color: var(--detail-header-ink);
 }
 .player-profile-head-copy { text-align: center; width: 100%; }
@@ -511,7 +511,7 @@ html:not([data-theme="dark"]) .picks-panel > .week-opening-notice {
   min-height: 38px;
   padding: 7px var(--page-gutter);
   background: var(--surface-soft);
-  border-bottom: 1px solid var(--line);
+  border-bottom: var(--ui-divider-row);
 }
 .player-profile-section-heading h3 { font-size: 11px; font-weight: 800; }
 .player-profile-performance-row {
@@ -524,7 +524,7 @@ html:not([data-theme="dark"]) .picks-panel > .week-opening-notice {
   min-width: 0;
   padding: 13px var(--page-gutter);
 }
-.player-profile-performance-row > div + div { border-left: 1px solid var(--line); }
+.player-profile-performance-row > div + div { border-left: var(--ui-divider-row); }
 .player-profile-win-mark { text-align: left; padding-bottom: 13px; }
 .player-profile-record-mark strong, .player-profile-win-mark strong {
   font-size: 21px;
@@ -538,7 +538,7 @@ html:not([data-theme="dark"]) .picks-panel > .week-opening-notice {
   font-size: 10px;
 }
 .player-profile-detail-grid small { font-size: 9px; }
-.player-profile-block { border-bottom: 1px solid var(--line-strong); }
+.player-profile-block { border-bottom: var(--ui-divider-section); }
 @media (max-width: 420px) {
   .player-profile-head { min-height: 49px; padding: 0 44px; }
 }

@@ -135,7 +135,7 @@
   display: grid;
   max-height: min(330px, 53svh);
   overflow-y: auto;
-  border: 1px solid var(--line-strong);
+  border: var(--ui-divider-section);
   border-radius: 0;
   box-shadow: none;
   background: var(--panel);
@@ -637,8 +637,8 @@
    The list below owns its strong bottom line, and its top line is omitted to
    prevent doubling the header's thin divider. Match Settings/Standings tokens. */
 .picks-panel .board-league-group > .board-league-header {
-  border-top: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line);
+  border-top: var(--ui-divider-section);
+  border-bottom: var(--ui-divider-row);
 }
 
 /* League header ROW uses the same soft cream shade as the matchup
@@ -717,11 +717,11 @@
 /* Neutral light line ABOVE each cream league heading; darker line BELOW
    when expanded, returning to a soft line on collapsed headings. */
 .picks-panel .board-league-group > .board-league-header {
-  border-top: 1px solid var(--line) !important;
-  border-bottom: 1px solid var(--line-strong) !important;
+  border-top: var(--ui-divider-row) !important;
+  border-bottom: var(--ui-divider-section) !important;
 }
 .picks-panel .board-day-selector {
-  border-bottom: 1px solid var(--line) !important;
+  border-bottom: var(--ui-divider-row) !important;
 }
 
 
@@ -854,7 +854,7 @@
 .picks-panel .board-filter-row .custom-select-section > .custom-select-option,
 .picks-panel .board-filter-row .custom-select-section > .custom-select-group-label {
   border: 0 !important;
-  border-bottom: 1px solid var(--line) !important;
+  border-bottom: var(--ui-divider-row) !important;
   box-shadow: none !important;
 }
 .picks-panel .board-filter-row .custom-select-section:last-child > :last-child {
@@ -905,6 +905,6 @@ html[data-theme="dark"] .picks-panel .board-filter-row .custom-select-option.sel
 .picks-panel .board-filter-row .context-select .custom-select-section:not(:last-child) > .custom-select-option:last-child { border-bottom: 0 !important; }
 .picks-panel .board-filter-row .context-select .custom-select-section > .custom-select-option:last-child::after,
 .picks-panel .board-filter-row .context-select .custom-select-group-label::after { content: none !important; }
-.picks-panel .board-filter-row .context-select .custom-select-group-label { border-bottom: 1px solid var(--line) !important; }
+.picks-panel .board-filter-row .context-select .custom-select-group-label { border-bottom: var(--ui-divider-row) !important; }
 /* Reduce the bottom of the date strip by 3px without moving date lettering. */
 .picks-panel .board-sticky-controls > .board-day-selector > button { min-height: 51px; padding-bottom: 0; }

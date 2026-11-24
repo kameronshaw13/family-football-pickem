@@ -48,3 +48,11 @@ The CSS audit now includes an advisory `typographyConflictReport` with per-file 
 The same conservative single-selector/root-level consolidation now covers layout dimensions and spacing: width/height and min/max variants, gap (including row/column), padding, and margin. The cleanup removed 174 superseded declarations from the four feature-owned CSS files while retaining later declarations. It does **not** alter display mode, grid placement, fixed/sticky positioning, offsets, media rules, custom properties, or important declarations. Rules reduced to zero declarations are left for individual review.
 
 `audit:css` now outputs `layoutConflictReport` alongside the typography report. These are advisory reports rather than build failures because competing values can be deliberate refinements. Use the reports to target future ownership cleanup; manually verify the phone layout and overlays before considering any changes to positioning.
+
+## Universal divider contract
+
+Use **`var(--ui-divider-row)`** for a standard subtle one-pixel separator and **`var(--ui-divider-section)`** for a stronger one-pixel section boundary. Both are defined once in `ui-foundations.css` and depend on the existing theme-responsive `--line` / `--line-strong` color values, so the light and dark palettes keep their original appearance.
+
+The 266 former declarations of `1px solid var(--line)` or `1px solid var(--line-strong)` across nine CSS entrypoints have been consolidated to those tokens. The CSS audit enforces these definitions and rejects future raw duplicates.
+
+Do not automatically replace `var(--tracker-divider)`, `var(--tracker-section-divider)`, `var(--matchup-divider)`, or explicit team/broadcast-color borders. They carry a distinct component semantic. For each row/section, retain a single border owner to avoid doubled lines and preserve the existing mobile geometry.

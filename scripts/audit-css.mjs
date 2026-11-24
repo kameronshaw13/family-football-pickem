@@ -212,6 +212,8 @@ const consolidatedLegacyRules = [
 const canonicalTokens = {
   "--ui-space-1": "4px", "--ui-space-2": "8px", "--ui-space-3": "12px",
   "--ui-space-4": "16px", "--ui-space-5": "24px",
+  "--ui-divider-row": "1px solid var(--line)",
+  "--ui-divider-section": "1px solid var(--line-strong)",
   "--ui-radius-flat": "0", "--ui-radius-label": "2px", "--ui-radius-action": "4px",
   "--ui-radius-box": "4px",
   "--ui-radius-sm": "var(--ui-radius-label)", "--ui-radius-md": "var(--ui-radius-box)", "--ui-radius-lg": "var(--ui-radius-box)",
@@ -223,6 +225,11 @@ for (const name of cssImports) {
   if (!fs.existsSync(file)) continue;
   const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
   css.walkDecls(decl => {
+    // Do not recreate a locally hard-coded copy of the universal divider.
+    if (!["--ui-divider-row", "--ui-divider-section"].includes(decl.prop) &&
+        ["1px solid var(--line)", "1px solid var(--line-strong)"].includes(decl.value)) {
+      problems.push(`Use the universal row or section divider token at ${name}:${decl.source.start.line}`);
+    }
     if (decl.prop === "border-radius" &&
         !/^(?:0|50%|var\(--ui-radius-(?:flat|label|action|box|sm|md|lg|control|filter|circle)\))$/.test(decl.value)) {
       problems.push(`Use a shared shape token, a circle, or a flush edge at ${name}:${decl.source.start.line}: ${decl.value}`);
