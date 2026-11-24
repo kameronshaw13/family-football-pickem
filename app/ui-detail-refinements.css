@@ -1772,7 +1772,6 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
 }
 .football-game-tracker .football-play-period > .game-tracker-quarter-header,
 .football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header {
-  padding: 0 var(--tracker-inset);
   border-top: 1px solid var(--tracker-section-divider) !important;
   color: var(--ink);
   font-size: 16px;
@@ -2235,16 +2234,11 @@ html[data-theme="dark"] .matchup-preview-sheet > .matchup-preview-header {
    header in Plays and Scoring; no compounded padding from legacy rules. */
 .football-game-tracker .football-play-period > .game-tracker-quarter-header,
 .football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header {
-  align-items: center;
-  height: 44px;
-  min-height: 44px;
-  max-height: 44px;
   padding: 0 var(--tracker-inset) !important;
 }
 .football-game-tracker .football-play-period > .game-tracker-quarter-header > span,
 .football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header > span {
   display: block;
-  align-self: center;
 }
 .football-game-tracker .football-play-period > .game-tracker-quarter-header {
   border-top: 1px solid var(--tracker-section-divider) !important;
