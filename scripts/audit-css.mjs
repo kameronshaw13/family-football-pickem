@@ -216,7 +216,7 @@ const consolidatedLegacyRules = [
 }
 
 // Base overlay declarations should not repeat the same final presentation
-// value in a later feature stylesheet. Four single-declaration base rules
+// value in a later feature stylesheet. Three single-declaration base rules
 // are intentionally retained until their selector ownership is migrated.
 const overlayPresentationProperties = new Set([
   "color", "background", "font-family", "font-size", "font-weight",
@@ -228,7 +228,6 @@ const overlayPresentationProperties = new Set([
 const retainedOverlayPresentation = new Set([
   JSON.stringify([".game-tracker-score-values b.changed", "color", "var(--ink)"]),
   JSON.stringify([".game-tracker-score-values b.unchanged", "color", "var(--muted)"]),
-  JSON.stringify([".game-tracker-score-play", "align-items", "center"]),
   JSON.stringify([".game-tracker-score-team.home .game-tracker-score-team-main", "flex-direction", "row-reverse"])
 ]);
 const laterPresentation = new Map();
