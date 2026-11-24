@@ -1,5 +1,10 @@
 import type { Game, SideBetMarketQuote } from "./types";
 
+function oppositeFavorites(firstAway: number, secondAway: number) {
+  // The synthetic +/-0.5 pick'em line does not establish a favorite.
+  return Math.abs(firstAway) >= 1.5 && Math.abs(secondAway) >= 1.5 && firstAway * secondAway < 0;
+}
+
 /**
  * The Action Network market adapter can return a priced but incorrect
  * basketball spread. Compare pregame quotes with ESPN's explicitly identified
@@ -21,10 +26,9 @@ export function verifyBasketballPregameMarket(
   // The direct ESPN/DraftKings quote is an independent identity-checked source.
   // Near-pick'em half points are an app convention. An opposing quoted
   // favorite at a neutral site still needs verification below the usual gap.
-  const oppositeFavorites = game.neutral_site && quoted && verified
-    && Math.abs(quoted.awayPoint) >= 1.5 && Math.abs(verified.awayPoint) >= 1.5
-    && quoted.awayPoint * verified.awayPoint < 0;
-  if (verified && (!quoted || oppositeFavorites || Math.abs(quoted.awayPoint - verified.awayPoint) >= 4)) {
+  if (verified && (!quoted
+    || (game.neutral_site && oppositeFavorites(quoted.awayPoint, verified.awayPoint))
+    || Math.abs(quoted.awayPoint - verified.awayPoint) >= 4)) {
     const moneyline = espn?.moneyline && !espn.moneyline.suspended ? espn.moneyline : action.moneyline;
     return { ...action, spread: verified, moneyline };
   }
@@ -38,6 +42,7 @@ export function verifyBasketballPregameMarket(
 
   // A large, uncorroborated change must not replace a previously saved line.
   const changedFar = storedAway != null && Math.abs(quoted.awayPoint - storedAway) > 6;
+  const flippedFavorite = game.neutral_site && storedAway != null && oppositeFavorites(quoted.awayPoint, storedAway);
   // Thirty-point Division I games are possible, but require corroboration.
   // Otherwise withholding the spread is safer than accepting a bad 38.5.
   const unusuallyLarge = game.league === "CBB" && Math.abs(quoted.awayPoint) >= 27;
@@ -49,7 +54,7 @@ export function verifyBasketballPregameMarket(
   // A near-pick'em spread cannot belong to an overwhelming ML favorite.
   const implausibleMoneyline = Boolean(extremeMoneyline && Math.abs(quoted.awayPoint) <= 5);
 
-  if (changedFar || unusuallyLarge || implausibleMoneyline) {
+  if (changedFar || flippedFavorite || unusuallyLarge || implausibleMoneyline) {
     return { ...action, spread: null };
   }
   return action;

@@ -50,3 +50,16 @@ test("uses the identity-checked favorite for opposite small neutral-site lines",
   const neutral = { ...game, neutral_site: true };
   assert.equal(verifyBasketballPregameMarket(neutral, quote(-1.5), quote(1.5))?.spread?.awayPoint, 1.5);
 });
+
+test("withholds a small neutral-site favorite reversal while ESPN is unavailable", () => {
+  const neutral = { ...game, neutral_site: true, current_spread: -1.5 };
+  assert.equal(verifyBasketballPregameMarket(neutral, quote(-1.5), null)?.spread, null);
+  assert.equal(verifyBasketballPregameMarket(neutral, quote(-1.5), { ...quote(-1.5), spread: null })?.spread, null);
+});
+
+test("allows a corroborated neutral-site favorite change and ordinary pick'em movement", () => {
+  const neutral = { ...game, neutral_site: true, current_spread: -1.5 };
+  assert.equal(verifyBasketballPregameMarket(neutral, quote(-1.5), quote(-1.5))?.spread?.awayPoint, -1.5);
+  assert.equal(verifyBasketballPregameMarket(neutral, quote(-0.5), null)?.spread?.awayPoint, -0.5);
+  assert.equal(verifyBasketballPregameMarket({ ...neutral, neutral_site: false }, quote(-1.5), null)?.spread?.awayPoint, -1.5);
+});
