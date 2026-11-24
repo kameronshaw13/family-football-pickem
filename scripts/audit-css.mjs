@@ -19,6 +19,18 @@ if (JSON.stringify(cssImports) !== JSON.stringify(expected)) {
 for (const item of cssImports) {
   if (!fs.existsSync(path.join(root, "app", item))) problems.push(`Missing CSS: ${item}`);
 }
+// Read and parse each imported stylesheet once. All audits inspect these same
+// ASTs in import order, avoiding repeated filesystem reads and PostCSS parses.
+const cssSources = new Map();
+const parsedCss = new Map();
+for (const name of cssImports) {
+  const file = path.join(root, "app", name);
+  if (!fs.existsSync(file)) continue;
+  const source = fs.readFileSync(file, "utf8");
+  cssSources.set(name, source);
+  parsedCss.set(name, postcss.parse(source, { from: file }));
+}
+
 // Keep feature-owned files at their original cascade boundaries. This prevents
 // future edits from accidentally loading a refinement before its base rules.
 const detailOwnershipAnchors = {
@@ -27,16 +39,15 @@ const detailOwnershipAnchors = {
   "ui-board-refinements.css": "/* Day-by-day Pick Board navigation follows the CBS date-strip interaction:"
 };
 for (const [name, anchor] of Object.entries(detailOwnershipAnchors)) {
-  const file = path.join(root, "app", name);
-  if (fs.existsSync(file) && !fs.readFileSync(file, "utf8").startsWith(anchor)) {
+  const source = cssSources.get(name);
+  if (source !== undefined && !source.startsWith(anchor)) {
     problems.push(`Unexpected CSS ownership boundary in ${name}`);
   }
 }
 const report = [];
 for (const name of cssImports) {
-  const file = path.join(root, "app", name);
-  if (!fs.existsSync(file)) continue;
-  const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
+  const css = parsedCss.get(name);
+  if (!css) continue;
   const occurrences = new Map();
   const duplicates = [];
   let rules = 0, declarations = 0;
@@ -69,9 +80,8 @@ const deduplicatedFeatureFiles = [
   "ui-details.css", "ui-unified-leagues.css", "ui-detail-refinements.css", "ui-board-refinements.css"
 ];
 for (const name of deduplicatedFeatureFiles) {
-  const file = path.join(root, "app", name);
-  if (!fs.existsSync(file)) continue;
-  const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
+  const css = parsedCss.get(name);
+  if (!css) continue;
   const declarationsSeen = new Map();
   css.walkRules(rule => {
     if (rule.parent.type !== "root") return;
@@ -97,9 +107,8 @@ const typographyConflictProperties = new Set([
 ]);
 const typographyConflictReport = [];
 for (const name of deduplicatedFeatureFiles) {
-  const file = path.join(root, "app", name);
-  if (!fs.existsSync(file)) continue;
-  const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
+  const css = parsedCss.get(name);
+  if (!css) continue;
   const lastValues = new Map();
   let overridden = 0;
   const examples = [];
@@ -136,9 +145,8 @@ const layoutConflictProperties = new Set([
 ]);
 const layoutConflictReport = [];
 for (const name of deduplicatedFeatureFiles) {
-  const file = path.join(root, "app", name);
-  if (!fs.existsSync(file)) continue;
-  const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
+  const css = parsedCss.get(name);
+  if (!css) continue;
   const lastValues = new Map();
   let overridden = 0;
   const examples = [];
@@ -188,9 +196,8 @@ const consolidatedLegacyRules = [
   const counts = new Map(consolidatedLegacyRules.map(([selector, declarations]) =>
     [JSON.stringify([selector, declarations]), 0]));
   for (const name of detailFiles) {
-    const file = path.join(root, "app", name);
-    if (!fs.existsSync(file)) continue;
-    const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
+    const css = parsedCss.get(name);
+    if (!css) continue;
     css.walkRules(rule => {
       if (rule.parent.type !== "root") return;
       const selector = rule.selector.replace(/\s+/g, " ").trim();
@@ -221,9 +228,8 @@ const canonicalTokens = {
 };
 const tokenDefinitions = new Map(Object.keys(canonicalTokens).map(key => [key, []]));
 for (const name of cssImports) {
-  const file = path.join(root, "app", name);
-  if (!fs.existsSync(file)) continue;
-  const css = postcss.parse(fs.readFileSync(file, "utf8"), { from: file });
+  const css = parsedCss.get(name);
+  if (!css) continue;
   css.walkDecls(decl => {
     // Do not recreate a locally hard-coded copy of the universal divider.
     if (!["--ui-divider-row", "--ui-divider-section"].includes(decl.prop) &&
