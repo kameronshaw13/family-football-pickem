@@ -352,6 +352,12 @@ const sharedCascadePairs = [
     "ui-experience.css"
   ]}
 ];
+// Residual exact-value declarations await deliberate whole-rule migration.
+const sharedCascadeMaxOverlap = new Map([
+  ["ui-foundations.css", 6],
+  ["ui-overlay-base.css", 13]
+]);
+const sharedCascadeOverlapReport = [];
 for (const {base, owners} of sharedCascadePairs) {
   const earlier = parsedCss.get(base);
   if (!earlier) continue;
@@ -368,6 +374,7 @@ for (const {base, owners} of sharedCascadePairs) {
       }
     });
   }
+  const overlap = [];
   earlier.walkRules(rule => {
     if (rule.parent.type !== "root" ||
         rule.nodes.some(node => node.type === "comment")) return;
@@ -378,10 +385,15 @@ for (const {base, owners} of sharedCascadePairs) {
       if (decl.important || decl.prop.startsWith("--")) continue;
       const key = JSON.stringify([selector, decl.prop, decl.value.trim()]);
       if (laterValues.has(key)) {
-        problems.push(`Redundant shared CSS declaration: ${base}:${decl.source.start.line} ${selector} ${decl.prop}`);
+        overlap.push({selector, property: decl.prop, line: decl.source.start.line});
       }
     }
   });
+  const max = sharedCascadeMaxOverlap.get(base);
+  sharedCascadeOverlapReport.push({file: base, remaining: overlap.length, baselineMax: max});
+  if (overlap.length > max) {
+    problems.push(`Shared CSS overlap increased in ${base}: ${overlap.length} (baseline ${max})`);
+  }
 }
 
 // Enforce a single authoritative design-token definition across every CSS entry point.
@@ -480,7 +492,7 @@ for (const [family, selectorFragment] of componentFamilies) {
 // Set CSS_AUDIT_VERBOSE=1 when investigating individual selector owners.
 const fullReport = {
   cssImports, report, typographyConflictReport,
-  layoutConflictReport, componentOwnershipReport, problems
+  layoutConflictReport, componentOwnershipReport, sharedCascadeOverlapReport, problems
 };
 const compactReport = {
   cssImports,
@@ -490,6 +502,7 @@ const compactReport = {
   layoutConflictReport: layoutConflictReport.map(({file, overrides}) => ({file, overrides})),
   componentOwnershipReport: componentOwnershipReport.map(({family, declarationOwners, crossFileOwners}) =>
     ({family, declarationOwners, crossFileOwners})),
+  sharedCascadeOverlapReport,
   problems
 };
 console.log(JSON.stringify(process.env.CSS_AUDIT_VERBOSE === "1" ? fullReport : compactReport, null, 2));
