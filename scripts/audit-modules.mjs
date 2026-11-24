@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 const root = process.cwd();
-const sourceRoots = ["app", "components", "lib", "spatial-layouts", "scripts", "tests"];
+const sourceRoots = ["app", "components", "hooks", "lib", "spatial-layouts", "scripts", "tests"];
 const extensions = [".ts", ".tsx", ".js", ".mjs", ".css"];
 const files = new Set();
 function walk(dir) {
