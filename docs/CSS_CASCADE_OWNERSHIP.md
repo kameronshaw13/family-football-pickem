@@ -106,3 +106,11 @@ This gate verifies source structure, not actual phone rendering. Continue to man
 Production `prebuild` now also runs `npm run audit:modules`, alongside the CSS and UI ownership audits. The module audit checks import-graph reachability and **fails on unresolved local source imports** for supported TypeScript, JavaScript, and CSS modules. Explicit asset imports, URLs, and framework-managed resources are intentionally excluded from that narrow failure condition. It also reports module dependency cycles and potentially orphaned modules **as advisory diagnostics only**; these can include intentional framework entrypoints and dynamic imports and must never be deleted automatically. Use `MODULE_AUDIT_VERBOSE=1 npm run audit:modules` for the full candidate and cycle listing.
 
 A passing production build establishes source integrity, import structure, and compilation, but **not mobile visual correctness**. The next acceptance work is a real phone-first UI check of light/dark league headers, fixed bottom navigation, GameTracker and Matchup Preview overlays, box scores, side-bet interactions, and scrolling. Keep the backup branch as the rollback point until that review is complete.
+
+## League-switcher dependency cycle resolution
+
+The former runtime import cycle linked `PickemPresentationShared` → `SettingsPanel` → `LeagueSwitcher` → `leagueWarmup` → `PickemPresentationShared`. The app-data cache contract and session-storage helpers now live in `lib/appDataCache.ts`, imported directly by `leagueWarmup`. Existing public exports from `PickemPresentationShared` remain as re-exports for callers; cache keys, expiry window, stored payload structure, session checking, and asynchronous writes are preserved. The cache module must stay independent of UI components.
+
+Module audit reports can include Next.js route files loaded by convention (for example `app/leagues/icon.tsx` and `apple-icon.tsx`) as potentially unused. Other candidates such as Logo Studio components/styles and bank-related server utilities need individual runtime or product review. Never delete these files solely based on import graph reachability.
+
+Keep the permanent bottom navigation, Settings-based league switching, existing logged-in session state, and the no-header-flash behavior as phone acceptance criteria. Build-time checks alone do not validate those interactions.
