@@ -281,7 +281,7 @@ const detailRules = detailOwnershipFiles.flatMap((file, fileIndex) => {
   if (!root) return [];
   return root.nodes.filter(node => node.type === "rule").map(rule => ({
     file, fileIndex, rule,
-    selector: rule.selector.replace(/\\s+/g, " ").trim(),
+    selector: rule.selector.replace(/\s+/g, " ").trim(),
     declarations: rule.nodes.filter(node => node.type === "decl")
   }));
 });
