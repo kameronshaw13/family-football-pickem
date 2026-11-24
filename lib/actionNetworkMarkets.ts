@@ -1,4 +1,5 @@
 import { fetchEspnBasketballMarkets } from "./espnBasketballMarkets";
+import { verifyBasketballPregameMarket } from "./basketballMarketVerification";
 import { actionV2MarketRows, type V2MarketGame } from "./actionNetworkV2";
 import { alignSpreadFavoriteWithMoneyline, normalizeVerifiedMarketSpread } from "./marketSpread";
 import { isFreshMarketTimestamp } from "./marketFreshness.ts";
@@ -403,10 +404,28 @@ export async function fetchActionNetworkMarkets(games: Game[]) {
     const quote = quoteForGame(game, leaguePayloads.get(game.league) || []);
     return quote ? [quote] : [];
   });
-  const quotedIds = new Set(quotes.map((quote) => quote.gameId));
-  const missingBasketball = games.filter((game) => (game.league === "CBB" || game.league === "NBA") && !quotedIds.has(game.id));
-  const fallback = missingBasketball.length ? await fetchEspnBasketballMarkets(missingBasketball) : [];
-  return [...quotes, ...fallback];
+  const basketballGames = games.filter((game) =>
+    (game.league === "CBB" || game.league === "NBA") && new Date(game.commence_time) > new Date());
+  // An Action quote can be well-formed but attached to the wrong market.
+  // Cross-check every basketball pregame against ESPN's identified DK row,
+  // not just the games for which Action returned nothing.
+  const espn = basketballGames.length ? await fetchEspnBasketballMarkets(basketballGames) : [];
+  const espnById = new Map(espn.map((quote) => [quote.gameId, quote]));
+  const quotesById = new Map(quotes.map((quote) => [quote.gameId, quote]));
+  return games.flatMap((game) => {
+    const action = quotesById.get(game.id) || null;
+    if (game.league !== "CBB" && game.league !== "NBA") return action ? [action] : [];
+    const verified = verifyBasketballPregameMarket(game, action, espnById.get(game.id) || null);
+    if (action?.spread?.awayPoint !== verified?.spread?.awayPoint) {
+      console.warn("[basketball-market-verification]", {
+        gameId: game.id,
+        actionAway: action?.spread?.awayPoint ?? null,
+        espnAway: espnById.get(game.id)?.spread?.awayPoint ?? null,
+        selectedAway: verified?.spread?.awayPoint ?? null
+      });
+    }
+    return verified ? [verified] : [];
+  });
 }
 
 export async function fetchActionNetworkMarketForGame(game: Game, phase: SideBetOfferPhase) {
