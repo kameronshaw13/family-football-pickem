@@ -339,6 +339,51 @@ for (let i = detailRules.length - 1; i >= 0; i--) {
   }
 }
 
+// The foundation-to-component and overlay-to-detail cascade previously held
+// redundant exact-value declarations. For multi-declaration root-level rules,
+// prohibit adding the same selector/property/value in an earlier owner when a
+// later layer already owns it. Single-declaration legacy blocks are reported
+// by the advisory component ownership audit until migrated as whole blocks.
+const sharedCascadePairs = [
+  {base: "ui-foundations.css", owners: ["ui-components.css"]},
+  {base: "ui-overlay-base.css", owners: [
+    "ui-details.css", "ui-unified-leagues.css",
+    "ui-detail-refinements.css", "ui-board-refinements.css",
+    "ui-experience.css"
+  ]}
+];
+for (const {base, owners} of sharedCascadePairs) {
+  const earlier = parsedCss.get(base);
+  if (!earlier) continue;
+  const laterValues = new Set();
+  for (const name of owners) {
+    const css = parsedCss.get(name);
+    if (!css) continue;
+    css.walkRules(rule => {
+      if (rule.parent.type !== "root") return;
+      const selector = rule.selector.replace(/\s+/g, " ").trim();
+      for (const decl of rule.nodes.filter(node => node.type === "decl")) {
+        if (decl.important || decl.prop.startsWith("--")) continue;
+        laterValues.add(JSON.stringify([selector, decl.prop, decl.value.trim()]));
+      }
+    });
+  }
+  earlier.walkRules(rule => {
+    if (rule.parent.type !== "root" ||
+        rule.nodes.some(node => node.type === "comment")) return;
+    const declarations = rule.nodes.filter(node => node.type === "decl");
+    if (declarations.length < 2) return;
+    const selector = rule.selector.replace(/\s+/g, " ").trim();
+    for (const decl of declarations) {
+      if (decl.important || decl.prop.startsWith("--")) continue;
+      const key = JSON.stringify([selector, decl.prop, decl.value.trim()]);
+      if (laterValues.has(key)) {
+        problems.push(`Redundant shared CSS declaration: ${base}:${decl.source.start.line} ${selector} ${decl.prop}`);
+      }
+    }
+  });
+}
+
 // Enforce a single authoritative design-token definition across every CSS entry point.
 const canonicalTokens = {
   "--ui-space-1": "4px", "--ui-space-2": "8px", "--ui-space-3": "12px",
