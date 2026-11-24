@@ -45,3 +45,8 @@ test("rejects nominal pick'em when both sources imply an overwhelming favorite",
 test("uses ESPN as fallback when Action Network has no basketball quote", () => {
   assert.equal(verifyBasketballPregameMarket(game, null, quote(19.5))?.spread?.awayPoint, 19.5);
 });
+
+test("uses the identity-checked favorite for opposite small neutral-site lines", () => {
+  const neutral = { ...game, neutral_site: true };
+  assert.equal(verifyBasketballPregameMarket(neutral, quote(-1.5), quote(1.5))?.spread?.awayPoint, 1.5);
+});
