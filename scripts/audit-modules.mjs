@@ -1,7 +1,8 @@
 /**
  * Read-only import graph audit. Reports potential orphaned source modules.
  * Dynamic imports, auto-loaded Next.js conventions and CLI entrypoints
- * require human review before deletion.
+ * require human review before deletion. Unresolved source imports and
+ * circular source dependencies fail the build.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -123,4 +124,6 @@ const report = {
   ...(verbose ? {possibleUnused: candidates, cycles} : {possibleUnusedSample: candidates.slice(0, 10), cycleSample: cycles.slice(0, 5)})
 };
 console.log(JSON.stringify(report, null, 2));
-if (unresolved.length) process.exitCode = 1;
+// Keep runtime dependency cycles from quietly reappearing after moving the
+// league-switching cache out of the presentation component.
+if (unresolved.length || cycles.length) process.exitCode = 1;

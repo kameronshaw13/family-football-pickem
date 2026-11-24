@@ -1,6 +1,6 @@
 import type { PickemAppSlug } from "./authUsers";
 import { getClientSessionToken } from "./clientSession";
-import { appDataCacheKey, readCachedAppData, type AppData, type AppDataCacheEntry } from "@/components/PickemPresentationShared";
+import { appDataCacheKey, readCachedAppData, type AppData, type AppDataCacheEntry } from "@/lib/appDataCache";
 
 /** Shares in-flight league requests between Settings selection and tab navigation. */
 const inFlight = new Map<string, Promise<boolean>>();

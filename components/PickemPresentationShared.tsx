@@ -24,7 +24,6 @@ import { MAX_CUSTOM_SIDE_BET_AMOUNT, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlo
 import { americanOddsText, fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, fairSymmetricMoneyline, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, sideBetCreatorProfit, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
-import type { BankHistoryWeek } from "@/lib/bankHistory";
 import { isSideBetRestricted } from "@/lib/sideBetAccess";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
 import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, POWER_CONFERENCES } from "@/lib/cfbConferences";
@@ -35,9 +34,13 @@ import MatchupPreview from "@/components/MatchupPreview";
 import NflMatchupPreview from "@/components/NflMatchupPreview";
 import GameTracker from "@/components/GameTracker";
 import SettingsPanel from "@/components/SettingsPanel";
+import type { AppData } from "@/lib/appDataCache";
+export type { AppData, AppDataCacheEntry } from "@/lib/appDataCache";
+export { APP_DATA_CACHE_PREFIX, APP_DATA_CACHE_MAX_AGE, appDataCacheKey, readCachedAppData, writeCachedAppData } from "@/lib/appDataCache";
+
 import GroupMoneyControls from "@/components/GroupMoneyControls";
 import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoints";
-import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
+import { ruleSections, type AppSlug } from "@/lib/rulePresentation";
 import { appLoginPath } from "@/lib/appIdentity";
 import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetResponseSummary, sideBetsForView } from "@/lib/sideBetPresentation";
 import { orderCardPicks } from "@/lib/cardOrdering";
@@ -91,46 +94,11 @@ export type LiveScoreUpdate = {
   live_home_win_probability?: number | null;
   live_away_win_probability?: number | null;
 };
-export type AppData = {
-  currentUser: Profile;
-  profiles: Profile[];
-  games: Game[];
-  picks: Pick[];
-  standings: Standing[];
-  weeklyStandingsByWeek: Record<string, Standing[]>;
-  bankSettings: BankSettings;
-  bankEntries: BankEntry[];
-  bankHistory: BankHistoryWeek[];
-  bankBalances?: Record<string, number>;
-  bankAvailable?: Record<string, number>;
-  bankReserved?: Record<string, number>;
-  sideBets: SideBet[];
-  sideBetLedger: SideBet[];
-  sideBetSlotCounts: Record<string, number>;
-  sideBetBankTotals: Record<string, number>;
-  sideBetWeekTotals?: Record<string, number>;
-  week: number;
-  currentWeek?: number;
-  weekRule: WeekRule;
-  weekOpenTime: string | null;
-  sideBetWeekOpenTime?: string | null;
-  availableWeeks: number[];
-  activeGroup?: { id: string; slug: string; name?: string };
-  groupRules?: GroupRules;
-  sideBetSettings?: { enabled: boolean; maxAmount: number | null; maxPerWeek: number | null; manualAmount: boolean };
-  groupMoney?: { weeklyAmount: number; seasonAmount: number; weeklySubmitted: boolean; seasonSubmitted: boolean; canEdit: boolean; managerName: string | null };
-};
-export type AppDataCacheEntry = {
-  cachedAt: number;
-  payload: AppData;
-};
 export type SideBetSnapshot = {
   sideBets: SideBet[];
   sideBetSlotCounts?: Record<string, number>;
 };
 
-export const APP_DATA_CACHE_PREFIX = "pickem_app_data_v2";
-export const APP_DATA_CACHE_MAX_AGE = 15 * 60 * 1000;
 export const EMPTY_NOTIFICATION_COUNTS: NotificationCounts = { side_bets_received: 0, side_bets_sent: 0, my_card: 0, league_cards: 0, side_bet_ledger: 0, total: 0 };
 export const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
@@ -724,38 +692,6 @@ export function gameConferences(game: Game) {
   return homeConference && homeConference !== awayConference
     ? [awayConference, homeConference]
     : [awayConference];
-}
-
-export function appDataCacheKey(appSlug: AppSlug, week: number | null) {
-  return `${APP_DATA_CACHE_PREFIX}:${appSlug}:${week == null ? "default" : week}`;
-}
-
-export function readCachedAppData(appSlug: AppSlug, week: number | null) {
-  const key = appDataCacheKey(appSlug, week);
-  try {
-    const stored = window.sessionStorage.getItem(key);
-    if (!stored) return null;
-    const entry = JSON.parse(stored) as AppDataCacheEntry;
-    const storedProfile = JSON.parse(window.localStorage.getItem("pickem_profile") || "null") as Profile | null;
-    if (!entry?.payload?.currentUser || !storedProfile || entry.payload.currentUser.id !== storedProfile.id || Date.now() - entry.cachedAt > APP_DATA_CACHE_MAX_AGE) {
-      window.sessionStorage.removeItem(key);
-      return null;
-    }
-    return entry.payload;
-  } catch {
-    window.sessionStorage.removeItem(key);
-    return null;
-  }
-}
-
-export function writeCachedAppData(appSlug: AppSlug, week: number | null, payload: AppData) {
-  window.setTimeout(() => {
-    try {
-      window.sessionStorage.setItem(appDataCacheKey(appSlug, week), JSON.stringify({ cachedAt: Date.now(), payload } satisfies AppDataCacheEntry));
-    } catch {
-      // The app still works normally if private browsing or storage limits block this cache.
-    }
-  }, 0);
 }
 
 export { sideBetSyncSignature, sideBetLedgerSignature } from "@/lib/sideBetRefreshState";
