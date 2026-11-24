@@ -14,7 +14,7 @@ const imports = [...layout.matchAll(/import\s+["']\.\/([^"']+\.css)["']/g)].map(
 const details = read("app/ui-details.css");
 const experience = read("app/ui-experience.css");
 const problems = [];
-const expectedImports = ["ui-foundations.css", "ui-components.css", "ui-overlay-base.css", "ui-settings-base.css", "ui-details.css", "ui-experience.css"];
+const expectedImports = ["ui-foundations.css", "ui-components.css", "ui-overlay-base.css", "ui-settings-base.css", "ui-details.css", "ui-unified-leagues.css", "ui-detail-refinements.css", "ui-board-refinements.css", "ui-experience.css"];
 if (JSON.stringify(imports) !== JSON.stringify(expectedImports)) problems.push("CSS import ownership/order changed: " + imports.join(", "));
 if (!read("app/ui-overlay-base.css").includes("Former game-tracker.css")) problems.push("Overlay baseline missing from ui-overlay-base.css.");
 if (!read("app/ui-settings-base.css").includes("Former theme-settings.css")) problems.push("Settings baseline missing from ui-settings-base.css.");
