@@ -254,5 +254,58 @@ for (const [token, expectedValue] of Object.entries(canonicalTokens)) {
   }
 }
 
-console.log(JSON.stringify({cssImports, report, typographyConflictReport, layoutConflictReport, problems}, null, 2));
+// Cross-file ownership for components most likely to pick up conflicting
+// global styling. This is advisory: exact matching selectors with equal
+// !important status follow source order, but specificity, media conditions
+// and runtime state still require inspecting the rendered component.
+const componentFamilies = [
+  ["gameTracker", ".game-tracker"],
+  ["matchupPreview", ".matchup-preview"],
+  ["pickBoard", ".picks-panel"],
+  ["leagueHeaders", ".board-league-header"],
+  ["basketballDetails", ".basketball-details"]
+];
+const componentOwnershipReport = [];
+for (const [family, selectorFragment] of componentFamilies) {
+  const owners = new Map();
+  for (const name of cssImports) {
+    const css = parsedCss.get(name);
+    if (!css) continue;
+    css.walkRules(rule => {
+      if (rule.parent.type !== "root" || !rule.selector.includes(selectorFragment)) return;
+      const selector = rule.selector.replace(/\s+/g, " ").trim();
+      rule.nodes.filter(node => node.type === "decl" && !node.prop.startsWith("--")).forEach(decl => {
+        const key = JSON.stringify([selector, decl.prop, Boolean(decl.important)]);
+        const record = owners.get(key) || {
+          selector, property: decl.prop, important: Boolean(decl.important),
+          sourceFiles: [], declarations: 0, lastSource: name, lastLine: decl.source.start.line
+        };
+        if (record.sourceFiles[record.sourceFiles.length - 1] !== name) {
+          record.sourceFiles.push(name);
+        }
+        record.declarations += 1;
+        record.lastSource = name;
+        record.lastLine = decl.source.start.line;
+        owners.set(key, record);
+      });
+    });
+  }
+  const shared = [...owners.values()].filter(item => item.sourceFiles.length > 1);
+  shared.sort((a, b) => b.sourceFiles.length - a.sourceFiles.length ||
+    b.declarations - a.declarations || a.selector.localeCompare(b.selector));
+  componentOwnershipReport.push({
+    family,
+    declarationOwners: owners.size,
+    crossFileOwners: shared.length,
+    samples: shared.slice(0, 8).map(item => ({
+      selector: item.selector,
+      property: item.property,
+      sourceFiles: item.sourceFiles,
+      lastSource: item.lastSource,
+      lastLine: item.lastLine
+    }))
+  });
+}
+
+console.log(JSON.stringify({cssImports, report, typographyConflictReport, layoutConflictReport, componentOwnershipReport, problems}, null, 2));
 if (problems.length) process.exitCode = 1;
