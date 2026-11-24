@@ -64,3 +64,9 @@ Do not automatically replace `var(--tracker-divider)`, `var(--tracker-section-di
 A production `npm run build` now runs `npm run audit:css` first through `prebuild`, so a broken divider/spacing/shape contract, import order, or canonical owner fails **before** the Next.js production build. Continue running `npm run check:code` for the broader source, type, lint, and test checks. Preview builds are not substitutes for manual phone UI checks.
 
 For routine builds the audit logs compact counts and any problems. To inspect full selector/source examples locally use `CSS_AUDIT_VERBOSE=1 npm run audit:css`; this does not change the pass/fail checks.
+
+## Overlay presentation ownership cleanup
+
+The shared GameTracker and Matchup Preview overlay foundation now omits **129** repeated root-level presentation declarations (colors, typography, and alignment) that already have identical later owners in detail and experience stylesheets. This is a selector/property/value consolidation, not a visual redesign. Positioning, dimensions, borders, overflow, scroll, collapse, sticky controls, and touch interactions remain unchanged.
+
+The CSS audit checks exact cross-file duplicates for this presentation-property set across `ui-overlay-base.css` and the later imported detail/experience layers. Four single-property legacy base rules are explicitly allowed until their owning selectors can be migrated cleanly. New duplicate declarations are build failures. The check intentionally excludes conditional media rules and layout or interaction-related properties. Continue to use the ownership report before touching overlay behavior, and manually verify GameTracker / Matchup Preview on a phone when changing structural CSS.
