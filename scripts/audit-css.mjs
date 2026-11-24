@@ -307,5 +307,21 @@ for (const [family, selectorFragment] of componentFamilies) {
   });
 }
 
-console.log(JSON.stringify({cssImports, report, typographyConflictReport, layoutConflictReport, componentOwnershipReport, problems}, null, 2));
+// Routine builds need a concise pass/fail summary, not thousands of log lines.
+// Set CSS_AUDIT_VERBOSE=1 when investigating individual selector owners.
+const fullReport = {
+  cssImports, report, typographyConflictReport,
+  layoutConflictReport, componentOwnershipReport, problems
+};
+const compactReport = {
+  cssImports,
+  report: report.map(({file, rules, declarations, repeatedSelectorOccurrences, identicalRepeatedRuleBlocks}) =>
+    ({file, rules, declarations, repeatedSelectorOccurrences, identicalRepeatedRuleBlocks})),
+  typographyConflictReport: typographyConflictReport.map(({file, overrides}) => ({file, overrides})),
+  layoutConflictReport: layoutConflictReport.map(({file, overrides}) => ({file, overrides})),
+  componentOwnershipReport: componentOwnershipReport.map(({family, declarationOwners, crossFileOwners}) =>
+    ({family, declarationOwners, crossFileOwners})),
+  problems
+};
+console.log(JSON.stringify(process.env.CSS_AUDIT_VERBOSE === "1" ? fullReport : compactReport, null, 2));
 if (problems.length) process.exitCode = 1;
