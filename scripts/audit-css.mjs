@@ -268,6 +268,54 @@ for (const key of retainedOverlayPresentation) {
   }
 }
 
+// Guard cross-file detail styles against reintroducing exact root-level
+// declarations already owned by a later detail layer. A complete legacy rule
+// whose only declaration is duplicated remains advisory until its selector
+// can be migrated without accidentally changing conditional specificity.
+const detailOwnershipFiles = [
+  "ui-details.css", "ui-unified-leagues.css",
+  "ui-detail-refinements.css", "ui-board-refinements.css"
+];
+const detailRules = detailOwnershipFiles.flatMap((file, fileIndex) => {
+  const root = parsedCss.get(file);
+  if (!root) return [];
+  return root.nodes.filter(node => node.type === "rule").map(rule => ({
+    file, fileIndex, rule,
+    selector: rule.selector.replace(/\s+/g, " ").trim(),
+    declarations: rule.nodes.filter(node => node.type === "decl")
+  }));
+});
+// Four legacy root-level layout selectors still overlap later layers.
+// Preserve them until their geometry and specificity can be verified on mobile.
+const legacyCrossFileLayoutSelectors = new Set([
+  ".football-game-tracker .football-play-period > .game-tracker-quarter-header > span, .football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header > span",
+  ".football-game-tracker .football-play-period > .game-tracker-quarter-header, .football-game-tracker .game-tracker-scoring-quarter > .game-tracker-quarter-header",
+  ".game-tracker-sheet, .matchup-preview-sheet",
+  ".game-tracker-backdrop, .matchup-preview-backdrop"
+]);
+const laterDetailDeclarations = new Map();
+for (let i = detailRules.length - 1; i >= 0; i--) {
+  const entry = detailRules[i];
+  const isDetail = /(game-tracker|matchup-preview|basketball-details|football-game-tracker)/.test(entry.selector);
+  const eligible = entry.declarations.filter(decl =>
+    !decl.important && !decl.prop.startsWith("--") &&
+    laterDetailDeclarations.has(JSON.stringify([entry.selector, decl.prop, decl.value.trim()])) &&
+    laterDetailDeclarations.get(JSON.stringify([entry.selector, decl.prop, decl.value.trim()])) > entry.fileIndex
+  );
+  if (isDetail && !legacyCrossFileLayoutSelectors.has(entry.selector) &&
+      eligible.length && eligible.length < entry.declarations.length &&
+      !entry.rule.nodes.some(node => node.type === "comment")) {
+    for (const decl of eligible) {
+      problems.push(`Cross-file duplicate detail declaration: ${entry.file}:${decl.source.start.line} ${entry.selector} ${decl.prop}`);
+    }
+  }
+  for (const decl of entry.declarations) {
+    laterDetailDeclarations.set(
+      JSON.stringify([entry.selector, decl.prop, decl.value.trim()]), entry.fileIndex
+    );
+  }
+}
+
 // Enforce a single authoritative design-token definition across every CSS entry point.
 const canonicalTokens = {
   "--ui-space-1": "4px", "--ui-space-2": "8px", "--ui-space-3": "12px",
