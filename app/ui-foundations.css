@@ -175,10 +175,10 @@ p { margin: 0; }
 .custom-select.disabled { opacity: .72; }
 .custom-select.open > .custom-select-chevron { transform: rotate(180deg); }
 .custom-select-spinner { animation: spin .8s linear infinite; }
-.custom-select-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; display: grid; width: 100%; min-width: 0; max-height: min(360px, 48svh); overflow-y: auto; overscroll-behavior: contain; border: var(--ui-divider-section); background: var(--panel); box-shadow: none; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.custom-select-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; display: grid; width: 100%; min-width: 0; max-height: min(360px, 48svh); overflow-y: auto; overscroll-behavior: contain; border: var(--ui-divider-section); box-shadow: none; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .custom-select-menu::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .custom-select-section { display: contents; }
-.custom-select-option { display: flex; width: 100%; height: 38px; min-height: 38px; align-items: center; padding: var(--ui-space-2) 10px; border: 0; border-top: var(--ui-divider-row); color: var(--ink); background: var(--panel); font-family: var(--font-display); font-size: 12px; font-weight: 700; line-height: 1.2; text-align: left; text-transform: uppercase; touch-action: manipulation; }
+.custom-select-option { display: flex; width: 100%; height: 38px; min-height: 38px; align-items: center; padding: var(--ui-space-2) 10px; border: 0; color: var(--ink); background: var(--panel); font-family: var(--font-display); font-size: 12px; font-weight: 700; line-height: 1.2; text-align: left; text-transform: uppercase; touch-action: manipulation; }
 .custom-select-menu > .custom-select-section:first-child > .custom-select-option:first-child { border-top: 0; }
 .custom-select-option.selected { color: var(--blue-dark); background: var(--blue-soft); }
 .custom-select-option:active { background: var(--hover); }
@@ -374,7 +374,7 @@ fieldset .field-label { padding: 0; }
 .side-bet-slip-sheet-head:active { cursor: grabbing; }
 .side-bet-slip-title { min-width: 0; flex: 1 1 auto; }
 .side-bet-slip-title h2 { margin: 0; overflow: hidden; font-size: 14px; font-weight: 800; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
-.side-bet-slip-title p { margin-top: 3px; overflow: hidden; color: #c8d4da; font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+.side-bet-slip-title p { margin-top: 3px; overflow: hidden; color: #c8d4da; font-weight: 600; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
 .slip-icon-btn { display: grid; width: 32px; height: 32px; place-items: center; padding: 0; border: 1px solid rgba(255, 255, 255, .2); border-radius: var(--ui-radius-md); color: #fff; background: transparent; }
 .slip-icon-btn svg { display: block; width: 18px; height: 18px; margin: 0; }
 .side-bet-header-collapse { flex: 0 0 32px; }
@@ -431,7 +431,7 @@ fieldset .field-label { padding: 0; }
 .side-bet-response.pending { color: var(--blue-dark); }
 .side-bet-offer-amount { align-self: center; justify-self: end; margin-left: -7px; font-family: var(--font-display); font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .side-bet-offer-payout { display: grid; gap: var(--ui-space-1); min-width: 44px; }
-.side-bet-offer-payout > span { display: grid; justify-items: end; gap: 1px; line-height: 1; }
+.side-bet-offer-payout > span { display: grid; justify-items: end; gap: 1px; }
 .side-bet-offer-payout small { color: var(--muted); font-family: var(--font-body); font-size: 7px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
 .side-bet-offer-payout strong { font-family: var(--font-display); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .side-bet-card .status-mark { padding: 2px 5px; }
@@ -531,9 +531,9 @@ fieldset .field-label { padding: 0; }
 .bank-history-line:last-child { border-bottom: 0; }
 .bank-history-line > span { min-width: 0; overflow: hidden; color: var(--ink); font-size: 11px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .bank-history-line > strong { font-family: var(--font-display); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-.bank-history-game-copy { display: flex; min-width: 0; align-items: baseline; gap: 6px; }
+.bank-history-game-copy { display: flex; min-width: 0; gap: 6px; }
 .bank-history-game-copy .responsive-text { min-width: 0; max-width: 100%; flex: 1 1 auto; }
-.bank-history-game-copy small { flex: 0 0 auto; color: var(--muted); font-size: 9px; font-weight: 700; white-space: nowrap; }
+.bank-history-game-copy small { flex: 0 0 auto; color: var(--muted); font-weight: 700; white-space: nowrap; }
 
 .bank-player-result { position: relative; }
 .bank-player-result:not(:last-child)::after { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--line); content: ""; pointer-events: none; }
@@ -568,7 +568,7 @@ fieldset .field-label { padding: 0; }
 .ledger-row.side-bet-ledger-row { display: grid; height: var(--pick-card-row-height); min-height: var(--pick-card-row-height); grid-template-columns: 38px minmax(0, 1fr) max-content; align-items: center; gap: 10px; padding: 7px var(--pick-content-inset); background: var(--panel); }
 .side-bet-ledger-row .team-logo { width: 34px; height: 34px; }
 .tie-icon { display: grid; width: 30px; height: 30px; place-items: center; font-size: 22px; line-height: 1; }
-.side-bet-ledger-copy { display: grid; min-width: 0; align-content: center; }
+.side-bet-ledger-copy { display: grid; min-width: 0; }
 .ledger-row.side-bet-ledger-row .side-bet-ledger-title { display: flex; min-width: 0; align-items: center; gap: var(--ui-space-1); overflow: hidden; color: var(--ink); white-space: nowrap; }
 .side-bet-ledger-title .side-bet-ledger-matchup { width: 100%; flex: 1 1 auto; }
 .side-bet-ledger-row > div p { display: block; overflow: hidden; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 600; line-height: 1.4; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
@@ -1529,11 +1529,7 @@ body:has(.confirmation-backdrop) {
 }
 
 .profile-year-select {
-  position: absolute;
   top: 28px;
-  right: 58px;
-  z-index: 8;
-  transform: translateY(-50%);
 }
 
 .profile-year-select .custom-select-menu {
