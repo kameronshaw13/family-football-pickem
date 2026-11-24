@@ -310,13 +310,6 @@ html[data-theme="dark"] .primary-nav {
 
 /* Both details are now nearly full-height pull-down sheets, below the iPhone notch
  * and above the permanent bottom nav. Never cover or move the nav. */
-.game-tracker-backdrop,
-.matchup-preview-backdrop {
-  top:env(safe-area-inset-top);
-  bottom:calc(var(--nav-height) + env(safe-area-inset-bottom));
-  align-items:flex-end;
-  background:rgba(16,30,40,.28);
-}
 .game-tracker-sheet,
 .matchup-preview-sheet {
   flex:0 1 auto;
