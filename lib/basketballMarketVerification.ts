@@ -19,9 +19,14 @@ export function verifyBasketballPregameMarket(
   const quoted = action.spread && !action.spread.suspended ? action.spread : null;
 
   // The direct ESPN/DraftKings quote is an independent identity-checked source.
-  // Normal movement (under 4 points) stays with the more timely Action quote.
-  if (verified && (!quoted || Math.abs(quoted.awayPoint - verified.awayPoint) >= 4)) {
-    return { ...action, spread: verified };
+  // Near-pick'em half points are an app convention. An opposing quoted
+  // favorite at a neutral site still needs verification below the usual gap.
+  const oppositeFavorites = game.neutral_site && quoted && verified
+    && Math.abs(quoted.awayPoint) >= 1.5 && Math.abs(verified.awayPoint) >= 1.5
+    && quoted.awayPoint * verified.awayPoint < 0;
+  if (verified && (!quoted || oppositeFavorites || Math.abs(quoted.awayPoint - verified.awayPoint) >= 4)) {
+    const moneyline = espn?.moneyline && !espn.moneyline.suspended ? espn.moneyline : action.moneyline;
+    return { ...action, spread: verified, moneyline };
   }
   if (!quoted || verified) return action;
 

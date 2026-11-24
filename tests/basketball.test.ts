@@ -145,28 +145,32 @@ test("football payouts never receive the basketball tournament multiplier", asyn
   assert.ok(writes.every((entry) => !entry.note.includes("March Madness")));
 });
 
-const marketGame = { id: "nba", espn_event_id: "123", league: "NBA", commence_time: "2026-10-20T19:00:00Z" } as any;
+const marketGame = { id: "nba", espn_event_id: "123", league: "NBA", home_team: "Home Team", away_team: "Away Team", commence_time: "2026-10-20T19:00:00Z" } as any;
+const marketTeam = (displayName: string) => ({ displayName, location: "", nickname: "", abbreviation: "", logoUrl: null });
+const marketEvent = (draftKingsOdds: unknown, statusState = "pre") => ({
+  id: marketGame.espn_event_id, homeTeam: marketTeam(marketGame.home_team), awayTeam: marketTeam(marketGame.away_team), statusState, draftKingsOdds
+});
 const marketNow = new Date("2026-10-19T12:00:00Z");
 const dkRow = { provider: { name: "DraftKings" }, pointSpread: { away: { close: { line: "-1.5", odds: "-102" } }, home: { close: { line: "+1.5", odds: "-118" } } }, moneyline: { away: { close: { odds: "-112" } }, home: { close: { odds: "-108" } } }, overUnder: 222.5 };
 test("basketball fallback preserves the explicitly identified DraftKings spread and market odds", () => {
-  const quote = espnDraftKingsBasketballQuote(marketGame, dkRow, "pre", marketNow);
+  const quote = espnDraftKingsBasketballQuote(marketGame, marketEvent(dkRow), marketNow);
   assert.deepEqual(quote?.spread, { awayPoint: -1.5, homePoint: 1.5, awayOdds: -102, homeOdds: -118, suspended: false });
   assert.equal(quote?.total?.points, 222.5);
   assert.equal(quote?.moneyline?.awayOdds, -112);
 });
 test("ESPN DK-priced PK defaults to home -0.5 / away +0.5, but missing prices are No Line", () => {
   const pkRow = { ...dkRow, pointSpread: { away: { close: { line: "0", odds: "-110" } }, home: { close: { line: "0", odds: "-110" } } } };
-  const priced = espnDraftKingsBasketballQuote(marketGame, pkRow, "pre", marketNow);
+  const priced = espnDraftKingsBasketballQuote(marketGame, marketEvent(pkRow), marketNow);
   assert.equal(priced?.spread?.homePoint, -0.5);
   assert.equal(priced?.spread?.awayPoint, 0.5);
-  const missing = espnDraftKingsBasketballQuote(marketGame, { ...pkRow, pointSpread: { away: { close: { line: "0" } }, home: { close: { line: "0" } } } }, "pre", marketNow);
+  const missing = espnDraftKingsBasketballQuote(marketGame, marketEvent({ ...pkRow, pointSpread: { away: { close: { line: "0" } }, home: { close: { line: "0" } } } }), marketNow);
   assert.equal(missing?.spread, null);
 });
 
 test("basketball pregame fallback never substitutes a different bookmaker or a live game's closing line", () => {
-  assert.equal(espnDraftKingsBasketballQuote(marketGame, { ...dkRow, provider: { name: "Other" } }, "pre", marketNow), null);
-  assert.equal(espnDraftKingsBasketballQuote(marketGame, dkRow, "in", marketNow), null);
-  assert.equal(espnDraftKingsBasketballQuote(marketGame, dkRow, "pre", new Date("2026-10-20T19:00:00Z")), null);
+  assert.equal(espnDraftKingsBasketballQuote(marketGame, marketEvent({ ...dkRow, provider: { name: "Other" } }), marketNow), null);
+  assert.equal(espnDraftKingsBasketballQuote(marketGame, marketEvent(dkRow, "in"), marketNow), null);
+  assert.equal(espnDraftKingsBasketballQuote(marketGame, marketEvent(dkRow), new Date("2026-10-20T19:00:00Z")), null);
   const badSpread = { ...dkRow, pointSpread: { away: { close: { line: "-1.5" } }, home: { close: { line: "-1.5" } } } };
-  assert.equal(espnDraftKingsBasketballQuote(marketGame, badSpread, "pre", marketNow)?.spread, null);
+  assert.equal(espnDraftKingsBasketballQuote(marketGame, marketEvent(badSpread), marketNow)?.spread, null);
 });
