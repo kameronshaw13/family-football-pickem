@@ -316,6 +316,29 @@ for (let i = detailRules.length - 1; i >= 0; i--) {
   }
 }
 
+// For the legacy shared sheet/backdrop and football-quarter selectors, a
+// later !important declaration is the layout owner. Do not reintroduce an
+// earlier root-level non-important value for that same property across files.
+const finalImportantLayoutOwners = new Map();
+for (let i = detailRules.length - 1; i >= 0; i--) {
+  const entry = detailRules[i];
+  if (!legacyCrossFileLayoutSelectors.has(entry.selector)) continue;
+  for (const decl of entry.declarations) {
+    if (decl.prop.startsWith("--")) continue;
+    const key = JSON.stringify([entry.selector, decl.prop]);
+    const finalOwner = finalImportantLayoutOwners.get(key);
+    if (finalOwner && finalOwner.fileIndex > entry.fileIndex &&
+        finalOwner.important && !decl.important) {
+      problems.push(`Shadowed shared-layout declaration: ${entry.file}:${decl.source.start.line} ${entry.selector} ${decl.prop} (owned by ${finalOwner.file})`);
+    }
+    if (!finalOwner || (decl.important && !finalOwner.important)) {
+      finalImportantLayoutOwners.set(key, {
+        file: entry.file, fileIndex: entry.fileIndex, important: decl.important
+      });
+    }
+  }
+}
+
 // Enforce a single authoritative design-token definition across every CSS entry point.
 const canonicalTokens = {
   "--ui-space-1": "4px", "--ui-space-2": "8px", "--ui-space-3": "12px",
