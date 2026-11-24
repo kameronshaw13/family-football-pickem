@@ -42,3 +42,9 @@ The original `ui-details.css` layer now also follows the no-identical-root-decla
 The four feature-owned detail stylesheets have undergone a conservative root-level typography pass. It removes earlier declarations only when a later declaration in the **same file** has the exact same complete selector and CSS property but a different value. The pass targets only `font-size`, `font-weight`, `line-height`, `letter-spacing`, and `text-align`, with no changes to media-query rules, custom properties, `!important`, or spacing/dimension declarations. It leaves blocks intact when deleting their last declaration would require rewriting the surrounding rule.
 
 The CSS audit now includes an advisory `typographyConflictReport` with per-file remaining counts and sample source lines. An override can be intentional, so this report is informational rather than an automatic build failure. Audit changes to shared nav and GameTracker type scales against the rendered phone layout before further consolidation.
+
+## Dimension and spacing override consolidation
+
+The same conservative single-selector/root-level consolidation now covers layout dimensions and spacing: width/height and min/max variants, gap (including row/column), padding, and margin. The cleanup removed 174 superseded declarations from the four feature-owned CSS files while retaining later declarations. It does **not** alter display mode, grid placement, fixed/sticky positioning, offsets, media rules, custom properties, or important declarations. Rules reduced to zero declarations are left for individual review.
+
+`audit:css` now outputs `layoutConflictReport` alongside the typography report. These are advisory reports rather than build failures because competing values can be deliberate refinements. Use the reports to target future ownership cleanup; manually verify the phone layout and overlays before considering any changes to positioning.

@@ -1,5 +1,5 @@
 /* Unified Pick'em home. Existing league routes keep their current presentation. */
-.league-hub-screen { position: relative; min-height: 100vh; min-height: 100dvh; padding: 0 16px max(32px, env(safe-area-inset-bottom)); color: var(--ink); background: var(--canvas); }
+.league-hub-screen { position: relative; min-height: 100vh; padding: 0 16px max(32px, env(safe-area-inset-bottom)); color: var(--ink); background: var(--canvas); }
 .league-hub-content { width: min(760px, 100%); margin: 0 auto; padding-top: calc(env(safe-area-inset-top) + var(--header-height) + var(--ui-space-3)); }
 .league-hub-trophy-wordmark { display: block; width: auto; max-width: min(236px, 100%); height: 36px; flex: 0 1 auto; object-fit: contain; object-position: left center; }
 .league-hub-brand { display: flex; align-items: center; gap: 9px; color: #fff; font-family: var(--font-display); font-size: 24px; font-weight: 900; letter-spacing: -.035em; }
@@ -62,15 +62,10 @@
 /* Batch 1: make the unified header share the app's wordmark / control geometry. */
 .league-hub-header .league-hub-trophy-wordmark {
   display: block;
-  width: min(236px, 100%);
-  height: auto;
-  max-height: 50px;
 }
 .league-hub-header .league-hub-signout {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 5px;
   border: 0;
   border-bottom: 1px solid rgba(255, 255, 255, .36);
   border-radius: 0;
@@ -173,7 +168,6 @@
 .league-hub-resuming {
   display: grid;
   min-height: 100vh;
-  min-height: 100dvh;
   place-items: center;
 }
 .league-hub-resuming svg {
@@ -187,10 +181,10 @@
 
 /* Basketball game details use the same compact scoreboard and single-owner row
    dividers as football, but preview and in-game tracker are separate views. */
-.basketball-details .basketball-play-list { display: grid; gap: var(--ui-space-3); padding: var(--ui-space-3); background: var(--canvas); }
+.basketball-details .basketball-play-list { display: grid; background: var(--canvas); }
 .basketball-details .basketball-play-period { overflow: hidden; background: var(--tracker-row-fill); }
 .basketball-details .basketball-play-period > .game-tracker-quarter-header { margin: 0; padding: var(--ui-space-2) var(--tracker-inset); color: var(--header-muted); font-size: 11px; }
-.basketball-details .basketball-play-period > .basketball-play { min-height: 58px; padding: 10px var(--tracker-inset); border: 0; }
+.basketball-details .basketball-play-period > .basketball-play { border: 0; }
 .basketball-details .basketball-play-period > .basketball-play:not(:last-child) { border-bottom: 1px solid var(--tracker-divider); }
 .basketball-details .basketball-play-period .basketball-play > small { color: var(--muted); font-variant-numeric: tabular-nums; text-align: center; }
 .basketball-details .basketball-play-period .basketball-play > p { min-width: 0; }
@@ -250,15 +244,14 @@
 .basketball-tipoff-time { font-size: 12px; }
 .basketball-details .basketball-play-period > .game-tracker-quarter-header { display: flex; justify-content: space-between; }
 .basketball-details .basketball-play-period > .basketball-play {
-  display: grid; grid-template-columns: minmax(0, 1fr) 62px; grid-template-rows: auto auto;
-  gap: var(--ui-space-1) var(--ui-space-2); align-items: start;
+  display: grid; grid-template-columns: minmax(0, 1fr) 62px; grid-template-rows: auto auto; align-items: start;
 }
 .basketball-play > time { grid-column: 1; grid-row: 1; color: var(--muted); font-size: 12px; line-height: 1.4; font-variant-numeric: tabular-nums; }
 .basketball-details .basketball-play-period .basketball-play > p { grid-row: 2; margin: 0; }
 .basketball-period-scores { display: grid; grid-template-columns: repeat(2, 28px); justify-content: end; justify-items: center; align-items: center; gap: 6px; font-size: 14px; font-variant-numeric: tabular-nums; }
 .basketball-play > .basketball-period-scores { grid-column: 2; grid-row: 1 / span 2; }
 .basketball-period-scores img { object-fit: contain; }
-.basketball-box { margin-top: var(--ui-space-3); overflow: hidden; border: 1px solid var(--line); border-radius: var(--ui-radius-md); background: var(--panel); }
+.basketball-box { overflow: hidden; border: 1px solid var(--line); border-radius: var(--ui-radius-md); background: var(--panel); }
 .basketball-box > h3 { border-bottom: 1px solid var(--line); color: var(--header-muted); background: var(--surface-muted); font-size: 12px; }
 .basketball-box table { table-layout: fixed; width: max-content; min-width: 100%; }
 .basketball-player-name-column { width: 152px; }
@@ -270,11 +263,11 @@
 .basketball-shot-chart { padding: var(--ui-space-3); }
 .basketball-shot-chart .matchup-section-heading { padding-inline: 0; }
 .basketball-shot-chart .matchup-section-heading > span { color: var(--ink); font-size: 12px; font-variant-numeric: tabular-nums; }
-.basketball-shot-filters { display: grid; gap: var(--ui-space-2); padding-block: var(--ui-space-2); }
+.basketball-shot-filters { display: grid; padding-block: var(--ui-space-2); }
 
 .basketball-shot-filters .game-tracker-box-selector button { white-space: normal; line-height: 1.2; }
 .basketball-shot-filters .custom-select { width: 100%; }
-.basketball-shot-key { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); align-items: center; margin: var(--ui-space-2) 0; font-size: 10px; }
+.basketball-shot-key { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); align-items: center; font-size: 10px; }
 .shot-key-made { color: var(--green); }
 .shot-key-missed { color: var(--red); }
 .basketball-court { display: block; width: min(100%, 440px); margin: 0 auto; background: var(--panel); border: 1px solid var(--line); }
@@ -541,7 +534,6 @@ html[data-theme="dark"] .basketball-live-court { border-color: #b98859; backgrou
   display: grid;
   grid-template-columns: 95px minmax(0,1fr);
   align-items: start;
-  gap: 9px;
   padding: 10px var(--tracker-inset);
   border-top: 1px solid var(--tracker-divider);
   font-size: 11px;
@@ -574,7 +566,6 @@ html[data-theme="dark"] .basketball-live-court { border-color: #b98859; backgrou
 }
 .basketball-details .basketball-play-period > .basketball-play {
   grid-template-columns: minmax(0,1fr) 74px;
-  gap: 4px 8px;
   align-items: center;
 }
 .basketball-details .basketball-play-period .basketball-play > time { text-align: left; }
@@ -685,7 +676,7 @@ html[data-theme="dark"] .basketball-game-tracker .game-tracker-score-center .gam
 .basketball-flow-legend > span:last-child { justify-content: flex-end; text-align: right; }
 .basketball-details .basketball-play-period > .basketball-play { grid-template-columns: minmax(0,1fr) 70px; grid-template-rows: auto; }
 .basketball-details .basketball-play-period .basketball-play > p { grid-column: 1; grid-row: 1; font-size: 12px; font-weight: 600; }
-.basketball-details .basketball-play-period .basketball-play > p > time { color: var(--muted); margin-right: 6px; font-variant-numeric: tabular-nums; }
+.basketball-details .basketball-play-period .basketball-play > p > time { color: var(--muted); font-variant-numeric: tabular-nums; }
 .basketball-details .basketball-play-score { grid-column: 2; grid-row: 1; }
 .basketball-details .basketball-play-team-score { gap: 0; }
 .basketball-details .basketball-play-team-score > strong { font-size: 13px; }
