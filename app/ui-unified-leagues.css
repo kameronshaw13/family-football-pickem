@@ -77,7 +77,6 @@
   background: transparent;
   color: #fff;
   font-family: var(--font-display);
-  font-size: 13px;
   font-weight: 800;
 }
 .league-hub-header .league-hub-signout:focus-visible { outline: 2px solid #c5dbe7; outline-offset: -2px; }
@@ -194,7 +193,7 @@
 .basketball-details .basketball-play-period > .basketball-play { min-height: 58px; padding: 10px var(--tracker-inset); border: 0; }
 .basketball-details .basketball-play-period > .basketball-play:not(:last-child) { border-bottom: 1px solid var(--tracker-divider); }
 .basketball-details .basketball-play-period .basketball-play > small { color: var(--muted); font-variant-numeric: tabular-nums; text-align: center; }
-.basketball-details .basketball-play-period .basketball-play > p { min-width: 0; line-height: 1.4; }
+.basketball-details .basketball-play-period .basketball-play > p { min-width: 0; }
 .basketball-details .basketball-play-period .basketball-play > strong { font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
 .basketball-details .basketball-stats th, .basketball-details .basketball-stats td { border-bottom-color: var(--tracker-divider); font-variant-numeric: tabular-nums; text-align: center; }
 .basketball-details .basketball-stats thead th { color: var(--header-muted); background: var(--tracker-header-fill); font-size: 11px; font-weight: 800; }
@@ -579,7 +578,7 @@ html[data-theme="dark"] .basketball-live-court { border-color: #b98859; backgrou
   align-items: center;
 }
 .basketball-details .basketball-play-period .basketball-play > time { text-align: left; }
-.basketball-details .basketball-play-period .basketball-play > p { font-weight: 650; text-align: left; line-height: 1.35; }
+.basketball-details .basketball-play-period .basketball-play > p { text-align: left; line-height: 1.35; }
 .basketball-details .basketball-period-scores {
   display: grid;
   grid-template-columns: repeat(2,32px);
