@@ -216,7 +216,7 @@ const consolidatedLegacyRules = [
 }
 
 // Base overlay declarations should not repeat the same final presentation
-// value in a later feature stylesheet. Four single-declaration base rules
+// value in a later feature stylesheet. Three single-declaration base rules
 // are intentionally retained until their selector ownership is migrated.
 const overlayPresentationProperties = new Set([
   "color", "background", "font-family", "font-size", "font-weight",
@@ -228,7 +228,6 @@ const overlayPresentationProperties = new Set([
 const retainedOverlayPresentation = new Set([
   JSON.stringify([".game-tracker-score-values b.changed", "color", "var(--ink)"]),
   JSON.stringify([".game-tracker-score-values b.unchanged", "color", "var(--muted)"]),
-  JSON.stringify([".game-tracker-score-play", "align-items", "center"]),
   JSON.stringify([".game-tracker-score-team.home .game-tracker-score-team-main", "flex-direction", "row-reverse"])
 ]);
 const laterPresentation = new Map();
@@ -339,6 +338,63 @@ for (let i = detailRules.length - 1; i >= 0; i--) {
   }
 }
 
+// The foundation-to-component and overlay-to-detail cascade previously held
+// redundant exact-value declarations. For multi-declaration root-level rules,
+// prohibit adding the same selector/property/value in an earlier owner when a
+// later layer already owns it. Single-declaration legacy blocks are reported
+// by the advisory component ownership audit until migrated as whole blocks.
+const sharedCascadePairs = [
+  {base: "ui-foundations.css", owners: ["ui-components.css"]},
+  {base: "ui-overlay-base.css", owners: [
+    "ui-details.css", "ui-unified-leagues.css",
+    "ui-detail-refinements.css", "ui-board-refinements.css",
+    "ui-experience.css"
+  ]}
+];
+// Residual exact-value declarations await deliberate whole-rule migration.
+const sharedCascadeMaxOverlap = new Map([
+  ["ui-foundations.css", 6],
+  ["ui-overlay-base.css", 13]
+]);
+const sharedCascadeOverlapReport = [];
+for (const {base, owners} of sharedCascadePairs) {
+  const earlier = parsedCss.get(base);
+  if (!earlier) continue;
+  const laterValues = new Set();
+  for (const name of owners) {
+    const css = parsedCss.get(name);
+    if (!css) continue;
+    css.walkRules(rule => {
+      if (rule.parent.type !== "root") return;
+      const selector = rule.selector.replace(/\s+/g, " ").trim();
+      for (const decl of rule.nodes.filter(node => node.type === "decl")) {
+        if (decl.important || decl.prop.startsWith("--")) continue;
+        laterValues.add(JSON.stringify([selector, decl.prop, decl.value.trim()]));
+      }
+    });
+  }
+  const overlap = [];
+  earlier.walkRules(rule => {
+    if (rule.parent.type !== "root" ||
+        rule.nodes.some(node => node.type === "comment")) return;
+    const declarations = rule.nodes.filter(node => node.type === "decl");
+    if (declarations.length < 2) return;
+    const selector = rule.selector.replace(/\s+/g, " ").trim();
+    for (const decl of declarations) {
+      if (decl.important || decl.prop.startsWith("--")) continue;
+      const key = JSON.stringify([selector, decl.prop, decl.value.trim()]);
+      if (laterValues.has(key)) {
+        overlap.push({selector, property: decl.prop, line: decl.source.start.line});
+      }
+    }
+  });
+  const max = sharedCascadeMaxOverlap.get(base);
+  sharedCascadeOverlapReport.push({file: base, remaining: overlap.length, baselineMax: max});
+  if (overlap.length > max) {
+    problems.push(`Shared CSS overlap increased in ${base}: ${overlap.length} (baseline ${max})`);
+  }
+}
+
 // Enforce a single authoritative design-token definition across every CSS entry point.
 const canonicalTokens = {
   "--ui-space-1": "4px", "--ui-space-2": "8px", "--ui-space-3": "12px",
@@ -435,7 +491,7 @@ for (const [family, selectorFragment] of componentFamilies) {
 // Set CSS_AUDIT_VERBOSE=1 when investigating individual selector owners.
 const fullReport = {
   cssImports, report, typographyConflictReport,
-  layoutConflictReport, componentOwnershipReport, problems
+  layoutConflictReport, componentOwnershipReport, sharedCascadeOverlapReport, problems
 };
 const compactReport = {
   cssImports,
@@ -445,6 +501,7 @@ const compactReport = {
   layoutConflictReport: layoutConflictReport.map(({file, overrides}) => ({file, overrides})),
   componentOwnershipReport: componentOwnershipReport.map(({family, declarationOwners, crossFileOwners}) =>
     ({family, declarationOwners, crossFileOwners})),
+  sharedCascadeOverlapReport,
   problems
 };
 console.log(JSON.stringify(process.env.CSS_AUDIT_VERBOSE === "1" ? fullReport : compactReport, null, 2));
