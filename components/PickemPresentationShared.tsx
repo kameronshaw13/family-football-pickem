@@ -24,7 +24,6 @@ import { MAX_CUSTOM_SIDE_BET_AMOUNT, MAX_SIDE_BET_AMOUNT, hasAvailableSideBetSlo
 import { americanOddsText, fairAltSpreadOdds, fairAltTotalOdds, fairMoneylineFromSpread, fairSymmetricMoneyline, oppositeAmericanOdds, oppositeTotalSide, profitForRisk, sideBetCreatorProfit, sideBetNetForUser, sideBetProfitForUser, sideBetRiskForUser, type SideBetMarketType, validAmericanOdds } from "@/lib/sideBetMarkets";
 import { gradeAgainstSpread, gradeUnderdogOutright, normalizeSpreadForSelectedTeam, spreadText, underdogWinValue } from "@/lib/spreads";
 import { countRegularByLeague, getWeekRule } from "@/lib/weekRules";
-import type { BankHistoryWeek } from "@/lib/bankHistory";
 import { isSideBetRestricted } from "@/lib/sideBetAccess";
 import { computeWeeklySettlement, computeWeeklyStandings } from "@/lib/weeklyBank";
 import { cfbConferenceForLogo, FBS_INDEPENDENTS_CONFERENCE, GROUP_CONFERENCES, POWER_CONFERENCES } from "@/lib/cfbConferences";
@@ -41,7 +40,7 @@ export { APP_DATA_CACHE_PREFIX, APP_DATA_CACHE_MAX_AGE, appDataCacheKey, readCac
 
 import GroupMoneyControls from "@/components/GroupMoneyControls";
 import { moveConfidencePick, normalizeConfidenceCard } from "@/lib/confidencePoints";
-import { ruleSections, type AppSlug, type GroupRules } from "@/lib/rulePresentation";
+import { ruleSections, type AppSlug } from "@/lib/rulePresentation";
 import { appLoginPath } from "@/lib/appIdentity";
 import { sideBetBettorForTeam, sideBetLedgerPerspective, sideBetOfferIsPending, sideBetPerspective, sideBetResponseSummary, sideBetsForView } from "@/lib/sideBetPresentation";
 import { orderCardPicks } from "@/lib/cardOrdering";
