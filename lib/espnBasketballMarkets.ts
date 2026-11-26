@@ -67,7 +67,9 @@ export async function fetchEspnBasketballMarkets(games: Game[]) {
   const results = await Promise.allSettled((["CBB", "NBA"] as const).map(async (league) => {
     const candidates = games.filter((game) => game.league === league && new Date(game.commence_time) > new Date());
     if (!candidates.length) return [];
-    const schedule = await fetchEspnSchedule(league, candidates.map((game) => game.commence_time), 4, 0);
+    // Late-night neutral-site games can be listed on the previous provider slate.
+    // A single-game offer lookup needs the same adjacent-date coverage as the board.
+    const schedule = await fetchEspnSchedule(league, candidates.map((game) => game.commence_time), 4, 1);
     const byId = new Map(schedule.map((game) => [game.id, game]));
     return candidates.flatMap((game) => {
       const event = game.espn_event_id ? byId.get(game.espn_event_id) : null;
