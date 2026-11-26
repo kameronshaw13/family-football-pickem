@@ -16,7 +16,7 @@ type CachedGame = {
   current_spread_team?: string | null;
   current_spread?: number | null;
 };
-type CachedPayload = { games?: CachedGame[] };
+type CachedPayload = { games?: CachedGame[]; sideBetGames?: CachedGame[] };
 type SelectionInfo = {
   game: CachedGame | null;
   matchup: string;
@@ -101,7 +101,7 @@ function selectionInfo(row: HTMLElement, payload: CachedPayload | null): Selecti
   if (!row.dataset.batchMatchup) row.dataset.batchMatchup = matchupOnly(rawMarket);
 
   const matchup = row.dataset.batchMatchup || "";
-  const game = payload?.games?.find((candidate) => gameLabel(candidate) === matchup) || null;
+  const game = [...(payload?.games || []), ...(payload?.sideBetGames || [])].find((candidate) => gameLabel(candidate) === matchup) || null;
   const selectedDisplay = team?.textContent?.trim() || "";
   const selectedTeam = game
     ? [game.away_team, game.home_team].find((candidate) => teamDisplayName(game.league, candidate) === selectedDisplay) || null

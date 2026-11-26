@@ -10,6 +10,8 @@ export type AppData = {
   currentUser: Profile;
   profiles: Profile[];
   games: Game[];
+  /** Additional games available only on the Side Bets board. */
+  sideBetGames?: Game[];
   picks: Pick[];
   standings: Standing[];
   weeklyStandingsByWeek: Record<string, Standing[]>;

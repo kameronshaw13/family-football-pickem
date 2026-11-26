@@ -1,4 +1,4 @@
-import { BASKETBALL_2026_SIDE_BET_OPEN_DATE, basketballCalendar, basketballFinalWeek, basketballPayoutMultiplier, basketballSideBetWeekOpenTime, basketballWeek, isBasketballRules } from "@/lib/basketballRules";
+import { BASKETBALL_2026_SIDE_BET_OPEN_DATE, basketballPickLockTime, basketballCalendar, basketballFinalWeek, basketballPayoutMultiplier, basketballSideBetWeekOpenTime, basketballWeek, isBasketballRules } from "@/lib/basketballRules";
 import { fromZonedTime } from "date-fns-tz";
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
@@ -13,6 +13,7 @@ import { sideBetCreatorProfit } from "@/lib/sideBetMarkets";
 import { sideBetReservedFunds, availableSideBetFunds } from "@/lib/sideBetBank";
 import { footballTeamIdentity, hasValidGameLine, selectGameLine, selectGameFinal } from "@/lib/gameDataIntegrity";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
+import { shawSideBetWeekBounds } from "@/lib/shawBasketballSideBets";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -97,11 +98,12 @@ export async function GET(req: NextRequest) {
       ...lockedRows.map((pick: any) => String(pick.game_id || "")),
       ...allSideBets.map((bet: any) => String(bet.game_id || ""))
     ]);
-    const normalizedGames = allGameRows
+    function canonicalizeGames(rows: any[], basketball: boolean, divisionOneIds: Set<string> | null) {
+    const normalizedGames = rows
       .filter((game: any) => isEligibleSideBetSeasonGame(game) && isGameAllowedForSideBets(context, game)
         && (game.league !== "CBB" || (divisionOneIds !== null && isDivisionOneStoredMatchup(game, divisionOneIds))))
       .map((game: any) => {
-        const lockTime = getGroupGameLockTime(context, game.commence_time).toISOString();
+        const lockTime = (basketball ? basketballPickLockTime(game.commence_time) : getGroupGameLockTime(context, game.commence_time)).toISOString();
         return {
           ...game,
           home_logo_url: normalizeEspnLogoUrl(game.home_logo_url),
@@ -176,7 +178,9 @@ export async function GET(req: NextRequest) {
         updated_at: newest.updated_at || preferred.updated_at
       });
     }
-    const allGames = Array.from(unique.values()).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
+    return Array.from(unique.values()).sort((a, b) => new Date(a.commence_time).getTime() - new Date(b.commence_time).getTime());
+    }
+    const allGames = canonicalizeGames(allGameRows, basketball, divisionOneIds);
     const standingsWeeks = basketball
       ? Array.from({ length: basketballFinalWeek(context.rules) }, (_, index) => index + 1)
       : Array.from(new Set(allGames.map((game) => Number(game.week)))).sort((a, b) => a - b);
@@ -188,6 +192,27 @@ export async function GET(req: NextRequest) {
     const defaultWeek = basketball ? Math.min(basketballWeek(now, context.rules), basketballFinalWeek(context.rules)) : openedWeeks[openedWeeks.length - 1] ?? standingsWeeks[0] ?? 0;
     const week = requestedWeek != null ? Number(requestedWeek) : defaultWeek;
     const games = allGames.filter((game) => Number(game.week) === week);
+    // Do not put basketball into football pick data, standings, lock calculations, or week selection.
+    let sideBetGames: any[] = [];
+    if (context.group.slug === "shaw-family" && sideBetSettings.enabled && Number.isInteger(week) && week >= 0) {
+      try {
+        const { start, end } = shawSideBetWeekBounds(context.seasonYear, week, context.group.timezone);
+        const extraRows: any[] = [];
+        for (let offset = 0; ; offset += 1000) {
+          const page = await supabase.from("games").select("*").in("league", ["CBB", "NBA"])
+            .gte("commence_time", start).lt("commence_time", end)
+            .order("commence_time", { ascending: true }).order("id").range(offset, offset + 999);
+          if (page.error) throw new Error(page.error.message);
+          extraRows.push(...(page.data || []));
+          if ((page.data || []).length < 1000) break;
+        }
+        const ids = extraRows.some(game => game.league === "CBB")
+          ? await fetchEspnDivisionOneTeamIds().catch(() => new Set<string>()) : null;
+        sideBetGames = canonicalizeGames(extraRows, true, ids);
+      } catch (error) {
+        console.warn("[app-data] Shaw basketball side-bet slate unavailable.", error);
+      }
+    }
     const gameById = new Map(allGames.map((game) => [game.id, game]));
     const weekOpen = getGroupPickWeekOpenTime(context, week, games.map((game) => game.commence_time));
 
@@ -295,6 +320,7 @@ export async function GET(req: NextRequest) {
       },
       profiles,
       games,
+      ...(context.group.slug === "shaw-family" ? { sideBetGames } : {}),
       picks: visiblePicks,
       standings,
       weeklyStandingsByWeek,

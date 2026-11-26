@@ -4,6 +4,7 @@ import type { Game, WeekRule } from "@/lib/types";
 import { getGameLockTime, getPickWeekOpenTime, getSpreadFreezeTime } from "@/lib/lockRules";
 import { getWeekRule } from "@/lib/weekRules";
 import { createAsyncCache } from "@/lib/asyncCache";
+import { SHAW_SIDE_BET_LEAGUES, isShawBasketballSideBet, sideBetWeekForGame, sideBetWeekFilter } from "@/lib/shawBasketballSideBets";
 
 export const DEFAULT_GROUP_SLUG = "shaw-family";
 export const GROUP_COOKIE = "pickem_group";
@@ -123,7 +124,25 @@ export function isGameAllowedForGroup(context: GroupContext, game: Pick<Game, "l
   return isGameAllowedByRules(context.rules, game);
 }
 
-export function isGameAllowedForSideBets(context: GroupContext, game: Pick<Game, "league" | "home_team" | "away_team">) {
+export function getGroupSideBetLeagues(context: GroupContext): string[] {
+  return context.group.slug === "shaw-family" ? [...SHAW_SIDE_BET_LEAGUES] : context.rules.eligibleLeagues || ["CFB", "NFL"];
+}
+
+export function getGroupSideBetWeek(context: GroupContext, game: Pick<Game, "league" | "week" | "commence_time">) {
+  return sideBetWeekForGame(context.group.slug, game, context.group.timezone);
+}
+
+export function getGroupSideBetWeekFilter(context: GroupContext, week: number) {
+  return sideBetWeekFilter(context.group.slug, context.seasonYear, week, context.group.timezone);
+}
+
+export function isGameAllowedForSideBets(context: GroupContext, game: Pick<Game, "league" | "home_team" | "away_team"> & Partial<Pick<Game, "commence_time">>) {
+  if (isShawBasketballSideBet(context.group.slug, game.league)) {
+    if (!game.commence_time || !(game.league === "NBA"
+      ? basketballGameAvailableForSideBets(game.commence_time)
+      : basketballGameInSeason(game.commence_time))) return false;
+    return isGameAllowedByRules({ ...context.rules, eligibleLeagues: getGroupSideBetLeagues(context) }, game, true);
+  }
   return isGameAllowedByRules(context.rules, game, true);
 }
 

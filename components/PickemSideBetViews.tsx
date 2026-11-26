@@ -253,7 +253,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
     if (!token) return marketQuotesRef.current;
     marketQuoteRefreshInFlightRef.current = true;
     try {
-      const response = await fetch(`/api/side-bet-markets?week=${week}`, {
+      const response = await fetch(`/api/side-bet-markets?week=${week}&sideBets=1`, {
         headers: { Authorization: `Bearer ${token}`, "x-pickem-group": appSlug },
         cache: "no-store"
       });
@@ -520,7 +520,7 @@ export function SideBetCenter({ appSlug, selectedDayKey, calendarDays, todayDayK
         ariaLabel="Filter side bet games by league"
         className="compact-select"
         value={gameLeague}
-        sections={[{ options: (appSlug === "friends-basketball" ? ["CBB", "NBA"] : ["CFB", "NFL"]).map((league) => ({ value: league, label: league })) }]}
+        sections={[{ options: (appSlug === "shaw-family" ? ["CFB", "NFL", "CBB", "NBA"] : appSlug === "friends-basketball" ? ["CBB", "NBA"] : ["CFB", "NFL"]).map((league) => ({ value: league, label: league })) }]}
         onChange={(value) => { setSlipExpanded(false); setGameLeague(value as SideBetLeagueFilter); }}
       />}
       {view === "new" && !weekConcluded && gameLeague === "CFB" && <MenuSelect

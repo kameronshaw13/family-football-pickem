@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getProfileFromRequest } from "@/lib/authServer";
-import { getGroupSideBetSettings, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+import { getGroupSideBetWeek, getGroupSideBetSettings, isGameAllowedForSideBets, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { createNotificationInBackground } from "@/lib/notifications";
 import { MAX_CUSTOM_SIDE_BET_AMOUNT, sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { batchWeekMatchesView } from "@/lib/sideBetBatchRisk";
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
     for (const selection of body.selections) {
       const game = gameById.get(selection.gameId);
       if (!game) return NextResponse.json({ ok: false, error: "One or more selected games could not be found." }, { status: 404 });
-      if (!isGameAllowedForGroup(context, game)) return NextResponse.json({ ok: false, error: "One of those games is not available in this Pick'em group." }, { status: 409 });
+      if (!isGameAllowedForSideBets(context, game)) return NextResponse.json({ ok: false, error: "One of those games is not available in this Pick'em group." }, { status: 409 });
       if (new Date(game.commence_time) <= now) return NextResponse.json({ ok: false, error: "Every side bet in the batch must be sent before kickoff." }, { status: 409 });
       if (![game.away_team, game.home_team].includes(selection.creatorTeam)) return NextResponse.json({ ok: false, error: "Choose one valid side from each game." }, { status: 400 });
 
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const weeks = prepared.map((selection) => Number(selection.game.week));
+    const weeks = prepared.map((selection) => getGroupSideBetWeek(context, selection.game));
     if (!batchWeekMatchesView(weeks, body.viewWeek)) {
       return NextResponse.json({ ok: false, error: "All batch offers must belong to the selected week. Refresh the board and try again." }, { status: 409 });
     }
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
       season_year: context.seasonYear,
       creator_id: auth.profile.id,
       game_id: game.id,
-      week: game.week,
+      week,
       creator_team: creatorTeam,
       offered_team: offeredTeam,
       creator_spread: creatorSpread,

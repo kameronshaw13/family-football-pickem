@@ -37,14 +37,15 @@ export async function fetchAppDataWithRetry(
 }
 
 /** Retain validated basketball quotes only during a same-week refresh. */
-export function retainReloadedBasketballLines<T extends { week: number; games: Game[] }>(
+export function retainReloadedBasketballLines<T extends { week: number; games: Game[]; sideBetGames?: Game[] }>(
   payload: T,
   previous: T | null
 ): T {
   if (!previous || previous.week !== payload.week) return payload;
-  const previousGames = new Map(previous.games.map(game => [game.id, game]));
+  const previousGames = new Map([...previous.games, ...(previous.sideBetGames || [])].map(game => [game.id, game]));
   return {
     ...payload,
-    games: payload.games.map(game => retainBasketballSpread(game, previousGames.get(game.id)))
+    games: payload.games.map(game => retainBasketballSpread(game, previousGames.get(game.id))),
+    ...(payload.sideBetGames ? { sideBetGames: payload.sideBetGames.map(game => retainBasketballSpread(game, previousGames.get(game.id))) } : {})
   };
 }

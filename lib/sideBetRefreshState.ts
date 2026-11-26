@@ -28,9 +28,10 @@ export function reconcileSideBetSnapshot<T extends {
   sideBets: SideBet[];
   sideBetSlotCounts: Record<string, number>;
   games: Game[];
+  sideBetGames?: Game[];
 }>(current: T, payload: SideBetRefreshSnapshot): T {
   const nextSideBets = payload.sideBets.map(bet => ({
-    ...bet, game: current.games.find(game => game.id === bet.game_id) || bet.game
+    ...bet, game: current.games.find(game => game.id === bet.game_id) || current.sideBetGames?.find(game => game.id === bet.game_id) || bet.game
   }));
   const nextSlotCounts = payload.sideBetSlotCounts || current.sideBetSlotCounts;
   if (sideBetSyncSignature(current.sideBets) === sideBetSyncSignature(nextSideBets) &&
@@ -41,12 +42,12 @@ export function reconcileSideBetSnapshot<T extends {
 /** Only a live-game acceptance includes scores visible to the initiating user. */
 export function sideBetRequestWithVisibleScores<T extends { action?: string; sideBetId?: string }>(
   body: T,
-  current: { sideBets: SideBet[]; games: Game[] } | null | undefined
+  current: { sideBets: SideBet[]; games: Game[]; sideBetGames?: Game[] } | null | undefined
 ): T & { visibleLiveHomeScore?: number; visibleLiveAwayScore?: number } {
   const liveBet = body.action === "accept" && body.sideBetId
     ? current?.sideBets.find(bet => bet.id === body.sideBetId) : null;
   const liveGame = liveBet?.offer_phase === "live"
-    ? current?.games.find(game => game.id === liveBet.game_id) : null;
+    ? current?.games.find(game => game.id === liveBet.game_id) || current?.sideBetGames?.find(game => game.id === liveBet.game_id) : null;
   return liveGame ? {
     ...body,
     visibleLiveHomeScore: liveGame.live_home_score ?? undefined,

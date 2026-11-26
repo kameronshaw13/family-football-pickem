@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { fetchActionNetworkMarkets } from "@/lib/actionNetworkMarkets";
-import { isGameAllowedForSideBets, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+import { getGroupSideBetLeagues, getGroupSideBetWeekFilter, isGameAllowedForSideBets, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { getSupabaseAdmin } from "@/lib/supabaseServer";
 import { gamePickLockTime } from "@/lib/sportPaths";
 import { getGameLockTime } from "@/lib/lockRules";
@@ -26,11 +26,12 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = getSupabaseAdmin();
     const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
+    const includeSideBetSports = req.nextUrl.searchParams.get("sideBets") === "1";
     const { data: games, error } = await supabase
       .from("games")
       .select("*")
-      .eq("week", week)
-      .in("league", context.rules.eligibleLeagues || ["CFB", "NFL"])
+      .or(includeSideBetSports ? getGroupSideBetWeekFilter(context, week) : `week.eq.${week}`)
+      .in("league", includeSideBetSports ? getGroupSideBetLeagues(context) : context.rules.eligibleLeagues || ["CFB", "NFL"])
       .order("commence_time", { ascending: true });
     if (error) throw new Error(error.message);
 

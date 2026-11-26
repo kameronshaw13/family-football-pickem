@@ -1,4 +1,4 @@
-import { isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+import { getGroupSideBetWeekFilter, isGameAllowedForSideBets, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { LEAGUES } from "@/lib/sportPaths";
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
@@ -33,11 +33,12 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = getSupabaseAdmin();
     const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
+    const includeSideBetSports = req.nextUrl.searchParams.get("sideBets") === "1";
     const now = Date.now();
     const { data, error } = await supabase
       .from("games")
       .select("*")
-      .eq("week", week)
+      .or(includeSideBetSports ? getGroupSideBetWeekFilter(context, week) : `week.eq.${week}`)
       .or("final_home_score.is.null,final_away_score.is.null");
 
     if (error) throw error;
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
       const start = new Date(game.commence_time).getTime();
       return start <= now &&
         start >= now - 24 * 60 * 60 * 1000 &&
-        game.event_status !== "STATUS_RESCHEDULED" && isGameAllowedForGroup(context, game);
+        game.event_status !== "STATUS_RESCHEDULED" && (includeSideBetSports ? isGameAllowedForSideBets(context, game) : isGameAllowedForGroup(context, game));
     });
 
     if (!candidates.length) {

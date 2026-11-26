@@ -4,7 +4,7 @@ import { bodySchema } from "@/lib/sideBetRequestSchema";
 import { getProfileFromRequest } from "@/lib/authServer";
 import { scoreNumber, type LiveScoreSnapshot, currentLiveScore, scoreboardLiveScore, liveScoreSnapshotStable, liveScoreDiffersFromOffer, liveScoreMatches, liveScoreConfirmedByEither, liveScoreConsensus } from "@/lib/sideBetLiveScore";
 import { actionMarketAvailable, fetchActionNetworkMarketForGame } from "@/lib/actionNetworkMarkets";
-import { getGroupSideBetSettings, isGameAllowedForSideBets, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+import { getGroupSideBetWeek, getGroupSideBetSettings, isGameAllowedForSideBets, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { createNotificationInBackground, resolveSideBetOfferNotifications } from "@/lib/notifications";
 import { MAX_CUSTOM_SIDE_BET_AMOUNT, sideBetSlotCounts } from "@/lib/sideBetLimits";
 import { normalizeSpreadForSelectedTeam } from "@/lib/spreads";
@@ -250,8 +250,9 @@ export async function POST(req: NextRequest) {
         : null;
       const resolvedCreatorSpread = Number(creatorSpread ?? 0);
 
+      const sideBetWeek = getGroupSideBetWeek(context, game);
       if (Number.isFinite(settings.maxPerWeek)) {
-        const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, Number(game.week));
+        const rows = await allGroupBets(supabase, context.group.id, context.seasonYear, sideBetWeek);
         const counts = sideBetSlotCounts(rows, context.members.map((member) => member.id));
         if ((counts[auth.profile.id] || 0) >= settings.maxPerWeek) {
           return NextResponse.json({ ok: false, error: `You already have ${settings.maxPerWeek} accepted or pending side bets this week.` }, { status: 409 });
@@ -277,7 +278,7 @@ export async function POST(req: NextRequest) {
         season_year: context.seasonYear,
         creator_id: auth.profile.id,
         game_id: game.id,
-        week: game.week,
+        week: sideBetWeek,
         creator_team: body.creatorTeam,
         offered_team: offeredTeam,
         creator_spread: resolvedCreatorSpread,
@@ -313,7 +314,7 @@ export async function POST(req: NextRequest) {
           url: groupNotificationUrl(context.group.slug, "side_bets_received"),
           actionRequired: true
         }));
-      const nextSnapshot = await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? Number(game.week));
+      const nextSnapshot = await snapshot(supabase, context, auth.profile.id, body.viewWeek ?? sideBetWeek);
       return NextResponse.json({ ok: true, sideBet, ...nextSnapshot });
     }
 

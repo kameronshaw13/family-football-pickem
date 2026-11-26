@@ -37,6 +37,7 @@ type CachedPayload = {
   currentUser?: CachedProfile | null;
   profiles?: CachedProfile[];
   games?: CachedGame[];
+  sideBetGames?: CachedGame[];
 };
 
 const MAX_BATCH_SELECTIONS = 8;
@@ -52,7 +53,7 @@ function gameLabel(game: CachedGame) {
 function gameForCard(card: HTMLElement, payload: CachedPayload | null) {
   const label = card.querySelector<HTMLElement>(".stacked-matchup")?.getAttribute("aria-label")?.trim();
   if (!label) return null;
-  return payload?.games?.find((game) => gameLabel(game) === label) || null;
+  return [...(payload?.games || []), ...(payload?.sideBetGames || [])].find((game) => gameLabel(game) === label) || null;
 }
 
 function rawTeamForRow(row: HTMLElement, game: CachedGame) {
@@ -198,7 +199,7 @@ export default function SideBetBatchEnhancements() {
       const oddsValue = oddsInput == null ? 100 : oddsInput.value.trim() === "" ? NaN : Number(oddsInput.value);
       const spreadInput = document.querySelector<HTMLInputElement>(".side-bet-spread-input");
       const spreadValue = spreadInput?.value?.trim() ? Number(spreadInput.value) : null;
-      const game = payload?.games?.find((candidate) => candidate.id === selection.gameId);
+      const game = [...(payload?.games || []), ...(payload?.sideBetGames || [])].find((candidate) => candidate.id === selection.gameId);
       const fallbackSpread = game
         ? normalizeSpreadForSelectedTeam(selection.creatorTeam, game.current_spread_team, game.current_spread)
         : null;
@@ -387,7 +388,7 @@ export default function SideBetBatchEnhancements() {
       list.replaceChildren();
 
       selections.forEach((selection) => {
-        const game = payload?.games?.find((candidate) => candidate.id === selection.gameId);
+        const game = [...(payload?.games || []), ...(payload?.sideBetGames || [])].find((candidate) => candidate.id === selection.gameId);
         if (!game) return;
 
         const row = document.createElement("div");

@@ -285,7 +285,13 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
   const sideBetMutationInFlightRef = useRef(false);
   const liveOfferExpiryInFlightRef = useRef(false);
   const sideBetLedgerRefreshInFlightRef = useRef(false);
-  const hasActiveGames = hasRecentlyStartedGames(data?.games, clock);
+  const pollShawBasketball = appSlug === "shaw-family" && (
+    (tab === "picks" && picksView === "sideBets") ||
+    Boolean(data?.sideBets.some(bet => (bet.status === "open" || bet.status === "accepted") && isBasketballLeague(bet.game?.league || ""))) ||
+    Boolean(data?.sideBetLedger.some(bet => bet.status === "accepted" && isBasketballLeague(bet.game?.league || "")))
+  );
+  const hasActiveGames = hasRecentlyStartedGames(data?.games, clock) ||
+    (pollShawBasketball && hasRecentlyStartedGames(data?.sideBetGames, clock));
 
   useEffect(() => {
     const userId = data?.currentUser?.id;
@@ -846,7 +852,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       if (!token) return;
       finalizationInFlight = true;
       try {
-        const response = await fetch("/api/live-finalize?week=" + week, {
+        const response = await fetch("/api/live-finalize?week=" + week + (pollShawBasketball ? "&sideBets=1" : ""), {
           method: "POST",
           headers: { Authorization: "Bearer " + token, "x-pickem-group": appSlug },
           cache: "no-store"
@@ -867,7 +873,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       if (!token) return;
       scoreRefreshInFlight = true;
       try {
-        const response = await fetch("/api/live-scores?week=" + week, {
+        const response = await fetch("/api/live-scores?week=" + week + (pollShawBasketball ? "&sideBets=1" : ""), {
           signal: AbortSignal.timeout(15000),
           headers: { Authorization: "Bearer " + token, "x-pickem-group": appSlug },
           cache: "no-store"
@@ -882,12 +888,14 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
         const current = dataRef.current;
         if (!current) return;
         const nextGames = mergeLiveScores(current.games, payload.games);
-        const alert = buildLiveAlert(current, nextGames);
-        const nextData = { ...current, games: nextGames };
+        const nextSideBetGames = current.sideBetGames ? mergeLiveScores(current.sideBetGames, payload.games) : undefined;
+        const allNextGames = [...nextGames, ...(nextSideBetGames || [])];
+        const alert = buildLiveAlert(current, allNextGames);
+        const nextData = { ...current, games: nextGames, ...(nextSideBetGames ? { sideBetGames: nextSideBetGames } : {}) };
         dataRef.current = nextData;
         setData(nextData);
 
-        const changedLiveOffers = changedLiveOfferScores(current.sideBets, nextGames);
+        const changedLiveOffers = changedLiveOfferScores(current.sideBets, allNextGames);
 
         if (changedLiveOffers.length && !liveOfferExpiryInFlightRef.current && !sideBetMutationInFlightRef.current) {
           const token = window.localStorage.getItem("pickem_session_token");
@@ -931,7 +939,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
       window.removeEventListener("online", refreshOnResume);
       document.removeEventListener("visibilitychange", refreshOnResume);
     };
-  }, [appSlug, applySideBetSnapshot, hasActiveGames, load, refreshNotificationCounts, week]);
+  }, [appSlug, applySideBetSnapshot, hasActiveGames, load, pollShawBasketball, refreshNotificationCounts, week]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 3200);
@@ -1147,7 +1155,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
     potentialProfit: myActivePotentialProfit,
     potentialLoss: myActivePotentialLoss
   } = acceptedSideBetExposure(previewActive ? testWeek!.sideBets : sideBetLedger, currentUser.id);
-  const openBetGames = sideBetsActive ? games.filter((game) => !isFinalGame(game) && !isPostponedGame(game)) : [];
+  const openBetGames = sideBetsActive ? [...games, ...(data.sideBetGames || [])].filter((game) => !isFinalGame(game) && !isPostponedGame(game)) : [];
   const selectedBetGame = openBetGames.find((game) => game.id === betGameId);
   const selectedCreatorTeam = selectedBetGame && [selectedBetGame.away_team, selectedBetGame.home_team].includes(betCreatorTeam) ? betCreatorTeam : "";
   const rulesSlug = selectedLeague?.slug || appSlug;
@@ -1552,7 +1560,7 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
             setData(current => {
               if (!current || Number(current.week) !== Number(viewedWeek)) return current;
               let changed = false;
-              const games = current.games.map(game => {
+              const updateGames = (source: Game[]) => source.map(game => {
                 const quote = byId.get(game.id);
                 const spread = quote?.phase === "pregame" && quote.spread && !quote.spread.suspended
                   ? normalizeVerifiedMarketSpread(game.league, quote.spread, quote.moneyline)
@@ -1569,8 +1577,10 @@ export default function PickemApp({ appSlug = "shaw-family" }: { appSlug?: AppSl
                   current_spread: awaySpread, current_bookmaker: "DraftKings",
                   updated_at: now.toISOString() };
               });
+              const games = updateGames(current.games);
+              const sideBetGames = current.sideBetGames ? updateGames(current.sideBetGames) : undefined;
               if (!changed) return current;
-              const next = { ...current, games };
+              const next = { ...current, games, ...(sideBetGames ? { sideBetGames } : {}) };
               dataRef.current = next;
               writeCachedAppData(appSlug, current.week, next);
               return next;

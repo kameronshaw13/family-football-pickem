@@ -1,4 +1,4 @@
-import { isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
+import { getGroupSideBetLeagues, getGroupSideBetWeekFilter, isGameAllowedForSideBets, isGameAllowedForGroup, requestedGroupFromRequest, resolveGroupContext } from "@/lib/groupContext";
 import { LEAGUES } from "@/lib/sportPaths";
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileFromRequest } from "@/lib/authServer";
@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = getSupabaseAdmin();
     const context = await resolveGroupContext(supabase, auth.profile.id, requestedGroupFromRequest(req));
+    const includeSideBetSports = req.nextUrl.searchParams.get("sideBets") === "1";
     const now = Date.now();
     const nowIso = new Date(now).toISOString();
     const lookbackIso = new Date(now - 18 * 60 * 60 * 1000).toISOString();
@@ -40,12 +41,12 @@ export async function GET(req: NextRequest) {
     const { data: candidates, error } = await supabase
       .from("games")
       .select("id,espn_event_id,week,league,commence_time,home_team,away_team,home_logo_url,away_logo_url,final_home_score,final_away_score,event_status")
-      .eq("week", week)
+      .or(includeSideBetSports ? getGroupSideBetWeekFilter(context, week) : `week.eq.${week}`)
       .is("final_home_score", null)
       .is("final_away_score", null)
       .lte("commence_time", nowIso)
       .gte("commence_time", lookbackIso)
-      .in("league", context.rules.eligibleLeagues || ["CFB", "NFL"]);
+      .in("league", includeSideBetSports ? getGroupSideBetLeagues(context) : context.rules.eligibleLeagues || ["CFB", "NFL"]);
 
     if (error) throw error;
 
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest) {
       schedules.set(league, fetchEspnSchedule(league, leagueGames.map((game) => game.commence_time), 4, 0).catch(() => []));
     }
 
-    const eligibleGames = (candidates || []).filter((game) => game.event_status !== "STATUS_RESCHEDULED" && isGameAllowedForGroup(context, game));
+    const eligibleGames = (candidates || []).filter((game) => game.event_status !== "STATUS_RESCHEDULED" && (includeSideBetSports ? isGameAllowedForSideBets(context, game) : isGameAllowedForGroup(context, game)));
     // One unavailable event must not discard healthy NFL/CFB updates.
     const results = await Promise.allSettled(eligibleGames.map(async (game) => {
       const league = game.league as import("@/lib/types").League;
